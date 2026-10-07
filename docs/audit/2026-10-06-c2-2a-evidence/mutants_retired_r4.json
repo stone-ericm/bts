@@ -1,0 +1,867 @@
+[
+ {
+  "id": "C1",
+  "rule": "pick: decode the held bytes (no second read)",
+  "file": "src/bts/model/calibrate.py",
+  "old": "    return reader.read(), sha, recorded\n",
+  "new": "    return f.read_text(), sha, recorded\n",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py",
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "calibration_on"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "C2",
+  "rule": "pick: capture-preparation fallback",
+  "file": "src/bts/model/calibrate.py",
+  "old": "        return f.read_text(), None, recorded\n",
+  "new": "        raise RuntimeError(\"no fallback\")\n",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py",
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "fault_pick_buffer"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "C3",
+  "rule": "pick: genuine OSError keeps the skip, no retry",
+  "file": "src/bts/model/calibrate.py",
+  "old": "    except OSError as e:\n        try:\n            _note(errors, \"pick input unreadable, skipped: \" + f.name, e)\n        except Exception:\n            pass\n        raise\n    except Exception as e:\n        raw, prep_error = None, e\n",
+  "new": "    except Exception as e:\n        raw, prep_error = None, e\n",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py",
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "C4",
+  "rule": "pick: fallback input recorded with nulls",
+  "file": "src/bts/model/calibrate.py",
+  "old": "recorded = _collect(inputs, lambda: {\"file\": f.name, \"bytes\": None, \"sha256\": None}, errors, \"pick input\")",
+  "new": "recorded = True",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "C5",
+  "rule": "binding: slot field",
+  "file": "src/bts/model/calibrate.py",
+  "old": "\"slot\": slot_key,",
+  "new": "\"slot\": \"pick\",",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "C6",
+  "rule": "binding: file_sha256 field",
+  "file": "src/bts/model/calibrate.py",
+  "old": "{\"file\": f.name, \"file_sha256\": file_sha, \"date\": pick_date.isoformat(),",
+  "new": "{\"file\": f.name, \"file_sha256\": None, \"date\": pick_date.isoformat(),",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "C7",
+  "rule": "binding: date field",
+  "file": "src/bts/model/calibrate.py",
+  "old": "\"date\": pick_date.isoformat(),",
+  "new": "\"date\": str(today),",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "C8",
+  "rule": "binding: batter_id field",
+  "file": "src/bts/model/calibrate.py",
+  "old": "\"batter_id\": bid, \"p\": sample[0], \"y\": sample[1]}",
+  "new": "\"batter_id\": str(bid), \"p\": sample[0], \"y\": sample[1]}",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "C9",
+  "rule": "binding: p and y are the appended sample",
+  "file": "src/bts/model/calibrate.py",
+  "old": "\"p\": sample[0], \"y\": sample[1]}",
+  "new": "\"p\": round(sample[0], 2), \"y\": sample[1]}",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "C10",
+  "rule": "binding: one per sample, in order",
+  "file": "src/bts/model/calibrate.py",
+  "old": "            if bindings is not None:\n                try:\n                    if not _bind(",
+  "new": "            if bindings is not None and slot_key == \"pick\":\n                try:\n                    if not _bind(",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "C11",
+  "rule": "witness: n_fit",
+  "file": "src/bts/model/calibrate.py",
+  "old": "            rec[\"n_fit\"] = len(samples)\n",
+  "new": "            rec[\"n_fit\"] = len(inputs or [])\n",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py",
+   "tests/c2_2a/test_local_witness.py"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "C12",
+  "rule": "witness: samples hash over the bindings",
+  "file": "src/bts/model/calibrate.py",
+  "old": "_canon_or_none(bindings, errors, \"calibration samples\")",
+  "new": "_canon_or_none(inputs, errors, \"calibration samples\")",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "C13",
+  "rule": "witness: map fields from the fitted object",
+  "file": "src/bts/model/calibrate.py",
+  "old": "\"increasing\": bool(cal.increasing_),",
+  "new": "\"increasing\": True,",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ],
+  "equivalent": "IsotonicRegression(out_of_bounds='clip', y_min=0.0, y_max=1.0) keeps sklearn's default increasing=True, so increasing_ is True on any data; the constant equals the fitted value",
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "C13b",
+  "rule": "witness: map y thresholds from the fitted object",
+  "file": "src/bts/model/calibrate.py",
+  "old": "\"y_thresholds\": cal.y_thresholds_.tolist(),",
+  "new": "\"y_thresholds\": cal.X_thresholds_.tolist(),",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "C14",
+  "rule": "witness: map canonical hash",
+  "file": "src/bts/model/calibrate.py",
+  "old": "_canon_or_none(cal_map, errors, \"calibration map\")",
+  "new": "_canon_or_none(cal_map[\"X_thresholds\"], errors, \"calibration map\")",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "C15",
+  "rule": "status: insufficient_support",
+  "file": "src/bts/model/calibrate.py",
+  "old": "status_word=\"insufficient_support\"",
+  "new": "status_word=\"fitted\"",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py",
+   "tests/c2_2a/test_local_witness.py"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "C16",
+  "rule": "status: no_sklearn",
+  "file": "src/bts/model/calibrate.py",
+  "old": "_fill_witness(witness, errors, status_word=\"no_sklearn\")",
+  "new": "_fill_witness(witness, errors, status_word=None)",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py",
+   "tests/c2_2a/test_local_witness.py"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "C17",
+  "rule": "status: fitted only after the fit",
+  "file": "src/bts/model/calibrate.py",
+  "old": "_fill_witness(witness, errors, status_word=\"fitted\", samples=samples",
+  "new": "_fill_witness(witness, errors, status_word=None, samples=samples",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "W2",
+  "rule": "containment: collect",
+  "file": "src/bts/serving_witness.py",
+  "old": "    try:\n        items.append(build())\n        return True\n    except Exception as e:\n        try:\n            note(errors, what + \": collector append failed\", e)\n        except Exception:\n            pass\n        return False\n",
+  "new": "    items.append(build())\n    return True\n",
+  "tests": [
+   "tests/c2_2a/test_serving_witness.py",
+   "tests/c2_2a/test_calibrate_witness.py",
+   "tests/c2_2a/test_predict_witness.py",
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "collect() was removed in r4 (no caller after the class repair)"
+ },
+ {
+  "id": "P1",
+  "rule": "parquet: parse the hashed buffer",
+  "file": "src/bts/model/predict.py",
+  "old": "    return pd.read_parquet(buffer)\n",
+  "new": "    return pd.read_parquet(parquet)\n",
+  "tests": [
+   "tests/c2_2a/test_predict_witness.py"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "P2",
+  "rule": "parquet: capture-preparation fallback",
+  "file": "src/bts/model/predict.py",
+  "old": "        return pd.read_parquet(parquet)\n",
+  "new": "        raise\n",
+  "tests": [
+   "tests/c2_2a/test_predict_witness.py",
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "fault_parquet_buffer"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "P3",
+  "rule": "HashingWriter: forward returns the real result",
+  "file": "src/bts/model/predict.py",
+  "old": "        return n\n\n    def hexdigest(self):",
+  "new": "        return None\n\n    def hexdigest(self):",
+  "tests": [
+   "tests/c2_2a/test_predict_witness.py",
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "P4",
+  "rule": "HashingWriter: hashes exactly the bytes written",
+  "file": "src/bts/model/predict.py",
+  "old": "                self._h.update(b)\n",
+  "new": "                self._h.update(bytes(b)[:1])\n",
+  "tests": [
+   "tests/c2_2a/test_predict_witness.py"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "P5",
+  "rule": "HashingWriter: hash failure contained",
+  "file": "src/bts/model/predict.py",
+  "old": "            try:\n                self._h.update(b)\n            except Exception as e:\n                self._h = None\n",
+  "new": "            if True:\n                self._h.update(b)\n            if False:\n                self._h = None\n",
+  "tests": [
+   "tests/c2_2a/test_predict_witness.py"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "P6",
+  "rule": "save: construction failure saves through the plain file",
+  "file": "src/bts/model/predict.py",
+  "old": "        pickle.dump(blend, f if writer is None else writer)\n",
+  "new": "        pickle.dump(blend, writer)\n",
+  "tests": [
+   "tests/c2_2a/test_predict_witness.py"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "P7",
+  "rule": "save: open/truncate before serialization",
+  "file": "src/bts/model/predict.py",
+  "old": "    writer = None\n    with open(path, \"wb\") as f:\n",
+  "new": "    writer = None\n    pickle.dumps(blend)\n    with open(path, \"wb\") as f:\n",
+  "tests": [
+   "tests/c2_2a/test_predict_witness.py"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "P8",
+  "rule": "provenance: cache branch",
+  "file": "src/bts/model/predict.py",
+  "old": "        model_source, model_sha = \"cache\", cached_blend_sha256\n",
+  "new": "        model_source, model_sha = \"trained\", cached_blend_sha256\n",
+  "tests": [
+   "tests/c2_2a/test_predict_witness.py",
+   "tests/c2_2a/test_local_witness.py"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "P9",
+  "rule": "provenance: trained_unsaved",
+  "file": "src/bts/model/predict.py",
+  "old": "        model_source, model_sha = \"trained_unsaved\", None\n",
+  "new": "        model_source, model_sha = \"trained\", None\n",
+  "tests": [
+   "tests/c2_2a/test_predict_witness.py"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "P10",
+  "rule": "provenance: trained hash is the save's",
+  "file": "src/bts/model/predict.py",
+  "old": "            model_sha = save_blend(to_save, save_blend_path, witness_errors)\n",
+  "new": "            save_blend(to_save, save_blend_path, witness_errors)\n",
+  "tests": [
+   "tests/c2_2a/test_predict_witness.py",
+   "tests/c2_2a/test_local_witness.py"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "P11",
+  "rule": "attrs: contained",
+  "file": "src/bts/model/predict.py",
+  "old": "    try:\n        frame.attrs[\"serving_model\"] = {\"source\": source, \"sha256\": sha}\n    except Exception as e:",
+  "new": "    if True:\n        frame.attrs[\"serving_model\"] = {\"source\": source, \"sha256\": sha}\n    if False:",
+  "tests": [
+   "tests/c2_2a/test_predict_witness.py"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "O1",
+  "rule": "cache: unpickle the held bytes (no second read)",
+  "file": "src/bts/orchestrator.py",
+  "old": "            cached_blend = pickle.loads(raw_blend)  # noqa: S301 \u2014 loading our own cached models\n",
+  "new": "            cached_blend = load_blend(cache_path)\n",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "O2",
+  "rule": "cache: capture-preparation fallback",
+  "file": "src/bts/orchestrator.py",
+  "old": "            cached_blend = load_blend(cache_path)\n        else:",
+  "new": "            raise RuntimeError(\"no fallback\")\n        else:",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py",
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "fault_cache_buffer"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "O3",
+  "rule": "cache: hash handed to run_pipeline",
+  "file": "src/bts/orchestrator.py",
+  "old": "            cached_blend_sha256=cached_blend_sha256,\n",
+  "new": "            cached_blend_sha256=None,\n",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "O4",
+  "rule": "calibration: PA through the capture",
+  "file": "src/bts/orchestrator.py",
+  "old": "                pa_df = _read_pa_parquet(current_pa, pa_inputs, calibration_errors, pa_ok)\n",
+  "new": "                pa_df = pd.read_parquet(current_pa)\n",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py"
+  ],
+  "reanchored_after_r2": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "O5",
+  "rule": "calibration: applied at the assignment",
+  "file": "src/bts/orchestrator.py",
+  "old": "                    cal_applied = True\n",
+  "new": "",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "O6",
+  "rule": "calibration: applied survives a later error",
+  "file": "src/bts/orchestrator.py",
+  "old": "    elif applied:\n        status = \"applied\"\n    elif failure is not None:\n        status = \"failed\"\n",
+  "new": "    elif failure is not None:\n        status = \"failed\"\n    elif applied:\n        status = \"applied\"\n",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "O7",
+  "rule": "calibration: no_pa_file",
+  "file": "src/bts/orchestrator.py",
+  "old": "                cal_outcome = \"no_pa_file\"\n",
+  "new": "",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "O8",
+  "rule": "calibration: unavailable statuses from the fit",
+  "file": "src/bts/orchestrator.py",
+  "old": "elif fit.get(\"status\") in (\"insufficient_support\", \"no_sklearn\"):",
+  "new": "elif fit.get(\"status\") in (\"insufficient_support\",):",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "O9",
+  "rule": "calibration: off",
+  "file": "src/bts/orchestrator.py",
+  "old": "    if not enabled:\n        status = \"off\"\n",
+  "new": "    if not enabled:\n        status = None\n",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "O10",
+  "rule": "attach: build contained",
+  "file": "src/bts/orchestrator.py",
+  "old": "    try:\n        from bts.serving_witness import build\n        upstream = list(errors or []) + list((pipeline or {}).get(\"errors\") or [])\n        witness = build(model=(pipeline or {}).get(\"model\"), inputs=(pipeline or {}).get(\"inputs\"),\n                        calibration=calibration, errors=upstream)\n    except Exception:\n        witness = None\n",
+  "new": "    if True:\n        from bts.serving_witness import build\n        upstream = list(errors or []) + list((pipeline or {}).get(\"errors\") or [])\n        witness = build(model=(pipeline or {}).get(\"model\"), inputs=(pipeline or {}).get(\"inputs\"),\n                        calibration=calibration, errors=upstream)\n    if False:\n        witness = None\n",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "O11",
+  "rule": "F1: run_pipeline's provenance does not stay on the frame (taken, with the clear backstop)",
+  "file": "src/bts/orchestrator.py",
+  "old": "                parts[key] = predictions.attrs.pop(attr)\n            except KeyError:\n                parts[key] = None\n                note(errors, \"run_pipeline provenance missing: \" + attr)\n            except Exception as e:\n                parts[key] = None\n                note(errors, \"run_pipeline provenance: \" + attr, e)\n    except Exception:\n        pass\n    try:\n        if any(attr in predictions.attrs for _, attr in _PIPELINE_ATTRS):\n            predictions.attrs.clear()\n",
+  "new": "                parts[key] = predictions.attrs[attr]\n            except KeyError:\n                parts[key] = None\n                note(errors, \"run_pipeline provenance missing: \" + attr)\n            except Exception as e:\n                parts[key] = None\n                note(errors, \"run_pipeline provenance: \" + attr, e)\n    except Exception:\n        pass\n    try:\n        pass\n",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py",
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "S3",
+  "rule": "slate: serving written",
+  "file": "src/bts/slate.py",
+  "old": "            \"serving\": serving,\n",
+  "new": "",
+  "tests": [
+   "tests/c2_2a/test_slate_v3.py",
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "model_cold"
+  ],
+  "reanchored_after_r1": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "C18",
+  "rule": "F3: an incomplete input collection is withheld",
+  "file": "src/bts/model/calibrate.py",
+  "old": "if got.get(\"inputs_complete\") is True and inputs is not None:",
+  "new": "if inputs is not None:",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "C19",
+  "rule": "F3: an incomplete binding collection is withheld",
+  "file": "src/bts/model/calibrate.py",
+  "old": "            if (got.get(\"bindings_complete\") is True and bindings is not None\n",
+  "new": "            if (bindings is not None\n",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "C20",
+  "rule": "F3: a failed input record marks the inventory incomplete",
+  "file": "src/bts/model/calibrate.py",
+  "old": "            if not recorded:\n                inputs_complete = False\n",
+  "new": "",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "C21",
+  "rule": "F3: an unreadable pick file marks the inventory incomplete",
+  "file": "src/bts/model/calibrate.py",
+  "old": "            if isinstance(e, OSError):\n                inputs_complete = False",
+  "new": "            if False:\n                inputs_complete = False",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "C22",
+  "rule": "F3: a lost binding marks the bindings incomplete",
+  "file": "src/bts/model/calibrate.py",
+  "old": "                    if not _bind(bindings, errors, f, file_sha, pick_date, slot_key, bid, sample):\n                        bindings_complete = False\n",
+  "new": "                    _bind(bindings, errors, f, file_sha, pick_date, slot_key, bid, sample)\n",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "C23",
+  "rule": "F3: completeness reported (missing keys = incomplete)",
+  "file": "src/bts/model/calibrate.py",
+  "old": "    _report(status, inputs_complete, bindings_complete)\n    return samples\n",
+  "new": "    return samples\n",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py",
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "C24",
+  "rule": "F2: decoder preparation failures take the fallback",
+  "file": "src/bts/model/calibrate.py",
+  "old": "            reader = io.TextIOWrapper(io.BytesIO(raw), encoding=io.text_encoding(None))\n        except Exception as e:\n",
+  "new": "            reader = io.TextIOWrapper(io.BytesIO(raw), encoding=io.text_encoding(None))\n        except OSError:\n            raise\n        except Exception as e:\n",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "W2b",
+  "rule": "F3: a failed append is reported",
+  "file": "src/bts/serving_witness.py",
+  "old": "            pass\n        return False\n\n\ndef sha256_or_none",
+  "new": "            pass\n        return True\n\n\ndef sha256_or_none",
+  "tests": [
+   "tests/c2_2a/test_serving_witness.py",
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ],
+  "retired_r4": "collect() was removed in r4 (no caller after the class repair)"
+ },
+ {
+  "id": "P13",
+  "rule": "F3: a PA input list shorter than the parquets read is withheld",
+  "file": "src/bts/model/predict.py",
+  "old": "        complete = inputs_complete(inputs, ok, n_inputs)\n",
+  "new": "        complete = inputs is not None\n",
+  "tests": [
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "fault_collector_appends"
+  ],
+  "reanchored_after_r2": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "P14",
+  "rule": "F4: no description is built inside the except suite",
+  "file": "src/bts/model/predict.py",
+  "old": "    except Exception as e:\n        buffer, prep_error = None, e\n    if buffer is None:",
+  "new": "    except Exception as e:\n        buffer, prep_error = None, e\n        note(errors, f\"{e!r}\")\n    if buffer is None:",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "P15",
+  "rule": "F5: a short write withholds the digest",
+  "file": "src/bts/model/predict.py",
+  "old": "                if n != memoryview(b).nbytes:",
+  "new": "                if False:",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py",
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "fault_short_write"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "O13",
+  "rule": "F1: the pipeline provenance is taken before calibration",
+  "file": "src/bts/orchestrator.py",
+  "old": "        pipeline = _take_pipeline_provenance(predictions, witness_errors)\n",
+  "new": "        pipeline = {}\n",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py",
+   "tests/c2_2a/test_local_witness.py"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "O15",
+  "rule": "F3: the calibration record's failure is contained at the call site",
+  "file": "src/bts/orchestrator.py",
+  "old": "                                              pa_ok, fit_witness, calibration_errors)\n        except Exception:\n            calibration = None\n",
+  "new": "                                              pa_ok, fit_witness, calibration_errors)\n        except ZeroDivisionError:\n            calibration = None\n",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ],
+  "reanchored_after_r2": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "O11b",
+  "rule": "F1: the clear backstop when taking an attr fails",
+  "file": "src/bts/orchestrator.py",
+  "old": "        if any(attr in predictions.attrs for _, attr in _PIPELINE_ATTRS):\n            predictions.attrs.clear()\n",
+  "new": "        pass\n",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ],
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "O17",
+  "rule": "R2-1: the helper's parts allocation is inside its guard",
+  "file": "src/bts/orchestrator.py",
+  "old": "    parts = None\n    try:\n        parts = {}\n",
+  "new": "    parts = {}\n    try:\n",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_the_helper_itself_contains_its_allocation"
+  ],
+  "added_after_r2": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "O18",
+  "rule": "R2-1: predict_local contains the helper's invocation",
+  "file": "src/bts/orchestrator.py",
+  "old": "        try:\n            pipeline = _take_pipeline_provenance(predictions, witness_errors)\n        except Exception:\n            pipeline = None\n",
+  "new": "        pipeline = _take_pipeline_provenance(predictions, witness_errors)\n",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_failed_provenance_take_still_clears_the_frame_before_calibration",
+   "tests/c2_2a/test_golden.py::test_the_candidate_reproduces_the_baseline[fault_provenance_take]"
+  ],
+  "added_after_r2": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "O19",
+  "rule": "R2-1: a failed take clears the frame before calibration",
+  "file": "src/bts/orchestrator.py",
+  "old": "            try:\n                predictions.attrs.clear()\n            except Exception:\n                pass\n            try:\n                note(witness_errors, \"run_pipeline provenance unavailable\")\n",
+  "new": "            try:\n                note(witness_errors, \"run_pipeline provenance unavailable\")\n",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_failed_provenance_take_still_clears_the_frame_before_calibration"
+  ],
+  "added_after_r2": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "O20",
+  "rule": "R2-1: unavailable pipeline provenance is noted",
+  "file": "src/bts/orchestrator.py",
+  "old": "                note(witness_errors, \"run_pipeline provenance unavailable\")\n",
+  "new": "                pass\n",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_failed_provenance_allocation_keeps_the_calibrated_forecast"
+  ],
+  "added_after_r2": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "O21",
+  "rule": "R2-2: the calibration record requires the collection flag",
+  "file": "src/bts/orchestrator.py",
+  "old": "    if inputs_complete(pa_inputs, pa_ok, 1):\n",
+  "new": "    if inputs_complete(pa_inputs, [True], 1):\n",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_pa_input_that_raised_after_appending_is_withheld[3-pa_input]"
+  ],
+  "added_after_r2": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "O22",
+  "rule": "R2-2: calibration's PA read carries the record's flag",
+  "file": "src/bts/orchestrator.py",
+  "old": "                pa_df = _read_pa_parquet(current_pa, pa_inputs, calibration_errors, pa_ok)\n",
+  "new": "                pa_df = _read_pa_parquet(current_pa, pa_inputs, calibration_errors, [True])\n",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_pa_input_that_raised_after_appending_is_withheld[3-pa_input]"
+  ],
+  "added_after_r2": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "O23",
+  "rule": "R2-2: calibration's flag starts True (complete when every collect succeeds)",
+  "file": "src/bts/orchestrator.py",
+  "old": "        calibration_errors, pa_inputs, pa_ok, fit_witness = [], [], [True], {}\n",
+  "new": "        calibration_errors, pa_inputs, pa_ok, fit_witness = [], [], [False], {}\n",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py"
+  ],
+  "added_after_r2": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "P16",
+  "rule": "R2-2: the buffered path carries collect's failure",
+  "file": "src/bts/model/predict.py",
+  "old": "        recorded = collect(inputs, lambda: {\"file\": parquet.name, \"bytes\": len(raw), \"sha256\": sha}, errors, \"PA input\")\n",
+  "new": "        collect(inputs, lambda: {\"file\": parquet.name, \"bytes\": len(raw), \"sha256\": sha}, errors, \"PA input\")\n        recorded = True\n",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_pa_input_that_raised_after_appending_is_withheld",
+   "tests/c2_2a/test_predict_witness.py::test_a_parquet_collector_failure_returns_the_frame"
+  ],
+  "added_after_r2": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "P17",
+  "rule": "R2-2: the path-parse fallback carries collect's failure",
+  "file": "src/bts/model/predict.py",
+  "old": "            recorded = collect(inputs, lambda: {\"file\": parquet.name, \"bytes\": None, \"sha256\": None}, errors,\n                               \"PA input\")\n",
+  "new": "            collect(inputs, lambda: {\"file\": parquet.name, \"bytes\": None, \"sha256\": None}, errors, \"PA input\")\n            recorded = True\n",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_fallback_pa_input_that_raised_after_appending_is_withheld"
+  ],
+  "added_after_r2": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "P18",
+  "rule": "R2-2: a failed collection clears the flag",
+  "file": "src/bts/model/predict.py",
+  "old": "        ok[0] = False\n",
+  "new": "        pass\n",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_pa_input_that_raised_after_appending_is_withheld",
+   "tests/c2_2a/test_golden.py::test_the_candidate_reproduces_the_baseline[fault_pa_append_landed]"
+  ],
+  "added_after_r2": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "P19",
+  "rule": "R2-2: completeness requires the flag",
+  "file": "src/bts/model/predict.py",
+  "old": "ok is not None and ok[0] is True and ",
+  "new": "",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_pa_input_that_raised_after_appending_is_withheld"
+  ],
+  "added_after_r2": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "P20",
+  "rule": "R2-2: the pipeline attachment uses the collection flag",
+  "file": "src/bts/model/predict.py",
+  "old": "        complete = inputs_complete(inputs, ok, n_inputs)\n",
+  "new": "        complete = inputs_complete(inputs, [True], n_inputs)\n",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_pa_input_that_raised_after_appending_is_withheld[1-inputs]",
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_pa_input_that_raised_after_appending_is_withheld[2-inputs]"
+  ],
+  "added_after_r2": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "P21",
+  "rule": "R2-2: run_pipeline's reads share one flag",
+  "file": "src/bts/model/predict.py",
+  "old": "        dfs.append(_read_pa_parquet(parquet, pa_inputs, witness_errors, pa_ok))\n",
+  "new": "        dfs.append(_read_pa_parquet(parquet, pa_inputs, witness_errors, [True]))\n",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_pa_input_that_raised_after_appending_is_withheld[1-inputs]",
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_pa_input_that_raised_after_appending_is_withheld[2-inputs]"
+  ],
+  "added_after_r2": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "P22",
+  "rule": "R2-2: run_pipeline's flag starts True (complete when every collect succeeds)",
+  "file": "src/bts/model/predict.py",
+  "old": "        witness_errors, pa_inputs, pa_ok = [], [], [True]\n",
+  "new": "        witness_errors, pa_inputs, pa_ok = [], [], [False]\n",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py"
+  ],
+  "added_after_r2": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ },
+ {
+  "id": "P23",
+  "rule": "R2-2: completeness still requires the count (r1 F3 kept)",
+  "file": "src/bts/model/predict.py",
+  "old": " and ok[0] is True and len(inputs) == n\n",
+  "new": " and ok[0] is True\n",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_the_count_still_withholds_when_the_flag_cannot_be_cleared"
+  ],
+  "added_after_r2": true,
+  "retired_r4": "the code it mutated was replaced by the r4 class repair"
+ }
+]
