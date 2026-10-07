@@ -1,6 +1,6 @@
 # C2 side item (e) evidence: the framing screen's mutant ledger
 - `mutants.json`: 26 mutants over `scripts/audit/c2_framing/screen.py`. They cover the feature (shift, min_periods, daily mean), the self-check, the variants and blend configs, each disposition rule, the pre-registered constants, the pinned inputs, the run's refusals and stops, the aggregate, and coverage.
-- `mutant_runner.py`: the runner used for C2 step 2a.
+- `mutant_runner.py`: the runner used for C2 step 2a. Since revision 9 it lives at `scripts/audit/c2_framing/mutant_runner.py`.
 - `mutants.out`: the first run at `9637a44` gave 25 RED and F12 SURVIVED.
   - F12 swaps "both seasons above zero" for "either". Its test case also missed the practical size, so another rule masked it.
   - After the case was isolated, F12 is RED.
@@ -174,3 +174,75 @@ The driver guarantee is stated precisely: evidence is written after `pytest.main
 **Revision-8 run at `e9a2483`:** 119 RED, 3 SURVIVED (G8, H12, N10, as recorded).
 
 **Result: 119 of 119 attributable RED in one pass; G8, H12 and N10 equivalent.** The permitted suite has 162 tests (137 framing, 25 shared admission).
+
+## Revision 9 (after review r8 BLOCK; Eric's row C2-framing-review-r9: the runner's threat model stated and enforced)
+**Threat model** (pre-registration §9; the runner's docstring): test code that changes pytest's plugin system, wraps its hooks or aborts the session is outside the runner's scope. The runner refuses to run on any suite containing such code. The experiment and its result checks are not narrowed: `screen.py` is byte-identical to revision 8.
+
+**Enforcement:**
+1. **The gate, before anything is collected or mutated** (`scope_problems`).
+   - It covers every file the run imports as test code: each named test's module and the `__init__.py` of each package above it.
+   - Each file is parsed from its bytes, as Python will parse it, so a coding cookie cannot hide code.
+   - Each file must stay within the reviewed vocabulary, which is the real suite's own imports, builtins, attributes, keywords and parameters (so fixtures).
+   - `pytest` is allowed only as `pytest.fixture`, `pytest.mark` and `pytest.raises`.
+   - Refused outright: hook-like and dunder bindings, rebound builtins, any `**` that is not a pure pass-through, `setattr` other than (object, literal allowed name, value), and `match` statements.
+   - A refusal prints `REFUSED`.
+2. **What loads** in every collection and run:
+   - `-c /dev/null`, so no ini setting applies;
+   - `--noconftest`;
+   - `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`;
+   - no inherited `PYTHON*` or `PYTEST*` variable;
+   - `-B -P -s`;
+   - a bytecode cache prefix under `/dev/null`, where no file can exist.
+3. **The change scan.** No file or directory under the root or the interpreter's import path may change from the ledger's start (ctime). The mutation targets must keep the ctime of the runner's own last write while pytest runs. This closes write-then-import.
+4. **Child processes** reach the run only through the operating system. A signal is refused (interrupted, or no evidence); a written file is caught by the change scan. A debugger is out of scope.
+
+**Defence in depth behind the gate.**
+- The driver watches pluggy's `HookCaller._add_hookimpl` and `HookCaller._remove_plugin` through `sys.monitoring` once the sentinel registers. Every registration or unregistration runs one of them, through whatever API.
+- A plugin that is neither pytest's own nor the runner's at the sentinel's registration is foreign.
+- The older layers stay. The outermost check's limit (R8-1) is stated in the docstring.
+
+**R8's required changes:**
+1. **Ordering bound to the active dispatch: superseded.**
+   - R8-1's lifecycle needs `pluggy`, `request` and a `pytest_*` hook, so the gate refuses it.
+   - Run anyway, the pluggy watch refuses it as `plugin system changed`. The evidence records `[HookCaller._add_hookimpl, HookCaller._remove_plugin]`, with `late_plugins` 0 and `not_outermost` [] (the layers R8-1 escaped).
+2. **Producer tests added:**
+   - the before-yield session wrapper, with and without the abort;
+   - the before-yield call wrapper;
+   - an early plugin unregistered mid-run, which only the remove watch sees;
+   - the after-yield controls are kept.
+3. **The stale "abort anywhere" sentence: removed.**
+
+**Replay** (`r8_witness_replay.py`): your R8-1 witness gives `RED` on the revision-8 runner (from git, `dcdbb71`). On revision 9 the gate refuses it (`import importlib.util`, `import pluggy`, `name pytest_sessionfinish`, ...), and run anyway it is `INCONCLUSIVE(exit 1, plugin system changed)`. Output: `r8_witness_replay.out`.
+
+**Vocabulary audit** (`gadget_audit.py`, output `gadget_audit.out`).
+- It walks breadth-first from every allowed module over the allowed attribute names, five levels deep, statically.
+- It reaches only:
+  - `pytest.fixture` and `pytest.raises`;
+  - the benign modules `numpy.random`, `numpy.testing`, `pandas.testing` and `stat`;
+  - `subprocess.run`, which starts children (point 4 above).
+- It does not model instances or call results.
+
+**Suite changes** (`eaf5be1`, no behaviour change):
+- The runner is imported statically from its new path.
+- The two source checks read the production files' text. Each was confirmed red against an edited production file, then restored.
+- `__import__` and `A.hashlib` became top-level imports, and `**S.SCORING` became explicit keywords.
+
+**The hostile scratch suites** of rounds 4 to 8 now serve two purposes.
+- Each is asserted refused by the gate.
+- Each still runs through `run_mutant` to exercise the dynamic layers.
+- The conftest-based ones load through `pytest_plugins`, since conftests no longer load.
+
+**Spec** (`d0d83d9`, fixed in `b9c3c81`): 188 entries.
+- The 31 runner entries follow the runner to its new path.
+- R3, R8 and R17 are re-anchored on the same behaviour.
+- R31–R97 are new: what loads (R31–R38); the gate's imports, names, attributes, parameters, keywords, `setattr`, parsing and files (R39–R75); the change scan (R76–R88); and the two dynamic layers (R89, R91–R97).
+
+**First pass at `d0d83d9`** (`mutants_r9_first.out`; 17 minutes; no change-scan alarm in 189 runs): 182 RED, G8/H12/N10 survived as recorded, and four entries were not RED. Each was fixed in `b9c3c81`:
+- **R44 (from-imports only from allowed modules) SURVIVED** because of message-level masking. With the module rule gone, the name rule still reported `import os.system`, which contains the test's `import os`. The case now imports an allowed attribute name (`from os import name`).
+- **R47 was INCONCLUSIVE** because its replacement left an empty `for` body. The replacement is now `pass`.
+- **R87 (the runner's restore is its own) SURVIVED** because it only matters when a spec has two target files. The test now runs mutants across two targets and back.
+- **R90 SURVIVED** because pluggy's `get_plugins()` already omits blocked names' `None`. The driver's redundant filter is removed together with its entry, instead of being recorded as an equivalent.
+
+**Revision-9 run at `b9c3c81`:** 185 RED, 3 SURVIVED (G8, H12, N10, as recorded); no change-scan alarm in 188 runs; 17 minutes.
+
+**Result:** 185 of 185 attributable RED in one pass; G8, H12 and N10 equivalent. The permitted suite has 234 tests: 209 framing and 25 shared admission.
