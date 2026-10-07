@@ -97,3 +97,30 @@
 **Revision-5 run at `2bc188f`:** 96 RED, 3 SURVIVED (G8, H12, N10, as recorded).
 
 **Result: 96 of 96 attributable RED; G8, H12 and N10 equivalent.** The permitted suite has 133 tests (108 framing, 25 shared admission).
+
+## Revision 6 (after review r5 BLOCK; Eric's row C2-framing-review-r6, under the full rules)
+**Runner revised (r5 R5-1):**
+- "Ended normally" is pytest's own session status, never unconfiguration (which pytest also reaches after `pytest.exit`) and never text. The recording plugin also records:
+  - the interrupt hook (`pytest.exit` and KeyboardInterrupt), the internal-error hook, and failed collection;
+  - a session record written last (`trylast`) at `pytest_sessionfinish`, holding pytest's exit status and its collected and failed counters. If another session-finish hook aborts first, there is no record.
+- RED requires all of these:
+  - the session record, with no interrupt, internal error or collection error;
+  - every intended node's setup, call and teardown reports;
+  - the counters agreeing with the reports and the process return code.
+- The text cross-check is gone.
+- The reviewer's aborted-teardown case is a test, along with a later session-finish abort and an exit after the last teardown report. Run against the revision-5 runner, the first two fail; the aborted-teardown case was certified RED there.
+
+**Validator (r5 R5-2):** probabilities must be numeric, never coerced. Any scorer exception while rescoring the retained profiles is a `RunInvalid` refusal.
+
+**Spec: 108 entries.**
+- Re-anchored: H13, R1, R6, R7, R9.
+- New:
+  - R10–R16: interrupt, its recording, setup/teardown completeness, internal error, collection error, exit status, the session record written last;
+  - N23–N24: numeric probabilities, the rescoring refusal.
+
+**Revision-6 run at `750086b`:** 104 RED, 4 SURVIVED (G8, H12, N10 as recorded; R11).
+- R11 (the plugin's interrupt record) was masked in the aborted-teardown test by the missing teardown report. It is now isolated by `pytest.exit` raised after the last teardown report, where every report exists and the counters agree.
+
+**Resume at `aa4e72c`:** R11 is RED.
+
+**Result: 105 of 105 attributable RED; G8, H12 and N10 equivalent.** The permitted suite has 143 tests (118 framing, 25 shared admission).

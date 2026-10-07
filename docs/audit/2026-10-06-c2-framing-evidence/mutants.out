@@ -1183,3 +1183,8 @@ N24 RED 1 failed in 5.13s [1 intended]
     FAILED tests/scripts/c2_framing/test_screen.py::test_a_rescoring_failure_is_a_refusal_not_a_crash
 NOT RED: G8,H12,N10,R11
 exit 1
+# resume at aa4e72c4dc33c107cf78ca87c0f76aea140f6f8e, 2026-10-07 00:45 EDT: R11 against its isolating test; G8, H12 and N10 recorded equivalent
+R11 RED 1 failed in 1.77s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_an_exit_after_the_last_report_is_still_an_interrupt
+NOT RED: none
+exit 0
