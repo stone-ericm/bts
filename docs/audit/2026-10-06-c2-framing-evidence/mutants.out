@@ -1457,3 +1457,286 @@ R24 RED 3 failed in 1.73s [3 intended]
     FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[finish_raised]
 NOT RED: G8,H12,N10
 exit 1
+
+# revision 8 ledger at e9a2483ba664777e11127b0553bebc720ad52deb, 2026-10-07 01:53 EDT; runner with registration events + outermost checks; 122 entries
+F1 RED 2 failed in 0.90s [2 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_framing_by_any_key_matches_an_independent_reference
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_feature_uses_only_strictly_earlier_dates
+F2 RED 1 failed in 0.87s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_framing_by_any_key_matches_an_independent_reference
+F3 RED 1 failed in 0.85s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_framing_by_any_key_matches_an_independent_reference
+F4 RED 1 failed in 0.78s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_self_check_compares_against_the_production_pitcher_feature
+F5 RED 1 failed in 0.78s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_variant_bases
+F6 RED 1 failed in 0.79s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_variant_bases
+F7 RED 1 failed in 2.49s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_blend_configs_rewrite_the_base_and_keep_each_configs_extras
+F8 RED 1 failed in 0.74s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_not_positive[rows1-below the practical size]
+F9 RED 1 failed in 0.75s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_not_positive[rows2-t below 1.5]
+F10 RED 1 failed in 0.76s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_not_positive[rows3-a minority of passes]
+F11 RED 1 failed in 0.75s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_non_positive_mean_with_passing_seeds_is_inconclusive_not_negative
+F12 RED 1 failed in 0.75s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_not_positive[rows0-one season's mean not above zero (every other rule met)]
+F13 RED 3 failed in 7.24s [3 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[basis]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_pre_registered_constants
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end
+F14 RED 2 failed in 0.83s [2 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_load_inputs_reads_only_the_pinned_files_from_their_hashed_bytes
+    FAILED tests/scripts/c2_framing/test_screen.py::test_pre_registered_constants
+F15 RED 3 failed in 5.17s [3 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_a_foreign_seed
+    FAILED tests/scripts/c2_framing/test_screen.py::test_pre_registered_constants
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_refuses_without_the_deterministic_flag_or_a_stage_one_seed
+F16 RED 2 failed in 2.90s [2 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_pre_registered_constants
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end
+F17 RED 1 failed in 0.73s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_first_unit_stop
+F18 RED 1 failed in 0.78s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_load_inputs_reads_only_the_pinned_files_from_their_hashed_bytes
+F19 RED 1 failed in 0.75s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_refuses_without_the_deterministic_flag_or_a_stage_one_seed
+F20 RED 1 failed in 2.86s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end
+F21 RED 1 failed in 2.89s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_self_check_stops_the_run_before_any_walk_forward
+F22 RED 1 failed in 2.87s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_an_expensive_first_walk_forward_stops_the_run
+F23 RED 1 failed in 3.92s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_second_run_of_the_same_seed_is_refused
+F25 RED 1 failed in 2.98s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end
+F26 RED 1 failed in 2.94s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_refuses_when_lightgbm_params_lack_the_deterministic_flags
+G1 RED 2 failed in 8.30s [2 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>0]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>1]
+G2 RED 1 failed in 5.28s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>2]
+G3 RED 1 failed in 6.68s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[stopped]
+G4 RED 1 failed in 6.75s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[claim_rewritten]
+G5 RED 1 failed in 6.68s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_runs_outside_the_canonical_namespace
+G6 RED 1 failed in 6.53s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[summary]
+G7 RED 1 failed in 6.20s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_a_foreign_seed
+G8 SURVIVED 2 passed in 9.70s [2 intended]
+G9 RED 2 failed, 1 passed in 14.71s [3 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_the_three_registered_seeds
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_seed1_release_lifecycle_aggregates_across_a_moved_head
+G10 RED 1 failed in 0.75s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_disposition_incomplete
+G11 RED 3 failed in 2.91s [3 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_an_ericsson_source_does_not_release
+    FAILED tests/scripts/c2_framing/test_screen.py::test_launch_builds_the_launcher_command_with_the_seeds_budget
+    FAILED tests/scripts/c2_framing/test_screen.py::test_seeds_two_and_three_are_refused_without_the_release
+G12 RED 1 failed in 2.85s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_an_empty_seed1_completion_does_not_release
+G13 RED 2 failed in 3.99s [2 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_an_ericsson_source_does_not_release
+    FAILED tests/scripts/c2_framing/test_screen.py::test_release_needs_the_exact_ruling_eric_and_a_positive_budget
+G14 RED 1 failed in 0.74s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_release_needs_the_exact_ruling_eric_and_a_positive_budget
+G15 RED 1 failed in 4.00s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_release_naming_another_run_does_not_release
+G16 RED 1 failed in 0.74s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_relabel_rebuilds_labels_and_drops_void_rows
+G17 RED 1 failed in 0.76s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_relabel_rebuilds_labels_and_drops_void_rows
+G18 RED 3 failed in 2.84s [3 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_original_portion_labels_exclude_the_resumed_portion
+    FAILED tests/scripts/c2_framing/test_screen.py::test_relabel_rebuilds_labels_and_drops_void_rows
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end
+G19 RED 2 failed in 2.84s [2 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_closed_inputs_replace_the_live_lookup_and_park_drag
+G20 RED 1 failed in 0.76s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_closed_inputs_replace_the_live_lookup_and_park_drag
+G21 RED 1 failed in 0.74s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_freeze_lookup_keeps_only_the_given_games_canonically
+G22 RED 1 failed in 2.88s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end
+G23 RED 1 failed in 2.86s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_changed_frozen_lookup_is_refused
+G24 RED 3 failed in 7.83s [3 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_the_three_registered_seeds
+    FAILED tests/scripts/c2_framing/test_screen.py::test_profiles_carry_the_rebuilt_labels_not_the_walk_forwards
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end
+G25 RED 3 failed in 4.94s [3 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_an_empty_seed1_completion_does_not_release
+    FAILED tests/scripts/c2_framing/test_screen.py::test_an_ericsson_source_does_not_release
+    FAILED tests/scripts/c2_framing/test_screen.py::test_seeds_two_and_three_are_refused_without_the_release
+G26 RED 1 failed in 2.12s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_launch_builds_the_launcher_command_with_the_seeds_budget
+G27 RED 1 failed in 2.15s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_launch_builds_the_launcher_command_with_the_seeds_budget
+G28 RED 1 failed in 0.78s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_admission_requires_exactly_the_ten_pins
+G29 RED 1 failed in 0.74s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_t_edges
+H1 RED 1 failed in 0.74s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_release_needs_the_exact_ruling_eric_and_a_positive_budget
+H2 RED 1 failed in 6.52s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[claim_other_run]
+H3 RED 1 failed in 6.54s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[basis]
+H4 RED 1 failed in 6.49s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[settings]
+H5 RED 1 failed in 5.07s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_validate_refuses_an_incomplete_identity_even_when_admitted
+H6 RED 1 failed in 5.53s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_validate_refuses_pins_other_than_the_ten_even_when_admitted
+H7 RED 1 failed in 6.47s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[deterministic]
+H8 RED 2 failed in 8.22s [2 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_seed1_run_of_another_identity_does_not_release
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[bogus_identity]
+H9 RED 1 failed in 6.61s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[unit_missing]
+H10 RED 1 failed in 6.55s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[results_p1]
+H11 RED 1 failed in 6.49s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[diff_and_summary]
+H12 SURVIVED 1 passed in 5.94s [1 intended]
+H13 RED 2 failed in 0.74s [2 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[skipped]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[xpass]
+N1 RED 2 failed in 10.12s [2 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[profile]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[secondary_card]
+N2 RED 1 failed in 3.38s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end
+N3 RED 1 failed in 6.41s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[scoring]
+N4 RED 1 failed in 2.89s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end
+N5 RED 1 failed in 4.29s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end
+N6 RED 1 failed in 6.57s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[secondary_summary]
+N7 RED 2 failed in 7.40s [2 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_seed1_run_without_2025_evidence_does_not_release
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[season_duplicate]
+N8 RED 1 failed in 6.57s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[season_mixed]
+N9 RED 1 failed in 6.58s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[dates_other_year]
+N10 SURVIVED 1 passed in 5.76s [1 intended]
+N11 RED 2 failed in 8.26s [2 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_seed1_run_of_unadmitted_code_does_not_release
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[foreign_head]
+N12 RED 1 failed in 1.18s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_head_admitted_requires_a_metadata_descendant_of_the_exposure
+N13 RED 1 failed in 1.20s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_head_admitted_requires_a_metadata_descendant_of_the_exposure
+N14 RED 1 failed in 1.10s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_head_admitted_requires_a_metadata_descendant_of_the_exposure
+N15 RED 1 failed in 5.15s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[bogus_identity]
+N16 RED 1 failed in 6.64s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[pins_other]
+R1 RED 1 failed in 0.76s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[errors]
+R2 RED 1 failed, 1 passed in 1.81s [2 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[fail_fast]
+R3 RED 1 failed in 1.70s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test
+R4 RED 1 failed in 1.72s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_refuses_options_in_a_named_test_list
+R5 RED 1 failed in 0.74s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[unintended_node]
+H14 RED 1 failed in 6.82s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[identity_extra_key]
+N17 RED 3 failed in 13.78s [3 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[hit_missing]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[rank_missing]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[season_missing]
+N18 RED 2 failed in 10.77s [2 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[no_top_pick]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[ranks_not_from_one]
+N19 RED 1 failed in 6.85s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[hit_not_binary]
+N20 RED 1 failed in 6.71s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[p_out_of_range]
+N21 RED 1 failed in 6.25s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[empty_unit]
+N22 RED 1 failed in 6.20s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[column_absent]
+R6 RED 2 failed in 1.75s [2 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_an_unconfigure_abort_leaves_no_evidence
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[no_evidence]
+R7 RED 2 failed in 0.76s [2 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[collected_count_mismatch]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[failed_count_mismatch]
+R8 RED 1 failed in 1.75s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test
+R9 RED 1 failed in 1.74s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test
+R10 RED 1 failed in 0.75s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[interrupted]
+R11 RED 1 failed in 1.79s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_an_exit_after_the_last_report_is_still_an_interrupt
+R12 RED 1 failed in 0.78s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[teardown_cut_short]
+R13 RED 1 failed in 0.77s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[internal_error]
+R14 RED 1 failed in 0.76s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[collection_error]
+R15 RED 1 failed in 0.75s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[exit_status_mismatch]
+R16 RED 2 failed in 2.74s [2 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_session_finish_wrapper_abort_is_not_a_normal_end
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_tryfirst_wrapper_abort_is_still_seen
+N23 RED 1 failed in 6.31s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[p_strings]
+N24 RED 1 failed in 5.18s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_rescoring_failure_is_a_refusal_not_a_crash
+R17 RED 1 failed in 1.69s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test
+R18 RED 2 failed in 1.74s [2 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_plugin_registered_during_the_run_is_refused
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[late_plugin]
+R19 RED 2 failed in 1.70s [2 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_non_strict_xpass_is_not_a_kill
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[marked]
+R20 RED 1 failed in 1.69s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_runtime_xfail_is_not_a_kill
+R21 RED 3 failed in 1.71s [3 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_rewritten_report_is_refused
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[call_unobserved]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[report_flipped]
+R22 RED 1 failed in 1.72s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test
+R23 RED 1 failed in 0.75s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[exit_mismatch]
+R24 RED 3 failed in 1.76s [3 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_session_finish_wrapper_abort_is_not_a_normal_end
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[finish_missing]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[finish_raised]
+R25 RED 2 failed in 2.24s [2 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_self_unregistering_late_wrapper_is_refused
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_late_registration_evidence_is_produced_and_retained
+R26 RED 1 failed in 1.24s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_late_registration_evidence_is_produced_and_retained
+R27 RED 1 failed in 1.73s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_an_outer_wrapper_without_a_registration_event_is_still_seen
+R28 RED 1 failed in 1.73s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_hidden_call_wrapper_is_seen
+R29 RED 2 failed in 1.75s [2 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_hidden_call_wrapper_is_seen
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[not_outermost]
+R30 RED 1 failed in 1.73s [1 intended]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test
+NOT RED: G8,H12,N10
+exit 1

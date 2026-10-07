@@ -154,3 +154,23 @@
 **Revision-7 run at `310dfe6`:** 113 RED, 3 SURVIVED (G8, H12, N10 as recorded).
 
 **Result: 113 of 113 attributable RED in one pass; G8, H12 and N10 equivalent.** The permitted suite has 157 tests (132 framing, 25 shared admission).
+
+## Revision 8 (after review r7 BLOCK; Eric's row C2-framing-review-r8: full rules, the registration-hook fix)
+**Runner (r7 R7-1).** A late registration is detected in three layers:
+1. **Event:** every registration after the sentinel is counted through pytest's public `pytest_plugin_registered` hook. The count is kept even if the plugin later unregisters itself.
+2. **Census:** the final registry comparison stays.
+3. **Outermost check:** the sentinel checks, at each test call and at session finish, that it is the outermost implementation of that hook. That catches an outer wrapper even when its registration bypassed pytest's API.
+
+The driver guarantee is stated precisely: evidence is written after `pytest.main` returns. An abort escaping it leaves none. Aborts pytest catches may leave evidence, and each is refused by an explicit rule.
+
+**New tests,** red first against the revision-7 runner, which certified the reviewer's lifecycle RED:
+- the register / outer-wrapper abort / self-unregister lifecycle;
+- the producer's evidence for a briefly registered plugin, asserted on the bundle itself;
+- a session-finish wrapper and a call wrapper, each registered through pluggy's base class and caught only by the outermost check;
+- a classifier case.
+
+**Spec:** 122 entries; new R25–R30 cover the event, its count, both outermost checks, the refusal and the outermost position.
+
+**Revision-8 run at `e9a2483`:** 119 RED, 3 SURVIVED (G8, H12, N10, as recorded).
+
+**Result: 119 of 119 attributable RED in one pass; G8, H12 and N10 equivalent.** The permitted suite has 162 tests (137 framing, 25 shared admission).
