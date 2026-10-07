@@ -762,7 +762,10 @@ def _edit_profile(d, v, season, fn):
     path = d / f"profiles_{v}_{season}.parquet"
     fn(pd.read_parquet(path)).to_parquet(path, index=False)
     parts = [pd.read_parquet(d / f"profiles_{v}_{s}.parquet") for s in S.TEST_SEASONS]
-    card = compute_full_scorecard(pd.concat(parts, ignore_index=True), **S.SCORING)
+    try:
+        card = compute_full_scorecard(pd.concat(parts, ignore_index=True), **S.SCORING)
+    except Exception:                                    # the scorer cannot even read it: the old card stays
+        return
     (d / f"scorecard_{v}.json").write_text(json.dumps(card, indent=1, sort_keys=True) + "\n")
     _recohere(d)
 
@@ -809,8 +812,18 @@ DAMAGE = [
     ("foreign_head", "is not admitted"), ("scoring", r"\['scoring'\]"),
     ("results_p1", "does not reconcile across profiles, scorecard and results"),
     ("season_mixed", "not complete 2025 evidence"), ("dates_other_year", "not complete 2025 evidence"),
-    ("pins_other", r"\['admitted pins'\]"), ("no_top_pick", "does not cover exactly the test seasons"),
+    ("pins_other", r"\['admitted pins'\]"), ("no_top_pick", "not complete 2025 evidence: ranks"),
     ("secondary_summary", "stored summary does not match its diff"),
+    # r4 R4-1: rows present in the file but dropped by the scorer (a missing key) are never complete evidence
+    ("season_missing", "not complete 2025 evidence: missing values"),
+    ("rank_missing", "not complete 2025 evidence: missing values"),
+    ("hit_missing", "not complete 2025 evidence: missing values"),
+    ("ranks_not_from_one", "not complete 2025 evidence: ranks"),
+    ("hit_not_binary", "not complete 2025 evidence: hits"),
+    ("identity_extra_key", r"\['identity'\]"),         # r4 R4-3: exactly the five identity fields
+    ("p_out_of_range", "not complete 2025 evidence: probabilities"),
+    ("empty_unit", "not complete 2025 evidence: empty"),
+    ("column_absent", "not complete 2025 evidence: columns"),
 ]
 
 
@@ -892,6 +905,29 @@ def test_aggregate_refuses_an_invalid_run(three_runs, damage, match):
         _edit_profile(d, "A", 2025, lambda p: p.assign(date=pd.to_datetime(p["date"]) - pd.DateOffset(years=1)))
     elif damage == "secondary_summary":                  # only the stored summary's secondary value moved
         _rewrite(d / "results.json", lambda r: r["variants"]["B"]["secondary"].update(p_57_exact={"delta": 0.5}))
+    elif damage == "season_missing":                     # the reviewer's nullable season: NA rows pass `== s`.all()
+        _edit_profile(d, "B", 2025, lambda p: p.assign(
+            season=pd.array([pd.NA] * 3 + [2025] * (len(p) - 3), dtype="Float64")))
+    elif damage == "rank_missing":
+        _edit_profile(d, "B", 2025, lambda p: p.assign(rank=pd.array([pd.NA] + list(p["rank"].iloc[1:]), dtype="Int64")))
+    elif damage == "hit_missing":
+        _edit_profile(d, "B", 2025, lambda p: p.assign(
+            actual_hit=pd.array([pd.NA] + list(p["actual_hit"].iloc[1:]), dtype="Int64")))
+    elif damage == "ranks_not_from_one":                 # the first day's ranks shifted: that day has no rank-1 pick
+        def shift(p):
+            first = p["date"] == p["date"].iloc[0]
+            return p.assign(rank=p["rank"] + first.astype(int))
+        _edit_profile(d, "B", 2025, shift)
+    elif damage == "hit_not_binary":
+        _edit_profile(d, "B", 2025, lambda p: p.assign(actual_hit=[2] + list(p["actual_hit"].iloc[1:])))
+    elif damage == "p_out_of_range":
+        _edit_profile(d, "B", 2025, lambda p: p.assign(p_game_hit=[1.5] + list(p["p_game_hit"].iloc[1:])))
+    elif damage == "empty_unit":
+        _edit_profile(d, "B", 2025, lambda p: p.iloc[0:0])
+    elif damage == "column_absent":
+        _edit_profile(d, "B", 2025, lambda p: p.drop(columns=["p_game_hit"]))
+    elif damage == "identity_extra_key":
+        _rewrite(dirs[2] / "manifest.json", lambda r: r["identity"].update(unrecognized_extra="probe"))
     elif damage == "no_top_pick":                        # 2025 rows remain, but no day has a rank-1 pick
         _edit_profile(d, "A", 2025, lambda p: p[p["rank"] != 1])
     elif damage == "pins_other":                         # ten well-formed pins, consistent, but not the admitted ones
@@ -950,63 +986,107 @@ def _runner():
 INTENDED = ["t.py::a", "t.py::b", "t.py::c[x - y]"]
 
 
+def _rec(node, outcome="passed", when="call"):
+    return {"node": node, "when": when, "outcome": outcome}
+
+
+def _phases(node, call="passed"):
+    return [_rec(node, "passed", "setup"), _rec(node, call), _rec(node, "passed", "teardown")]
+
+
+END = [{"end": True}]
+ALL_PASS = _phases("t.py::a") + _phases("t.py::b") + _phases("t.py::c[x - y]")
+ONE_FAIL = _phases("t.py::a", "failed") + _phases("t.py::b") + _phases("t.py::c[x - y]")
 CLASSIFY = [
-    (1, "PASSED t.py::b\nPASSED t.py::c[x - y]\nFAILED t.py::a - x\n1 failed, 2 passed in 0.1s", "RED"),
-    (1, "PASSED t.py::b\nFAILED t.py::c[x - y] - boom\nFAILED t.py::a - x\n2 failed, 1 passed in 0.1s", "RED"),
-    (1, "PASSED t.py::c[x - y]\nFAILED t.py::a - x\nERROR t.py::b - setup\n1 failed, 1 passed, 1 error in 0.01s",
+    (1, "1 failed, 2 passed in 0.1s", ONE_FAIL + END, "RED"),
+    (1, "2 failed, 1 passed in 0.1s",
+     _phases("t.py::a", "failed") + _phases("t.py::b") + _phases("t.py::c[x - y]", "failed") + END, "RED"),
+    (0, "3 passed in 0.1s", ALL_PASS + END, "SURVIVED"),
+    (1, "1 failed, 1 passed, 1 error in 0.01s",
+     _phases("t.py::a", "failed") + [_rec("t.py::b", "failed", "setup")] + _phases("t.py::c[x - y]") + END,
      "INCONCLUSIVE(exit 1, errors)"),
-    (1, "PASSED t.py::c[x - y]\nFAILED t.py::a - x\n1 failed, 1 passed, 1 skipped in 0.1s", "INCONCLUSIVE(exit 1)"),
-    (0, "PASSED t.py::a\nPASSED t.py::b\nPASSED t.py::c[x - y]\n3 passed in 0.1s", "SURVIVED"),
-    (2, "1 error in 0.1s", "INCONCLUSIVE(exit 2)"),
-    (5, "no tests ran in 0.01s", "INCONCLUSIVE(exit 5)"),
-    # r3 R3-4: a named test that never executed (fail-fast) leaves the run incomplete, whatever the summary says
-    (1, "FAILED t.py::a - x\n!!! stopping after 1 failures !!!\n1 failed in 0.1s", "INCONCLUSIVE(exit 1, 2 not run)"),
-    (0, "PASSED t.py::a\nPASSED t.py::b\n2 passed in 0.1s", "INCONCLUSIVE(exit 0, 1 not run)"),
-    # an executed node whose id merely starts with an intended one is not that node (it never ran)
-    (1, "PASSED t.py::ab\nPASSED t.py::c[x - y]\nFAILED t.py::b - x\n1 failed, 2 passed in 0.1s",
+    (1, "1 failed, 1 passed, 1 skipped in 0.1s",
+     _phases("t.py::a", "failed") + [_rec("t.py::b", "skipped", "setup")] + _phases("t.py::c[x - y]") + END,
+     "INCONCLUSIVE(exit 1)"),
+    # r3 R3-4: fail-fast — a named node never reported a call phase
+    (1, "1 failed in 0.1s", _phases("t.py::a", "failed") + END, "INCONCLUSIVE(exit 1, 2 not run)"),
+    # r4 R4-2: whatever stdout says, a node without its own call report did not run
+    (1, "1 failed, 2 passed in 0.1s", _phases("t.py::a", "failed") + _phases("t.py::c[x - y]") + END,
      "INCONCLUSIVE(exit 1, 1 not run)"),
+    # the session did not end normally (no end record): nothing is certified
+    (1, "1 failed, 2 passed in 0.1s", ONE_FAIL, "INCONCLUSIVE(exit 1, no normal end)"),
+    # pytest's own summary disagrees with the recorded outcomes
+    (1, "2 failed, 1 passed in 0.1s", ONE_FAIL + END, "INCONCLUSIVE(exit 1, summary mismatch)"),
+    # an executed node outside the intended set is a changed selection
+    (1, "1 failed, 3 passed in 0.1s", ONE_FAIL + _phases("t.py::ab") + END, "INCONCLUSIVE(exit 1, 1 unintended)"),
+    (2, "1 error in 0.1s", END, "INCONCLUSIVE(exit 2)"),
 ]
-CLASSIFY_IDS = ["red", "red_two_failed", "errors", "skipped", "survived", "exit2", "exit5", "fail_fast", "survived_one_not_run",
-                "prefix_is_not_the_node"]
+CLASSIFY_IDS = ["red", "red_two_failed", "survived", "errors", "skipped", "fail_fast", "stdout_is_not_evidence",
+                "no_normal_end", "summary_mismatch", "unintended_node", "exit2"]
 
 
-@pytest.mark.parametrize("rc, out, verdict", CLASSIFY, ids=CLASSIFY_IDS)
-def test_the_runner_classifies_only_complete_clean_failures_as_red(rc, out, verdict):
-    assert _runner().classify(rc, out, INTENDED)[0] == verdict
+@pytest.mark.parametrize("rc, summary, records, verdict", CLASSIFY, ids=CLASSIFY_IDS)
+def test_the_runner_classifies_only_complete_clean_failures_as_red(rc, summary, records, verdict):
+    assert _runner().classify(rc, "progress\n" + summary, INTENDED, records)[0] == verdict
 
 
-def _scratch_mutant(tmp_path, tests_args):
-    """A scratch target and two named tests; the second writes a body-entry canary before asserting (r3 R3-4)."""
+def _scratch_mutant(tmp_path, tests, body):
+    """A scratch root of its own (the runner's rootdir and cwd, so collection never leaves it): a target, a test
+    module, and a spec naming tests relative to that root (r4: the out-of-tree collection that failed in a sandbox)."""
     import json
     root = tmp_path / "scratch"
     root.mkdir()
     (root / "target.py").write_text("value = 1\n")
-    canary = root / "canary"
-    (root / "test_scratch.py").write_text(
-        "import importlib.util, pathlib\n"
-        "def _value():\n"
-        "    spec = importlib.util.spec_from_file_location('target', pathlib.Path(__file__).with_name('target.py'))\n"
-        "    m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m); return m.value\n"
-        "def test_first():\n    assert _value() == 1\n"
-        f"def test_second():\n    pathlib.Path({str(canary)!r}).write_text('ran')\n    assert _value() == 1\n")
+    (root / "test_scratch.py").write_text(body(root))
     spec = tmp_path / "spec.json"
-    spec.write_text(json.dumps([{"id": "X1", "rule": "scratch", "file": str(root / "target.py"), "old": "value = 1",
-                                 "new": "value = 2", "tests": tests_args(root)}]))
-    return spec, root, canary
+    spec.write_text(json.dumps([{"id": "X1", "rule": "scratch", "file": "target.py", "old": "value = 1",
+                                 "new": "value = 2", "tests": tests}]))
+    return spec, root
+
+
+_VAL = ("import importlib.util, pathlib, pytest\n"
+        "def val():\n"
+        "    spec = importlib.util.spec_from_file_location('target', pathlib.Path(__file__).with_name('target.py'))\n"
+        "    m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m); return m.value\n")
 
 
 def test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("PYTEST_ADDOPTS", "-x")
-    spec, root, canary = _scratch_mutant(tmp_path, lambda r: [str(r / "test_scratch.py")])
-    assert _runner().main(str(spec)) == 0
+    canary = tmp_path / "canary"
+    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], lambda r: _VAL + (
+        "def test_first():\n    assert val() == 1\n"
+        f"def test_second():\n    pathlib.Path({str(canary)!r}).write_text('ran')\n    assert val() == 1\n"))
+    assert _runner().main(str(spec), root=root) == 0
     out = capsys.readouterr().out
     assert "X1 RED" in out and canary.read_text() == "ran"                 # the second body executed
     assert (root / "target.py").read_text() == "value = 1\n"               # restored
 
 
+def test_the_runner_is_not_fooled_by_printed_outcomes(tmp_path, capsys):
+    """r4 R4-2: the first test prints the second's PASSED line; the second's fixture stops pytest before its body."""
+    canary = tmp_path / "canary"
+    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], lambda r: _VAL + (
+        "def test_first(request):\n"
+        "    if val() != 1:\n"
+        "        print('PASSED ' + request.node.nodeid.rsplit('::', 1)[0] + '::test_second')\n"
+        "    assert val() == 1\n"
+        "@pytest.fixture\n"
+        "def gate():\n"
+        "    if val() != 1:\n"
+        "        pytest.exit('stop before the body', returncode=1)\n"
+        f"def test_second(gate):\n    pathlib.Path({str(canary)!r}).write_text('ran')\n    assert val() == 1\n"))
+    assert _runner().main(str(spec), root=root) == 1
+    out = capsys.readouterr().out
+    assert "X1 INCONCLUSIVE" in out and "NOT RED: X1" in out and not canary.exists()
+    assert (root / "target.py").read_text() == "value = 1\n"
+
+
 def test_the_runner_refuses_options_in_a_named_test_list(tmp_path, capsys):
-    spec, root, canary = _scratch_mutant(tmp_path, lambda r: [str(r / "test_scratch.py"), "-x"])
-    assert _runner().main(str(spec)) == 1
+    canary = tmp_path / "canary"
+    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py", "-x"], lambda r: _VAL + (
+        "def test_first():\n    assert val() == 1\n"
+        f"def test_second():\n    pathlib.Path({str(canary)!r}).write_text('ran')\n    assert val() == 1\n"))
+    assert _runner().main(str(spec), root=root) == 1
     out = capsys.readouterr().out
     assert "X1 INVALID" in out and "NOT RED: X1" in out and not canary.exists()
     assert (root / "target.py").read_text() == "value = 1\n"

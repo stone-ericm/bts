@@ -1,10 +1,11 @@
-# C2 side item (e): catcher-grouped framing screen, stage one — pre-registration (revision 4)
+# C2 side item (e): catcher-grouped framing screen, stage one — pre-registration (revision 5)
 
 **Status:**
-- Revision 4, for review round 4 (Eric, row **C2-framing-review-r4**: reopened after the round-3 BLOCK; no fifth round without a new ruling).
+- Revision 5, for review round 5 (Eric, row **C2-framing-review-r5**; no sixth round without a new ruling). Round 4 was authorized by row **C2-framing-review-r4**.
   - Revision 2 answered review r1 (`docs/audit/2026-10-06-c2-framing-codex-r1.md`, BLOCK B1–B7).
   - Revision 3 answered review r2 (`docs/audit/2026-10-06-c2-framing-codex-r2.md`, BLOCK R2-1 to R2-4).
-  - Revision 4 answers review r3 (`docs/audit/2026-10-06-c2-framing-codex-r3.md`, BLOCK R3-1 to R3-4). Only the after-the-run checks and the mutant runner change. The run's computation, inputs, labels, settings and variants do not.
+  - Revision 4 answered review r3 (`docs/audit/2026-10-06-c2-framing-codex-r3.md`, BLOCK R3-1 to R3-4). Only the after-the-run checks and the mutant runner changed. The run's computation, inputs, labels, settings and variants did not.
+  - Revision 5 answers review r4 (`docs/audit/2026-10-06-c2-framing-codex-r4.md`, BLOCK R4-1 to R4-3). Again only the after-the-run checks and the mutant runner change.
 - The note is frozen at the reviewed commit once signed.
 - Nothing runs before three things: a plain SIGN, the exposure row X-35, and the admission record.
 
@@ -142,10 +143,16 @@ The run reads exactly ten pinned files and nothing else that affects a result.
     - deterministic LightGBM params and environment;
     - all ten pins and their digest;
     - an identical self-check;
-    - exactly the admitted identity and pins;
+    - exactly the admitted identity (its five fields, no others; r4 R4-3) and pins;
   - **code:** the run's recorded HEAD is a commit that descends from the exposure commit, and no executable-closure file except the admission record differs from the reviewed commit. This is the shared gate's rule, applied to the commit the run actually recorded (`head_admitted`, r3 R3-3);
   - **results:** the six registered units, in order;
-  - **season evidence:** each retained profile is non-empty, and every row's season and date year is its own unit's season. A missing, empty, unreadable or wrong-season unit makes the run incomplete (r3 R3-2);
+  - **season evidence (r3 R3-2; r4 R4-1):** every row of each retained profile must be a row the scorer actually scores. A missing value in a column it groups, filters or counts on would drop the row from a metric while the file still holds it. So each unit file must:
+    - be non-empty, with the date, rank, season, hit and probability columns present;
+    - hold no missing value in those columns;
+    - carry an integer season equal to its unit's, and dates within that season;
+    - rank every day 1..n;
+    - hold hits of 0 or 1, and probabilities in [0, 1].
+    A unit that fails any of these makes the run incomplete. The producer guarantees all of them: `relabel` renumbers each day's ranks and writes integer hits, and `run` writes an integer season;
   - **reconciliation:**
     - each variant's full scorecard is recomputed from its retained profiles with the registered scoring settings, and must equal the stored scorecard on every value except its timestamp. That covers P@1, exact P(57) and the streak metrics, every decision-bearing value (r3 R3-1);
     - P@1 must cover exactly the two test seasons and equal the results;

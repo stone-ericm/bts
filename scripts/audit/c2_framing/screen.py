@@ -489,6 +489,38 @@ def head_admitted(repo: Path, identity: dict, head: str) -> list[str]:
         if changed else []
 
 
+SCORED_COLS = ("date", "rank", "season", "actual_hit", "p_game_hit")   # what the scorer groups, filters and counts on
+
+
+def profile_problem(part, season: int) -> str | None:
+    """Why a retained profile is not complete evidence of `season`, or None (r3 R3-2; r4 R4-1). Every row must be one the
+    scorer actually scores: a missing value in a column it groups, filters or counts on would drop the row from a
+    metric while the file still holds it. The producer guarantees all of this (`relabel` renumbers each day's ranks
+    1..n and writes integer hits; `run` writes an integer season)."""
+    import pandas as pd
+    if len(part) == 0:
+        return "empty"
+    absent = [c for c in SCORED_COLS if c not in part.columns]
+    if absent:
+        return f"columns {absent} absent"
+    if not all(bool(part[c].notna().all()) for c in SCORED_COLS):
+        return "missing values in " + str([c for c in SCORED_COLS if not bool(part[c].notna().all())])
+    if not (pd.api.types.is_integer_dtype(part["season"]) and bool((part["season"] == season).all())):
+        return "rows of another season (or a non-integer season)"
+    years = pd.to_datetime(part["date"]).dt.year
+    if not bool((years == season).all()):
+        return "dates outside the season"
+    if not pd.api.types.is_integer_dtype(part["rank"]) or any(
+            sorted(g.tolist()) != list(range(1, len(g) + 1)) for _, g in part.groupby("date")["rank"]):
+        return "ranks are not 1..n on every day"
+    if not bool(part["actual_hit"].isin([0, 1]).all()):
+        return "hits are not 0/1"
+    p = pd.to_numeric(part["p_game_hit"], errors="coerce")
+    if not bool(((p >= 0) & (p <= 1)).all()):
+        return "probabilities outside [0, 1]"
+    return None
+
+
 def _canon(obj) -> str:
     return json.dumps(obj, sort_keys=True)
 
@@ -545,8 +577,8 @@ def validate_run(d: Path, seed: int, *, out_root: Path, identity: dict, pins: di
         "pins": isinstance(pins_m, dict) and set(pins_m) == set(INPUT_NAMES)
                 and all(isinstance(v, str) and HEX.fullmatch(v) for v in pins_m.values()),
         "pins digest": isinstance(pins_m, dict) and man.get("inputs_digest") == pins_digest(pins_m),
-        "identity": isinstance(ident, dict) and all(isinstance(ident.get(k), str) and ident.get(k)
-                                                    for k in IDENTITY_KEYS),
+        "identity": isinstance(ident, dict) and set(ident) == set(IDENTITY_KEYS)      # exactly the five (r4 R4-3)
+                    and all(isinstance(ident.get(k), str) and ident.get(k) for k in IDENTITY_KEYS),
         "self-check": (man.get("self_check") or {}).get("identical") is True,
         "admitted identity": isinstance(ident, dict) and {k: ident.get(k) for k in IDENTITY_KEYS}
                              == {k: identity.get(k) for k in IDENTITY_KEYS},
@@ -571,12 +603,11 @@ def validate_run(d: Path, seed: int, *, out_root: Path, identity: dict, pins: di
             _read(d, name)
             try:
                 part = pd.read_parquet(d / name)
-                years = pd.to_datetime(part["date"]).dt.year
-                own = len(part) > 0 and bool((part["season"] == s).all()) and bool((years == s).all())
+                problem = profile_problem(part, s)
             except Exception as e:
                 raise RunInvalid(f"{d}: {name} is unreadable ({type(e).__name__})")
-            if not own:
-                raise RunInvalid(f"{d}: {name} is not complete {s} evidence")
+            if problem is not None:
+                raise RunInvalid(f"{d}: {name} is not complete {s} evidence: {problem}")
             parts.append(part)
         card = json.loads(_canon(compute_full_scorecard(pd.concat(parts, ignore_index=True), **SCORING)))
         if _canon({k: x for k, x in card.items() if k != "timestamp"}) != _canon(
