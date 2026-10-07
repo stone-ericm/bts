@@ -41,13 +41,13 @@ def _spy_read_parquet(monkeypatch):
 def test_parquet_is_parsed_once_from_the_hashed_buffer(parquet, monkeypatch):
     expected = pd.read_parquet(parquet)
     calls = _spy_read_parquet(monkeypatch)
-    inputs, errors = [], []
-    got = P._read_pa_parquet(parquet, inputs, errors)
+    inputs, errors, ok = [], [], [True]
+    got = P._read_pa_parquet(parquet, inputs, errors, ok)
     pd.testing.assert_frame_equal(got, expected)
     assert len(calls) == 1 and isinstance(calls[0], io.BytesIO)
     raw = parquet.read_bytes()
     assert inputs == [{"file": "pa_2026.parquet", "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}]
-    assert errors == []
+    assert errors == [] and ok == [True]
 
 
 def test_parquet_capture_preparation_failure_parses_the_original_path_once(parquet, monkeypatch):
@@ -57,9 +57,9 @@ def test_parquet_capture_preparation_failure_parses_the_original_path_once(parqu
     def no_buffer(self):
         raise MemoryError("synthetic buffer failure")
     monkeypatch.setattr(P.Path, "read_bytes", no_buffer)
-    inputs, errors = [], []
-    pd.testing.assert_frame_equal(P._read_pa_parquet(parquet, inputs, errors), expected)
-    assert calls == [parquet]
+    inputs, errors, ok = [], [], [True]
+    pd.testing.assert_frame_equal(P._read_pa_parquet(parquet, inputs, errors, ok), expected)
+    assert calls == [parquet] and ok == [True]
     assert inputs == [{"file": "pa_2026.parquet", "bytes": None, "sha256": None}]
     assert len(errors) == 1 and "parsed from path" in errors[0]
 
@@ -72,7 +72,7 @@ def test_parquet_hash_failure_still_parses_the_held_buffer(parquet, monkeypatch)
             raise MemoryError("synthetic hash failure")
     monkeypatch.setattr(hashlib, "sha256", Boom)
     inputs, errors = [], []
-    P._read_pa_parquet(parquet, inputs, errors)
+    P._read_pa_parquet(parquet, inputs, errors, [True])
     assert len(calls) == 1 and isinstance(calls[0], io.BytesIO)
     assert inputs[0]["sha256"] is None and inputs[0]["bytes"] == parquet.stat().st_size and errors
 
@@ -84,7 +84,7 @@ def test_a_parquet_parser_error_propagates_without_a_second_parse(tmp_path, monk
         pd.read_parquet(bad)
     calls = _spy_read_parquet(monkeypatch)
     with pytest.raises(type(original.value)):
-        P._read_pa_parquet(bad, [], [])
+        P._read_pa_parquet(bad, [], [], [True])
     assert len(calls) == 1
 
 
@@ -92,9 +92,9 @@ def test_a_parquet_collector_failure_returns_the_frame(parquet):
     class NoAppend(list):
         def append(self, x):
             raise RuntimeError("synthetic collector failure")
-    errors = []
-    pd.testing.assert_frame_equal(P._read_pa_parquet(parquet, NoAppend(), errors), pd.read_parquet(parquet))
-    assert errors
+    errors, ok = [], [True]
+    pd.testing.assert_frame_equal(P._read_pa_parquet(parquet, NoAppend(), errors, ok), pd.read_parquet(parquet))
+    assert errors and ok == [False]                         # r2 R2-2: the failure is carried, not inferred
 
 
 # ---------------------------------------------------------------- the hashing save (§3.1)

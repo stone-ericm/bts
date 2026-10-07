@@ -224,12 +224,14 @@ def save_blend(blend: dict, path, errors: list | None = None) -> str | None:
         return None
 
 
-def _read_pa_parquet(parquet: Path, inputs, errors) -> pd.DataFrame:
+def _read_pa_parquet(parquet: Path, inputs, errors, ok) -> pd.DataFrame:
     """Read one PA parquet once (serving witness, design §3.0), recording `{file, bytes, sha256}` in `inputs`.
 
     The held bytes are hashed and the same buffer is parsed. Any failure preparing the held buffer parses the original
     path once instead (provenance nulled); a parser error is a computation failure and propagates, never re-parsed.
     Every witness statement is contained where it runs, and the fallback runs outside any except suite (r1 F4).
+    A failed collection sets `ok[0] = False` (a preallocated one-slot list), so the caller withholds the inputs whatever
+    the list's length or the error record says (r2 R2-2).
     """
     raw = buffer = prep_error = None
     try:
@@ -243,27 +245,51 @@ def _read_pa_parquet(parquet: Path, inputs, errors) -> pd.DataFrame:
                  "the hashed buffer", prep_error)
         except Exception:
             pass
+        recorded = False
         try:
-            collect(inputs, lambda: {"file": parquet.name, "bytes": None, "sha256": None}, errors, "PA input")
+            recorded = collect(inputs, lambda: {"file": parquet.name, "bytes": None, "sha256": None}, errors,
+                               "PA input")
         except Exception:
-            pass
+            recorded = False
+        if not recorded:
+            _mark_incomplete(ok)
         return pd.read_parquet(parquet)
     sha = None
     try:
         sha = sha256_or_none(raw, errors, "PA input")
     except Exception:
         sha = None
+    recorded = False
     try:
-        collect(inputs, lambda: {"file": parquet.name, "bytes": len(raw), "sha256": sha}, errors, "PA input")
+        recorded = collect(inputs, lambda: {"file": parquet.name, "bytes": len(raw), "sha256": sha}, errors, "PA input")
     except Exception:
-        pass
+        recorded = False
+    if not recorded:
+        _mark_incomplete(ok)
     return pd.read_parquet(buffer)
 
 
-def _attach_pipeline_provenance(frame, source, sha, inputs, n_inputs: int, errors) -> None:
+def _mark_incomplete(ok) -> None:
+    """Record a failed PA collection in the caller's preallocated flag (r2 R2-2). Never raises."""
+    try:
+        ok[0] = False
+    except Exception:
+        pass
+
+
+def inputs_complete(inputs, ok, n: int) -> bool:
+    """A PA input list is complete only when every collection reported success and it holds `n` records (r2 R2-2:
+    a landed append that raised leaves a complete-looking length). Never raises."""
+    try:
+        return inputs is not None and ok is not None and ok[0] is True and len(inputs) == n
+    except Exception:
+        return False
+
+
+def _attach_pipeline_provenance(frame, source, sha, inputs, n_inputs: int, errors, ok) -> None:
     """Attach run_pipeline's provenance to its predictions (design §3.1). Each record is built and attached inside its
-    own guard; an input list whose length is not the number of parquets read is incomplete and attached as null
-    (r1 F3). Never raises."""
+    own guard; an input list whose length is not the number of parquets read (r1 F3), or any of whose collections
+    reported failure (r2 R2-2), is incomplete and attached as null. Never raises."""
     try:
         frame.attrs["serving_errors"] = errors
     except Exception as e:
@@ -279,7 +305,7 @@ def _attach_pipeline_provenance(frame, source, sha, inputs, n_inputs: int, error
         except Exception:
             pass
     try:
-        complete = inputs is not None and len(inputs) == n_inputs
+        complete = inputs_complete(inputs, ok, n_inputs)
         if not complete:
             note(errors, "PA inputs incomplete; withheld")
         frame.attrs["serving_inputs"] = inputs if complete else None
@@ -1017,15 +1043,15 @@ def run_pipeline(
 
     proc = Path(data_dir)
     progress.mark("loading_parquets")
-    witness_errors = pa_inputs = None
+    witness_errors = pa_inputs = pa_ok = None
     try:
-        witness_errors, pa_inputs = [], []
+        witness_errors, pa_inputs, pa_ok = [], [], [True]
     except Exception:
-        witness_errors = pa_inputs = None
+        witness_errors = pa_inputs = pa_ok = None
     n_parquets = 0
     dfs = []
     for parquet in sorted(proc.glob("pa_*.parquet")):
-        dfs.append(_read_pa_parquet(parquet, pa_inputs, witness_errors))
+        dfs.append(_read_pa_parquet(parquet, pa_inputs, witness_errors, pa_ok))
         n_parquets += 1
     if not dfs:
         raise RuntimeError("No Parquet files found. Run 'bts data build' first.")
@@ -1082,5 +1108,5 @@ def run_pipeline(
         blend=blend,
         feature_cols=feature_cols_override,
     )
-    _attach_pipeline_provenance(out, model_source, model_sha, pa_inputs, n_parquets, witness_errors)
+    _attach_pipeline_provenance(out, model_source, model_sha, pa_inputs, n_parquets, witness_errors, pa_ok)
     return out
