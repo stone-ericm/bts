@@ -824,6 +824,7 @@ DAMAGE = [
     ("p_out_of_range", "not complete 2025 evidence: probabilities"),
     ("empty_unit", "not complete 2025 evidence: empty"),
     ("column_absent", "not complete 2025 evidence: columns"),
+    ("p_strings", "not complete 2025 evidence: probabilities"),   # r5 R5-2: text that coerces to a skipped NA
 ]
 
 
@@ -926,6 +927,9 @@ def test_aggregate_refuses_an_invalid_run(three_runs, damage, match):
         _edit_profile(d, "B", 2025, lambda p: p.iloc[0:0])
     elif damage == "column_absent":
         _edit_profile(d, "B", 2025, lambda p: p.drop(columns=["p_game_hit"]))
+    elif damage == "p_strings":
+        _edit_profile(d, "B", 2025, lambda p: p.assign(p_game_hit=pd.array(
+            ["bad"] + [str(x) for x in p["p_game_hit"].iloc[1:]], dtype="string")))
     elif damage == "identity_extra_key":
         _rewrite(dirs[2] / "manifest.json", lambda r: r["identity"].update(unrecognized_extra="probe"))
     elif damage == "no_top_pick":                        # 2025 rows remain, but no day has a rank-1 pick
@@ -956,6 +960,16 @@ def test_validate_refuses_an_incomplete_identity_even_when_admitted(three_runs):
     with pytest.raises(S.RunInvalid, match=r"\['identity'\]"):
         S.validate_run(d, S.STAGE_ONE_SEEDS[0], out_root=out, identity=partial,
                        pins=__import__("json").loads((d / "manifest.json").read_text())["input_pins"])
+
+
+def test_a_rescoring_failure_is_a_refusal_not_a_crash(three_runs, monkeypatch):
+    """r5 R5-2: anything the scorer cannot score is refused through RunInvalid, never an unexpected exception."""
+    import bts.validate.scorecard as SC
+    out, dirs = three_runs
+    monkeypatch.setattr(SC, "compute_full_scorecard", lambda *a, **k: 1 + "x")
+    with pytest.raises(S.RunInvalid, match="cannot be rescored"):
+        S.validate_run(dirs[0], S.STAGE_ONE_SEEDS[0], out_root=out, identity=IDENT,
+                       pins=__import__("json").loads((dirs[0] / "manifest.json").read_text())["input_pins"])
 
 
 def test_validate_refuses_pins_other_than_the_ten_even_when_admitted(three_runs):
@@ -994,40 +1008,48 @@ def _phases(node, call="passed"):
     return [_rec(node, "passed", "setup"), _rec(node, call), _rec(node, "passed", "teardown")]
 
 
-END = [{"end": True}]
+def _session(exitstatus, failed, collected=3):
+    return [{"session": {"exitstatus": exitstatus, "testsfailed": failed, "testscollected": collected}}]
+
+
 ALL_PASS = _phases("t.py::a") + _phases("t.py::b") + _phases("t.py::c[x - y]")
 ONE_FAIL = _phases("t.py::a", "failed") + _phases("t.py::b") + _phases("t.py::c[x - y]")
 CLASSIFY = [
-    (1, "1 failed, 2 passed in 0.1s", ONE_FAIL + END, "RED"),
-    (1, "2 failed, 1 passed in 0.1s",
-     _phases("t.py::a", "failed") + _phases("t.py::b") + _phases("t.py::c[x - y]", "failed") + END, "RED"),
-    (0, "3 passed in 0.1s", ALL_PASS + END, "SURVIVED"),
-    (1, "1 failed, 1 passed, 1 error in 0.01s",
-     _phases("t.py::a", "failed") + [_rec("t.py::b", "failed", "setup")] + _phases("t.py::c[x - y]") + END,
+    (1, ONE_FAIL + _session(1, 1), "RED"),
+    (1, _phases("t.py::a", "failed") + _phases("t.py::b") + _phases("t.py::c[x - y]", "failed") + _session(1, 2), "RED"),
+    (0, ALL_PASS + _session(0, 0), "SURVIVED"),
+    (1, _phases("t.py::a", "failed") + [_rec("t.py::b", "failed", "setup")] + _phases("t.py::c[x - y]") + _session(1, 2),
      "INCONCLUSIVE(exit 1, errors)"),
-    (1, "1 failed, 1 passed, 1 skipped in 0.1s",
-     _phases("t.py::a", "failed") + [_rec("t.py::b", "skipped", "setup")] + _phases("t.py::c[x - y]") + END,
-     "INCONCLUSIVE(exit 1)"),
+    (1, _phases("t.py::a", "failed") + [_rec("t.py::b", "skipped", "setup")] + _phases("t.py::c[x - y]") + _session(1, 1),
+     "INCONCLUSIVE(exit 1, skipped)"),
     # r3 R3-4: fail-fast — a named node never reported a call phase
-    (1, "1 failed in 0.1s", _phases("t.py::a", "failed") + END, "INCONCLUSIVE(exit 1, 2 not run)"),
+    (1, _phases("t.py::a", "failed") + _session(1, 1), "INCONCLUSIVE(exit 1, 2 not run)"),
     # r4 R4-2: whatever stdout says, a node without its own call report did not run
-    (1, "1 failed, 2 passed in 0.1s", _phases("t.py::a", "failed") + _phases("t.py::c[x - y]") + END,
-     "INCONCLUSIVE(exit 1, 1 not run)"),
-    # the session did not end normally (no end record): nothing is certified
-    (1, "1 failed, 2 passed in 0.1s", ONE_FAIL, "INCONCLUSIVE(exit 1, no normal end)"),
-    # pytest's own summary disagrees with the recorded outcomes
-    (1, "2 failed, 1 passed in 0.1s", ONE_FAIL + END, "INCONCLUSIVE(exit 1, summary mismatch)"),
+    (1, _phases("t.py::a", "failed") + _phases("t.py::c[x - y]") + _session(1, 1), "INCONCLUSIVE(exit 1, 1 not run)"),
+    # r5 R5-1: no session-finish record (an abort before it, or another hook stopping it)
+    (1, ONE_FAIL, "INCONCLUSIVE(exit 1, no normal end)"),
+    # r5 R5-1: pytest.exit / KeyboardInterrupt reached pytest's interrupt hook, even with exit status 1
+    (1, ONE_FAIL + [{"interrupted": "Exit"}] + _session(1, 1), "INCONCLUSIVE(exit 1, interrupted)"),
+    # r5 R5-1: a test whose teardown never reported (its cleanup was cut short)
+    (1, _phases("t.py::a", "failed") + _phases("t.py::b") + _phases("t.py::c[x - y]", "failed")[:2] + _session(1, 2),
+     "INCONCLUSIVE(exit 1, 1 incomplete)"),
+    (1, ONE_FAIL + [{"internalerror": "RuntimeError"}] + _session(1, 1), "INCONCLUSIVE(exit 1, internal error)"),
+    (1, ONE_FAIL + [{"collecterror": "t.py"}] + _session(1, 1), "INCONCLUSIVE(exit 1, collection errors)"),
+    # pytest's own counters must agree with the reports
+    (1, ONE_FAIL + _session(1, 2), "INCONCLUSIVE(exit 1, session mismatch)"),
+    (1, ONE_FAIL + _session(1, 1, collected=4), "INCONCLUSIVE(exit 1, session mismatch)"),
+    (1, ONE_FAIL + _session(0, 1), "INCONCLUSIVE(exit 1, session mismatch)"),
     # an executed node outside the intended set is a changed selection
-    (1, "1 failed, 3 passed in 0.1s", ONE_FAIL + _phases("t.py::ab") + END, "INCONCLUSIVE(exit 1, 1 unintended)"),
-    (2, "1 error in 0.1s", END, "INCONCLUSIVE(exit 2)"),
+    (1, ONE_FAIL + _phases("t.py::ab") + _session(1, 1, collected=4), "INCONCLUSIVE(exit 1, 1 unintended)"),
 ]
 CLASSIFY_IDS = ["red", "red_two_failed", "survived", "errors", "skipped", "fail_fast", "stdout_is_not_evidence",
-                "no_normal_end", "summary_mismatch", "unintended_node", "exit2"]
+                "no_normal_end", "interrupted", "teardown_cut_short", "internal_error", "collection_error",
+                "failed_count_mismatch", "collected_count_mismatch", "exit_status_mismatch", "unintended_node"]
 
 
-@pytest.mark.parametrize("rc, summary, records, verdict", CLASSIFY, ids=CLASSIFY_IDS)
-def test_the_runner_classifies_only_complete_clean_failures_as_red(rc, summary, records, verdict):
-    assert _runner().classify(rc, "progress\n" + summary, INTENDED, records)[0] == verdict
+@pytest.mark.parametrize("rc, records, verdict", CLASSIFY, ids=CLASSIFY_IDS)
+def test_the_runner_classifies_only_complete_clean_failures_as_red(rc, records, verdict):
+    assert _runner().classify(rc, INTENDED, records)[0] == verdict
 
 
 def _scratch_mutant(tmp_path, tests, body):
@@ -1078,6 +1100,40 @@ def test_the_runner_is_not_fooled_by_printed_outcomes(tmp_path, capsys):
     assert _runner().main(str(spec), root=root) == 1
     out = capsys.readouterr().out
     assert "X1 INCONCLUSIVE" in out and "NOT RED: X1" in out and not canary.exists()
+    assert (root / "target.py").read_text() == "value = 1\n"
+
+
+def test_the_runner_is_not_fooled_by_an_aborted_teardown(tmp_path, capsys):
+    """r5 R5-1: both bodies fail for real, but the second's teardown calls pytest.exit with a count-bearing message
+    before its cleanup completes. pytest still unconfigures; the session did not end normally."""
+    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], lambda r: _VAL + (
+        "def test_first():\n    assert val() == 1\n"
+        "@pytest.fixture\n"
+        "def gate():\n"
+        "    yield\n"
+        "    if val() != 1:\n"
+        "        pytest.exit('2 failed cleanup checks', returncode=1)\n"
+        "    pathlib.Path(__file__).with_name('cleanup_completed').write_text('finished')\n"
+        "def test_second(gate):\n    assert val() == 1\n"))
+    assert _runner().main(str(spec), root=root) == 1
+    out = capsys.readouterr().out
+    assert "X1 INCONCLUSIVE" in out and "NOT RED: X1" in out and not (root / "cleanup_completed").exists()
+    assert (root / "target.py").read_text() == "value = 1\n"
+
+
+def test_a_later_session_finish_abort_is_not_a_normal_end(tmp_path, capsys):
+    """r5 R5-1: a conftest session-finish hook aborts after both tests failed for real. The plugin writes its session
+    record last, so the abort prevents it; the session did not end normally."""
+    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], lambda r: _VAL + (
+        "def test_first():\n    assert val() == 1\n"
+        "def test_second():\n    assert val() == 1\n"))
+    (root / "conftest.py").write_text(_VAL + (
+        "def pytest_sessionfinish(session, exitstatus):\n"
+        "    if val() != 1:\n"
+        "        pytest.exit('2 failed in a late hook', returncode=1)\n"))
+    assert _runner().main(str(spec), root=root) == 1
+    out = capsys.readouterr().out
+    assert "X1 INCONCLUSIVE(exit 1, no normal end)" in out and "NOT RED: X1" in out
     assert (root / "target.py").read_text() == "value = 1\n"
 
 

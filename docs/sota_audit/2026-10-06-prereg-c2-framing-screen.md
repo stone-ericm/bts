@@ -1,11 +1,12 @@
-# C2 side item (e): catcher-grouped framing screen, stage one — pre-registration (revision 5)
+# C2 side item (e): catcher-grouped framing screen, stage one — pre-registration (revision 6)
 
 **Status:**
-- Revision 5, for review round 5 (Eric, row **C2-framing-review-r5**; no sixth round without a new ruling). Round 4 was authorized by row **C2-framing-review-r4**.
+- Revision 6, for review round 6 (Eric, row **C2-framing-review-r6**, under the full review rules; no seventh round without a new ruling). Rounds 4 and 5 were authorized by rows **C2-framing-review-r4** and **-r5**.
   - Revision 2 answered review r1 (`docs/audit/2026-10-06-c2-framing-codex-r1.md`, BLOCK B1–B7).
   - Revision 3 answered review r2 (`docs/audit/2026-10-06-c2-framing-codex-r2.md`, BLOCK R2-1 to R2-4).
   - Revision 4 answered review r3 (`docs/audit/2026-10-06-c2-framing-codex-r3.md`, BLOCK R3-1 to R3-4). Only the after-the-run checks and the mutant runner changed. The run's computation, inputs, labels, settings and variants did not.
-  - Revision 5 answers review r4 (`docs/audit/2026-10-06-c2-framing-codex-r4.md`, BLOCK R4-1 to R4-3). Again only the after-the-run checks and the mutant runner change.
+  - Revision 5 answered review r4 (`docs/audit/2026-10-06-c2-framing-codex-r4.md`, BLOCK R4-1 to R4-3). Again only the after-the-run checks and the mutant runner changed.
+  - Revision 6 answers review r5 (`docs/audit/2026-10-07-c2-framing-codex-r5.md`, BLOCK R5-1; nonblocking R5-2). The mutant runner's end-of-session evidence changes, and two small validator refusals are added. Nothing in the run changes.
 - The note is frozen at the reviewed commit once signed.
 - Nothing runs before three things: a plain SIGN, the exposure row X-35, and the admission record.
 
@@ -151,10 +152,10 @@ The run reads exactly ten pinned files and nothing else that affects a result.
     - hold no missing value in those columns;
     - carry an integer season equal to its unit's, and dates within that season;
     - rank every day 1..n;
-    - hold hits of 0 or 1, and probabilities in [0, 1].
+    - hold hits of 0 or 1, and numeric probabilities in [0, 1], never coerced (r5 R5-2).
     A unit that fails any of these makes the run incomplete. The producer guarantees all of them: `relabel` renumbers each day's ranks and writes integer hits, and `run` writes an integer season;
   - **reconciliation:**
-    - each variant's full scorecard is recomputed from its retained profiles with the registered scoring settings, and must equal the stored scorecard on every value except its timestamp. That covers P@1, exact P(57) and the streak metrics, every decision-bearing value (r3 R3-1);
+    - each variant's full scorecard is recomputed from its retained profiles with the registered scoring settings, and must equal the stored scorecard on every value except its timestamp. That covers P@1, exact P(57) and the streak metrics, every decision-bearing value (r3 R3-1). Profiles the scorer cannot rescore are refused, not crashed on (r5 R5-2);
     - P@1 must cover exactly the two test seasons and equal the results;
     - each diff recomputed from the retained scorecards must equal the stored diff;
     - each stored summary and its secondary values, recomputed from the diff, must match;

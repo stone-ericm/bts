@@ -515,8 +515,11 @@ def profile_problem(part, season: int) -> str | None:
         return "ranks are not 1..n on every day"
     if not bool(part["actual_hit"].isin([0, 1]).all()):
         return "hits are not 0/1"
-    p = pd.to_numeric(part["p_game_hit"], errors="coerce")
-    if not bool(((p >= 0) & (p <= 1)).all()):
+    p = part["p_game_hit"]
+    if not (pd.api.types.is_float_dtype(p) or pd.api.types.is_integer_dtype(p)):
+        return "probabilities are not numeric"          # r5 R5-2: never coerce (a coerced NA would be skipped)
+    v = p.astype("float64")
+    if not bool((v.map(math.isfinite) & (v >= 0) & (v <= 1)).all()):
         return "probabilities outside [0, 1]"
     return None
 
@@ -609,7 +612,10 @@ def validate_run(d: Path, seed: int, *, out_root: Path, identity: dict, pins: di
             if problem is not None:
                 raise RunInvalid(f"{d}: {name} is not complete {s} evidence: {problem}")
             parts.append(part)
-        card = json.loads(_canon(compute_full_scorecard(pd.concat(parts, ignore_index=True), **SCORING)))
+        try:
+            card = json.loads(_canon(compute_full_scorecard(pd.concat(parts, ignore_index=True), **SCORING)))
+        except Exception as e:                          # r5 R5-2: a refusal, never an unexpected exception
+            raise RunInvalid(f"{d}: variant {v}'s retained profiles cannot be rescored ({type(e).__name__})")
         if _canon({k: x for k, x in card.items() if k != "timestamp"}) != _canon(
                 {k: x for k, x in cards[v].items() if k != "timestamp"}):
             raise RunInvalid(f"{d}: variant {v}'s scorecard does not match a recomputation from its retained profiles")
