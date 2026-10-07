@@ -57,6 +57,7 @@ T_MIN = 1.5                                      # the repo's multi-seed keep ru
 SEED1_BUDGET_CPU_H = 45.0                        # seed 1's declared launcher budget (Eric's stage-one approval)
 MAX_WALL_H = 16
 SETTINGS = {"ROOKIE_GATE_K": 20, "PITCHER_HR_30G_MIN_PERIODS": 7}   # production's effective values (box .env, 10/06)
+SCORING = {"mc_trials": 10_000, "season_length": 180}   # compute_full_scorecard's registered settings (its defaults)
 NEW_COL = "catcher_framing"
 OLD_COL = "pitcher_catcher_framing"
 LOOKUP_NAME = "probable_pitcher_lookup.2017-2025.json"
@@ -394,7 +395,7 @@ def run(seed: int, data_dir: Path, inputs_dir: Path, *, walk_forward=None, now=N
     manifest = {"schema": "c2_framing_screen_run_v2", "head": head, "claim_sha256": claim_sha, "seed": seed,
                 "identity": identity, "input_pins": adm["input_pins"], "inputs_digest": pins_digest(adm["input_pins"]),
                 "test_seasons": list(TEST_SEASONS), "basis": BASIS, "retrain_every": RETRAIN_EVERY,
-                "lgb_params": dict(LGB_PARAMS), "feature_settings": settings,
+                "lgb_params": dict(LGB_PARAMS), "feature_settings": settings, "scoring": dict(SCORING),
                 "env": {k: os.environ.get(k) for k in ("BTS_LGBM_DETERMINISTIC", "BTS_LGBM_RANDOM_STATE", "TZ")},
                 "self_check": check, "coverage": {NEW_COL: coverage(df, NEW_COL), OLD_COL: coverage(df, OLD_COL)},
                 "resumed_portion_rows": resumed_counts(df), "lookup_games": len(frozen_lookup(lookup_raw)),
@@ -414,17 +415,18 @@ def run(seed: int, data_dir: Path, inputs_dir: Path, *, walk_forward=None, now=N
             cpu = cpu_seconds() - c0
             p, counts = relabel(p, labels)
             p["season"] = season
-            p.to_parquet(run_dir / f"profiles_{variant}_{season}.parquet", index=False)
+            path = run_dir / f"profiles_{variant}_{season}.parquet"
+            p.to_parquet(path, index=False)
             units.append({"variant": variant, "season": season, "cpu_s": cpu, "wall_s": time.monotonic() - w0,
                           "labels": counts})
             _json(run_dir / "units.json", units)
-            parts.append(p)
+            parts.append(pd.read_parquet(path))    # score exactly the retained bytes validate_run rescores (r3 R3-1)
             if len(units) == 1 and first_unit_stop(cpu):
                 _json(run_dir / "STOPPED.json", {"reason": "first_unit_cpu", "cpu_s": cpu,
                                                  "limit_cpu_h": FIRST_UNIT_STOP_CPU_H})
                 return 3
         profiles[variant] = pd.concat(parts, ignore_index=True)
-    cards = {v: compute_full_scorecard(p) for v, p in profiles.items()}
+    cards = {v: compute_full_scorecard(p, **SCORING) for v, p in profiles.items()}
     for v, c in cards.items():
         _json(run_dir / f"scorecard_{v}.json", c)
     results = {"seed": seed, "head": head, "units": units, "total_cpu_s": cpu_seconds() - t0,
@@ -469,20 +471,49 @@ def _json_of(d: Path, name: str):
         raise RunInvalid(f"{d}: {name} is not valid JSON ({type(e).__name__})")
 
 
-def validate_run(d: Path, seed: int, *, out_root: Path, identity: dict | None = None, pins: dict | None = None) -> dict:
-    """One completed, claimed stage-one run, checked semantically (r2 R2-2, R2-3). Raises RunInvalid; returns
+def head_admitted(repo: Path, identity: dict, head: str) -> list[str]:
+    """Problems with a run's retained HEAD as admitted code (r3 R3-3): it must be a commit in `repo` that descends from
+    the admitted exposure commit, and no executable-closure file other than the admission record may differ from the
+    reviewed commit. That is the shared admission gate's rule, applied to the commit the run actually recorded."""
+    from scripts.audit.c1 import admission as A
+    rc, xc = identity.get("reviewed_commit"), identity.get("exposure_commit")
+    if not all(isinstance(c, str) and HEAD.fullmatch(c) for c in (rc, xc, head)):
+        return [f"run HEAD {str(head)[:7]} is not admitted: the head and the admitted commits must be full commit ids"]
+    if A._git(repo, "cat-file", "-e", f"{head}^{{commit}}", check=False).returncode != 0:
+        return [f"run HEAD {head[:7]} is not admitted: not a commit in this repository"]
+    if not A._ancestor(repo, xc, head):
+        return [f"run HEAD {head[:7]} is not admitted: the exposure commit is not its ancestor"]
+    changed = [f for f in A._git(repo, "diff", "--name-only", rc, head, "--", *CLOSURE).stdout.split()
+               if f != ADMISSION_REL]
+    return [f"run HEAD {head[:7]} is not admitted: executable files differ from the reviewed commit: {changed[:5]}"] \
+        if changed else []
+
+
+def _canon(obj) -> str:
+    return json.dumps(obj, sort_keys=True)
+
+
+def validate_run(d: Path, seed: int, *, out_root: Path, identity: dict, pins: dict, repo: Path | None = None) -> dict:
+    """One completed, claimed stage-one run, checked semantically against trusted admission evidence (r2 R2-2, R2-3;
+    r3 R3-1 to R3-3). `identity` and `pins` come from the admission gate, never from the run. Raises RunInvalid; returns
     {manifest, results, summaries}. It checks:
     - the canonical claim namespace (`out_root/seed_<seed>/<run>`), no stop, and a JSON claim naming this run and the
       manifest's code;
     - the manifest: schema, seed, claim binding, a 40-hex head, the registered basis, retrain interval, test seasons,
-      feature settings, deterministic LightGBM params and environment, the ten pins and their digest, a complete
-      accepted identity and an identical self-check; and, when given, the admitted identity and pins;
+      feature settings, scoring settings, deterministic LightGBM params and environment, the ten pins and their digest,
+      an identical self-check, and exactly the admitted identity and pins;
+    - the run's HEAD: an admitted descendant of the exposure commit with the reviewed executable closure
+      (`head_admitted`);
     - the results: seed, head, and the six units in their registered order;
-    - every retained artifact (six profiles, three scorecards, two diffs), P@1 per season recomputed from each variant's
-      profiles against its scorecard and the results, each diff recomputed from the retained scorecards, and each
-      stored summary recomputed from its diff."""
+    - every retained profile is non-empty evidence of its own unit's season (every row's season and date year);
+    - each variant's full scorecard recomputed from its retained profiles with the registered scoring settings equals
+      the stored scorecard (every decision-bearing value: P@1, exact P(57), the streak metrics), with P@1 for exactly
+      the registered test seasons; the results' P@1 equals it; each diff recomputed from the retained scorecards equals
+      the stored diff; and each stored summary, with its secondary values, recomputed from its diff matches."""
     import pandas as pd
-    from bts.validate.scorecard import compute_precision_at_k, diff_scorecards
+    from bts.validate.scorecard import compute_full_scorecard, diff_scorecards
+    from scripts.audit.c1 import admission as A
+    repo = A.REPO if repo is None else repo
     d = Path(d)
     if Path(d).resolve().parent != (out_root / f"seed_{seed}").resolve():
         raise RunInvalid(f"{d}: not in the canonical claim namespace {out_root / f'seed_{seed}'}")
@@ -508,6 +539,7 @@ def validate_run(d: Path, seed: int, *, out_root: Path, identity: dict | None = 
         "retrain": man.get("retrain_every") == RETRAIN_EVERY,
         "seasons": man.get("test_seasons") == list(TEST_SEASONS),
         "settings": man.get("feature_settings") == SETTINGS,
+        "scoring": man.get("scoring") == SCORING,
         "lgb determinism": lgb.get("deterministic") is True and lgb.get("force_row_wise") is True,
         "env": env.get("BTS_LGBM_DETERMINISTIC") == "1" and env.get("BTS_LGBM_RANDOM_STATE") == str(seed),
         "pins": isinstance(pins_m, dict) and set(pins_m) == set(INPUT_NAMES)
@@ -516,34 +548,56 @@ def validate_run(d: Path, seed: int, *, out_root: Path, identity: dict | None = 
         "identity": isinstance(ident, dict) and all(isinstance(ident.get(k), str) and ident.get(k)
                                                     for k in IDENTITY_KEYS),
         "self-check": (man.get("self_check") or {}).get("identical") is True,
-        "admitted identity": identity is None or (isinstance(ident, dict)
-                                                  and {k: ident.get(k) for k in IDENTITY_KEYS}
-                                                  == {k: identity.get(k) for k in IDENTITY_KEYS}),
-        "admitted pins": pins is None or pins_m == pins,
+        "admitted identity": isinstance(ident, dict) and {k: ident.get(k) for k in IDENTITY_KEYS}
+                             == {k: identity.get(k) for k in IDENTITY_KEYS},
+        "admitted pins": pins_m == pins,
         "results": isinstance(res, dict) and res.get("seed") == seed and res.get("head") == man.get("head"),
     }
     bad = [k for k, ok in checks.items() if not ok]
     if bad:
         raise RunInvalid(f"{d}: invalid manifest/results: {bad}")
+    problems = head_admitted(repo, identity, man["head"])
+    if problems:
+        raise RunInvalid(f"{d}: " + "; ".join(problems))
     units = res.get("units")
     if not (isinstance(units, list) and [(u.get("variant"), u.get("season")) for u in units] == UNIT_ORDER):
         raise RunInvalid(f"{d}: the six registered units are not all complete")
     cards = {v: _json_of(d, f"scorecard_{v}.json") for v in ("baseline", "A", "B")}
+    seasons = [str(s) for s in TEST_SEASONS]
     for v in ("baseline", "A", "B"):
-        prof = pd.concat([pd.read_parquet(d / f"profiles_{v}_{s}.parquet") for s in TEST_SEASONS], ignore_index=True)
-        p1 = {str(k): x[1] for k, x in compute_precision_at_k(prof, by_season=True).items()}
-        card_p1 = {str(k): x for k, x in (cards[v].get("p_at_1_by_season") or {}).items()}
-        if p1 != card_p1 or (res.get("p_at_1_by_season") or {}).get(v) != card_p1:
+        parts = []
+        for s in TEST_SEASONS:
+            name = f"profiles_{v}_{s}.parquet"
+            _read(d, name)
+            try:
+                part = pd.read_parquet(d / name)
+                years = pd.to_datetime(part["date"]).dt.year
+                own = len(part) > 0 and bool((part["season"] == s).all()) and bool((years == s).all())
+            except Exception as e:
+                raise RunInvalid(f"{d}: {name} is unreadable ({type(e).__name__})")
+            if not own:
+                raise RunInvalid(f"{d}: {name} is not complete {s} evidence")
+            parts.append(part)
+        card = json.loads(_canon(compute_full_scorecard(pd.concat(parts, ignore_index=True), **SCORING)))
+        if _canon({k: x for k, x in card.items() if k != "timestamp"}) != _canon(
+                {k: x for k, x in cards[v].items() if k != "timestamp"}):
+            raise RunInvalid(f"{d}: variant {v}'s scorecard does not match a recomputation from its retained profiles")
+        if sorted(card.get("p_at_1_by_season") or {}) != seasons:
+            raise RunInvalid(f"{d}: variant {v}'s P@1 does not cover exactly the test seasons {seasons}")
+        if (res.get("p_at_1_by_season") or {}).get(v) != card["p_at_1_by_season"]:
             raise RunInvalid(f"{d}: variant {v}'s P@1 does not reconcile across profiles, scorecard and results")
     summaries = {}
     for v in ("A", "B"):
         stored = _json_of(d, f"diff_{v}.json")
-        recomputed = json.loads(json.dumps(diff_scorecards(cards["baseline"], cards[v]), sort_keys=True))
-        if stored != recomputed:
+        recomputed = json.loads(_canon(diff_scorecards(cards["baseline"], cards[v])))
+        if _canon(stored) != _canon(recomputed):
             raise RunInvalid(f"{d}: variant {v}'s diff does not match its retained scorecards")
         summary = seed_summary(stored)
+        secondary = {"p_57_exact": stored.get("p_57_exact"),
+                     "mean_max_streak": stored.get("streak_metrics", {}).get("mean_max_streak")}
         held = (res.get("variants") or {}).get(v) or {}
-        if {k: held.get(k) for k in ("p_at_1_delta", "passed")} != {k: summary[k] for k in ("p_at_1_delta", "passed")}:
+        if _canon({k: held.get(k) for k in ("p_at_1_delta", "passed", "secondary")}) != _canon(
+                {"p_at_1_delta": summary["p_at_1_delta"], "passed": summary["passed"], "secondary": secondary}):
             raise RunInvalid(f"{d}: variant {v}'s stored summary does not match its diff")
         summaries[v] = summary
     return {"manifest": man, "results": res, "summaries": summaries}
@@ -564,7 +618,8 @@ def aggregate(run_dirs: list[Path], *, _test_out_root=None) -> dict:
         seeds.append(int(m.group(1)) if m else None)
     if sorted(s for s in seeds if s is not None) != sorted(STAGE_ONE_SEEDS) or None in seeds:
         raise RunInvalid(f"seeds {seeds} are not exactly the registered {list(STAGE_ONE_SEEDS)}")
-    valid = [validate_run(d, s, out_root=out_root) for d, s in zip(dirs, seeds)]
+    _, adm, identity = admission_gate()               # trusted evidence: never the runs' own declarations (r3 R3-3)
+    valid = [validate_run(d, s, out_root=out_root, identity=identity, pins=adm["input_pins"]) for d, s in zip(dirs, seeds)]
     first = valid[0]["manifest"]
     for key in ("identity", "input_pins", "inputs_digest", "lgb_params", "feature_settings", "basis", "retrain_every",
                 "test_seasons"):

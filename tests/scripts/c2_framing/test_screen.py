@@ -169,6 +169,14 @@ def test_pre_registered_constants():
     assert S.STAGE_ONE_SEEDS == tuple(seeds["seeds"][:3])
 
 
+def test_the_registered_scoring_settings_are_the_scorers_defaults():
+    import inspect
+    from bts.validate.scorecard import compute_full_scorecard
+    sig = inspect.signature(compute_full_scorecard).parameters
+    assert S.SCORING == {"mc_trials": 10_000, "season_length": 180}
+    assert {k: sig[k].default for k in S.SCORING} == S.SCORING
+
+
 def test_load_inputs_reads_only_the_pinned_files_from_their_hashed_bytes(tmp_path):
     import hashlib
     pins = {}
@@ -354,6 +362,14 @@ def _stub_walk_forward(calls):
     return wf
 
 
+ADMITTED_HEADS = ("a" * 40, "c" * 40)     # the stub's reviewed head and its metadata-only descendant (Eric's release)
+
+
+def _fake_head_admitted(repo, identity, head):
+    """The stubbed repository: only the two stub heads are admitted descendants of IDENT (r3 R3-3)."""
+    return [] if identity == IDENT and head in ADMITTED_HEADS else [f"run HEAD {str(head)[:7]} is not admitted"]
+
+
 class _Admission:
     """The stubbed admission: a head that can move (a metadata-only descendant) under one accepted identity."""
     def __init__(self, pins):
@@ -385,9 +401,8 @@ def stubbed(monkeypatch, tmp_path):
     monkeypatch.setattr(S, "admission_gate", adm)
     monkeypatch.setattr(S, "load_inputs", lambda data_dir, pins: _stub_df())
     monkeypatch.setattr(FC, "compute_all_features", lambda df: df)
-    import bts.validate.scorecard as SC
-    real_card = SC.compute_full_scorecard
-    monkeypatch.setattr(SC, "compute_full_scorecard", lambda p, **k: real_card(p, mc_trials=200))   # speed only
+    monkeypatch.setattr(S, "SCORING", {"mc_trials": 200, "season_length": 180})      # speed only; same code path
+    monkeypatch.setattr(S, "head_admitted", _fake_head_admitted)     # real git ancestry: test_head_admitted_*
     out = tmp_path / "out"
     out.mkdir()
     return out, inputs, adm
@@ -566,6 +581,76 @@ def test_a_seed1_run_of_another_identity_does_not_release(stubbed, monkeypatch):
         _run(stubbed, S.STAGE_ONE_SEEDS[1])
 
 
+def _launch_recording(stubbed, seed):
+    out, inputs, _ = stubbed
+    calls = []
+
+    class R:
+        returncode = 0
+    S.launch(seed, out, inputs, _test_out_root=out, execute=lambda cmd, cwd: (calls.append(cmd), R())[1])
+    return calls
+
+
+def test_a_seed1_run_without_2025_evidence_does_not_release(stubbed, monkeypatch):
+    """r3 R3-2: 2024's profiles standing in for 2025, everything downstream coherent — refused at run and launch."""
+    seed1 = _released(stubbed, monkeypatch)
+    _duplicate_2024_as_2025(seed1)
+    with pytest.raises(SystemExit, match="not a complete admitted run: .*not complete 2025 evidence"):
+        _run(stubbed, S.STAGE_ONE_SEEDS[1])
+    with pytest.raises(SystemExit, match="not complete 2025 evidence"):
+        _launch_recording(stubbed, S.STAGE_ONE_SEEDS[1])
+
+
+def test_a_seed1_run_of_unadmitted_code_does_not_release(stubbed, monkeypatch):
+    """r3 R3-3: a coherent seed-1 run whose HEAD is not an admitted descendant, under the same declared identity."""
+    seed1 = _released(stubbed, monkeypatch)
+    _move_head(seed1, "02516cfedc812f047295b6f2ab212fd72a944507")
+    with pytest.raises(SystemExit, match="not a complete admitted run: .*is not admitted"):
+        _run(stubbed, S.STAGE_ONE_SEEDS[1])
+    with pytest.raises(SystemExit, match="is not admitted"):
+        _launch_recording(stubbed, S.STAGE_ONE_SEEDS[1])
+
+
+def _git(repo, *args):
+    import subprocess
+    return subprocess.run(["git", "-C", str(repo), "-c", "user.email=t@t", "-c", "user.name=t", *args],
+                          capture_output=True, text=True, check=True).stdout.strip()
+
+
+def _commit(repo, files: dict, msg: str) -> str:
+    for rel, text in files.items():
+        (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+        (repo / rel).write_text(text)
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", msg)
+    return _git(repo, "rev-parse", "HEAD")
+
+
+def test_head_admitted_requires_a_metadata_descendant_of_the_exposure(tmp_path):
+    """r3 R3-3, against a real disposable repository: a run HEAD qualifies only if the exposure commit is its ancestor
+    and no executable-closure file other than admission.json differs from the reviewed commit."""
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git(repo, "init", "-q", "-b", "main")
+    base = _commit(repo, {"scripts/audit/c2_framing/screen.py": "v0\n", S.REGISTER_REL: "r0\n"}, "base")
+    reviewed = _commit(repo, {"scripts/audit/c2_framing/screen.py": "v1\n"}, "reviewed")
+    exposure = _commit(repo, {S.REGISTER_REL: "r1 X-35\n"}, "exposure")
+    admitted = _commit(repo, {S.ADMISSION_REL: "{}\n"}, "admission record")
+    released = _commit(repo, {S.REGISTER_REL: "r1 X-35\nrelease\n"}, "Eric's release (metadata only)")
+    changed = _commit(repo, {"scripts/audit/c2_framing/screen.py": "v2\n"}, "code change")
+    _git(repo, "checkout", "-q", "-b", "side", base)
+    side = _commit(repo, {"other.txt": "x\n"}, "not a descendant")
+    ident = {**IDENT, "reviewed_commit": reviewed, "exposure_commit": exposure}
+    assert S.head_admitted(repo, ident, admitted) == []
+    assert S.head_admitted(repo, ident, released) == []
+    assert S.head_admitted(repo, ident, exposure) == []
+    assert any("executable" in x for x in S.head_admitted(repo, ident, changed))
+    assert any("ancestor" in x for x in S.head_admitted(repo, ident, side))
+    assert any("ancestor" in x for x in S.head_admitted(repo, ident, reviewed))      # before the exposure: not admitted
+    assert S.head_admitted(repo, ident, "f" * 40)                                      # not a commit here
+    assert S.head_admitted(repo, {**ident, "exposure_commit": "bogus"}, admitted)      # not a commit id
+
+
 def test_a_release_naming_another_run_does_not_release(stubbed, monkeypatch):
     out, _, adm = stubbed
     assert _run(stubbed, S.STAGE_ONE_SEEDS[0]) == 0
@@ -653,6 +738,43 @@ def _rewrite(path, fn):
     path.write_text(json.dumps(rec, indent=1, sort_keys=True) + "\n")
 
 
+def _recohere(d):
+    """Regenerate a run's diffs, results P@1 and stored summaries from its (edited) scorecards with the production
+    helpers, so only the reconciliation against the retained profiles can refuse."""
+    import json
+    from bts.validate.scorecard import diff_scorecards
+    cards = {v: json.loads((d / f"scorecard_{v}.json").read_text()) for v in ("baseline", "A", "B")}
+    res = json.loads((d / "results.json").read_text())
+    res["p_at_1_by_season"] = {v: c["p_at_1_by_season"] for v, c in cards.items()}
+    for v in ("A", "B"):
+        diff = json.loads(json.dumps(diff_scorecards(cards["baseline"], cards[v]), sort_keys=True))
+        (d / f"diff_{v}.json").write_text(json.dumps(diff, indent=1, sort_keys=True) + "\n")
+        res["variants"][v] = {**S.seed_summary(diff), "secondary": {
+            "p_57_exact": diff.get("p_57_exact"), "mean_max_streak": diff.get("streak_metrics", {}).get("mean_max_streak")}}
+    (d / "results.json").write_text(json.dumps(res, indent=1, sort_keys=True) + "\n")
+
+
+def _duplicate_2024_as_2025(d):
+    """r3 R3-2's case: each variant's 2025 profile replaced by its 2024 profile (rows still say 2024), the scorecards
+    recomputed from what is retained, and everything downstream made coherent."""
+    import json
+    from bts.validate.scorecard import compute_full_scorecard
+    for v in ("baseline", "A", "B"):
+        p24 = pd.read_parquet(d / f"profiles_{v}_2024.parquet")
+        p24.to_parquet(d / f"profiles_{v}_2025.parquet", index=False)
+        card = compute_full_scorecard(pd.concat([p24, p24], ignore_index=True), **S.SCORING)
+        (d / f"scorecard_{v}.json").write_text(json.dumps(card, indent=1, sort_keys=True) + "\n")
+    _recohere(d)
+
+
+def _move_head(d, head):
+    """Coherently move a run's HEAD (claim, manifest, results) and rebind its claim hash (r3 R3-3)."""
+    _rewrite(d / "CLAIM.json", lambda r: r.update(code=head))
+    _rewrite(d / "manifest.json", lambda r: r.update(head=head))
+    _rewrite(d / "results.json", lambda r: r.update(head=head))
+    _rebind_claim(d)
+
+
 def _rebind_claim(d):
     """Make a damaged manifest's claim binding consistent again, so only the targeted check can refuse."""
     import hashlib, json
@@ -667,8 +789,11 @@ def _rebind_claim(d):
     ("identity_missing", "identity"), ("pins_missing", "pins"), ("unit_missing", "six registered units"),
     ("summary", "stored summary"), ("missing_diff", "missing diff_B.json"),
     ("diff_and_summary", "diff does not match its retained scorecards"),
-    ("profile", "does not reconcile"), ("deterministic", "lgb determinism"),
-    ("claim_rewritten", r"\['claim binding'\]"), ("pins_names", r"\['pins'\]"),
+    ("profile", "does not match a recomputation from its retained profiles"), ("deterministic", "lgb determinism"),
+    ("claim_rewritten", r"\['claim binding'\]"), ("pins_names", r"\['pins', 'admitted pins'\]"),
+    ("secondary_card", "does not match a recomputation from its retained profiles"),
+    ("season_duplicate", "not complete 2025 evidence"), ("bogus_identity", r"\['admitted identity'\]"),
+    ("foreign_head", "is not admitted"), ("scoring", r"\['scoring'\]"),
 ])
 def test_aggregate_refuses_an_invalid_run(three_runs, damage, match):
     import json
@@ -724,6 +849,21 @@ def test_aggregate_refuses_an_invalid_run(three_runs, damage, match):
             r["inputs_digest"] = S.pins_digest(r["input_pins"])
         for x in dirs:
             _rewrite(x / "manifest.json", drop)
+    elif damage == "secondary_card":                     # r3 R3-1: profiles untouched, a decision-bearing card value moved
+        for x in dirs[:2]:
+            base = json.loads((x / "scorecard_baseline.json").read_text())
+            _rewrite(x / "scorecard_B.json", lambda r: r.update(p_57_exact=(base["p_57_exact"] or 0.0) + 0.001))
+            _recohere(x)
+    elif damage == "season_duplicate":                   # r3 R3-2: 2024's profiles stand in for 2025, coherently
+        _duplicate_2024_as_2025(d)
+    elif damage == "bogus_identity":                     # r3 R3-3: declared identity strings, consistent across runs
+        for x in dirs:
+            _rewrite(x / "manifest.json", lambda r: r.update(identity={k: "bogus" for k in S.IDENTITY_KEYS}))
+    elif damage == "foreign_head":                       # r3 R3-3: a coherent HEAD that is not an admitted descendant
+        _move_head(d, "02516cfedc812f047295b6f2ab212fd72a944507")
+    elif damage == "scoring":
+        for x in dirs:
+            _rewrite(x / "manifest.json", lambda r: r.update(scoring={"mc_trials": 10, "season_length": 180}))
     with pytest.raises(S.RunInvalid, match=match):
         S.aggregate(dirs, _test_out_root=out)
 
@@ -731,8 +871,22 @@ def test_aggregate_refuses_an_invalid_run(three_runs, damage, match):
 def test_aggregate_refuses_runs_of_different_identities(three_runs):
     out, dirs = three_runs
     _rewrite(dirs[2] / "manifest.json", lambda r: r["identity"].update(reviewed_commit="other"))
-    with pytest.raises(S.RunInvalid, match="disagree on identity"):
+    with pytest.raises(S.RunInvalid, match=r"\['admitted identity'\]"):     # r3 R3-3: against the gate's identity
         S.aggregate(dirs, _test_out_root=out)
+
+
+def test_validate_refuses_pins_other_than_the_ten_even_when_admitted(three_runs):
+    """The run's own ten-name check, isolated: the trusted pins are the same nine, so only 'pins' can refuse."""
+    out, dirs = three_runs
+    d = dirs[0]
+
+    def drop(r):
+        r["input_pins"].pop(S.LOOKUP_NAME)
+        r["inputs_digest"] = S.pins_digest(r["input_pins"])
+    _rewrite(d / "manifest.json", drop)
+    nine = __import__("json").loads((d / "manifest.json").read_text())["input_pins"]
+    with pytest.raises(S.RunInvalid, match=r"\['pins'\]"):
+        S.validate_run(d, S.STAGE_ONE_SEEDS[0], out_root=out, identity=IDENT, pins=nine)
 
 
 # ---------------------------------------------------------------- the mutant runner's classification (r2 R2-4)
@@ -746,14 +900,58 @@ def _runner():
     return mod
 
 
+INTENDED = ["t.py::a", "t.py::b", "t.py::c[x - y]"]
+
+
 @pytest.mark.parametrize("rc, out, verdict", [
-    (1, "FAILED t.py::a - x\n1 failed, 3 passed in 0.1s", "RED"),
-    (1, "FAILED t.py::a - x\nERROR t.py::b - setup\n1 failed, 1 error in 0.01s", "INCONCLUSIVE(exit 1, errors)"),
-    (1, "FAILED t.py::a - x\n1 failed, 1 skipped in 0.1s", "INCONCLUSIVE(exit 1)"),
-    (0, "4 passed in 0.1s", "SURVIVED"),
+    (1, "PASSED t.py::b\nPASSED t.py::c[x - y]\nFAILED t.py::a - x\n1 failed, 2 passed in 0.1s", "RED"),
+    (1, "PASSED t.py::b\nFAILED t.py::c[x - y] - boom\nFAILED t.py::a - x\n2 failed, 1 passed in 0.1s", "RED"),
+    (1, "PASSED t.py::c[x - y]\nFAILED t.py::a - x\nERROR t.py::b - setup\n1 failed, 1 passed, 1 error in 0.01s",
+     "INCONCLUSIVE(exit 1, errors)"),
+    (1, "PASSED t.py::c[x - y]\nFAILED t.py::a - x\n1 failed, 1 passed, 1 skipped in 0.1s", "INCONCLUSIVE(exit 1)"),
+    (0, "PASSED t.py::a\nPASSED t.py::b\nPASSED t.py::c[x - y]\n3 passed in 0.1s", "SURVIVED"),
     (2, "1 error in 0.1s", "INCONCLUSIVE(exit 2)"),
     (5, "no tests ran in 0.01s", "INCONCLUSIVE(exit 5)"),
-    (1, "FAILED t.py::a - x\n1 failed, 3 passed, 2 deselected in 0.1s", "RED"),
+    # r3 R3-4: a named test that never executed (fail-fast) leaves the run incomplete, whatever the summary says
+    (1, "FAILED t.py::a - x\n!!! stopping after 1 failures !!!\n1 failed in 0.1s", "INCONCLUSIVE(exit 1, 2 not run)"),
+    (0, "PASSED t.py::a\nPASSED t.py::b\n2 passed in 0.1s", "INCONCLUSIVE(exit 0, 1 not run)"),
 ])
-def test_the_runner_classifies_only_clean_failures_as_red(rc, out, verdict):
-    assert _runner().classify(rc, out)[0] == verdict
+def test_the_runner_classifies_only_complete_clean_failures_as_red(rc, out, verdict):
+    assert _runner().classify(rc, out, INTENDED)[0] == verdict
+
+
+def _scratch_mutant(tmp_path, tests_args):
+    """A scratch target and two named tests; the second writes a body-entry canary before asserting (r3 R3-4)."""
+    import json
+    root = tmp_path / "scratch"
+    root.mkdir()
+    (root / "target.py").write_text("value = 1\n")
+    canary = root / "canary"
+    (root / "test_scratch.py").write_text(
+        "import importlib.util, pathlib\n"
+        "def _value():\n"
+        "    spec = importlib.util.spec_from_file_location('target', pathlib.Path(__file__).with_name('target.py'))\n"
+        "    m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m); return m.value\n"
+        "def test_first():\n    assert _value() == 1\n"
+        f"def test_second():\n    pathlib.Path({str(canary)!r}).write_text('ran')\n    assert _value() == 1\n")
+    spec = tmp_path / "spec.json"
+    spec.write_text(json.dumps([{"id": "X1", "rule": "scratch", "file": str(root / "target.py"), "old": "value = 1",
+                                 "new": "value = 2", "tests": tests_args(root)}]))
+    return spec, root, canary
+
+
+def test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("PYTEST_ADDOPTS", "-x")
+    spec, root, canary = _scratch_mutant(tmp_path, lambda r: [str(r / "test_scratch.py")])
+    assert _runner().main(str(spec)) == 0
+    out = capsys.readouterr().out
+    assert "X1 RED" in out and canary.read_text() == "ran"                 # the second body executed
+    assert (root / "target.py").read_text() == "value = 1\n"               # restored
+
+
+def test_the_runner_refuses_options_in_a_named_test_list(tmp_path, capsys):
+    spec, root, canary = _scratch_mutant(tmp_path, lambda r: [str(r / "test_scratch.py"), "-x"])
+    assert _runner().main(str(spec)) == 1
+    out = capsys.readouterr().out
+    assert "X1 INVALID" in out and "NOT RED: X1" in out and not canary.exists()
+    assert (root / "target.py").read_text() == "value = 1\n"
