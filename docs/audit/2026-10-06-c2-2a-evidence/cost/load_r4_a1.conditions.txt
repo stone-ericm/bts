@@ -1,0 +1,29 @@
+# load attempt 1 at candidate 91167768bb67da31178b08d9db3722d2f375f4df (src as e36e038) vs baseline f882411
+## before: 2026-10-07 18:15:49 EDT
+System-wide memory free percentage: 46%
+Pages free:                                   127371.
+Pages stored in compressor:                  1245785.
+Pages occupied by compressor:                 584910.
+Swapins:                                      653115.
+Swapouts:                                    1161037.
+PID    COMMAND          CMPRS MEM  
+64513  Browser Helper ( 2068M 2111M
+62487  Browser Helper ( 1533M 1543M
+75647  2.1.286          1370M 1548M
+1260   steam_osx        1007M 1025M
+61675  Browser Helper ( 821M  832M 
+367    mds              632M  640M 
+## after: 2026-10-07 18:16:39 EDT
+System-wide memory free percentage: 46%
+Pages free:                                   170494.
+Pages stored in compressor:                  1275391.
+Pages occupied by compressor:                 593674.
+Swapins:                                      653115.
+Swapouts:                                    1161037.
+PID    COMMAND          CMPRS MEM  
+64513  Browser Helper ( 2019M 2111M
+62487  Browser Helper ( 1533M 1543M
+75647  2.1.286          1348M 1549M
+1260   steam_osx        1006M 1025M
+61675  Browser Helper ( 821M  832M 
+367    mds              632M  640M 
