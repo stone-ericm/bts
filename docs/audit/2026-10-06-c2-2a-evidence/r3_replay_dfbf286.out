@@ -1,0 +1,84 @@
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+__ test_r3_1_a_failed_flag_helper_invocation_keeps_the_forecast[run_pipeline] __
+
+world = (PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-11835/test_r3_1_a_failed_fl...jvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-11835/test_r3_1_a_failed_flag_helper0/picks'), ['model', 'blend'])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x11359b5c0>
+calibrated = None, target = 'run_pipeline'
+
+    @pytest.mark.parametrize("target", TARGETS)
+    def test_r3_1_a_failed_flag_helper_invocation_keeps_the_forecast(world, monkeypatch, calibrated, target):
+        plain = _run(world)
+        out = _faulted(world, monkeypatch, target, "call")
+>       assert out is not None and list(out["p_game_hit"]) == list(plain["p_game_hit"])
+E       assert (None is not None)
+
+/private/tmp/claude-501/-Users-eric-projects-bts/5f91aea8-99ec-4c37-9eab-f76e81b81a0f/scratchpad/r3replay/r3_replay.py:87: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  [park_drag] WARNING: table not found at data/external/park_drag/park_drag_export.csv; park_drag_delta will be NaN
+  [local] Applied calibration to 3 predictions (top: raw=0.860 → calibrated=0.650)
+  [local] Loading cached model from /private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-11835/test_r3_1_a_failed_flag_helper0/models/blend_2026-06-30.pkl
+  [local] Prediction failed: injected flag helper invocation
+_ test_r3_1_a_failed_flag_helper_invocation_keeps_the_forecast[predict_local] __
+
+world = (PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-11835/test_r3_1_a_failed_fl...jvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-11835/test_r3_1_a_failed_flag_helper1/picks'), ['model', 'blend'])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1136cd160>
+calibrated = None, target = 'predict_local'
+
+    @pytest.mark.parametrize("target", TARGETS)
+    def test_r3_1_a_failed_flag_helper_invocation_keeps_the_forecast(world, monkeypatch, calibrated, target):
+        plain = _run(world)
+        out = _faulted(world, monkeypatch, target, "call")
+>       assert out is not None and list(out["p_game_hit"]) == list(plain["p_game_hit"])
+E       assert (   batter_id  game_pk  p_game_hit\n0          1       10        0.86\n1          2       11        0.81\n2          3       12        0.74 is not None and [0.86, 0.81, 0.74] == [0.65, 0.65, 0.65]
+E         
+E         At index 0 diff: 0.86 != 0.65
+E         Use -v to get more diff)
+
+/private/tmp/claude-501/-Users-eric-projects-bts/5f91aea8-99ec-4c37-9eab-f76e81b81a0f/scratchpad/r3replay/r3_replay.py:87: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  [local] Applied calibration to 3 predictions (top: raw=0.860 → calibrated=0.650)
+  [local] Loading cached model from /private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-11835/test_r3_1_a_failed_flag_helper1/models/blend_2026-06-30.pkl
+  [local] Calibration failed (non-fatal): injected flag helper invocation; using raw p
+_____ test_r3_2_a_failed_flag_write_still_withholds_the_part[run_pipeline] _____
+
+world = (PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-11835/test_r3_2_a_failed_fl...jvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-11835/test_r3_2_a_failed_flag_write_0/picks'), ['model', 'blend'])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1136cc830>
+calibrated = None, target = 'run_pipeline'
+
+    @pytest.mark.parametrize("target", TARGETS)
+    def test_r3_2_a_failed_flag_write_still_withholds_the_part(world, monkeypatch, calibrated, target):
+        out = _faulted(world, monkeypatch, target, "line")
+        serving = out.attrs["serving"]
+        part = serving["inputs"] if target == "run_pipeline" else serving["calibration"]["pa_input"]
+>       assert part is None, f"{target}: published {part!r} after its collection reported failure"
+E       AssertionError: run_pipeline: published [{'file': 'pa_2025.parquet', 'bytes': 3299, 'sha256': 'd3e55b7c8fad37d0eb78fec3c536773499e8d1d90ce1e963565c3d020d464a65'}, {'file': 'pa_2026.parquet', 'bytes': 3626, 'sha256': '331e8e7f9c08a44c36c903361e299d395b8a2bf06d21df0568f4190ee3cee76f'}] after its collection reported failure
+E       assert [{'bytes': 3299, 'file': 'pa_2025.parquet', 'sha256': 'd3e55b7c8fad37d0eb78fec3c536773499e8d1d90ce1e963565c3d020d464a6...bytes': 3626, 'file': 'pa_2026.parquet', 'sha256': '331e8e7f9c08a44c36c903361e299d395b8a2bf06d21df0568f4190ee3cee76f'}] is None
+
+/private/tmp/claude-501/-Users-eric-projects-bts/5f91aea8-99ec-4c37-9eab-f76e81b81a0f/scratchpad/r3replay/r3_replay.py:95: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  [local] Applied calibration to 3 predictions (top: raw=0.860 → calibrated=0.650)
+____ test_r3_2_a_failed_flag_write_still_withholds_the_part[predict_local] _____
+
+world = (PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-11835/test_r3_2_a_failed_fl...jvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-11835/test_r3_2_a_failed_flag_write_1/picks'), ['model', 'blend'])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1136d06e0>
+calibrated = None, target = 'predict_local'
+
+    @pytest.mark.parametrize("target", TARGETS)
+    def test_r3_2_a_failed_flag_write_still_withholds_the_part(world, monkeypatch, calibrated, target):
+        out = _faulted(world, monkeypatch, target, "line")
+        serving = out.attrs["serving"]
+        part = serving["inputs"] if target == "run_pipeline" else serving["calibration"]["pa_input"]
+>       assert part is None, f"{target}: published {part!r} after its collection reported failure"
+E       AssertionError: predict_local: published {'file': 'pa_2026.parquet', 'bytes': 3626, 'sha256': '331e8e7f9c08a44c36c903361e299d395b8a2bf06d21df0568f4190ee3cee76f'} after its collection reported failure
+E       assert {'bytes': 3626, 'file': 'pa_2026.parquet', 'sha256': '331e8e7f9c08a44c36c903361e299d395b8a2bf06d21df0568f4190ee3cee76f'} is None
+
+/private/tmp/claude-501/-Users-eric-projects-bts/5f91aea8-99ec-4c37-9eab-f76e81b81a0f/scratchpad/r3replay/r3_replay.py:95: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  [local] Applied calibration to 3 predictions (top: raw=0.860 → calibrated=0.650)
+=========================== short test summary info ============================
+FAILED ::test_r3_1_a_failed_flag_helper_invocation_keeps_the_forecast[run_pipeline]
+FAILED ::test_r3_1_a_failed_flag_helper_invocation_keeps_the_forecast[predict_local]
+FAILED ::test_r3_2_a_failed_flag_write_still_withholds_the_part[run_pipeline]
+FAILED ::test_r3_2_a_failed_flag_write_still_withholds_the_part[predict_local]
+4 failed in 2.18s

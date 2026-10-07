@@ -1,0 +1,328 @@
+{"head": "dfbf286f77abbd19af21bfa7bd7817c4d83473e2", "baseline": "f882411", "scenarios": ["model_cached", "model_cold", "calibration_on", "fault_pa_append_landed", "fault_calibration_pa_buffer", "fault_parquet_buffer"], "points": 326}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 194, "orchestrator.py", 389], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 197, "orchestrator.py", 389], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 200, "orchestrator.py", 389], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 204, "orchestrator.py", 389], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 206, "orchestrator.py", 389], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 212, "orchestrator.py", 389], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 217, "orchestrator.py", 389], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 219, "orchestrator.py", 389], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 222, "orchestrator.py", 389], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 231, "orchestrator.py", 389], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["call", "serving_witness.py", 88, "orchestrator.py", 231], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 91, "orchestrator.py", 231], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 234, "orchestrator.py", 389], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 235, "orchestrator.py", 389], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 242, "orchestrator.py", 389], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "predict.py", 1046, "park_drag.py", 204], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "predict.py", 1048, "park_drag.py", 204], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "predict.py", 1051, "park_drag.py", 204], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "predict.py", 1054, "park_drag.py", 204], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["call", "predict.py", 227, "predict.py", 1054], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "predict.py", 236, "predict.py", 1054], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "predict.py", 238, "predict.py", 1054], "ok": false, "problems": ["serving.inputs: [{'bytes': None, 'file': 'pa_2025.parquet', 'sha256': None}, {'bytes': 1379922, 'file': 'pa_2026.parquet', 'sha256': 'efadef08e4c153a5297c3d9df1b70a0f15fe884770f50e20d4df43e7f7df28f0'}] != plain [{'bytes': 1355999, 'file': 'pa_2025.parquet', 'sha256': 'c0ac9291968d48e4dd2fb706a63c7aa"]}
+{"scenario": "model_cached", "point": ["line", "predict.py", 239, "predict.py", 1054], "ok": false, "problems": ["serving.inputs: [{'bytes': None, 'file': 'pa_2025.parquet', 'sha256': None}, {'bytes': 1379922, 'file': 'pa_2026.parquet', 'sha256': 'efadef08e4c153a5297c3d9df1b70a0f15fe884770f50e20d4df43e7f7df28f0'}] != plain [{'bytes': 1355999, 'file': 'pa_2025.parquet', 'sha256': 'c0ac9291968d48e4dd2fb706a63c7aa"]}
+{"scenario": "model_cached", "point": ["line", "predict.py", 242, "predict.py", 1054], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "predict.py", 257, "predict.py", 1054], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "predict.py", 259, "predict.py", 1054], "ok": false, "problems": ["serving.inputs: [{'bytes': 1355999, 'file': 'pa_2025.parquet', 'sha256': None}, {'bytes': 1379922, 'file': 'pa_2026.parquet', 'sha256': 'efadef08e4c153a5297c3d9df1b70a0f15fe884770f50e20d4df43e7f7df28f0'}] != plain [{'bytes': 1355999, 'file': 'pa_2025.parquet', 'sha256': 'c0ac9291968d48e4dd2fb706a63c"]}
+{"scenario": "model_cached", "point": ["call", "serving_witness.py", 88, "predict.py", 259], "ok": false, "problems": ["serving.inputs: [{'bytes': 1355999, 'file': 'pa_2025.parquet', 'sha256': None}, {'bytes': 1379922, 'file': 'pa_2026.parquet', 'sha256': 'efadef08e4c153a5297c3d9df1b70a0f15fe884770f50e20d4df43e7f7df28f0'}] != plain [{'bytes': 1355999, 'file': 'pa_2025.parquet', 'sha256': 'c0ac9291968d48e4dd2fb706a63c"]}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 91, "predict.py", 259], "ok": false, "problems": ["serving.inputs: [{'bytes': 1355999, 'file': 'pa_2025.parquet', 'sha256': None}, {'bytes': 1379922, 'file': 'pa_2026.parquet', 'sha256': 'efadef08e4c153a5297c3d9df1b70a0f15fe884770f50e20d4df43e7f7df28f0'}] != plain [{'bytes': 1355999, 'file': 'pa_2025.parquet', 'sha256': 'c0ac9291968d48e4dd2fb706a63c"]}
+{"scenario": "model_cached", "point": ["line", "predict.py", 262, "predict.py", 1054], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "predict.py", 264, "predict.py", 1054], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["call", "serving_witness.py", 71, "predict.py", 264], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 75, "predict.py", 264], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 78, "predict.py", 264], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["call", "predict.py", 264, "serving_witness.py", 78], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "predict.py", 264, "serving_witness.py", 78], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 79, "predict.py", 264], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "predict.py", 267, "predict.py", 1054], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "predict.py", 269, "predict.py", 1054], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "predict.py", 1055, "park_drag.py", 204], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "predict.py", 1085, "park_drag.py", 204], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "predict.py", 1105, "park_drag.py", 204], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "predict.py", 722, "predict.py", 769], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "predict.py", 1111, "park_drag.py", 204], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["call", "predict.py", 289, "predict.py", 1111], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "predict.py", 294, "predict.py", 1111], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "predict.py", 301, "predict.py", 1111], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "predict.py", 308, "predict.py", 1111], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["call", "predict.py", 280, "predict.py", 308], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "predict.py", 284, "predict.py", 308], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "predict.py", 309, "predict.py", 1111], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "predict.py", 311, "predict.py", 1111], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "predict.py", 1112, "park_drag.py", 204], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 250, "orchestrator.py", 389], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 251, "orchestrator.py", 389], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 253, "orchestrator.py", 389], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["call", "orchestrator.py", 85, "orchestrator.py", 253], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 89, "orchestrator.py", 253], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 91, "orchestrator.py", 253], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 92, "orchestrator.py", 253], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 93, "orchestrator.py", 253], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 95, "orchestrator.py", 253], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 105, "orchestrator.py", 253], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["call", "orchestrator.py", 105, "orchestrator.py", 105], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 105, "orchestrator.py", 105], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 109, "orchestrator.py", 253], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 256, "orchestrator.py", 389], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 267, "orchestrator.py", 389], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 268, "orchestrator.py", 389], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 269, "orchestrator.py", 389], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 271, "orchestrator.py", 389], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 274, "orchestrator.py", 389], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 306, "orchestrator.py", 389], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 307, "orchestrator.py", 389], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 309, "orchestrator.py", 389], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 310, "orchestrator.py", 389], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["call", "orchestrator.py", 112, "orchestrator.py", 309], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 116, "orchestrator.py", 309], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 117, "orchestrator.py", 309], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 118, "orchestrator.py", 309], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 119, "orchestrator.py", 309], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 120, "orchestrator.py", 309], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 131, "orchestrator.py", 309], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 133, "orchestrator.py", 309], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 134, "orchestrator.py", 309], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["call", "predict.py", 280, "orchestrator.py", 134], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "predict.py", 284, "orchestrator.py", 134], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 136, "orchestrator.py", 309], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 138, "orchestrator.py", 309], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 139, "orchestrator.py", 309], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 140, "orchestrator.py", 309], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 141, "orchestrator.py", 309], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 142, "orchestrator.py", 309], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 313, "orchestrator.py", 389], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["call", "orchestrator.py", 145, "orchestrator.py", 313], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 147, "orchestrator.py", 313], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 149, "orchestrator.py", 313], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 150, "orchestrator.py", 313], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 151, "orchestrator.py", 313], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 152, "orchestrator.py", 313], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["call", "serving_witness.py", 134, "orchestrator.py", 151], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 139, "orchestrator.py", 151], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 141, "orchestrator.py", 151], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 144, "orchestrator.py", 151], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 145, "orchestrator.py", 151], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 146, "orchestrator.py", 151], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 147, "orchestrator.py", 151], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 149, "orchestrator.py", 151], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["call", "serving_witness.py", 112, "serving_witness.py", 149], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 113, "serving_witness.py", 149], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 114, "serving_witness.py", 149], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 115, "serving_witness.py", 149], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 116, "serving_witness.py", 149], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 117, "serving_witness.py", 149], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 118, "serving_witness.py", 149], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 119, "serving_witness.py", 149], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["call", "serving_witness.py", 107, "serving_witness.py", 119], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 108, "serving_witness.py", 119], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 109, "serving_witness.py", 119], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 120, "serving_witness.py", 149], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 121, "serving_witness.py", 149], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["call", "serving_witness.py", 124, "serving_witness.py", 149], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 125, "serving_witness.py", 149], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 126, "serving_witness.py", 149], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 128, "serving_witness.py", 149], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 131, "serving_witness.py", 149], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["call", "serving_witness.py", 146, "serving_witness.py", 149], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 146, "serving_witness.py", 149], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["call", "serving_witness.py", 147, "serving_witness.py", 149], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 147, "serving_witness.py", 149], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["call", "serving_witness.py", 147, "serving_witness.py", 147], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 147, "serving_witness.py", 147], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 154, "orchestrator.py", 151], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 155, "orchestrator.py", 151], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 160, "orchestrator.py", 151], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 164, "orchestrator.py", 151], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 165, "orchestrator.py", 151], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "serving_witness.py", 166, "orchestrator.py", 151], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 160, "orchestrator.py", 313], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "slate.py", 89, "orchestrator.py", 447], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["call", "slate.py", 56, "slate.py", 89], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "slate.py", 60, "slate.py", 89], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "slate.py", 62, "slate.py", 89], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "slate.py", 69, "slate.py", 89], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "slate.py", 70, "slate.py", 89], "ok": true, "problems": []}
+{"scenario": "model_cached", "point": ["line", "slate.py", 101, "orchestrator.py", 447], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cached", "point": ["line", "orchestrator.py", 451, "scenarios.py", 460], "ok": true, "problems": []}
+{"scenario": "model_cold", "point": ["line", "predict.py", 1095, "park_drag.py", 204], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cold", "point": ["line", "predict.py", 1098, "park_drag.py", 204], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cold", "point": ["call", "predict.py", 199, "predict.py", 1098], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cold", "point": ["line", "predict.py", 208, "predict.py", 1098], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cold", "point": ["line", "predict.py", 211, "predict.py", 1098], "ok": true, "problems": []}
+{"scenario": "model_cold", "point": ["call", "predict.py", 152, "predict.py", 211], "ok": true, "problems": []}
+{"scenario": "model_cold", "point": ["line", "predict.py", 153, "predict.py", 211], "ok": true, "problems": []}
+{"scenario": "model_cold", "point": ["line", "predict.py", 154, "predict.py", 211], "ok": true, "problems": []}
+{"scenario": "model_cold", "point": ["line", "predict.py", 155, "predict.py", 211], "ok": true, "problems": []}
+{"scenario": "model_cold", "point": ["line", "predict.py", 157, "predict.py", 211], "ok": true, "problems": []}
+{"scenario": "model_cold", "point": ["line", "predict.py", 218, "predict.py", 1098], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cold", "point": ["call", "predict.py", 165, "predict.py", 218], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cold", "point": ["line", "predict.py", 166, "predict.py", 218], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cold", "point": ["line", "predict.py", 168, "predict.py", 218], "ok": true, "problems": []}
+{"scenario": "model_cold", "point": ["line", "predict.py", 175, "predict.py", 218], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cold", "point": ["line", "predict.py", 176, "predict.py", 218], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cold", "point": ["line", "predict.py", 178, "predict.py", 218], "ok": true, "problems": []}
+{"scenario": "model_cold", "point": ["line", "predict.py", 184, "predict.py", 218], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cold", "point": ["line", "predict.py", 219, "predict.py", 1098], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "model_cold", "point": ["line", "predict.py", 222, "predict.py", 1098], "ok": true, "problems": []}
+{"scenario": "model_cold", "point": ["call", "predict.py", 186, "predict.py", 222], "ok": true, "problems": []}
+{"scenario": "model_cold", "point": ["line", "predict.py", 187, "predict.py", 222], "ok": true, "problems": []}
+{"scenario": "model_cold", "point": ["line", "predict.py", 190, "predict.py", 222], "ok": true, "problems": []}
+{"scenario": "model_cold", "point": ["line", "predict.py", 1099, "park_drag.py", 204], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "calibration_on", "point": ["line", "orchestrator.py", 282, "orchestrator.py", 389], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "orchestrator.py", 283, "orchestrator.py", 389], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["call", "predict.py", 227, "orchestrator.py", 283], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "predict.py", 236, "orchestrator.py", 283], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "predict.py", 238, "orchestrator.py", 283], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "predict.py", 239, "orchestrator.py", 283], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "predict.py", 242, "orchestrator.py", 283], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "predict.py", 257, "orchestrator.py", 283], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "predict.py", 259, "orchestrator.py", 283], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "predict.py", 262, "orchestrator.py", 283], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "predict.py", 264, "orchestrator.py", 283], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "predict.py", 267, "orchestrator.py", 283], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "predict.py", 269, "orchestrator.py", 283], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "orchestrator.py", 285, "orchestrator.py", 389], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 293, "orchestrator.py", 285], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 294, "orchestrator.py", 285], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 296, "orchestrator.py", 285], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 307, "orchestrator.py", 285], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 308, "orchestrator.py", 285], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 148, "scenarios.py", 394], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 172, "scenarios.py", 394], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["call", "calibrate.py", 58, "calibrate.py", 172], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 67, "calibrate.py", 172], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 69, "calibrate.py", 172], "ok": false, "problems": ["serving.calibration.pick_inputs: [{'bytes': None, 'file': '2026-04-02.json', 'sha256': None}, {'bytes': 702, 'file': '2026-05-21.json', 'sha256': '16797409dcae6fa9bdd6e2a721a8fa0013afe3d18aa59f6929cc9d8e7e26f90c'}, {'bytes': 418, 'file': '2026-05-22.json', 'sha256': '091aea1e906cfdcc3d238042b5c0e2bd"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 78, "calibrate.py", 172], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 79, "calibrate.py", 172], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 81, "calibrate.py", 172], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.pick_inputs: [{'bytes': None, 'file': '2026-04-02.json', 'sha256': None}, {'bytes': 702, 'file': '2026-05-21.json', 'sha256': '16797409dcae6fa9bdd6e2a721a8fa0013afe3d18aa59f6929cc9d8e7e26f90c'}, {'bytes': 418, 'file': '2026-05-22.json', 'sha256': '091aea1e906cfdcc3d238042b5c0e2bd"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 84, "calibrate.py", 172], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 96, "calibrate.py", 172], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 98, "calibrate.py", 172], "ok": false, "problems": ["serving.calibration.pick_inputs: [{'bytes': 416, 'file': '2026-04-02.json', 'sha256': None}, {'bytes': 702, 'file': '2026-05-21.json', 'sha256': '16797409dcae6fa9bdd6e2a721a8fa0013afe3d18aa59f6929cc9d8e7e26f90c'}, {'bytes': 418, 'file': '2026-05-22.json', 'sha256': '091aea1e906cfdcc3d238042b5c0e2bd7"]}
+{"scenario": "calibration_on", "point": ["call", "serving_witness.py", 88, "calibrate.py", 98], "ok": false, "problems": ["serving.calibration.pick_inputs: [{'bytes': 416, 'file': '2026-04-02.json', 'sha256': None}, {'bytes': 702, 'file': '2026-05-21.json', 'sha256': '16797409dcae6fa9bdd6e2a721a8fa0013afe3d18aa59f6929cc9d8e7e26f90c'}, {'bytes': 418, 'file': '2026-05-22.json', 'sha256': '091aea1e906cfdcc3d238042b5c0e2bd7"]}
+{"scenario": "calibration_on", "point": ["line", "serving_witness.py", 91, "calibrate.py", 98], "ok": false, "problems": ["serving.calibration.pick_inputs: [{'bytes': 416, 'file': '2026-04-02.json', 'sha256': None}, {'bytes': 702, 'file': '2026-05-21.json', 'sha256': '16797409dcae6fa9bdd6e2a721a8fa0013afe3d18aa59f6929cc9d8e7e26f90c'}, {'bytes': 418, 'file': '2026-05-22.json', 'sha256': '091aea1e906cfdcc3d238042b5c0e2bd7"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 101, "calibrate.py", 172], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 103, "calibrate.py", 172], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["call", "serving_witness.py", 71, "calibrate.py", 103], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "serving_witness.py", 75, "calibrate.py", 103], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "serving_witness.py", 78, "calibrate.py", 103], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["call", "calibrate.py", 103, "serving_witness.py", 78], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 103, "serving_witness.py", 78], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "serving_witness.py", 79, "calibrate.py", 103], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 106, "calibrate.py", 172], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 173, "scenarios.py", 394], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 175, "scenarios.py", 394], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 204, "scenarios.py", 394], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 205, "scenarios.py", 394], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 206, "scenarios.py", 394], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 208, "scenarios.py", 394], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["call", "calibrate.py", 109, "calibrate.py", 208], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 110, "calibrate.py", 208], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 112, "calibrate.py", 208], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["call", "serving_witness.py", 71, "calibrate.py", 110], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "serving_witness.py", 75, "calibrate.py", 110], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "serving_witness.py", 78, "calibrate.py", 110], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["call", "calibrate.py", 110, "serving_witness.py", 78], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 110, "serving_witness.py", 78], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 111, "serving_witness.py", 78], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "serving_witness.py", 79, "calibrate.py", 110], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 176, "scenarios.py", 394], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 177, "scenarios.py", 394], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 212, "scenarios.py", 394], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["call", "calibrate.py", 115, "calibrate.py", 212], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 116, "calibrate.py", 212], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 119, "calibrate.py", 212], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 120, "calibrate.py", 212], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 322, "orchestrator.py", 285], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 323, "orchestrator.py", 285], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["call", "calibrate.py", 240, "calibrate.py", 322], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 245, "calibrate.py", 322], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 248, "calibrate.py", 322], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 249, "calibrate.py", 322], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 250, "calibrate.py", 322], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 251, "calibrate.py", 322], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 252, "calibrate.py", 322], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 253, "calibrate.py", 322], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 254, "calibrate.py", 322], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 257, "calibrate.py", 322], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 258, "calibrate.py", 322], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 259, "calibrate.py", 322], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 260, "calibrate.py", 322], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["call", "calibrate.py", 216, "calibrate.py", 260], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 218, "calibrate.py", 260], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["call", "serving_witness.py", 100, "calibrate.py", 218], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "serving_witness.py", 102, "calibrate.py", 218], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "serving_witness.py", 103, "calibrate.py", 218], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "serving_witness.py", 104, "calibrate.py", 218], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 263, "calibrate.py", 322], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 264, "calibrate.py", 322], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["call", "calibrate.py", 227, "calibrate.py", 264], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 229, "calibrate.py", 264], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 230, "calibrate.py", 264], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 231, "calibrate.py", 264], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 265, "calibrate.py", 322], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 266, "calibrate.py", 322], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["call", "calibrate.py", 216, "calibrate.py", 266], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 218, "calibrate.py", 266], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 267, "calibrate.py", 322], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "calibrate.py", 268, "calibrate.py", 322], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "orchestrator.py", 290, "orchestrator.py", 389], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "calibration_on", "point": ["line", "orchestrator.py", 121, "orchestrator.py", 309], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "orchestrator.py", 122, "orchestrator.py", 309], "ok": true, "problems": []}
+{"scenario": "calibration_on", "point": ["line", "orchestrator.py", 135, "orchestrator.py", 309], "ok": true, "problems": []}
+{"scenario": "fault_pa_append_landed", "point": ["call", "serving_witness.py", 71, "scenarios.py", 1158], "ok": true, "problems": []}
+{"scenario": "fault_pa_append_landed", "point": ["line", "serving_witness.py", 75, "scenarios.py", 1158], "ok": true, "problems": []}
+{"scenario": "fault_pa_append_landed", "point": ["line", "serving_witness.py", 78, "scenarios.py", 1158], "ok": true, "problems": []}
+{"scenario": "fault_pa_append_landed", "point": ["line", "serving_witness.py", 80, "scenarios.py", 1158], "ok": true, "problems": []}
+{"scenario": "fault_pa_append_landed", "point": ["line", "serving_witness.py", 82, "scenarios.py", 1158], "ok": true, "problems": []}
+{"scenario": "fault_pa_append_landed", "point": ["call", "serving_witness.py", 60, "serving_witness.py", 82], "ok": true, "problems": []}
+{"scenario": "fault_pa_append_landed", "point": ["line", "serving_witness.py", 62, "serving_witness.py", 82], "ok": true, "problems": []}
+{"scenario": "fault_pa_append_landed", "point": ["line", "serving_witness.py", 65, "serving_witness.py", 82], "ok": true, "problems": []}
+{"scenario": "fault_pa_append_landed", "point": ["call", "serving_witness.py", 49, "serving_witness.py", 65], "ok": true, "problems": []}
+{"scenario": "fault_pa_append_landed", "point": ["line", "serving_witness.py", 52, "serving_witness.py", 65], "ok": true, "problems": []}
+{"scenario": "fault_pa_append_landed", "point": ["line", "serving_witness.py", 67, "serving_witness.py", 82], "ok": true, "problems": []}
+{"scenario": "fault_pa_append_landed", "point": ["line", "serving_witness.py", 68, "serving_witness.py", 82], "ok": true, "problems": []}
+{"scenario": "fault_pa_append_landed", "point": ["line", "serving_witness.py", 85, "scenarios.py", 1158], "ok": true, "problems": []}
+{"scenario": "fault_pa_append_landed", "point": ["line", "predict.py", 268, "predict.py", 1054], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "fault_pa_append_landed", "point": ["call", "predict.py", 272, "predict.py", 268], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "fault_pa_append_landed", "point": ["line", "predict.py", 275, "predict.py", 268], "ok": true, "problems": []}
+{"scenario": "fault_pa_append_landed", "point": ["line", "predict.py", 310, "predict.py", 1111], "ok": true, "problems": []}
+{"scenario": "fault_pa_append_landed", "point": ["call", "serving_witness.py", 60, "predict.py", 310], "ok": true, "problems": []}
+{"scenario": "fault_pa_append_landed", "point": ["line", "serving_witness.py", 62, "predict.py", 310], "ok": true, "problems": []}
+{"scenario": "fault_pa_append_landed", "point": ["line", "serving_witness.py", 65, "predict.py", 310], "ok": true, "problems": []}
+{"scenario": "fault_pa_append_landed", "point": ["line", "serving_witness.py", 66, "predict.py", 310], "ok": true, "problems": []}
+{"scenario": "fault_pa_append_landed", "point": ["line", "predict.py", 268, "orchestrator.py", 283], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.pa_input: {'bytes': 1379922, 'file': 'pa_2026.parquet', 'sha256': 'efadef08e4c153a5297c3d9df1b70a0f15fe884770f50e20d4df43e7f7df28f0'} != plain None", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "fault_pa_append_landed", "point": ["line", "orchestrator.py", 137, "orchestrator.py", 309], "ok": true, "problems": []}
+{"scenario": "fault_pa_append_landed", "point": ["call", "serving_witness.py", 60, "orchestrator.py", 137], "ok": true, "problems": []}
+{"scenario": "fault_pa_append_landed", "point": ["line", "serving_witness.py", 62, "orchestrator.py", 137], "ok": true, "problems": []}
+{"scenario": "fault_pa_append_landed", "point": ["line", "serving_witness.py", 65, "orchestrator.py", 137], "ok": true, "problems": []}
+{"scenario": "fault_pa_append_landed", "point": ["line", "serving_witness.py", 66, "orchestrator.py", 137], "ok": true, "problems": []}
+{"scenario": "fault_calibration_pa_buffer", "point": ["line", "predict.py", 240, "orchestrator.py", 283], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "fault_calibration_pa_buffer", "point": ["line", "predict.py", 241, "orchestrator.py", 283], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "fault_calibration_pa_buffer", "point": ["line", "predict.py", 244, "orchestrator.py", 283], "ok": true, "problems": []}
+{"scenario": "fault_calibration_pa_buffer", "point": ["line", "predict.py", 245, "orchestrator.py", 283], "ok": true, "problems": []}
+{"scenario": "fault_calibration_pa_buffer", "point": ["call", "serving_witness.py", 60, "predict.py", 244], "ok": true, "problems": []}
+{"scenario": "fault_calibration_pa_buffer", "point": ["line", "serving_witness.py", 62, "predict.py", 244], "ok": true, "problems": []}
+{"scenario": "fault_calibration_pa_buffer", "point": ["line", "serving_witness.py", 65, "predict.py", 244], "ok": true, "problems": []}
+{"scenario": "fault_calibration_pa_buffer", "point": ["line", "serving_witness.py", 66, "predict.py", 244], "ok": true, "problems": []}
+{"scenario": "fault_calibration_pa_buffer", "point": ["line", "predict.py", 248, "orchestrator.py", 283], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "fault_calibration_pa_buffer", "point": ["line", "predict.py", 250, "orchestrator.py", 283], "ok": true, "problems": []}
+{"scenario": "fault_calibration_pa_buffer", "point": ["line", "predict.py", 251, "orchestrator.py", 283], "ok": true, "problems": []}
+{"scenario": "fault_calibration_pa_buffer", "point": ["call", "serving_witness.py", 71, "predict.py", 250], "ok": true, "problems": []}
+{"scenario": "fault_calibration_pa_buffer", "point": ["line", "serving_witness.py", 75, "predict.py", 250], "ok": true, "problems": []}
+{"scenario": "fault_calibration_pa_buffer", "point": ["line", "serving_witness.py", 78, "predict.py", 250], "ok": true, "problems": []}
+{"scenario": "fault_calibration_pa_buffer", "point": ["call", "predict.py", 250, "serving_witness.py", 78], "ok": true, "problems": []}
+{"scenario": "fault_calibration_pa_buffer", "point": ["line", "predict.py", 250, "serving_witness.py", 78], "ok": true, "problems": []}
+{"scenario": "fault_calibration_pa_buffer", "point": ["line", "serving_witness.py", 79, "predict.py", 250], "ok": true, "problems": []}
+{"scenario": "fault_calibration_pa_buffer", "point": ["line", "predict.py", 254, "orchestrator.py", 283], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "fault_calibration_pa_buffer", "point": ["line", "predict.py", 256, "orchestrator.py", 283], "ok": false, "problems": ["differs from the baseline: surface", "serving.calibration.applied: False != plain True", "serving.calibration.status: 'failed' != plain 'applied'"]}
+{"scenario": "fault_parquet_buffer", "point": ["line", "predict.py", 240, "predict.py", 1054], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "fault_parquet_buffer", "point": ["line", "predict.py", 241, "predict.py", 1054], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "fault_parquet_buffer", "point": ["line", "predict.py", 244, "predict.py", 1054], "ok": true, "problems": []}
+{"scenario": "fault_parquet_buffer", "point": ["line", "predict.py", 245, "predict.py", 1054], "ok": true, "problems": []}
+{"scenario": "fault_parquet_buffer", "point": ["line", "predict.py", 248, "predict.py", 1054], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "fault_parquet_buffer", "point": ["line", "predict.py", 250, "predict.py", 1054], "ok": true, "problems": []}
+{"scenario": "fault_parquet_buffer", "point": ["line", "predict.py", 251, "predict.py", 1054], "ok": true, "problems": []}
+{"scenario": "fault_parquet_buffer", "point": ["line", "predict.py", 254, "predict.py", 1054], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"scenario": "fault_parquet_buffer", "point": ["line", "predict.py", 256, "predict.py", 1054], "ok": false, "problems": ["differs from the baseline: surface"]}
+{"summary": true, "points": 326, "failed": 116, "lines_never_reached": 425, "never_reached": ["calibrate.py:100", "calibrate.py:104", "calibrate.py:105", "calibrate.py:107", "calibrate.py:108", "calibrate.py:113", "calibrate.py:114", "calibrate.py:117", "calibrate.py:121", "calibrate.py:122", "calibrate.py:123", "calibrate.py:124", "calibrate.py:141", "calibrate.py:142", "calibrate.py:143", "calibrate.py:144", "calibrate.py:145", "calibrate.py:146", "calibrate.py:150", "calibrate.py:174", "calibrate.py:178", "calibrate.py:209", "calibrate.py:210", "calibrate.py:211", "calibrate.py:219", "calibrate.py:221", "calibrate.py:222", "calibrate.py:223", "calibrate.py:224", "calibrate.py:225", "calibrate.py:226", "calibrate.py:232", "calibrate.py:234", "calibrate.py:235", "calibrate.py:236", "calibrate.py:237", "calibrate.py:238", "calibrate.py:239", "calibrate.py:241", "calibrate.py:242", "calibrate.py:243", "calibrate.py:244", "calibrate.py:246", "calibrate.py:255", "calibrate.py:256", "calibrate.py:261", "calibrate.py:262", "calibrate.py:269", "calibrate.py:271", "calibrate.py:272", "calibrate.py:273", "calibrate.py:274", "calibrate.py:275", "calibrate.py:282", "calibrate.py:288", "calibrate.py:289", "calibrate.py:290", "calibrate.py:291", "calibrate.py:297", "calibrate.py:298", "calibrate.py:303", "calibrate.py:314", "calibrate.py:315", "calibrate.py:34", "calibrate.py:43", "calibrate.py:44", "calibrate.py:45", "calibrate.py:46", "calibrate.py:54", "calibrate.py:55", "calibrate.py:56", "calibrate.py:57", "calibrate.py:59", "calibrate.py:60", "calibrate.py:61", "calibrate.py:62", "calibrate.py:63", "calibrate.py:64", "calibrate.py:65", "calibrate.py:66", "calibrate.py:70", "calibrate.py:72", "calibrate.py:73", "calibrate.py:74", "calibrate.py:75", "calibrate.py:76", "calibrate.py:77", "calibrate.py:82", "calibrate.py:83", "calibrate.py:86", "calibrate.py:87", "calibrate.py:88", "calibrate.py:89", "calibrate.py:90", "calibrate.py:92", "calibrate.py:93", "calibrate.py:94", "calibrate.py:95", "calibrate.py:99", "orchestrator.py:100", "orchestrator.py:101", "orchestrator.py:102", "orchestrator.py:103", "orchestrator.py:106", "orchestrator.py:107", "orchestrator.py:108", "orchestrator.py:110", "orchestrator.py:111", "orchestrator.py:113", "orchestrator.py:114", "orchestrator.py:115", "orchestrator.py:123", "orchestrator.py:124", "orchestrator.py:125", "orchestrator.py:126", "orchestrator.py:127", "orchestrator.py:128", "orchestrator.py:129", "orchestrator.py:130", "orchestrator.py:132", "orchestrator.py:143", "orchestrator.py:144", "orchestrator.py:146", "orchestrator.py:153", "orchestrator.py:154", "orchestrator.py:156", "orchestrator.py:157", "orchestrator.py:158", "orchestrator.py:161", "orchestrator.py:163", "orchestrator.py:164", "orchestrator.py:165", "orchestrator.py:166", "orchestrator.py:167", "orchestrator.py:187", "orchestrator.py:188", "orchestrator.py:189", "orchestrator.py:190", "orchestrator.py:191", "orchestrator.py:192", "orchestrator.py:201", "orchestrator.py:202", "orchestrator.py:207", "orchestrator.py:208", "orchestrator.py:215", "orchestrator.py:216", "orchestrator.py:220", "orchestrator.py:221", "orchestrator.py:224", "orchestrator.py:225", "orchestrator.py:226", "orchestrator.py:227", "orchestrator.py:228", "orchestrator.py:229", "orchestrator.py:232", "orchestrator.py:233", "orchestrator.py:248", "orchestrator.py:249", "orchestrator.py:254", "orchestrator.py:255", "orchestrator.py:258", "orchestrator.py:259", "orchestrator.py:260", "orchestrator.py:262", "orchestrator.py:263", "orchestrator.py:264", "orchestrator.py:265", "orchestrator.py:272", "orchestrator.py:273", "orchestrator.py:300", "orchestrator.py:303", "orchestrator.py:311", "orchestrator.py:312", "orchestrator.py:448", "orchestrator.py:449", "orchestrator.py:452", "orchestrator.py:453", "orchestrator.py:76", "orchestrator.py:77", "orchestrator.py:78", "orchestrator.py:79", "orchestrator.py:80", "orchestrator.py:81", "orchestrator.py:82", "orchestrator.py:83", "orchestrator.py:84", "orchestrator.py:86", "orchestrator.py:87", "orchestrator.py:88", "orchestrator.py:96", "orchestrator.py:97", "orchestrator.py:98", "orchestrator.py:99", "predict.py:1032", "predict.py:1033", "predict.py:1034", "predict.py:1035", "predict.py:1036", "predict.py:1037", "predict.py:1038", "predict.py:1049", "predict.py:1050", "predict.py:146", "predict.py:147", "predict.py:148", "predict.py:149", "predict.py:150", "predict.py:151", "predict.py:158", "predict.py:159", "predict.py:161", "predict.py:162", "predict.py:163", "predict.py:164", "predict.py:169", "predict.py:170", "predict.py:172", "predict.py:173", "predict.py:174", "predict.py:179", "predict.py:180", "predict.py:181", "predict.py:182", "predict.py:183", "predict.py:185", "predict.py:188", "predict.py:19", "predict.py:191", "predict.py:193", "predict.py:194", "predict.py:195", "predict.py:196", "predict.py:197", "predict.py:198", "predict.py:200", "predict.py:201", "predict.py:202", "predict.py:203", "predict.py:204", "predict.py:205", "predict.py:212", "predict.py:213", "predict.py:215", "predict.py:216", "predict.py:217", "predict.py:220", "predict.py:223", "predict.py:224", "predict.py:225", "predict.py:226", "predict.py:228", "predict.py:229", "predict.py:230", "predict.py:231", "predict.py:232", "predict.py:233", "predict.py:234", "predict.py:235", "predict.py:246", "predict.py:247", "predict.py:252", "predict.py:253", "predict.py:255", "predict.py:260", "predict.py:261", "predict.py:265", "predict.py:266", "predict.py:270", "predict.py:271", "predict.py:273", "predict.py:276", "predict.py:277", "predict.py:278", "predict.py:279", "predict.py:281", "predict.py:282", "predict.py:285", "predict.py:286", "predict.py:287", "predict.py:288", "predict.py:290", "predict.py:291", "predict.py:292", "predict.py:295", "predict.py:297", "predict.py:298", "predict.py:299", "predict.py:3", "predict.py:302", "predict.py:304", "predict.py:305", "predict.py:306", "predict.py:312", "predict.py:314", "predict.py:315", "predict.py:316", "predict.py:4", "serving_witness.py:1", "serving_witness.py:10", "serving_witness.py:101", "serving_witness.py:105", "serving_witness.py:106", "serving_witness.py:11", "serving_witness.py:110", "serving_witness.py:111", "serving_witness.py:12", "serving_witness.py:122", "serving_witness.py:123", "serving_witness.py:129", "serving_witness.py:13", "serving_witness.py:130", "serving_witness.py:132", "serving_witness.py:133", "serving_witness.py:135", "serving_witness.py:136", "serving_witness.py:137", "serving_witness.py:138", "serving_witness.py:14", "serving_witness.py:142", "serving_witness.py:143", "serving_witness.py:15", "serving_witness.py:150", "serving_witness.py:151", "serving_witness.py:152", "serving_witness.py:156", "serving_witness.py:157", "serving_witness.py:158", "serving_witness.py:16", "serving_witness.py:161", "serving_witness.py:162", "serving_witness.py:163", "serving_witness.py:17", "serving_witness.py:18", "serving_witness.py:19", "serving_witness.py:2", "serving_witness.py:20", "serving_witness.py:21", "serving_witness.py:22", "serving_witness.py:23", "serving_witness.py:24", "serving_witness.py:25", "serving_witness.py:26", "serving_witness.py:27", "serving_witness.py:28", "serving_witness.py:29", "serving_witness.py:3", "serving_witness.py:30", "serving_witness.py:31", "serving_witness.py:32", "serving_witness.py:33", "serving_witness.py:34", "serving_witness.py:35", "serving_witness.py:36", "serving_witness.py:37", "serving_witness.py:38", "serving_witness.py:39", "serving_witness.py:4", "serving_witness.py:40", "serving_witness.py:41", "serving_witness.py:42", "serving_witness.py:43", "serving_witness.py:44", "serving_witness.py:45", "serving_witness.py:46", "serving_witness.py:47", "serving_witness.py:48", "serving_witness.py:5", "serving_witness.py:50", "serving_witness.py:53", "serving_witness.py:55", "serving_witness.py:56", "serving_witness.py:57", "serving_witness.py:58", "serving_witness.py:59", "serving_witness.py:6", "serving_witness.py:61", "serving_witness.py:63", "serving_witness.py:69", "serving_witness.py:7", "serving_witness.py:70", "serving_witness.py:72", "serving_witness.py:73", "serving_witness.py:74", "serving_witness.py:76", "serving_witness.py:8", "serving_witness.py:83", "serving_witness.py:84", "serving_witness.py:86", "serving_witness.py:87", "serving_witness.py:89", "serving_witness.py:9", "serving_witness.py:92", "serving_witness.py:94", "serving_witness.py:95", "serving_witness.py:96", "serving_witness.py:97", "serving_witness.py:98", "serving_witness.py:99", "slate.py:11", "slate.py:12", "slate.py:13", "slate.py:14", "slate.py:15", "slate.py:16", "slate.py:17", "slate.py:18", "slate.py:19", "slate.py:20", "slate.py:21", "slate.py:37", "slate.py:38", "slate.py:57", "slate.py:58", "slate.py:59", "slate.py:63", "slate.py:65", "slate.py:66", "slate.py:67", "slate.py:71", "slate.py:73", "slate.py:74", "slate.py:75", "slate.py:76", "slate.py:77", "slate.py:78"]}

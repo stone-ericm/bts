@@ -1,0 +1,12 @@
+# resume at 6c9f0d7 (2026-10-07 16:28 EDT): the five not RED at c007271, re-run against the revised entries and tests
+O14 RED ========================= 1 failed, 17 passed in 2.56s =========================
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_the_slate_never_copies_the_witness
+Q7 SURVIVED ============================== 1 passed in 0.69s ===============================
+Q21 RED ============================== 1 failed in 0.70s ===============================
+    FAILED tests/c2_2a/test_witness_core.py::test_the_cache_hash_stands_only_for_the_held_loader
+Q27 RED ============================== 1 failed in 0.66s ===============================
+    FAILED tests/c2_2a/test_witness_core.py::test_a_withheld_save_digest_is_recorded_as_an_error
+H34 RED ============================== 1 failed in 0.68s ===============================
+    FAILED tests/c2_2a/test_slate_v3.py::test_a_failed_warning_for_an_unserializable_witness_still_writes_the_slate
+NOT RED: Q7
+exit 1
