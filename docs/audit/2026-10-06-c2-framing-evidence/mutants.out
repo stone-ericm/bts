@@ -202,3 +202,284 @@ G9 RED ======================== 1 failed, 54 passed in 33.08s ==================
 G20 RED ======================== 1 failed, 54 passed in 32.76s =========================
     FAILED tests/scripts/c2_framing/test_screen.py::test_the_closed_inputs_replace_the_live_lookup_and_park_drag
 NOT RED: none
+
+# revision 3 ledger at fe5eb859a5b53b67dc2375a9f701de449f583a31, 2026-10-06 20:35 EDT (runner: RED only for a clean failure)
+F1 RED ======================== 2 failed, 70 passed in 54.54s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_framing_by_any_key_matches_an_independent_reference
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_feature_uses_only_strictly_earlier_dates
+F2 RED ======================== 1 failed, 71 passed in 52.86s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_framing_by_any_key_matches_an_independent_reference
+F3 RED ======================== 1 failed, 71 passed in 53.25s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_framing_by_any_key_matches_an_independent_reference
+F4 INCONCLUSIVE(exit 1, errors) =================== 10 failed, 41 passed, 21 errors in 3.10s ===================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_self_check_compares_against_the_production_pitcher_feature
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - Asserti...
+    FAILED tests/scripts/c2_framing/test_screen.py::test_profiles_carry_the_rebuilt_labels_not_the_walk_forwards
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_second_run_of_the_same_seed_is_refused
+    FAILED tests/scripts/c2_framing/test_screen.py::test_an_expensive_first_walk_forward_stops_the_run
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_manifest_records_the_effective_lightgbm_params
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_seed1_release_lifecycle_aggregates_across_a_moved_head
+    FAILED tests/scripts/c2_framing/test_screen.py::test_an_ericsson_source_does_not_release
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_release_naming_another_run_does_not_release
+    FAILED tests/scripts/c2_framing/test_screen.py::test_launch_builds_the_launcher_command_with_the_seeds_budget
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_the_three_registered_seeds
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>0]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>1]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>2]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>3]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_a_foreign_seed
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_runs_outside_the_canonical_namespace
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[stopped-stopped run]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[opaque_claim-CLAIM.json is not valid JSON]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[claim_other_run-claim does not name]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[basis-basis]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[settings-settings]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[identity_missing-identity]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[pins_missing-pins]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[unit_missing-six registered units]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[summary-stored summary]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[missing_diff-missing diff_B.json]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[diff_and_summary-diff does not match its retained scorecards]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[profile-does not reconcile]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[deterministic-lgb determinism]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_runs_of_different_identities
+F5 RED ======================== 1 failed, 71 passed in 53.13s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_variant_bases - Assertio...
+F6 RED ======================== 1 failed, 71 passed in 52.50s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_variant_bases - Assertio...
+F7 RED ======================== 1 failed, 71 passed in 51.64s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_blend_configs_rewrite_the_base_and_keep_each_configs_extras
+F8 RED ======================== 1 failed, 71 passed in 53.75s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_not_positive[rows1-below the practical size]
+F9 RED ======================== 1 failed, 71 passed in 55.01s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_not_positive[rows2-t below 1.5]
+F10 RED ======================== 1 failed, 71 passed in 54.71s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_not_positive[rows3-a minority of passes]
+F11 RED ======================== 1 failed, 71 passed in 54.71s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_non_positive_mean_with_passing_seeds_is_inconclusive_not_negative
+F12 RED ======================== 1 failed, 71 passed in 54.29s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_not_positive[rows0-one season's mean not above zero (every other rule met)]
+F13 RED ======================== 3 failed, 69 passed in 53.88s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_pre_registered_constants
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - Asserti...
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[basis-basis]
+F14 RED ======================== 2 failed, 70 passed in 53.80s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_pre_registered_constants
+    FAILED tests/scripts/c2_framing/test_screen.py::test_load_inputs_reads_only_the_pinned_files_from_their_hashed_bytes
+F15 RED ======================== 3 failed, 69 passed in 54.73s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_pre_registered_constants
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_refuses_without_the_deterministic_flag_or_a_stage_one_seed
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_a_foreign_seed
+F16 RED ======================== 2 failed, 70 passed in 53.70s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_pre_registered_constants
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - assert ...
+F17 RED ======================== 1 failed, 71 passed in 54.54s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_first_unit_stop - assert...
+F18 RED ======================== 1 failed, 71 passed in 54.27s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_load_inputs_reads_only_the_pinned_files_from_their_hashed_bytes
+F19 RED ======================== 1 failed, 71 passed in 54.72s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_refuses_without_the_deterministic_flag_or_a_stage_one_seed
+F20 INCONCLUSIVE(exit 1, errors) =================== 3 failed, 48 passed, 21 errors in 23.46s ===================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - Asserti...
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_seed1_release_lifecycle_aggregates_across_a_moved_head
+    FAILED tests/scripts/c2_framing/test_screen.py::test_launch_builds_the_launcher_command_with_the_seeds_budget
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_the_three_registered_seeds
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>0]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>1]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>2]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>3]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_a_foreign_seed
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_runs_outside_the_canonical_namespace
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[stopped-stopped run]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[opaque_claim-CLAIM.json is not valid JSON]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[claim_other_run-claim does not name]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[basis-basis]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[settings-settings]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[identity_missing-identity]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[pins_missing-pins]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[unit_missing-six registered units]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[summary-stored summary]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[missing_diff-missing diff_B.json]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[diff_and_summary-diff does not match its retained scorecards]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[profile-does not reconcile]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[deterministic-lgb determinism]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_runs_of_different_identities
+F21 RED ======================== 1 failed, 71 passed in 55.40s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_self_check_stops_the_run_before_any_walk_forward
+F22 RED ======================== 1 failed, 71 passed in 55.11s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_an_expensive_first_walk_forward_stops_the_run
+F23 RED ======================== 1 failed, 71 passed in 54.06s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_second_run_of_the_same_seed_is_refused
+F25 RED ======================== 1 failed, 71 passed in 56.01s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - assert ...
+F26 RED ======================== 1 failed, 71 passed in 57.38s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_refuses_when_lightgbm_params_lack_the_deterministic_flags
+G1 RED ======================== 2 failed, 70 passed in 53.66s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>0]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>1]
+G2 RED ======================== 1 failed, 71 passed in 54.55s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>2]
+G3 RED ======================== 1 failed, 71 passed in 52.49s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[stopped-stopped run]
+G4 SURVIVED ============================= 72 passed in 53.62s ==============================
+G5 RED ======================== 1 failed, 71 passed in 56.13s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_runs_outside_the_canonical_namespace
+G6 RED ======================== 1 failed, 71 passed in 56.91s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[summary-stored summary]
+G7 RED ======================== 1 failed, 71 passed in 57.25s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_a_foreign_seed
+G8 SURVIVED ============================= 72 passed in 55.75s ==============================
+G9 RED ======================== 3 failed, 69 passed in 53.32s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_seed1_release_lifecycle_aggregates_across_a_moved_head
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_the_three_registered_seeds
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_runs_of_different_identities
+G10 RED ======================== 1 failed, 71 passed in 52.97s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_disposition_incomplete
+G11 RED ======================== 3 failed, 69 passed in 52.31s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_seeds_two_and_three_are_refused_without_the_release
+    FAILED tests/scripts/c2_framing/test_screen.py::test_an_ericsson_source_does_not_release
+    FAILED tests/scripts/c2_framing/test_screen.py::test_launch_builds_the_launcher_command_with_the_seeds_budget
+G12 RED ======================== 1 failed, 71 passed in 53.23s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_an_empty_seed1_completion_does_not_release
+G13 RED ======================== 2 failed, 70 passed in 53.83s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_release_needs_the_exact_ruling_eric_and_a_positive_budget
+    FAILED tests/scripts/c2_framing/test_screen.py::test_an_ericsson_source_does_not_release
+G14 INCONCLUSIVE(exit 1, errors) =================== 5 failed, 46 passed, 21 errors in 22.64s ===================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_release_needs_the_exact_ruling_eric_and_a_positive_budget
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_seed1_release_lifecycle_aggregates_across_a_moved_head
+    FAILED tests/scripts/c2_framing/test_screen.py::test_an_empty_seed1_completion_does_not_release
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_release_naming_another_run_does_not_release
+    FAILED tests/scripts/c2_framing/test_screen.py::test_launch_builds_the_launcher_command_with_the_seeds_budget
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_the_three_registered_seeds
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>0]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>1]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>2]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>3]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_a_foreign_seed
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_runs_outside_the_canonical_namespace
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[stopped-stopped run]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[opaque_claim-CLAIM.json is not valid JSON]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[claim_other_run-claim does not name]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[basis-basis]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[settings-settings]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[identity_missing-identity]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[pins_missing-pins]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[unit_missing-six registered units]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[summary-stored summary]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[missing_diff-missing diff_B.json]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[diff_and_summary-diff does not match its retained scorecards]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[profile-does not reconcile]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[deterministic-lgb determinism]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_runs_of_different_identities
+G15 RED ======================== 1 failed, 71 passed in 53.45s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_release_naming_another_run_does_not_release
+G16 RED ======================== 1 failed, 71 passed in 53.13s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_relabel_rebuilds_labels_and_drops_void_rows
+G17 RED ======================== 1 failed, 71 passed in 52.26s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_relabel_rebuilds_labels_and_drops_void_rows
+G18 RED ======================== 3 failed, 69 passed in 51.74s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_original_portion_labels_exclude_the_resumed_portion
+    FAILED tests/scripts/c2_framing/test_screen.py::test_relabel_rebuilds_labels_and_drops_void_rows
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - assert ...
+G19 RED ======================== 2 failed, 70 passed in 52.46s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_closed_inputs_replace_the_live_lookup_and_park_drag
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - Asserti...
+G20 RED ======================== 1 failed, 71 passed in 53.58s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_closed_inputs_replace_the_live_lookup_and_park_drag
+G21 RED ======================== 1 failed, 71 passed in 52.32s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_freeze_lookup_keeps_only_the_given_games_canonically
+G22 INCONCLUSIVE(exit 1, errors) =================== 3 failed, 48 passed, 21 errors in 22.53s ===================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - Asserti...
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_seed1_release_lifecycle_aggregates_across_a_moved_head
+    FAILED tests/scripts/c2_framing/test_screen.py::test_launch_builds_the_launcher_command_with_the_seeds_budget
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_the_three_registered_seeds
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>0]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>1]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>2]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>3]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_a_foreign_seed
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_runs_outside_the_canonical_namespace
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[stopped-stopped run]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[opaque_claim-CLAIM.json is not valid JSON]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[claim_other_run-claim does not name]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[basis-basis]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[settings-settings]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[identity_missing-identity]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[pins_missing-pins]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[unit_missing-six registered units]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[summary-stored summary]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[missing_diff-missing diff_B.json]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[diff_and_summary-diff does not match its retained scorecards]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[profile-does not reconcile]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[deterministic-lgb determinism]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_runs_of_different_identities
+G23 RED ======================== 1 failed, 71 passed in 53.57s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_changed_frozen_lookup_is_refused
+G24 RED ======================== 3 failed, 69 passed in 52.19s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - assert ...
+    FAILED tests/scripts/c2_framing/test_screen.py::test_profiles_carry_the_rebuilt_labels_not_the_walk_forwards
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_the_three_registered_seeds
+G25 RED ======================== 4 failed, 68 passed in 55.51s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_seeds_two_and_three_are_refused_without_the_release
+    FAILED tests/scripts/c2_framing/test_screen.py::test_an_ericsson_source_does_not_release
+    FAILED tests/scripts/c2_framing/test_screen.py::test_an_empty_seed1_completion_does_not_release
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_release_naming_another_run_does_not_release
+G26 RED ======================== 1 failed, 71 passed in 53.67s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_launch_builds_the_launcher_command_with_the_seeds_budget
+G27 RED ======================== 1 failed, 71 passed in 52.37s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_launch_builds_the_launcher_command_with_the_seeds_budget
+G28 INCONCLUSIVE(exit 1, errors) =================== 4 failed, 47 passed, 21 errors in 23.04s ===================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_admission_requires_exactly_the_ten_pins
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - scripts...
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_seed1_release_lifecycle_aggregates_across_a_moved_head
+    FAILED tests/scripts/c2_framing/test_screen.py::test_launch_builds_the_launcher_command_with_the_seeds_budget
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_the_three_registered_seeds
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>0]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>1]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>2]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>3]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_a_foreign_seed
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_runs_outside_the_canonical_namespace
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[stopped-stopped run]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[opaque_claim-CLAIM.json is not valid JSON]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[claim_other_run-claim does not name]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[basis-basis]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[settings-settings]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[identity_missing-identity]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[pins_missing-pins]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[unit_missing-six registered units]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[summary-stored summary]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[missing_diff-missing diff_B.json]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[diff_and_summary-diff does not match its retained scorecards]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[profile-does not reconcile]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[deterministic-lgb determinism]
+    ERROR tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_runs_of_different_identities
+G29 RED ======================== 1 failed, 71 passed in 52.80s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_t_edges - assert (inf ==...
+H1 RED ======================== 1 failed, 71 passed in 51.49s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_release_needs_the_exact_ruling_eric_and_a_positive_budget
+H2 RED ======================== 1 failed, 71 passed in 51.21s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[claim_other_run-claim does not name]
+H3 RED ======================== 1 failed, 71 passed in 51.69s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[basis-basis]
+H4 RED ======================== 1 failed, 71 passed in 52.47s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[settings-settings]
+H5 RED ======================== 1 failed, 71 passed in 53.66s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[identity_missing-identity]
+H6 SURVIVED ============================= 72 passed in 55.78s ==============================
+H7 RED ======================== 1 failed, 71 passed in 55.17s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[deterministic-lgb determinism]
+H8 SURVIVED ============================= 72 passed in 54.34s ==============================
+H9 RED ======================== 1 failed, 71 passed in 54.30s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[unit_missing-six registered units]
+H10 RED ======================== 1 failed, 71 passed in 54.01s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[profile-does not reconcile]
+H11 RED ======================== 1 failed, 71 passed in 53.75s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[diff_and_summary-diff does not match its retained scorecards]
+H12 RED ======================== 1 failed, 71 passed in 53.31s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_runs_of_different_identities
+H13 RED ======================== 2 failed, 70 passed in 53.54s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_clean_failures_as_red[1-FAILED t.py::a - x\nERROR t.py::b - setup\n1 failed, 1 error in 0.01s-INCONCLUSIVE(exit 1, errors)]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_clean_failures_as_red[1-FAILED t.py::a - x\n1 failed, 1 skipped in 0.1s-INCONCLUSIVE(exit 1)]
+NOT RED: F4,F20,G4,G8,G14,G22,G28,H6,H8
+exit 1
