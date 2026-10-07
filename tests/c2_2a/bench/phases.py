@@ -7,6 +7,14 @@ differs, and it is the same on both sides.
 
 Run from the side's repo root (the f882411 worktree or the candidate) with this file copied unchanged,
 TZ=America/New_York OMP_NUM_THREADS=1.
+
+Code review r4 (the class repair): the candidate's witness is a context variable that predict_local opens before
+run_pipeline, and so before save_blend. With no witness open, the r4 hooks record nothing. So, on the candidate only:
+- load and save, which call run_pipeline and save_blend directly, open one as predict_local does;
+- the tail stand-in leaves in the open witness what the real run_pipeline records (model, six confirmed inputs, their
+  listing) instead of r3's frame attrs.
+After each measured section, the candidate's phase checks that the witness work happened, so a phase that measured
+nothing fails loudly.
 """
 from __future__ import annotations
 
@@ -64,10 +72,21 @@ def slate_frame() -> pd.DataFrame:
 
 
 def _pipeline_attrs() -> dict:
-    """What the candidate's real run_pipeline attaches (model, six inputs, errors)."""
+    """What the candidate's real run_pipeline records (model, six inputs, errors)."""
     return {"serving_errors": [], "serving_model": {"source": "cache", "sha256": "a" * 64},
             "serving_inputs": [{"file": f"pa_{s}.parquet", "bytes": 25_000_000, "sha256": "b" * 64}
                                for s in B.SEASONS_BIG]}
+
+
+def _pipeline_witness() -> None:
+    """The tail stand-in's run_pipeline on the candidate: what the real one leaves in the open witness."""
+    from bts import serving_witness as sw
+    w, led = sw.current(), sw.pa_open()
+    for r in _pipeline_attrs()["serving_inputs"]:
+        led.records.append(dict(r))
+        led.confirmed.append(len(led.records))
+    w.pipeline_names = [r["file"] for r in led.records]
+    w.model = dict(_pipeline_attrs()["serving_model"])
 
 
 def _realistic_witness() -> dict:
@@ -110,6 +129,12 @@ def measure(phase: str, inputs: Path) -> dict:
         prepared["frame"] = slate_frame()
     if phase == "slate" and candidate:
         prepared["frame"].attrs["serving"] = _realistic_witness()
+    witness = None
+    if candidate and phase in ("load", "save"):
+        import bts.serving_witness as sw
+        witness = sw.Serving()
+        sw.begin(witness)
+    result = None
     gc.collect()
     rss_start = _rss()
     peak = {}
@@ -133,17 +158,26 @@ def measure(phase: str, inputs: Path) -> dict:
             def stand_in(*a, **k):
                 df = prepared["frame"].copy()
                 if candidate:
-                    df.attrs.update(_pipeline_attrs())
+                    _pipeline_witness()
                 return df
             P.run_pipeline = stand_in
-            out = O.predict_local(W.DATE)
-            assert out is not None and len(out) == SLATE_ROWS
+            result = O.predict_local(W.DATE)
+            assert result is not None and len(result) == SLATE_ROWS
         elif phase == "slate":
             assert SL.save_slate(prepared["frame"], W.DATE, Path("data/picks"), "local") is not None
     except _Stop:
         pass
     elapsed = time.perf_counter() - t0
     end = _rss()
+    if candidate and phase == "load":                    # the witness work happened (after the peak is read)
+        assert len(witness.pipeline_names) == len(B.SEASONS_BIG) and witness.pipeline_inputs.complete(
+            witness.pipeline_names) and all(r["sha256"] for r in witness.pipeline_inputs.records)
+    elif candidate and phase == "save":
+        assert witness.save_digest is not None
+    elif candidate and phase in ("tail_off", "tail_on"):
+        served = result.attrs["serving"]
+        assert len(served["inputs"]) == len(B.SEASONS_BIG) and served["model"]["source"] == "cache"
+        assert served["calibration"]["status"] == ("applied" if phase == "tail_on" else "off")
     shutil.rmtree(work, ignore_errors=True)
     return {"phase": phase, "candidate": candidate, "rss_start": rss_start, "rss_peak": peak.get("rss", end),
             "rss_end": end, "elapsed_s": elapsed, "rss_unit": "bytes" if sys.platform == "darwin" else "KiB"}
