@@ -1,0 +1,152 @@
+{
+ "load": {
+  "pairs": [
+   307200000,
+   28508160,
+   -182435840,
+   247005184,
+   30457856
+  ],
+  "control_pairs": [
+   1359872,
+   183697408,
+   77873152,
+   516145152,
+   -311296
+  ],
+  "max": 307200000,
+  "median": 30457856,
+  "control_max_abs": 516145152,
+  "control_within_aim": false,
+  "verdict": "UNRESOLVED",
+  "elapsed_s": {
+   "baseline": 1.5848776249913499,
+   "candidate": 1.6312512080185115
+  }
+ },
+ "cache": {
+  "pairs": [
+   8257536,
+   9617408,
+   8306688,
+   7356416,
+   8142848
+  ],
+  "control_pairs": [
+   1753088,
+   -2850816,
+   -16384,
+   704512,
+   81920
+  ],
+  "max": 9617408,
+  "median": 8257536,
+  "control_max_abs": 2850816,
+  "control_within_aim": true,
+  "verdict": "PASS",
+  "elapsed_s": {
+   "baseline": 0.0011895829811692238,
+   "candidate": 0.00490004091989249
+  }
+ },
+ "save": {
+  "pairs": [
+   163840,
+   -1490944,
+   147456,
+   -131072,
+   835584
+  ],
+  "control_pairs": [
+   180224,
+   2080768,
+   3244032,
+   425984,
+   3817472
+  ],
+  "max": 835584,
+  "median": 147456,
+  "control_max_abs": 3817472,
+  "control_within_aim": true,
+  "verdict": "PASS",
+  "elapsed_s": {
+   "baseline": 0.0017983329016715288,
+   "candidate": 0.004991375026293099
+  }
+ },
+ "tail_off": {
+  "pairs": [
+   1359872,
+   1163264,
+   1212416,
+   557056,
+   1277952
+  ],
+  "control_pairs": [
+   147456,
+   671744,
+   -1671168,
+   -1245184,
+   1818624
+  ],
+  "max": 1359872,
+  "median": 1212416,
+  "control_max_abs": 1818624,
+  "control_within_aim": true,
+  "verdict": "PASS",
+  "elapsed_s": {
+   "baseline": 0.00016345898620784283,
+   "candidate": 0.0048675830475986
+  }
+ },
+ "tail_on": {
+  "pairs": [
+   16269312,
+   15171584,
+   12468224,
+   10518528,
+   9928704
+  ],
+  "control_pairs": [
+   -966656,
+   -229376,
+   2179072,
+   -4161536,
+   -1212416
+  ],
+  "max": 16269312,
+  "median": 12468224,
+  "control_max_abs": 4161536,
+  "control_within_aim": true,
+  "verdict": "PASS",
+  "elapsed_s": {
+   "baseline": 0.43718795804306865,
+   "candidate": 0.4427625839598477
+  }
+ },
+ "slate": {
+  "pairs": [
+   851968,
+   1081344,
+   720896,
+   1294336,
+   -655360
+  ],
+  "control_pairs": [
+   -49152,
+   -262144,
+   1884160,
+   -1966080,
+   1409024
+  ],
+  "max": 1294336,
+  "median": 851968,
+  "control_max_abs": 1966080,
+  "control_within_aim": true,
+  "verdict": "PASS",
+  "elapsed_s": {
+   "baseline": 0.004937332938425243,
+   "candidate": 0.0055288749281316996
+  }
+ }
+}

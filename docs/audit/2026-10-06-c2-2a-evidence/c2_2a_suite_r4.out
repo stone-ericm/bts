@@ -1,0 +1,23 @@
+# c2_2a suite with the golden gate at acfe983af2bc8f5db16a07fa32fb8c5ee3fe5bc2, 2026-10-07 16:37 EDT: uv run pytest tests/c2_2a -q -p no:cacheprovider -rfE
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-c2-2a
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 221 items
+
+tests/c2_2a/test_calibrate_witness.py .......................            [ 10%]
+tests/c2_2a/test_golden.py ............................................. [ 30%]
+....................                                                     [ 39%]
+tests/c2_2a/test_local_witness.py ......................                 [ 49%]
+tests/c2_2a/test_mutant_runner.py ......                                 [ 52%]
+tests/c2_2a/test_predict_witness.py ...........................          [ 64%]
+tests/c2_2a/test_r1_counterexamples.py ..................                [ 72%]
+tests/c2_2a/test_r2_counterexamples.py ......                            [ 75%]
+tests/c2_2a/test_r3_counterexamples.py .........                         [ 79%]
+tests/c2_2a/test_serving_witness.py ...........                          [ 84%]
+tests/c2_2a/test_slate_v3.py .............                               [ 90%]
+tests/c2_2a/test_witness_core.py .....................                   [100%]
+
+======================= 221 passed in 222.47s (0:03:42) ========================
+exit 0

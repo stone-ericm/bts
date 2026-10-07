@@ -1,0 +1,24 @@
+# Mac memory conditions during the revision-4 cost runs, 2026-10-07 16:42:13 EDT (load phase repeat 3)
+## memory_pressure (tail)
+
+System-wide memory free percentage: 45%
+## vm_stat (16 KiB pages)
+Pages free:                                    82834.
+Pages active:                                 299238.
+Pages inactive:                               300183.
+Pages stored in compressor:                  1210928.
+Pages occupied by compressor:                 576733.
+Swapins:                                      650252.
+Swapouts:                                    1161037.
+## top, by compressed memory
+PID    COMMAND          CMPRS MEM  
+64513  Browser Helper ( 2000M 2091M
+62487  Browser Helper ( 1533M 1543M
+75647  2.1.286          1335M 1528M
+1260   steam_osx        986M  1008M
+61675  Browser Helper ( 818M  834M 
+367    mds              626M  636M 
+744    Podcasts         575M  593M 
+1324   Steam Helper     547M  678M 
+12319  Codex (Renderer) 533M  535M 
+71695  Arc              507M  763M 
