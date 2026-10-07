@@ -911,6 +911,17 @@ def test_aggregate_refuses_runs_of_different_identities(three_runs):
         S.aggregate(dirs, _test_out_root=out)
 
 
+def test_validate_refuses_an_incomplete_identity_even_when_admitted(three_runs):
+    """The run's own completeness check, isolated: the trusted identity has the same empty field."""
+    out, dirs = three_runs
+    d = dirs[0]
+    partial = {**IDENT, "review_report_sha256": ""}
+    _rewrite(d / "manifest.json", lambda r: r.update(identity=dict(partial)))
+    with pytest.raises(S.RunInvalid, match=r"\['identity'\]"):
+        S.validate_run(d, S.STAGE_ONE_SEEDS[0], out_root=out, identity=partial,
+                       pins=__import__("json").loads((d / "manifest.json").read_text())["input_pins"])
+
+
 def test_validate_refuses_pins_other_than_the_ten_even_when_admitted(three_runs):
     """The run's own ten-name check, isolated: the trusted pins are the same nine, so only 'pins' can refuse."""
     out, dirs = three_runs
@@ -951,8 +962,12 @@ CLASSIFY = [
     # r3 R3-4: a named test that never executed (fail-fast) leaves the run incomplete, whatever the summary says
     (1, "FAILED t.py::a - x\n!!! stopping after 1 failures !!!\n1 failed in 0.1s", "INCONCLUSIVE(exit 1, 2 not run)"),
     (0, "PASSED t.py::a\nPASSED t.py::b\n2 passed in 0.1s", "INCONCLUSIVE(exit 0, 1 not run)"),
+    # an executed node whose id merely starts with an intended one is not that node (it never ran)
+    (1, "PASSED t.py::ab\nPASSED t.py::c[x - y]\nFAILED t.py::b - x\n1 failed, 2 passed in 0.1s",
+     "INCONCLUSIVE(exit 1, 1 not run)"),
 ]
-CLASSIFY_IDS = ["red", "red_two_failed", "errors", "skipped", "survived", "exit2", "exit5", "fail_fast", "survived_one_not_run"]
+CLASSIFY_IDS = ["red", "red_two_failed", "errors", "skipped", "survived", "exit2", "exit5", "fail_fast", "survived_one_not_run",
+                "prefix_is_not_the_node"]
 
 
 @pytest.mark.parametrize("rc, out, verdict", CLASSIFY, ids=CLASSIFY_IDS)

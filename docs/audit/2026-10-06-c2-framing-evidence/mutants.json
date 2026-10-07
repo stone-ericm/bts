@@ -622,7 +622,7 @@
   "old": "        \"identity\": isinstance(ident, dict) and all(",
   "new": "        \"identity\": True or all(",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[identity_missing]"
+   "tests/scripts/c2_framing/test_screen.py::test_validate_refuses_an_incomplete_identity_even_when_admitted"
   ]
  },
  {
@@ -942,7 +942,7 @@
   "old": "        if rest == n or rest.startswith(n + \" - \"):",
   "new": "        if rest.startswith(n):",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[red]"
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[prefix_is_not_the_node]"
   ],
   "added_rev4": true
  }
