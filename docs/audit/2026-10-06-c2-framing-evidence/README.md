@@ -60,3 +60,40 @@
 **Resume at `e1033c5`:** H5 and R5 are RED.
 
 **Result: 86 of 86 attributable RED; G8 and H12 equivalent.** The permitted suite has 122 tests (97 framing, 25 shared admission).
+
+## Revision 5 (after review r4 BLOCK; Eric's row C2-framing-review-r5)
+**Runner revised (r4 R4-2 and the sandbox-only failure):**
+- Outcomes now come from pytest's own reports, never its text. A plugin loaded with `-p` records each report (node id, phase, outcome) to a private file the runner creates, and writes an end record when the session finishes normally.
+- A mutant is RED only when all of these hold:
+  - pytest exits 1, and the session ended normally;
+  - nothing errored in setup or teardown, and nothing was skipped;
+  - every intended node has its own call report, and no unintended node ran;
+  - pytest's summary counts agree with the records;
+  - at least one intended node failed.
+- Printed or captured output cannot add an outcome. The reviewer's case is now a test: a fake `PASSED` line plus a second test stopped before its body gives INCONCLUSIVE.
+- **Sandbox fix:** the runner's root is pytest's rootdir and working directory (default: the repository), and the subprocess uses the runner's own interpreter. The runner tests give their scratch files a root of their own, so collection never leaves it. The round-4 failure came from pinning the rootdir to the repository while collecting tests elsewhere, which made pytest list directories outside the scratch area.
+- **Stated boundary:** test code that deliberately tampers with the runner's records file or with pytest's internals from inside the run is out of scope.
+
+**Validator (r4 R4-1, R4-3):**
+- **`profile_problem`:** every retained row must be one the scorer scores. That means:
+  - no missing value in date, rank, season, hit or probability;
+  - an integer season equal to the unit's, and dates in the season;
+  - ranks 1..n on every day;
+  - hits 0/1, and probabilities in [0, 1].
+- **Identity:** it must have exactly the five fields.
+
+**Spec: 99 entries.**
+- Re-anchored: H5, H13, R1, R2, R5, N7, N8, N9.
+- New:
+  - H14 (exactly five identity fields);
+  - N17–N22 (the scored-row rules);
+  - R6–R9 (normal end, summary agreement, the recording plugin, its end record).
+- **Recorded equivalents, each over the validator's whole accepted domain:**
+  - **G8:** each run's pins must equal the trusted pins, and its digest is bound to them.
+  - **H12:** each identity has exactly the five fields and equals the trusted identity.
+  - **N10:** every accepted unit is non-empty, of its own season, and ranked 1..n daily, so P@1 always covers both seasons.
+- **Message-level kills (named here, not counted as distinct defences):** some mutants are refused by a later check with a different message. N17 is one: without its missing-value check, a nullable season or rank is refused by the dtype or ranks checks instead. The test pins the specific message, so the mutant is RED.
+
+**Revision-5 run at `2bc188f`:** 96 RED, 3 SURVIVED (G8, H12, N10, as recorded).
+
+**Result: 96 of 96 attributable RED; G8, H12 and N10 equivalent.** The permitted suite has 133 tests (108 framing, 25 shared admission).
