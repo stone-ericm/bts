@@ -1,7 +1,5 @@
 """Daily BTS prediction: generate ranked picks for a given date."""
 
-import hashlib
-import io
 import json
 import os
 import pickle  # noqa: S403 — caching trained ML models, not untrusted data
@@ -16,7 +14,7 @@ from bts import progress
 from bts.features.compute import compute_all_features, FEATURE_COLS, CONTEXT_COLS, STATCAST_COLS, TRAIN_START_YEAR
 from bts.features.park_drag import with_pinned_artifact as _park_drag_pin
 from bts.picks import is_resume_date_game
-from bts.serving_witness import collect, note, sha256_or_none
+from bts import serving_witness as _sw
 from bts.util import is_regular_season_game
 
 API_BASE = "https://statsapi.mlb.com"
@@ -143,175 +141,23 @@ def train_blend(
     return blend
 
 
-class HashingWriter:
-    """A write-only file wrapper for pickle.dump (serving witness, design §3.1): each write updates a sha256 inside
-    its own guard, then forwards the bytes unchanged and returns the real write's result. The digest stands only for
-    writes that report consuming their whole argument (r1 F5); a short or unreported write, or any hash failure, nulls
-    it. No full serialized buffer is allocated, and the write itself is never changed or retried."""
-
-    def __init__(self, f, errors=None):
-        self._f = f
-        self._errors = errors
-        self._h = None
-        try:
-            self._h = hashlib.sha256()
-        except Exception as e:
-            self._h = None
-            try:
-                note(errors, "blend save: sha256 init failed", e)
-            except Exception:
-                pass
-
-    def write(self, b):
-        if self._h is not None:
-            try:
-                self._h.update(b)
-            except Exception as e:
-                self._h = None
-                try:
-                    note(self._errors, "blend save: sha256 update failed", e)
-                except Exception:
-                    pass
-        n = self._f.write(b)
-        if self._h is not None:
-            try:
-                if n != memoryview(b).nbytes:
-                    self._h = None
-                    note(self._errors, "blend save: a write did not report consuming its whole argument; "
-                                       "digest withheld")
-            except Exception:
-                self._h = None
-        return n
-
-    def hexdigest(self):
-        if self._h is None:
-            return None
-        try:
-            return self._h.hexdigest()
-        except Exception as e:
-            try:
-                note(self._errors, "blend save: sha256 finalization failed", e)
-            except Exception:
-                pass
-            return None
-
-
-def save_blend(blend: dict, path, errors: list | None = None) -> str | None:
+def save_blend(blend: dict, path) -> None:
     """Save trained blend models to disk.
 
-    Returns the sha256 of exactly the bytes written, or None when it could not be computed (recorded in `errors`).
-    The save itself is unchanged: the file is opened (truncated) before serialization, and a serialization or write
-    error raises as before.
+    Serving witness (C2 step 2a, bts.serving_witness): while a local-tier run is witnessed, the dump goes through a
+    writer that forwards every write unchanged and records the sha256 of exactly the bytes written. Each witness
+    statement is a guarded hook; the deployed statements are unchanged.
     """
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    writer = None
     with open(path, "wb") as f:
         try:
-            writer = HashingWriter(f, errors)
-        except Exception as e:
-            writer = None
-            try:
-                note(errors, "blend save: hashing writer failed", e)
-            except Exception:
-                pass
-        pickle.dump(blend, f if writer is None else writer)
-    if writer is None:
-        return None
-    try:
-        return writer.hexdigest()
-    except Exception:
-        return None
-
-
-def _read_pa_parquet(parquet: Path, inputs, errors, ok) -> pd.DataFrame:
-    """Read one PA parquet once (serving witness, design §3.0), recording `{file, bytes, sha256}` in `inputs`.
-
-    The held bytes are hashed and the same buffer is parsed. Any failure preparing the held buffer parses the original
-    path once instead (provenance nulled); a parser error is a computation failure and propagates, never re-parsed.
-    Every witness statement is contained where it runs, and the fallback runs outside any except suite (r1 F4).
-    A failed collection sets `ok[0] = False` (a preallocated one-slot list), so the caller withholds the inputs whatever
-    the list's length or the error record says (r2 R2-2).
-    """
-    raw = buffer = prep_error = None
-    try:
-        raw = parquet.read_bytes()
-        buffer = io.BytesIO(raw)
-    except Exception as e:
-        buffer, prep_error = None, e
-    if buffer is None:
-        try:
-            note(errors, "PA input " + parquet.name + ": capture preparation failed; parsed from path, not from "
-                 "the hashed buffer", prep_error)
+            f = _sw.hashing_writer(f)
         except Exception:
             pass
-        recorded = False
+        pickle.dump(blend, f)
         try:
-            recorded = collect(inputs, lambda: {"file": parquet.name, "bytes": None, "sha256": None}, errors,
-                               "PA input")
-        except Exception:
-            recorded = False
-        if not recorded:
-            _mark_incomplete(ok)
-        return pd.read_parquet(parquet)
-    sha = None
-    try:
-        sha = sha256_or_none(raw, errors, "PA input")
-    except Exception:
-        sha = None
-    recorded = False
-    try:
-        recorded = collect(inputs, lambda: {"file": parquet.name, "bytes": len(raw), "sha256": sha}, errors, "PA input")
-    except Exception:
-        recorded = False
-    if not recorded:
-        _mark_incomplete(ok)
-    return pd.read_parquet(buffer)
-
-
-def _mark_incomplete(ok) -> None:
-    """Record a failed PA collection in the caller's preallocated flag (r2 R2-2). Never raises."""
-    try:
-        ok[0] = False
-    except Exception:
-        pass
-
-
-def inputs_complete(inputs, ok, n: int) -> bool:
-    """A PA input list is complete only when every collection reported success and it holds `n` records (r2 R2-2:
-    a landed append that raised leaves a complete-looking length). Never raises."""
-    try:
-        return inputs is not None and ok is not None and ok[0] is True and len(inputs) == n
-    except Exception:
-        return False
-
-
-def _attach_pipeline_provenance(frame, source, sha, inputs, n_inputs: int, errors, ok) -> None:
-    """Attach run_pipeline's provenance to its predictions (design §3.1). Each record is built and attached inside its
-    own guard; an input list whose length is not the number of parquets read (r1 F3), or any of whose collections
-    reported failure (r2 R2-2), is incomplete and attached as null. Never raises."""
-    try:
-        frame.attrs["serving_errors"] = errors
-    except Exception as e:
-        try:
-            note(errors, "attrs serving_errors", e)
-        except Exception:
-            pass
-    try:
-        frame.attrs["serving_model"] = {"source": source, "sha256": sha}
-    except Exception as e:
-        try:
-            note(errors, "attrs serving_model", e)
-        except Exception:
-            pass
-    try:
-        complete = inputs_complete(inputs, ok, n_inputs)
-        if not complete:
-            note(errors, "PA inputs incomplete; withheld")
-        frame.attrs["serving_inputs"] = inputs if complete else None
-    except Exception as e:
-        try:
-            note(errors, "attrs serving_inputs", e)
+            _sw.saved(f)
         except Exception:
             pass
 
@@ -1012,7 +858,6 @@ def run_pipeline(
     feature_cols_override: list[str] | None = None,
     blend_configs_override: list | None = None,
     lgb_params_override: dict | None = None,
-    cached_blend_sha256: str | None = None,
 ) -> pd.DataFrame:
     """Run the full prediction pipeline for a date.
 
@@ -1029,13 +874,11 @@ def run_pipeline(
         blend_configs_override/lgb_params_override: Experiment-only blend
             training overrides for audit artifact logging. Production callers
             leave these as None.
-        cached_blend_sha256: The sha256 of the bytes `cached_blend` was loaded
-            from (predict_local passes it), recorded when the cache is used.
 
-    The serving witness (design §3.0/§3.1) is returned in the predictions'
-    attrs: `serving_model` ({source: cache | trained | trained_unsaved,
-    sha256}, from the branch actually taken), `serving_inputs` (each PA
-    parquet's {file, bytes, sha256}) and `serving_errors`.
+    Serving witness (C2 step 2a, design §3.0/§3.1): while predict_local
+    witnesses the run, guarded hooks record each PA parquet's {file, bytes,
+    sha256} for the bytes actually parsed and the model's source and sha256
+    (bts.serving_witness). The deployed statements are unchanged.
     """
     if refresh_data:
         progress.mark("refreshing_data")
@@ -1043,16 +886,25 @@ def run_pipeline(
 
     proc = Path(data_dir)
     progress.mark("loading_parquets")
-    witness_errors = pa_inputs = pa_ok = None
     try:
-        witness_errors, pa_inputs, pa_ok = [], [], [True]
+        ledger = _sw.pa_open()                  # serving witness: this run's PA records (records nothing unwitnessed)
     except Exception:
-        witness_errors = pa_inputs = pa_ok = None
-    n_parquets = 0
+        ledger = None
     dfs = []
     for parquet in sorted(proc.glob("pa_*.parquet")):
-        dfs.append(_read_pa_parquet(parquet, pa_inputs, witness_errors, pa_ok))
-        n_parquets += 1
+        try:
+            parquet = ledger.hold(parquet, _sw.parquet_buffer)     # the held, hashed bytes, or the path itself
+        except Exception:
+            pass
+        dfs.append(pd.read_parquet(parquet))
+        try:
+            ledger.confirm(parquet)             # earned: confirms the record only if those bytes were parsed
+        except Exception:
+            pass
+    try:
+        _sw.pa_names(proc, len(dfs), ledger)
+    except Exception:
+        pass
     if not dfs:
         raise RuntimeError("No Parquet files found. Run 'bts data build' first.")
 
@@ -1082,7 +934,10 @@ def run_pipeline(
     if cached_blend:
         model = cached_blend.pop("_model")
         blend = cached_blend
-        model_source, model_sha = "cache", cached_blend_sha256
+        try:
+            _sw.model("cache")
+        except Exception:
+            pass
     else:
         progress.mark("training_single_model")
         model = train_model(df, feature_cols=feature_cols_override)
@@ -1092,21 +947,21 @@ def run_pipeline(
             blend_configs=blend_configs_override,
             lgb_params=lgb_params_override,
         )
-        model_source, model_sha = "trained_unsaved", None
         if save_blend_path:
             to_save = {**blend, "_model": model}
-            model_sha = save_blend(to_save, save_blend_path, witness_errors)
-            model_source = "trained"
+            save_blend(to_save, save_blend_path)
+        try:
+            _sw.model("trained" if save_blend_path else "trained_unsaved")
+        except Exception:
+            pass
 
     progress.mark("building_lookups")
     lookups = _build_feature_lookups(df)
 
     progress.mark("predicting")
-    out = predict(
+    return predict(
         date, df, model, lookups,
         check_openers=check_openers,
         blend=blend,
         feature_cols=feature_cols_override,
     )
-    _attach_pipeline_provenance(out, model_source, model_sha, pa_inputs, n_parquets, witness_errors, pa_ok)
-    return out

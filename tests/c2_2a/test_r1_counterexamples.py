@@ -2,7 +2,9 @@
 
 F1 pandas copying the pipeline's provenance during calibration; F2 a decoder-preparation OSError; F3 an omitted input
 whose error is also lost, and stale record fields; F4 error descriptions and records prepared outside the guards; F5 a
-short successful write; F4 a swallowed package-version failure."""
+short successful write; F4 a swallowed package-version failure. Code review r4 (Eric's row C2-2a-review-r4): the same
+behaviours, through the guarded hooks and the run's witness (bts.serving_witness)."""
+import contextlib
 import hashlib
 import io
 import json
@@ -16,7 +18,6 @@ try:
 except (ImportError, OSError):
     pytest.skip("lightgbm unavailable (the optional model extra)", allow_module_level=True)
 
-from bts import orchestrator as O
 from bts import serving_witness as W
 from bts.model import calibrate as C
 from bts.model import predict as P
@@ -30,6 +31,16 @@ class BadRepr(MemoryError):
 
     def __str__(self):
         raise MemoryError("synthetic: formatting the witness error")
+
+
+@contextlib.contextmanager
+def witnessed():
+    w = W.Serving()
+    token = W.begin(w)
+    try:
+        yield w
+    finally:
+        W.end(token)
 
 
 # ---------------------------------------------------------------- F1
@@ -78,7 +89,7 @@ def test_a_decoder_preparation_oserror_takes_the_fallback(world, monkeypatch):
         @staticmethod
         def TextIOWrapper(*a, **k):
             raise OSError("synthetic: decoder preparation, after a successful read")
-    monkeypatch.setattr(C, "io", IoProxy())
+    monkeypatch.setattr(W, "_io", IoProxy())
     out = _run(world)
     rec = out.attrs["serving"]["calibration"]
     assert out["p_game_hit"].tolist() == expected and rec["status"] == "applied" and rec["n_fit"] == 40
@@ -98,11 +109,12 @@ def test_a_genuine_read_oserror_is_still_skipped_once(world, monkeypatch):
     monkeypatch.setattr(P.Path, "read_text", lambda self, *a, **k: (reads.append("t") if self.name ==
                                                                       "2026-06-29-00.json" else None,
                                                                       real_rt(self, *a, **k))[1])
-    w, inputs, errors, status = {}, [], [], {}
-    samples = C._resolve_pick_outcomes(picks, pd.read_parquet(world[0] / "pa_2026.parquet"),
-                                       pd.Timestamp(DATE).date(), 30, bindings=[], inputs=inputs, errors=errors,
-                                       status=status)
-    assert reads == ["b"] and len(samples) == 39 and status["inputs_complete"] is False
+    with witnessed() as w:
+        samples = C._resolve_pick_outcomes(picks, pd.read_parquet(world[0] / "pa_2026.parquet"),
+                                           pd.Timestamp(DATE).date(), 30)
+    c = w.calibration
+    assert reads == ["b"] and len(samples) == 39
+    assert not c.picks.complete(c.pick_names)                       # the consumed inventory is incomplete
 
 
 # ---------------------------------------------------------------- F3
@@ -112,46 +124,54 @@ def test_an_omitted_input_with_a_lost_error_is_never_published_as_complete(world
     picks = world[2]
     (picks / "2026-04-02.json").write_text(json.dumps({"date": "2026-04-02", "result": "hit",
                                                        "pick": {"batter_id": 1, "p_game_hit": 0.9}}))
-    real_collect = W.collect
 
-    class NoAppend(list):
-        def append(self, x):
-            raise MemoryError("synthetic: append")
+    class DropsOne(list):
+        def append(self, rec):
+            if rec.get("file") == "2026-04-02.json":
+                raise MemoryError("synthetic: append")
+            super().append(rec)
+    real_init = W.Ledger.__init__
 
-    def collect(items, build, errors, what):
-        if items is not None and what == "pick input":
-            try:
-                rec = build()
-            except Exception:
-                rec = None
-            if rec and rec.get("file") == "2026-04-02.json":
-                return real_collect(NoAppend(), build, NoAppend(), what)
-        return real_collect(items, build, errors, what)
-    monkeypatch.setattr(C, "_collect", collect)
+    def init(self, errors, what):
+        real_init(self, errors, what)
+        if what == "pick input":
+            self.records = DropsOne()
+    monkeypatch.setattr(W.Ledger, "__init__", init)
     monkeypatch.setattr(W, "note", lambda *a, **k: False)              # every error record is lost
-    monkeypatch.setattr(C, "_note", lambda *a, **k: False)
     out = _run(world)
     rec = json.loads(save_slate(out, DATE, tmp_path, "local").read_text())["serving"]["calibration"]
     assert rec["status"] == "applied" and rec["n_fit"] == 40
     assert rec["pick_inputs"] is None                                  # withheld: never a partial list as complete
 
 
+def _bind_fault(monkeypatch, nth, landed):
+    """The nth binding's append fails; when `landed`, it lands first and then raises."""
+    real, seen = W.pick_bind, {"n": 0}
+
+    class Lands(list):
+        def append(self, x):
+            super().append(x)
+            raise MemoryError("synthetic: raised after appending")
+
+    def bind(f, pick_date, slot_key, bid, sample):
+        seen["n"] += 1
+        if seen["n"] != nth:
+            return real(f, pick_date, slot_key, bid, sample)
+        c = W.current().calibration
+        if not landed:
+            raise MemoryError("synthetic: append")
+        held, c.bindings = c.bindings, Lands(c.bindings)
+        try:
+            return real(f, pick_date, slot_key, bid, sample)
+        finally:
+            held[:] = list(c.bindings)
+            c.bindings = held
+    monkeypatch.setattr(W, "pick_bind", bind)
+
+
 def test_a_lost_binding_withholds_the_samples_and_their_hash(world, monkeypatch):
     monkeypatch.setenv("BTS_USE_CALIBRATION", "1")
-    real_collect = W.collect
-
-    class NoAppend(list):
-        def append(self, x):
-            raise MemoryError("synthetic: append")
-    seen = {"n": 0}
-
-    def collect(items, build, errors, what):
-        if what == "sample binding":
-            seen["n"] += 1
-            if seen["n"] == 7:
-                return real_collect(NoAppend(), build, errors, what)
-        return real_collect(items, build, errors, what)
-    monkeypatch.setattr(C, "_collect", collect)
+    _bind_fault(monkeypatch, 7, landed=False)
     rec = _run(world).attrs["serving"]["calibration"]
     assert rec["status"] == "applied" and rec["n_fit"] == 40
     assert rec["samples"] is None and rec["samples_sha256"] is None and rec["errors"]
@@ -160,7 +180,7 @@ def test_a_lost_binding_withholds_the_samples_and_their_hash(world, monkeypatch)
 def test_a_failed_record_build_attaches_null_calibration_not_a_stale_one(world, monkeypatch):
     monkeypatch.setenv("BTS_USE_CALIBRATION", "1")
     expected, _ = _expected_calibrated(world)
-    monkeypatch.setattr(O, "_calibration_record", lambda *a, **k: (_ for _ in ()).throw(MemoryError("synthetic")))
+    monkeypatch.setattr(W.Calibration, "record", lambda self: (_ for _ in ()).throw(MemoryError("synthetic")))
     out = _run(world)
     assert out["p_game_hit"].tolist() == expected and out.attrs["serving"]["calibration"] is None
 
@@ -216,10 +236,11 @@ def test_an_undescribable_writer_construction_error_still_saves(tmp_path, monkey
     class Broken:
         def __init__(self, *a, **k):
             raise BadRepr()
-    monkeypatch.setattr(P, "HashingWriter", Broken)
+    monkeypatch.setattr(W, "HashingWriter", Broken)
     blend = {"m": [1, 2, 3]}
-    assert P.save_blend(blend, tmp_path / "b.pkl", []) is None
-    assert (tmp_path / "b.pkl").read_bytes() == pickle.dumps(blend)
+    with witnessed() as w:
+        assert P.save_blend(blend, tmp_path / "b.pkl") is None
+    assert (tmp_path / "b.pkl").read_bytes() == pickle.dumps(blend) and w.save_digest is None
 
 
 def test_a_failed_package_query_is_recorded(monkeypatch):
@@ -241,69 +262,23 @@ def test_a_short_successful_write_withholds_the_digest():
     class ShortSink(io.BytesIO):
         def write(self, b):
             return super().write(bytes(b)[:2])
-    sink, errors = ShortSink(), []
-    w = P.HashingWriter(sink, errors)
+    sink = ShortSink()
+    w = W.HashingWriter(sink, hashlib.sha256())
     assert w.write(b"abcdef") == 2 and sink.getvalue() == b"ab"
-    assert w.hexdigest() is None and errors
+    assert w.digest() is None                                # earned: 6 bytes hashed, 2 written
 
 
 def test_a_full_write_keeps_the_digest():
     sink = io.BytesIO()
-    w = P.HashingWriter(sink, [])
+    w = W.HashingWriter(sink, hashlib.sha256())
     assert w.write(memoryview(b"abcdef")) == 6
-    assert w.hexdigest() == hashlib.sha256(b"abcdef").hexdigest()
-
-
-class _AppendThenRaise:
-    """A collector whose append lands and then raises: the length looks complete; only the reported failure says not."""
-    def __init__(self, target):
-        self.target = target
-
-    def append(self, x):
-        self.target.append(x)
-        raise MemoryError("synthetic: raised after appending")
+    assert w.digest() == hashlib.sha256(b"abcdef").hexdigest()
 
 
 def test_a_binding_that_raised_after_appending_is_still_withheld(world, monkeypatch):
+    """Its append landed, with the right values, but reported failure: never confirmed, so withheld (earned)."""
     monkeypatch.setenv("BTS_USE_CALIBRATION", "1")
-    real_collect = W.collect
-    seen = {"n": 0}
-
-    def collect(items, build, errors, what):
-        if what == "sample binding" and items is not None:
-            seen["n"] += 1
-            if seen["n"] == 7:
-                return real_collect(_AppendThenRaise(items), build, errors, what)
-        return real_collect(items, build, errors, what)
-    monkeypatch.setattr(C, "_collect", collect)
+    _bind_fault(monkeypatch, 7, landed=True)
     rec = _run(world).attrs["serving"]["calibration"]
     assert rec["status"] == "applied" and rec["n_fit"] == 40
     assert rec["samples"] is None and rec["samples_sha256"] is None
-
-
-def test_a_failed_pop_still_clears_the_pipeline_provenance(world, monkeypatch):
-    """If taking an attr fails, the backstop clears them all before calibration (r1 F1)."""
-    class PopFails(dict):
-        def pop(self, *a):
-            raise RuntimeError("synthetic: pop")
-
-    class Frame(pd.DataFrame):
-        held = PopFails()
-
-        @property
-        def _constructor(self):
-            return pd.DataFrame
-
-        @property
-        def attrs(self):
-            return Frame.held
-
-        @attrs.setter
-        def attrs(self, value):
-            pass
-    frame = Frame({"batter_id": [1], "game_pk": [10], "p_game_hit": [0.8]})
-    Frame.held.update({"serving_errors": [], "serving_model": {"source": "cache", "sha256": None},
-                       "serving_inputs": []})
-    monkeypatch.setattr(P, "run_pipeline", lambda *a, **k: frame)
-    out = _run(world)
-    assert out is frame and set(Frame.held) == {"serving"}

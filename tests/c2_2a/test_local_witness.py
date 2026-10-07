@@ -96,7 +96,7 @@ def test_a_cache_capture_preparation_failure_loads_the_original_path_once(world,
     out = _run(world)
     assert loads == [cache] and world[3] == []
     w = out.attrs["serving"]
-    assert w["model"] == {"source": "cache", "sha256": None} and any("loaded from path" in e for e in w["errors"])
+    assert w["model"] == {"source": "cache", "sha256": None} and any("loaded from the path" in e for e in w["errors"])
 
 
 def test_a_cache_hash_failure_still_loads_the_held_bytes(world, monkeypatch):
@@ -131,6 +131,16 @@ def test_a_genuine_unpickling_failure_propagates_once_as_before(world, monkeypat
     with pytest.raises(pickle.UnpicklingError, match="stateful"):
         _run(world)
     assert calls == [len(cache.read_bytes())]
+
+
+def test_a_genuine_unpickling_failure_leaves_no_current_witness(world):
+    """The cache load's genuine failure propagates as deployed; the witness becomes current only after that load, so
+    nothing is left open for any later caller in the process."""
+    cache = _cache(world)
+    cache.write_bytes(b"\x80\x04 corrupt")
+    with pytest.raises(Exception):
+        _run(world)
+    assert W.current() is None
 
 
 def test_a_cold_train_is_witnessed_as_trained_with_the_saved_bytes_hash(world):
@@ -271,7 +281,7 @@ def test_a_calibration_pa_capture_failure_parses_the_path_and_still_applies(worl
 def test_a_witness_collection_failure_never_changes_the_calibration(world, monkeypatch):
     monkeypatch.setenv("BTS_USE_CALIBRATION", "1")
     expected, _ = _expected_calibrated(world)
-    monkeypatch.setattr(C, "_canon_sha256", lambda o: (_ for _ in ()).throw(ValueError("synthetic")))
+    monkeypatch.setattr(W, "canon_sha256", lambda o: (_ for _ in ()).throw(ValueError("synthetic")))
     out = _run(world)
     assert out["p_game_hit"].tolist() == expected
     rec = out.attrs["serving"]["calibration"]
@@ -287,9 +297,10 @@ def test_a_build_failure_attaches_null_and_returns_the_forecast(world, monkeypat
 
 
 def test_missing_run_pipeline_provenance_is_recorded(world, monkeypatch):
+    """A pipeline that recorded nothing: the model is unknown (null) and the inputs are withheld, with the error."""
     monkeypatch.setattr(P, "run_pipeline", lambda *a, **k: pd.DataFrame({"p_game_hit": RAW_P}))
     w = _run(world).attrs["serving"]
-    assert w["model"] is None and w["inputs"] is None and len([e for e in w["errors"] if "missing" in e]) == 3
+    assert w["model"] is None and w["inputs"] is None and "PA inputs incomplete; withheld" in w["errors"]
 
 
 def test_an_attrs_failure_returns_the_forecast(world, monkeypatch):

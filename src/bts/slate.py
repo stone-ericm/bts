@@ -86,7 +86,14 @@ def save_slate(
     try:
         if predictions is None or predictions.empty:
             return None
-        serving = _take_serving(predictions)
+        try:
+            serving = _take_serving(predictions)    # off the frame before the row extraction copies its attrs
+        except Exception:
+            serving = None
+        try:
+            predictions.attrs.pop("serving", None)
+        except Exception:
+            pass
         cols = [c for c in ROW_COLUMNS if c in predictions.columns]
         rows = json.loads(
             predictions[cols].to_json(orient="records")
@@ -98,8 +105,11 @@ def save_slate(
             "written_at": datetime.now(timezone.utc).isoformat(),
             "n_rows": len(rows),
             "rows": rows,
-            "serving": serving,
         }
+        try:
+            payload["serving"] = serving
+        except Exception:
+            pass
         slates_dir = Path(picks_dir) / "slates"
         slates_dir.mkdir(parents=True, exist_ok=True)
         path = slates_dir / f"{date}.json"

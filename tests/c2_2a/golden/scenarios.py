@@ -504,80 +504,85 @@ def _is_history_pick(p: Path) -> bool:
     return p.parent.name == "picks" and p.suffix == ".json" and p.name[:4] == "2026" and p.name != f"{W.DATE}.json"
 
 
+def _witness_module():
+    """The candidate's witness module; absent at the baseline, whose scenario then runs plain."""
+    return sys.modules.get("bts.serving_witness")
+
+
+def _ledger_records(h: Harness, factory, whats):
+    """Every new witness ledger whose part is in `whats` collects into `factory(...)` instead of a list."""
+    sw = _witness_module()
+    if sw is None or not hasattr(sw, "Ledger"):
+        return
+    real = sw.Ledger.__init__
+
+    def init(self, errors, what):
+        real(self, errors, what)
+        if what in whats:
+            self.records = factory()
+    h.p.set(sw.Ledger, "__init__", init)
+
+
 def _fault_witness_names(h: Harness, which: str):
-    """Faults inside the witness's own containment (candidate-only names; absent at the baseline)."""
-    import bts.model.calibrate as C
-    from bts.model import predict as P
-    sw = sys.modules.get("bts.serving_witness")
+    """Faults inside the witness's own containment (code review r4: bts.serving_witness's names, which the baseline
+    does not have)."""
+    sw = _witness_module()
+    if sw is None:
+        return
     if which == "hashing_writer_construction":
         class Broken:
             def __init__(self, *a, **k):
                 raise MemoryError("golden: injected writer construction failure")
-        h.p.set_if_exists(P, "HashingWriter", Broken)
-    elif which == "hashing_writer_hash":
-        base = getattr(P, "HashingWriter", None)
-        if base is not None:
-            class BadUpdate(base):
-                def __init__(self, f, errors=None):
-                    super().__init__(f, errors)
+        h.p.set_if_exists(sw, "HashingWriter", Broken)
+    elif which in ("hashing_writer_hash", "hashing_writer_finalisation"):
+        base = sw.HashingWriter
 
-                    class _H:
-                        def update(self, b):
+        class Faulty(base):
+            def __init__(self, f, h_):
+                real = h_
+
+                class _H:
+                    def update(self, b):
+                        if which == "hashing_writer_hash":
                             raise MemoryError("golden: injected hash update failure")
-                    self._h = _H()
-            h.p.set(P, "HashingWriter", BadUpdate)
-    elif which == "hashing_writer_finalisation":
-        base = getattr(P, "HashingWriter", None)
-        if base is not None:
-            class BadFinal(base):
-                def __init__(self, f, errors=None):
-                    super().__init__(f, errors)
-                    real = self._h
+                        real.update(b)
 
-                    class _H:
-                        def update(self, b):
-                            real.update(b)
-
-                        def hexdigest(self):
+                    def hexdigest(self):
+                        if which == "hashing_writer_finalisation":
                             raise MemoryError("golden: injected finalisation failure")
-                    self._h = _H()
-            h.p.set(P, "HashingWriter", BadFinal)
+                        return real.hexdigest()
+                super().__init__(f, _H())
+        h.p.set(sw, "HashingWriter", Faulty)
     elif which == "collector_appends":
-        if sw is not None and hasattr(C, "_collect"):
-            real = sw.collect
-            h.p.set(C, "_collect", lambda items, item, errors, what: real(
-                None if items is None else _NoAppend(), item, errors, what))
-            h.p.set_if_exists(P, "collect", lambda items, item, errors, what: real(
-                None if items is None else _NoAppend(), item, errors, what))
-    elif which == "sample_canonicalisation":
-        h.p.set_if_exists(C, "_canon_sha256", lambda o: (_ for _ in ()).throw(ValueError("golden: injected canon")))
-    elif which == "map_extraction":
-        if hasattr(C, "_fitted_map"):
-            real = C._fitted_map
+        _ledger_records(h, _NoAppend, ("PA input", "calibration PA input", "pick input"))
+        real = sw.Calibration.__init__
 
-            class Unreadable:
-                def __getattr__(self, name):
-                    raise RuntimeError("golden: injected map extraction failure")
-            h.p.set(C, "_fitted_map", lambda cal, errors: real(Unreadable(), errors))
+        def init(self):
+            real(self)
+            self.bindings = _NoAppend()
+        h.p.set(sw.Calibration, "__init__", init)
+    elif which == "sample_canonicalisation":
+        h.p.set(sw, "canon_sha256", lambda o: (_ for _ in ()).throw(ValueError("golden: injected canon")))
+    elif which == "map_extraction":
+        real = sw._fitted_map
+
+        class Unreadable:
+            def __getattr__(self, name):
+                raise RuntimeError("golden: injected map extraction failure")
+        h.p.set(sw, "_fitted_map", lambda cal, errors: real(Unreadable(), errors))
     elif which == "error_recording":
-        if sw is not None:
-            real = sw.note
-            h.p.set(sw, "note", lambda errors, msg: real(None if errors is None else _NoAppend(), msg))
-            h.p.set_if_exists(C, "_note", lambda errors, msg: real(None if errors is None else _NoAppend(), msg))
-            h.p.set_if_exists(P, "note", lambda errors, msg: real(None if errors is None else _NoAppend(), msg))
+        real = sw.note
+        h.p.set(sw, "note", lambda errors, msg, exc=None: real(None if errors is None else _NoAppend(), msg, exc))
     elif which == "build":
-        if sw is not None and hasattr(sw, "build"):
-            h.p.set(sw, "build", lambda **k: (_ for _ in ()).throw(MemoryError("golden: injected build failure")))
+        h.p.set(sw, "build", lambda **k: (_ for _ in ()).throw(MemoryError("golden: injected build failure")))
     elif which == "attrs_assignment":
         class NoAttrs:
             @property
             def attrs(self):
                 raise RuntimeError("golden: injected attrs failure")
-        for mod, name in ((P, "_attach_pipeline_provenance"), (sys.modules["bts.orchestrator"], "_attach_serving_witness"),
-                          (sys.modules["bts.orchestrator"], "_take_pipeline_provenance")):
-            real = getattr(mod, name, None)
-            if real is not None:
-                h.p.set(mod, name, (lambda r: lambda frame, *a, **k: r(NoAttrs(), *a, **k))(real))
+        real = sw.run_end
+        h.p.set(sw, "run_end", lambda predictions, witness, token: real(
+            None if predictions is None else NoAttrs(), witness, token))
     else:
         raise ValueError(which)
 
@@ -873,19 +878,22 @@ def sc_fault_pick_buffer(h):
     _run_and_pick(h)
 
 
-def sc_fault_pick_decoder(h):
-    _calibration(h)
-    import bts.model.calibrate as C
+def _witness_io(h: Harness, name: str, exc: BaseException):
+    """The witness module's own `io` (candidate only): one constructor fails; nothing else is touched."""
+    sw = _witness_module()
+    if sw is None:
+        return
 
     class IoProxy:
-        """calibrate's own `io` (candidate only): the decoder's construction fails; nothing else is touched."""
-        def __getattr__(self, name):
-            return getattr(io, name)
+        def __getattr__(self, attr):
+            return getattr(io, attr)
+    setattr(IoProxy, name, staticmethod(lambda *a, **k: (_ for _ in ()).throw(exc)))
+    h.p.set_if_exists(sw, "_io", IoProxy())
 
-        @staticmethod
-        def TextIOWrapper(*a, **k):
-            raise MemoryError("golden: injected decoder preparation failure")
-    h.p.set_if_exists(C, "io", IoProxy())
+
+def sc_fault_pick_decoder(h):
+    _calibration(h)
+    _witness_io(h, "TextIOWrapper", MemoryError("golden: injected decoder preparation failure"))
     _run_and_pick(h)
 
 
@@ -952,16 +960,7 @@ def sc_fault_attrs_copy_calibration(h):
 def sc_fault_pick_decoder_oserror(h):
     """An OSError preparing the decoder after a successful read takes the fallback (r1 F2)."""
     _calibration(h)
-    import bts.model.calibrate as C
-
-    class IoProxy:
-        def __getattr__(self, name):
-            return getattr(io, name)
-
-        @staticmethod
-        def TextIOWrapper(*a, **k):
-            raise OSError("golden: decoder preparation after a successful read")
-    h.p.set_if_exists(C, "io", IoProxy())
+    _witness_io(h, "TextIOWrapper", OSError("golden: decoder preparation after a successful read"))
     _run_and_pick(h)
 
 
@@ -972,23 +971,15 @@ def sc_fault_omitted_input_lost_error(h):
     if not extra.exists():
         extra.write_text(json.dumps({"date": "2026-04-02", "result": "hit", "pick": {"batter_id": 10101,
                                                                                     "p_game_hit": 0.9}}))
-    import bts.model.calibrate as C
-    sw = sys.modules.get("bts.serving_witness")
-    if sw is not None and hasattr(C, "_collect") and hasattr(sw, "collect"):
-        real = sw.collect
-
-        def collect(items, build, errors, what):
-            if items is not None and what == "pick input":
-                try:
-                    rec = build()
-                except Exception:
-                    rec = None
-                if rec and rec.get("file") == "2026-04-02.json":
-                    return real(_NoAppend(), build, _NoAppend(), what)
-            return real(items, build, errors, what)
-        h.p.set(C, "_collect", collect)
+    class DropsOne(list):
+        def append(self, rec):
+            if rec.get("file") == "2026-04-02.json":
+                raise RuntimeError("golden: injected record failure")
+            super().append(rec)
+    _ledger_records(h, DropsOne, ("pick input",))
+    sw = _witness_module()
+    if sw is not None:
         h.p.set(sw, "note", lambda *a, **k: False)
-        h.p.set_if_exists(C, "_note", lambda *a, **k: False)
     _run_and_pick(h)
 
 
@@ -1011,16 +1002,7 @@ def sc_fault_undescribable_cache(h):
 
 def sc_fault_parquet_buffer_alloc(h):
     """The held buffer's construction fails after a successful read (r1 F6: distinct from the read itself)."""
-    from bts.model import predict as P
-
-    class IoProxy:
-        def __getattr__(self, name):
-            return getattr(io, name)
-
-        @staticmethod
-        def BytesIO(*a, **k):
-            raise MemoryError("golden: buffer allocation after a successful read")
-    h.p.set_if_exists(P, "io", IoProxy())
+    _witness_io(h, "BytesIO", MemoryError("golden: buffer allocation after a successful read"))
     _run_and_pick(h)
 
 
@@ -1064,10 +1046,10 @@ def sc_fault_package_query(h):
 def sc_fault_map_hash(h):
     """The map's canonical hash fails while the samples' hash succeeds (r1 F6: independent of sample hashing)."""
     _calibration(h)
-    import bts.model.calibrate as C
-    if hasattr(C, "_canon_sha256"):
-        real = C._canon_sha256
-        h.p.set(C, "_canon_sha256", lambda o: (_ for _ in ()).throw(ValueError("golden: map canon"))
+    sw = _witness_module()
+    if sw is not None:
+        real = sw.canon_sha256
+        h.p.set(sw, "canon_sha256", lambda o: (_ for _ in ()).throw(ValueError("golden: map canon"))
                 if isinstance(o, dict) and "X_thresholds" in o else real(o))
     _run_and_pick(h)
 
@@ -1075,62 +1057,16 @@ def sc_fault_map_hash(h):
 def sc_fault_calibration_record(h):
     """Building the serving calibration record fails after the assignment (r1 F3: never a stale record)."""
     _calibration(h)
-    orch = sys.modules["bts.orchestrator"]
-    h.p.set_if_exists(orch, "_calibration_record",
-                      lambda *a, **k: (_ for _ in ()).throw(MemoryError("golden: calibration record")))
+    sw = _witness_module()
+    if sw is not None:
+        h.p.set(sw.Calibration, "record", lambda self: (_ for _ in ()).throw(MemoryError("golden: calibration record")))
     _run_and_pick(h)
 
 
-class _AppendThenRaise:
-    """A collector whose append lands and then raises: its length looks complete; only the reported failure says not."""
-    def __init__(self, target):
-        self.target = target
-
-    def append(self, x):
-        self.target.append(x)
-        raise RuntimeError("golden: injected append-then-raise")
-
-
-def _raise_at_line(func, pattern: str, exc: BaseException):
-    """A sys.settrace hook raising `exc` once, at the one source line of `func` whose stripped text matches `pattern`
-    (r2 R2-1: an allocation fault at a statement, not only at a helper's boundary)."""
-    import inspect
-    import re
-    lines, start = inspect.getsourcelines(func)
-    hits = [start + i for i, text in enumerate(lines) if re.fullmatch(pattern, text.strip())]
-    if len(hits) != 1:
-        raise RuntimeError(f"golden: fault anchor {pattern!r} matched {len(hits)} lines")
-    code, line = func.__code__, hits[0]
-
-    def local(frame, event, arg):
-        if event == "line" and frame.f_lineno == line:
-            raise exc
-        return local
-    return lambda frame, event, arg: local if frame.f_code is code else None
-
-
-def sc_fault_provenance_allocation(h):
-    """Allocating the provenance-removal helper's parts fails (r2 R2-1). The baseline has no such helper."""
-    _calibration(h)
-    helper = getattr(sys.modules["bts.orchestrator"], "_take_pipeline_provenance", None)
-    if helper is None:
-        _run_and_pick(h)
-        return
-    tracer = _raise_at_line(helper, r"parts(: dict)? = \{\}", MemoryError("golden: provenance dict allocation"))
-    from bts.orchestrator import run_and_pick
-
-    def go():
-        sys.settrace(tracer)
-        try:
-            run_and_pick(config(), W.DATE, require_detailed_statuses=False)
-        finally:
-            sys.settrace(None)
-    h.run(go)
-
-
 def sc_fault_provenance_take(h):
-    """Invoking the provenance-removal helper fails, and pandas copying any attached provenance would fail too (r2
-    R2-1: the frame must be cleared before calibration, never calibrated with the provenance on it)."""
+    """pandas copying any attached provenance fails (r2 R2-1). Since code review r4 the pipeline attaches nothing to
+    the frame (its witness is recorded beside the computation), so calibration and selection never copy provenance;
+    revision 3's removal helper, which this scenario also broke, no longer exists."""
     _calibration(h)
     h.p.set_if_exists(sys.modules["bts.orchestrator"], "_take_pipeline_provenance",
                       lambda *a, **k: (_ for _ in ()).throw(MemoryError("golden: provenance take")))
@@ -1146,18 +1082,14 @@ def sc_fault_provenance_take(h):
 
 
 def sc_fault_pa_append_landed(h):
-    """Every PA-input append lands and then raises, and its error record is lost (r2 R2-2)."""
+    """Every PA-input record append lands and then raises, on both the pipeline's and calibration's side (r2 R2-2)."""
     _calibration(h)
-    from bts.model import predict as P
-    sw = sys.modules.get("bts.serving_witness")
-    if sw is not None and hasattr(P, "collect"):
-        real = sw.collect
 
-        def collect(items, build, errors, what):
-            if items is not None and what == "PA input":
-                return real(_AppendThenRaise(items), build, _NoAppend(), what)
-            return real(items, build, errors, what)
-        h.p.set(P, "collect", collect)
+    class LandsThenRaises(list):
+        def append(self, rec):
+            super().append(rec)
+            raise RuntimeError("golden: injected append-then-raise")
+    _ledger_records(h, LandsThenRaises, ("PA input", "calibration PA input"))
     _run_and_pick(h)
 
 
@@ -1270,7 +1202,6 @@ SCENARIOS = {
     "fault_package_query": (sc_fault_package_query, {}),
     "fault_map_hash": (sc_fault_map_hash, {}),
     "fault_calibration_record": (sc_fault_calibration_record, {}),
-    "fault_provenance_allocation": (sc_fault_provenance_allocation, {}),
     "fault_provenance_take": (sc_fault_provenance_take, {}),
     "fault_pa_append_landed": (sc_fault_pa_append_landed, {}),
     "cutoff_minus_one_second": (sc_cutoff_minus_one_second, {"start_et": (12, 0)}),

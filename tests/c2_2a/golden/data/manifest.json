@@ -1,5 +1,5 @@
 {
- "command": "/Users/eric/projects/bts-c2-2a-golden/.venv/bin/python3 -m tests.c2_2a.golden.generate --out tests/c2_2a/golden/data",
+ "command": "/Users/eric/projects/bts-c2-2a-golden/.venv/bin/python3 -m tests.c2_2a.golden.generate --out /private/tmp/claude-501/-Users-eric-projects-bts/5f91aea8-99ec-4c37-9eab-f76e81b81a0f/scratchpad/golden_r4",
  "commit": "f882411d939d1b8eb0433beee1514170a17f689a",
  "environment": {
   "OMP_NUM_THREADS": "1",
@@ -59,7 +59,6 @@
   "fault_pick_buffer.json": "ca77557ceeeff5792514cd0bf2b9b6dbd8feb709f836da51bb4401fec99a9e78",
   "fault_pick_decoder.json": "fc398cdb3eb2cfda1f15abccb08d978fb15bf1e058343bca1fec67a3445e6f70",
   "fault_pick_decoder_oserror.json": "d5500b7f6578c64e0c12b3eb8cc4d64d3847c4a670b70f31569b1767cc249dd9",
-  "fault_provenance_allocation.json": "b33b6de75983acea8597285eaf383a3e6b4847d4b0ec3061d643d7756abcfade",
   "fault_provenance_take.json": "e1897de1f95c813596bce39106abe579b81ec09d6044c9e5f6f5d9248ffa9706",
   "fault_sample_canonicalisation.json": "e3909f587a7d67e3ef8fd9b244339895a4ceaad6237c14a7362da6871b723101",
   "fault_short_write.json": "73ec0cffa0232c8a027b6a66a5a0a5180aaee60d533aac21f317ff5686c64fa8",
@@ -79,7 +78,7 @@
   "__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   "fakes.py": "f0cedfdd9ce077558715208af604585c527720fec47c8f86e048120221cf445d",
   "generate.py": "26877c14aaea06561d5af7bbda2b2432c0208f89515e36a3719fa77094222187",
-  "scenarios.py": "1e396c9a3fa0dc85901ed6ea2e0bb393554148abaa638e91714408dd0f9b1b5f",
+  "scenarios.py": "d2d4452fb519c5e0dbf9201468d781085d5749d32d22cfe729a350b29043319a",
   "world.py": "594c1c7edba218058e70355752521f170e9ed4dca4b63ec81f1df510c372a65c"
  },
  "partial": false,
@@ -138,7 +137,6 @@
   "fault_package_query",
   "fault_map_hash",
   "fault_calibration_record",
-  "fault_provenance_allocation",
   "fault_provenance_take",
   "fault_pa_append_landed",
   "cutoff_minus_one_second",
