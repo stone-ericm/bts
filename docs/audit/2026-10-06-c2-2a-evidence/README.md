@@ -118,3 +118,16 @@
 
 - **Load outlier:** load's maximum is a single pair. Its median matches the first run (one parquet's held bytes). A Codex review session was running tests on the same Mac during this re-run; the pair is reported as measured.
 - **Verdict:** all six phases pass the unchanged 250 MB limit, and every control is within the 125 MB aim.
+
+### Whole-run timing re-run at the revised candidate (`cost/runs_r2.jsonl`, `cost/summary_r2.json`)
+**Method:** the same declared driver, run at `340dcef`'s code, 20:02–20:35 EDT, with the author running nothing else on the Mac.
+
+| case | paired Δtime median / max (s) | acceptance ≤ 2.0 / ≤ 5.0 |
+|---|---|---|
+| cold_small | 0.28 / 1.24 | met |
+| warm_off | −0.33 / 0.54 | met |
+| warm_on | −0.48 / −0.15 | met |
+| warm_unavailable | −0.50 / 0.34 | met |
+| control: baseline vs baseline | 0.62 / 1.65 | (noise floor) |
+
+- **Memory:** this run's whole-run RSS columns stay uninformative per the ruling. The control's maximum is +1,296 MB with identical code. Memory acceptance rests on the phase method above.
