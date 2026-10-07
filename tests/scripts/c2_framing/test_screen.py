@@ -558,6 +558,14 @@ def test_an_empty_seed1_completion_does_not_release(stubbed, monkeypatch, tmp_pa
         _run(stubbed, S.STAGE_ONE_SEEDS[1])
 
 
+def test_a_seed1_run_of_another_identity_does_not_release(stubbed, monkeypatch):
+    """The release names seed 1's real run, but that run was made by other code than the admitted identity."""
+    seed1 = _released(stubbed, monkeypatch)
+    _rewrite(seed1 / "manifest.json", lambda r: r["identity"].update(reviewed_commit="other"))
+    with pytest.raises(SystemExit, match=r"not a complete admitted run: .*\['admitted identity'\]"):
+        _run(stubbed, S.STAGE_ONE_SEEDS[1])
+
+
 def test_a_release_naming_another_run_does_not_release(stubbed, monkeypatch):
     out, _, adm = stubbed
     assert _run(stubbed, S.STAGE_ONE_SEEDS[0]) == 0
@@ -660,6 +668,7 @@ def _rebind_claim(d):
     ("summary", "stored summary"), ("missing_diff", "missing diff_B.json"),
     ("diff_and_summary", "diff does not match its retained scorecards"),
     ("profile", "does not reconcile"), ("deterministic", "lgb determinism"),
+    ("claim_rewritten", r"\['claim binding'\]"), ("pins_names", r"\['pins'\]"),
 ])
 def test_aggregate_refuses_an_invalid_run(three_runs, damage, match):
     import json
@@ -707,6 +716,14 @@ def test_aggregate_refuses_an_invalid_run(three_runs, damage, match):
     elif damage == "deterministic":
         for x in dirs:
             _rewrite(x / "manifest.json", lambda r: r["lgb_params"].update(deterministic=False))
+    elif damage == "claim_rewritten":                    # still names this run and its code; only its bytes moved
+        _rewrite(d / "CLAIM.json", lambda r: r.update(pid=r["pid"] + 1))
+    elif damage == "pins_names":                         # nine pins, consistently, with a digest that matches them
+        def drop(r):
+            r["input_pins"].pop(S.LOOKUP_NAME)
+            r["inputs_digest"] = S.pins_digest(r["input_pins"])
+        for x in dirs:
+            _rewrite(x / "manifest.json", drop)
     with pytest.raises(S.RunInvalid, match=match):
         S.aggregate(dirs, _test_out_root=out)
 

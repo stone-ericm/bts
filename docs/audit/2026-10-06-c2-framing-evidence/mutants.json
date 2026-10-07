@@ -36,8 +36,9 @@
   "old": "np.array_equal(a, b, equal_nan=True)",
   "new": "np.array_equal(a, b, equal_nan=False)",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
-  ]
+   "tests/scripts/c2_framing/test_screen.py::test_the_self_check_compares_against_the_production_pitcher_feature"
+  ],
+  "narrowed_rev3": "the whole file also errors in the three-run fixture's setup (not a clean failure)"
  },
  {
   "id": "F5",
@@ -196,8 +197,9 @@
   "old": "    os.environ[\"BTS_LGBM_RANDOM_STATE\"] = str(seed)\n",
   "new": "",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
-  ]
+   "tests/scripts/c2_framing/test_screen.py::test_run_end_to_end"
+  ],
+  "narrowed_rev3": "the whole file also errors in the three-run fixture's setup (not a clean failure)"
  },
  {
   "id": "F21",
@@ -333,7 +335,8 @@
   "tests": [
    "tests/scripts/c2_framing/test_screen.py"
   ],
-  "reanchored_rev3": true
+  "reanchored_rev3": true,
+  "equivalent": "validate_run checks each run's inputs_digest == pins_digest(input_pins), so runs that agree on inputs_digest agree on input_pins (barring a sha256 collision)"
  },
  {
   "id": "G9",
@@ -396,8 +399,9 @@
   "old": "    m = RELEASE_RE.match(cells[2].strip())\n",
   "new": "    m = re.search(r\"(\\d+(?:\\.\\d+)?) CPU-hours\", cells[2])\n",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
-  ]
+   "tests/scripts/c2_framing/test_screen.py::test_release_needs_the_exact_ruling_eric_and_a_positive_budget"
+  ],
+  "narrowed_rev3": "the whole file also errors in the three-run fixture's setup (not a clean failure)"
  },
  {
   "id": "G15",
@@ -477,8 +481,9 @@
   "old": "    settings = check_settings()\n",
   "new": "    settings = {}\n",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
-  ]
+   "tests/scripts/c2_framing/test_screen.py::test_run_end_to_end"
+  ],
+  "narrowed_rev3": "the whole file also errors in the three-run fixture's setup (not a clean failure)"
  },
  {
   "id": "G23",
@@ -539,8 +544,9 @@
   "old": "INPUT_NAMES = tuple(f\"pa_{s}.parquet\" for s in SEASONS_IN) + (LOOKUP_NAME,)",
   "new": "INPUT_NAMES = tuple(f\"pa_{s}.parquet\" for s in SEASONS_IN)",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
-  ]
+   "tests/scripts/c2_framing/test_screen.py::test_admission_requires_exactly_the_ten_pins"
+  ],
+  "narrowed_rev3": "the whole file also errors in the three-run fixture's setup (not a clean failure)"
  },
  {
   "id": "G29",
