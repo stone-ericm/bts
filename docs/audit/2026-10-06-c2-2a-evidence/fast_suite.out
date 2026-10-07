@@ -1,7 +1,7 @@
-# fast suite at 340dcefa3e1720b21a63d2f8becd16742a68d16e, 2026-10-06 19:47 EDT
-tests/test_web_render.py ............................                    [ 99%]
+# fast suite at 5523443edd682eed1192274b3b54738cee98492a (revision 3, after code review r2), 2026-10-06 21:15–21:21 EDT: UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run pytest -m "not slow" --ignore=tests/simulate --ignore=tests/model --ignore=tests/experiment --ignore=tests/validate -q -p no:cacheprovider
 tests/test_web_saver.py ............                                     [ 99%]
 tests/test_web_skip_policy_shadow.py ...                                 [ 99%]
 tests/test_web_streak_subtitle.py .....                                  [100%]
 
-==== 4043 passed, 7 skipped, 65 deselected, 22 xfailed in 386.04s (0:06:26) ====
+==== 4057 passed, 7 skipped, 68 deselected, 22 xfailed in 385.73s (0:06:25) ====
+exit 0

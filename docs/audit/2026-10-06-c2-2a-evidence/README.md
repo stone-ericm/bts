@@ -131,3 +131,53 @@
 | control: baseline vs baseline | 0.62 / 1.65 | (noise floor) |
 
 - **Memory:** this run's whole-run RSS columns stay uninformative per the ruling. The control's maximum is +1,296 MB with identical code. Memory acceptance rests on the phase method above.
+
+## Revision 3 (after code review r2; row C2-2a-review-r3, the third and final round)
+**Scope (manager's ruling):** the R2-1 and R2-2 fixes only, each with the reviewer's failing check as a red-first test, plus mutants, gate scenarios, the ledger, a cost re-run of the touched phases and the fast suite.
+
+**Fixes (`9ae58f0`):**
+- **R2-1:** `_take_pipeline_provenance` allocates its parts inside its guard and returns None when they cannot be held. `predict_local` contains the invocation. If it fails or returns None, the frame's attrs are cleared before calibration (outside the except suite) and `run_pipeline provenance unavailable` is noted. The witness then shows model and inputs as null.
+- **R2-2:** `_read_pa_parquet` takes a preallocated one-slot flag. A failed `collect` sets it False (a slot assignment, so no allocation), on both the buffered and the path-parse paths. `inputs_complete()` requires the flag, the list and the count, for the pipeline's inputs and for calibration's `pa_input`.
+
+**Tests:**
+- `tests/c2_2a/test_r2_counterexamples.py` holds 8 tests.
+  - The 6 that reproduce the reviewer's two checks were red at `e22a905`. The allocation fault is injected by a `sys.settrace` hook at the matched source line, as the reviewer did.
+  - The other two each measure one layer separately:
+    - the helper's own containment (O17);
+    - the record count when the flag write itself is lost (P23).
+- **Gate (`3fa1596`):** three new fault scenarios: `fault_provenance_allocation`, `fault_provenance_take` and `fault_pa_append_landed`.
+  - The goldens were regenerated in full at f882411 with the harness copied in unchanged: 60 scenarios, a clean tree, and the 57 earlier goldens byte-identical.
+  - On the candidate, the gate passes 64 of 64.
+  - Against `e22a905`'s `src`, all three new scenarios fail. Under the allocation fault, the old code makes no pick (MemoryError) where the baseline picks.
+
+**Ledger:**
+- **Spec:** 91 entries. O4, P13 and O15 were re-anchored to the new signatures (rules unchanged). There are 15 new mutants: O17–O23 and P16–P23.
+- **Full run at `3203267`:** 89 RED; C13 is the recorded equivalent. P23 survived, because the flag withholds on every single-fault path. O18 and P18 were killed only by their gate scenario, because their `-k` filter deselected the named unit tests.
+- **Resume at `3cbe848`:** O18 and P18 were re-run with exact gate node ids, and P23 against the new two-layer test. All three are RED.
+- **Result: 90 of 90 attributable mutants RED; C13 equivalent.**
+
+**Fast suite (`fast_suite.out`, at `5523443`):** 4057 passed, 7 skipped, 68 deselected (the slow gate scenarios), 22 xfailed, 0 failed.
+
+### Touched-phase re-run (`cost/phases_r3.py`, `cost/phases_r3.jsonl`, `cost/phases_r3_summary.json`)
+**Method:**
+- The declared driver `cost/phases_drive.py` was imported unchanged and restricted to the three phases the fixes reach:
+  - load: the PA reads and their flag;
+  - tail_off and tail_on: `predict_local` after `run_pipeline`, the contained take, and on tail_on calibration's PA read and record check.
+- cache stops at `run_pipeline`'s entry, save is `save_blend`, and slate is `save_slate`. None of them reaches the changed code.
+- **Code measured:** the candidate's `src` at `5523443`, identical to `9ae58f0`'s production code.
+- **Baseline:** the f882411 worktree, whose bench and harness files are byte-identical to the candidate's.
+- **Run:** 21:33–21:35 EDT, with nothing else running on the Mac. Before it, the author's mutant ledgers and fast suite had finished. During it, the author only edited files in another worktree; no tests ran.
+
+| phase | paired Δpeak, max / median (MB) | control max \|Δ\| (MB) | verdict |
+|---|---|---|---|
+| load (six parquets) | 20.5 / 19.6 | 3.2 | PASS |
+| tail_off (witness build) | 0.6 / 0.4 | 1.0 | PASS |
+| tail_on (calibration + witness) | 6.0 / 1.4 | 4.3 | PASS |
+
+- **Every control is within the aim** (≤ 125 MB).
+- **load** is one parquet's held bytes, as before. Round 2's single 98.6 MB pair was a concurrent-load outlier and did not recur.
+- **Phase times** (median, baseline → candidate; no acceptance weight): load 1.56 → 1.62 s; tail_off 0.000 → 0.005 s; tail_on 0.440 → 0.453 s.
+- **Not re-run:**
+  - cache, save and slate: none reaches the changed code;
+  - the whole-run timing: the fixes add only constant-size statements, and time was settled by the round-2 re-run.
+- **Result: the touched phases PASS the unchanged 250 MB limit under row C2-2a-cost-method's method.**
