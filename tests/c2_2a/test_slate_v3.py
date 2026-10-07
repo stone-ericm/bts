@@ -46,6 +46,12 @@ def test_an_unserializable_witness_is_null_and_the_slate_still_writes(tmp_path, 
     assert p["serving"] is None and p["n_rows"] == 3
 
 
+def test_a_failed_warning_for_an_unserializable_witness_still_writes_the_slate(tmp_path, monkeypatch):
+    monkeypatch.setattr(S.log, "warning", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("synthetic log")))
+    p = _payload(S.save_slate(_preds(serving={"x": float("nan")}), "2027-04-01", tmp_path, "local"))
+    assert p["serving"] is None and p["n_rows"] == 3
+
+
 def test_a_frame_whose_attrs_raise_is_swallowed_as_before(tmp_path):
     """pandas itself reads attrs when selecting the row columns, so a raising attrs getter fails the row extraction
     exactly as at f882411: no slate, nothing raised."""

@@ -173,6 +173,26 @@ def test_a_prediction_failure_returns_none_as_before(world, monkeypatch):
     assert W.current() is None                           # and leaves no witness open for any later caller
 
 
+def test_a_failed_stop_after_a_prediction_failure_changes_nothing_deployed(world, monkeypatch, capsys):
+    """Two faults: the prediction fails, and stopping the witness fails too. predict_local still returns None with the
+    deployed message, and the next run's witness is its own: its records, sealed, whatever was left current."""
+    real_predict, real_end = P.predict, W.end
+    monkeypatch.setattr(P, "predict", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("synthetic")))
+    monkeypatch.setattr(W, "end", lambda token: (_ for _ in ()).throw(RuntimeError("synthetic stop")))
+    assert _run(world) is None
+    assert "[local] Prediction failed: synthetic" in capsys.readouterr().err
+    left = W.current()
+    monkeypatch.setattr(P, "predict", real_predict)
+    monkeypatch.setattr(W, "end", real_end)
+    out = _run(world)
+    serving = out.attrs["serving"]
+    assert list(out["p_game_hit"]) == RAW_P                # the failed run saved the cache before predicting
+    assert serving["model"] == {"source": "cache", "sha256": _sha(world[1] / f"blend_{DATE}.pkl")}
+    assert [i["file"] for i in serving["inputs"]] == ["pa_2025.parquet", "pa_2026.parquet"]
+    assert all(i["sha256"] == _sha(world[0] / i["file"]) for i in serving["inputs"])
+    assert left is not None and not left.sealed and W.current() is left       # the residue records nothing it serves
+
+
 # ---------------------------------------------------------------- calibration (§3.2)
 
 EMPTY = {"pa_input": None, "pick_inputs": None, "n_fit": None, "samples": None, "samples_sha256": None,

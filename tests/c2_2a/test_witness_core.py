@@ -112,6 +112,13 @@ def test_no_hook_records_without_an_open_witness(files):
     assert W.hashing_writer(f) is f
 
 
+def test_the_cache_hooks_without_a_witness_are_the_deployed_load(files):
+    """Total for any input: with no witness (predict_local could not make one), the deployed loader is returned and
+    nothing is recorded."""
+    deployed = object()
+    assert W.cache_loader(files / "a.bin", deployed, None) is deployed and W.cache_used(deployed, None) is None
+
+
 def test_a_sealed_witness_records_nothing(files):
     w = W.Serving()
     token = W.begin(w)
