@@ -376,3 +376,219 @@ O11 RED ========================= 3 failed, 36 passed in 2.64s =================
     FAILED tests/c2_2a/test_r1_counterexamples.py::test_copying_the_pipeline_provenance_never_turns_calibration_off
     FAILED tests/c2_2a/test_r1_counterexamples.py::test_a_failed_pop_still_clears_the_pipeline_provenance
 NOT RED: none
+
+# full re-run with the hardened runner (clean-failure RED) at 57de2382d93f4fa59458b6f23c0b9b98ec7f833c, 2026-10-06 19:56 EDT
+C1 RED ======================= 1 failed, 78 deselected in 7.78s =======================
+    FAILED tests/c2_2a/test_golden.py::test_the_candidate_reproduces_the_baseline[calibration_on]
+C2 RED ======================= 1 failed, 78 deselected in 7.33s =======================
+    FAILED tests/c2_2a/test_golden.py::test_the_candidate_reproduces_the_baseline[fault_pick_buffer]
+C3 RED ========================= 2 failed, 35 passed in 2.54s =========================
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_a_genuine_read_error_skips_the_file_without_an_added_retry
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_a_genuine_read_oserror_is_still_skipped_once
+C4 RED ========================= 1 failed, 17 passed in 1.85s =========================
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_a_capture_preparation_failure_falls_back_to_one_original_read
+C5 RED ========================= 1 failed, 17 passed in 1.85s =========================
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_bindings_follow_the_samples_exactly
+C6 RED ========================= 1 failed, 17 passed in 1.83s =========================
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_bindings_follow_the_samples_exactly
+C7 RED ========================= 9 failed, 9 passed in 1.87s ==========================
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_the_return_value_and_order_are_unchanged_by_the_collectors
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_bindings_follow_the_samples_exactly
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_a_hash_failure_keeps_the_sample_and_nulls_only_provenance
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_a_capture_preparation_failure_falls_back_to_one_original_read
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_fit_witness_records_n_fit_bindings_and_the_canonical_map
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_changing_historical_probabilities_changes_the_witness
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_insufficient_support_is_witnessed_and_returns_none
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_a_binding_carries_the_exact_appended_float
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_n_fit_counts_samples_not_files
+C8 RED ========================= 1 failed, 17 passed in 1.84s =========================
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_bindings_follow_the_samples_exactly
+C9 RED ========================= 1 failed, 17 passed in 1.89s =========================
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_a_binding_carries_the_exact_appended_float
+C10 RED ========================= 3 failed, 15 passed in 1.83s =========================
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_bindings_follow_the_samples_exactly
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_a_hash_failure_keeps_the_sample_and_nulls_only_provenance
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_a_capture_preparation_failure_falls_back_to_one_original_read
+C11 RED ========================= 1 failed, 37 passed in 2.54s =========================
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_n_fit_counts_samples_not_files
+C12 RED ========================= 1 failed, 17 passed in 1.86s =========================
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_fit_witness_records_n_fit_bindings_and_the_canonical_map
+C13 SURVIVED ============================== 18 passed in 1.81s ==============================
+C13b RED ========================= 1 failed, 17 passed in 1.85s =========================
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_fit_witness_records_n_fit_bindings_and_the_canonical_map
+C14 RED ========================= 1 failed, 17 passed in 1.85s =========================
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_fit_witness_records_n_fit_bindings_and_the_canonical_map
+C15 RED ========================= 2 failed, 36 passed in 2.52s =========================
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_insufficient_support_is_witnessed_and_returns_none
+    FAILED tests/c2_2a/test_local_witness.py::test_calibration_with_insufficient_support
+C16 RED ========================= 2 failed, 36 passed in 2.53s =========================
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_no_sklearn_is_witnessed - ...
+    FAILED tests/c2_2a/test_local_witness.py::test_calibration_without_sklearn - ...
+C17 RED ========================= 1 failed, 17 passed in 1.86s =========================
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_fit_witness_records_n_fit_bindings_and_the_canonical_map
+W1 RED ========================= 1 failed, 47 passed in 2.59s =========================
+    FAILED tests/c2_2a/test_serving_witness.py::test_the_containment_helpers_never_raise
+W2 RED ========================= 2 failed, 67 passed in 2.60s =========================
+    FAILED tests/c2_2a/test_serving_witness.py::test_the_containment_helpers_never_raise
+    FAILED tests/c2_2a/test_predict_witness.py::test_a_parquet_collector_failure_returns_the_frame
+W3 RED ========================= 3 failed, 47 passed in 2.38s =========================
+    FAILED tests/c2_2a/test_serving_witness.py::test_the_containment_helpers_never_raise
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_a_hash_failure_keeps_the_sample_and_nulls_only_provenance
+    FAILED tests/c2_2a/test_predict_witness.py::test_parquet_hash_failure_still_parses_the_held_buffer
+W4 RED ========================= 1 failed, 37 passed in 2.52s =========================
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_fit_witness_records_n_fit_bindings_and_the_canonical_map
+W5 RED ========================= 1 failed, 17 passed in 1.86s =========================
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_canonical_hash_refuses_non_finite_values
+W6 RED ========================= 1 failed, 10 passed in 0.75s =========================
+    FAILED tests/c2_2a/test_serving_witness.py::test_env_records_allowlisted_values_and_only_the_names_of_other_bts_variables
+W7 RED ========================= 1 failed, 10 passed in 0.75s =========================
+    FAILED tests/c2_2a/test_serving_witness.py::test_the_recipe_hashes_every_recipe_file_and_serving_function
+W8 RED ========================= 2 failed, 9 passed in 0.75s ==========================
+    FAILED tests/c2_2a/test_serving_witness.py::test_upstream_errors_are_carried_without_aliasing
+    FAILED tests/c2_2a/test_serving_witness.py::test_unusable_upstream_errors_are_recorded_not_raised
+W9 RED ========================= 3 failed, 8 passed in 0.77s ==========================
+    FAILED tests/c2_2a/test_serving_witness.py::test_a_recipe_failure_nulls_the_recipe_and_records_it
+    FAILED tests/c2_2a/test_serving_witness.py::test_a_packages_failure_nulls_packages_and_records_it
+    FAILED tests/c2_2a/test_serving_witness.py::test_an_env_failure_nulls_env_and_records_it
+W10 RED ======================= 1 failed, 71 deselected in 7.07s =======================
+    FAILED tests/c2_2a/test_golden.py::test_the_candidate_reproduces_the_baseline[model_cold]
+P1 RED ========================= 2 failed, 19 passed in 2.16s =========================
+    FAILED tests/c2_2a/test_predict_witness.py::test_parquet_is_parsed_once_from_the_hashed_buffer
+    FAILED tests/c2_2a/test_predict_witness.py::test_parquet_hash_failure_still_parses_the_held_buffer
+P2 RED ======================= 2 failed, 80 deselected in 4.91s =======================
+    FAILED tests/c2_2a/test_golden.py::test_the_candidate_reproduces_the_baseline[fault_parquet_buffer]
+    FAILED tests/c2_2a/test_golden.py::test_the_candidate_reproduces_the_baseline[fault_parquet_buffer_alloc]
+P3 RED ========================= 3 failed, 37 passed in 2.44s =========================
+    FAILED tests/c2_2a/test_predict_witness.py::test_the_hashing_writer_forwards_and_returns_the_real_write_result
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_a_short_successful_write_withholds_the_digest
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_a_full_write_keeps_the_digest
+P4 RED ========================= 4 failed, 17 passed in 2.18s =========================
+    FAILED tests/c2_2a/test_predict_witness.py::test_save_writes_exactly_the_pickle_bytes_and_returns_their_hash
+    FAILED tests/c2_2a/test_predict_witness.py::test_the_hashing_writer_forwards_and_returns_the_real_write_result
+    FAILED tests/c2_2a/test_predict_witness.py::test_a_real_lightgbm_blend_round_trips_through_the_hashing_save
+    FAILED tests/c2_2a/test_predict_witness.py::test_an_empty_cached_blend_trains_and_is_witnessed_as_trained
+P5 RED ========================= 1 failed, 20 passed in 2.18s =========================
+    FAILED tests/c2_2a/test_predict_witness.py::test_a_hash_update_failure_keeps_the_bytes_and_nulls_the_digest
+P6 RED ========================= 2 failed, 19 passed in 2.25s =========================
+    FAILED tests/c2_2a/test_predict_witness.py::test_a_hashing_writer_construction_failure_saves_through_the_plain_file
+    FAILED tests/c2_2a/test_predict_witness.py::test_a_save_hash_failure_is_witnessed_as_trained_with_a_null_hash
+P7 RED ========================= 1 failed, 20 passed in 2.25s =========================
+    FAILED tests/c2_2a/test_predict_witness.py::test_a_serialization_error_behaves_as_before
+P8 RED ========================= 4 failed, 37 passed in 2.40s =========================
+    FAILED tests/c2_2a/test_predict_witness.py::test_a_cached_blend_is_witnessed_as_cache_with_the_callers_hash
+    FAILED tests/c2_2a/test_local_witness.py::test_a_cached_blend_is_loaded_from_the_hashed_bytes_once
+    FAILED tests/c2_2a/test_local_witness.py::test_a_cache_capture_preparation_failure_loads_the_original_path_once
+    FAILED tests/c2_2a/test_local_witness.py::test_a_cache_hash_failure_still_loads_the_held_bytes
+P9 RED ========================= 1 failed, 20 passed in 2.18s =========================
+    FAILED tests/c2_2a/test_predict_witness.py::test_training_without_a_save_path_is_witnessed_as_unsaved
+P10 RED ========================= 3 failed, 38 passed in 2.40s =========================
+    FAILED tests/c2_2a/test_predict_witness.py::test_an_empty_cached_blend_trains_and_is_witnessed_as_trained
+    FAILED tests/c2_2a/test_local_witness.py::test_a_cold_train_is_witnessed_as_trained_with_the_saved_bytes_hash
+    FAILED tests/c2_2a/test_local_witness.py::test_an_empty_cached_dict_trains_and_is_witnessed_as_trained
+P11 RED ========================= 1 failed, 20 passed in 2.16s =========================
+    FAILED tests/c2_2a/test_predict_witness.py::test_an_attrs_failure_returns_the_predictions
+P12 RED ======================= 1 failed, 81 deselected in 6.99s =======================
+    FAILED tests/c2_2a/test_golden.py::test_the_candidate_reproduces_the_baseline[model_cold]
+O1 RED ========================= 2 failed, 18 passed in 2.37s =========================
+    FAILED tests/c2_2a/test_local_witness.py::test_a_cached_blend_is_loaded_from_the_hashed_bytes_once
+    FAILED tests/c2_2a/test_local_witness.py::test_a_genuine_unpickling_failure_propagates_once_as_before
+O2 RED ======================= 1 failed, 80 deselected in 4.68s =======================
+    FAILED tests/c2_2a/test_golden.py::test_the_candidate_reproduces_the_baseline[fault_cache_buffer]
+O3 RED ========================= 1 failed, 19 passed in 2.39s =========================
+    FAILED tests/c2_2a/test_local_witness.py::test_a_cached_blend_is_loaded_from_the_hashed_bytes_once
+O4 RED ========================= 3 failed, 17 passed in 2.40s =========================
+    FAILED tests/c2_2a/test_local_witness.py::test_calibration_applied_records_every_part
+    FAILED tests/c2_2a/test_local_witness.py::test_calibration_with_insufficient_support
+    FAILED tests/c2_2a/test_local_witness.py::test_a_calibration_pa_capture_failure_parses_the_path_and_still_applies
+O5 RED ========================= 4 failed, 16 passed in 2.42s =========================
+    FAILED tests/c2_2a/test_local_witness.py::test_calibration_applied_records_every_part
+    FAILED tests/c2_2a/test_local_witness.py::test_a_failure_after_assignment_keeps_calibrated_probabilities_and_applied
+    FAILED tests/c2_2a/test_local_witness.py::test_a_calibration_pa_capture_failure_parses_the_path_and_still_applies
+    FAILED tests/c2_2a/test_local_witness.py::test_a_witness_collection_failure_never_changes_the_calibration
+O6 RED ========================= 1 failed, 19 passed in 2.42s =========================
+    FAILED tests/c2_2a/test_local_witness.py::test_a_failure_after_assignment_keeps_calibrated_probabilities_and_applied
+O7 RED ========================= 1 failed, 19 passed in 2.45s =========================
+    FAILED tests/c2_2a/test_local_witness.py::test_calibration_without_a_pa_file
+O8 RED ========================= 1 failed, 19 passed in 2.42s =========================
+    FAILED tests/c2_2a/test_local_witness.py::test_calibration_without_sklearn - ...
+O9 RED ========================= 1 failed, 19 passed in 2.42s =========================
+    FAILED tests/c2_2a/test_local_witness.py::test_calibration_off - AssertionErr...
+O10 RED ========================= 1 failed, 19 passed in 2.41s =========================
+    FAILED tests/c2_2a/test_local_witness.py::test_a_build_failure_attaches_null_and_returns_the_forecast
+O11 RED ========================= 3 failed, 36 passed in 2.59s =========================
+    FAILED tests/c2_2a/test_local_witness.py::test_inputs_and_only_the_serving_key_remain_in_attrs
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_copying_the_pipeline_provenance_never_turns_calibration_off
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_a_failed_pop_still_clears_the_pipeline_provenance
+B1 RED ======================= 2 failed, 71 deselected in 9.42s =======================
+    FAILED tests/c2_2a/test_golden.py::test_the_candidate_reproduces_the_baseline[model_cold]
+    FAILED tests/c2_2a/test_golden.py::test_the_candidate_reproduces_the_baseline[calibration_on]
+S1 RED ======================= 1 failed, 72 deselected in 7.05s =======================
+    FAILED tests/c2_2a/test_golden.py::test_the_candidate_reproduces_the_baseline[model_cold]
+S2 RED ========================= 2 failed, 10 passed in 0.74s =========================
+    FAILED tests/c2_2a/test_slate_v3.py::test_an_unserializable_witness_is_null_and_the_slate_still_writes[bad0]
+    FAILED tests/c2_2a/test_slate_v3.py::test_an_unserializable_witness_is_null_and_the_slate_still_writes[bad3]
+S3 RED ======================= 1 failed, 72 deselected in 6.90s =======================
+    FAILED tests/c2_2a/test_golden.py::test_the_candidate_reproduces_the_baseline[model_cold]
+D1 RED ====================== 1 failed, 60 deselected in 18.65s =======================
+    FAILED tests/c2_2a/test_golden.py::test_the_candidate_reproduces_the_baseline[day_dm]
+D2 RED ====================== 1 failed, 60 deselected in 18.71s =======================
+    FAILED tests/c2_2a/test_golden.py::test_the_candidate_reproduces_the_baseline[day_dm]
+D3 RED ====================== 1 failed, 60 deselected in 14.13s =======================
+    FAILED tests/c2_2a/test_golden.py::test_the_candidate_reproduces_the_baseline[day_dm]
+C18 RED ========================= 1 failed, 18 passed in 2.39s =========================
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_an_omitted_input_with_a_lost_error_is_never_published_as_complete
+C19 RED ========================= 1 failed, 18 passed in 2.35s =========================
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_a_binding_that_raised_after_appending_is_still_withheld
+C20 RED ========================= 1 failed, 18 passed in 2.38s =========================
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_an_omitted_input_with_a_lost_error_is_never_published_as_complete
+C21 RED ========================= 1 failed, 18 passed in 2.36s =========================
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_a_genuine_read_oserror_is_still_skipped_once
+C22 RED ========================= 1 failed, 18 passed in 2.35s =========================
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_a_binding_that_raised_after_appending_is_still_withheld
+C23 RED ========================= 6 failed, 31 passed in 2.44s =========================
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_fit_witness_records_n_fit_bindings_and_the_canonical_map
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_changing_historical_probabilities_changes_the_witness
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_insufficient_support_is_witnessed_and_returns_none
+    FAILED tests/c2_2a/test_calibrate_witness.py::test_n_fit_counts_samples_not_files
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_a_decoder_preparation_oserror_takes_the_fallback
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_a_genuine_read_oserror_is_still_skipped_once
+C24 RED ========================= 1 failed, 18 passed in 2.38s =========================
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_a_decoder_preparation_oserror_takes_the_fallback
+W2b RED ========================= 2 failed, 28 passed in 2.40s =========================
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_an_omitted_input_with_a_lost_error_is_never_published_as_complete
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_a_binding_that_raised_after_appending_is_still_withheld
+W11 RED ========================= 1 failed, 18 passed in 2.37s =========================
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_note_formats_inside_its_guard
+W12 RED ======================= 1 failed, 79 deselected in 7.01s =======================
+    FAILED tests/c2_2a/test_golden.py::test_the_candidate_reproduces_the_baseline[fault_package_query]
+P13 RED ======================= 1 failed, 60 deselected in 7.04s =======================
+    FAILED tests/c2_2a/test_golden.py::test_the_candidate_reproduces_the_baseline[fault_collector_appends]
+P14 RED ========================= 2 failed, 17 passed in 2.42s =========================
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_an_undescribable_parquet_preparation_error_still_parses_the_path[pa_2025.parquet]
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_an_undescribable_parquet_preparation_error_still_parses_the_path[pa_2026.parquet]
+P15 RED ======================= 1 failed, 79 deselected in 7.06s =======================
+    FAILED tests/c2_2a/test_golden.py::test_the_candidate_reproduces_the_baseline[fault_short_write]
+O13 RED ======================== 13 failed, 26 passed in 2.67s =========================
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_copying_the_pipeline_provenance_never_turns_calibration_off
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_an_undescribable_parquet_preparation_error_still_parses_the_path[pa_2025.parquet]
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_an_undescribable_parquet_preparation_error_still_parses_the_path[pa_2026.parquet]
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_an_undescribable_cache_preparation_error_still_loads_the_path
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_an_undescribable_hash_error_keeps_the_forecast
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_a_failed_pop_still_clears_the_pipeline_provenance
+    FAILED tests/c2_2a/test_local_witness.py::test_a_cached_blend_is_loaded_from_the_hashed_bytes_once
+    FAILED tests/c2_2a/test_local_witness.py::test_a_cache_capture_preparation_failure_loads_the_original_path_once
+    FAILED tests/c2_2a/test_local_witness.py::test_a_cache_hash_failure_still_loads_the_held_bytes
+    FAILED tests/c2_2a/test_local_witness.py::test_a_cold_train_is_witnessed_as_trained_with_the_saved_bytes_hash
+    FAILED tests/c2_2a/test_local_witness.py::test_an_empty_cached_dict_trains_and_is_witnessed_as_trained
+    FAILED tests/c2_2a/test_local_witness.py::test_inputs_and_only_the_serving_key_remain_in_attrs
+    FAILED tests/c2_2a/test_local_witness.py::test_missing_run_pipeline_provenance_is_recorded
+O14 RED ========================= 1 failed, 18 passed in 2.39s =========================
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_the_slate_never_copies_the_witness
+O15 RED ========================= 1 failed, 18 passed in 2.40s =========================
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_a_failed_record_build_attaches_null_calibration_not_a_stale_one
+O16 RED ========================= 1 failed, 11 passed in 0.74s =========================
+    FAILED tests/c2_2a/test_slate_v3.py::test_run_and_pick_drops_the_witness_even_when_the_slate_writer_did_not
+O11b RED ========================= 1 failed, 18 passed in 2.38s =========================
+    FAILED tests/c2_2a/test_r1_counterexamples.py::test_a_failed_pop_still_clears_the_pipeline_provenance
+NOT RED: C13
+exit 1
