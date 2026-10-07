@@ -871,9 +871,7 @@
   "new": "        pipeline = _take_pipeline_provenance(predictions, witness_errors)\n",
   "tests": [
    "tests/c2_2a/test_r2_counterexamples.py::test_a_failed_provenance_take_still_clears_the_frame_before_calibration",
-   "tests/c2_2a/test_golden.py",
-   "-k",
-   "fault_provenance_take"
+   "tests/c2_2a/test_golden.py::test_the_candidate_reproduces_the_baseline[fault_provenance_take]"
   ],
   "added_after_r2": true
  },
@@ -963,9 +961,7 @@
   "new": "        pass\n",
   "tests": [
    "tests/c2_2a/test_r2_counterexamples.py::test_a_pa_input_that_raised_after_appending_is_withheld",
-   "tests/c2_2a/test_golden.py",
-   "-k",
-   "fault_pa_append_landed"
+   "tests/c2_2a/test_golden.py::test_the_candidate_reproduces_the_baseline[fault_pa_append_landed]"
   ],
   "added_after_r2": true
  },
@@ -1022,9 +1018,7 @@
   "old": " and ok[0] is True and len(inputs) == n\n",
   "new": " and ok[0] is True\n",
   "tests": [
-   "tests/c2_2a/test_golden.py",
-   "-k",
-   "fault_collector_appends"
+   "tests/c2_2a/test_r2_counterexamples.py::test_the_count_still_withholds_when_the_flag_cannot_be_cleared"
   ],
   "added_after_r2": true
  }

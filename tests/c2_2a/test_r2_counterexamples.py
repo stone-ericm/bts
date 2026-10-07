@@ -154,3 +154,25 @@ def test_a_fallback_pa_input_that_raised_after_appending_is_withheld(world, monk
     w = json.loads(save_slate(out, DATE, tmp_path, "local").read_text())["serving"]
     assert w["inputs"] is None and w["calibration"]["pa_input"] is None
     assert w["calibration"]["status"] == "applied"
+
+
+def test_the_count_still_withholds_when_the_flag_cannot_be_cleared(world, monkeypatch, tmp_path):
+    """Two layers: if a failed collection could not even clear the flag, the record count still withholds (r1 F3's
+    rule, kept alongside the flag)."""
+    monkeypatch.setenv("BTS_USE_CALIBRATION", "1")
+    real = W.collect
+
+    class NoAppend(list):
+        def append(self, x):
+            raise MemoryError("synthetic: append")
+
+    def collect(items, build, errors, what):
+        if what == "PA input" and items is not None:
+            return real(NoAppend(), build, errors, what)
+        return real(items, build, errors, what)
+    monkeypatch.setattr(P, "collect", collect)
+    monkeypatch.setattr(P, "_mark_incomplete", lambda ok: None)       # the flag write itself is lost
+    w = json.loads(save_slate(_run(world), DATE, tmp_path, "local").read_text())["serving"]
+    assert w["inputs"] is None and w["calibration"]["pa_input"] is None
+    assert w["calibration"]["status"] == "applied"
+
