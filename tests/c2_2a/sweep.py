@@ -83,6 +83,11 @@ GENUINE = (
 )
 SCENARIOS = PLAIN + DESIGNED + GENUINE
 UNSTABLE_KEYS = {"errors", "built_at"}
+# A digest of a sibling part. When the part lost information (a null file hash in one binding), its digest cannot keep
+# the unfaulted value, yet it claims nothing beyond the part; so a changed digest stands only as exactly the canonical
+# digest of the faulted run's own published part, whose own loss is checked beside it. The gate checks the same identity
+# on every scenario (`test_golden._assert_calibration_bound`).
+DIGESTS = {"samples_sha256": "samples", "map_sha256": "map"}
 # (file, stripped source line, or "def <name>" for its call event) -> the genuine-failure scenario covering it
 COMPUTATION = {
     ("serving_witness.py", "def load_blend"): "genuine_cache_unpickle",
@@ -237,6 +242,12 @@ def witness_only_loses(plain, faulted, path="serving") -> list[str]:
         bad = []
         for k, v in faulted.items():
             if k in UNSTABLE_KEYS:
+                continue
+            if k in DIGESTS and v is not None and v != plain.get(k):
+                from tests.c2_2a.test_golden import _canon
+                part = faulted.get(DIGESTS[k])
+                if part is None or v != _canon(part):
+                    bad.append(f"{path}.{k}: {v!r} is neither the plain digest nor the published {DIGESTS[k]}'s")
                 continue
             if k not in plain:
                 bad.append(f"{path}.{k}: not in the plain witness")
