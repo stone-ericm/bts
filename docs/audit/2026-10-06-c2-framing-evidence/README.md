@@ -32,3 +32,31 @@
   - **G8: recorded equivalent.** `validate_run` binds each run's `inputs_digest` to its `input_pins`, so runs that agree on the digest agree on the pins (barring a sha256 collision).
 - **Resume at `2f43386`:** the eight attributable mutants are RED. G8 survives, as recorded.
 - **Result: 66 of 66 attributable RED; G8 equivalent.** The suite holds 75 tests.
+
+## Revision 4 (after review r3 BLOCK; Eric's row C2-framing-review-r4)
+**Runner revised (r3 R3-4):**
+- Each mutant's intended set is what `pytest --collect-only` selects from its named tests on the unmutated source.
+- A mutant is RED only when pytest exits 1 and every intended node reported PASSED or FAILED under `-rA`. At least one must have FAILED, with no `ERROR` line and a clean summary.
+- An intended node that never ran makes the mutant INCONCLUSIVE, whatever the summary says. That covers fail-fast, a crash or a changed selection.
+- `PYTEST_ADDOPTS` is removed from the subprocess environment, ini `addopts` are cleared, and one `--rootdir` is pinned for both passes.
+- A test list holding any option is INVALID before anything is mutated.
+- The runner's own tests cover all of this, including the reviewer's two-node case with inherited `-x`, which the old runner marked RED with the second test never run.
+
+**Spec: 88 entries.**
+- Every mutant now names node ids: no whole-file lists and no options, and every list collects. Most were narrowed to the tests that failed for them in the revision-3 run.
+- G6, H8, H10, H11 and H13 were re-anchored to the revised code.
+- The new mutants:
+  - N1–N16: card recomputation, scoring settings, season evidence, P@1 coverage, the HEAD check, trusted identity and pins;
+  - R1–R5: the runner's error, not-run, environment, option and exact-node rules.
+- The parametrized damage and classifier cases have short ids.
+
+**First revision-4 run at `cab2549`:** 84 RED, 4 SURVIVED (G8, H5, H12, R5).
+- **H5 (identity completeness):** shadowed in the aggregate cases by the strict trusted-identity check. It is now isolated by a direct call whose admitted identity has the same empty field.
+- **R5 (exact node matching):** no case had an executed node whose id merely starts with an intended one. It is now covered: `t.py::ab` ran, `t.py::a` did not.
+- **G8 and H12: recorded equivalents.**
+  - G8 (unchanged reasoning): each run's digest is bound to its pins.
+  - H12: each run must equal the trusted identity, so validated runs cannot disagree on identity.
+
+**Resume at `e1033c5`:** H5 and R5 are RED.
+
+**Result: 86 of 86 attributable RED; G8 and H12 equivalent.** The permitted suite has 122 tests (97 framing, 25 shared admission).
