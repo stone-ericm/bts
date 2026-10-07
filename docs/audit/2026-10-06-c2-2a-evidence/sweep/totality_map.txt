@@ -1,0 +1,139 @@
+## Call sites: 30 guarded, 0 violations
+  predict.py:890           guard predict.py:889-892                       pa_open                            ledger = _sw.pa_open()
+  predict.py:905           guard predict.py:904-907                       pa_names                           _sw.pa_names(proc, len(dfs), ledger)
+  predict.py:155           guard predict.py:154-157                       hashing_writer                     f = _sw.hashing_writer(f)
+  predict.py:160           guard predict.py:159-162                       saved                              _sw.saved(f)
+  predict.py:896           guard predict.py:895-898                       Ledger.hold, parquet_buffer        parquet = ledger.hold(parquet, _sw.parquet_buffer)
+  predict.py:901           guard predict.py:900-903                       Ledger.confirm                     ledger.confirm(parquet)
+  predict.py:938           guard predict.py:937-940                       model                              _sw.model("cache")
+  predict.py:954           guard predict.py:953-956                       model                              _sw.model("trained" if save_blend_path else "trained_unsaved")
+  calibrate.py:140         guard calibrate.py:139-142                     pick_names                         _sw.pick_names(picks_dir)
+  calibrate.py:190         guard calibrate.py:189-192                     fit                                _sw.fit("fitted", samples, cal)
+  calibrate.py:71          guard calibrate.py:70-73                       pick_names                         _sw.pick_names(picks_dir, read=False)
+  calibrate.py:95          guard calibrate.py:94-97                       pick_file                          f = _sw.pick_file(f)
+  calibrate.py:107         guard calibrate.py:106-109                     pick_read                          _sw.pick_read(f)
+  calibrate.py:180         guard calibrate.py:179-182                     fit                                _sw.fit("insufficient_support", samples)
+  calibrate.py:136         guard calibrate.py:135-138                     pick_bind                          _sw.pick_bind(f, pick_date, slot_key, bid, samples[-1])
+  calibrate.py:167         guard calibrate.py:166-169                     fit                                _sw.fit("no_sklearn")
+  calibrate.py:102         guard calibrate.py:101-104                     pick_skipped                       _sw.pick_skipped(f)
+  orchestrator.py:110      guard orchestrator.py:108-112 (2 statements)   Serving                            witness, token = _sw.Serving(), None
+  orchestrator.py:130      guard orchestrator.py:129-132                  begin                              token = _sw.begin(witness)
+  orchestrator.py:150      guard orchestrator.py:149-152                  calibration_enabled                _sw.calibration_enabled(os.environ.get("BTS_USE_CALIBRATION", "0") == "1")
+  orchestrator.py:202      guard orchestrator.py:201-204                  run_end                            _sw.run_end(predictions, witness, token)
+  orchestrator.py:120      guard orchestrator.py:119-122                  cache_loader                       load_blend = _sw.cache_loader(cache_path, load_blend, witness)
+  orchestrator.py:125      guard orchestrator.py:124-127                  cache_used                         _sw.cache_used(load_blend, witness)
+  orchestrator.py:142      guard orchestrator.py:141-144                  end                                _sw.end(token)
+  orchestrator.py:162      guard orchestrator.py:161-164                  calibration_pa                     current_pa = _sw.calibration_pa(current_pa)
+  orchestrator.py:167      guard orchestrator.py:166-169                  calibration_pa_used                _sw.calibration_pa_used(current_pa)
+  orchestrator.py:190      guard orchestrator.py:189-192                  calibration_outcome                _sw.calibration_outcome("no_pa_file")
+  orchestrator.py:196      guard orchestrator.py:195-198                  calibration_failed                 _sw.calibration_failed(e)
+  orchestrator.py:177      guard orchestrator.py:176-179                  calibration_applied                _sw.calibration_applied()
+  slate.py:90              guard slate.py:89-92                           _take_serving                      serving = _take_serving(predictions)
+
+## Hooks: statements outside any internal try (27 called names)
+  Ledger.confirm (serving_witness.py:233): (none)
+  Ledger.hold (serving_witness.py:209): (none)
+  Serving: 
+      (not a function: a class constructor or module attribute)
+  _take_serving (slate.py:56): 
+      slate.py:60  serving = None
+  begin (serving_witness.py:173): 
+      serving_witness.py:175  return _CURRENT.set(witness)
+  cache_loader (serving_witness.py:435): 
+      serving_witness.py:440  if w is None:
+  cache_used (serving_witness.py:465): 
+      serving_witness.py:468  if w is None:
+      serving_witness.py:470  if w.cache is not None and w.cache[1] is used:
+      serving_witness.py:471  w.cache_used = True
+      serving_witness.py:473  note(w.errors, "cache: loaded from the path, not from the hashed bytes")
+  calibration_applied (serving_witness.py:561): 
+      serving_witness.py:562  w = current()
+      serving_witness.py:563  if w is not None:
+      serving_witness.py:564  w.calibration.applied = True
+  calibration_enabled (serving_witness.py:540): 
+      serving_witness.py:541  w = current()
+      serving_witness.py:542  if w is not None:
+      serving_witness.py:543  w.calibration.enabled = flag
+  calibration_failed (serving_witness.py:573): 
+      serving_witness.py:574  w = current()
+      serving_witness.py:575  if w is not None:
+      serving_witness.py:576  w.calibration.failure = e
+  calibration_outcome (serving_witness.py:567): 
+      serving_witness.py:568  w = current()
+      serving_witness.py:569  if w is not None:
+      serving_witness.py:570  w.calibration.outcome = word
+  calibration_pa (serving_witness.py:546): 
+      serving_witness.py:548  w = current()
+      serving_witness.py:549  if w is None:
+      serving_witness.py:551  w.calibration.pa_name = path.name
+      serving_witness.py:552  return w.calibration.pa.hold(path, parquet_buffer)
+  calibration_pa_used (serving_witness.py:555): 
+      serving_witness.py:556  w = current()
+      serving_witness.py:557  if w is not None:
+      serving_witness.py:558  w.calibration.pa.confirm(used)
+  end (serving_witness.py:178): 
+      serving_witness.py:179  _CURRENT.reset(token)
+  fit (serving_witness.py:627): 
+      serving_witness.py:631  w = current()
+      serving_witness.py:632  if w is None:
+      serving_witness.py:634  c = w.calibration
+      serving_witness.py:635  rec = {"status": status, "n_fit": None, "pick_inputs": None, "samples": None, "samples_sha256": None
+      serving_witness.py:637  if samples is not None:
+      serving_witness.py:638  rec["n_fit"] = len(samples)
+      serving_witness.py:639  if c.pick_names is not None and c.picks.complete(c.pick_names):
+      serving_witness.py:640  rec["pick_inputs"] = c.picks.records
+      serving_witness.py:642  note(rec["errors"], "calibration pick inputs incomplete; withheld")
+      serving_witness.py:643  if (c.bound == list(range(1, len(c.bindings) + 1))
+      serving_witness.py:645  rec["samples"] = c.bindings
+      serving_witness.py:646  rec["samples_sha256"] = _canon_or_none(c.bindings, rec["errors"], "calibration samples")
+      serving_witness.py:648  note(rec["errors"], "calibration sample bindings incomplete; withheld")
+      serving_witness.py:649  if cal is not None:
+      serving_witness.py:650  rec["map"] = _fitted_map(cal, rec["errors"])
+      serving_witness.py:651  rec["map_sha256"] = None if rec["map"] is None else _canon_or_none(rec["map"], rec["errors"],
+      serving_witness.py:653  c.fit = rec
+  hashing_writer (serving_witness.py:514): 
+      serving_witness.py:517  if current() is None:
+  model (serving_witness.py:501): 
+      serving_witness.py:503  w = current()
+      serving_witness.py:504  if w is None:
+      serving_witness.py:506  if source == "cache":
+      serving_witness.py:507  w.model = {"source": "cache", "sha256": w.cache[0] if w.cache_used and w.cache is not None else None
+      serving_witness.py:508  elif source == "trained":
+      serving_witness.py:509  w.model = {"source": "trained", "sha256": w.save_digest}
+      serving_witness.py:511  w.model = {"source": "trained_unsaved", "sha256": None}
+  pa_names (serving_witness.py:486): 
+      serving_witness.py:488  w = current()
+      serving_witness.py:489  if w is not None and w.pipeline_inputs is ledger:
+  pa_open (serving_witness.py:476): 
+      serving_witness.py:479  w = current()
+      serving_witness.py:480  if w is None or w.pipeline_inputs is not None:
+      serving_witness.py:482  w.pipeline_inputs = Ledger(w.errors, "PA input")
+      serving_witness.py:483  return w.pipeline_inputs
+  parquet_buffer (serving_witness.py:496): 
+      serving_witness.py:498  return _io.BytesIO(raw)
+  pick_bind (serving_witness.py:613): 
+      serving_witness.py:615  w = current()
+      serving_witness.py:616  if w is None:
+      serving_witness.py:618  c = w.calibration
+  pick_file (serving_witness.py:579): 
+      serving_witness.py:581  w = current()
+      serving_witness.py:582  if w is None:
+      serving_witness.py:584  return w.calibration.picks.hold(path, _pick_text(path), _unreadable_pick)
+  pick_names (serving_witness.py:603): 
+      serving_witness.py:605  w = current()
+      serving_witness.py:606  if w is not None:
+  pick_read (serving_witness.py:587): 
+      serving_witness.py:589  w = current()
+      serving_witness.py:590  if w is not None:
+      serving_witness.py:591  w.calibration.picks.confirm(f)
+  pick_skipped (serving_witness.py:594): 
+      serving_witness.py:597  import sys as _sys
+      serving_witness.py:598  w = current()
+      serving_witness.py:599  if w is not None and isinstance(_sys.exc_info()[1], json.JSONDecodeError):
+      serving_witness.py:600  w.calibration.picks.confirm(f)
+  run_end (serving_witness.py:414): (none)
+  saved (serving_witness.py:525): 
+      serving_witness.py:527  w = current()
+      serving_witness.py:528  if w is None:
+      serving_witness.py:536  if w.save_digest is None:
+      serving_witness.py:537  note(w.errors, "blend save: the bytes hashed are not the bytes the file reports written; digest with

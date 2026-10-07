@@ -11,9 +11,11 @@ or only calibration's PA read, is affected.
 - R3-2: a trace raises MemoryError at the line `ok[0] = False` inside the helper, which contains it, so the flag is
   never cleared. Required: the affected part is withheld.
 
-Run from a checkout of dfbf286 (its `tests.c2_2a.test_local_witness` world):
-    cp r3_replay.py SCRATCH/ && cd CHECKOUT && UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York \
-        uv run python -B -m pytest SCRATCH/r3_replay.py --rootdir . -p no:cacheprovider -q
+Run against an export of dfbf286 (its `src` and its `tests.c2_2a.test_local_witness` world), with this checkout's
+interpreter; PYTHONPATH puts the export's `bts` ahead of the checkout's editable install:
+    X=<scratch dir>; mkdir -p $X && git archive dfbf286 | tar -x -C $X && cp <this file> $X/ && cd $X
+    TZ=America/New_York PYTHONPATH=$X/src:$X <checkout>/.venv/bin/python -B -m pytest r3_replay.py -p no:cacheprovider -q
+(`python -c "import bts; print(bts.__file__)"` with the same PYTHONPATH shows the export's file.)
 """
 import sys
 

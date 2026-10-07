@@ -8,7 +8,9 @@ The fault model. A fault is an exception (MemoryError) raised by a sys.settrace 
 - at the `line` event of every executed line that the candidate adds or changes relative to the deployed baseline
   (`git diff -U0 f882411` over the pick path's five files), and at the `call` event of every function whose definition
   is new. Each point is a (line, call site) pair, so a shared helper is faulted once per place that calls it;
-- one at a time, at the first time that point executes in a scenario;
+- one at a time, at the first time that point executes in a scenario. By default each point is faulted in the first
+  scenario (in `SCENARIOS` order) that reaches it; `--all-pairs-in` also faults it in every listed scenario that
+  reaches it (the plain scenarios differ in state: calibration on or off, its outcomes, the delivery day);
 - in the plain scenarios and in the gate's designed-fault scenarios. The latter already carry one fault, so the points
   only they reach (fallbacks, handlers) are faulted on top of it.
 A line whose bytecode is only NOP (`try:`, `pass`) performs no operation, so nothing there can fail. Since Python 3.11,
@@ -280,6 +282,8 @@ def main(argv=None) -> int:
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--out", required=True)
     ap.add_argument("--scenarios", default=None, help="comma-separated subset (diagnostic only)")
+    ap.add_argument("--all-pairs-in", default=None,
+                    help="comma-separated scenarios in which every point they reach is faulted, not only first reaches")
     args = ap.parse_args(argv)
     if os.environ.get("TZ") != "America/New_York" or os.environ.get("OMP_NUM_THREADS") != "1":
         print("refusing: set TZ=America/New_York and OMP_NUM_THREADS=1", file=sys.stderr)
@@ -287,10 +291,11 @@ def main(argv=None) -> int:
     names = args.scenarios.split(",") if args.scenarios else list(SCENARIOS)
     new, nops = new_lines(), nop_lines()
     head = subprocess.run(["git", "-C", str(REPO), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
-    plain, assigned, reached, excluded = {}, {}, set(), {}
+    plain, assigned, reached, excluded, reached_by = {}, {}, set(), {}, {}
     for name in names:
         t = time.time()
         points, plain[name] = record(name, new, nops)
+        reached_by[name] = points
         fresh = [p for p in points if p not in assigned and p not in excluded]
         for p in points:
             cover = computation(p[0], p[1], p[2])
@@ -309,11 +314,22 @@ def main(argv=None) -> int:
     executable = {(f, l) for f, ls in new.items() for l in ls if l in code_lines.get(f, set())}
     out = Path(args.out)
     results = []
+    tasks = [(n, p) for p, n in assigned.items()]
+    every = args.all_pairs_in.split(",") if args.all_pairs_in else []
+    unknown = [n for n in every if n not in reached_by]
+    if unknown:
+        print(f"refusing: --all-pairs-in names scenarios not run: {unknown}", file=sys.stderr)
+        return 2
+    for n in every:
+        tasks += [(n, p) for p in reached_by[n] if p not in excluded and assigned.get(p) != n]
     with out.open("w") as fh, concurrent.futures.ProcessPoolExecutor(args.workers) as pool:
         fh.write(json.dumps({"head": head, "baseline": BASELINE, "scenarios": names, "points": len(assigned),
+                             "pairs": len(tasks), "all_pairs_in": every,
+                             "reached": {n: [[q[0], Path(q[1]).name, q[2], Path(q[3]).name if q[3] else None, q[4]]
+                                             for q in reached_by[n]] for n in names},
                              "computation": [[p[0], Path(p[1]).name, p[2], Path(p[3]).name if p[3] else None, p[4],
                                               cover] for p, cover in excluded.items()]}) + "\n")
-        for r in pool.map(_task, [(n, p) for p, n in assigned.items()]):
+        for r in pool.map(_task, tasks):
             results.append(r)
             fh.write(json.dumps(r) + "\n")
             fh.flush()
