@@ -128,7 +128,7 @@ def test_run_end_seals_attaches_and_stops_recording():
     frame = pd.DataFrame({"p_game_hit": [0.8]})
     W.calibration_enabled(False)
     W.run_end(frame, w, token)
-    assert w.sealed and W.current() is None and frame.attrs["serving"]["calibration"]["status"] == "off"
+    assert w.sealed and W._CURRENT.get() is None and frame.attrs["serving"]["calibration"]["status"] == "off"
     json.dumps(frame.attrs["serving"], allow_nan=False)
 
 
@@ -163,6 +163,12 @@ def test_a_resolver_that_read_nothing_consumed_no_pick_files(tmp_path):
     finally:
         W.end(token)
     assert w.calibration.pick_names == [] and w.calibration.picks.complete([])
+
+
+def test_an_unknown_enabled_flag_withholds_the_calibration_record():
+    """If the hook recording whether calibration was enabled did not run, the record is withheld, never "off"."""
+    c = W.Calibration()
+    assert c.record() is None and c.errors
 
 
 def test_an_unknown_status_is_never_published_as_not_applied():
