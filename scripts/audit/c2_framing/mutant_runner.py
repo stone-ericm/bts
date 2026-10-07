@@ -253,7 +253,7 @@ if rec.at_sentinel is not None:
 evidence = {"rc": rc, "records": rec.records, "calls": rec.sentinel.calls if rec.sentinel else {},
             "finish": rec.sentinel.finish if rec.sentinel else None, "late_plugins": late,
             "not_outermost": rec.sentinel.not_outermost if rec.sentinel else None, "marked": rec.marked,
-            "plugin_changes": list(rec.changes) if rec.armed else None, "foreign_plugins": rec.foreign}
+            "plugin_changes": list(rec.changes), "foreign_plugins": rec.foreign}
 with open(out, "x") as f:
     json.dump(evidence, f)
 sys.exit(rc)

@@ -1615,7 +1615,8 @@ def test_a_wrapper_gone_from_the_registry_before_yielding_is_still_seen(tmp_path
     longer shows it while it still wraps the sentinel, then aborts. The registration itself ran pluggy's add code."""
     bundle = _dynamic(tmp_path, _late("pluggy.PluginManager.register(pm, Late(pm, True, True), 'gone-wrapper')"),
                       "parameter request", "plugin system changed")
-    assert bundle["late_plugins"] == 0 and bundle["not_outermost"] == [] and bundle["plugin_changes"]
+    assert bundle["late_plugins"] == 0 and bundle["not_outermost"] == []
+    assert bundle["plugin_changes"] == ["HookCaller._add_hookimpl", "HookCaller._remove_plugin"], bundle  # both watched
 
 
 def test_a_wrapper_gone_before_yielding_without_an_abort_is_still_seen(tmp_path):
