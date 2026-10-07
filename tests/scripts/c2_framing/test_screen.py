@@ -1022,7 +1022,7 @@ def _bundle(records, failed_nodes=(), rc=None, **over):
          "calls": {n: ("AssertionError" if n in failed_nodes else None) for n in nodes},
          "finish": {"exitstatus": (1 if failed_nodes else 0) if rc is None else rc, "testsfailed": len(failed_nodes),
                     "testscollected": len(set(nodes))},
-         "late_plugins": 0, "not_outermost": [], "marked": []}
+         "late_plugins": 0, "not_outermost": [], "marked": [], "plugin_changes": [], "foreign_plugins": []}
     b.update(over)
     return b
 
@@ -1065,12 +1065,19 @@ CLASSIFY = [
      "INCONCLUSIVE(exit 1, session mismatch)"),
     (1, _bundle(ONE_FAIL, [A], finish={"exitstatus": 0, "testsfailed": 1, "testscollected": 3}),
      "INCONCLUSIVE(exit 1, session mismatch)"),
+    # r9: pluggy's hook-implementation add/remove code ran after the sentinel registered, by any API (r8 R8-1)
+    (1, _bundle(ONE_FAIL, [A], plugin_changes=["HookCaller._add_hookimpl"]), "INCONCLUSIVE(exit 1, plugin system changed)"),
+    (1, _bundle(ONE_FAIL, [A], plugin_changes=None), "INCONCLUSIVE(exit 1, plugin system changed)"),
+    # r9: a plugin that is neither pytest's own nor the runner's was registered when the sentinel was
+    (1, _bundle(ONE_FAIL, [A], foreign_plugins=["conftest"]), "INCONCLUSIVE(exit 1, foreign plugins)"),
+    (1, _bundle(ONE_FAIL, [A], foreign_plugins=None), "INCONCLUSIVE(exit 1, foreign plugins)"),
 ]
 CLASSIFY_IDS = ["red", "red_two_failed", "survived", "no_evidence", "exit_mismatch", "interrupted", "internal_error",
                 "collection_error", "finish_raised", "finish_missing", "late_plugin", "not_outermost", "xpass", "marked", "skipped",
                 "errors", "fail_fast", "teardown_cut_short", "unintended_node", "report_flipped", "call_unobserved",
                 "failed_count_mismatch", "collected_count_mismatch",
-                "exit_status_mismatch"]
+                "exit_status_mismatch", "plugin_changed", "plugin_changes_missing", "foreign_plugin",
+                "foreign_plugins_missing"]
 
 
 @pytest.mark.parametrize("rc, bundle, verdict", CLASSIFY, ids=CLASSIFY_IDS)
@@ -1081,7 +1088,6 @@ def test_the_runner_classifies_only_complete_clean_failures_as_red(rc, bundle, v
 def _scratch_mutant(tmp_path, tests, body):
     """A scratch root of its own (the runner's rootdir and cwd, so collection never leaves it): a target, a test
     module, and a spec naming tests relative to that root (r4: the out-of-tree collection that failed in a sandbox)."""
-    import json
     root = tmp_path / "scratch"
     root.mkdir()
     (root / "target.py").write_text("value = 1\n")
@@ -1092,28 +1098,302 @@ def _scratch_mutant(tmp_path, tests, body):
     return spec, root
 
 
+# r9: an in-scope scratch suite reads the target as text, within the reviewed vocabulary
+_READ = ("import pathlib\n"
+         "def val():\n"
+         "    return pathlib.Path(__file__).with_name('target.py').read_text()\n")
+_ONE = "'value = 1\\n'"
+# out of scope (refused by the gate): loading the target through importlib
 _VAL = ("import importlib.util, pathlib, pytest\n"
         "def val():\n"
         "    spec = importlib.util.spec_from_file_location('target', pathlib.Path(__file__).with_name('target.py'))\n"
         "    m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m); return m.value\n")
 
 
+def _two_read_failing(canary=None):
+    second = f"    pathlib.Path({str(canary)!r}).write_text('ran')\n" if canary else ""
+    return lambda r: _READ + (f"def test_first():\n    assert val() == {_ONE}\n"
+                              f"def test_second():\n{second}    assert val() == {_ONE}\n")
+
+
 def test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("PYTEST_ADDOPTS", "-x")
     canary = tmp_path / "canary"
-    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], lambda r: _VAL + (
-        "def test_first():\n    assert val() == 1\n"
-        f"def test_second():\n    pathlib.Path({str(canary)!r}).write_text('ran')\n    assert val() == 1\n"))
+    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], _two_read_failing(canary))
     assert R.main(str(spec), root=root) == 0
     out = capsys.readouterr().out
     assert "X1 RED" in out and canary.read_text() == "ran"                 # the second body executed
     assert (root / "target.py").read_text() == "value = 1\n"               # restored
 
 
-def test_the_runner_is_not_fooled_by_printed_outcomes(tmp_path, capsys):
-    """r4 R4-2: the first test prints the second's PASSED line; the second's fixture stops pytest before its body."""
+def test_the_runs_ignore_the_roots_ini_file(tmp_path, capsys):
+    """r9: ini settings never apply (the run's configuration is an empty file): neither an ini fail-fast nor an ini
+    fixture requirement (usefixtures) reaches the collection or the run."""
     canary = tmp_path / "canary"
-    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], lambda r: _VAL + (
+    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], _two_read_failing(canary))
+    (root / "pytest.ini").write_text("[pytest]\naddopts = -x\nusefixtures = planted\n")
+    assert R.main(str(spec), root=root) == 0
+    assert "X1 RED" in capsys.readouterr().out and canary.read_text() == "ran"
+
+
+def test_the_runs_load_no_conftest(tmp_path, capsys):
+    """r9: conftests are never loaded (--noconftest), in the collection or the run, so their hooks never run."""
+    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], _two_read_failing())
+    (root / "conftest.py").write_text("import pathlib\npathlib.Path(__file__).with_name('conftest_ran').write_text('y')\n")
+    assert R.main(str(spec), root=root) == 0
+    assert "X1 RED" in capsys.readouterr().out and not (root / "conftest_ran").exists()
+
+
+def test_the_run_environment_is_scrubbed(monkeypatch):
+    """r9: no inherited PYTHON* or PYTEST* variable reaches a run (PYTHONPATH, PYTEST_PLUGINS, PYTEST_ADDOPTS...);
+    entry-point plugins are off, bytecode is neither written nor read, and the interpreter adds no script or user path."""
+    for k in ("PYTHONPATH", "PYTHONSTARTUP", "PYTEST_PLUGINS", "PYTEST_ADDOPTS", "PYTHONINSPECT"):
+        monkeypatch.setenv(k, "planted")
+    env = R._env()
+    assert not [k for k in env if k.startswith(("PYTHON", "PYTEST")) and env[k] == "planted"]
+    assert env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] == "1" and env["PYTHONDONTWRITEBYTECODE"] == "1"
+    assert env["PYTHONPYCACHEPREFIX"].startswith("/dev/null/")                # no cache can exist there
+    root = Path("/r")
+    assert R._pytest_cmd(root, "x")[1:5] == ["-B", "-P", "-s", "-m"]
+    args = R._args(root, "x")
+    assert args[args.index("-c") + 1] == "/dev/null" and "--noconftest" in args and args[-1] == "x"
+
+
+def test_the_runner_refuses_options_in_a_named_test_list(tmp_path, capsys):
+    canary = tmp_path / "canary"
+    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py", "-x"], _two_read_failing(canary))
+    assert R.main(str(spec), root=root) == 1
+    out = capsys.readouterr().out
+    assert "X1 INVALID" in out and "NOT RED: X1" in out and not canary.exists()
+    assert (root / "target.py").read_text() == "value = 1\n"
+
+
+# ---------------------------------------------------------------- r9: the runner's scope, enforced by a static gate
+
+def _gate(tmp_path, source, name="test_scratch.py", extra=None):
+    root = tmp_path / "gate"
+    (root / name).parent.mkdir(parents=True, exist_ok=True)
+    (root / name).write_bytes(source if isinstance(source, bytes) else source.encode())
+    for rel, text in (extra or {}).items():
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text(text)
+    return R.scope_problems(root, [name])
+
+
+GATE_REFUSED = [
+    ("import_unlisted", "import importlib\n", "import importlib"),
+    ("from_import_unlisted", "from os import system\n", "import os"),
+    ("relative_import", "from . import x\n", "relative import"),
+    ("star_import", "from pathlib import *\n", "import pathlib.*"),
+    ("dotted_without_alias", "import scripts.audit.c2_framing.screen\n", "without an alias"),
+    ("pytest_alias", "import pytest as p\n", "pytest imported as p"),
+    ("pytest_exit", "import pytest\npytest.exit('x')\n", "pytest.exit"),
+    ("pytest_main", "import pytest\npytest.main([])\n", "pytest.main"),
+    ("pytest_bare", "import pytest\nx = [pytest]\n", "pytest used other than as pytest.<name>"),
+    ("from_pytest", "from pytest import exit\n", "import pytest.exit"),
+    ("builtin_unlisted", "getattr(1, 'real')\n", "builtin getattr"),
+    ("dunder_import", "__import__('os')\n", "name __import__"),
+    ("dunder_builtins", "__builtins__\n", "name __builtins__"),
+    ("dunder_attribute", "x = (1).__class__\n", "attribute __class__"),
+    ("attribute_unlisted", "import json\njson.JSONDecoder\n", "attribute JSONDecoder"),
+    ("frame_attribute", "def f(e):\n    return e.tb_frame\n", "attribute tb_frame"),
+    ("fstring_attribute", "x = f'{(1).__class__}'\n", "attribute __class__"),
+    ("annotation_attribute", "x: (1).__class__ = 1\n", "attribute __class__"),
+    ("decorator_attribute", "import json\n@json.JSONDecoder\ndef f():\n    pass\n", "attribute JSONDecoder"),
+    ("hook_function", "def pytest_sessionfinish(session):\n    pass\n", "name pytest_sessionfinish"),
+    ("hook_method", "class P:\n    def pytest_runtest_call(self):\n        pass\n", "name pytest_runtest_call"),
+    ("pytest_plugins", "pytest_plugins = ['p']\n", "name pytest_plugins"),
+    ("pytestmark", "pytestmark = []\n", "name pytestmark"),
+    ("module_getattr", "def __getattr__(name):\n    return 1\n", "name __getattr__"),
+    ("dunder_assign", "__test__ = False\n", "name __test__"),
+    ("dunder_walrus", "y = (__x__ := 1)\n", "name __x__"),
+    ("builtin_rebind", "len = 3\n", "rebinds builtin len"),
+    ("builtin_rebind_except", "try:\n    pass\nexcept ValueError as len:\n    pass\n", "rebinds builtin len"),
+    ("request_parameter", "def test_x(request):\n    pass\n", "parameter request"),
+    ("pytestconfig_parameter", "def test_x(pytestconfig):\n    pass\n", "parameter pytestconfig"),
+    ("lambda_parameter", "f = lambda request: 1\n", "parameter request"),
+    ("keyword_unlisted", "import json\njson.dumps(1, cls=None)\n", "keyword cls"),
+    ("keyword_splat", "import json\nd = {}\njson.dumps(1, **d)\n", "keyword splat"),
+    ("metaclass", "class X(metaclass=type):\n    pass\n", "keyword metaclass"),
+    ("setattr_two_arguments", "def test_x(monkeypatch):\n    monkeypatch.setattr('json.dumps', len)\n",
+     "setattr needs (object, literal name, value)"),
+    ("setattr_dynamic_name", "import json\ndef test_x(monkeypatch, name):\n    monkeypatch.setattr(json, name, 1)\n",
+     "setattr needs (object, literal name, value)"),
+    ("setattr_unlisted_name", "import json\ndef test_x(monkeypatch):\n    monkeypatch.setattr(json, 'JSONDecoder', 1)\n",
+     "setattr name JSONDecoder"),
+    ("match_statement", "match 1:\n    case _:\n        pass\n", "match statement"),
+    ("syntax_error", "def (:\n", "does not parse"),
+    ("utf7_hidden_import", b"# -*- coding: utf-7 -*-\nx = 1 #+AAo-import os\n", "import os"),
+]
+
+
+@pytest.mark.parametrize("source, expect", [g[1:] for g in GATE_REFUSED], ids=[g[0] for g in GATE_REFUSED])
+def test_the_gate_refuses_code_outside_the_runners_scope(tmp_path, source, expect):
+    problems = _gate(tmp_path, source)
+    assert any(expect in p for p in problems), problems
+
+
+def test_the_gate_scans_each_package_initializer_above_the_test(tmp_path):
+    problems = _gate(tmp_path, "x = 1\n", name="pkg/test_scratch.py", extra={"pkg/__init__.py": "import importlib\n"})
+    assert any(p.startswith("pkg/__init__.py:") and "import importlib" in p for p in problems), problems
+
+
+def test_the_gate_refuses_a_named_test_that_is_not_a_file_in_the_root(tmp_path):
+    root = tmp_path / "gate"
+    (root / "sub").mkdir(parents=True)
+    (tmp_path / "test_out.py").write_text("x = 1\n")
+    problems = R.scope_problems(root, ["sub", "../test_out.py", "test_missing.py"])
+    assert [p.split(":")[0] for p in problems] == ["sub", "../test_out.py", "test_missing.py"], problems
+
+
+def test_the_gate_scans_the_mutated_bytes_of_a_suite_file(tmp_path):
+    root = tmp_path / "gate"
+    root.mkdir()
+    (root / "test_scratch.py").write_text("x = 1\n")
+    assert R.scope_problems(root, ["test_scratch.py"]) == []
+    over = {(root / "test_scratch.py").resolve(): b"import importlib\n"}
+    assert any("import importlib" in p for p in R.scope_problems(root, ["test_scratch.py"], over))
+
+
+def test_the_gate_admits_the_real_suite_and_a_plain_scratch_suite(tmp_path):
+    files, _ = R.suite_files(ROOT, ["tests/scripts/c2_framing/test_screen.py::test_variant_bases"])
+    assert [f.relative_to(ROOT).as_posix() for f in files] == [
+        "tests/scripts/c2_framing/test_screen.py", "tests/scripts/c2_framing/__init__.py",
+        "tests/scripts/__init__.py", "tests/__init__.py"]
+    assert R.scope_problems(ROOT, ["tests/scripts/c2_framing/test_screen.py"]) == []
+    assert _gate(tmp_path, _two_read_failing(tmp_path / "c")(tmp_path)) == []
+
+
+DANGEROUS = {
+    "builtins": {"getattr", "setattr", "delattr", "vars", "globals", "locals", "dir", "eval", "exec", "compile",
+                 "__import__", "open", "breakpoint", "exit", "quit", "input", "help", "type", "object", "super",
+                 "memoryview", "__build_class__", "print", "id", "hash", "callable", "classmethod", "staticmethod"},
+    "modules": {"importlib", "importlib.util", "inspect", "sys", "os", "gc", "ctypes", "pickle", "marshal", "shelve",
+                "pluggy", "_pytest", "runpy", "pkgutil", "builtins", "types", "traceback", "signal", "threading",
+                "_thread", "atexit", "faulthandler", "operator", "string", "logging", "unittest", "code", "pdb"},
+    "attributes": {"exit", "register", "unregister", "pluginmanager", "config", "hook", "ihook", "session", "node",
+                   "request", "f_locals", "f_globals", "f_back", "f_builtins", "f_code", "tb_frame", "tb_next",
+                   "gi_frame", "cr_frame", "ag_frame", "frame", "traceback", "tb", "modules", "sys", "os",
+                   "importlib", "import_module", "util", "loader", "exec_module", "spec_from_file_location",
+                   "module_from_spec", "load", "read_pickle", "to_pickle", "eval", "query", "attrgetter",
+                   "methodcaller", "settrace", "setprofile", "monitoring", "_getframe", "kill", "killpg", "system",
+                   "popen", "fork", "abort", "_exit", "interrupt_main", "raise_signal", "signal", "add_hookspecs",
+                   "add_hookcall_monitoring", "subset_hook_caller", "get_plugins", "syspath_prepend", "delattr",
+                   "context", "getfixturevalue", "applymarker", "add_marker", "addfinalizer", "xfail", "skip",
+                   "skipif", "usefixtures", "importorskip", "pytester", "builtins", "ctypes", "ctypeslib", "gc",
+                   "get_objects", "get_referrers", "inspect", "currentframe", "stack", "with_traceback", "pickle",
+                   "agg", "aggregate_string", "apply", "transform", "pipe", "environ", "getattr", "open", "pytest",
+                   "_pytest", "pluggy", "hookimpl", "hookspec", "Config", "Session", "PytestPluginManager"},
+    "keywords": {"allow_pickle", "metaclass", "preexec_fn", "shell", "engine", "autouse", "indirect", "params"},
+    "parameters": {"request", "pytestconfig", "pytester", "testdir", "tmpdir", "tmpdir_factory", "tmp_path_factory",
+                   "cache", "caplog", "recwarn", "record_property", "record_xml_attribute", "doctest_namespace",
+                   "record_testsuite_property", "subtests", "capsysbinary", "capfd", "capfdbinary", "capteesys"},
+}
+
+
+def test_the_reviewed_vocabulary_excludes_known_escape_routes():
+    """The gate's allow-lists (the real suite's own vocabulary) share nothing with the names that reach pytest's plugin
+    system, frames, dynamic import, deserialization or a process abort."""
+    assert not R.ALLOWED_BUILTINS & DANGEROUS["builtins"]
+    assert not R.ALLOWED_MODULES & DANGEROUS["modules"]
+    assert not R.ALLOWED_ATTRIBUTES & DANGEROUS["attributes"]
+    assert not R.ALLOWED_KEYWORDS & DANGEROUS["keywords"]
+    assert not R.ALLOWED_PARAMETERS & DANGEROUS["parameters"]
+    assert R.PYTEST_ATTRIBUTES == {"fixture", "mark", "raises"}
+    assert not [a for a in R.ALLOWED_ATTRIBUTES if a.startswith("__")]
+
+
+def test_the_runner_refuses_an_out_of_scope_suite_before_running_it(tmp_path, capsys):
+    """Refused before collection: the module-level canary never runs, and the target is never mutated."""
+    canary = tmp_path / "collected"
+    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], lambda r: (
+        f"import pathlib\nimport importlib\npathlib.Path({str(canary)!r}).write_text('y')\n"
+        "def test_first():\n    assert 1\n"))
+    assert R.main(str(spec), root=root) == 1
+    out = capsys.readouterr().out
+    assert "X1 REFUSED" in out and "import importlib" in out and "NOT RED: X1" in out and not canary.exists()
+    assert (root / "target.py").read_text() == "value = 1\n"
+
+
+# ---------------------------------------------------------------- r9: nothing importable may change during the ledger
+
+def test_the_change_scan_reports_changed_new_and_removed_entries(tmp_path):
+    tree = tmp_path / "tree"
+    (tree / "pkg").mkdir(parents=True)
+    for n in ("kept.py", "edited.py", "gone.py", "exempt.py"):
+        (tree / "pkg" / n).write_text("x = 1\n")
+    marker = tmp_path / "marker"
+    marker.write_text("t0")
+    t0 = marker.stat().st_ctime_ns
+    assert R.changed_since(t0, [tree]) == []
+    (tree / "pkg" / "edited.py").write_text("x = 1\n")                     # same bytes, rewritten
+    (tree / "pkg" / "exempt.py").write_text("x = 2\n")
+    (tree / "pkg" / "gone.py").unlink()                                    # the directory entry changes
+    changed = R.changed_since(t0, [tree], exempt=[tree / "pkg" / "exempt.py"])
+    assert sorted(Path(c).name for c in changed) == ["edited.py", "pkg"], changed
+
+
+def test_the_scan_roots_cover_the_root_and_the_interpreters_trees(tmp_path):
+    trees = R.interpreter_trees()
+    assert any((Path(t) / "json" / "__init__.py").is_file() for t in trees)          # the standard library
+    assert any((Path(t) / "pandas" / "__init__.py").is_file() for t in trees)        # site-packages
+    roots = R.scan_roots(tmp_path)
+    assert str(tmp_path.resolve()) in roots
+    for t in trees:
+        assert any(t == r or t.startswith(r + "/") for r in roots), t
+    assert len(roots) == len(set(roots))
+    assert not [r for r in roots for s in roots if r != s and r.startswith(s + "/")]   # no nested duplicates
+
+
+def test_a_file_written_into_the_root_during_the_run_refuses_it(tmp_path, capsys):
+    """r9: code written during the run and imported later would bypass the gate, so any change is refused."""
+    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], lambda r: _READ + (
+        f"def test_first():\n    pathlib.Path(__file__).with_name('planted.py').write_text('x = 1')\n"
+        f"    assert val() == {_ONE}\n"))
+    assert R.main(str(spec), root=root) == 1
+    out = capsys.readouterr().out
+    assert "X1 INCONCLUSIVE(exit 1, files changed during the run)" in out and "NOT RED: X1" in out, out
+
+
+def test_a_target_rewritten_during_the_run_refuses_it(tmp_path, capsys):
+    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], lambda r: _READ + (
+        "def test_first():\n    pathlib.Path(__file__).with_name('target.py').write_text('value = 2\\n')\n"
+        f"    assert val() == {_ONE}\n"))
+    assert R.main(str(spec), root=root) == 1
+    out = capsys.readouterr().out
+    assert "X1 INCONCLUSIVE(exit 1, target changed during the run)" in out and "NOT RED: X1" in out, out
+    assert (root / "target.py").read_text() == "value = 1\n"
+
+
+# ---------------------------------------------------------------- the dynamic layers (defence in depth behind the gate)
+
+def _dynamic(tmp_path, body, gate, expect, plugin=None):
+    """An out-of-scope suite: the gate refuses it; run anyway through run_mutant (no gate), the evidence is refused."""
+    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], body)
+    if plugin:
+        (root / "scratch_plugin.py").write_text(_VAL + plugin)
+    problems = R.scope_problems(root, ["test_scratch.py"])
+    assert any(gate in p for p in problems), problems
+    intended = R.collect(root, ["test_scratch.py"])
+    (root / "target.py").write_text("value = 2\n")                         # the mutant, applied by hand
+    rc, _, bundle = R.run_mutant(root, ["test_scratch.py"])
+    assert R.classify(rc, intended, bundle)[0] == f"INCONCLUSIVE(exit {rc}, {expect})", bundle
+    return bundle
+
+
+_PLUGINS = "pytest_plugins = ['scratch_plugin']\n"
+
+
+def test_a_clean_run_has_no_foreign_plugins_and_no_plugin_changes(tmp_path):
+    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], _two_read_failing())
+    rc, _, bundle = R.run_mutant(root, ["test_scratch.py"])
+    assert rc == 0 and bundle["foreign_plugins"] == [] and bundle["plugin_changes"] == [], bundle   # no anyio either
+    assert R.classify(rc, R.collect(root, ["test_scratch.py"]), bundle)[0] == "SURVIVED"
+
+
+def test_the_runner_is_not_fooled_by_printed_outcomes(tmp_path):
+    """r4 R4-2: the first test prints the second's PASSED line; the second's fixture stops pytest before its body."""
+    _dynamic(tmp_path, lambda r: _VAL + (
         "def test_first(request):\n"
         "    if val() != 1:\n"
         "        print('PASSED ' + request.node.nodeid.rsplit('::', 1)[0] + '::test_second')\n"
@@ -1122,169 +1402,137 @@ def test_the_runner_is_not_fooled_by_printed_outcomes(tmp_path, capsys):
         "def gate():\n"
         "    if val() != 1:\n"
         "        pytest.exit('stop before the body', returncode=1)\n"
-        f"def test_second(gate):\n    pathlib.Path({str(canary)!r}).write_text('ran')\n    assert val() == 1\n"))
-    assert R.main(str(spec), root=root) == 1
-    out = capsys.readouterr().out
-    assert "X1 INCONCLUSIVE" in out and "NOT RED: X1" in out and not canary.exists()
-    assert (root / "target.py").read_text() == "value = 1\n"
+        "def test_second(gate):\n    assert val() == 1\n"), "parameter request", "interrupted")
 
 
-def test_the_runner_is_not_fooled_by_an_aborted_teardown(tmp_path, capsys):
-    """r5 R5-1: both bodies fail for real, but the second's teardown calls pytest.exit with a count-bearing message
-    before its cleanup completes. pytest still unconfigures; the session did not end normally."""
-    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], lambda r: _VAL + (
+def test_the_runner_is_not_fooled_by_an_aborted_teardown(tmp_path):
+    """r5 R5-1: both bodies fail for real, but the second's teardown calls pytest.exit with a count-bearing message."""
+    _dynamic(tmp_path, lambda r: _VAL + (
         "def test_first():\n    assert val() == 1\n"
         "@pytest.fixture\n"
         "def gate():\n"
         "    yield\n"
         "    if val() != 1:\n"
         "        pytest.exit('2 failed cleanup checks', returncode=1)\n"
-        "    pathlib.Path(__file__).with_name('cleanup_completed').write_text('finished')\n"
-        "def test_second(gate):\n    assert val() == 1\n"))
-    assert R.main(str(spec), root=root) == 1
-    out = capsys.readouterr().out
-    assert "X1 INCONCLUSIVE" in out and "NOT RED: X1" in out and not (root / "cleanup_completed").exists()
-    assert (root / "target.py").read_text() == "value = 1\n"
+        "def test_second(gate):\n    assert val() == 1\n"), "pytest.exit", "interrupted")
 
 
-def test_a_later_session_finish_abort_is_not_a_normal_end(tmp_path, capsys):
-    """r5 R5-1: a conftest session-finish hook aborts after both tests failed for real. The plugin writes its session
-    record last, so the abort prevents it; the session did not end normally."""
-    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], lambda r: _VAL + (
-        "def test_first():\n    assert val() == 1\n"
-        "def test_second():\n    assert val() == 1\n"))
-    (root / "conftest.py").write_text(_VAL + (
+def _two_val_failing(r):
+    return _VAL + _PLUGINS + "def test_first():\n    assert val() == 1\ndef test_second():\n    assert val() == 1\n"
+
+
+def test_a_later_session_finish_abort_is_not_a_normal_end(tmp_path):
+    _dynamic(tmp_path, _two_val_failing, "name pytest_plugins", "session finish incomplete", plugin=(
         "def pytest_sessionfinish(session, exitstatus):\n"
         "    if val() != 1:\n"
         "        pytest.exit('2 failed in a late hook', returncode=1)\n"))
-    assert R.main(str(spec), root=root) == 1
-    out = capsys.readouterr().out
-    assert "X1 INCONCLUSIVE(exit 1, session finish incomplete)" in out and "NOT RED: X1" in out
-    assert (root / "target.py").read_text() == "value = 1\n"
 
 
-def test_an_exit_after_the_last_report_is_still_an_interrupt(tmp_path, capsys):
-    """r5 R5-1, isolated: pytest.exit after the last test's teardown has reported. Every phase report exists and the
-    counters agree; only pytest's interrupt hook shows the session did not end normally."""
-    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], lambda r: _VAL + (
-        "def test_first():\n    assert val() == 1\n"
-        "def test_second():\n    assert val() == 1\n"))
-    (root / "conftest.py").write_text(_VAL + (
+def test_an_exit_after_the_last_report_is_still_an_interrupt(tmp_path):
+    _dynamic(tmp_path, _two_val_failing, "name pytest_plugins", "interrupted", plugin=(
         "def pytest_runtest_logfinish(nodeid, location):\n"
         "    if nodeid.endswith('test_second') and val() != 1:\n"
         "        pytest.exit('2 failed after the last test', returncode=1)\n"))
-    assert R.main(str(spec), root=root) == 1
-    out = capsys.readouterr().out
-    assert "X1 INCONCLUSIVE(exit 1, interrupted)" in out and "NOT RED: X1" in out
-    assert (root / "target.py").read_text() == "value = 1\n"
 
 
-def _two_failing(extra_conftest="", second_marker=""):
-    def body(r):
-        return _VAL + ("def test_first():\n    assert val() == 1\n"
-                       f"{second_marker}def test_second():\n    assert val() == 1\n")
-    return body
-
-
-def _inconclusive(tmp_path, capsys, conftest, body=None, expect=""):
-    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], body or _two_failing())
-    if conftest:
-        (root / "conftest.py").write_text(_VAL + conftest)
-    assert R.main(str(spec), root=root) == 1
-    out = capsys.readouterr().out
-    assert f"X1 INCONCLUSIVE(exit 1, {expect})" in out and "NOT RED: X1" in out, out
-    assert (root / "target.py").read_text() == "value = 1\n"
-
-
-def test_a_session_finish_wrapper_abort_is_not_a_normal_end(tmp_path, capsys):
-    """r6 R6-1: a conftest hook WRAPPER aborts after the inner session-finish hooks (and the old record) ran."""
-    _inconclusive(tmp_path, capsys, (
+def test_a_session_finish_wrapper_abort_is_not_a_normal_end(tmp_path):
+    _dynamic(tmp_path, _two_val_failing, "name pytest_plugins", "session finish incomplete", plugin=(
         "@pytest.hookimpl(wrapper=True)\n"
         "def pytest_sessionfinish(session, exitstatus):\n"
         "    result = yield\n"
         "    if val() != 1:\n"
         "        pytest.exit('2 failed in a wrapper', returncode=1)\n"
-        "    return result\n"), expect="session finish incomplete")
+        "    return result\n"))
 
 
-def test_a_tryfirst_wrapper_abort_is_still_seen(tmp_path, capsys):
-    """The sentinel is registered after collection, so even a conftest tryfirst wrapper runs inside it."""
-    _inconclusive(tmp_path, capsys, (
+def test_a_tryfirst_wrapper_abort_is_still_seen(tmp_path):
+    _dynamic(tmp_path, _two_val_failing, "name pytest_plugins", "session finish incomplete", plugin=(
         "@pytest.hookimpl(wrapper=True, tryfirst=True)\n"
         "def pytest_sessionfinish(session, exitstatus):\n"
         "    result = yield\n"
         "    if val() != 1:\n"
         "        pytest.exit('2 failed in a tryfirst wrapper', returncode=1)\n"
-        "    return result\n"), expect="session finish incomplete")
+        "    return result\n"))
 
 
-def test_a_non_strict_xpass_is_not_a_kill(tmp_path, capsys):
-    """r6 R6-2: under the mutant the first test fails and an xfail-marked second test unexpectedly passes."""
-    body = lambda r: _VAL + ("def test_first():\n    assert val() == 1\n"
-                             "@pytest.mark.xfail(reason='expected')\n"
-                             "def test_second():\n    assert val() == 2\n")
-    _inconclusive(tmp_path, capsys, "", body=body, expect="marked xfail or skip")
-
-
-def test_a_runtime_xfail_is_not_a_kill(tmp_path, capsys):
-    """A test that declares itself xfail at run time keeps that status in the evidence."""
-    body = lambda r: _VAL + ("def test_first():\n    assert val() == 1\n"
-                             "def test_second(request):\n"
-                             "    request.applymarker(pytest.mark.xfail(reason='late'))\n"
-                             "    assert val() == 2\n")
-    _inconclusive(tmp_path, capsys, "", body=body, expect="xfail or skip")
-
-
-def test_a_plugin_registered_during_the_run_is_refused(tmp_path, capsys):
-    """A plugin registered after the sentinel could wrap it: the evidence is refused."""
-    body = lambda r: _VAL + ("def test_first(request):\n"
-                             "    request.config.pluginmanager.register(object(), 'late-object')\n"
-                             "    assert val() == 1\n"
-                             "def test_second():\n    assert val() == 1\n")
-    _inconclusive(tmp_path, capsys, "", body=body, expect="plugins registered late")
-
-
-def test_a_rewritten_report_is_refused(tmp_path, capsys):
-    """A conftest makereport wrapper turns the second test's real pass into a reported failure."""
-    body = lambda r: _VAL + ("def test_first():\n    assert val() == 1\n"
-                             "def test_second():\n    pass\n")
-    _inconclusive(tmp_path, capsys, (
+def test_a_rewritten_report_is_refused(tmp_path):
+    body = lambda r: _VAL + _PLUGINS + "def test_first():\n    assert val() == 1\ndef test_second():\n    pass\n"
+    _dynamic(tmp_path, body, "name pytest_plugins", "report mismatch", plugin=(
         "@pytest.hookimpl(wrapper=True)\n"
         "def pytest_runtest_makereport(item, call):\n"
         "    rep = yield\n"
         "    if rep.when == 'call' and item.name == 'test_second' and val() != 1:\n"
         "        rep.outcome = 'failed'\n"
-        "    return rep\n"), body=body, expect="report mismatch")
+        "    return rep\n"))
 
 
-def test_an_unconfigure_abort_leaves_no_evidence(tmp_path, capsys):
-    _inconclusive(tmp_path, capsys, (
+def test_an_unconfigure_abort_leaves_no_evidence(tmp_path):
+    _dynamic(tmp_path, _two_val_failing, "name pytest_plugins", "no normal end", plugin=(
         "def pytest_unconfigure(config):\n"
         "    if val() != 1:\n"
-        "        pytest.exit('2 failed at unconfigure', returncode=1)\n"), expect="no normal end")
+        "        pytest.exit('2 failed at unconfigure', returncode=1)\n"))
+
+
+def test_a_harmless_early_plugin_is_still_foreign(tmp_path):
+    """r9: only pytest's own plugins and the runner's may be registered when the sentinel is."""
+    bundle = _dynamic(tmp_path, _two_val_failing, "name pytest_plugins", "foreign plugins",
+                      plugin="def pytest_report_header(config):\n    return 'scratch'\n")
+    assert bundle["foreign_plugins"] == ["scratch_plugin"]
+
+
+def test_a_non_strict_xpass_is_not_a_kill(tmp_path):
+    """r6 R6-2: under the mutant the first test fails and an xfail-marked second test unexpectedly passes."""
+    _dynamic(tmp_path, lambda r: _VAL + ("def test_first():\n    assert val() == 1\n"
+                                         "@pytest.mark.xfail(reason='expected')\n"
+                                         "def test_second():\n    assert val() == 2\n"),
+             "attribute xfail", "marked xfail or skip")
+
+
+def test_a_runtime_xfail_is_not_a_kill(tmp_path):
+    _dynamic(tmp_path, lambda r: _VAL + ("def test_first():\n    assert val() == 1\n"
+                                         "def test_second(request):\n"
+                                         "    request.applymarker(pytest.mark.xfail(reason='late'))\n"
+                                         "    assert val() == 2\n"), "parameter request", "xfail or skip")
+
+
+def test_a_plugin_registered_during_the_run_is_refused(tmp_path):
+    _dynamic(tmp_path, lambda r: _VAL + ("def test_first(request):\n"
+                                         "    request.config.pluginmanager.register(object(), 'late-object')\n"
+                                         "    assert val() == 1\n"
+                                         "def test_second():\n    assert val() == 1\n"),
+             "parameter request", "plugins registered late")
 
 
 _LATE = ("class Late:\n"
-         "    def __init__(self, pm, base):\n"
-         "        self.pm, self.base = pm, base\n"
+         "    def __init__(self, pm, base, before):\n"
+         "        self.pm, self.base, self.before = pm, base, before\n"
+         "    def _drop(self):\n"
+         "        (pluggy.PluginManager.unregister if self.base else type(self.pm).unregister)(self.pm, self)\n"
          "    @pytest.hookimpl(wrapper=True, tryfirst=True)\n"
          "    def pytest_sessionfinish(self, session, exitstatus):\n"
+         "        if self.before:\n"
+         "            self._drop()\n"
          "        result = yield\n"
-         "        (pluggy.PluginManager.unregister if self.base else type(self.pm).unregister)(self.pm, self)\n"
+         "        if not self.before:\n"
+         "            self._drop()\n"
          "        if val() != 1:\n"
          "            pytest.exit('2 failed in a late wrapper', returncode=1)\n"
          "        return result\n")
 
 
-def test_a_self_unregistering_late_wrapper_is_refused(tmp_path, capsys):
-    """r7 R7-1: a test registers a tryfirst session-finish wrapper (outside the sentinel), which aborts after the
-    sentinel's record and unregisters itself before the final census. The registration event is retained."""
-    body = lambda r: _VAL + "import pluggy\n" + _LATE + (
+def _late(register):
+    return lambda r: _VAL + "import pluggy\n" + _LATE + (
         "def test_first(request):\n"
-        "    request.config.pluginmanager.register(Late(request.config.pluginmanager, False), 'late-wrapper')\n"
+        "    pm = request.config.pluginmanager\n"
+        f"    {register}\n"
         "    assert val() == 1\n"
         "def test_second():\n    assert val() == 1\n")
-    _inconclusive(tmp_path, capsys, "", body=body, expect="plugins registered late")
+
+
+def test_a_self_unregistering_late_wrapper_is_refused(tmp_path):
+    """r7 R7-1: registered through pytest's API; it unregisters itself after the sentinel's record, then aborts."""
+    _dynamic(tmp_path, _late("pm.register(Late(pm, False, False), 'late-wrapper')"), "parameter request",
+             "plugins registered late")
 
 
 def test_the_late_registration_evidence_is_produced_and_retained(tmp_path):
@@ -1301,22 +1549,36 @@ def test_the_late_registration_evidence_is_produced_and_retained(tmp_path):
     assert R.classify(rc, ["test_scratch.py::test_first"], bundle)[0] == "INCONCLUSIVE(exit 0, plugins registered late)"
 
 
-def test_an_outer_wrapper_without_a_registration_event_is_still_seen(tmp_path, capsys):
-    """Defence in depth: a wrapper registered through pluggy's base class (bypassing pytest's registration hook) and
-    unregistered before the census is still caught, because the sentinel checks it is outermost when it runs."""
-    body = lambda r: _VAL + "import pluggy\n" + _LATE + (
+def test_an_outer_wrapper_without_a_registration_event_is_still_seen(tmp_path):
+    """r7: registered through pluggy's base class (no registration event), it unregisters itself after yielding."""
+    _dynamic(tmp_path, _late("pluggy.PluginManager.register(pm, Late(pm, True, False), 'hidden-wrapper')"),
+             "parameter request", "sentinel not outermost")
+
+
+def test_a_wrapper_gone_from_the_registry_before_yielding_is_still_seen(tmp_path):
+    """r8 R8-1: the base-class wrapper unregisters itself BEFORE yielding, so the live registry the sentinel reads no
+    longer shows it while it still wraps the sentinel, then aborts. The registration itself ran pluggy's add code."""
+    bundle = _dynamic(tmp_path, _late("pluggy.PluginManager.register(pm, Late(pm, True, True), 'gone-wrapper')"),
+                      "parameter request", "plugin system changed")
+    assert bundle["late_plugins"] == 0 and bundle["not_outermost"] == [] and bundle["plugin_changes"]
+
+
+def test_a_wrapper_gone_before_yielding_without_an_abort_is_still_seen(tmp_path):
+    """r8 R8-1 control: the same lifecycle with no abort; the sessions ends normally but the plugin system changed."""
+    body = lambda r: _VAL + "import pluggy\n" + _LATE.replace("        if val() != 1:\n"
+                                                              "            pytest.exit('2 failed in a late wrapper', "
+                                                              "returncode=1)\n", "") + (
         "def test_first(request):\n"
         "    pm = request.config.pluginmanager\n"
-        "    pluggy.PluginManager.register(pm, Late(pm, True), 'hidden-wrapper')\n"
+        "    pluggy.PluginManager.register(pm, Late(pm, True, True), 'gone-wrapper')\n"
         "    assert val() == 1\n"
         "def test_second():\n    assert val() == 1\n")
-    _inconclusive(tmp_path, capsys, "", body=body, expect="sentinel not outermost")
+    _dynamic(tmp_path, body, "parameter request", "plugin system changed")
 
 
-def test_a_hidden_call_wrapper_is_seen(tmp_path, capsys):
-    """Only the sentinel's per-call outermost check can see this: a call wrapper registered through pluggy's base class
-    (no registration event) wraps the second test's call and unregisters itself before the final census."""
-    body = lambda r: _VAL + "import pluggy\n" + (
+def test_a_hidden_call_wrapper_is_seen(tmp_path):
+    """A call wrapper registered through pluggy's base class wraps the second test's call and unregisters itself."""
+    _dynamic(tmp_path, lambda r: _VAL + "import pluggy\n" + (
         "class Hidden:\n"
         "    def __init__(self, pm):\n"
         "        self.pm = pm\n"
@@ -1330,16 +1592,21 @@ def test_a_hidden_call_wrapper_is_seen(tmp_path, capsys):
         "    pm = request.config.pluginmanager\n"
         "    pluggy.PluginManager.register(pm, Hidden(pm), 'hidden-call-wrapper')\n"
         "    assert val() == 1\n"
-        "def test_second():\n    assert val() == 1\n")
-    _inconclusive(tmp_path, capsys, "", body=body, expect="sentinel not outermost")
+        "def test_second():\n    assert val() == 1\n"), "parameter request", "sentinel not outermost")
 
 
-def test_the_runner_refuses_options_in_a_named_test_list(tmp_path, capsys):
-    canary = tmp_path / "canary"
-    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py", "-x"], lambda r: _VAL + (
-        "def test_first():\n    assert val() == 1\n"
-        f"def test_second():\n    pathlib.Path({str(canary)!r}).write_text('ran')\n    assert val() == 1\n"))
-    assert R.main(str(spec), root=root) == 1
-    out = capsys.readouterr().out
-    assert "X1 INVALID" in out and "NOT RED: X1" in out and not canary.exists()
-    assert (root / "target.py").read_text() == "value = 1\n"
+def test_a_call_wrapper_gone_before_yielding_is_seen(tmp_path):
+    """r8 R8-1, per call: the base-class call wrapper unregisters itself before yielding."""
+    _dynamic(tmp_path, lambda r: _VAL + "import pluggy\n" + (
+        "class Gone:\n"
+        "    def __init__(self, pm):\n"
+        "        self.pm = pm\n"
+        "    @pytest.hookimpl(wrapper=True, tryfirst=True)\n"
+        "    def pytest_runtest_call(self, item):\n"
+        "        pluggy.PluginManager.unregister(self.pm, self)\n"
+        "        return (yield)\n"
+        "def test_first(request):\n"
+        "    pm = request.config.pluginmanager\n"
+        "    pluggy.PluginManager.register(pm, Gone(pm), 'gone-call-wrapper')\n"
+        "    assert val() == 1\n"
+        "def test_second():\n    assert val() == 1\n"), "parameter request", "plugin system changed")
