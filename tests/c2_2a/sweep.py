@@ -11,8 +11,11 @@ The fault model. A fault is an exception (MemoryError) raised by a sys.settrace 
 - one at a time, at the first time that point executes in a scenario. By default each point is faulted in the first
   scenario (in `SCENARIOS` order) that reaches it; `--all-pairs-in` also faults it in every listed scenario that
   reaches it (the plain scenarios differ in state: calibration on or off, its outcomes, the delivery day);
-- in the plain scenarios and in the gate's designed-fault scenarios. The latter already carry one fault, so the points
-  only they reach (fallbacks, handlers) are faulted on top of it.
+- in every gate scenario: plain, designed-fault and genuine-failure. The latter two already carry one fault, so the
+  points only they reach (fallbacks, handlers) are faulted on top of it;
+- every run, recording or faulted, in a fresh interpreter (`max_tasks_per_child=1`): no module state carries from one
+  run into the next, and a fault cannot leave state behind for a later run. Each scenario's traced run without a fault
+  must equal its golden (`plain_check` lines), or none of its points could be judged.
 A line whose bytecode is only NOP (`try:`, `pass`) performs no operation, so nothing there can fail. Since Python 3.11,
 entering a `try` costs nothing, so such lines are not fault points (`nop_lines`).
 
@@ -52,12 +55,18 @@ REPO = Path(__file__).resolve().parents[2]
 BASELINE = "f882411"
 FILES = ("src/bts/model/predict.py", "src/bts/model/calibrate.py", "src/bts/orchestrator.py", "src/bts/slate.py",
          "src/bts/serving_witness.py")
-# Plain scenarios first (cheapest first), then the designed-fault scenarios. A point is faulted in the first scenario
-# that reaches it. Scenarios that install their own sys.settrace hook are left out (they would replace this one).
-SCENARIOS = (
-    "model_cached", "model_cold", "calibration_on", "calibration_off_explicit", "calibration_no_pa_file",
-    "calibration_insufficient_support", "calibration_no_sklearn", "calibration_two_thresholds", "day_dm",
-    "calibration_empty_pa", "genuine_pick_unreadable",
+# Every gate scenario (tests/c2_2a/golden/scenarios.py), by class: plain (no injected fault, no genuine failure), a
+# designed fault injected, or a genuine failure of a deployed operation. A point is faulted in the first scenario that
+# reaches it in this order (plain first, cheapest first), and with --all-pairs-in also in every listed scenario that
+# reaches it. main() refuses a list that is not exactly the gate's.
+PLAIN = (
+    "model_cached", "model_cold", "model_empty_cached_dict", "calibration_on", "calibration_off_explicit",
+    "calibration_no_pa_file", "calibration_insufficient_support", "calibration_no_sklearn", "calibration_two_thresholds",
+    "calibration_changed_history", "calibration_empty_pa", "day_dm", "day_private", "day_public", "day_all_posted",
+    "day_mdp_skip", "day_fallback_cached_pick", "day_restart", "cutoff_exact", "cutoff_minus_one_second",
+    "cutoff_advancing_clock",
+)
+DESIGNED = (
     "fault_parquet_buffer", "fault_parquet_buffer_alloc", "fault_parquet_hash", "fault_cache_buffer",
     "fault_cache_hash", "fault_hashing_writer_construction", "fault_hashing_writer_hash",
     "fault_hashing_writer_finalisation", "fault_short_write", "fault_calibration_pa_buffer", "fault_pick_buffer",
@@ -65,9 +74,14 @@ SCENARIOS = (
     "fault_sample_canonicalisation", "fault_map_extraction", "fault_map_hash", "fault_error_recording",
     "fault_build", "fault_attrs_assignment", "fault_attrs_copy_calibration", "fault_omitted_input_lost_error",
     "fault_undescribable_parquet", "fault_undescribable_pick", "fault_undescribable_cache", "fault_package_query",
-    "fault_calibration_record", "fault_provenance_take", "calibration_apply_failure",
-    "calibration_error_after_assignment", "calibration_fit_failure",
+    "fault_calibration_record", "fault_provenance_take",
 )
+GENUINE = (
+    "genuine_pick_unreadable", "calibration_decode_error", "day_prediction_failure", "genuine_cache_unpickle",
+    "genuine_cache_unpickle_stateful", "genuine_parquet_parse", "genuine_partial_write", "genuine_save_serialization",
+    "calibration_apply_failure", "calibration_error_after_assignment", "calibration_fit_failure",
+)
+SCENARIOS = PLAIN + DESIGNED + GENUINE
 UNSTABLE_KEYS = {"errors", "built_at"}
 # (file, stripped source line, or "def <name>" for its call event) -> the genuine-failure scenario covering it
 COMPUTATION = {
@@ -277,6 +291,20 @@ def _task(args):
                                           traceback.format_exc()[-1200:]]}
 
 
+def _record_task(args):
+    name, new, nops = args
+    from tests.c2_2a.test_golden import _compare
+    t = time.time()
+    points, obs = record(name, new, nops)
+    golden = json.loads((REPO / "tests/c2_2a/golden/data" / f"{name}.json").read_text())
+    try:
+        _compare(golden, obs, name)
+        problem = None
+    except AssertionError as e:
+        problem = "the traced run without a fault differs from the golden: " + (str(e) or "surface")[:300]
+    return name, points, obs, problem, time.time() - t
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--workers", type=int, default=4)
@@ -288,13 +316,24 @@ def main(argv=None) -> int:
     if os.environ.get("TZ") != "America/New_York" or os.environ.get("OMP_NUM_THREADS") != "1":
         print("refusing: set TZ=America/New_York and OMP_NUM_THREADS=1", file=sys.stderr)
         return 2
+    from tests.c2_2a.golden import scenarios as S
+    if set(SCENARIOS) != set(S.SCENARIOS) or len(SCENARIOS) != len(S.SCENARIOS):
+        print(f"refusing: the sweep's scenarios are not exactly the gate's: missing "
+              f"{sorted(set(S.SCENARIOS) - set(SCENARIOS))}, unknown {sorted(set(SCENARIOS) - set(S.SCENARIOS))}",
+              file=sys.stderr)
+        return 2
     names = args.scenarios.split(",") if args.scenarios else list(SCENARIOS)
+    if not set(names) <= set(SCENARIOS):
+        print(f"refusing: unknown scenarios {sorted(set(names) - set(SCENARIOS))}", file=sys.stderr)
+        return 2
     new, nops = new_lines(), nop_lines()
     head = subprocess.run(["git", "-C", str(REPO), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     plain, assigned, reached, excluded, reached_by = {}, {}, set(), {}, {}
-    for name in names:
-        t = time.time()
-        points, plain[name] = record(name, new, nops)
+    with concurrent.futures.ProcessPoolExecutor(args.workers, max_tasks_per_child=1) as pool:
+        recorded = list(pool.map(_record_task, [(n, new, nops) for n in names]))
+    plain_checks = {}
+    for name, points, obs, problem, elapsed in recorded:
+        plain[name], plain_checks[name] = obs, problem
         reached_by[name] = points
         fresh = [p for p in points if p not in assigned and p not in excluded]
         for p in points:
@@ -305,8 +344,8 @@ def main(argv=None) -> int:
         for p in fresh:
             assigned[p] = name
         reached |= {(p[1], p[2]) for p in points}
-        print(f"[sweep] {name}: {len(points)} points, {len(fresh)} new, {time.time() - t:.1f}s", file=sys.stderr,
-              flush=True)
+        print(f"[sweep] {name}: {len(points)} points, {len(fresh)} new, {elapsed:.1f}s"
+              + (f"; PLAIN CHECK FAILED: {problem}" if problem else ""), file=sys.stderr, flush=True)
     plain_path = Path(tempfile.mkstemp(prefix="c2-2a-sweep-plain-", suffix=".json")[1])
     plain_path.write_text(json.dumps(plain))
     os.environ["C2_2A_SWEEP_PLAIN"] = str(plain_path)
@@ -322,13 +361,19 @@ def main(argv=None) -> int:
         return 2
     for n in every:
         tasks += [(n, p) for p in reached_by[n] if p not in excluded and assigned.get(p) != n]
-    with out.open("w") as fh, concurrent.futures.ProcessPoolExecutor(args.workers) as pool:
+    with out.open("w") as fh, concurrent.futures.ProcessPoolExecutor(args.workers, max_tasks_per_child=1) as pool:
         fh.write(json.dumps({"head": head, "baseline": BASELINE, "scenarios": names, "points": len(assigned),
-                             "pairs": len(tasks), "all_pairs_in": every,
+                             "pairs": len(tasks), "all_pairs_in": every, "fresh_interpreter_per_run": True,
+                             "classes": {"plain": [n for n in PLAIN if n in names],
+                                         "designed fault": [n for n in DESIGNED if n in names],
+                                         "genuine failure": [n for n in GENUINE if n in names]},
                              "reached": {n: [[q[0], Path(q[1]).name, q[2], Path(q[3]).name if q[3] else None, q[4]]
                                              for q in reached_by[n]] for n in names},
                              "computation": [[p[0], Path(p[1]).name, p[2], Path(p[3]).name if p[3] else None, p[4],
                                               cover] for p, cover in excluded.items()]}) + "\n")
+        for n in names:
+            fh.write(json.dumps({"plain_check": n, "equals_golden": plain_checks[n] is None,
+                                 "problem": plain_checks[n]}) + "\n")
         for r in pool.map(_task, tasks):
             results.append(r)
             fh.write(json.dumps(r) + "\n")
@@ -337,11 +382,12 @@ def main(argv=None) -> int:
                 print("[sweep] FAIL", r["scenario"], r["point"], r["problems"][:2], file=sys.stderr, flush=True)
         never = sorted(f"{Path(f).name}:{l}" for f, l in executable - reached)
         failed = [r for r in results if not r["ok"]]
-        summary = {"summary": True, "points": len(results), "failed": len(failed),
+        plain_failed = sorted(n for n, problem in plain_checks.items() if problem)
+        summary = {"summary": True, "points": len(results), "failed": len(failed), "plain_checks_failed": plain_failed,
                    "lines_never_reached": len(never), "never_reached": never}
         fh.write(json.dumps(summary) + "\n")
     print(json.dumps({k: v for k, v in summary.items() if k != "never_reached"}), file=sys.stderr)
-    return 1 if failed else 0
+    return 1 if failed or plain_failed else 0
 
 
 if __name__ == "__main__":
