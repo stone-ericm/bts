@@ -1,11 +1,17 @@
 """C2 side item (e): the catcher-grouped framing screen's research code (scripts/audit/c2_framing/screen.py)."""
+import hashlib
+import json
 import math
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
 
+from scripts.audit.c2_framing import mutant_runner as R
 from scripts.audit.c2_framing import screen as S
+
+ROOT = Path(__file__).resolve().parents[3]
 
 
 def _frame(rows):
@@ -75,9 +81,14 @@ def test_the_self_check_compares_against_the_production_pitcher_feature(pas):
 def test_framing_by_mirrors_the_production_pitcher_block_text():
     """framing_by is a parameterised copy of compute_all_features' pitcher block; if that block changes, this fails
     (the run's self-check then compares values on the real inputs)."""
-    import inspect
-    from bts.features import compute as C
-    text = inspect.getsource(C.compute_all_features)
+    source = (ROOT / "src/bts/features/compute.py").read_text()       # r9: read, not introspected
+    lines = source[source.index("\ndef compute_all_features(") + 1:].split("\n")
+    body = [lines[0]]
+    for line in lines[1:]:
+        if line and not line[0].isspace():                              # the next top-level statement
+            break
+        body.append(line)
+    text = "\n".join(body)
     for line in ('date_framing = df.groupby(["pitcher_id", "date"])["pa_borderline_csr"].mean().reset_index()',
                  'date_framing.columns = ["pitcher_id", "date", "date_csr"]',
                  'date_framing = date_framing.sort_values(["pitcher_id", "date"])',
@@ -165,16 +176,19 @@ def test_pre_registered_constants():
     assert S.TEST_SEASONS == (2024, 2025) and S.BASIS == "estimated_pa" and S.RETRAIN_EVERY == 7
     import json
     from pathlib import Path
-    seeds = json.loads((Path(__file__).resolve().parents[3] / "data/seed_sets/canonical-n10.json").read_text())
+    seeds = json.loads((ROOT / "data/seed_sets/canonical-n10.json").read_text())
     assert S.STAGE_ONE_SEEDS == tuple(seeds["seeds"][:3])
 
 
 def test_the_registered_scoring_settings_are_the_scorers_defaults():
-    import inspect
-    from bts.validate.scorecard import compute_full_scorecard
-    sig = inspect.signature(compute_full_scorecard).parameters
+    import ast
+    tree = ast.parse((ROOT / "src/bts/validate/scorecard.py").read_text())
+    fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "compute_full_scorecard")
+    args = fn.args.args[len(fn.args.args) - len(fn.args.defaults):] + fn.args.kwonlyargs
+    defaults = list(fn.args.defaults) + list(fn.args.kw_defaults)
+    sig = {a.arg: ast.literal_eval(d) for a, d in zip(args, defaults) if d is not None}
     assert S.SCORING == {"mc_trials": 10_000, "season_length": 180}
-    assert {k: sig[k].default for k in S.SCORING} == S.SCORING
+    assert {k: sig[k] for k in S.SCORING} == S.SCORING
 
 
 def test_load_inputs_reads_only_the_pinned_files_from_their_hashed_bytes(tmp_path):
@@ -227,8 +241,8 @@ def test_the_closed_inputs_replace_the_live_lookup_and_park_drag(tmp_path, monke
     (tmp_path / "data" / "models").mkdir(parents=True)
     (tmp_path / "data" / "models" / "probable_pitcher_lookup.json").write_text(json.dumps({"5": {"away": 99}}))
     reads = []
-    real = __import__("pathlib").Path.read_text
-    monkeypatch.setattr(__import__("pathlib").Path, "read_text",
+    real = Path.read_text
+    monkeypatch.setattr(Path, "read_text",
                         lambda self, *a, **k: (reads.append(str(self)), real(self, *a, **k))[1])
     S.install_closed_inputs({1: {"away": 2}})
     assert C._build_probable_pitcher_lookup() == {1: {"away": 2}}
@@ -396,7 +410,7 @@ def stubbed(monkeypatch, tmp_path):
     lookup = b'{"1":{"away":5}}\n'
     (inputs / S.LOOKUP_NAME).write_bytes(lookup)
     pins = {n: "b" * 64 for n in S.INPUT_NAMES}
-    pins[S.LOOKUP_NAME] = A.hashlib.sha256(lookup).hexdigest()
+    pins[S.LOOKUP_NAME] = hashlib.sha256(lookup).hexdigest()
     adm = _Admission(pins)
     monkeypatch.setattr(S, "admission_gate", adm)
     monkeypatch.setattr(S, "load_inputs", lambda data_dir, pins: _stub_df())
@@ -530,9 +544,6 @@ def _released(stubbed, monkeypatch, *, source="Eric 2026-10-08, relayed"):
         return text if self == A.REPO / S.REGISTER_REL else real_read(self, *a, **k)
     monkeypatch.setattr(Path, "read_text", read_text)
     return seed1
-
-
-from pathlib import Path  # noqa: E402
 
 
 def test_seeds_two_and_three_are_refused_without_the_release(stubbed):
@@ -763,7 +774,7 @@ def _edit_profile(d, v, season, fn):
     fn(pd.read_parquet(path)).to_parquet(path, index=False)
     parts = [pd.read_parquet(d / f"profiles_{v}_{s}.parquet") for s in S.TEST_SEASONS]
     try:
-        card = compute_full_scorecard(pd.concat(parts, ignore_index=True), **S.SCORING)
+        card = compute_full_scorecard(pd.concat(parts, ignore_index=True), mc_trials=S.SCORING["mc_trials"], season_length=S.SCORING["season_length"])
     except Exception:                                    # the scorer cannot even read it: the old card stays
         return
     (d / f"scorecard_{v}.json").write_text(json.dumps(card, indent=1, sort_keys=True) + "\n")
@@ -778,7 +789,7 @@ def _duplicate_2024_as_2025(d):
     for v in ("baseline", "A", "B"):
         p24 = pd.read_parquet(d / f"profiles_{v}_2024.parquet")
         p24.to_parquet(d / f"profiles_{v}_2025.parquet", index=False)
-        card = compute_full_scorecard(pd.concat([p24, p24], ignore_index=True), **S.SCORING)
+        card = compute_full_scorecard(pd.concat([p24, p24], ignore_index=True), mc_trials=S.SCORING["mc_trials"], season_length=S.SCORING["season_length"])
         (d / f"scorecard_{v}.json").write_text(json.dumps(card, indent=1, sort_keys=True) + "\n")
     _recohere(d)
 
@@ -959,7 +970,7 @@ def test_validate_refuses_an_incomplete_identity_even_when_admitted(three_runs):
     _rewrite(d / "manifest.json", lambda r: r.update(identity=dict(partial)))
     with pytest.raises(S.RunInvalid, match=r"\['identity'\]"):
         S.validate_run(d, S.STAGE_ONE_SEEDS[0], out_root=out, identity=partial,
-                       pins=__import__("json").loads((d / "manifest.json").read_text())["input_pins"])
+                       pins=json.loads((d / "manifest.json").read_text())["input_pins"])
 
 
 def test_a_rescoring_failure_is_a_refusal_not_a_crash(three_runs, monkeypatch):
@@ -969,7 +980,7 @@ def test_a_rescoring_failure_is_a_refusal_not_a_crash(three_runs, monkeypatch):
     monkeypatch.setattr(SC, "compute_full_scorecard", lambda *a, **k: 1 + "x")
     with pytest.raises(S.RunInvalid, match="cannot be rescored"):
         S.validate_run(dirs[0], S.STAGE_ONE_SEEDS[0], out_root=out, identity=IDENT,
-                       pins=__import__("json").loads((dirs[0] / "manifest.json").read_text())["input_pins"])
+                       pins=json.loads((dirs[0] / "manifest.json").read_text())["input_pins"])
 
 
 def test_validate_refuses_pins_other_than_the_ten_even_when_admitted(three_runs):
@@ -981,21 +992,12 @@ def test_validate_refuses_pins_other_than_the_ten_even_when_admitted(three_runs)
         r["input_pins"].pop(S.LOOKUP_NAME)
         r["inputs_digest"] = S.pins_digest(r["input_pins"])
     _rewrite(d / "manifest.json", drop)
-    nine = __import__("json").loads((d / "manifest.json").read_text())["input_pins"]
+    nine = json.loads((d / "manifest.json").read_text())["input_pins"]
     with pytest.raises(S.RunInvalid, match=r"\['pins'\]"):
         S.validate_run(d, S.STAGE_ONE_SEEDS[0], out_root=out, identity=IDENT, pins=nine)
 
 
 # ---------------------------------------------------------------- the mutant runner's classification (r2 R2-4)
-
-def _runner():
-    import importlib.util
-    path = Path(__file__).resolve().parents[3] / "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py"
-    spec = importlib.util.spec_from_file_location("framing_mutant_runner", path)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
-
 
 INTENDED = ["t.py::a", "t.py::b", "t.py::c[x - y]"]
 
@@ -1073,7 +1075,7 @@ CLASSIFY_IDS = ["red", "red_two_failed", "survived", "no_evidence", "exit_mismat
 
 @pytest.mark.parametrize("rc, bundle, verdict", CLASSIFY, ids=CLASSIFY_IDS)
 def test_the_runner_classifies_only_complete_clean_failures_as_red(rc, bundle, verdict):
-    assert _runner().classify(rc, INTENDED, bundle)[0] == verdict
+    assert R.classify(rc, INTENDED, bundle)[0] == verdict
 
 
 def _scratch_mutant(tmp_path, tests, body):
@@ -1102,7 +1104,7 @@ def test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test(tmp_pat
     spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], lambda r: _VAL + (
         "def test_first():\n    assert val() == 1\n"
         f"def test_second():\n    pathlib.Path({str(canary)!r}).write_text('ran')\n    assert val() == 1\n"))
-    assert _runner().main(str(spec), root=root) == 0
+    assert R.main(str(spec), root=root) == 0
     out = capsys.readouterr().out
     assert "X1 RED" in out and canary.read_text() == "ran"                 # the second body executed
     assert (root / "target.py").read_text() == "value = 1\n"               # restored
@@ -1121,7 +1123,7 @@ def test_the_runner_is_not_fooled_by_printed_outcomes(tmp_path, capsys):
         "    if val() != 1:\n"
         "        pytest.exit('stop before the body', returncode=1)\n"
         f"def test_second(gate):\n    pathlib.Path({str(canary)!r}).write_text('ran')\n    assert val() == 1\n"))
-    assert _runner().main(str(spec), root=root) == 1
+    assert R.main(str(spec), root=root) == 1
     out = capsys.readouterr().out
     assert "X1 INCONCLUSIVE" in out and "NOT RED: X1" in out and not canary.exists()
     assert (root / "target.py").read_text() == "value = 1\n"
@@ -1139,7 +1141,7 @@ def test_the_runner_is_not_fooled_by_an_aborted_teardown(tmp_path, capsys):
         "        pytest.exit('2 failed cleanup checks', returncode=1)\n"
         "    pathlib.Path(__file__).with_name('cleanup_completed').write_text('finished')\n"
         "def test_second(gate):\n    assert val() == 1\n"))
-    assert _runner().main(str(spec), root=root) == 1
+    assert R.main(str(spec), root=root) == 1
     out = capsys.readouterr().out
     assert "X1 INCONCLUSIVE" in out and "NOT RED: X1" in out and not (root / "cleanup_completed").exists()
     assert (root / "target.py").read_text() == "value = 1\n"
@@ -1155,7 +1157,7 @@ def test_a_later_session_finish_abort_is_not_a_normal_end(tmp_path, capsys):
         "def pytest_sessionfinish(session, exitstatus):\n"
         "    if val() != 1:\n"
         "        pytest.exit('2 failed in a late hook', returncode=1)\n"))
-    assert _runner().main(str(spec), root=root) == 1
+    assert R.main(str(spec), root=root) == 1
     out = capsys.readouterr().out
     assert "X1 INCONCLUSIVE(exit 1, session finish incomplete)" in out and "NOT RED: X1" in out
     assert (root / "target.py").read_text() == "value = 1\n"
@@ -1171,7 +1173,7 @@ def test_an_exit_after_the_last_report_is_still_an_interrupt(tmp_path, capsys):
         "def pytest_runtest_logfinish(nodeid, location):\n"
         "    if nodeid.endswith('test_second') and val() != 1:\n"
         "        pytest.exit('2 failed after the last test', returncode=1)\n"))
-    assert _runner().main(str(spec), root=root) == 1
+    assert R.main(str(spec), root=root) == 1
     out = capsys.readouterr().out
     assert "X1 INCONCLUSIVE(exit 1, interrupted)" in out and "NOT RED: X1" in out
     assert (root / "target.py").read_text() == "value = 1\n"
@@ -1188,7 +1190,7 @@ def _inconclusive(tmp_path, capsys, conftest, body=None, expect=""):
     spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], body or _two_failing())
     if conftest:
         (root / "conftest.py").write_text(_VAL + conftest)
-    assert _runner().main(str(spec), root=root) == 1
+    assert R.main(str(spec), root=root) == 1
     out = capsys.readouterr().out
     assert f"X1 INCONCLUSIVE(exit 1, {expect})" in out and "NOT RED: X1" in out, out
     assert (root / "target.py").read_text() == "value = 1\n"
@@ -1294,9 +1296,9 @@ def test_the_late_registration_evidence_is_produced_and_retained(tmp_path):
         "    pm.register(p, 'brief')\n"
         "    pm.unregister(p)\n"
         "    assert val() == 1\n"))
-    rc, out, bundle = _runner().run_mutant(root, ["test_scratch.py"])
+    rc, out, bundle = R.run_mutant(root, ["test_scratch.py"])
     assert bundle is not None and bundle["late_plugins"] >= 1 and bundle["not_outermost"] == []
-    assert _runner().classify(rc, ["test_scratch.py::test_first"], bundle)[0] == "INCONCLUSIVE(exit 0, plugins registered late)"
+    assert R.classify(rc, ["test_scratch.py::test_first"], bundle)[0] == "INCONCLUSIVE(exit 0, plugins registered late)"
 
 
 def test_an_outer_wrapper_without_a_registration_event_is_still_seen(tmp_path, capsys):
@@ -1337,7 +1339,7 @@ def test_the_runner_refuses_options_in_a_named_test_list(tmp_path, capsys):
     spec, root = _scratch_mutant(tmp_path, ["test_scratch.py", "-x"], lambda r: _VAL + (
         "def test_first():\n    assert val() == 1\n"
         f"def test_second():\n    pathlib.Path({str(canary)!r}).write_text('ran')\n    assert val() == 1\n"))
-    assert _runner().main(str(spec), root=root) == 1
+    assert R.main(str(spec), root=root) == 1
     out = capsys.readouterr().out
     assert "X1 INVALID" in out and "NOT RED: X1" in out and not canary.exists()
     assert (root / "target.py").read_text() == "value = 1\n"
