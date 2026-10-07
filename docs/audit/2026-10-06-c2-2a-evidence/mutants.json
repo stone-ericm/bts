@@ -488,11 +488,12 @@
   "id": "O4",
   "rule": "calibration: PA through the capture",
   "file": "src/bts/orchestrator.py",
-  "old": "                pa_df = _read_pa_parquet(current_pa, pa_inputs, calibration_errors)\n",
+  "old": "                pa_df = _read_pa_parquet(current_pa, pa_inputs, calibration_errors, pa_ok)\n",
   "new": "                pa_df = pd.read_parquet(current_pa)\n",
   "tests": [
    "tests/c2_2a/test_local_witness.py"
-  ]
+  ],
+  "reanchored_after_r2": true
  },
  {
   "id": "O5",
@@ -767,13 +768,14 @@
   "id": "P13",
   "rule": "F3: a PA input list shorter than the parquets read is withheld",
   "file": "src/bts/model/predict.py",
-  "old": "        complete = inputs is not None and len(inputs) == n_inputs\n",
+  "old": "        complete = inputs_complete(inputs, ok, n_inputs)\n",
   "new": "        complete = inputs is not None\n",
   "tests": [
    "tests/c2_2a/test_golden.py",
    "-k",
    "fault_collector_appends"
-  ]
+  ],
+  "reanchored_after_r2": true
  },
  {
   "id": "P14",
@@ -823,11 +825,12 @@
   "id": "O15",
   "rule": "F3: the calibration record's failure is contained at the call site",
   "file": "src/bts/orchestrator.py",
-  "old": "                                              fit_witness, calibration_errors)\n        except Exception:\n            calibration = None\n",
-  "new": "                                              fit_witness, calibration_errors)\n        except ZeroDivisionError:\n            calibration = None\n",
+  "old": "                                              pa_ok, fit_witness, calibration_errors)\n        except Exception:\n            calibration = None\n",
+  "new": "                                              pa_ok, fit_witness, calibration_errors)\n        except ZeroDivisionError:\n            calibration = None\n",
   "tests": [
    "tests/c2_2a/test_r1_counterexamples.py"
-  ]
+  ],
+  "reanchored_after_r2": true
  },
  {
   "id": "O16",
@@ -848,5 +851,181 @@
   "tests": [
    "tests/c2_2a/test_r1_counterexamples.py"
   ]
+ },
+ {
+  "id": "O17",
+  "rule": "R2-1: the helper's parts allocation is inside its guard",
+  "file": "src/bts/orchestrator.py",
+  "old": "    parts = None\n    try:\n        parts = {}\n",
+  "new": "    parts = {}\n    try:\n",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_the_helper_itself_contains_its_allocation"
+  ],
+  "added_after_r2": true
+ },
+ {
+  "id": "O18",
+  "rule": "R2-1: predict_local contains the helper's invocation",
+  "file": "src/bts/orchestrator.py",
+  "old": "        try:\n            pipeline = _take_pipeline_provenance(predictions, witness_errors)\n        except Exception:\n            pipeline = None\n",
+  "new": "        pipeline = _take_pipeline_provenance(predictions, witness_errors)\n",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_failed_provenance_take_still_clears_the_frame_before_calibration",
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "fault_provenance_take"
+  ],
+  "added_after_r2": true
+ },
+ {
+  "id": "O19",
+  "rule": "R2-1: a failed take clears the frame before calibration",
+  "file": "src/bts/orchestrator.py",
+  "old": "            try:\n                predictions.attrs.clear()\n            except Exception:\n                pass\n            try:\n                note(witness_errors, \"run_pipeline provenance unavailable\")\n",
+  "new": "            try:\n                note(witness_errors, \"run_pipeline provenance unavailable\")\n",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_failed_provenance_take_still_clears_the_frame_before_calibration"
+  ],
+  "added_after_r2": true
+ },
+ {
+  "id": "O20",
+  "rule": "R2-1: unavailable pipeline provenance is noted",
+  "file": "src/bts/orchestrator.py",
+  "old": "                note(witness_errors, \"run_pipeline provenance unavailable\")\n",
+  "new": "                pass\n",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_failed_provenance_allocation_keeps_the_calibrated_forecast"
+  ],
+  "added_after_r2": true
+ },
+ {
+  "id": "O21",
+  "rule": "R2-2: the calibration record requires the collection flag",
+  "file": "src/bts/orchestrator.py",
+  "old": "    if inputs_complete(pa_inputs, pa_ok, 1):\n",
+  "new": "    if inputs_complete(pa_inputs, [True], 1):\n",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_pa_input_that_raised_after_appending_is_withheld[3-pa_input]"
+  ],
+  "added_after_r2": true
+ },
+ {
+  "id": "O22",
+  "rule": "R2-2: calibration's PA read carries the record's flag",
+  "file": "src/bts/orchestrator.py",
+  "old": "                pa_df = _read_pa_parquet(current_pa, pa_inputs, calibration_errors, pa_ok)\n",
+  "new": "                pa_df = _read_pa_parquet(current_pa, pa_inputs, calibration_errors, [True])\n",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_pa_input_that_raised_after_appending_is_withheld[3-pa_input]"
+  ],
+  "added_after_r2": true
+ },
+ {
+  "id": "O23",
+  "rule": "R2-2: calibration's flag starts True (complete when every collect succeeds)",
+  "file": "src/bts/orchestrator.py",
+  "old": "        calibration_errors, pa_inputs, pa_ok, fit_witness = [], [], [True], {}\n",
+  "new": "        calibration_errors, pa_inputs, pa_ok, fit_witness = [], [], [False], {}\n",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py"
+  ],
+  "added_after_r2": true
+ },
+ {
+  "id": "P16",
+  "rule": "R2-2: the buffered path carries collect's failure",
+  "file": "src/bts/model/predict.py",
+  "old": "        recorded = collect(inputs, lambda: {\"file\": parquet.name, \"bytes\": len(raw), \"sha256\": sha}, errors, \"PA input\")\n",
+  "new": "        collect(inputs, lambda: {\"file\": parquet.name, \"bytes\": len(raw), \"sha256\": sha}, errors, \"PA input\")\n        recorded = True\n",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_pa_input_that_raised_after_appending_is_withheld",
+   "tests/c2_2a/test_predict_witness.py::test_a_parquet_collector_failure_returns_the_frame"
+  ],
+  "added_after_r2": true
+ },
+ {
+  "id": "P17",
+  "rule": "R2-2: the path-parse fallback carries collect's failure",
+  "file": "src/bts/model/predict.py",
+  "old": "            recorded = collect(inputs, lambda: {\"file\": parquet.name, \"bytes\": None, \"sha256\": None}, errors,\n                               \"PA input\")\n",
+  "new": "            collect(inputs, lambda: {\"file\": parquet.name, \"bytes\": None, \"sha256\": None}, errors, \"PA input\")\n            recorded = True\n",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_fallback_pa_input_that_raised_after_appending_is_withheld"
+  ],
+  "added_after_r2": true
+ },
+ {
+  "id": "P18",
+  "rule": "R2-2: a failed collection clears the flag",
+  "file": "src/bts/model/predict.py",
+  "old": "        ok[0] = False\n",
+  "new": "        pass\n",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_pa_input_that_raised_after_appending_is_withheld",
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "fault_pa_append_landed"
+  ],
+  "added_after_r2": true
+ },
+ {
+  "id": "P19",
+  "rule": "R2-2: completeness requires the flag",
+  "file": "src/bts/model/predict.py",
+  "old": "ok is not None and ok[0] is True and ",
+  "new": "",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_pa_input_that_raised_after_appending_is_withheld"
+  ],
+  "added_after_r2": true
+ },
+ {
+  "id": "P20",
+  "rule": "R2-2: the pipeline attachment uses the collection flag",
+  "file": "src/bts/model/predict.py",
+  "old": "        complete = inputs_complete(inputs, ok, n_inputs)\n",
+  "new": "        complete = inputs_complete(inputs, [True], n_inputs)\n",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_pa_input_that_raised_after_appending_is_withheld[1-inputs]",
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_pa_input_that_raised_after_appending_is_withheld[2-inputs]"
+  ],
+  "added_after_r2": true
+ },
+ {
+  "id": "P21",
+  "rule": "R2-2: run_pipeline's reads share one flag",
+  "file": "src/bts/model/predict.py",
+  "old": "        dfs.append(_read_pa_parquet(parquet, pa_inputs, witness_errors, pa_ok))\n",
+  "new": "        dfs.append(_read_pa_parquet(parquet, pa_inputs, witness_errors, [True]))\n",
+  "tests": [
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_pa_input_that_raised_after_appending_is_withheld[1-inputs]",
+   "tests/c2_2a/test_r2_counterexamples.py::test_a_pa_input_that_raised_after_appending_is_withheld[2-inputs]"
+  ],
+  "added_after_r2": true
+ },
+ {
+  "id": "P22",
+  "rule": "R2-2: run_pipeline's flag starts True (complete when every collect succeeds)",
+  "file": "src/bts/model/predict.py",
+  "old": "        witness_errors, pa_inputs, pa_ok = [], [], [True]\n",
+  "new": "        witness_errors, pa_inputs, pa_ok = [], [], [False]\n",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py"
+  ],
+  "added_after_r2": true
+ },
+ {
+  "id": "P23",
+  "rule": "R2-2: completeness still requires the count (r1 F3 kept)",
+  "file": "src/bts/model/predict.py",
+  "old": " and ok[0] is True and len(inputs) == n\n",
+  "new": " and ok[0] is True\n",
+  "tests": [
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "fault_collector_appends"
+  ],
+  "added_after_r2": true
  }
 ]

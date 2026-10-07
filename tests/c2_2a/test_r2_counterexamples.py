@@ -74,6 +74,20 @@ def test_a_failed_provenance_allocation_keeps_the_calibrated_forecast(world, mon
     assert any("run_pipeline provenance unavailable" in e for e in w["errors"])
 
 
+def test_the_helper_itself_contains_its_allocation():
+    """The helper alone, without predict_local's containment: the fault is contained, the parts are reported
+    unavailable (None) and the frame is still cleared."""
+    frame = pd.DataFrame({"p_game_hit": [0.8]})
+    frame.attrs.update({"serving_errors": [], "serving_model": {"source": "cache"}, "serving_inputs": []})
+    fired = []
+    sys.settrace(_raise_at(O._take_pipeline_provenance, r"parts(: dict)? = \{\}", MemoryError("synthetic: dict"), fired))
+    try:
+        got = O._take_pipeline_provenance(frame, [])
+    finally:
+        sys.settrace(None)
+    assert fired and got is None and frame.attrs == {}
+
+
 def test_a_failed_provenance_take_still_clears_the_frame_before_calibration(world, monkeypatch):
     """The invocation itself fails, and copying any attached provenance would fail too: the forecast stays calibrated
     because the frame is cleared before calibration, never calibrated with the provenance still on it."""
