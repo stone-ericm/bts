@@ -354,8 +354,13 @@ class Harness:
         p.set(sch, "time", self.time_proxy)
         # Transports and side processes.
         transport = self.obs["transport"]
-        p.set(sys.modules["bts.dm"], "send_dm",
-              lambda recipient, text, *a, **k: (transport.append(["dm", recipient, text]), f"dm-{len(transport)}")[1])
+        import bts.health.alert  # noqa: F401  (it binds `send_dm` by name at import: its name is spied on too)
+
+        def dm(recipient, text, *a, **k):
+            transport.append(["dm", recipient, text])
+            return f"dm-{len(transport)}"
+        p.set(sys.modules["bts.dm"], "send_dm", dm)
+        p.set(sys.modules["bts.health.alert"], "send_dm", dm)
         p.set(sys.modules["bts.posting"], "post_to_bluesky",
               lambda text, *a, **k: (transport.append(["post", text]), f"at://golden/{len(transport)}")[1])
         p.set(sch, "run_result_polling", lambda *a, **k: (transport.append(["result_polling"]), "final")[1])

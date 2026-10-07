@@ -100,6 +100,18 @@ def test_the_candidate_reproduces_the_baseline(name, observed):
     _check_witness(name, cand, observed)
 
 
+@pytest.mark.slow
+def test_every_scenario_observes_its_own_health_dms(tmp_path):
+    """bts.health.alert binds `send_dm` by name at import, so the harness spies on that name too. Otherwise the first
+    scenario that imports it keeps receiving every later scenario's health DMs, and a later scenario observes none (the
+    goldens once missed cutoff_advancing_clock's late-delivery DM)."""
+    def late(obs):
+        return [t for t in obs["transport"] if t[0] == "dm" and "LATE DELIVERY REFUSED" in t[2]]
+    first = S.run("cutoff_exact", REPO, tmp_path / "first")
+    second = S.run("cutoff_advancing_clock", REPO, tmp_path / "second")
+    assert len(late(first)) == 1 and len(late(second)) == 1
+
+
 # ---------------------------------------------------------------- the witness each scenario persisted
 
 def _w(cand):

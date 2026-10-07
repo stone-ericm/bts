@@ -1,5 +1,5 @@
 {
- "command": "/Users/eric/projects/bts-c2-2a-golden/.venv/bin/python3 -m tests.c2_2a.golden.generate --out /private/tmp/claude-501/-Users-eric-projects-bts/5f91aea8-99ec-4c37-9eab-f76e81b81a0f/scratchpad/golden_r4b",
+ "command": "/Users/eric/projects/bts-c2-2a-golden/.venv/bin/python3 -m tests.c2_2a.golden.generate --out /private/tmp/claude-501/-Users-eric-projects-bts/5f91aea8-99ec-4c37-9eab-f76e81b81a0f/scratchpad/golden_r4c",
  "commit": "f882411d939d1b8eb0433beee1514170a17f689a",
  "environment": {
   "OMP_NUM_THREADS": "1",
@@ -26,7 +26,7 @@
   "calibration_off_explicit.json": "f8cf652c5feeaad85df71aab4e41006bcbdee36041660615e110e0711443d317",
   "calibration_on.json": "6e0d2b1c0527d096aad4ee7be0c444d509d6795d8fd4f375c659333a7c7dbaba",
   "calibration_two_thresholds.json": "f93e915afb56ffe1a739ca4f2cefd9668709441a16100c0eaa7ad44e26dd94cf",
-  "cutoff_advancing_clock.json": "a92e04060478da0060ef76b03fe44d56c2a67da0ceabb4d138a356f265ee298b",
+  "cutoff_advancing_clock.json": "c846eb470ad245ec560f0cc208a3aa8a6da8c3569453344908fbdbe259bf4d2e",
   "cutoff_exact.json": "41613a75185ef5cd6c1451919197a9f49964965327b0ffc32ae2b3fe424b3993",
   "cutoff_minus_one_second.json": "43abf7f2ae6880966e46af5ccf5471cc0a300c71ca6d4a6a0ed2ec90f6f112ad",
   "day_all_posted.json": "6b465816f7c4276457f39ad028ff52c050d08db6927330312f96fb1302ebe2c9",
@@ -80,7 +80,7 @@
   "__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   "fakes.py": "f0cedfdd9ce077558715208af604585c527720fec47c8f86e048120221cf445d",
   "generate.py": "26877c14aaea06561d5af7bbda2b2432c0208f89515e36a3719fa77094222187",
-  "scenarios.py": "5e3954c8397386b8ab405ebc7bb608e5969323f011aa6266795bfa3f5909f801",
+  "scenarios.py": "164b4dcd0bace6403fd18fb259cb5411c2dd8612ef4ac8d33b01209884c2f748",
   "world.py": "594c1c7edba218058e70355752521f170e9ed4dca4b63ec81f1df510c372a65c"
  },
  "partial": false,

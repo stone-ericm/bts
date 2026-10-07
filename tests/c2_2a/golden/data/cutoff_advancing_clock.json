@@ -2356,7 +2356,13 @@
  "stderr_failures": [
   "  DELIVERY REFUSED (golden) \u2014 Batter 10701 + Batter 10501: submission cutoff 19:35 ET passed 0.0 min ago; not delivering an unenterable pick."
  ],
- "transport": [],
+ "transport": [
+  [
+   "dm",
+   "golden-recipient",
+   "BTS health CRITICAL alert(s):\n- [late_delivery] LATE DELIVERY REFUSED: Batter 10701 + Batter 10501 would have been sent 0 min after the 19:35 ET cutoff. Nothing delivered; the scheduler will re-pick from later games if any remain. Enter a pick manually if you want one now."
+  ]
+ ],
  "unknown_urls": [],
  "world_inputs": {
   "data/models/mdp_policy.npz": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
