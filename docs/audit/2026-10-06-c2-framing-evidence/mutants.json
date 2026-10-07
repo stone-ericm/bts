@@ -1288,5 +1288,73 @@
    "tests/scripts/c2_framing/test_screen.py::test_a_session_finish_wrapper_abort_is_not_a_normal_end"
   ],
   "added_rev7": true
+ },
+ {
+  "id": "R25",
+  "rule": "R7-1: a registration after the sentinel is counted as an event",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "            self.late_events += 1                        # an event: kept even if the plugin later unregisters\n",
+  "new": "            pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_late_registration_evidence_is_produced_and_retained",
+   "tests/scripts/c2_framing/test_screen.py::test_a_self_unregistering_late_wrapper_is_refused"
+  ],
+  "added_rev8": true
+ },
+ {
+  "id": "R26",
+  "rule": "R7-1: the events count in the evidence",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "    late = rec.late_events + len(",
+  "new": "    late = len(",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_late_registration_evidence_is_produced_and_retained"
+  ],
+  "added_rev8": true
+ },
+ {
+  "id": "R27",
+  "rule": "R7-1: the sentinel checks it is outermost at session finish",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "        self._outermost(self.pm.hook.pytest_sessionfinish, \"sessionfinish\")\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_an_outer_wrapper_without_a_registration_event_is_still_seen"
+  ],
+  "added_rev8": true
+ },
+ {
+  "id": "R28",
+  "rule": "R7-1: the sentinel checks it is outermost at each test call",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "        self._outermost(self.pm.hook.pytest_runtest_call, item.nodeid)\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_hidden_call_wrapper_is_seen"
+  ],
+  "added_rev8": true
+ },
+ {
+  "id": "R29",
+  "rule": "R7-1: a sentinel that was not outermost is never RED",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "    if bundle.get(\"not_outermost\") != []:\n        return f\"INCONCLUSIVE({tag}, sentinel not outermost)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[not_outermost]",
+   "tests/scripts/c2_framing/test_screen.py::test_a_hidden_call_wrapper_is_seen"
+  ],
+  "added_rev8": true
+ },
+ {
+  "id": "R30",
+  "rule": "R7-1: outermost means the hook's last implementation (pluggy calls it first)",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "        if not impls or impls[-1].plugin is not self:",
+  "new": "        if not impls or impls[0].plugin is not self:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test"
+  ],
+  "added_rev8": true
  }
 ]
