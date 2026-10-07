@@ -483,3 +483,24 @@ H13 RED ======================== 2 failed, 70 passed in 53.54s =================
     FAILED tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_clean_failures_as_red[1-FAILED t.py::a - x\n1 failed, 1 skipped in 0.1s-INCONCLUSIVE(exit 1)]
 NOT RED: F4,F20,G4,G8,G14,G22,G28,H6,H8
 exit 1
+
+# resume at 2f433865d7e26d0e8d8960aa2d113256679bd243, 2026-10-06 21:37 EDT: F4, F20, G14, G22, G28 narrowed to their targeted tests; G4, H6, H8 against the new cases; G8 recorded equivalent
+F4 RED ============================== 1 failed in 0.99s ===============================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_self_check_compares_against_the_production_pitcher_feature
+F20 RED ============================== 1 failed in 3.28s ===============================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - Asserti...
+G4 RED =================== 1 failed, 74 passed in 60.45s (0:01:00) ====================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[claim_rewritten-\\['claim binding'\\]]
+G8 SURVIVED ============================= 75 passed in 59.59s ==============================
+G14 RED ============================== 1 failed in 0.83s ===============================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_release_needs_the_exact_ruling_eric_and_a_positive_budget
+G22 RED ============================== 1 failed in 3.11s ===============================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - Asserti...
+G28 RED ============================== 1 failed in 0.81s ===============================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_admission_requires_exactly_the_ten_pins
+H6 RED ======================== 1 failed, 74 passed in 58.33s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[pins_names-\\['pins'\\]]
+H8 RED ======================== 1 failed, 74 passed in 58.37s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_seed1_run_of_another_identity_does_not_release
+NOT RED: G8
+exit 1
