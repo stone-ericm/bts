@@ -1081,6 +1081,86 @@ def sc_fault_calibration_record(h):
     _run_and_pick(h)
 
 
+class _AppendThenRaise:
+    """A collector whose append lands and then raises: its length looks complete; only the reported failure says not."""
+    def __init__(self, target):
+        self.target = target
+
+    def append(self, x):
+        self.target.append(x)
+        raise RuntimeError("golden: injected append-then-raise")
+
+
+def _raise_at_line(func, pattern: str, exc: BaseException):
+    """A sys.settrace hook raising `exc` once, at the one source line of `func` whose stripped text matches `pattern`
+    (r2 R2-1: an allocation fault at a statement, not only at a helper's boundary)."""
+    import inspect
+    import re
+    lines, start = inspect.getsourcelines(func)
+    hits = [start + i for i, text in enumerate(lines) if re.fullmatch(pattern, text.strip())]
+    if len(hits) != 1:
+        raise RuntimeError(f"golden: fault anchor {pattern!r} matched {len(hits)} lines")
+    code, line = func.__code__, hits[0]
+
+    def local(frame, event, arg):
+        if event == "line" and frame.f_lineno == line:
+            raise exc
+        return local
+    return lambda frame, event, arg: local if frame.f_code is code else None
+
+
+def sc_fault_provenance_allocation(h):
+    """Allocating the provenance-removal helper's parts fails (r2 R2-1). The baseline has no such helper."""
+    _calibration(h)
+    helper = getattr(sys.modules["bts.orchestrator"], "_take_pipeline_provenance", None)
+    if helper is None:
+        _run_and_pick(h)
+        return
+    tracer = _raise_at_line(helper, r"parts(: dict)? = \{\}", MemoryError("golden: provenance dict allocation"))
+    from bts.orchestrator import run_and_pick
+
+    def go():
+        sys.settrace(tracer)
+        try:
+            run_and_pick(config(), W.DATE, require_detailed_statuses=False)
+        finally:
+            sys.settrace(None)
+    h.run(go)
+
+
+def sc_fault_provenance_take(h):
+    """Invoking the provenance-removal helper fails, and pandas copying any attached provenance would fail too (r2
+    R2-1: the frame must be cleared before calibration, never calibrated with the provenance on it)."""
+    _calibration(h)
+    h.p.set_if_exists(sys.modules["bts.orchestrator"], "_take_pipeline_provenance",
+                      lambda *a, **k: (_ for _ in ()).throw(MemoryError("golden: provenance take")))
+    g = pd.DataFrame.__finalize__.__globals__
+    real = g["deepcopy"]
+
+    def failing(obj, *a, **k):
+        if isinstance(obj, dict) and ("serving_model" in obj or "serving" in obj):
+            raise MemoryError("golden: copying attached provenance")
+        return real(obj, *a, **k)
+    h.p.set_dict_item(g, "deepcopy", failing)
+    _run_and_pick(h)
+
+
+def sc_fault_pa_append_landed(h):
+    """Every PA-input append lands and then raises, and its error record is lost (r2 R2-2)."""
+    _calibration(h)
+    from bts.model import predict as P
+    sw = sys.modules.get("bts.serving_witness")
+    if sw is not None and hasattr(P, "collect"):
+        real = sw.collect
+
+        def collect(items, build, errors, what):
+            if items is not None and what == "PA input":
+                return real(_AppendThenRaise(items), build, _NoAppend(), what)
+            return real(items, build, errors, what)
+        h.p.set(P, "collect", collect)
+    _run_and_pick(h)
+
+
 def _read_bytes_fault_exc(h: Harness, predicate, exc_type):
     real = Path.read_bytes
 
@@ -1190,6 +1270,9 @@ SCENARIOS = {
     "fault_package_query": (sc_fault_package_query, {}),
     "fault_map_hash": (sc_fault_map_hash, {}),
     "fault_calibration_record": (sc_fault_calibration_record, {}),
+    "fault_provenance_allocation": (sc_fault_provenance_allocation, {}),
+    "fault_provenance_take": (sc_fault_provenance_take, {}),
+    "fault_pa_append_landed": (sc_fault_pa_append_landed, {}),
     "cutoff_minus_one_second": (sc_cutoff_minus_one_second, {"start_et": (12, 0)}),
     "cutoff_exact": (sc_cutoff_exact, {"start_et": (12, 0)}),
     "cutoff_advancing_clock": (sc_cutoff_advancing_clock, {"start_et": (12, 0)}),

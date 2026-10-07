@@ -149,8 +149,10 @@ EXPECT_CAL = {
     "fault_map_extraction": ("applied", True), "fault_error_recording": ("applied", True),
     "fault_attrs_copy_calibration": ("applied", True), "fault_pick_decoder_oserror": ("applied", True),
     "fault_omitted_input_lost_error": ("applied", True), "fault_undescribable_pick": ("applied", True),
-    "fault_map_hash": ("applied", True),
+    "fault_map_hash": ("applied", True), "fault_provenance_allocation": ("applied", True),
+    "fault_provenance_take": ("applied", True), "fault_pa_append_landed": ("applied", True),
 }
+PIPELINE_PROVENANCE_LOST = {"fault_provenance_allocation", "fault_provenance_take"}   # r2 R2-1
 CACHE_SOURCE = {"model_cached", "fault_cache_buffer", "fault_cache_hash", "fault_undescribable_cache"}
 ONE_CYCLE_DAYS = {"day_all_posted"}                   # locks at its first check: its only slate trained the model
 NO_WITNESS = {"day_prediction_failure", "genuine_cache_unpickle", "genuine_cache_unpickle_stateful",
@@ -186,7 +188,10 @@ def _check_witness(name, cand, observed):
     # the scenario wrote a cache first.
     expected_source = ("cache" if name in CACHE_SOURCE or (name.startswith("day_") and name not in ONE_CYCLE_DAYS)
                        else "trained")
-    assert model["source"] == expected_source
+    if name in PIPELINE_PROVENANCE_LOST:                  # the pipeline's provenance is visibly unavailable (r2 R2-1)
+        assert model is None and w["inputs"] is None and "run_pipeline provenance unavailable" in w["errors"]
+    else:
+        assert model["source"] == expected_source
     _SPECIFIC.get(name, lambda w, c, cand, observed: None)(w, c, cand, observed)
 
 
@@ -264,6 +269,12 @@ def _failed_with_error(w, c, cand, observed):
     assert c["errors"]
 
 
+def _landed_pa_withheld(w, c, cand, observed):
+    # every PA append landed and raised, its error lost: withheld on both sides, whatever the lengths say (r2 R2-2)
+    assert w["inputs"] is None and "PA inputs incomplete; withheld" in w["errors"]
+    assert c["pa_input"] is None and "calibration PA input incomplete; withheld" in c["errors"]
+
+
 _SPECIFIC = {
     "calibration_two_thresholds": _two_thresholds, "calibration_changed_history": _changed_history,
     "calibration_on": _normal_reads,
@@ -281,7 +292,7 @@ _SPECIFIC = {
     "fault_undescribable_cache": _null_model_hash, "fault_short_write": _null_model_hash,
     "fault_pick_decoder_oserror": _null_pick_inputs, "fault_undescribable_pick": _null_pick_inputs,
     "fault_omitted_input_lost_error": _withheld_inputs, "fault_map_hash": _null_map_hash,
-    "fault_package_query": _package_error,
+    "fault_package_query": _package_error, "fault_pa_append_landed": _landed_pa_withheld,
 }
 
 
