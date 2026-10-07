@@ -1000,56 +1000,78 @@ def _runner():
 INTENDED = ["t.py::a", "t.py::b", "t.py::c[x - y]"]
 
 
-def _rec(node, outcome="passed", when="call"):
-    return {"node": node, "when": when, "outcome": outcome}
+def _rec(node, outcome="passed", when="call", wasxfail=False):
+    return {"node": node, "when": when, "outcome": outcome, "wasxfail": wasxfail}
 
 
 def _phases(node, call="passed"):
     return [_rec(node, "passed", "setup"), _rec(node, call), _rec(node, "passed", "teardown")]
 
 
-def _session(exitstatus, failed, collected=3):
-    return [{"session": {"exitstatus": exitstatus, "testsfailed": failed, "testscollected": collected}}]
+A, B, C = INTENDED
 
 
-ALL_PASS = _phases("t.py::a") + _phases("t.py::b") + _phases("t.py::c[x - y]")
-ONE_FAIL = _phases("t.py::a", "failed") + _phases("t.py::b") + _phases("t.py::c[x - y]")
+def _bundle(records, failed_nodes=(), rc=None, **over):
+    """The driver's evidence: pytest's reports, the sentinel's own call observations (exception name or None), its
+    session-finish record, plugins registered after it, and intended nodes carrying xfail/skip markers."""
+    failed_nodes = set(failed_nodes)
+    nodes = [r["node"] for r in records if "node" in r and r["when"] == "call"]
+    b = {"rc": (1 if failed_nodes else 0) if rc is None else rc, "records": records,
+         "calls": {n: ("AssertionError" if n in failed_nodes else None) for n in nodes},
+         "finish": {"exitstatus": (1 if failed_nodes else 0) if rc is None else rc, "testsfailed": len(failed_nodes),
+                    "testscollected": len(set(nodes))},
+         "late_plugins": 0, "marked": []}
+    b.update(over)
+    return b
+
+
+ONE_FAIL = _phases(A, "failed") + _phases(B) + _phases(C)
 CLASSIFY = [
-    (1, ONE_FAIL + _session(1, 1), "RED"),
-    (1, _phases("t.py::a", "failed") + _phases("t.py::b") + _phases("t.py::c[x - y]", "failed") + _session(1, 2), "RED"),
-    (0, ALL_PASS + _session(0, 0), "SURVIVED"),
-    (1, _phases("t.py::a", "failed") + [_rec("t.py::b", "failed", "setup")] + _phases("t.py::c[x - y]") + _session(1, 2),
-     "INCONCLUSIVE(exit 1, errors)"),
-    (1, _phases("t.py::a", "failed") + [_rec("t.py::b", "skipped", "setup")] + _phases("t.py::c[x - y]") + _session(1, 1),
-     "INCONCLUSIVE(exit 1, skipped)"),
-    # r3 R3-4: fail-fast — a named node never reported a call phase
-    (1, _phases("t.py::a", "failed") + _session(1, 1), "INCONCLUSIVE(exit 1, 2 not run)"),
-    # r4 R4-2: whatever stdout says, a node without its own call report did not run
-    (1, _phases("t.py::a", "failed") + _phases("t.py::c[x - y]") + _session(1, 1), "INCONCLUSIVE(exit 1, 1 not run)"),
-    # r5 R5-1: no session-finish record (an abort before it, or another hook stopping it)
-    (1, ONE_FAIL, "INCONCLUSIVE(exit 1, no normal end)"),
-    # r5 R5-1: pytest.exit / KeyboardInterrupt reached pytest's interrupt hook, even with exit status 1
-    (1, ONE_FAIL + [{"interrupted": "Exit"}] + _session(1, 1), "INCONCLUSIVE(exit 1, interrupted)"),
-    # r5 R5-1: a test whose teardown never reported (its cleanup was cut short)
-    (1, _phases("t.py::a", "failed") + _phases("t.py::b") + _phases("t.py::c[x - y]", "failed")[:2] + _session(1, 2),
-     "INCONCLUSIVE(exit 1, 1 incomplete)"),
-    (1, ONE_FAIL + [{"internalerror": "RuntimeError"}] + _session(1, 1), "INCONCLUSIVE(exit 1, internal error)"),
-    (1, ONE_FAIL + [{"collecterror": "t.py"}] + _session(1, 1), "INCONCLUSIVE(exit 1, collection errors)"),
+    (1, _bundle(ONE_FAIL, [A]), "RED"),
+    (1, _bundle(_phases(A, "failed") + _phases(B) + _phases(C, "failed"), [A, C]), "RED"),
+    (0, _bundle(_phases(A) + _phases(B) + _phases(C)), "SURVIVED"),
+    # r5 R5-1, r6 R6-1: no evidence at all (the driver never got control back), or a process code that is not pytest's
+    (1, None, "INCONCLUSIVE(exit 1, no normal end)"),
+    (2, _bundle(ONE_FAIL, [A]), "INCONCLUSIVE(exit 2, exit mismatch)"),
+    (1, _bundle(ONE_FAIL + [{"interrupted": "Exit"}], [A]), "INCONCLUSIVE(exit 1, interrupted)"),
+    (1, _bundle(ONE_FAIL + [{"internalerror": "RuntimeError"}], [A]), "INCONCLUSIVE(exit 1, internal error)"),
+    (1, _bundle(ONE_FAIL + [{"collecterror": "t.py"}], [A]), "INCONCLUSIVE(exit 1, collection errors)"),
+    # r6 R6-1: the outermost session-finish wrapper saw an inner wrapper abort, or never completed
+    (1, _bundle(ONE_FAIL, [A], finish={"raised": "Exit"}), "INCONCLUSIVE(exit 1, session finish incomplete)"),
+    (1, _bundle(ONE_FAIL, [A], finish=None), "INCONCLUSIVE(exit 1, session finish incomplete)"),
+    (1, _bundle(ONE_FAIL, [A], late_plugins=1), "INCONCLUSIVE(exit 1, plugins registered late)"),
+    # r6 R6-2: expected-failure status is kept, and xfail/skip-marked nodes are never killers
+    (1, _bundle(_phases(A, "failed") + [_rec(B, "passed", "setup"), _rec(B, "passed", wasxfail=True),
+                                         _rec(B, "passed", "teardown")] + _phases(C), [A]),
+     "INCONCLUSIVE(exit 1, xfail or skip)"),
+    (1, _bundle(ONE_FAIL, [A], marked=[A]), "INCONCLUSIVE(exit 1, marked xfail or skip)"),
+    (1, _bundle(_phases(A, "failed") + [_rec(B, "skipped", "setup")] + _phases(C), [A]),
+     "INCONCLUSIVE(exit 1, xfail or skip)"),
+    (1, _bundle(_phases(A, "failed") + [_rec(B, "failed", "setup")] + _phases(C), [A]), "INCONCLUSIVE(exit 1, errors)"),
+    (1, _bundle(_phases(A, "failed"), [A]), "INCONCLUSIVE(exit 1, 2 not run)"),
+    (1, _bundle(_phases(A, "failed") + _phases(B) + _phases(C, "failed")[:2], [A, C]), "INCONCLUSIVE(exit 1, 1 incomplete)"),
+    (1, _bundle(ONE_FAIL + _phases("t.py::ab"), [A]), "INCONCLUSIVE(exit 1, 1 unintended)"),
+    # a report whose outcome is not what the sentinel saw the test call do (a rewritten or fabricated report)
+    (1, _bundle(ONE_FAIL, [A], calls={A: None, B: None, C: None}), "INCONCLUSIVE(exit 1, report mismatch)"),
+    (1, _bundle(ONE_FAIL, [A], calls={A: "AssertionError", B: None}), "INCONCLUSIVE(exit 1, report mismatch)"),
     # pytest's own counters must agree with the reports
-    (1, ONE_FAIL + _session(1, 2), "INCONCLUSIVE(exit 1, session mismatch)"),
-    (1, ONE_FAIL + _session(1, 1, collected=4), "INCONCLUSIVE(exit 1, session mismatch)"),
-    (1, ONE_FAIL + _session(0, 1), "INCONCLUSIVE(exit 1, session mismatch)"),
-    # an executed node outside the intended set is a changed selection
-    (1, ONE_FAIL + _phases("t.py::ab") + _session(1, 1, collected=4), "INCONCLUSIVE(exit 1, 1 unintended)"),
+    (1, _bundle(ONE_FAIL, [A], finish={"exitstatus": 1, "testsfailed": 2, "testscollected": 3}),
+     "INCONCLUSIVE(exit 1, session mismatch)"),
+    (1, _bundle(ONE_FAIL, [A], finish={"exitstatus": 1, "testsfailed": 1, "testscollected": 4}),
+     "INCONCLUSIVE(exit 1, session mismatch)"),
+    (1, _bundle(ONE_FAIL, [A], finish={"exitstatus": 0, "testsfailed": 1, "testscollected": 3}),
+     "INCONCLUSIVE(exit 1, session mismatch)"),
 ]
-CLASSIFY_IDS = ["red", "red_two_failed", "survived", "errors", "skipped", "fail_fast", "stdout_is_not_evidence",
-                "no_normal_end", "interrupted", "teardown_cut_short", "internal_error", "collection_error",
-                "failed_count_mismatch", "collected_count_mismatch", "exit_status_mismatch", "unintended_node"]
+CLASSIFY_IDS = ["red", "red_two_failed", "survived", "no_evidence", "exit_mismatch", "interrupted", "internal_error",
+                "collection_error", "finish_raised", "finish_missing", "late_plugin", "xpass", "marked", "skipped",
+                "errors", "fail_fast", "teardown_cut_short", "unintended_node", "report_flipped", "call_unobserved",
+                "failed_count_mismatch", "collected_count_mismatch",
+                "exit_status_mismatch"]
 
 
-@pytest.mark.parametrize("rc, records, verdict", CLASSIFY, ids=CLASSIFY_IDS)
-def test_the_runner_classifies_only_complete_clean_failures_as_red(rc, records, verdict):
-    assert _runner().classify(rc, INTENDED, records)[0] == verdict
+@pytest.mark.parametrize("rc, bundle, verdict", CLASSIFY, ids=CLASSIFY_IDS)
+def test_the_runner_classifies_only_complete_clean_failures_as_red(rc, bundle, verdict):
+    assert _runner().classify(rc, INTENDED, bundle)[0] == verdict
 
 
 def _scratch_mutant(tmp_path, tests, body):
@@ -1133,7 +1155,7 @@ def test_a_later_session_finish_abort_is_not_a_normal_end(tmp_path, capsys):
         "        pytest.exit('2 failed in a late hook', returncode=1)\n"))
     assert _runner().main(str(spec), root=root) == 1
     out = capsys.readouterr().out
-    assert "X1 INCONCLUSIVE(exit 1, no normal end)" in out and "NOT RED: X1" in out
+    assert "X1 INCONCLUSIVE(exit 1, session finish incomplete)" in out and "NOT RED: X1" in out
     assert (root / "target.py").read_text() == "value = 1\n"
 
 
@@ -1151,6 +1173,91 @@ def test_an_exit_after_the_last_report_is_still_an_interrupt(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "X1 INCONCLUSIVE(exit 1, interrupted)" in out and "NOT RED: X1" in out
     assert (root / "target.py").read_text() == "value = 1\n"
+
+
+def _two_failing(extra_conftest="", second_marker=""):
+    def body(r):
+        return _VAL + ("def test_first():\n    assert val() == 1\n"
+                       f"{second_marker}def test_second():\n    assert val() == 1\n")
+    return body
+
+
+def _inconclusive(tmp_path, capsys, conftest, body=None, expect=""):
+    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], body or _two_failing())
+    if conftest:
+        (root / "conftest.py").write_text(_VAL + conftest)
+    assert _runner().main(str(spec), root=root) == 1
+    out = capsys.readouterr().out
+    assert f"X1 INCONCLUSIVE(exit 1, {expect})" in out and "NOT RED: X1" in out, out
+    assert (root / "target.py").read_text() == "value = 1\n"
+
+
+def test_a_session_finish_wrapper_abort_is_not_a_normal_end(tmp_path, capsys):
+    """r6 R6-1: a conftest hook WRAPPER aborts after the inner session-finish hooks (and the old record) ran."""
+    _inconclusive(tmp_path, capsys, (
+        "@pytest.hookimpl(wrapper=True)\n"
+        "def pytest_sessionfinish(session, exitstatus):\n"
+        "    result = yield\n"
+        "    if val() != 1:\n"
+        "        pytest.exit('2 failed in a wrapper', returncode=1)\n"
+        "    return result\n"), expect="session finish incomplete")
+
+
+def test_a_tryfirst_wrapper_abort_is_still_seen(tmp_path, capsys):
+    """The sentinel is registered after collection, so even a conftest tryfirst wrapper runs inside it."""
+    _inconclusive(tmp_path, capsys, (
+        "@pytest.hookimpl(wrapper=True, tryfirst=True)\n"
+        "def pytest_sessionfinish(session, exitstatus):\n"
+        "    result = yield\n"
+        "    if val() != 1:\n"
+        "        pytest.exit('2 failed in a tryfirst wrapper', returncode=1)\n"
+        "    return result\n"), expect="session finish incomplete")
+
+
+def test_a_non_strict_xpass_is_not_a_kill(tmp_path, capsys):
+    """r6 R6-2: under the mutant the first test fails and an xfail-marked second test unexpectedly passes."""
+    body = lambda r: _VAL + ("def test_first():\n    assert val() == 1\n"
+                             "@pytest.mark.xfail(reason='expected')\n"
+                             "def test_second():\n    assert val() == 2\n")
+    _inconclusive(tmp_path, capsys, "", body=body, expect="marked xfail or skip")
+
+
+def test_a_runtime_xfail_is_not_a_kill(tmp_path, capsys):
+    """A test that declares itself xfail at run time keeps that status in the evidence."""
+    body = lambda r: _VAL + ("def test_first():\n    assert val() == 1\n"
+                             "def test_second(request):\n"
+                             "    request.applymarker(pytest.mark.xfail(reason='late'))\n"
+                             "    assert val() == 2\n")
+    _inconclusive(tmp_path, capsys, "", body=body, expect="xfail or skip")
+
+
+def test_a_plugin_registered_during_the_run_is_refused(tmp_path, capsys):
+    """A plugin registered after the sentinel could wrap it: the evidence is refused."""
+    body = lambda r: _VAL + ("def test_first(request):\n"
+                             "    request.config.pluginmanager.register(object(), 'late-object')\n"
+                             "    assert val() == 1\n"
+                             "def test_second():\n    assert val() == 1\n")
+    _inconclusive(tmp_path, capsys, "", body=body, expect="plugins registered late")
+
+
+def test_a_rewritten_report_is_refused(tmp_path, capsys):
+    """A conftest makereport wrapper turns the second test's real pass into a reported failure."""
+    body = lambda r: _VAL + ("def test_first():\n    assert val() == 1\n"
+                             "def test_second():\n    pass\n")
+    _inconclusive(tmp_path, capsys, (
+        "@pytest.hookimpl(wrapper=True)\n"
+        "def pytest_runtest_makereport(item, call):\n"
+        "    rep = yield\n"
+        "    if rep.when == 'call' and item.name == 'test_second' and val() != 1:\n"
+        "        rep.outcome = 'failed'\n"
+        "    return rep\n"), body=body, expect="report mismatch")
+
+
+def test_an_unconfigure_abort_leaves_no_evidence(tmp_path, capsys):
+    _inconclusive(tmp_path, capsys, (
+        "def pytest_unconfigure(config):\n"
+        "    if val() != 1:\n"
+        "        pytest.exit('2 failed at unconfigure', returncode=1)\n"), expect="no normal end")
 
 
 def test_the_runner_refuses_options_in_a_named_test_list(tmp_path, capsys):

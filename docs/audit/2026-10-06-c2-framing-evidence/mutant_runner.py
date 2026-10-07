@@ -1,22 +1,27 @@
-"""Mutant ledger runner (C2 framing screen; revised after reviews r1 to r5).
+"""Mutant ledger runner (C2 framing screen; redesigned after review r6, Eric's row C2-framing-review-r7).
 
 Each mutant's named tests are its intended set: before mutating, `pytest --collect-only` on the unmutated source lists
-exactly the nodes they select. Outcomes and the session's end come from pytest itself, never from its text output
-(r4 R4-2, r5 R5-1): a small plugin loaded with `-p` records, to a private file the runner creates,
-- every test report (node id, phase, outcome);
-- a failed collection report;
-- pytest's interrupt hook (`pytest.exit`, KeyboardInterrupt) and its internal-error hook;
-- at `pytest_sessionfinish`, run last, pytest's own exit status and its collected and failed counters. Its absence means
-  the session did not finish normally (an abort before it, or another session-finish hook stopping it).
-Printed or captured output cannot add any of these.
+exactly the nodes they select. The mutated run is a DRIVER process that calls `pytest.main()` in-process and writes its
+evidence only after `pytest.main` returns, so an abort anywhere in the session, including unconfiguration, leaves no
+evidence (r5 R5-1, r6 R6-1). Outcomes never come from pytest's text output (r4 R4-2). The evidence:
+- a recorder plugin (passed to `pytest.main`) keeps every test report (node id, phase, outcome and its expected-failure
+  status `wasxfail`, r6 R6-2), failed collection, and pytest's interrupt and internal-error hooks;
+- at `pytest_collection_finish`, after every conftest is loaded, the recorder registers a SENTINEL plugin whose hooks are
+  `tryfirst` wrappers. Pluggy calls the last-registered tryfirst wrapper outermost, so the sentinel's
+  `pytest_sessionfinish` wrapper sees any inner hook or wrapper abort (r6 R6-1), and its `pytest_runtest_call` wrapper
+  records what each test call itself raised, independently of the reports built from it;
+- the plugins registered after the sentinel (any could wrap it), and the intended nodes carrying an xfail, skip or skipif
+  marker.
 
 A mutant is RED only when all of these hold:
-- the session-finish record exists, and there is no interrupt, internal error or collection error;
-- no setup or teardown failed, and nothing was skipped (r2 R2-4);
-- every intended node has its own setup, call and teardown reports, the call PASSED or FAILED, and no node outside the
-  intended set ran (r3 R3-4; r5 R5-1: a teardown cut short leaves the node incomplete);
-- pytest's counters agree with the reports: collected = the intended nodes, failed = the failed calls, and its exit
-  status = the process return code;
+- the driver's evidence exists and its pytest exit status is the process return code;
+- no interrupt, internal error or collection error; the sentinel's session finish completed; no plugin was registered
+  after the sentinel;
+- no intended node is marked xfail/skip/skipif, and no report is skipped, xfailed or xpassed (r6 R6-2);
+- no setup or teardown failed; every intended node has its own setup, call and teardown reports; no unintended node ran;
+- every intended call report's outcome agrees with what the sentinel saw the call do (a rewritten or fabricated report
+  is refused);
+- pytest's counters agree: collected = the intended nodes, failed = the failed calls, exit status = the return code;
 - the exit status is 1 and at least one intended node FAILED.
 A complete clean pass (exit status 0) is SURVIVED; anything else is INCONCLUSIVE.
 
@@ -24,9 +29,8 @@ Inherited selection and early-stop options cannot apply: `PYTEST_ADDOPTS` is rem
 both the collection and the run, and a named test list holding any option is INVALID before anything is mutated. The
 runner's root (default: this repository) is pytest's rootdir and working directory, so collection stays inside it.
 
-Out of scope, stated: test code that deliberately tampers with the runner's private records file or with pytest's
-internals from inside the run. The runner certifies against incomplete, interrupted or misreported execution, not
-against a test suite written to attack it.
+Out of scope, stated: test code that deliberately tampers with the runner's own objects, its evidence file or pytest's
+internals (for example unregistering the sentinel, or editing another report's attributes) from inside the run.
 
 Every failure is printed; the file is restored by hash after each mutant; the runner exits 1 if any mutant is not RED.
 Spec JSON: [{"id", "rule", "file", "old", "new", "tests": [...]}]; "old" must occur exactly once; "file" and "tests" are
@@ -35,36 +39,82 @@ import hashlib, json, os, subprocess, sys, tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
-PLUGIN = '''import json, os
+DRIVER = '''import json, sys
 import pytest
-_f = None
-def _write(rec):
-    _f.write(json.dumps(rec) + "\\n")
-    _f.flush()
-def pytest_configure(config):
-    global _f
-    _f = open(os.environ["FRAMING_RUNNER_RECORDS"], "x")
-def pytest_collectreport(report):
-    if report.failed:
-        _write({"collecterror": report.nodeid})
-def pytest_runtest_logreport(report):
-    _write({"node": report.nodeid, "when": report.when, "outcome": report.outcome})
-def pytest_keyboard_interrupt(excinfo):
-    _write({"interrupted": excinfo.typename})
-def pytest_internalerror(excrepr, excinfo):
-    _write({"internalerror": excinfo.typename})
-@pytest.hookimpl(trylast=True)
-def pytest_sessionfinish(session, exitstatus):
-    _write({"session": {"exitstatus": int(exitstatus), "testsfailed": int(session.testsfailed),
-                        "testscollected": int(session.testscollected)}})
-def pytest_unconfigure(config):
-    if _f is not None and not _f.closed:
-        _f.close()
+
+class Sentinel:
+    def __init__(self):
+        self.calls, self.finish = {}, None
+
+    @pytest.hookimpl(wrapper=True, tryfirst=True)
+    def pytest_runtest_call(self, item):
+        try:
+            result = yield
+        except BaseException as e:
+            self.calls[item.nodeid] = type(e).__name__
+            raise
+        self.calls[item.nodeid] = None
+        return result
+
+    @pytest.hookimpl(wrapper=True, tryfirst=True)
+    def pytest_sessionfinish(self, session, exitstatus):
+        try:
+            result = yield
+        except BaseException as e:
+            self.finish = {"raised": type(e).__name__}
+            raise
+        self.finish = {"exitstatus": int(session.exitstatus), "testsfailed": int(session.testsfailed),
+                       "testscollected": int(session.testscollected)}
+        return result
+
+class Recorder:
+    def __init__(self):
+        self.records, self.sentinel, self.config, self.at_sentinel, self.marked = [], None, None, None, []
+
+    def pytest_configure(self, config):
+        self.config = config
+
+    def pytest_collectreport(self, report):
+        if report.failed:
+            self.records.append({"collecterror": report.nodeid})
+
+    def pytest_collection_finish(self, session):
+        self.marked = [i.nodeid for i in session.items
+                       if any(i.get_closest_marker(m) for m in ("xfail", "skip", "skipif"))]
+        self.sentinel = Sentinel()
+        session.config.pluginmanager.register(self.sentinel, "framing-runner-sentinel")
+        self.at_sentinel = {id(p) for p in session.config.pluginmanager.get_plugins()}
+
+    def pytest_runtest_logreport(self, report):
+        self.records.append({"node": report.nodeid, "when": report.when, "outcome": report.outcome,
+                             "wasxfail": hasattr(report, "wasxfail")})
+
+    def pytest_keyboard_interrupt(self, excinfo):
+        self.records.append({"interrupted": excinfo.typename})
+
+    def pytest_internalerror(self, excrepr, excinfo):
+        self.records.append({"internalerror": excinfo.typename})
+
+out, args = sys.argv[1], sys.argv[2:]
+rec = Recorder()
+rc = int(pytest.main(args, plugins=[rec]))
+late = None
+if rec.at_sentinel is not None:
+    late = len({id(p) for p in rec.config.pluginmanager.get_plugins()} - rec.at_sentinel)
+evidence = {"rc": rc, "records": rec.records, "calls": rec.sentinel.calls if rec.sentinel else {},
+            "finish": rec.sentinel.finish if rec.sentinel else None, "late_plugins": late, "marked": rec.marked}
+with open(out, "x") as f:
+    json.dump(evidence, f)
+sys.exit(rc)
 '''
 
 
 def _pytest(root: Path, *args) -> list[str]:
-    return [sys.executable, "-B", "-m", "pytest", f"--rootdir={root}", "-o", "addopts=", "-p", "no:cacheprovider", *args]
+    return [sys.executable, "-B", "-m", "pytest", *_args(root, *args)]
+
+
+def _args(root: Path, *args) -> list[str]:
+    return [f"--rootdir={root}", "-o", "addopts=", "-p", "no:cacheprovider", *args]
 
 
 def _env(extra: dict | None = None) -> dict:
@@ -74,29 +124,37 @@ def _env(extra: dict | None = None) -> dict:
     return env
 
 
-def classify(returncode: int, intended, records: list[dict]) -> tuple[str, list]:
-    """The verdict from pytest's own reports and session record (`records`); text output is never consulted."""
+def classify(returncode: int, intended, bundle: dict | None) -> tuple[str, list]:
+    """The verdict from the driver's evidence (`bundle`); text output is never consulted."""
+    tag = f"exit {returncode}"
+    if bundle is None:
+        return f"INCONCLUSIVE({tag}, no normal end)", []
+    records = bundle.get("records") or []
     reports = [r for r in records if "node" in r]
-    sessions = [r["session"] for r in records if "session" in r]
     phases = {}
     for r in reports:
         phases.setdefault(r["node"], {})[r["when"]] = r["outcome"]
-    calls = {n: ph["call"] for n, ph in phases.items() if "call" in ph}
-    failed = sorted(n for n, o in calls.items() if o == "failed")
-    passed = sorted(n for n, o in calls.items() if o == "passed")
-    tag = f"exit {returncode}"
+    failed = sorted(n for n, ph in phases.items() if ph.get("call") == "failed")
+    passed = sorted(n for n, ph in phases.items() if ph.get("call") == "passed")
+    calls, finish = bundle.get("calls") or {}, bundle.get("finish")
+    if bundle.get("rc") != returncode:
+        return f"INCONCLUSIVE({tag}, exit mismatch)", failed
     if any("interrupted" in r for r in records):
         return f"INCONCLUSIVE({tag}, interrupted)", failed
     if any("internalerror" in r for r in records):
         return f"INCONCLUSIVE({tag}, internal error)", failed
     if any("collecterror" in r for r in records):
         return f"INCONCLUSIVE({tag}, collection errors)", failed
-    if len(sessions) != 1:
-        return f"INCONCLUSIVE({tag}, no normal end)", failed
+    if not isinstance(finish, dict) or "raised" in finish:
+        return f"INCONCLUSIVE({tag}, session finish incomplete)", failed
+    if bundle.get("late_plugins") != 0:
+        return f"INCONCLUSIVE({tag}, plugins registered late)", failed
+    if set(bundle.get("marked") or []) & set(intended):
+        return f"INCONCLUSIVE({tag}, marked xfail or skip)", failed
+    if any(r["outcome"] == "skipped" or r.get("wasxfail") for r in reports):
+        return f"INCONCLUSIVE({tag}, xfail or skip)", failed
     if any(r["when"] != "call" and r["outcome"] == "failed" for r in reports):
         return f"INCONCLUSIVE({tag}, errors)", failed
-    if any(r["outcome"] == "skipped" for r in reports):
-        return f"INCONCLUSIVE({tag}, skipped)", failed
     missing = set(intended) - set(failed) - set(passed)
     if missing:
         return f"INCONCLUSIVE({tag}, {len(missing)} not run)", failed
@@ -106,9 +164,10 @@ def classify(returncode: int, intended, records: list[dict]) -> tuple[str, list]
     unintended = set(phases) - set(intended)
     if unintended:
         return f"INCONCLUSIVE({tag}, {len(unintended)} unintended)", failed
-    sess = sessions[0]
-    if (sess["testscollected"] != len(intended) or sess["testsfailed"] != len(failed)
-            or sess["exitstatus"] != returncode):
+    if any(n not in calls or (calls[n] is not None) != (n in failed) for n in intended):
+        return f"INCONCLUSIVE({tag}, report mismatch)", failed
+    if (finish.get("testscollected") != len(intended) or finish.get("testsfailed") != len(failed)
+            or finish.get("exitstatus") != returncode):
         return f"INCONCLUSIVE({tag}, session mismatch)", failed
     if returncode == 1 and failed:
         return "RED", failed
@@ -126,22 +185,19 @@ def collect(root: Path, tests: list[str]) -> list[str] | None:
 
 
 def run_mutant(root: Path, tests: list[str]):
-    """Run the named tests with the recording plugin. Returns (returncode, stdout, records)."""
+    """Run the named tests under the driver. Returns (returncode, stdout, evidence or None)."""
     work = Path(tempfile.mkdtemp(prefix="framing-runner-"))
-    (work / "framing_runner_plugin.py").write_text(PLUGIN)
-    records_path = work / "records.jsonl"
-    path = [str(work)] + ([os.environ["PYTHONPATH"]] if os.environ.get("PYTHONPATH") else [])
-    env = _env({"FRAMING_RUNNER_RECORDS": str(records_path), "PYTHONPATH": os.pathsep.join(path)})
-    r = subprocess.run(_pytest(root, "-q", "-p", "framing_runner_plugin", *tests), cwd=root, env=env,
-                       capture_output=True, text=True)
-    records = []
-    if records_path.is_file():
-        for line in records_path.read_text().splitlines():
-            try:
-                records.append(json.loads(line))
-            except ValueError:
-                records.append({"unparsable": line})
-    return r.returncode, r.stdout, records
+    (work / "framing_runner_driver.py").write_text(DRIVER)
+    evidence = work / "evidence.json"
+    r = subprocess.run([sys.executable, "-B", str(work / "framing_runner_driver.py"), str(evidence),
+                        *_args(root, "-q", *tests)], cwd=root, env=_env(), capture_output=True, text=True)
+    bundle = None
+    if evidence.is_file():
+        try:
+            bundle = json.loads(evidence.read_text())
+        except ValueError:
+            bundle = None
+    return r.returncode, r.stdout, bundle
 
 
 def main(spec: str, only: str | None = None, *, root: Path = REPO) -> int:
@@ -162,8 +218,8 @@ def main(spec: str, only: str | None = None, *, root: Path = REPO) -> int:
             print(m["id"], "INVALID: the named tests do not collect", flush=True); bad.append(m["id"]); continue
         f.write_text(s.replace(m["old"], m["new"]))
         try:
-            rc, out, records = run_mutant(root, m["tests"])
-            verdict, failed = classify(rc, intended, records)
+            rc, out, bundle = run_mutant(root, m["tests"])
+            verdict, failed = classify(rc, intended, bundle)
             print(m["id"], verdict, (out.strip().splitlines() or ["?"])[-1], f"[{len(intended)} intended]", flush=True)
             for node in failed:
                 print("    FAILED " + node[:300], flush=True)

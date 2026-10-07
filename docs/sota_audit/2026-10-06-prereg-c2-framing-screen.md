@@ -1,12 +1,13 @@
-# C2 side item (e): catcher-grouped framing screen, stage one — pre-registration (revision 6)
+# C2 side item (e): catcher-grouped framing screen, stage one — pre-registration (revision 7)
 
 **Status:**
-- Revision 6, for review round 6 (Eric, row **C2-framing-review-r6**, under the full review rules; no seventh round without a new ruling). Rounds 4 and 5 were authorized by rows **C2-framing-review-r4** and **-r5**.
+- Revision 7, for review round 7 (Eric, row **C2-framing-review-r7**, under the full review rules with a redesigned mutant runner; no eighth round without a new ruling). Rounds 4 to 6 were authorized by rows **C2-framing-review-r4**, **-r5** and **-r6**.
   - Revision 2 answered review r1 (`docs/audit/2026-10-06-c2-framing-codex-r1.md`, BLOCK B1–B7).
   - Revision 3 answered review r2 (`docs/audit/2026-10-06-c2-framing-codex-r2.md`, BLOCK R2-1 to R2-4).
   - Revision 4 answered review r3 (`docs/audit/2026-10-06-c2-framing-codex-r3.md`, BLOCK R3-1 to R3-4). Only the after-the-run checks and the mutant runner changed. The run's computation, inputs, labels, settings and variants did not.
   - Revision 5 answered review r4 (`docs/audit/2026-10-06-c2-framing-codex-r4.md`, BLOCK R4-1 to R4-3). Again only the after-the-run checks and the mutant runner changed.
-  - Revision 6 answers review r5 (`docs/audit/2026-10-07-c2-framing-codex-r5.md`, BLOCK R5-1; nonblocking R5-2). The mutant runner's end-of-session evidence changes, and two small validator refusals are added. Nothing in the run changes.
+  - Revision 6 answered review r5 (`docs/audit/2026-10-07-c2-framing-codex-r5.md`, BLOCK R5-1; nonblocking R5-2). The mutant runner's end-of-session evidence changed, and two small validator refusals were added.
+  - Revision 7 answers review r6 (`docs/audit/2026-10-07-c2-framing-codex-r6.md`, BLOCK R6-1, R6-2), both in the mutant runner, which is redesigned (evidence README, revision 7). Nothing in the run or its validator changes.
 - The note is frozen at the reviewed commit once signed.
 - Nothing runs before three things: a plain SIGN, the exposure row X-35, and the admission record.
 
