@@ -1,0 +1,2762 @@
+[
+ {
+  "id": "F1",
+  "rule": "feature: strictly earlier dates",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "lambda x: x.shift(1).expanding(min_periods=5).mean()",
+  "new": "lambda x: x.shift(0).expanding(min_periods=5).mean()",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_framing_by_any_key_matches_an_independent_reference",
+   "tests/scripts/c2_framing/test_screen.py::test_the_feature_uses_only_strictly_earlier_dates"
+  ]
+ },
+ {
+  "id": "F2",
+  "rule": "feature: min_periods 5",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "x.shift(1).expanding(min_periods=5)",
+  "new": "x.shift(1).expanding(min_periods=4)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_framing_by_any_key_matches_an_independent_reference"
+  ]
+ },
+ {
+  "id": "F3",
+  "rule": "feature: per (key, date) daily mean",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "date_framing = df.groupby([key, \"date\"])[\"pa_borderline_csr\"].mean().reset_index()",
+  "new": "date_framing = df.groupby([key, \"date\"])[\"pa_borderline_csr\"].max().reset_index()",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_framing_by_any_key_matches_an_independent_reference"
+  ]
+ },
+ {
+  "id": "F4",
+  "rule": "self-check: NaN-equal comparison",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "np.array_equal(a, b, equal_nan=True)",
+  "new": "np.array_equal(a, b, equal_nan=False)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_self_check_compares_against_the_production_pitcher_feature"
+  ]
+ },
+ {
+  "id": "F5",
+  "rule": "variant A replaces in place",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "return [NEW_COL if c == OLD_COL else c for c in FEATURE_COLS]",
+  "new": "return [c for c in FEATURE_COLS if c != OLD_COL] + [NEW_COL]",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_variant_bases"
+  ]
+ },
+ {
+  "id": "F6",
+  "rule": "variant B appends",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "return list(FEATURE_COLS) + [NEW_COL]",
+  "new": "return list(FEATURE_COLS)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_variant_bases"
+  ]
+ },
+ {
+  "id": "F7",
+  "rule": "configs keep their extras",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "out.append((name, base + extras, config[2]) if len(config) == 3 else (name, base + extras))",
+  "new": "out.append((name, base, config[2]) if len(config) == 3 else (name, base))",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_blend_configs_rewrite_the_base_and_keep_each_configs_extras"
+  ]
+ },
+ {
+  "id": "F8",
+  "rule": "disposition: practical size",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "PRACTICAL_MIN = 0.003",
+  "new": "PRACTICAL_MIN = 0.0",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_not_positive[rows1-below the practical size]"
+  ]
+ },
+ {
+  "id": "F9",
+  "rule": "disposition: t threshold",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "T_MIN = 1.5  ",
+  "new": "T_MIN = 0.0  ",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_not_positive[rows2-t below 1.5]"
+  ]
+ },
+ {
+  "id": "F10",
+  "rule": "disposition: majority of passes",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "and passes >= majority:",
+  "new": "and passes >= 1:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_not_positive[rows3-a minority of passes]"
+  ]
+ },
+ {
+  "id": "F11",
+  "rule": "disposition: negative needs a minority of passes",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "elif m <= 0 and passes < majority:",
+  "new": "elif m <= 0:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_non_positive_mean_with_passing_seeds_is_inconclusive_not_negative"
+  ]
+ },
+ {
+  "id": "F12",
+  "rule": "disposition: both seasons above zero",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "if all(v > 0 for v in mean_by_season.values()) and",
+  "new": "if any(v > 0 for v in mean_by_season.values()) and",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_not_positive[rows0-one season's mean not above zero (every other rule met)]"
+  ]
+ },
+ {
+  "id": "F13",
+  "rule": "basis: estimated_pa",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "BASIS = \"estimated_pa\"",
+  "new": "BASIS = \"actual_pa\"",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_pre_registered_constants",
+   "tests/scripts/c2_framing/test_screen.py::test_run_end_to_end",
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[basis]"
+  ]
+ },
+ {
+  "id": "F14",
+  "rule": "inputs: 2017-2025 only",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "SEASONS_IN = tuple(range(2017, 2026))",
+  "new": "SEASONS_IN = tuple(range(2017, 2027))",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_pre_registered_constants",
+   "tests/scripts/c2_framing/test_screen.py::test_load_inputs_reads_only_the_pinned_files_from_their_hashed_bytes"
+  ]
+ },
+ {
+  "id": "F15",
+  "rule": "seeds: canonical-n10 positions 0-2",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "STAGE_ONE_SEEDS = (2273360, 260991262, 1746737973)",
+  "new": "STAGE_ONE_SEEDS = (2273360, 260991262, 42)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_pre_registered_constants",
+   "tests/scripts/c2_framing/test_screen.py::test_run_refuses_without_the_deterministic_flag_or_a_stage_one_seed",
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_a_foreign_seed"
+  ]
+ },
+ {
+  "id": "F16",
+  "rule": "retrain every 7",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "RETRAIN_EVERY = 7",
+  "new": "RETRAIN_EVERY = 14",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_pre_registered_constants",
+   "tests/scripts/c2_framing/test_screen.py::test_run_end_to_end"
+  ]
+ },
+ {
+  "id": "F17",
+  "rule": "first-unit stop boundary",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "return cpu_s > FIRST_UNIT_STOP_CPU_H * 3600",
+  "new": "return cpu_s >= FIRST_UNIT_STOP_CPU_H * 3600",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_first_unit_stop"
+  ]
+ },
+ {
+  "id": "F18",
+  "rule": "inputs: the hashed bytes",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "raw, _ = A.read_pinned(data_dir / f\"pa_{s}.parquet\", pins[f\"pa_{s}.parquet\"])",
+  "new": "raw = (data_dir / f\"pa_{s}.parquet\").read_bytes()",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_load_inputs_reads_only_the_pinned_files_from_their_hashed_bytes"
+  ]
+ },
+ {
+  "id": "F19",
+  "rule": "run: deterministic flag required",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "if os.environ.get(\"BTS_LGBM_DETERMINISTIC\") != \"1\":",
+  "new": "if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_run_refuses_without_the_deterministic_flag_or_a_stage_one_seed"
+  ]
+ },
+ {
+  "id": "F20",
+  "rule": "run: the seed reaches LightGBM",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    os.environ[\"BTS_LGBM_RANDOM_STATE\"] = str(seed)\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_run_end_to_end"
+  ]
+ },
+ {
+  "id": "F21",
+  "rule": "run: the self-check stops the run",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    if not check[\"identical\"]:\n",
+  "new": "    if False:\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_self_check_stops_the_run_before_any_walk_forward"
+  ]
+ },
+ {
+  "id": "F22",
+  "rule": "run: the first-unit stop",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "if len(units) == 1 and first_unit_stop(cpu):",
+  "new": "if False and first_unit_stop(cpu):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_an_expensive_first_walk_forward_stops_the_run"
+  ]
+ },
+ {
+  "id": "F23",
+  "rule": "run: one claim per seed",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        if A.claimed_runs(root, register):\n",
+  "new": "        if False:\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_second_run_of_the_same_seed_is_refused"
+  ]
+ },
+ {
+  "id": "F25",
+  "rule": "coverage: the test seasons",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "part = df.loc[df[\"season\"] == s, col]",
+  "new": "part = df[col]",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_run_end_to_end"
+  ]
+ },
+ {
+  "id": "F26",
+  "rule": "run: the deterministic flags reached LightGBM",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "if not (LGB_PARAMS.get(\"deterministic\") is True and LGB_PARAMS.get(\"force_row_wise\") is True):",
+  "new": "if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_run_refuses_when_lightgbm_params_lack_the_deterministic_flags"
+  ]
+ },
+ {
+  "id": "G1",
+  "rule": "aggregate: exactly three directories",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "if len(dirs) != len(STAGE_ONE_SEEDS) or len(set(dirs)) != len(dirs):",
+  "new": "if len(dirs) < 1 or len(set(dirs)) != len(dirs):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>0]",
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>1]"
+  ]
+ },
+ {
+  "id": "G2",
+  "rule": "aggregate: distinct directories",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "if len(dirs) != len(STAGE_ONE_SEEDS) or len(set(dirs)) != len(dirs):",
+  "new": "if len(dirs) != len(STAGE_ONE_SEEDS):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>2]"
+  ]
+ },
+ {
+  "id": "G3",
+  "rule": "aggregate: a stopped run refused",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    if (d / \"STOPPED.json\").exists():\n        raise RunInvalid(f\"{d}: a stopped run is not a complete seed\")\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[stopped]"
+  ],
+  "reanchored_rev3": true
+ },
+ {
+  "id": "G4",
+  "rule": "aggregate: the manifest binds the claim",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        \"claim binding\": man.get(\"claim_sha256\") == _sha(claim_bytes),",
+  "new": "        \"claim binding\": True,",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[claim_rewritten]"
+  ],
+  "reanchored_rev3": true
+ },
+ {
+  "id": "G5",
+  "rule": "aggregate: under its seed's claim root",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    if Path(d).resolve().parent != (out_root / f\"seed_{seed}\").resolve():",
+  "new": "    if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_runs_outside_the_canonical_namespace"
+  ],
+  "reanchored_rev3": true
+ },
+ {
+  "id": "G6",
+  "rule": "aggregate: stored summary recomputed from the diff",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        if _canon({k: held.get(k) for k in (\"p_at_1_delta\", \"passed\", \"secondary\")}) != _canon(",
+  "new": "        if False and _canon({k: held.get(k) for k in (\"p_at_1_delta\", \"passed\", \"secondary\")}) != _canon(",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[summary]"
+  ],
+  "reanchored_rev3": true,
+  "reanchored_rev4": true
+ },
+ {
+  "id": "G7",
+  "rule": "aggregate: exactly the registered seeds",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    if sorted(s for s in seeds if s is not None) != sorted(STAGE_ONE_SEEDS) or None in seeds:",
+  "new": "    if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_a_foreign_seed"
+  ],
+  "reanchored_rev3": true
+ },
+ {
+  "id": "G8",
+  "rule": "aggregate: runs agree on the input pins",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    for key in (\"identity\", \"input_pins\", \"inputs_digest\",",
+  "new": "    for key in (\"identity\", \"inputs_digest\",",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[pins_other]",
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_the_three_registered_seeds"
+  ],
+  "reanchored_rev3": true,
+  "equivalent": "validate_run checks each run's inputs_digest == pins_digest(input_pins), so runs that agree on inputs_digest agree on input_pins (barring a sha256 collision)"
+ },
+ {
+  "id": "G9",
+  "rule": "aggregate: equal HEADs are NOT required (a committed release moves it; r2 R2-1)",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    for key in (\"identity\", \"input_pins\", \"inputs_digest\",",
+  "new": "    for key in (\"head\", \"identity\", \"input_pins\", \"inputs_digest\",",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_seed1_release_lifecycle_aggregates_across_a_moved_head",
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_the_three_registered_seeds",
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_runs_of_different_identities"
+  ],
+  "reanchored_rev3": true
+ },
+ {
+  "id": "G10",
+  "rule": "disposition: exactly three seeds",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "if len(per_seed) != len(STAGE_ONE_SEEDS) or any(",
+  "new": "if not per_seed or any(",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_disposition_incomplete"
+  ]
+ },
+ {
+  "id": "G11",
+  "rule": "seed order: release required",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    if rel is None:\n        return False, f\"seeds 2-3 need Eric's release",
+  "new": "    if rel is None and False:\n        return False, f\"seeds 2-3 need Eric's release",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_seeds_two_and_three_are_refused_without_the_release",
+   "tests/scripts/c2_framing/test_screen.py::test_an_ericsson_source_does_not_release",
+   "tests/scripts/c2_framing/test_screen.py::test_launch_builds_the_launcher_command_with_the_seeds_budget"
+  ],
+  "reanchored_rev3": true
+ },
+ {
+  "id": "G12",
+  "rule": "seed order: seed 1's run validates (r2 R2-2)",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    try:\n        validate_run(runs[0], STAGE_ONE_SEEDS[0], out_root=out_root, identity=identity, pins=pins)\n    except RunInvalid as e:",
+  "new": "    try:\n        pass\n    except RunInvalid as e:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_an_empty_seed1_completion_does_not_release"
+  ],
+  "reanchored_rev3": true
+ },
+ {
+  "id": "G13",
+  "rule": "release: exactly the Eric token (r2 R2-2)",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "if not m or cells[3].split()[:1] != [\"Eric\"]:",
+  "new": "if not m or not cells[3].startswith(\"Eric\"):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_release_needs_the_exact_ruling_eric_and_a_positive_budget",
+   "tests/scripts/c2_framing/test_screen.py::test_an_ericsson_source_does_not_release"
+  ],
+  "reanchored_rev3": true
+ },
+ {
+  "id": "G14",
+  "rule": "release: the exact ruling",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    m = RELEASE_RE.match(cells[2].strip())\n",
+  "new": "    m = re.search(r\"(\\d+(?:\\.\\d+)?) CPU-hours\", cells[2])\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_release_needs_the_exact_ruling_eric_and_a_positive_budget"
+  ]
+ },
+ {
+  "id": "G15",
+  "rule": "seed order: the release names seed 1's run",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    if [d.name for d in runs] != [run_name]:",
+  "new": "    if not runs:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_release_naming_another_run_does_not_release"
+  ],
+  "reanchored_rev3": true
+ },
+ {
+  "id": "G16",
+  "rule": "labels: void rows dropped",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    p = p[p[\"actual_hit\"].notna()].copy()\n",
+  "new": "    p = p.fillna({\"actual_hit\": 0}).copy()\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_relabel_rebuilds_labels_and_drops_void_rows"
+  ]
+ },
+ {
+  "id": "G17",
+  "rule": "labels: ranks renumbered",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    p[\"rank\"] = p.groupby(\"date\").cumcount() + 1\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_relabel_rebuilds_labels_and_drops_void_rows"
+  ]
+ },
+ {
+  "id": "G18",
+  "rule": "labels: the resumed portion excluded",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    orig = filter_out_resumed_portion(df)\n",
+  "new": "    orig = df\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_original_portion_labels_exclude_the_resumed_portion",
+   "tests/scripts/c2_framing/test_screen.py::test_relabel_rebuilds_labels_and_drops_void_rows",
+   "tests/scripts/c2_framing/test_screen.py::test_run_end_to_end"
+  ]
+ },
+ {
+  "id": "G19",
+  "rule": "closed inputs: the live lookup replaced",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    C._build_probable_pitcher_lookup = _lookup\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_closed_inputs_replace_the_live_lookup_and_park_drag",
+   "tests/scripts/c2_framing/test_screen.py::test_run_end_to_end"
+  ]
+ },
+ {
+  "id": "G20",
+  "rule": "closed inputs: park drag bypassed",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    PD.attach_park_drag = _no_park_drag\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_closed_inputs_replace_the_live_lookup_and_park_drag"
+  ]
+ },
+ {
+  "id": "G21",
+  "rule": "closed inputs: the lookup restricted to the pinned games",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "keep = {str(k): cache[str(k)] for k in sorted({int(g) for g in game_pks}) if str(k) in cache}",
+  "new": "keep = dict(cache)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_freeze_lookup_keeps_only_the_given_games_canonically"
+  ]
+ },
+ {
+  "id": "G22",
+  "rule": "run: the feature settings checked",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    settings = check_settings()\n",
+  "new": "    settings = {}\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_run_end_to_end"
+  ]
+ },
+ {
+  "id": "G23",
+  "rule": "run: the frozen lookup read from its pin",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    lookup_raw, _ = A.read_pinned(inputs_dir / LOOKUP_NAME, adm[\"input_pins\"][LOOKUP_NAME])\n",
+  "new": "    lookup_raw = (inputs_dir / LOOKUP_NAME).read_bytes()\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_changed_frozen_lookup_is_refused"
+  ]
+ },
+ {
+  "id": "G24",
+  "rule": "run: profiles relabelled",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "            p, counts = relabel(p, labels)\n",
+  "new": "            counts = {\"changed\": 0, \"void_dropped\": 0}\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_run_end_to_end",
+   "tests/scripts/c2_framing/test_screen.py::test_profiles_carry_the_rebuilt_labels_not_the_walk_forwards",
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_the_three_registered_seeds"
+  ]
+ },
+ {
+  "id": "G25",
+  "rule": "run: the seed order enforced",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    ok, why, _ = seed_allowed(seed, register, out_root, identity=identity, pins=adm[\"input_pins\"])\n    if not ok:",
+  "new": "    ok, why, _ = seed_allowed(seed, register, out_root, identity=identity, pins=adm[\"input_pins\"])\n    if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_seeds_two_and_three_are_refused_without_the_release",
+   "tests/scripts/c2_framing/test_screen.py::test_an_ericsson_source_does_not_release",
+   "tests/scripts/c2_framing/test_screen.py::test_an_empty_seed1_completion_does_not_release"
+  ],
+  "reanchored_rev3": true
+ },
+ {
+  "id": "G26",
+  "rule": "launch: seed 1's declared budget",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "return True, \"seed 1\", SEED1_BUDGET_CPU_H",
+  "new": "return True, \"seed 1\", 100.0",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_launch_builds_the_launcher_command_with_the_seeds_budget"
+  ]
+ },
+ {
+  "id": "G27",
+  "rule": "launch: the seed order enforced",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "                                   pins=adm.get(\"input_pins\"))\n    if not ok:",
+  "new": "                                   pins=adm.get(\"input_pins\"))\n    if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_launch_builds_the_launcher_command_with_the_seeds_budget"
+  ],
+  "reanchored_rev3": true
+ },
+ {
+  "id": "G28",
+  "rule": "admission: the frozen lookup is a pinned input",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "INPUT_NAMES = tuple(f\"pa_{s}.parquet\" for s in SEASONS_IN) + (LOOKUP_NAME,)",
+  "new": "INPUT_NAMES = tuple(f\"pa_{s}.parquet\" for s in SEASONS_IN)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_admission_requires_exactly_the_ten_pins"
+  ]
+ },
+ {
+  "id": "G29",
+  "rule": "t: zero for a zero mean with zero spread",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "return math.inf if m > 0 else (-math.inf if m < 0 else 0.0)",
+  "new": "return math.inf if m >= 0 else -math.inf",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_t_edges"
+  ]
+ },
+ {
+  "id": "H1",
+  "rule": "release: a finite positive budget",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    if not (math.isfinite(budget) and budget > 0):",
+  "new": "    if not math.isfinite(budget):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_release_needs_the_exact_ruling_eric_and_a_positive_budget"
+  ]
+ },
+ {
+  "id": "H2",
+  "rule": "validate: the claim names this run and the code",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    if not (isinstance(claim, dict) and claim.get(\"run\") == d.name and isinstance(man, dict)\n            and claim.get(\"code\") == man.get(\"head\")):",
+  "new": "    if not isinstance(man, dict):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[claim_other_run]"
+  ]
+ },
+ {
+  "id": "H3",
+  "rule": "validate: the registered basis",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        \"basis\": man.get(\"basis\") == BASIS,",
+  "new": "        \"basis\": True,",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[basis]"
+  ]
+ },
+ {
+  "id": "H4",
+  "rule": "validate: the registered settings",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        \"settings\": man.get(\"feature_settings\") == SETTINGS,",
+  "new": "        \"settings\": True,",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[settings]"
+  ]
+ },
+ {
+  "id": "H5",
+  "rule": "validate: a complete accepted identity",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "                    and all(isinstance(ident.get(k), str) and ident.get(k) for k in IDENTITY_KEYS),",
+  "new": "                    and True,",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_validate_refuses_an_incomplete_identity_even_when_admitted"
+  ],
+  "reanchored_rev5": true
+ },
+ {
+  "id": "H6",
+  "rule": "validate: the ten pins",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        \"pins\": isinstance(pins_m, dict) and set(pins_m) == set(INPUT_NAMES)",
+  "new": "        \"pins\": True or set(pins_m) == set(INPUT_NAMES)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_validate_refuses_pins_other_than_the_ten_even_when_admitted"
+  ]
+ },
+ {
+  "id": "H7",
+  "rule": "validate: deterministic LightGBM params",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        \"lgb determinism\": lgb.get(\"deterministic\") is True and lgb.get(\"force_row_wise\") is True,",
+  "new": "        \"lgb determinism\": True,",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[deterministic]"
+  ]
+ },
+ {
+  "id": "H8",
+  "rule": "validate: the admitted identity (seed-1 release)",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        \"admitted identity\": isinstance(ident, dict) and {k: ident.get(k) for k in IDENTITY_KEYS}",
+  "new": "        \"admitted identity\": True or isinstance(ident, dict) and {k: ident.get(k) for k in IDENTITY_KEYS}",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_seed1_run_of_another_identity_does_not_release",
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[bogus_identity]"
+  ],
+  "reanchored_rev4": true
+ },
+ {
+  "id": "H9",
+  "rule": "validate: the six registered units",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    if not (isinstance(units, list) and [(u.get(\"variant\"), u.get(\"season\")) for u in units] == UNIT_ORDER):",
+  "new": "    if not isinstance(units, list):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[unit_missing]"
+  ]
+ },
+ {
+  "id": "H10",
+  "rule": "validate: P@1 reconciles profiles, scorecards and results",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        if (res.get(\"p_at_1_by_season\") or {}).get(v) != card[\"p_at_1_by_season\"]:",
+  "new": "        if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[results_p1]"
+  ],
+  "reanchored_rev4": true
+ },
+ {
+  "id": "H11",
+  "rule": "validate: each diff recomputed from the retained scorecards",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        if _canon(stored) != _canon(recomputed):",
+  "new": "        if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[diff_and_summary]"
+  ],
+  "reanchored_rev4": true
+ },
+ {
+  "id": "H12",
+  "rule": "aggregate: the runs agree on the accepted identity",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    for key in (\"identity\", \"input_pins\", \"inputs_digest\",",
+  "new": "    for key in (\"input_pins\", \"inputs_digest\",",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_runs_of_different_identities"
+  ],
+  "equivalent": "validate_run requires each run's identity to have exactly the five IDENTITY_KEYS (r4 R4-3) and each to equal the admission gate's trusted identity, so validated runs cannot disagree on identity over the validator's whole accepted domain"
+ },
+ {
+  "id": "H13",
+  "rule": "runner: a skip, xfail or xpass is never RED (r2 R2-4, r6 R6-2)",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if any(r[\"outcome\"] == \"skipped\" or r.get(\"wasxfail\") for r in reports):\n        return f\"INCONCLUSIVE({tag}, xfail or skip)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[skipped]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[xpass]"
+  ],
+  "reanchored_rev4": true,
+  "reanchored_rev5": true,
+  "reanchored_rev6": true,
+  "reanchored_rev7": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "N1",
+  "rule": "R3-1: each card equals a recomputation from its retained profiles",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        if _canon({k: x for k, x in card.items() if k != \"timestamp\"}) != _canon(",
+  "new": "        if False and _canon({k: x for k, x in card.items() if k != \"timestamp\"}) != _canon(",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[secondary_card]",
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[profile]"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N2",
+  "rule": "R3-1: the recomputation uses the registered scoring settings",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "card = json.loads(_canon(compute_full_scorecard(pd.concat(parts, ignore_index=True), **SCORING)))",
+  "new": "card = json.loads(_canon(compute_full_scorecard(pd.concat(parts, ignore_index=True))))",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_run_end_to_end"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N3",
+  "rule": "R3-1: the manifest's scoring settings checked",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        \"scoring\": man.get(\"scoring\") == SCORING,",
+  "new": "        \"scoring\": True,",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[scoring]"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N4",
+  "rule": "R3-1: the run records its scoring settings",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": " \"scoring\": dict(SCORING),",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_run_end_to_end"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N5",
+  "rule": "R3-1: the run scores with the registered settings",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    cards = {v: compute_full_scorecard(p, **SCORING) for v, p in profiles.items()}",
+  "new": "    cards = {v: compute_full_scorecard(p) for v, p in profiles.items()}",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_run_end_to_end"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N6",
+  "rule": "R3-1: the stored summary's secondary values checked",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "\"passed\": summary[\"passed\"], \"secondary\": secondary}):",
+  "new": "\"passed\": summary[\"passed\"], \"secondary\": held.get(\"secondary\")}):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[secondary_summary]"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N7",
+  "rule": "R3-2: each profile is its own season's evidence (whole check)",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "            if problem is not None:\n",
+  "new": "            if False:\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[season_duplicate]",
+   "tests/scripts/c2_framing/test_screen.py::test_a_seed1_run_without_2025_evidence_does_not_release"
+  ],
+  "added_rev4": true,
+  "reanchored_rev5": true
+ },
+ {
+  "id": "N8",
+  "rule": "R3-2: every row's season label is the unit's",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    if not (pd.api.types.is_integer_dtype(part[\"season\"]) and bool((part[\"season\"] == season).all())):",
+  "new": "    if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[season_mixed]"
+  ],
+  "added_rev4": true,
+  "reanchored_rev5": true
+ },
+ {
+  "id": "N9",
+  "rule": "R3-2: every row's date year is the unit's season",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    if not bool((years == season).all()):",
+  "new": "    if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[dates_other_year]"
+  ],
+  "added_rev4": true,
+  "reanchored_rev5": true
+ },
+ {
+  "id": "N10",
+  "rule": "R3-2: P@1 covers exactly the two test seasons",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        if sorted(card.get(\"p_at_1_by_season\") or {}) != seasons:",
+  "new": "        if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[no_top_pick]"
+  ],
+  "added_rev4": true,
+  "equivalent": "profile_problem requires each unit file to be non-empty, all of its own integer season, and to have ranks 1..n on every day, so both seasons have rank-1 rows and P@1 covers both: the coverage check cannot refuse anything profile_problem accepts (r4)"
+ },
+ {
+  "id": "N11",
+  "rule": "R3-3: the run HEAD is checked against the trusted identity",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    problems = head_admitted(repo, identity, man[\"head\"])",
+  "new": "    problems = []",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[foreign_head]",
+   "tests/scripts/c2_framing/test_screen.py::test_a_seed1_run_of_unadmitted_code_does_not_release"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N12",
+  "rule": "R3-3: the HEAD descends from the exposure commit",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    if not A._ancestor(repo, xc, head):",
+  "new": "    if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_head_admitted_requires_a_metadata_descendant_of_the_exposure"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N13",
+  "rule": "R3-3: the reviewed executable closure is unchanged at the HEAD",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "               if f != ADMISSION_REL]",
+  "new": "               if False]",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_head_admitted_requires_a_metadata_descendant_of_the_exposure"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N14",
+  "rule": "R3-3: the admission record is the only closure file that may change",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "               if f != ADMISSION_REL]",
+  "new": "               if True]",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_head_admitted_requires_a_metadata_descendant_of_the_exposure"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N15",
+  "rule": "R3-3: aggregate validates against the gate's identity, not the runs'",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "valid = [validate_run(d, s, out_root=out_root, identity=identity, pins=adm[\"input_pins\"])",
+  "new": "valid = [validate_run(d, s, out_root=out_root, identity=json.loads((d / \"manifest.json\").read_text())[\"identity\"], pins=adm[\"input_pins\"])",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[bogus_identity]"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N16",
+  "rule": "R3-3: the runs' pins equal the admitted pins",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        \"admitted pins\": pins_m == pins,",
+  "new": "        \"admitted pins\": True,",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[pins_other]"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "R1",
+  "rule": "R3-4: an error is never RED",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if any(r[\"when\"] != \"call\" and r[\"outcome\"] == \"failed\" for r in reports):\n        return f\"INCONCLUSIVE({tag}, errors)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[errors]"
+  ],
+  "added_rev4": true,
+  "reanchored_rev5": true,
+  "reanchored_rev6": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R2",
+  "rule": "R3-4/R4-2: an intended node without its own call report is never RED",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if missing:\n        return f\"INCONCLUSIVE({tag}, {len(missing)} not run)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[fail_fast]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_is_not_fooled_by_printed_outcomes"
+  ],
+  "added_rev4": true,
+  "reanchored_rev5": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R3",
+  "rule": "R3-4: inherited PYTEST_ADDOPTS removed",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    env = {k: v for k, v in os.environ.items() if not k.startswith((\"PYTHON\", \"PYTEST\"))}",
+  "new": "    env = dict(os.environ)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test",
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_environment_is_scrubbed"
+  ],
+  "added_rev4": true,
+  "moved_rev9": true,
+  "reanchored_rev9": true
+ },
+ {
+  "id": "R4",
+  "rule": "R3-4: options in a test list are INVALID",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        if options:\n",
+  "new": "        if False:\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_refuses_options_in_a_named_test_list"
+  ],
+  "added_rev4": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R5",
+  "rule": "R4-2: a node outside the intended set means a changed selection",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if unintended:\n        return f\"INCONCLUSIVE({tag}, {len(unintended)} unintended)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[unintended_node]"
+  ],
+  "added_rev4": true,
+  "reanchored_rev5": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "H14",
+  "rule": "R4-3: exactly the five identity fields",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": " and set(ident) == set(IDENTITY_KEYS)",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[identity_extra_key]"
+  ],
+  "added_rev5": true
+ },
+ {
+  "id": "N17",
+  "rule": "R4-1: no missing values in a scored column",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    if not all(bool(part[c].notna().all()) for c in SCORED_COLS):",
+  "new": "    if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[season_missing]",
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[rank_missing]",
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[hit_missing]"
+  ],
+  "added_rev5": true
+ },
+ {
+  "id": "N18",
+  "rule": "R4-1: ranks 1..n on every day",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        return \"ranks are not 1..n on every day\"\n",
+  "new": "        pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[ranks_not_from_one]",
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[no_top_pick]"
+  ],
+  "added_rev5": true
+ },
+ {
+  "id": "N19",
+  "rule": "R4-1: hits are 0/1",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        return \"hits are not 0/1\"\n",
+  "new": "        pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[hit_not_binary]"
+  ],
+  "added_rev5": true
+ },
+ {
+  "id": "N20",
+  "rule": "R4-1: probabilities in [0, 1]",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        return \"probabilities outside [0, 1]\"\n",
+  "new": "        pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[p_out_of_range]"
+  ],
+  "added_rev5": true
+ },
+ {
+  "id": "N21",
+  "rule": "R4-1: an empty unit is incomplete",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        return \"empty\"\n",
+  "new": "        pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[empty_unit]"
+  ],
+  "added_rev5": true
+ },
+ {
+  "id": "N22",
+  "rule": "R4-1: every scored column present",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        return f\"columns {absent} absent\"\n",
+  "new": "        pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[column_absent]"
+  ],
+  "added_rev5": true
+ },
+ {
+  "id": "R6",
+  "rule": "R6-1: without the driver's evidence (written after pytest.main returns) the session did not end normally",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if bundle is None:\n        return f\"INCONCLUSIVE({tag}, no normal end)\", []\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[no_evidence]",
+   "tests/scripts/c2_framing/test_screen.py::test_an_unconfigure_abort_leaves_no_evidence"
+  ],
+  "added_rev5": true,
+  "reanchored_rev6": true,
+  "reanchored_rev7": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R7",
+  "rule": "R5-1: pytest's own counters must agree with the reports (replaces the text cross-check)",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if (finish.get(\"testscollected\") != len(intended) or finish.get(\"testsfailed\") != len(failed)\n            or finish.get(\"exitstatus\") != returncode):\n",
+  "new": "    if False:\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[failed_count_mismatch]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[collected_count_mismatch]"
+  ],
+  "added_rev5": true,
+  "reanchored_rev6": true,
+  "reanchored_rev7": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R8",
+  "rule": "R6-1: the mutated run goes through the driver",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    return _drive(root, [\"-q\", *tests], overrides)\n",
+  "new": "    r = subprocess.run([*_python(), \"-m\", \"pytest\", *_args(root, \"-q\", *tests)], cwd=root, env=_env(),\n                       capture_output=True, text=True)\n    return r.returncode, r.stdout, None\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test"
+  ],
+  "added_rev5": true,
+  "reanchored_rev7": true,
+  "moved_rev9": true,
+  "reanchored_rev9": true,
+  "re_anchored_rev10": true
+ },
+ {
+  "id": "R9",
+  "rule": "R6-1: the sentinel records a completed session finish",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        self.finish = {\"exitstatus\": int(session.exitstatus), \"testsfailed\": int(session.testsfailed),\n                       \"testscollected\": int(session.testscollected)}\n",
+  "new": "        pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test"
+  ],
+  "added_rev5": true,
+  "reanchored_rev6": true,
+  "reanchored_rev7": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R10",
+  "rule": "R5-1: an interrupt (pytest.exit, KeyboardInterrupt) is never RED",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if any(\"interrupted\" in r for r in records):\n        return f\"INCONCLUSIVE({tag}, interrupted)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[interrupted]"
+  ],
+  "added_rev6": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R11",
+  "rule": "R5-1: the plugin records pytest's interrupt hook",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        self.records.append({\"interrupted\": excinfo.typename})\n",
+  "new": "        pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_an_exit_after_the_last_report_is_still_an_interrupt"
+  ],
+  "added_rev6": true,
+  "reanchored_rev7": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R12",
+  "rule": "R5-1: every intended node's setup and teardown reports are required",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if incomplete:\n        return f\"INCONCLUSIVE({tag}, {len(incomplete)} incomplete)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[teardown_cut_short]"
+  ],
+  "added_rev6": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R13",
+  "rule": "R5-1: an internal error is never RED",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if any(\"internalerror\" in r for r in records):\n        return f\"INCONCLUSIVE({tag}, internal error)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[internal_error]"
+  ],
+  "added_rev6": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R14",
+  "rule": "R5-1: a collection error is never RED",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if any(\"collecterror\" in r for r in records):\n        return f\"INCONCLUSIVE({tag}, collection errors)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[collection_error]"
+  ],
+  "added_rev6": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R15",
+  "rule": "R5-1: pytest's exit status must be the process return code",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "\n            or finish.get(\"exitstatus\") != returncode):\n",
+  "new": "):\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[exit_status_mismatch]"
+  ],
+  "added_rev6": true,
+  "reanchored_rev7": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R16",
+  "rule": "R6-1: the sentinel's session-finish wrapper is outermost (tryfirst, registered after collection)",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    @pytest.hookimpl(wrapper=True, tryfirst=True)\n    def pytest_sessionfinish(self, session, exitstatus):",
+  "new": "    @pytest.hookimpl(wrapper=True, trylast=True)\n    def pytest_sessionfinish(self, session, exitstatus):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_tryfirst_wrapper_abort_is_still_seen",
+   "tests/scripts/c2_framing/test_screen.py::test_a_session_finish_wrapper_abort_is_not_a_normal_end"
+  ],
+  "added_rev6": true,
+  "reanchored_rev7": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "N23",
+  "rule": "R5-2: probabilities must be numeric (never coerced)",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        return \"probabilities are not numeric\"",
+  "new": "        pass",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[p_strings]"
+  ],
+  "added_rev6": true
+ },
+ {
+  "id": "N24",
+  "rule": "R5-2: a rescoring failure is a refusal, not a crash",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        except Exception as e:                          # r5 R5-2: a refusal, never an unexpected exception\n",
+  "new": "        except ZeroDivisionError as e:\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_rescoring_failure_is_a_refusal_not_a_crash"
+  ],
+  "added_rev6": true
+ },
+ {
+  "id": "R17",
+  "rule": "R6-1: the sentinel is registered (after collection)",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        pm.register(self.sentinel, \"framing-runner-sentinel\")\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test"
+  ],
+  "added_rev7": true,
+  "moved_rev9": true,
+  "reanchored_rev9": true
+ },
+ {
+  "id": "R18",
+  "rule": "R6-1: a plugin registered after the sentinel is refused",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if bundle.get(\"late_plugins\") != 0:\n        return f\"INCONCLUSIVE({tag}, plugins registered late)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[late_plugin]",
+   "tests/scripts/c2_framing/test_screen.py::test_a_plugin_registered_during_the_run_is_refused"
+  ],
+  "added_rev7": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R19",
+  "rule": "R6-2: an xfail/skip/skipif-marked intended node is never a killer",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if set(bundle.get(\"marked\") or []) & set(intended):\n        return f\"INCONCLUSIVE({tag}, marked xfail or skip)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[marked]",
+   "tests/scripts/c2_framing/test_screen.py::test_a_non_strict_xpass_is_not_a_kill"
+  ],
+  "added_rev7": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R20",
+  "rule": "R6-2: each report keeps its expected-failure status",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "\"wasxfail\": hasattr(report, \"wasxfail\")})",
+  "new": "\"wasxfail\": False})",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_runtime_xfail_is_not_a_kill"
+  ],
+  "added_rev7": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R21",
+  "rule": "R6-1: report outcomes agree with the sentinel's own call observations",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if any(n not in calls or (calls[n] is not None) != (n in failed) for n in intended):\n        return f\"INCONCLUSIVE({tag}, report mismatch)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[report_flipped]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[call_unobserved]",
+   "tests/scripts/c2_framing/test_screen.py::test_a_rewritten_report_is_refused"
+  ],
+  "added_rev7": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R22",
+  "rule": "R6-1: the sentinel records what a failing call raised",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            self.calls[item.nodeid] = type(e).__name__\n",
+  "new": "            self.calls[item.nodeid] = None\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test"
+  ],
+  "added_rev7": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R23",
+  "rule": "R6-1: the evidence's exit status is the process return code",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if bundle.get(\"rc\") != returncode:\n        return f\"INCONCLUSIVE({tag}, exit mismatch)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[exit_mismatch]"
+  ],
+  "added_rev7": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R24",
+  "rule": "R6-1: an incomplete or aborted session finish is never RED",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if not isinstance(finish, dict) or \"raised\" in finish:\n        return f\"INCONCLUSIVE({tag}, session finish incomplete)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[finish_raised]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[finish_missing]",
+   "tests/scripts/c2_framing/test_screen.py::test_a_session_finish_wrapper_abort_is_not_a_normal_end"
+  ],
+  "added_rev7": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R25",
+  "rule": "R7-1: a registration after the sentinel is counted as an event",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            self.late_events += 1                        # an event: kept even if the plugin later unregisters\n",
+  "new": "            pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_late_registration_evidence_is_produced_and_retained",
+   "tests/scripts/c2_framing/test_screen.py::test_a_self_unregistering_late_wrapper_is_refused"
+  ],
+  "added_rev8": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R26",
+  "rule": "R7-1: the events count in the evidence",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    late = rec.late_events + len(",
+  "new": "    late = len(",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_late_registration_evidence_is_produced_and_retained"
+  ],
+  "added_rev8": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R27",
+  "rule": "R7-1: the sentinel checks it is outermost at session finish",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        self._outermost(self.pm.hook.pytest_sessionfinish, \"sessionfinish\")\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_an_outer_wrapper_without_a_registration_event_is_still_seen"
+  ],
+  "added_rev8": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R28",
+  "rule": "R7-1: the sentinel checks it is outermost at each test call",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        self._outermost(self.pm.hook.pytest_runtest_call, item.nodeid)\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_hidden_call_wrapper_is_seen"
+  ],
+  "added_rev8": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R29",
+  "rule": "R7-1: a sentinel that was not outermost is never RED",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if bundle.get(\"not_outermost\") != []:\n        return f\"INCONCLUSIVE({tag}, sentinel not outermost)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[not_outermost]",
+   "tests/scripts/c2_framing/test_screen.py::test_a_hidden_call_wrapper_is_seen"
+  ],
+  "added_rev8": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R30",
+  "rule": "R7-1: outermost means the hook's last implementation (pluggy calls it first)",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        if not impls or impls[-1].plugin is not self:",
+  "new": "        if not impls or impls[0].plugin is not self:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test"
+  ],
+  "added_rev8": true,
+  "moved_rev9": true
+ },
+ {
+  "id": "R31",
+  "rule": "r9: no ini setting applies (empty configuration file)",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "\"-c\", os.devnull, ",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runs_ignore_the_roots_ini_file",
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_environment_is_scrubbed"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R32",
+  "rule": "r9: conftests never load",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "\"--noconftest\", ",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runs_load_no_conftest",
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_environment_is_scrubbed"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R33",
+  "rule": "r9: inherited PYTHON* variables are scrubbed",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "not k.startswith((\"PYTHON\", \"PYTEST\"))",
+  "new": "not k.startswith(\"PYTEST\")",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_environment_is_scrubbed"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R34",
+  "rule": "r9: inherited PYTEST* variables are scrubbed",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "not k.startswith((\"PYTHON\", \"PYTEST\"))",
+  "new": "not k.startswith(\"PYTHON\")",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test",
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_environment_is_scrubbed"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R35",
+  "rule": "r9: entry-point plugins are off",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": ", PYTEST_DISABLE_PLUGIN_AUTOLOAD=\"1\")",
+  "new": ")",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_clean_run_has_no_foreign_plugins_and_no_plugin_changes",
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_environment_is_scrubbed"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R36",
+  "rule": "r9: bytecode is read from nowhere",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "PYTHONPYCACHEPREFIX=\"/dev/null/framing-runner\", ",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_environment_is_scrubbed"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R37",
+  "rule": "r9: bytecode is never written",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "PYTHONDONTWRITEBYTECODE=\"1\",",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_environment_is_scrubbed"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R38",
+  "rule": "r9: no script directory or user site on the path",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "return [sys.executable, \"-B\", \"-P\", \"-s\"]",
+  "new": "return [sys.executable, \"-B\"]",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_environment_is_scrubbed"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R39",
+  "rule": "r9 gate: imports only from the allowed modules",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                if a.name not in ALLOWED_MODULES:\n                    bad(node, f\"import {a.name}\")\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[import_unlisted]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[utf7_hidden_import]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R40",
+  "rule": "r9 gate: pytest only as `import pytest`",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                    if a.asname not in (None, \"pytest\"):\n                        bad(node, f\"pytest imported as {a.asname}\")\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[pytest_alias]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R41",
+  "rule": "r9 gate: a dotted import needs an alias",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                if \".\" in a.name and a.asname is None:\n                    bad(node, f\"import {a.name} without an alias\")\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[dotted_without_alias]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R42",
+  "rule": "r9 gate: an import cannot rebind a builtin",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                bind(node, a.asname or a.name)\n        elif isinstance(node, ast.ImportFrom):",
+  "new": "                pass\n        elif isinstance(node, ast.ImportFrom):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[import_rebinds_builtin]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R43",
+  "rule": "r9 gate: no relative import",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            if node.level:\n                bad(node, \"relative import\")\n",
+  "new": "            if False:\n                pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[relative_import]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R44",
+  "rule": "r9 gate: from-imports only from the allowed modules",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            elif node.module not in ALLOWED_MODULES:\n                bad(node, f\"import {node.module}\")\n",
+  "new": "            elif False:\n                pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[from_import_unlisted]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R45",
+  "rule": "r9 gate: from-imported names are allowed submodules or attributes",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                    if f\"{node.module}.{a.name}\" not in ALLOWED_MODULES and a.name not in names:",
+  "new": "                    if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[star_import]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[from_pytest]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R46",
+  "rule": "r9 gate: from pytest, only the pytest names",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "names = PYTEST_ATTRIBUTES if node.module == \"pytest\" else ALLOWED_ATTRIBUTES",
+  "new": "names = ALLOWED_ATTRIBUTES",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[from_pytest_main]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R47",
+  "rule": "r9 gate: a from-import cannot rebind a builtin",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                if a.name != \"*\":\n                    bind(node, a.asname or a.name)\n",
+  "new": "                pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[from_import_rebinds_builtin]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R48",
+  "rule": "r9 gate: assignments are checked bindings",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            if not isinstance(node.ctx, ast.Load):\n                bind(node, ident)\n",
+  "new": "            if not isinstance(node.ctx, ast.Load):\n                pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[builtin_rebind]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[dunder_assign]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[pytest_plugins]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[pytestmark]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[dunder_walrus]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R49",
+  "rule": "r9 gate: no pytest* or dunder binding",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        if ident.startswith(\"pytest\") or _dunder(ident):\n            bad(node, f\"name {ident}\")",
+  "new": "        if False:\n            pass",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[pytest_plugins]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[pytestmark]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[hook_function]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[module_getattr]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[dunder_assign]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R50",
+  "rule": "r9 gate: no builtin is rebound",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        elif ident in _BUILTIN_NAMES:\n            bad(node, f\"rebinds builtin {ident}\")",
+  "new": "        elif False:\n            pass",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[builtin_rebind]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[builtin_rebind_except]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R51",
+  "rule": "r9 gate: pytest only as pytest.<name>",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                if not (isinstance(up, ast.Attribute) and up.value is node):",
+  "new": "                if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[pytest_bare]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R52",
+  "rule": "r9 gate: no dunder name but __file__",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            elif _dunder(ident) and ident not in ALLOWED_DUNDER_NAMES:",
+  "new": "            elif False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[dunder_import]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[dunder_builtins]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[dunder_loader]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R53",
+  "rule": "r9 gate: builtins only from the allowed builtins",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            elif ident in _BUILTIN_NAMES and ident not in ALLOWED_BUILTINS:",
+  "new": "            elif False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[builtin_unlisted]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R54",
+  "rule": "r9 gate: pytest's attributes only from the pytest names",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                if node.attr not in PYTEST_ATTRIBUTES:\n                    bad(node, f\"pytest.{node.attr}\")",
+  "new": "                if False:\n                    pass",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[pytest_exit]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[pytest_main]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R55",
+  "rule": "r9 gate: attributes only from the allowed attributes",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            elif node.attr not in ALLOWED_ATTRIBUTES:\n                bad(node, f\"attribute {node.attr}\")",
+  "new": "            elif False:\n                pass",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[attribute_unlisted]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[dunder_attribute]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[frame_attribute]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[fstring_attribute]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[annotation_attribute]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[decorator_attribute]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R56",
+  "rule": "r9 gate: the dunder methods only inside a class",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                    and isinstance(parents.get(node), ast.ClassDef)):",
+  "new": "                    ):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[module_dunder_init]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R57",
+  "rule": "r9 gate: def and class names are checked bindings",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                bind(node, node.name)\n        elif isinstance(node, ast.arg):",
+  "new": "                pass\n        elif isinstance(node, ast.arg):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[hook_function]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[hook_method]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[module_getattr]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R58",
+  "rule": "r9 gate: parameters (fixtures) only from the allowed parameters",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            if node.arg not in ALLOWED_PARAMETERS:\n                bad(node, f\"parameter {node.arg}\")",
+  "new": "            if False:\n                pass",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[request_parameter]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[pytestconfig_parameter]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[lambda_parameter]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R59",
+  "rule": "r9 gate: an except name cannot rebind a builtin",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        elif isinstance(node, ast.ExceptHandler) and node.name:\n            bind(node, node.name)",
+  "new": "        elif isinstance(node, ast.ExceptHandler) and node.name:\n            pass",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[builtin_rebind_except]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R60",
+  "rule": "r9 gate: no match statement",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        elif isinstance(node, ast.Match):\n            bad(node, \"match statement\")",
+  "new": "        elif isinstance(node, ast.Match):\n            pass",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[match_statement]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R61",
+  "rule": "r9 gate: keywords only from the allowed keywords",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                if node.arg not in ALLOWED_KEYWORDS:\n                    bad(node, f\"keyword {node.arg}\")",
+  "new": "                if False:\n                    pass",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[keyword_unlisted]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[metaclass]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R62",
+  "rule": "r9 gate: ** only passes on the function's own ** parameter",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            passed_on = isinstance(node.value, ast.Name) and own is not None and node.value.id == own",
+  "new": "            passed_on = isinstance(node.value, ast.Name)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[keyword_splat]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R63",
+  "rule": "r9 gate: the passed-on ** parameter is never rebuilt",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                passed_on = all(isinstance(parents.get(n), ast.keyword) and parents[n].arg is None for n in uses)",
+  "new": "                passed_on = True",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[keyword_splat_rebuilt]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R64",
+  "rule": "r9 gate: any other ** is refused",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            if not passed_on:\n                bad(node, \"keyword splat\")",
+  "new": "            if False:\n                pass",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[keyword_splat]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[keyword_splat_rebuilt]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R65",
+  "rule": "r9 gate: setattr only as (object, literal name, value)",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            if (len(node.args) != 3 or any(isinstance(a, ast.Starred) for a in node.args)\n                    or not (isinstance(name, ast.Constant) and isinstance(name.value, str))):",
+  "new": "            if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[setattr_two_arguments]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[setattr_dynamic_name]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R66",
+  "rule": "r9 gate: setattr's literal name is an allowed attribute",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            elif name.value not in ALLOWED_ATTRIBUTES:\n                bad(node, f\"setattr name {name.value}\")",
+  "new": "            elif False:\n                pass",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[setattr_unlisted_name]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R67",
+  "rule": "r9 gate: parsed from the bytes, as Python will",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        tree = ast.parse(data, filename=filename)",
+  "new": "        tree = ast.parse(data.decode(\"latin-1\"), filename=filename)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[utf7_hidden_import]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R68",
+  "rule": "r9 gate: a file that does not parse is refused",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        return [f\"0: does not parse ({type(e).__name__})\"]",
+  "new": "        return []",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[syntax_error]"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R69",
+  "rule": "r9 gate: a named test outside the root is refused",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        if root not in p.parents:\n            problems.append(f\"{rel}: outside the root\")\n            continue\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_a_named_test_that_is_not_a_file_in_the_root"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R70",
+  "rule": "r9 gate: a named test must be a file",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        if not p.is_file():\n            problems.append(f\"{rel}: not a file\")\n            continue\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_a_named_test_that_is_not_a_file_in_the_root"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R71",
+  "rule": "r9 gate: the package initializers above a test are scanned",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            chain.append((d / \"__init__.py\").resolve())",
+  "new": "            pass",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_scans_each_package_initializer_above_the_test",
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_admits_the_real_suite_and_a_plain_scratch_suite"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R72",
+  "rule": "r9 gate: packages reaching above the root are refused",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            if d != root and root not in d.parents:\n                problems.append(f\"{rel}: its packages reach above the root\")\n                break\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_packages_that_reach_above_the_root"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R73",
+  "rule": "r9 gate: the mutated bytes of a suite file are scanned",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        data = (overrides or {}).get(f)",
+  "new": "        data = None",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_gate_scans_the_mutated_bytes_of_a_suite_file"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R74",
+  "rule": "r9: main gates every mutant",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        problems = scope_problems(root, m[\"tests\"], {f: mutated})",
+  "new": "        problems = []",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_refuses_an_out_of_scope_suite_before_running_it"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R75",
+  "rule": "r9: a refused mutant is never collected or run",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            print(m[\"id\"], \"REFUSED: outside the runner's scope:\", \"; \".join(problems[:8]), flush=True)\n            bad.append(m[\"id\"]); continue",
+  "new": "            print(m[\"id\"], \"REFUSED: outside the runner's scope:\", \"; \".join(problems[:8]), flush=True)\n            bad.append(m[\"id\"])",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_refuses_an_out_of_scope_suite_before_running_it"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R76",
+  "rule": "r9 scan: a change is a ctime at or after the ledger's start",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                if path not in skip and os.lstat(path).st_ctime_ns >= t0:",
+  "new": "                if path not in skip and os.lstat(path).st_ctime_ns < t0:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_change_scan_reports_changed_new_and_removed_entries"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R77",
+  "rule": "r9 scan: only the exempt (target) paths are skipped",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                if path not in skip and os.lstat(path).st_ctime_ns >= t0:",
+  "new": "                if os.lstat(path).st_ctime_ns >= t0:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_change_scan_reports_changed_new_and_removed_entries",
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R78",
+  "rule": "r9 scan: directories are checked (removed entries)",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            for path in [dirpath] + [os.path.join(dirpath, n) for n in dirnames + filenames]:",
+  "new": "            for path in [os.path.join(dirpath, n) for n in filenames]:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_change_scan_reports_changed_new_and_removed_entries"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R79",
+  "rule": "r9 scan: an unlistable directory is reported",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "onerror=lambda e: changed.add(str(e.filename))",
+  "new": "onerror=None",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_an_unlistable_directory_is_reported"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R80",
+  "rule": "r9 scan: nested roots are scanned once",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        if not any(c == r or c.startswith(r + os.sep) for r in out):",
+  "new": "        if True:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_scan_roots_cover_the_root_and_the_interpreters_trees"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R81",
+  "rule": "r9 scan: the root is scanned",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    for c in sorted({os.path.realpath(root), *interpreter_trees()}):",
+  "new": "    for c in sorted({*interpreter_trees()}):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_scan_roots_cover_the_root_and_the_interpreters_trees",
+   "tests/scripts/c2_framing/test_screen.py::test_a_file_written_into_the_root_during_the_run_refuses_it"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R82",
+  "rule": "r9 scan: the interpreter's import path is scanned",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    return sorted({os.path.realpath(p) for p in sys.path if p and os.path.isdir(p)})",
+  "new": "    return []",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_scan_roots_cover_the_root_and_the_interpreters_trees"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R83",
+  "rule": "r9: main scans after every run",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            changed = changed_since(t0, roots, exempt=targets)",
+  "new": "            changed = []",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_file_written_into_the_root_during_the_run_refuses_it"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R84",
+  "rule": "r9: main exempts only the targets it writes itself",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "exempt=targets)",
+  "new": "exempt=())",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R85",
+  "rule": "r9: a target must keep the ctime of the runner's last write",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            if any(_ctime(t) != last[t] for t in targets):",
+  "new": "            if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_target_rewritten_during_the_run_refuses_it"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R86",
+  "rule": "r9: the runner's mutation write is its own",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        f.write_bytes(mutated)\n        last[f] = _ctime(f)",
+  "new": "        f.write_bytes(mutated)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R87",
+  "rule": "r9: the runner's restore is its own",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            last[f] = _ctime(f)\n    print(\"NOT RED:\"",
+  "new": "    print(\"NOT RED:\"",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_mutants_across_two_targets_are_all_red"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R88",
+  "rule": "r9: a changed file refuses the mutant",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            elif changed:",
+  "new": "            elif False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_file_written_into_the_root_during_the_run_refuses_it"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R89",
+  "rule": "r9: a plugin neither pytest's nor the runner's is foreign",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "if o != \"__main__\" and not o.startswith(\"_pytest.\")})",
+  "new": "if False})",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_harmless_early_plugin_is_still_foreign"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R91",
+  "rule": "r9: a class plugin's origin is its own module",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    return p.__module__ if isinstance(p, type) else type(p).__module__",
+  "new": "    return type(p).__module__",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_clean_run_has_no_foreign_plugins_and_no_plugin_changes"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R92",
+  "rule": "r9: a foreign plugin is never RED",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if bundle.get(\"foreign_plugins\") != []:\n        return f\"INCONCLUSIVE({tag}, foreign plugins)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[foreign_plugin]",
+   "tests/scripts/c2_framing/test_screen.py::test_a_harmless_early_plugin_is_still_foreign"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R93",
+  "rule": "r9: the watch arms once the sentinel is registered",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        self.armed = True                                # from here on, any hook implementation added or removed",
+  "new": "        self.armed = False",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_wrapper_gone_from_the_registry_before_yielding_is_still_seen"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R94",
+  "rule": "r9: each watched run is recorded",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            rec.changes.append(code.co_qualname)",
+  "new": "            pass",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_wrapper_gone_from_the_registry_before_yielding_is_still_seen",
+   "tests/scripts/c2_framing/test_screen.py::test_a_call_wrapper_gone_before_yielding_is_seen"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R95",
+  "rule": "r9: pluggy's add code is watched",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    for fn in (pluggy._hooks.HookCaller._add_hookimpl, pluggy._hooks.HookCaller._remove_plugin):",
+  "new": "    for fn in (pluggy._hooks.HookCaller._remove_plugin,):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_wrapper_gone_from_the_registry_before_yielding_is_still_seen"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R96",
+  "rule": "r9: pluggy's remove code is watched",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    for fn in (pluggy._hooks.HookCaller._add_hookimpl, pluggy._hooks.HookCaller._remove_plugin):",
+  "new": "    for fn in (pluggy._hooks.HookCaller._add_hookimpl,):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_an_early_plugin_unregistered_during_the_run_is_seen"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R97",
+  "rule": "r9: a changed plugin system is never RED",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if bundle.get(\"plugin_changes\") != []:\n        return f\"INCONCLUSIVE({tag}, plugin system changed)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[plugin_changed]",
+   "tests/scripts/c2_framing/test_screen.py::test_a_wrapper_gone_before_yielding_without_an_abort_is_still_seen"
+  ],
+  "added_rev9": true
+ },
+ {
+  "id": "R98",
+  "rule": "r10 (R9-1): collection is cut off at the root",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "f\"--confcutdir={root}\", ",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_collection_and_runs_stay_inside_the_root",
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_environment_is_scrubbed"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R99",
+  "rule": "r10: the boundary is checked before collection",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": " + boundary_problems(root, m[\"tests\"])",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_refuses_a_boundary_problem_before_collecting",
+   "tests/scripts/c2_framing/test_screen.py::test_a_look_alike_module_is_refused_before_the_run[committed]"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R100",
+  "rule": "r10: the root must be a committed work tree's top",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if head is None:\n        return [f\"{root}: not the top of a git work tree with a commit\"]\n",
+  "new": "    if head is None:\n        return []\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_refuses_a_root_that_is_not_a_committed_work_tree"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R101",
+  "rule": "r10: an installed tree containing the root is refused",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    problems = [f\"{t}: an installed tree containing the root\" for t in trees if _inside(str(root), (t,))]\n",
+  "new": "    problems = []\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_refuses_an_installed_tree_containing_the_root"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R102",
+  "rule": "r10: an installed tree containing the root does not make the root's files installed",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    trees = [t for t in trees if not _inside(str(root), (t,))]\n    names = installed_names(trees)\n",
+  "new": "    names = installed_names(trees)\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_refuses_an_installed_tree_containing_the_root"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R103",
+  "rule": "r10: a startup entry inside the root is walked",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    entries = {p for p in path if _inside(p, (str(root),)) and not _inside(p, trees) and os.path.isdir(p)}\n",
+  "new": "    entries = set()\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_walks_a_startup_entry_inside_the_root"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R104",
+  "rule": "r10: the named tests' package roots are walked",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                entries.add(str(d))\n",
+  "new": "                pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_walks_the_directories_a_run_imports_from",
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_refuses_uncommitted_modules"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R105",
+  "rule": "r10: the package root is above the topmost package",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            while (d / \"__init__.py\").is_file():\n                d = d.parent\n            if _inside(str(d), (str(root),)):",
+  "new": "            if _inside(str(d), (str(root),)):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_walks_from_the_package_root"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R106",
+  "rule": "r10: the boundary never walks above the root",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            if _inside(str(d), (str(root),)):\n                entries.add(str(d))\n",
+  "new": "            if True:\n                entries.add(str(d))\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_never_walks_above_the_root"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R107",
+  "rule": "r10 (R9-3): a symlink where a run imports from is refused",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                if link:\n                    problems.append(f\"{rel}: a symlink\")\n                elif directory:",
+  "new": "                if False:\n                    pass\n                elif directory:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_refuses_symlinks",
+   "tests/scripts/c2_framing/test_screen.py::test_a_linked_module_is_refused_before_the_run"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R108",
+  "rule": "r10: importable directories are walked recursively",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                elif directory:\n                    stack.append(x.path)\n",
+  "new": "                elif directory:\n                    pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_refuses_uncommitted_modules"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R109",
+  "rule": "r10: a compiled module is refused",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                elif x.name.endswith(_COMPILED):\n                    problems.append(f\"{rel}: a compiled module\")\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_refuses_compiled_modules"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R110",
+  "rule": "r10: an uncommitted module is refused",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                elif rel not in blobs:\n                    problems.append(f\"{rel}: not committed\")\n",
+  "new": "                elif rel not in blobs:\n                    pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_refuses_uncommitted_modules",
+   "tests/scripts/c2_framing/test_screen.py::test_a_file_in_place_of_a_committed_symlink_is_not_committed"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R111",
+  "rule": "r10: a module that differs from the commit is refused",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                elif blob_id(algorithm, Path(x.path).read_bytes()) != blobs[rel]:",
+  "new": "                elif False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_refuses_a_module_that_differs_from_the_commit"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R112",
+  "rule": "r10 (R9-2): a look-alike is refused before the run",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                if d == e and mod in names and (not directory or _holds_importable(x.path)):",
+  "new": "                if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_look_alike_module_is_refused_before_the_run[committed]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_walks_the_directories_a_run_imports_from"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R113",
+  "rule": "r10: only a top-level name can be a look-alike",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                if d == e and mod in names",
+  "new": "                if mod in names",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_admits_a_committed_root"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R114",
+  "rule": "r10: a directory holding code under an installed name is a look-alike",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "(not directory or _holds_importable(x.path))",
+  "new": "(not directory)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_directory_holding_code_under_an_installed_name_is_a_look_alike"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R115",
+  "rule": "r10: a directory holding nothing importable is no look-alike",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "(not directory or _holds_importable(x.path))",
+  "new": "(True)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_ignores_what_cannot_be_imported"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R116",
+  "rule": "r10: a bytecode cache holds nothing importable",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    return any(_module_name(c.name, c.is_dir()) for c in os.scandir(d))\n",
+  "new": "    return any(True for c in os.scandir(d))\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_ignores_what_cannot_be_imported"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R117",
+  "rule": "r10: names that cannot be imported are ignored",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                if mod is None or _inside(x.path, trees):",
+  "new": "                if _inside(x.path, trees):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_ignores_what_cannot_be_imported"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R118",
+  "rule": "r10: an installed tree inside the root is not the root's code",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                if mod is None or _inside(x.path, trees):",
+  "new": "                if mod is None:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_skips_installed_trees_inside_the_root"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R119",
+  "rule": "r10: a directory is importable only under an identifier",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        return name if name.isidentifier() else None\n",
+  "new": "        return name\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_ignores_what_cannot_be_imported"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R120",
+  "rule": "r10: a file is importable only when its stem is an identifier",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            return name[:-len(s)] if name[:-len(s)].isidentifier() else None\n",
+  "new": "            return name[:-len(s)]\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_ignores_what_cannot_be_imported"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R121",
+  "rule": "r10: the longest import suffix is tried first",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "key=len, reverse=True)",
+  "new": "key=len)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_a_compiled_module_outside_the_installed_trees"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R122",
+  "rule": "r10: bytecode files are compiled modules",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "_COMPILED = tuple(importlib.machinery.BYTECODE_SUFFIXES + importlib.machinery.EXTENSION_SUFFIXES)",
+  "new": "_COMPILED = tuple(importlib.machinery.EXTENSION_SUFFIXES)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_refuses_compiled_modules"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R123",
+  "rule": "r10: extensions are compiled modules",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "_COMPILED = tuple(importlib.machinery.BYTECODE_SUFFIXES + importlib.machinery.EXTENSION_SUFFIXES)",
+  "new": "_COMPILED = tuple(importlib.machinery.BYTECODE_SUFFIXES)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_refuses_compiled_modules",
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_a_compiled_module_outside_the_installed_trees"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R124",
+  "rule": "r10: the installed names come from the installed trees",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    names = set()\n    for t in trees:",
+  "new": "    names = set()\n    for t in []:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_look_alike_module_is_refused_before_the_run[committed]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_a_committed_look_alike"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R125",
+  "rule": "r10: a subdirectory of a work tree is not its top",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if top is None or os.path.realpath(os.fsdecode(top.strip())) != os.path.realpath(root):",
+  "new": "    if top is None:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_refuses_a_root_that_is_not_a_committed_work_tree"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R126",
+  "rule": "r10: only regular-file blobs are committed code",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            if kind == b\"blob\" and mode in (b\"100644\", b\"100755\"):",
+  "new": "            if kind == b\"blob\":",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_file_in_place_of_a_committed_symlink_is_not_committed"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R127",
+  "rule": "r10: a sha256 repository's blob ids",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    algorithm = \"sha256\" if len(head.strip()) == 64 else \"sha1\"",
+  "new": "    algorithm = \"sha1\"",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_reads_a_sha256_repository"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R128",
+  "rule": "r10: a blob id hashes git's blob header",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "hashlib.new(algorithm, b\"blob %d\\0\" % len(data) + data)",
+  "new": "hashlib.new(algorithm, data)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_admits_a_committed_root"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R129",
+  "rule": "r10: inherited GIT_* variables never steer the runner's git",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    env = {k: v for k, v in os.environ.items() if not k.startswith(\"GIT_\")}",
+  "new": "    env = dict(os.environ)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_ignores_inherited_git_variables"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R130",
+  "rule": "r10: a startup entry outside the root is installed",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": " | {p for p in path if not _inside(p, (root,))}",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_an_editable_install_outside_the_root_is_installed"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R131",
+  "rule": "r10: the run's audit hook is added",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "sys.addaudithook(_audit)\n",
+  "new": "\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_an_uncommitted_module",
+   "tests/scripts/c2_framing/test_screen.py::test_collection_runs_under_the_boundary"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R132",
+  "rule": "r10: code compiled from a file is checked when it runs",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            why = _code_problem(name)\n",
+  "new": "            why = None\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_an_uncommitted_module"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R133",
+  "rule": "r10 (R9-3): code from outside the root and the installed trees is refused (message pinned)",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        return \"outside the root and the installed trees\"\n",
+  "new": "        pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_a_module_outside_the_root"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R134",
+  "rule": "r10: code reached through a symlink is refused in the run",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        if os.path.islink(a):\n            return \"a symlink\"\n",
+  "new": "        if False:\n            pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_a_module_reached_through_a_symlink"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R135",
+  "rule": "r10 (R9-2): a look-alike is refused in the run",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                return \"shadows an installed module\"\n",
+  "new": "                pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_a_committed_look_alike"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R136",
+  "rule": "r10: uncommitted code is refused in the run",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if rel not in BLOBS:\n        return \"not committed\"\n",
+  "new": "    if rel not in BLOBS:\n        return None\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_an_uncommitted_module"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R137",
+  "rule": "r10: code that differs from the commit is refused in the run",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if COMPILED.get(name) != BLOBS[rel]:\n",
+  "new": "    if False:\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_a_module_that_differs_from_the_commit"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R138",
+  "rule": "r10: the bytes compiled under each file name are recorded",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            COMPILED[name] = _blob(source if isinstance(source, bytes) else source.encode(\"utf-8\", \"surrogatepass\"))\n",
+  "new": "            pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_clean_run_has_no_foreign_plugins_and_no_plugin_changes"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R139",
+  "rule": "r10: code compiled from text (not a file) is not a file's code",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": " and not (name.startswith(\"<\") and name.endswith(\">\"))",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_clean_run_has_no_foreign_plugins_and_no_plugin_changes"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R140",
+  "rule": "r10: no bytecode is deserialized in the run",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        _refuse(\"bytecode deserialized\", event)\n",
+  "new": "        pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_never_deserializes_bytecode"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R141",
+  "rule": "r10: no compiled module loads from outside the installed trees",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            _refuse(\"a compiled module outside the installed trees\", os.fsdecode(args[1]))\n",
+  "new": "            pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_a_compiled_module_outside_the_installed_trees"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R142",
+  "rule": "r10: no native library loads from outside the installed trees",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            _refuse(\"a native library outside the installed trees\", os.fsdecode(args[0]))\n",
+  "new": "            pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_a_native_library_outside_the_installed_trees"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R143",
+  "rule": "r10: a refusal in the run is never RED",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if bundle.get(\"boundary\") != []:\n        return f\"INCONCLUSIVE({tag}, code outside the boundary)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[boundary]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[boundary_missing]"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R144",
+  "rule": "r10: the run's refusals reach the evidence",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            \"boundary\": list(REFUSED)}",
+  "new": "            \"boundary\": []}",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_an_uncommitted_module"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R145",
+  "rule": "r10: a refusal during collection selects nothing",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "bundle.get(\"boundary\") != [] or ",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_collection_runs_under_the_boundary"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R146",
+  "rule": "r10: collection runs through the driver, under the boundary",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    rc, _, bundle = _drive(root, [\"--collect-only\", \"-q\", *tests])\n    if rc != 0 or bundle is None or bundle.get(\"boundary\") != [] or any(\"collecterror\" in r for r in bundle[\"records\"]):\n        return None\n    return bundle.get(\"collected\") or None\n",
+  "new": "    r = subprocess.run([*_python(), \"-m\", \"pytest\", *_args(root, \"--collect-only\", \"-q\", *tests)], cwd=root, env=_env(),\n                       capture_output=True, text=True)\n    nodes = [l.strip() for l in r.stdout.splitlines() if \"::\" in l and not l.startswith(\" \")]\n    return nodes if r.returncode == 0 and nodes else None\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_collection_runs_under_the_boundary"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R147",
+  "rule": "r10: the intended nodes come from the collection's evidence",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        self.collected = [i.nodeid for i in session.items]\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_collection_and_runs_stay_inside_the_root"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R148",
+  "rule": "r10: the mutated target is the run's one allowed change",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "run_mutant(root, m[\"tests\"], {f: mutated})",
+  "new": "run_mutant(root, m[\"tests\"])",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_mutated_target_is_the_one_change_a_run_executes"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R149",
+  "rule": "r10: the hook's committed bytes carry the mutation",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        blobs[os.path.relpath(os.path.realpath(f), root)] = blob_id(algorithm, data)\n",
+  "new": "        pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_mutated_target_is_the_one_change_a_run_executes"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R150",
+  "rule": "r10: an installed tree containing the root is not installed in the run",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    trees = [t for t in trees if not _inside(str(root), (t,))]\n    algorithm, blobs",
+  "new": "    algorithm, blobs",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_ignores_an_installed_tree_containing_the_root"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R152",
+  "rule": "r10: installed code runs",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if _inside(real, TREES):\n        return None\n    if real == ROOT",
+  "new": "    if real == ROOT",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_clean_run_has_no_foreign_plugins_and_no_plugin_changes"
+  ],
+  "added_rev10": true
+ }
+]
