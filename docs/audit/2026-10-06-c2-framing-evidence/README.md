@@ -246,3 +246,60 @@ The driver guarantee is stated precisely: evidence is written after `pytest.main
 **Revision-9 run at `b9c3c81`:** 185 RED, 3 SURVIVED (G8, H12, N10, as recorded); no change-scan alarm in 188 runs; 17 minutes.
 
 **Result:** 185 of 185 attributable RED in one pass; G8, H12 and N10 equivalent. The permitted suite has 234 tests: 209 framing and 25 shared admission.
+
+## Revision 10 (after review r9 BLOCK; Eric's row C2-framing-review-r10: committed code only)
+**The rule** (Eric's option A; pre-registration §9; the runner's docstring): a run may execute only installed packages, the checked test files and code committed in the root's repository. Anything else is refused, before the run and by a Python audit hook during it. Revision 9's threat model stands. Committed code is reviewed code: the runner trusts it as it trusts installed packages, and a certificate holds for the commit it ran on. Tampering with the interpreter's installation is out of scope. `screen.py` is byte-identical to revisions 8 and 9.
+
+**R9-1, collection outside the root.** With `-c /dev/null`, pytest's collection cutoff was `/dev`, so collection walked every ancestor of the root.
+- Red first: on the revision-9 runner, a package `__init__.py` one directory above a scratch root ran, and the mutant was still certified RED (`r9_witness_replay.py`).
+- Every collection and run now passes `--confcutdir=<root>`.
+- In a Codex `:workspace` seatbelt sandbox (`codex sandbox -P :workspace`, the profile that denies `/private/tmp/codex-daemon-501`), the revision-9 permitted suite gives 27 failed and 207 passed, the same 27 nodes as your r9 receipt; at revision 10 it gives 271 passed (246 framing, 25 admission) at `487f54c`.
+- The one remaining failure in your confined subset (`test_the_run_environment_is_scrubbed`) was the positional `args[-1]` check against your appended option; the test now also requires `--confcutdir=/r`.
+
+**R9-2 and R9-3, one boundary.**
+1. **Before the run** (`boundary_problems`; a refusal prints `REFUSED`, like the gate):
+   - the root must be the top of a git work tree with a commit;
+   - inside the root, a run imports from the named tests' package roots (pytest puts each first on the path) and from any startup import-path entry inside the root (the repository's `src`, for the real root);
+   - there, recursively through importable directories, every importable entry must be a regular file committed with its current bytes: never uncommitted or changed, never a symlink, never a compiled module (bytecode or an extension);
+   - no top-level name there may be one an installed tree also provides (a look-alike). A directory counts only when it holds something importable, so a bytecode cache is never a look-alike.
+   - The installed trees are the standard library, site-packages, and every startup entry outside the root (for a scratch root, the repository's own editable install). None may contain the root.
+   - So an allowed import spelled like an installed module (`numpy`) can only load the installed module, and any other allowed import can only load committed code.
+2. **During every collection and run** (the driver's audit hook, added before pytest is imported):
+   - code compiled from a file may run only if the file is in an installed tree, or is in the root with the commit's bytes as compiled (the mutated target: the mutation's), reached without a symlink, under no installed name;
+   - no bytecode is ever deserialized (sourceless bytecode can name any file as its source);
+   - no compiled module or native library (`ctypes`) loads from outside the installed trees;
+   - each refusal raises `ImportError` and is recorded in the evidence, so a refusal the test code catches still refuses the run (`INCONCLUSIVE(..., code outside the boundary)`).
+   - Collection now runs through the same driver, since collecting executes the test modules; the intended nodes come from its evidence, not from text.
+3. **Measured before the design**, over the real permitted suite with the run's bytecode prefix under `/dev/null`: no bytecode was deserialized, every extension module and `dlopen` came from site-packages, and every module ran from the installed trees or the repository. So the hook's refusals cost the real suite nothing.
+
+**The change scan stays** as defence in depth: a file a child writes is refused by the hook if the run executes it, and by the change scan in any case.
+
+**Your required changes:**
+1. Collection bounded to the root, with empty configuration and no conftests kept: done; the permitted suite passes in the sandbox (above).
+2. Every allowed import bound to installed or committed bytes: done by the look-alike and committed-bytes rules, before the run and in it. The imported-fixture control (a local `numpy.py`) is refused before execution, and run anyway it is refused by the hook (`r9_witness_replay.py`).
+3. Linked imports: refused before the run (a symlink) and by the hook's real-path check during it. The ordinary-file control is kept (`test_a_file_written_into_the_root_during_the_run_refuses_it`).
+
+**Replay** (`r9_witness_replay.py`, output `r9_witness_replay.out`): benign witnesses whose forbidden code writes a canary.
+- R9-1: on revision 9 the ancestor's canary is written and the mutant is RED; on revision 10 the mutant is RED and the canary is not written.
+- R9-2 (an uncommitted local `numpy.py`): on revision 9 the look-alike runs (canary written) and the mutant is RED. On revision 10 it is REFUSED (`numpy.py: not committed`, `numpy.py: shadows the installed module numpy`). Run anyway, it is `INCONCLUSIVE(exit 2, code outside the boundary)`, with the hook's record `shadows an installed module`, and no canary.
+- R9-3 (a committed `numpy.py` link to a file outside the root, written by a child the test starts): on revision 9 the linked module runs and the mutant is RED. On revision 10 it is REFUSED (`a symlink`, the look-alike). Run anyway, it is `INCONCLUSIVE(exit 1, code outside the boundary)`, with `outside the root and the installed trees`, and no canary.
+
+**First-pass simplifications** (`25fa653`), each to leave no guard a test cannot fail:
+- The hook has no re-entrancy guard (none of its own calls raises an audit event), and it checks every executed code object compiled from a file, not only module bodies.
+- The look-alike names are what the installed trees provide. Built-in and frozen modules are found before the import path, so the standard-library and built-in name lists added nothing.
+- The object-id algorithm comes from the commit id's length (sha1 or sha256), replacing a format query no test could make fail.
+
+**Vocabulary:** the suite gains `boundary_problems` and `_startup` (attributes) and `boundary` (a keyword), and loses `_pytest_cmd`. None is in the escape-route lists; `gadget_audit.out` is re-run (158 objects visited, one more than revision 9, from the runner module's two added attributes and one removed; the reachable callables are unchanged).
+
+**Spec** (`487f54c`): 242 entries.
+- R8 (the mutated run goes through the driver) is re-anchored to `_drive`.
+- R98–R150 and R152 are new: the collection cutoff (R98); the boundary check's wiring, root, installed trees, walk, symlink, compiled, committed, differs and look-alike rules (R99–R130); and the audit hook's rules, its evidence and driver-based collection (R131–R152).
+- R133 (the hook's "outside the root and the installed trees" reason) is a disclosed MESSAGE-ONLY entry: code outside the root is still refused as "not committed", so its test pins the message.
+
+**Revision-10 run at `487f54c`** (appended to `mutants.out`; one pass; 19 minutes; no change-scan alarm in 242 entries): 239 RED; G8, H12 and N10 survived, as recorded.
+- Every new entry, and the re-anchored R8, failed every test it names.
+- Kill reasons spot-checked by hand: R99 lets the test module's own top-level code run (SURVIVED, never REFUSED); R124 lets a committed look-alike run, certified RED; R141 lets the run read RED with no refusal record; R133 is refused as "not committed", as disclosed.
+
+**Result:** 239 of 239 attributable RED in one pass (R133 message-only, disclosed); G8, H12 and N10 equivalent.
+
+**Suites:** the permitted suite has 271 tests (246 framing and 25 shared admission), all passing locally and in the sandbox at `487f54c`.

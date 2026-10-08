@@ -1,0 +1,12 @@
+# r9_witness_replay.py at 487f54c
+R9-1 revision 9: X1 RED 2 failed in 1.96s [2 intended] | main 0 | canary written: True
+R9-1 revision 10 gate: [] | boundary: []
+R9-1 revision 10: X1 RED 2 failed in 0.01s [2 intended] | main 0 | canary written: False
+R9-2 revision 9: X1 RED 1 failed in 1.95s [1 intended] | main 0 | canary written: True
+R9-2 revision 10 gate: [] | boundary: ['numpy.py: not committed', 'numpy.py: shadows the installed module numpy']
+R9-2 revision 10: X1 REFUSED: outside the runner's scope: numpy.py: not committed; numpy.py: shadows the installed module numpy | main 1 | canary written: False
+R9-2 revision 10 run anyway: INCONCLUSIVE(exit 2, code outside the boundary) | boundary ["shadows an installed module: <tmp>/scratch/numpy.py"] | canary written: False
+R9-3 revision 9: X1 RED 1 failed in 1.90s [1 intended] | main 0 | canary written: True
+R9-3 revision 10 gate: [] | boundary: ['numpy.py: a symlink', 'numpy.py: shadows the installed module numpy']
+R9-3 revision 10: X1 REFUSED: outside the runner's scope: numpy.py: a symlink; numpy.py: shadows the installed module numpy | main 1 | canary written: False
+R9-3 revision 10 run anyway: INCONCLUSIVE(exit 1, code outside the boundary) | boundary ["outside the root and the installed trees: <tmp>/scratch/numpy.py"] | canary written: False

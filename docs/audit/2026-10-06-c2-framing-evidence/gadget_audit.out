@@ -1,5 +1,5 @@
-# gadget_audit.py at b9c3c81
-objects visited: 157
+# gadget_audit.py at 487f54c
+objects visited: 158
 callable pytest.fixture _pytest.fixtures.fixture
 callable pytest.raises _pytest.raises.raises
 module numpy.random numpy.random
