@@ -61,6 +61,17 @@ def test_gate(total, declared, acked, expect):
     assert ledger.gate(total, declared, acked) == expect
 
 
+def test_the_cap_is_erics_ruled_165():
+    """Eric raised the shared cap from 100 to 165 (register row C2-framing-stage-two-cap, 2026-10-08). The gate tests
+    above are relative to the constant; this pins its value to his ruling, so a silent edit of either goes red."""
+    from scripts.audit.c1 import admission
+    cells = admission.row_cells((admission.REPO / "docs/audit/2026-09-22-exposure-register.md").read_text(),
+                                "C2-framing-stage-two-cap")
+    assert ledger.CAP_H == 165.0
+    assert cells and cells[3].split()[:1] == ["Eric"]
+    assert "RAISE the shared C1/C2 compute cap from 100 to 165 CPU-hours" in cells[2]
+
+
 # ---------- scheduler sleep window ----------
 def sched(ts, msg):
     return json.dumps({"__REALTIME_TIMESTAMP": str(int(ts.timestamp() * 1_000_000)), "MESSAGE": msg})

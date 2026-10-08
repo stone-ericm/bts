@@ -1135,8 +1135,9 @@ def test_the_stage_two_row_needs_the_exact_ruling_eric_a_raise_and_a_positive_bu
 
 
 def test_the_launchers_cap_is_the_cap_in_erics_row():
-    """The launcher's cap constant equals the cap Eric ruled (row C2-framing-stage-two-cap), read from the real register."""
-    assert S.stage_two_release((ROOT / S.REGISTER_REL).read_text()) == (S.ledger.CAP_H, 20.0)
+    """The launcher's cap constant equals the cap Eric ruled (row C2-framing-stage-two-cap), read from the real register,
+    and both are 165: a silent edit of either goes red."""
+    assert S.stage_two_release((ROOT / S.REGISTER_REL).read_text()) == (S.ledger.CAP_H, 20.0) == (165.0, 20.0)
 
 
 def test_disposition_over_ten_seeds_needs_six_passes():
@@ -1192,19 +1193,26 @@ def test_stage_two_needs_the_rows_cap_to_be_the_launchers(stage_one, monkeypatch
 
 @pytest.mark.parametrize("damage", ["extra_file", "changed_byte", "second_run", "listing", "renamed"])
 def test_stage_two_needs_stage_ones_accepted_runs_byte_for_byte(stage_one, monkeypatch, damage):
+    """Each damage is one only its own check can refuse: a second run named to sort after the accepted one leaves the
+    accepted run's bytes and validation intact."""
     out, _, _ = stage_one
     d = _run_dir(out, S.STAGE_ONE_SEEDS[1])
     if damage == "extra_file":                       # validate_run never reads it: only the hash list can refuse
         (d / "notes.txt").write_text("x\n")
+        expect = "not the accepted bytes"
     elif damage == "changed_byte":
         (d / "units.json").write_bytes((d / "units.json").read_bytes() + b" ")
+        expect = "not the accepted bytes"
     elif damage == "second_run":
-        (d.parent / "aaaaaaa-20261009T000000Z").mkdir()
+        (d.parent / "zzzzzzz-20261009T000000Z").mkdir()
+        expect = "not exactly its accepted run"
     elif damage == "listing":
         monkeypatch.setattr(S, "STAGE_ONE_FILES_SHA256", "0" * 64)
+        expect = "does not have its pinned sha256"
     else:
-        monkeypatch.setattr(S, "STAGE_ONE_RUNS", {**S.STAGE_ONE_RUNS, S.STAGE_ONE_SEEDS[1]: "aaaaaaa-20261009T000000Z"})
-    with pytest.raises(SystemExit, match="stage one is not its accepted runs"):
+        monkeypatch.setattr(S, "STAGE_ONE_RUNS", {**S.STAGE_ONE_RUNS, S.STAGE_ONE_SEEDS[1]: "zzzzzzz-20261009T000000Z"})
+        expect = "not exactly its accepted run"
+    with pytest.raises(SystemExit, match=f"stage one is not its accepted runs: .*{expect}"):
         _run_mixed(stage_one, S.STAGE_TWO_SEEDS[0])
 
 
