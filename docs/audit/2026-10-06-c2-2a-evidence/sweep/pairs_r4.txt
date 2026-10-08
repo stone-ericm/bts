@@ -1,0 +1,266 @@
+run at 41b0e8b: 61 scenarios, all pairs in 12 (calibration_changed_history, calibration_empty_pa, calibration_insufficient_support, calibration_no_pa_file, calibration_no_sklearn, calibration_off_explicit, calibration_on, calibration_two_thresholds, day_dm, model_cached, model_cold, model_empty_cached_dict); 3394 faulted runs, 0 failed; 5 computation points excluded; plain checks equal to golden: 61 of 61
+
+## plain (21 scenarios)
+  reached: 5097
+  faulted: 3160
+  faulted (first reach): 4
+  faulted in an all-pairs scenario: 3156
+  not faulted: point also reached by a plain scenario: 1937
+  not faulted: fault-only point (no plain scenario reaches it; faulted once, in the first scenario reaching it): 0
+  computation (genuine-failure scenario instead): 77
+
+## designed fault (29 scenarios)
+  reached: 8202
+  faulted: 208
+  faulted (first reach): 208
+  faulted in an all-pairs scenario: 0
+  not faulted: point also reached by a plain scenario: 7779
+  not faulted: fault-only point (no plain scenario reaches it; faulted once, in the first scenario reaching it): 215
+  computation (genuine-failure scenario instead): 81
+
+## genuine failure (11 scenarios)
+  reached: 2199
+  faulted: 26
+  faulted (first reach): 26
+  faulted in an all-pairs scenario: 0
+  not faulted: point also reached by a plain scenario: 2113
+  not faulted: fault-only point (no plain scenario reaches it; faulted once, in the first scenario reaching it): 60
+  computation (genuine-failure scenario instead): 27
+
+## points a plain scenario reaches: 426, faulted in at least one plain scenario: 426
+
+## fault-only points (no plain scenario reaches them): 234, each faulted once, in the first designed-fault or genuine-failure scenario reaching it
+  call serving_witness.py:49 <- serving_witness.py:65  faulted in fault_parquet_buffer
+  call serving_witness.py:60 <- scenarios.py:580  faulted in fault_error_recording
+  call serving_witness.py:60 <- serving_witness.py:77  faulted in fault_parquet_hash
+  call serving_witness.py:60 <- serving_witness.py:139  faulted in fault_package_query
+  call serving_witness.py:60 <- serving_witness.py:213  faulted in genuine_pick_unreadable
+  call serving_witness.py:60 <- serving_witness.py:216  faulted in fault_parquet_buffer
+  call serving_witness.py:60 <- serving_witness.py:223  faulted in fault_parquet_buffer_alloc
+  call serving_witness.py:60 <- serving_witness.py:230  faulted in fault_collector_appends
+  call serving_witness.py:60 <- serving_witness.py:243  faulted in fault_collector_appends
+  call serving_witness.py:60 <- serving_witness.py:351  faulted in fault_collector_appends
+  call serving_witness.py:60 <- serving_witness.py:358  faulted in fault_calibration_record
+  call serving_witness.py:60 <- serving_witness.py:397  faulted in calibration_decode_error
+  call serving_witness.py:60 <- serving_witness.py:404  faulted in fault_collector_appends
+  call serving_witness.py:60 <- serving_witness.py:445  faulted in fault_cache_buffer
+  call serving_witness.py:60 <- serving_witness.py:473  faulted in fault_cache_buffer
+  call serving_witness.py:60 <- serving_witness.py:534  faulted in fault_hashing_writer_finalisation
+  call serving_witness.py:60 <- serving_witness.py:537  faulted in fault_hashing_writer_construction
+  call serving_witness.py:60 <- serving_witness.py:624  faulted in fault_collector_appends
+  call serving_witness.py:60 <- serving_witness.py:642  faulted in fault_collector_appends
+  call serving_witness.py:60 <- serving_witness.py:648  faulted in fault_collector_appends
+  call serving_witness.py:60 <- serving_witness.py:660  faulted in fault_sample_canonicalisation
+  call serving_witness.py:60 <- serving_witness.py:670  faulted in fault_map_extraction
+  call serving_witness.py:83 <- scenarios.py:1084  faulted in fault_map_hash
+  call serving_witness.py:182 <- serving_witness.py:574  faulted in calibration_decode_error
+  call serving_witness.py:204 <- scenarios.py:525  faulted in fault_collector_appends
+  call serving_witness.py:253 <- serving_witness.py:213  faulted in genuine_pick_unreadable
+  call serving_witness.py:253 <- serving_witness.py:216  faulted in fault_parquet_buffer
+  call serving_witness.py:253 <- serving_witness.py:223  faulted in fault_parquet_buffer_alloc
+  call serving_witness.py:253 <- serving_witness.py:230  faulted in fault_collector_appends
+  call serving_witness.py:271 <- serving_witness.py:214  faulted in genuine_pick_unreadable
+  call serving_witness.py:308 <- scenarios.py:559  faulted in fault_hashing_writer_hash
+  call serving_witness.py:365 <- scenarios.py:566  faulted in fault_collector_appends
+  call serving_witness.py:414 <- scenarios.py:589  faulted in fault_attrs_assignment
+  call serving_witness.py:430 <- serving_witness.py:423  faulted in fault_build
+  call serving_witness.py:573 <- orchestrator.py:196  faulted in calibration_decode_error
+  call serving_witness.py:664 <- scenarios.py:577  faulted in fault_map_extraction
+  line orchestrator.py:196 <- orchestrator.py:280  faulted in calibration_decode_error
+  line serving_witness.py:52 <- serving_witness.py:65  faulted in fault_parquet_buffer
+  line serving_witness.py:53 <- serving_witness.py:65  faulted in fault_undescribable_parquet
+  line serving_witness.py:55 <- serving_witness.py:65  faulted in fault_undescribable_parquet
+  line serving_witness.py:62 <- scenarios.py:580  faulted in fault_error_recording
+  line serving_witness.py:62 <- serving_witness.py:77  faulted in fault_parquet_hash
+  line serving_witness.py:62 <- serving_witness.py:139  faulted in fault_package_query
+  line serving_witness.py:62 <- serving_witness.py:213  faulted in genuine_pick_unreadable
+  line serving_witness.py:62 <- serving_witness.py:216  faulted in fault_parquet_buffer
+  line serving_witness.py:62 <- serving_witness.py:223  faulted in fault_parquet_buffer_alloc
+  line serving_witness.py:62 <- serving_witness.py:230  faulted in fault_collector_appends
+  line serving_witness.py:62 <- serving_witness.py:243  faulted in fault_collector_appends
+  line serving_witness.py:62 <- serving_witness.py:351  faulted in fault_collector_appends
+  line serving_witness.py:62 <- serving_witness.py:358  faulted in fault_calibration_record
+  line serving_witness.py:62 <- serving_witness.py:397  faulted in calibration_decode_error
+  line serving_witness.py:62 <- serving_witness.py:404  faulted in fault_collector_appends
+  line serving_witness.py:62 <- serving_witness.py:445  faulted in fault_cache_buffer
+  line serving_witness.py:62 <- serving_witness.py:473  faulted in fault_cache_buffer
+  line serving_witness.py:62 <- serving_witness.py:534  faulted in fault_hashing_writer_finalisation
+  line serving_witness.py:62 <- serving_witness.py:537  faulted in fault_hashing_writer_construction
+  line serving_witness.py:62 <- serving_witness.py:624  faulted in fault_collector_appends
+  line serving_witness.py:62 <- serving_witness.py:642  faulted in fault_collector_appends
+  line serving_witness.py:62 <- serving_witness.py:648  faulted in fault_collector_appends
+  line serving_witness.py:62 <- serving_witness.py:660  faulted in fault_sample_canonicalisation
+  line serving_witness.py:62 <- serving_witness.py:670  faulted in fault_map_extraction
+  line serving_witness.py:65 <- scenarios.py:580  faulted in fault_error_recording
+  line serving_witness.py:65 <- serving_witness.py:77  faulted in fault_parquet_hash
+  line serving_witness.py:65 <- serving_witness.py:139  faulted in fault_package_query
+  line serving_witness.py:65 <- serving_witness.py:213  faulted in genuine_pick_unreadable
+  line serving_witness.py:65 <- serving_witness.py:216  faulted in fault_parquet_buffer
+  line serving_witness.py:65 <- serving_witness.py:223  faulted in fault_parquet_buffer_alloc
+  line serving_witness.py:65 <- serving_witness.py:230  faulted in fault_collector_appends
+  line serving_witness.py:65 <- serving_witness.py:243  faulted in fault_collector_appends
+  line serving_witness.py:65 <- serving_witness.py:351  faulted in fault_collector_appends
+  line serving_witness.py:65 <- serving_witness.py:358  faulted in fault_calibration_record
+  line serving_witness.py:65 <- serving_witness.py:397  faulted in calibration_decode_error
+  line serving_witness.py:65 <- serving_witness.py:404  faulted in fault_collector_appends
+  line serving_witness.py:65 <- serving_witness.py:445  faulted in fault_cache_buffer
+  line serving_witness.py:65 <- serving_witness.py:473  faulted in fault_cache_buffer
+  line serving_witness.py:65 <- serving_witness.py:534  faulted in fault_hashing_writer_finalisation
+  line serving_witness.py:65 <- serving_witness.py:537  faulted in fault_hashing_writer_construction
+  line serving_witness.py:65 <- serving_witness.py:624  faulted in fault_collector_appends
+  line serving_witness.py:65 <- serving_witness.py:642  faulted in fault_collector_appends
+  line serving_witness.py:65 <- serving_witness.py:648  faulted in fault_collector_appends
+  line serving_witness.py:65 <- serving_witness.py:660  faulted in fault_sample_canonicalisation
+  line serving_witness.py:65 <- serving_witness.py:670  faulted in fault_map_extraction
+  line serving_witness.py:66 <- serving_witness.py:77  faulted in fault_parquet_hash
+  line serving_witness.py:66 <- serving_witness.py:139  faulted in fault_package_query
+  line serving_witness.py:66 <- serving_witness.py:213  faulted in genuine_pick_unreadable
+  line serving_witness.py:66 <- serving_witness.py:216  faulted in fault_parquet_buffer
+  line serving_witness.py:66 <- serving_witness.py:223  faulted in fault_parquet_buffer_alloc
+  line serving_witness.py:66 <- serving_witness.py:230  faulted in fault_collector_appends
+  line serving_witness.py:66 <- serving_witness.py:243  faulted in fault_collector_appends
+  line serving_witness.py:66 <- serving_witness.py:351  faulted in fault_collector_appends
+  line serving_witness.py:66 <- serving_witness.py:358  faulted in fault_calibration_record
+  line serving_witness.py:66 <- serving_witness.py:397  faulted in calibration_decode_error
+  line serving_witness.py:66 <- serving_witness.py:404  faulted in fault_collector_appends
+  line serving_witness.py:66 <- serving_witness.py:445  faulted in fault_cache_buffer
+  line serving_witness.py:66 <- serving_witness.py:473  faulted in fault_cache_buffer
+  line serving_witness.py:66 <- serving_witness.py:534  faulted in fault_hashing_writer_finalisation
+  line serving_witness.py:66 <- serving_witness.py:537  faulted in fault_hashing_writer_construction
+  line serving_witness.py:66 <- serving_witness.py:624  faulted in fault_collector_appends
+  line serving_witness.py:66 <- serving_witness.py:642  faulted in fault_collector_appends
+  line serving_witness.py:66 <- serving_witness.py:648  faulted in fault_collector_appends
+  line serving_witness.py:66 <- serving_witness.py:660  faulted in fault_sample_canonicalisation
+  line serving_witness.py:66 <- serving_witness.py:670  faulted in fault_map_extraction
+  line serving_witness.py:67 <- scenarios.py:580  faulted in fault_error_recording
+  line serving_witness.py:68 <- scenarios.py:580  faulted in fault_error_recording
+  line serving_witness.py:75 <- serving_witness.py:220  faulted in fault_parquet_hash
+  line serving_witness.py:75 <- serving_witness.py:448  faulted in fault_cache_hash
+  line serving_witness.py:77 <- serving_witness.py:220  faulted in fault_parquet_hash
+  line serving_witness.py:77 <- serving_witness.py:448  faulted in fault_cache_hash
+  line serving_witness.py:80 <- serving_witness.py:220  faulted in fault_parquet_hash
+  line serving_witness.py:80 <- serving_witness.py:448  faulted in fault_cache_hash
+  line serving_witness.py:85 <- scenarios.py:1084  faulted in fault_map_hash
+  line serving_witness.py:86 <- scenarios.py:1084  faulted in fault_map_hash
+  line serving_witness.py:87 <- scenarios.py:1084  faulted in fault_map_hash
+  line serving_witness.py:112 <- serving_witness.py:132  faulted in fault_package_query
+  line serving_witness.py:113 <- serving_witness.py:132  faulted in fault_package_query
+  line serving_witness.py:139 <- serving_witness.py:359  faulted in fault_package_query
+  line serving_witness.py:185 <- serving_witness.py:574  faulted in calibration_decode_error
+  line serving_witness.py:186 <- serving_witness.py:574  faulted in calibration_decode_error
+  line serving_witness.py:205 <- scenarios.py:525  faulted in fault_collector_appends
+  line serving_witness.py:206 <- scenarios.py:525  faulted in fault_collector_appends
+  line serving_witness.py:207 <- scenarios.py:525  faulted in fault_collector_appends
+  line serving_witness.py:212 <- predict.py:896  faulted in fault_parquet_buffer
+  line serving_witness.py:212 <- serving_witness.py:552  faulted in fault_calibration_pa_buffer
+  line serving_witness.py:212 <- serving_witness.py:584  faulted in fault_pick_buffer
+  line serving_witness.py:213 <- serving_witness.py:584  faulted in genuine_pick_unreadable
+  line serving_witness.py:214 <- serving_witness.py:584  faulted in genuine_pick_unreadable
+  line serving_witness.py:215 <- predict.py:896  faulted in fault_parquet_buffer
+  line serving_witness.py:215 <- serving_witness.py:552  faulted in fault_calibration_pa_buffer
+  line serving_witness.py:215 <- serving_witness.py:584  faulted in fault_pick_buffer
+  line serving_witness.py:216 <- predict.py:896  faulted in fault_parquet_buffer
+  line serving_witness.py:216 <- serving_witness.py:552  faulted in fault_calibration_pa_buffer
+  line serving_witness.py:216 <- serving_witness.py:584  faulted in fault_pick_buffer
+  line serving_witness.py:217 <- predict.py:896  faulted in fault_parquet_buffer
+  line serving_witness.py:217 <- serving_witness.py:552  faulted in fault_calibration_pa_buffer
+  line serving_witness.py:217 <- serving_witness.py:584  faulted in fault_pick_buffer
+  line serving_witness.py:218 <- predict.py:896  faulted in fault_parquet_buffer
+  line serving_witness.py:218 <- serving_witness.py:552  faulted in fault_calibration_pa_buffer
+  line serving_witness.py:218 <- serving_witness.py:584  faulted in fault_pick_buffer
+  line serving_witness.py:222 <- predict.py:896  faulted in fault_parquet_buffer_alloc
+  line serving_witness.py:222 <- serving_witness.py:584  faulted in fault_pick_decoder
+  line serving_witness.py:223 <- predict.py:896  faulted in fault_parquet_buffer_alloc
+  line serving_witness.py:223 <- serving_witness.py:584  faulted in fault_pick_decoder
+  line serving_witness.py:224 <- predict.py:896  faulted in fault_parquet_buffer_alloc
+  line serving_witness.py:224 <- serving_witness.py:584  faulted in fault_pick_decoder
+  line serving_witness.py:225 <- predict.py:896  faulted in fault_parquet_buffer_alloc
+  line serving_witness.py:225 <- serving_witness.py:584  faulted in fault_pick_decoder
+  line serving_witness.py:229 <- predict.py:896  faulted in fault_collector_appends
+  line serving_witness.py:229 <- serving_witness.py:552  faulted in fault_collector_appends
+  line serving_witness.py:229 <- serving_witness.py:584  faulted in fault_collector_appends
+  line serving_witness.py:230 <- predict.py:896  faulted in fault_collector_appends
+  line serving_witness.py:230 <- serving_witness.py:552  faulted in fault_collector_appends
+  line serving_witness.py:230 <- serving_witness.py:584  faulted in fault_collector_appends
+  line serving_witness.py:239 <- predict.py:901  faulted in fault_parquet_buffer
+  line serving_witness.py:239 <- serving_witness.py:558  faulted in fault_calibration_pa_buffer
+  line serving_witness.py:239 <- serving_witness.py:591  faulted in fault_pick_buffer
+  line serving_witness.py:239 <- serving_witness.py:600  faulted in fault_pick_buffer
+  line serving_witness.py:240 <- predict.py:901  faulted in fault_parquet_buffer
+  line serving_witness.py:240 <- serving_witness.py:558  faulted in fault_calibration_pa_buffer
+  line serving_witness.py:240 <- serving_witness.py:591  faulted in fault_pick_buffer
+  line serving_witness.py:240 <- serving_witness.py:600  faulted in fault_pick_buffer
+  line serving_witness.py:241 <- predict.py:901  faulted in fault_parquet_buffer
+  line serving_witness.py:241 <- serving_witness.py:558  faulted in fault_calibration_pa_buffer
+  line serving_witness.py:241 <- serving_witness.py:591  faulted in fault_pick_buffer
+  line serving_witness.py:241 <- serving_witness.py:600  faulted in fault_pick_buffer
+  line serving_witness.py:243 <- predict.py:901  faulted in fault_collector_appends
+  line serving_witness.py:243 <- serving_witness.py:558  faulted in fault_collector_appends
+  line serving_witness.py:243 <- serving_witness.py:591  faulted in fault_collector_appends
+  line serving_witness.py:243 <- serving_witness.py:600  faulted in fault_collector_appends
+  line serving_witness.py:255 <- serving_witness.py:213  faulted in genuine_pick_unreadable
+  line serving_witness.py:255 <- serving_witness.py:216  faulted in fault_parquet_buffer
+  line serving_witness.py:255 <- serving_witness.py:223  faulted in fault_parquet_buffer_alloc
+  line serving_witness.py:255 <- serving_witness.py:230  faulted in fault_collector_appends
+  line serving_witness.py:275 <- serving_witness.py:214  faulted in genuine_pick_unreadable
+  line serving_witness.py:276 <- serving_witness.py:214  faulted in genuine_pick_unreadable
+  line serving_witness.py:309 <- scenarios.py:559  faulted in fault_hashing_writer_hash
+  line serving_witness.py:315 <- predict.py:158  faulted in fault_hashing_writer_hash
+  line serving_witness.py:316 <- predict.py:158  faulted in fault_hashing_writer_hash
+  line serving_witness.py:351 <- serving_witness.py:420  faulted in fault_collector_appends
+  line serving_witness.py:357 <- serving_witness.py:420  faulted in fault_calibration_record
+  line serving_witness.py:358 <- serving_witness.py:420  faulted in fault_calibration_record
+  line serving_witness.py:366 <- scenarios.py:566  faulted in fault_collector_appends
+  line serving_witness.py:367 <- scenarios.py:566  faulted in fault_collector_appends
+  line serving_witness.py:368 <- scenarios.py:566  faulted in fault_collector_appends
+  line serving_witness.py:369 <- scenarios.py:566  faulted in fault_collector_appends
+  line serving_witness.py:370 <- scenarios.py:566  faulted in fault_collector_appends
+  line serving_witness.py:371 <- scenarios.py:566  faulted in fault_collector_appends
+  line serving_witness.py:372 <- scenarios.py:566  faulted in fault_collector_appends
+  line serving_witness.py:373 <- scenarios.py:566  faulted in fault_collector_appends
+  line serving_witness.py:374 <- scenarios.py:566  faulted in fault_collector_appends
+  line serving_witness.py:375 <- scenarios.py:566  faulted in fault_collector_appends
+  line serving_witness.py:376 <- scenarios.py:566  faulted in fault_collector_appends
+  line serving_witness.py:377 <- scenarios.py:566  faulted in fault_collector_appends
+  line serving_witness.py:389 <- serving_witness.py:356  faulted in calibration_decode_error
+  line serving_witness.py:397 <- serving_witness.py:356  faulted in calibration_decode_error
+  line serving_witness.py:398 <- serving_witness.py:356  faulted in calibration_decode_error
+  line serving_witness.py:404 <- serving_witness.py:356  faulted in fault_collector_appends
+  line serving_witness.py:417 <- scenarios.py:589  faulted in fault_attrs_assignment
+  line serving_witness.py:418 <- scenarios.py:589  faulted in fault_attrs_assignment
+  line serving_witness.py:420 <- scenarios.py:589  faulted in fault_attrs_assignment
+  line serving_witness.py:421 <- orchestrator.py:202  faulted in fault_build
+  line serving_witness.py:421 <- scenarios.py:589  faulted in fault_attrs_assignment
+  line serving_witness.py:423 <- orchestrator.py:202  faulted in fault_build
+  line serving_witness.py:423 <- scenarios.py:589  faulted in fault_attrs_assignment
+  line serving_witness.py:427 <- scenarios.py:589  faulted in fault_attrs_assignment
+  line serving_witness.py:431 <- serving_witness.py:423  faulted in fault_build
+  line serving_witness.py:432 <- serving_witness.py:423  faulted in fault_build
+  line serving_witness.py:444 <- orchestrator.py:120  faulted in fault_cache_buffer
+  line serving_witness.py:445 <- orchestrator.py:120  faulted in fault_cache_buffer
+  line serving_witness.py:446 <- orchestrator.py:120  faulted in fault_cache_buffer
+  line serving_witness.py:473 <- orchestrator.py:125  faulted in fault_cache_buffer
+  line serving_witness.py:521 <- predict.py:155  faulted in fault_hashing_writer_construction
+  line serving_witness.py:522 <- predict.py:155  faulted in fault_hashing_writer_construction
+  line serving_witness.py:532 <- predict.py:160  faulted in fault_hashing_writer_finalisation
+  line serving_witness.py:533 <- predict.py:160  faulted in fault_hashing_writer_finalisation
+  line serving_witness.py:534 <- predict.py:160  faulted in fault_hashing_writer_finalisation
+  line serving_witness.py:535 <- predict.py:160  faulted in fault_hashing_writer_finalisation
+  line serving_witness.py:537 <- predict.py:160  faulted in fault_hashing_writer_construction
+  line serving_witness.py:574 <- orchestrator.py:196  faulted in calibration_decode_error
+  line serving_witness.py:575 <- orchestrator.py:196  faulted in calibration_decode_error
+  line serving_witness.py:576 <- orchestrator.py:196  faulted in calibration_decode_error
+  line serving_witness.py:623 <- calibrate.py:136  faulted in fault_collector_appends
+  line serving_witness.py:624 <- calibrate.py:136  faulted in fault_collector_appends
+  line serving_witness.py:642 <- calibrate.py:190  faulted in fault_collector_appends
+  line serving_witness.py:648 <- calibrate.py:190  faulted in fault_collector_appends
+  line serving_witness.py:659 <- serving_witness.py:646  faulted in fault_sample_canonicalisation
+  line serving_witness.py:659 <- serving_witness.py:651  faulted in fault_sample_canonicalisation
+  line serving_witness.py:660 <- serving_witness.py:646  faulted in fault_sample_canonicalisation
+  line serving_witness.py:660 <- serving_witness.py:651  faulted in fault_sample_canonicalisation
+  line serving_witness.py:661 <- serving_witness.py:646  faulted in fault_sample_canonicalisation
+  line serving_witness.py:661 <- serving_witness.py:651  faulted in fault_sample_canonicalisation
+  line serving_witness.py:666 <- scenarios.py:577  faulted in fault_map_extraction
+  line serving_witness.py:669 <- scenarios.py:577  faulted in fault_map_extraction
+  line serving_witness.py:670 <- scenarios.py:577  faulted in fault_map_extraction
+  line serving_witness.py:671 <- scenarios.py:577  faulted in fault_map_extraction

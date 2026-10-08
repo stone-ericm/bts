@@ -50,10 +50,15 @@ for c in ("plain", "designed fault", "genuine failure"):
                 "not faulted: fault-only point (no plain scenario reaches it; faulted once, in the first scenario reaching it)",
                 "computation (genuine-failure scenario instead)"):
         print(f"  {key}: {table[c, key]}")
+plain_points = in_plain - excluded
+in_a_plain_run = {p for n, p in faulted if cls[n] == "plain"}
+print(f"\n## points a plain scenario reaches: {len(plain_points)}, faulted in at least one plain scenario: "
+      f"{len(plain_points & in_a_plain_run)}")
 only = sorted({p for n in names if cls[n] != "plain" for p in reached[n]} - in_plain - excluded)
 print(f"\n## fault-only points (no plain scenario reaches them): {len(only)}, each faulted once, in the first "
       "designed-fault or genuine-failure scenario reaching it")
 first = {tuple(r["point"]): r["scenario"] for r in reversed(results)}
 for p in only:
     print(f"  {p[0]:4} {p[1]}:{p[2]} <- {p[3]}:{p[4]}  faulted in {first.get(p, 'NOT FAULTED')}")
-sys.exit(1 if failed or not all(r['equals_golden'] for r in checks) or any(p not in first for p in only) else 0)
+sys.exit(1 if failed or not all(r['equals_golden'] for r in checks) or any(p not in first for p in only)
+         or plain_points - in_a_plain_run else 0)

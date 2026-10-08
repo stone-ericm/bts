@@ -39,7 +39,7 @@ for loc in summ["never_reached"]:
         out["handler; its try body fault-injected, all runs equal the golden"].append(f"{loc} <- {sorted(hit)} ({sum(map(len, hit.values()))} runs)")
     else:
         out["handler; try body not injected"].append(f"{loc} <- body {body}")
-print("sweep points", len(pts), "failed", sum(not r["ok"] for r in pts), "| never reached by the sweep's plain and designed-fault runs:", len(summ["never_reached"]))
+print("sweep runs", len(pts), "failed", sum(not r["ok"] for r in pts), "| never reached by the sweep's plain and designed-fault runs:", len(summ["never_reached"]))
 for k, v in out.items():
     print(f"{k}: {len(v)}")
 for k, v in out.items():
