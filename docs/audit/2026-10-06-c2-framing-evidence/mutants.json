@@ -3248,7 +3248,7 @@
   "id": "S44",
   "rule": "stage two: the launcher-record factor (removed alone)",
   "file": "scripts/audit/c2_framing/screen.py",
-  "old": "    try:\n        rec = json.loads((c1_dir / f\"PENDING_{unit}.json\").read_text())\n    except (OSError, ValueError):\n        return f\"no launcher record PENDING_{unit}.json for this C1 launcher unit\"\n    if not (isinstance(rec, dict) and rec.get(\"unit\") == unit and rec.get(\"declared_cpu_hours\") == budget):\n        return f\"the launcher record for {unit} does not declare this seed's budget {budget:g}\"\n    return None\n",
+  "old": "    try:\n        rec = json.loads((c1_dir / f\"PENDING_{unit}.json\").read_text())\n    except (OSError, ValueError):\n        return f\"no launcher record PENDING_{unit}.json for this C1 launcher unit\"\n    if not (isinstance(rec, dict) and rec.get(\"unit\") == unit and rec.get(\"declared_cpu_hours\") == budget):\n        return f\"the launcher record for {unit} does not name this unit with this seed's budget {budget:g}\"\n    return None\n",
   "new": "    return None\n",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_an_unguarded_stage_two_run_refuses_before_its_claim_or_inputs"
