@@ -95,6 +95,8 @@ STAGE_ONE_RUNS = {2273360: "22d31f2-20261008T061514Z", 260991262: "11e0cfd-20261
 STAGE_ONE_FILES = "docs/audit/2026-10-08-c2-framing-stage-one-evidence/runs.sha256"
 STAGE_ONE_FILES_SHA256 = "053439314b4c65a7eef1aaacac294e0da53e241dec21b41ebc908c745977d6e2"
 QUIET_MINUTES = (45, 190)      # no stage-two launch from 00:45 to 03:10 America/New_York (addendum §3)
+C1_DIR = OUT_ROOT.parents[1] / "c1"                  # the C1 launcher's records (PENDING_<unit>.json)
+UNIT_RE = re.compile(r"c1-c2-framing-seed(\d+)-\d{8}T\d{6}Z-[0-9a-f]{8}")   # the launcher's unit names for this job
 INPUT_NAMES = tuple(f"pa_{s}.parquet" for s in SEASONS_IN) + (LOOKUP_NAME,)
 
 
@@ -351,6 +353,8 @@ def seed_allowed(seed: int, register_text: str, out_root: Path, *, identity: dic
         return stage_two_allowed(seed, register_text, out_root, identity=identity, pins=pins)
     if seed not in STAGE_ONE_SEEDS:
         return False, f"{seed} is not a registered seed {SEEDS}", None
+    if {k: identity.get(k) for k in IDENTITY_KEYS} != STAGE_ONE_IDENTITY:
+        return False, "stage one is closed: under any admission but stage one's own, only seeds 4-10 run (review s1 B3)", None
     if seed == STAGE_ONE_SEEDS[0]:
         return True, "seed 1", SEED1_BUDGET_CPU_H
     rel = release(register_text)
@@ -465,13 +469,43 @@ def launch_window_problem(hour: int, minute: int) -> str | None:
 
 
 def refuse_inside_the_window(seed: int) -> None:
-    """Seeds 4-10 never start from 00:45 to 03:10 America/New_York (addendum §3). The launch wrapper and the job itself
-    both call this, after their validation and immediately before they call the launcher or claim the seed, so a seed
-    started by hand through the C1 launcher, or validated across 00:45, still refuses."""
+    """Seeds 4-10 never start from 00:45 to 03:10 America/New_York (addendum §3). The launch wrapper calls this after its
+    validation, immediately before it calls the launcher; the job itself calls it inside its claim lock, after every
+    validation and the existing-claim check, immediately before it creates its run directory (review s1 B1)."""
     if seed in STAGE_TWO_SEEDS:
         problem = launch_window_problem(*ny_clock())
         if problem:
             raise SystemExit(f"refusing: {problem}")
+
+
+def proc_cgroup_text() -> str:
+    """This process's cgroup record from the kernel (/proc/self/cgroup); empty when there is none to read."""
+    try:
+        return Path("/proc/self/cgroup").read_text()
+    except OSError:
+        return ""
+
+
+def guarded_unit_problem(seed: int, budget: float, cgroup_text: str, c1_dir: Path) -> str | None:
+    """Review s1 B2: a stage-two seed runs only as the guard's payload inside its own C1 launcher unit, so the launcher's
+    one-job-at-a-time rule, the 50 checkpoint and the CPU guard apply. Two facts the caller does not set, which must
+    agree: the kernel's cgroup record places this process in `<unit>.service/payload` (the guard's leaf) of a unit the
+    launcher names for this seed; and the launcher's PENDING record for exactly that unit declares this seed's budget.
+    Fails closed: no cgroup v2 record, another leaf, unit or seed, or no matching record, refuses. Deliberate imitation
+    of the launcher's unit by the operator is outside the threat model."""
+    path = next((x[3:].strip() for x in cgroup_text.splitlines() if x.startswith("0::")), None)
+    parts = path.split("/") if path else []
+    unit = parts[-2].removesuffix(".service") if len(parts) >= 2 and parts[-2].endswith(".service") else None
+    m = UNIT_RE.fullmatch(unit) if unit else None
+    if not (parts and parts[-1] == "payload" and m and int(m.group(1)) == SEEDS.index(seed) + 1):
+        return f"stage-two seeds run only as the guarded payload of their own C1 launcher unit (cgroup {path!r})"
+    try:
+        rec = json.loads((c1_dir / f"PENDING_{unit}.json").read_text())
+    except (OSError, ValueError):
+        return f"no launcher record PENDING_{unit}.json for this C1 launcher unit"
+    if not (isinstance(rec, dict) and rec.get("unit") == unit and rec.get("declared_cpu_hours") == budget):
+        return f"the launcher record for {unit} does not declare this seed's budget {budget:g}"
+    return None
 
 
 def load_inputs(data_dir: Path, pins: dict):
@@ -500,10 +534,13 @@ def run(seed: int, data_dir: Path, inputs_dir: Path, *, walk_forward=None, now=N
     if foreign:
         raise SystemExit(f"refusing: modules from outside this checkout: {foreign}")
     register = (A.REPO / REGISTER_REL).read_text()
-    ok, why, _ = seed_allowed(seed, register, out_root, identity=identity, pins=adm["input_pins"])
+    ok, why, budget = seed_allowed(seed, register, out_root, identity=identity, pins=adm["input_pins"])
     if not ok:
         raise SystemExit(f"refusing: {why}")
-    refuse_inside_the_window(seed)
+    if seed in STAGE_TWO_SEEDS:
+        problem = guarded_unit_problem(seed, budget, proc_cgroup_text(), C1_DIR)
+        if problem:
+            raise SystemExit(f"refusing: {problem}")
     from bts.model.predict import LGB_PARAMS
     if not (LGB_PARAMS.get("deterministic") is True and LGB_PARAMS.get("force_row_wise") is True):
         raise SystemExit("refusing: LightGBM's params were built without the deterministic flags")
@@ -513,6 +550,7 @@ def run(seed: int, data_dir: Path, inputs_dir: Path, *, walk_forward=None, now=N
     with A.admission_lock(root):
         if A.claimed_runs(root, register):
             raise SystemExit(f"refusing: a claimed run already exists under {root}")
+        refuse_inside_the_window(seed)                # the last check before the claim (review s1 B1)
         stamp = (now or datetime.now(timezone.utc)).strftime("%Y%m%dT%H%M%SZ")
         run_dir = A.make_run_dir(root, f"{head[:7]}-{stamp}")
         claim_sha = A.write_claim(run_dir, head)
@@ -777,8 +815,8 @@ def validate_run(d: Path, seed: int, *, out_root: Path, identity: dict, pins: di
 
 def aggregate(run_dirs: list[Path], *, _test_out_root=None) -> dict:
     """Stage one's dispositions, only from exactly three distinct runs of the three registered seeds, each validated by
-    `validate_run` in the canonical namespace, all of the same admitted code (accepted identity), inputs and settings.
-    Each run keeps its own commit: a metadata-only descendant such as Eric's committed release is admitted by the
+    `validate_run` in the canonical namespace under stage one's own admitted identity (STAGE_ONE_IDENTITY, so stage one
+    still re-validates under a later admission), all of the same inputs and settings. Each run keeps its own commit: a metadata-only descendant such as Eric's committed release is admitted by the
     shared gate, so equal HEADs are not required (r2 R2-1)."""
     out_root = OUT_ROOT if _test_out_root is None else _test_out_root
     dirs = [Path(d).resolve() for d in run_dirs]
@@ -790,8 +828,9 @@ def aggregate(run_dirs: list[Path], *, _test_out_root=None) -> dict:
         seeds.append(int(m.group(1)) if m else None)
     if sorted(s for s in seeds if s is not None) != sorted(STAGE_ONE_SEEDS) or None in seeds:
         raise RunInvalid(f"seeds {seeds} are not exactly the registered {list(STAGE_ONE_SEEDS)}")
-    _, adm, identity = admission_gate()               # trusted evidence: never the runs' own declarations (r3 R3-3)
-    valid = [validate_run(d, s, out_root=out_root, identity=identity, pins=adm["input_pins"]) for d, s in zip(dirs, seeds)]
+    _, adm, _ = admission_gate()                     # trusted evidence: never the runs' own declarations (r3 R3-3)
+    valid = [validate_run(d, s, out_root=out_root, identity=STAGE_ONE_IDENTITY, pins=adm["input_pins"])
+             for d, s in zip(dirs, seeds)]            # stage one keeps its own identity under any later admission
     first = valid[0]["manifest"]
     for key in ("identity", "input_pins", "inputs_digest", "lgb_params", "feature_settings", "basis", "retrain_every",
                 "test_seasons"):

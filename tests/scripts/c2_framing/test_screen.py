@@ -432,6 +432,7 @@ def stubbed(monkeypatch, tmp_path):
     monkeypatch.setattr(FC, "compute_all_features", lambda df: df)
     monkeypatch.setattr(S, "SCORING", {"mc_trials": 200, "season_length": 180})      # speed only; same code path
     monkeypatch.setattr(S, "head_admitted", _fake_head_admitted)     # real git ancestry: test_head_admitted_*
+    monkeypatch.setattr(S, "STAGE_ONE_IDENTITY", dict(IDENT))        # the stubbed admission is stage one's own
     out = tmp_path / "out"
     out.mkdir()
     return out, inputs, adm
@@ -1052,9 +1053,23 @@ def _mixed(calls):
     return wf
 
 
+GUARD_SEED = [None]     # the seed _run_mixed is running: the stage_one fixture's cgroup record places it in its own unit
+GUARDED = "0::/user.slice/user-1000.slice/user@1000.service/app.slice/{unit}.service/payload\n"   # the box's format
+
+
+def _unit_for(seed):
+    """The launcher's unit name for this seed's job (`c1-<name>-<UTC stamp>-<8 hex>`)."""
+    return f"c1-c2-framing-seed{S.SEEDS.index(seed) + 1}-20261009T130000Z-0a1b2c3d"
+
+
 def _run_mixed(stubbed, seed):
+    """run, as the guard's payload of this seed's own C1 launcher unit (the stage_one fixture's cgroup record)."""
     out, inputs, _ = stubbed
-    return S.run(seed, out, inputs, walk_forward=_mixed([]), _test_out_root=out)
+    GUARD_SEED[0] = seed
+    try:
+        return S.run(seed, out, inputs, walk_forward=_mixed([]), _test_out_root=out)
+    finally:
+        GUARD_SEED[0] = None
 
 
 def _pin_stage_one(monkeypatch, out):
@@ -1103,6 +1118,12 @@ def _admitted_heads(repo, identity, head):
 @pytest.fixture
 def stage_one(stubbed, monkeypatch):
     monkeypatch.setattr(S, "ny_clock", lambda: (12, 0))              # outside the launch window, whatever the hour
+    c1 = stubbed[0].parent / "c1"                                      # the launcher's records, one per stage-two unit
+    for seed in S.STAGE_TWO_SEEDS:
+        _pending(c1, _unit_for(seed), 20.0)
+    monkeypatch.setattr(S, "C1_DIR", c1)
+    monkeypatch.setattr(S, "proc_cgroup_text", lambda: GUARDED.replace("{unit}", _unit_for(GUARD_SEED[0]))
+                        if GUARD_SEED[0] in S.STAGE_TWO_SEEDS else "")    # outside _run_mixed: no guarded context
     monkeypatch.setattr(S, "head_admitted", _admitted_heads)
     _stage_one_by(stubbed, monkeypatch, _run_mixed)
     _to_stage_two(stubbed, monkeypatch, [_cap_row("165", "20")])
@@ -1308,6 +1329,146 @@ def test_launch_checks_the_window_after_its_validation(stage_one, monkeypatch):
         S.launch(S.STAGE_TWO_SEEDS[0], out, inputs, _test_out_root=out,
                  execute=lambda cmd, cwd: (calls.append(cmd), R())[1])
     assert calls == []
+
+
+def _settings_cross_0045(monkeypatch):
+    """A clock at 00:44 that the settings validation moves to 00:45."""
+    now = [(0, 44)]
+    real = S.check_settings
+
+    def slow():
+        now[0] = (0, 45)
+        return real()
+    monkeypatch.setattr(S, "check_settings", slow)
+    monkeypatch.setattr(S, "ny_clock", lambda: now[0])
+
+
+def _claim_check_cross_0045(monkeypatch):
+    """A clock at 00:44 that the locked existing-claim check moves to 00:45."""
+    from scripts.audit.c1 import admission as A
+    now = [(0, 44)]
+    real = A.claimed_runs
+
+    def slow(*a, **k):
+        now[0] = (0, 45)
+        return real(*a, **k)
+    monkeypatch.setattr(A, "claimed_runs", slow)
+    monkeypatch.setattr(S, "ny_clock", lambda: now[0])
+
+
+@pytest.mark.parametrize("fn", [_settings_cross_0045, _claim_check_cross_0045])
+def test_run_checks_the_window_immediately_before_its_claim(stage_one, monkeypatch, fn):
+    """Review s1 B1: the job's last check of the window is inside the claim lock, after every validation and the
+    existing-claim check, so a clock crossing 00:45 during any of them refuses with nothing claimed."""
+    out, _, _ = stage_one
+    fn(monkeypatch)
+    with pytest.raises(SystemExit, match="00:45 to 03:10"):
+        _run_mixed(stage_one, S.STAGE_TWO_SEEDS[0])
+    root = out / f"seed_{S.STAGE_TWO_SEEDS[0]}"
+    assert not root.exists() or not any(x.is_dir() for x in root.iterdir())
+
+
+UNIT4 = "c1-c2-framing-seed4-20261009T130000Z-0a1b2c3d"
+
+
+def _pending(d, name, budget):
+    """The launcher's PENDING record for unit `name`, as `scripts.audit.c1.launch` writes it (the fields checked)."""
+    d.mkdir(parents=True, exist_ok=True)
+    (d / f"PENDING_{name}.json").write_text(json.dumps({"unit": name, "declared_cpu_hours": budget}))
+
+
+def test_the_guarded_unit_check_needs_the_seeds_own_launcher_unit_and_payload(tmp_path):
+    """Review s1 B2: the kernel's cgroup record must place the job in the guard's payload leaf of the C1 unit named for
+    its seed, and the launcher's record for that unit must declare Eric's budget. Each bad cgroup case has a launcher
+    record for the unit it names (with the right budget), so only the cgroup factor can refuse it."""
+    c1 = tmp_path / "c1"
+    seed4 = S.STAGE_TWO_SEEDS[0]
+    good = GUARDED.replace("{unit}", UNIT4)
+    _pending(c1, UNIT4, 20.0)
+    assert S.guarded_unit_problem(seed4, 20.0, good, c1) is None
+    bad = {
+        "no cgroup v2 record": ("", None),
+        "a login session": ("0::/user.slice/user-1000.slice/session-3.scope\n", None),
+        "the guard's own leaf": (good.replace("/payload", "/guard"), UNIT4),
+        "another seed's unit": (GUARDED.replace("{unit}", UNIT4.replace("seed4", "seed5")), UNIT4.replace("seed4", "seed5")),
+        "a unit not drawn by the launcher": (GUARDED.replace("{unit}", "c1-c2-framing-seed4"), "c1-c2-framing-seed4"),
+        "a hand-started transient unit": (GUARDED.replace("{unit}", "run-r0a1b2c3d"), "run-r0a1b2c3d"),
+        "a payload nested deeper": (good.replace("/payload", "/payload/x"), UNIT4),
+    }
+    for why, (text, name) in bad.items():
+        if name:
+            _pending(c1, name, 20.0)
+        assert "C1 launcher unit" in (S.guarded_unit_problem(seed4, 20.0, text, c1) or ""), why
+    assert "PENDING" in S.guarded_unit_problem(seed4, 20.0, good, tmp_path / "none")
+    _pending(c1, UNIT4, 30.0)
+    assert "budget" in S.guarded_unit_problem(seed4, 20.0, good, c1)
+
+
+@pytest.mark.parametrize("damage", ["login_session", "guard_leaf", "no_pending"])
+def test_an_unguarded_stage_two_run_refuses_before_its_claim_or_inputs(stage_one, monkeypatch, damage):
+    """Review s1 B2, end to end through run (the real check, as in every stage-two test). Each refusing context fails one factor alone: a login
+    session (no launcher unit), the guard's own leaf of seed 4's real unit (cgroup alone: its record is present), and
+    the right payload with no launcher record (the record alone). Nothing is claimed and no input is read; the guarded
+    payload with its record then runs. The cgroup line is the box's captured format (uid 1000, app.slice)."""
+    out, _, _ = stage_one
+    c1 = out.parent / "c1"
+    reads = []
+    monkeypatch.setattr(S, "load_inputs", lambda data_dir, pins: (reads.append(1), _stub_df())[1])
+    good = GUARDED.replace("{unit}", UNIT4)
+    assert UNIT4 == _unit_for(S.STAGE_TWO_SEEDS[0])
+    if damage == "login_session":
+        text = "0::/user.slice/user-1000.slice/session-3.scope\n"
+    elif damage == "guard_leaf":
+        text = good.replace("/payload", "/guard")
+    else:
+        (c1 / f"PENDING_{UNIT4}.json").unlink()
+        text = good
+    monkeypatch.setattr(S, "proc_cgroup_text", lambda: text)
+    with pytest.raises(SystemExit, match="C1 launcher unit"):
+        _run_mixed(stage_one, S.STAGE_TWO_SEEDS[0])
+    root = out / f"seed_{S.STAGE_TWO_SEEDS[0]}"
+    assert reads == [] and (not root.exists() or not any(x.is_dir() for x in root.iterdir()))
+    _pending(c1, UNIT4, 20.0)
+    monkeypatch.setattr(S, "proc_cgroup_text", lambda: good)
+    assert _run_mixed(stage_one, S.STAGE_TWO_SEEDS[0]) == 0 and reads == [1]
+
+
+def test_the_cgroup_record_is_read_from_the_kernel():
+    """On Linux the job's own /proc/self/cgroup; elsewhere (this Mac) nothing, which refuses."""
+    text = S.proc_cgroup_text()
+    assert isinstance(text, str) and (text.startswith("0::") or "\n0::" in text or not (ROOT / "proc").exists())
+
+
+@pytest.mark.parametrize("k", [0, 1, 2])
+@pytest.mark.parametrize("damage", ["none", "moved", "claim_missing"])
+def test_stage_one_seeds_never_run_under_the_stage_two_admission(stage_one, damage, k):
+    """Review s1 B3: under any admission but stage one's own, each of seeds 1-3 refuses on both routes, also when its
+    accepted directory or its claim is missing (moved aside here, never deleted)."""
+    out, inputs, _ = stage_one
+    seed = S.STAGE_ONE_SEEDS[k]
+    d = _run_dir(out, seed)
+    if damage == "moved":
+        d.replace(out.parent / f"retained-{d.parent.name}")
+    elif damage == "claim_missing":
+        (d / "CLAIM.json").unlink()
+    calls = []
+    with pytest.raises(SystemExit, match="stage one is closed"):
+        _run_mixed(stage_one, seed)
+    with pytest.raises(SystemExit, match="stage one is closed"):
+        S.launch(seed, out, inputs, _test_out_root=out, execute=lambda cmd, cwd: calls.append(cmd))
+    assert calls == []
+
+
+def test_stage_one_still_revalidates_and_aggregates_under_the_stage_two_admission(stage_one):
+    """What must keep working for stage one under X-36: the acceptance's re-validation (its accepted runs, bytes and
+    identity) and the three-seed aggregate, both under stage one's own identity."""
+    out, _, adm = stage_one
+    first = S.stage_one_runs(out, pins=adm.pins)
+    assert [v["manifest"]["seed"] for v in first] == list(S.STAGE_ONE_SEEDS)
+    assert all(v["manifest"]["identity"] == IDENT for v in first)
+    agg = S.aggregate([_run_dir(out, s) for s in S.STAGE_ONE_SEEDS], _test_out_root=out)
+    assert agg["identity"] == IDENT and agg["variants"]["A"]["disposition"] == "inconclusive"
+    assert agg["variants"]["B"]["disposition"] == "negative"
 
 
 def test_the_clock_reads_new_york_time():

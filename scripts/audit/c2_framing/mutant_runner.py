@@ -157,6 +157,7 @@ ALLOWED_ATTRIBUTES = frozenset({
     'CAP_H', 'SEEDS', 'STAGE_ONE_FILES', 'STAGE_ONE_FILES_SHA256', 'STAGE_ONE_IDENTITY', 'STAGE_ONE_RUNS',
     'STAGE_TWO_SEEDS', 'aggregate_stage_two', 'launch_window_problem', 'ledger', 'ny_clock', 'stage_two_release',
     'CLOSURE', 'DESIGN', 'DESIGN_TWO', 'EXPOSURE_ROW', 'SCOPE', 'stage_two_allowed',
+    'C1_DIR', 'claimed_runs', 'guarded_unit_problem', 'proc_cgroup_text', 'stage_one_runs',  # review s1 B1-B3
 })
 ALLOWED_KEYWORDS = frozenset({
     '_test_out_root', 'actual_hit', 'atol', 'basis', 'boundary', 'budget', 'calls', 'capture_output', 'check', 'code',
