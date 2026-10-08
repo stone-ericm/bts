@@ -54,8 +54,8 @@ def test_tsv_round_trip(tmp_path):
     (49.0, 10.0, False, "ok"),        # crossing 50 during a job is allowed; the next launch stops
     (50.0, 1.0, False, "checkpoint"),  # at 50: stop and report until Eric's acknowledgement exists
     (50.0, 1.0, True, "ok"),
-    (95.0, 6.0, True, "over_cap"),     # the declared budget may not cross 100
-    (100.0, 0.5, True, "stop"),
+    (ledger.CAP_H - 5, 6.0, True, "over_cap"),     # the declared budget may not cross the cap
+    (ledger.CAP_H, 0.5, True, "stop"),
 ])
 def test_gate(total, declared, acked, expect):
     assert ledger.gate(total, declared, acked) == expect
@@ -150,7 +150,7 @@ def test_failed_units_are_read_from_systemd_failure_messages():
     (dict(name="R2 build"), "name"),
     (dict(active_units=["c1-r3-fit-20261005T110000Z.service"]), "another C1 job is active"),
     (dict(rows=[{"invocation": "a", "unit": "c1-x.service", "stopped_at": "t", "cpu_seconds": 50 * 3600.0}]), "checkpoint"),
-    (dict(cpu_hours=101.0), "over_cap"),
+    (dict(cpu_hours=ledger.CAP_H + 1), "over_cap"),
     (dict(now=datetime(2027, 4, 1, 12, tzinfo=UTC)), "sleep window"),
     (dict(command=[]), "command"),
 ])
