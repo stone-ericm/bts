@@ -2,6 +2,7 @@
 import hashlib
 import json
 import math
+import subprocess
 from pathlib import Path
 
 import numpy as np
@@ -1022,7 +1023,8 @@ def _bundle(records, failed_nodes=(), rc=None, **over):
          "calls": {n: ("AssertionError" if n in failed_nodes else None) for n in nodes},
          "finish": {"exitstatus": (1 if failed_nodes else 0) if rc is None else rc, "testsfailed": len(failed_nodes),
                     "testscollected": len(set(nodes))},
-         "late_plugins": 0, "not_outermost": [], "marked": [], "plugin_changes": [], "foreign_plugins": []}
+         "late_plugins": 0, "not_outermost": [], "marked": [], "plugin_changes": [], "foreign_plugins": [],
+         "boundary": []}
     b.update(over)
     return b
 
@@ -1071,13 +1073,17 @@ CLASSIFY = [
     # r9: a plugin that is neither pytest's own nor the runner's was registered when the sentinel was
     (1, _bundle(ONE_FAIL, [A], foreign_plugins=["conftest"]), "INCONCLUSIVE(exit 1, foreign plugins)"),
     (1, _bundle(ONE_FAIL, [A], foreign_plugins=None), "INCONCLUSIVE(exit 1, foreign plugins)"),
+    # r10: the run's audit hook refused code from outside the boundary (r9 R9-2, R9-3), even if the test caught it
+    (1, _bundle(ONE_FAIL, [A], boundary=["not committed: /r/numpy.py"]),
+     "INCONCLUSIVE(exit 1, code outside the boundary)"),
+    (1, _bundle(ONE_FAIL, [A], boundary=None), "INCONCLUSIVE(exit 1, code outside the boundary)"),
 ]
 CLASSIFY_IDS = ["red", "red_two_failed", "survived", "no_evidence", "exit_mismatch", "interrupted", "internal_error",
                 "collection_error", "finish_raised", "finish_missing", "late_plugin", "not_outermost", "xpass", "marked", "skipped",
                 "errors", "fail_fast", "teardown_cut_short", "unintended_node", "report_flipped", "call_unobserved",
                 "failed_count_mismatch", "collected_count_mismatch",
                 "exit_status_mismatch", "plugin_changed", "plugin_changes_missing", "foreign_plugin",
-                "foreign_plugins_missing"]
+                "foreign_plugins_missing", "boundary", "boundary_missing"]
 
 
 @pytest.mark.parametrize("rc, bundle, verdict", CLASSIFY, ids=CLASSIFY_IDS)
@@ -1085,13 +1091,25 @@ def test_the_runner_classifies_only_complete_clean_failures_as_red(rc, bundle, v
     assert R.classify(rc, INTENDED, bundle)[0] == verdict
 
 
+_GIT = ["git", "-c", "user.name=scratch", "-c", "user.email=scratch@example.invalid", "-c", "commit.gpgsign=false",
+        "-c", "core.hooksPath=/dev/null"]
+
+
+def _commit(repo):
+    """Commit everything in a scratch root (r10: a run executes only installed and committed code)."""
+    for args in (["init", "-q"], ["add", "-A"], ["commit", "-q", "--allow-empty", "-m", "scratch"]):
+        subprocess.run([*_GIT, "-C", str(repo), *args], check=True, capture_output=True)
+
+
 def _scratch_mutant(tmp_path, tests, body):
-    """A scratch root of its own (the runner's rootdir and cwd, so collection never leaves it): a target, a test
-    module, and a spec naming tests relative to that root (r4: the out-of-tree collection that failed in a sandbox)."""
+    """A scratch root of its own (the runner's rootdir and cwd, so collection never leaves it), committed: a target, a
+    test module, and a spec naming tests relative to that root (r4: the out-of-tree collection that failed in a
+    sandbox)."""
     root = tmp_path / "scratch"
     root.mkdir()
     (root / "target.py").write_text("value = 1\n")
     (root / "test_scratch.py").write_text(body(root))
+    _commit(root)
     spec = tmp_path / "spec.json"
     spec.write_text(json.dumps([{"id": "X1", "rule": "scratch", "file": "target.py", "old": "value = 1",
                                  "new": "value = 2", "tests": tests}]))
@@ -1140,13 +1158,15 @@ def test_the_runs_load_no_conftest(tmp_path, capsys):
     """r9: conftests are never loaded (--noconftest), in the collection or the run, so their hooks never run."""
     spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], _two_read_failing())
     (root / "conftest.py").write_text("import pathlib\npathlib.Path(__file__).with_name('conftest_ran').write_text('y')\n")
+    _commit(root)                                      # r10: committed, so only --noconftest keeps it from loading
     assert R.main(str(spec), root=root) == 0
     assert "X1 RED" in capsys.readouterr().out and not (root / "conftest_ran").exists()
 
 
 def test_the_run_environment_is_scrubbed(monkeypatch):
     """r9: no inherited PYTHON* or PYTEST* variable reaches a run (PYTHONPATH, PYTEST_PLUGINS, PYTEST_ADDOPTS...);
-    entry-point plugins are off, bytecode is neither written nor read, and the interpreter adds no script or user path."""
+    entry-point plugins are off, bytecode is neither written nor read, and the interpreter adds no script or user path.
+    r10 (R9-1): collection is cut off at the root."""
     for k in ("PYTHONPATH", "PYTHONSTARTUP", "PYTEST_PLUGINS", "PYTEST_ADDOPTS", "PYTHONINSPECT"):
         monkeypatch.setenv(k, "planted")
     env = R._env()
@@ -1154,9 +1174,10 @@ def test_the_run_environment_is_scrubbed(monkeypatch):
     assert env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] == "1" and env["PYTHONDONTWRITEBYTECODE"] == "1"
     assert env["PYTHONPYCACHEPREFIX"].startswith("/dev/null/")                # no cache can exist there
     root = Path("/r")
-    assert R._python()[1:] == ["-B", "-P", "-s"] and R._pytest_cmd(root, "x")[1:6] == ["-B", "-P", "-s", "-m", "pytest"]
+    assert R._python()[1:] == ["-B", "-P", "-s"]
     args = R._args(root, "x")
     assert args[args.index("-c") + 1] == "/dev/null" and "--noconftest" in args and args[-1] == "x"
+    assert "--rootdir=/r" in args and "--confcutdir=/r" in args
 
 
 def test_the_runner_refuses_options_in_a_named_test_list(tmp_path, capsys):
@@ -1393,6 +1414,7 @@ def test_mutants_across_two_targets_are_all_red(tmp_path, capsys):
         "def test_first():\n"
         f"    assert val() == {_ONE} and pathlib.Path(__file__).with_name('other.py').read_text() == {_ONE}\n"))
     (root / "other.py").write_text("value = 1\n")
+    _commit(root)
     x1 = json.loads(spec.read_text())[0]
     spec.write_text(json.dumps([x1, dict(x1, id="X2", file="other.py"), dict(x1, id="X3", new="value = 3")]))
     assert R.main(str(spec), root=root) == 0
@@ -1417,11 +1439,13 @@ def _dynamic(tmp_path, body, gate, expect, plugin=None):
     spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], body)
     if plugin:
         (root / "scratch_plugin.py").write_text(_VAL + plugin)
+        _commit(root)
     problems = R.scope_problems(root, ["test_scratch.py"])
     assert any(gate in p for p in problems), problems
     intended = R.collect(root, ["test_scratch.py"])
     (root / "target.py").write_text("value = 2\n")                         # the mutant, applied by hand
-    rc, _, bundle = R.run_mutant(root, ["test_scratch.py"])
+    rc, _, bundle = R.run_mutant(root, ["test_scratch.py"], {(root / "target.py").resolve(): b"value = 2\n"})
+    assert bundle is None or bundle["boundary"] == [], bundle              # r10: these layers act inside the boundary
     assert R.classify(rc, intended, bundle)[0] == f"INCONCLUSIVE(exit {rc}, {expect})", bundle
     return bundle
 
@@ -1433,6 +1457,7 @@ def test_a_clean_run_has_no_foreign_plugins_and_no_plugin_changes(tmp_path):
     spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], _two_read_failing())
     rc, _, bundle = R.run_mutant(root, ["test_scratch.py"])
     assert rc == 0 and bundle["foreign_plugins"] == [] and bundle["plugin_changes"] == [], bundle   # no anyio either
+    assert bundle["boundary"] == [], bundle
     assert R.classify(rc, R.collect(root, ["test_scratch.py"]), bundle)[0] == "SURVIVED"
 
 
@@ -1669,3 +1694,264 @@ def test_a_call_wrapper_gone_before_yielding_is_seen(tmp_path):
         "    pluggy.PluginManager.register(pm, Gone(pm), 'gone-call-wrapper')\n"
         "    assert val() == 1\n"
         "def test_second():\n    assert val() == 1\n"), "parameter request", "plugin system changed")
+
+
+# ---------------------------------------------------------------- r10: only installed and committed code runs
+
+def test_collection_and_runs_stay_inside_the_root(tmp_path, capsys):
+    """r9 R9-1: with an empty configuration file pytest walked the root's ancestors and ran a package initializer above
+    the root. The collection cutoff is now the root itself."""
+    canary = tmp_path / "ancestor_ran"
+    (tmp_path / "__init__.py").write_text(f"import pathlib\npathlib.Path({str(canary)!r}).write_text('y')\n")
+    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], _two_read_failing())
+    assert R.main(str(spec), root=root) == 0
+    assert "X1 RED" in capsys.readouterr().out and not canary.exists()
+    assert R.collect(root, ["test_scratch.py"]) == ["test_scratch.py::test_first", "test_scratch.py::test_second"]
+
+
+def _numpy_suite(r):
+    """An in-scope suite (the reviewed vocabulary) with an allowed import spelled numpy."""
+    return _READ + f"import numpy as np\ndef test_first():\n    assert np.isclose(1, 1) and val() == {_ONE}\n"
+
+
+def _look_alike(canary):
+    return f"import pathlib\npathlib.Path({str(canary)!r}).write_text('ran')\ndef isclose(a, b):\n    return a == b\n"
+
+
+LOOK_ALIKE = [("uncommitted", False, ["numpy.py: not committed", "numpy.py: shadows the installed module numpy"]),
+              ("committed", True, ["numpy.py: shadows the installed module numpy"])]
+
+
+@pytest.mark.parametrize("v, expect", [c[1:] for c in LOOK_ALIKE], ids=[c[0] for c in LOOK_ALIKE])
+def test_a_look_alike_module_is_refused_before_the_run(tmp_path, capsys, v, expect):
+    """r9 R9-2: an allowed import (numpy) resolved to a local module the gate never read. A run may execute only
+    installed and committed code, and no module it can import from the root may take an installed module's name."""
+    canary = tmp_path / "look_alike_ran"
+    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], _numpy_suite)
+    (root / "numpy.py").write_text(_look_alike(canary))
+    if v:
+        _commit(root)
+    assert R.main(str(spec), root=root) == 1
+    out = capsys.readouterr().out
+    assert "X1 REFUSED" in out and "NOT RED: X1" in out and not canary.exists(), out
+    assert R.boundary_problems(root, ["test_scratch.py"]) == expect
+    assert (root / "target.py").read_text() == "value = 1\n"
+
+
+def test_a_linked_module_is_refused_before_the_run(tmp_path, capsys):
+    """r9 R9-3: a link named source outside every scanned tree, which a child could rewrite before the import. No
+    symlink is allowed anywhere a run can import from."""
+    canary = tmp_path / "linked_ran"
+    (tmp_path / "outside").mkdir()
+    (tmp_path / "outside" / "numpy.py").write_text(_look_alike(canary))
+    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], _numpy_suite)
+    subprocess.run(["ln", "-s", str(tmp_path / "outside" / "numpy.py"), str(root / "numpy.py")], check=True)
+    _commit(root)                                                 # git records the link, never what it names
+    assert R.main(str(spec), root=root) == 1
+    out = capsys.readouterr().out
+    assert "X1 REFUSED" in out and not canary.exists(), out
+    assert R.boundary_problems(root, ["test_scratch.py"]) == ["numpy.py: a symlink",
+                                                              "numpy.py: shadows the installed module numpy"]
+
+
+def _committed_root(tmp_path, files):
+    """A committed scratch root: a plain test module, then `files` (relative path -> text)."""
+    root = tmp_path / "root"
+    root.mkdir()
+    (root / "test_scratch.py").write_text("def test_first():\n    assert 0\n")
+    for name, text in files.items():
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        (root / name).write_text(text)
+    _commit(root)
+    return root
+
+
+def _boundary(repo):
+    return R.boundary_problems(repo, ["test_scratch.py"])
+
+
+def test_the_boundary_admits_a_committed_root(tmp_path):
+    root = _committed_root(tmp_path, {"helper.py": "x = 1\n", "pkg/__init__.py": "", "pkg/m.py": "y = 2\n"})
+    assert _boundary(root) == []
+
+
+def test_the_boundary_admits_the_real_suite():
+    assert R.boundary_problems(ROOT, ["tests/scripts/c2_framing/test_screen.py"]) == []
+
+
+def test_the_boundary_refuses_uncommitted_modules(tmp_path):
+    root = _committed_root(tmp_path, {"pkg/__init__.py": ""})
+    for name in ("helper.py", "pkg/m.py", "ns/deep/m.py"):                 # a namespace package is importable too
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        (root / name).write_text("x = 1\n")
+    assert _boundary(root) == ["helper.py: not committed", "ns/deep/m.py: not committed", "pkg/m.py: not committed"]
+
+
+def test_the_boundary_refuses_a_module_that_differs_from_the_commit(tmp_path):
+    root = _committed_root(tmp_path, {"helper.py": "x = 1\n"})
+    (root / "helper.py").write_text("x = 2\n")
+    assert _boundary(root) == ["helper.py: differs from the commit"]
+
+
+def test_the_boundary_refuses_symlinks(tmp_path):
+    root = _committed_root(tmp_path, {"helper.py": "x = 1\n"})
+    (tmp_path / "outside").mkdir()
+    for target, link in (("helper.py", "alias.py"), (str(tmp_path / "outside"), "pkg")):
+        subprocess.run(["ln", "-s", target, str(root / link)], check=True)
+    _commit(root)
+    assert _boundary(root) == ["alias.py: a symlink", "pkg: a symlink"]
+
+
+def test_the_boundary_refuses_compiled_modules(tmp_path):
+    root = _committed_root(tmp_path, {})
+    for name in ("cached.pyc", "native.so"):
+        (root / name).write_bytes(b"\0")
+    _commit(root)
+    assert _boundary(root) == ["cached.pyc: a compiled module", "native.so: a compiled module"]
+
+
+def test_the_boundary_ignores_what_cannot_be_imported(tmp_path):
+    """Precision: data files, cached bytecode (never read: the runs' cache prefix is under /dev/null), and names that
+    are not identifiers."""
+    root = _committed_root(tmp_path, {})
+    for name in ("notes.txt", "__pycache__/helper.cpython-312.pyc", "2026-run/evil.py", "my-mod.py", ".hidden/evil.py"):
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        (root / name).write_text("x = 1\n")
+    assert _boundary(root) == []
+
+
+def test_a_directory_holding_code_under_an_installed_name_is_a_look_alike(tmp_path):
+    """A top-level directory provides code under its name when it holds anything importable (an installed namespace
+    package would take it in); a bytecode cache holds nothing importable (test above)."""
+    root = _committed_root(tmp_path, {"json/helper.py": "x = 1\n"})
+    assert _boundary(root) == ["json: shadows the installed module json"]
+
+
+def test_the_boundary_walks_the_directories_a_run_imports_from(tmp_path):
+    """Inside the root, a run imports from the named test's package root (pytest puts it first on the path) and from
+    any startup entry inside the root. A module no entry reaches cannot be imported, so it is not refused."""
+    root = _committed_root(tmp_path, {"sub/test_inner.py": "def test_first():\n    assert 0\n"})
+    for name in ("sub/numpy.py", "elsewhere/helper.py"):
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        (root / name).write_text("x = 1\n")
+    assert R.boundary_problems(root, ["sub/test_inner.py"]) == ["sub/numpy.py: not committed",
+                                                               "sub/numpy.py: shadows the installed module numpy"]
+
+
+def test_the_boundary_refuses_a_root_that_is_not_a_committed_work_tree(tmp_path):
+    root = tmp_path / "plain"
+    root.mkdir()
+    (root / "test_scratch.py").write_text("def test_first():\n    assert 0\n")
+    assert _boundary(root) == [f"{root.resolve()}: not the top of a git work tree with a commit"]
+    inner = _committed_root(tmp_path, {"sub/test_scratch.py": "def test_first():\n    assert 0\n"}) / "sub"
+    assert _boundary(inner) == [f"{inner.resolve()}: not the top of a git work tree with a commit"]
+
+
+def test_the_boundary_refuses_an_installed_tree_containing_the_root(tmp_path, monkeypatch):
+    """A startup entry outside the root is an installed tree; one containing the root would make the root's own files
+    look installed."""
+    root = _committed_root(tmp_path, {})
+    path, trees = R._startup()
+    monkeypatch.setattr(R, "_startup", lambda: ([*path, str(tmp_path)], trees))
+    assert _boundary(root) == [f"{tmp_path.resolve()}: an installed tree containing the root"]
+
+
+# The run's own audit hook, exercised past the gate and the boundary check (run_mutant alone, on the unmutated source).
+# Each scratch test module catches the refusal and then fails, so without the hook's record the run would read RED.
+
+def _in_run(repo, why):
+    rc, _, bundle = R.run_mutant(repo, ["test_scratch.py"])
+    assert bundle is not None and any(b.startswith(why + ": ") for b in bundle["boundary"]), bundle
+    verdict = R.classify(rc, ["test_scratch.py::test_first"], bundle)[0]
+    assert verdict == f"INCONCLUSIVE(exit {rc}, code outside the boundary)", bundle
+    return bundle
+
+
+def _catching(name):
+    return f"try:\n    import {name}\nexcept ImportError:\n    pass\ndef test_first():\n    assert 0\n"
+
+
+def _canary_module(canary):
+    return f"import pathlib\npathlib.Path({str(canary)!r}).write_text('ran')\n"
+
+
+def test_the_run_refuses_an_uncommitted_module(tmp_path):
+    canary = tmp_path / "ran"
+    root = _committed_root(tmp_path, {"test_scratch.py": _catching("helper")})
+    (root / "helper.py").write_text(_canary_module(canary))
+    _in_run(root, "not committed")
+    assert not canary.exists()
+
+
+def test_the_run_refuses_a_module_that_differs_from_the_commit(tmp_path):
+    canary = tmp_path / "ran"
+    root = _committed_root(tmp_path, {"test_scratch.py": _catching("helper"), "helper.py": "x = 1\n"})
+    (root / "helper.py").write_text(_canary_module(canary))
+    _in_run(root, "differs from the commit")
+    assert not canary.exists()
+
+
+def test_the_run_refuses_a_module_reached_through_a_symlink(tmp_path):
+    canary = tmp_path / "ran"
+    root = _committed_root(tmp_path, {"test_scratch.py": _catching("helper"), "real.py": _canary_module(canary)})
+    subprocess.run(["ln", "-s", "real.py", str(root / "helper.py")], check=True)        # names committed bytes
+    _in_run(root, "a symlink")
+    assert not canary.exists()
+
+
+def test_the_run_refuses_a_module_outside_the_root(tmp_path):
+    """r9 R9-3, in the run: the link's physical source is outside the root and every installed tree."""
+    canary = tmp_path / "ran"
+    (tmp_path / "outside").mkdir()
+    (tmp_path / "outside" / "helper.py").write_text(_canary_module(canary))
+    root = _committed_root(tmp_path, {"test_scratch.py": _catching("helper")})
+    subprocess.run(["ln", "-s", str(tmp_path / "outside" / "helper.py"), str(root / "helper.py")], check=True)
+    _in_run(root, "outside the root and the installed trees")
+    assert not canary.exists()
+
+
+def test_the_run_refuses_a_committed_look_alike(tmp_path):
+    """r9 R9-2, in the run: committed, but it takes an installed module's name."""
+    canary = tmp_path / "ran"
+    _in_run(_committed_root(tmp_path, {"test_scratch.py": _catching("numpy"), "numpy.py": _canary_module(canary)}),
+            "shadows an installed module")
+    assert not canary.exists()
+
+
+def test_the_run_never_deserializes_bytecode(tmp_path):
+    """Sourceless bytecode names any file it likes as its source: here the committed test module, whose bytes the run
+    compiled. Only the refusal to deserialize bytecode stops it."""
+    canary = tmp_path / "ran"
+    root = _committed_root(tmp_path, {"test_scratch.py": _catching("cached")})
+    (tmp_path / "cached_source.py").write_text(_canary_module(canary))
+    named = str((root / "test_scratch.py").resolve())
+    source = str(tmp_path / "cached_source.py")
+    subprocess.run([*R._python(), "-c", f"import py_compile; py_compile.compile({source!r}, "
+                    f"cfile={str(root / 'cached.pyc')!r}, dfile={named!r}, doraise=True)"], check=True)
+    _in_run(root, "bytecode deserialized")
+    assert not canary.exists()
+
+
+def test_the_run_refuses_a_compiled_module_outside_the_installed_trees(tmp_path):
+    found = subprocess.run([*R._python(), "-c", "import numpy.linalg._umath_linalg as m; print(m.__file__)"],
+                           capture_output=True, text=True, check=True).stdout.strip()
+    root = _committed_root(tmp_path, {"test_scratch.py": _catching("_umath_linalg")})
+    (root / Path(found).name).write_bytes(Path(found).read_bytes())
+    _in_run(root, "a compiled module outside the installed trees")
+
+
+def test_the_run_refuses_a_native_library_outside_the_installed_trees(tmp_path):
+    root = _committed_root(tmp_path, {"test_scratch.py": (
+        "import ctypes, pathlib\n"
+        "try:\n    ctypes.CDLL(str(pathlib.Path(__file__).with_name('native.so')))\nexcept (ImportError, OSError):\n"
+        "    pass\ndef test_first():\n    assert 0\n")})
+    (root / "native.so").write_bytes(b"\0")
+    _in_run(root, "a native library outside the installed trees")
+
+
+def test_collection_runs_under_the_boundary(tmp_path):
+    """r10: collecting executes the test modules, so collection runs under the same hook; a refusal selects nothing."""
+    canary = tmp_path / "ran"
+    root = _committed_root(tmp_path, {"test_scratch.py": "import helper\ndef test_first():\n    assert 0\n"})
+    (root / "helper.py").write_text(_canary_module(canary))
+    assert R.collect(root, ["test_scratch.py"]) is None and not canary.exists()
