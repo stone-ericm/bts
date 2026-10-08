@@ -1402,6 +1402,9 @@ def test_the_guarded_unit_check_needs_the_seeds_own_launcher_unit_and_payload(tm
     assert "PENDING" in S.guarded_unit_problem(seed4, 20.0, good, tmp_path / "none")
     _pending(c1, UNIT4, 30.0)
     assert "budget" in S.guarded_unit_problem(seed4, 20.0, good, c1)
+    (c1 / f"PENDING_{UNIT4}.json").write_text(json.dumps({"unit": UNIT4.replace("0a1b2c3d", "ffffffff"),
+                                                           "declared_cpu_hours": 20.0}))
+    assert "does not name this unit" in S.guarded_unit_problem(seed4, 20.0, good, c1)      # a record for another unit
 
 
 @pytest.mark.parametrize("damage", ["login_session", "guard_leaf", "no_pending"])

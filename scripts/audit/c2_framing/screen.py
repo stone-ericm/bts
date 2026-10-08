@@ -504,7 +504,7 @@ def guarded_unit_problem(seed: int, budget: float, cgroup_text: str, c1_dir: Pat
     except (OSError, ValueError):
         return f"no launcher record PENDING_{unit}.json for this C1 launcher unit"
     if not (isinstance(rec, dict) and rec.get("unit") == unit and rec.get("declared_cpu_hours") == budget):
-        return f"the launcher record for {unit} does not declare this seed's budget {budget:g}"
+        return f"the launcher record for {unit} does not name this unit with this seed's budget {budget:g}"
     return None
 
 
