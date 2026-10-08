@@ -181,3 +181,187 @@
   - cache, save and slate: none reaches the changed code;
   - the whole-run timing: the fixes add only constant-size statements, and time was settled by the round-2 re-run.
 - **Result: the touched phases PASS the unchanged 250 MB limit under row C2-2a-cost-method's method.**
+
+
+## Revision 4 (after code review r3; row C2-2a-review-r4, the fourth and final round)
+**Scope (Eric's ruling, "bts - A"):** one fourth and final code round with a repair that closes the class R3-1 and R3-2 belong to. Two requirements:
+- completeness is earned, never assumed (PA inputs, pick inputs, bindings);
+- an automated per-line fault sweep, checked against the deployed baseline.
+
+The usual rules apply: counterexamples red first, the sweep, the ledger, the fast suite, then the review round. A non-SIGN stops 2a for this cycle.
+
+**The class repair** (`6f8a3b7`; completed in `e36e038`; the design's "Code review r4 implementation note"):
+- **Deployed statements unchanged.** `predict.py`, `calibrate.py`, `orchestrator.py` and `slate.py` differ from f882411 only by added lines (plus R10's explicit `projected` flag).
+  - Every added statement is a one-statement `try: … except Exception: pass` hook beside them.
+  - Every hook in `bts.serving_witness` handles its own designed failures. So a caller's guard is reached only by an unforeseen fault, and a second fault stops there.
+- **One read, through rebinding.** The deployed statements read what the hook hands them:
+  - `pd.read_parquet(parquet)` parses a buffer over the hashed bytes;
+  - `json.loads(f.read_text())` reads through a stand-in whose `read_text` is the C-level read of a text reader over the held bytes, with `Path.read_text`'s encoding;
+  - an unreadable pick's stand-in raises `OSError` from C, so the deployed handler skips it with no second read;
+  - `cached_blend = load_blend(cache_path)` unpickles the held bytes;
+  - `pickle.dump(blend, f)` writes through a forwarding hashing writer.
+- **The witness lives in a context variable,** not in frame attrs.
+  - Only `predict_local` makes it current: after its cache load, until it attaches `attrs["serving"]` and resets it.
+  - Every other caller finds none open and runs exactly as deployed.
+  - Nothing is attached before calibration, so r1 F1 and r2 R2-1 cannot recur.
+- **Earned completeness.**
+  - A file's record counts only once the statement that consumed it has run and the object consumed IS the held one. It is checked against an independent listing of the files consumed.
+  - A binding counts only once its append returned, with values exactly the sample's.
+  - The cache's hash counts only when the held loader was used, and the save digest only when the bytes hashed equal the bytes the file reports written.
+  - No flag marks a part incomplete, so no combination of faults can make an incomplete part look complete.
+
+**Red first:**
+- **Your counterexamples** (`r3_replay.py`, output `r3_replay_dfbf286.out`). R3-1 and R3-2 replayed with your own injections against the revision-3 code at `dfbf286`:
+  - the landed-then-raised `collect` with its error lost;
+  - then `MemoryError` at `_mark_incomplete`'s `call` event (R3-1), or at its `ok[0] = False` line (R3-2).
+
+  **4 of 4 RED**, reproducing your table:
+  - R3-1, pipeline: no forecast. R3-1, calibration: raw `[0.86, 0.81, 0.74]` instead of `[0.65, 0.65, 0.65]`.
+  - R3-2: both affected parts published with their hashes.
+
+  Revision 4 has no `collect` and no flag helper, so these injections have no target in it. Their class is covered there by `tests/c2_2a/test_r3_counterexamples.py` (the hook-invocation faults and landed-plus-failed confirmation) and by the sweep.
+- **The sweep at `dfbf286`** (`sweep/red_r3_dfbf286.jsonl`). It ran on the six scenarios that reach R3-1's and R2-2's code: `model_cached`, `model_cold`, `calibration_on`, `fault_pa_append_landed`, `fault_calibration_pa_buffer` and `fault_parquet_buffer`.
+  - **116 of 326 points failed:** 107 changed the deployed output against the f882411 golden, and 9 published a witness that says more than the unfaulted run.
+  - The failures include R3-1 at your injection point: the `call` of `_mark_incomplete` in `fault_pa_append_landed`.
+
+**The per-line fault sweep** (`tests/c2_2a/sweep.py`; its docstring states the fault model):
+- **Fault points:**
+  - every executed line the candidate adds or changes relative to f882411 in the five pick-path files (`git diff -U0`);
+  - every new function's `call`, once per call site.
+- **Injection:** `MemoryError` from a `sys.settrace` hook, one point at a time, the first time it executes in the run.
+- **Scenarios:** all 61 gate scenarios, in three classes:
+  - plain: 21, with no injected fault and no genuine failure;
+  - designed fault: 29;
+  - genuine failure of a deployed operation: 11.
+
+  `main()` refuses a scenario list that is not exactly the gate's.
+- **Which runs:** each point is faulted in the first scenario that reaches it (plain first, cheapest first). Per the manager's ruling `C2-2a-sweep-scope`, it is also faulted in every one of the 11 model and calibration plain scenarios, and `day_dm`, that reaches it.
+- **Isolation:** every run, recording or faulted, is in a fresh interpreter. No module state carries from one run into the next, and a fault cannot leave state behind.
+- **Plain checks:** each scenario's traced run without a fault must equal its golden. Otherwise none of its points could be judged.
+- **Excluded:**
+  - lines whose bytecode is only `NOP` (`try:`, `pass`), where nothing can fail;
+  - five computation points: the held unpickle (×2), the forwarded write (×2) and R10's flag. These are listed with the genuine-failure scenario that covers each, not swept.
+- **Verdict:**
+  - The whole compared surface equals the f882411 golden (`test_golden._compare`: predictions, selection, locks, transports, files, cache, slate rows). The one reviewed fallback, a faulted held pick read re-read once from its path (r1 F2), is normalised.
+  - The slate's witness may only lose information: every part is null, or equal to the unfaulted candidate run's.
+- **Two gaps found and fixed before this run:**
+  - Earlier runs covered only 43 scenarios, under a stated reason (their own trace hooks) that was true for none of the 18 left out. Those 18 include `day_prediction_failure`, which reaches the prediction-failure stop.
+  - Running each scenario in a fresh process exposed a gate blind spot, equal on both sides. `bts.health.alert` binds `send_dm` by name at import, and the harness spied only on `bts.dm`. So in one process, later scenarios' health DMs were never observed, and the f882411 golden for `cutoff_advancing_clock` lacked the late-delivery DM it sends. Fixed red-first (`a910c11`, `test_every_scenario_observes_its_own_health_dms`). Goldens regenerated at f882411 with the harness copied in unchanged: 60 of 61 identical, and that one gained its DM. Gate: 222 passed.
+- **Runs:**
+  - **Uncommitted revision-4 tree** (`sweep/diagnostic_r4_uncommitted.jsonl`; its header records HEAD `dfbf286`): 19 of 636 points failed, because the hooks were not yet total (a confirmation, a binding, the listing hooks). All were fixed before `6f8a3b7` was committed.
+  - **`7b2c078`** (43 scenarios): 640 points, 0 failed.
+  - **`e36e038`** (43 scenarios, `sweep/full_r4_e36e038.jsonl`): 656 points, 0 failed.
+  - **All 61 scenarios, `9116776`** (`sweep/diagnostic_r4_9116776.jsonl`): 3,394 runs, every plain check equal to its golden, **19 failed, all one case**.
+    - The case: in `calibration_insufficient_support`, a fault at the first pick's hold leaves the deployed read on the path (one read, as designed). That sample's binding publishes a null file hash, which is a loss. But `samples_sha256`, the hash of the published samples, necessarily changes, and the verdict required every published value to be null or equal to the unfaulted run's.
+    - First-reach runs never saw it, because in `calibration_on` the first pick yields no sample.
+    - The fix is in the verdict, not the code (`c0adb12`, red first in `tests/c2_2a/test_sweep_verdict.py`). A changed `samples_sha256` or `map_sha256` stands only as exactly the canonical digest of the faulted run's own published part, whose own loss is checked beside it. This is the identity the gate already checks on every scenario. A digest that matches neither, a part that gained or changed a value, and a digest without its part are all still refused.
+    - That scenario re-swept with all its pairs: 334 runs, 0 failed.
+  - **Final, `41b0e8b`** (`sweep/full_r4_41b0e8b.jsonl`; 18:46–19:57 EDT): all 61 scenarios (21 plain, 29 designed fault, 11 genuine failure), 660 points, 3,394 faulted runs, each in a fresh interpreter. **0 failed**, and all 61 plain checks equal their golden.
+  - `src` is identical between `e36e038` and the reviewed commit, and `tests` between `41b0e8b` and the reviewed commit; the commits after `41b0e8b` change evidence only.
+- **Pair coverage** (`sweep/pairs_disclosure.py` → `sweep/pairs_r4.txt`). A pair is a point together with one scenario that reaches it. Of 15,683 reached pairs, 185 are at the five computation points (covered by genuine-failure scenarios instead), leaving 15,498. **3,394 were faulted; 12,104 were not.**
+
+  | class | reached pairs | faulted | not faulted: a plain scenario also reaches the point | not faulted: fault-only point | computation |
+  |---|---|---|---|---|---|
+  | plain (21) | 5,097 | 3,160 (3,156 in the 12 all-pairs scenarios, 4 at first reach in the other 9) | 1,937 | 0 | 77 |
+  | designed fault (29) | 8,202 | 208 (first reach) | 7,779 | 215 | 81 |
+  | genuine failure (11) | 2,199 | 26 (first reach) | 2,113 | 60 | 27 |
+
+  - **Points a plain scenario reaches: 426, and every one is faulted in at least one plain scenario.** The script checks this and exits 1 otherwise; a copy with one point's plain runs dropped printed 425 of 426 and exited 1. So the 11,829 uncovered pairs at these points are pairs whose point was faulted, without an earlier fault, in a plain scenario.
+  - **Fault-only points: 234.** No plain scenario reaches them; only a designed fault or a genuine failure does. Each is faulted once, in the first such scenario reaching it, and `sweep/pairs_r4.txt` lists each one with that scenario.
+  - **The uncovered pairs only a designed fault or a genuine failure reaches: 275** (215 in designed-fault scenarios, 60 in genuine-failure scenarios). These are the pairs at fault-only points beyond the one faulted. For them, the totality argument below is the whole case.
+- **The totality argument** (`sweep/totality_map.py` → `sweep/totality_map.txt`, generated from the AST). Why a point faulted in one scenario stands for the others that reach it:
+  - **Every call site is guarded.** All 30 statements in the four deployed files that reach the witness sit in a `try` whose only handler is `except Exception` with a body that only passes or assigns a constant or a name. Each such `try` holds one statement, except `predict_local`'s first, which holds the witness module's import and the witness's construction; its handler sets all three names to `None`. The map exits 1 on any other shape, which was checked by removing one guard.
+  - **The map lists, per hook, the statements outside any internal `try`.** Only these can carry a failure to the call-site guard; every other failure is handled inside the hook.
+  - **A fault anywhere in a hook leaves the deployed statement beside it with the deployed value.** A rebinding hook that raises leaves the name unbound to the held object, so the deployed statement reads the path once, as deployed. A recording hook that raises loses only its own record, which earned completeness then withholds.
+  - So the consequence of a hook fault does not depend on which scenario reached it. That is reasoning, checked per point in the first-reach run and per pair in the all-pairs scenarios, not a proof over the pairs not run.
+- **Lines no unfaulted run reached** (`sweep/never_reached_r4.py` → `sweep/never_reached_r4.txt`): **124**, which is `e36e038`'s 125 less `orchestrator.py:142`, reached by one of the 18 scenarios added since. They were classified against the c2_2a unit tests' line coverage at `41b0e8b` (`sweep/unit_coverage_41b0e8b.json`, `COVERAGE_CORE=sysmon`, because the settrace-based tests would switch a settrace-based tracer off part-way):
+  - 52 are executed by the unit tests;
+  - 72 are lines of an exception handler whose innermost `try` body the sweep fault-injected, with every injected run equal to the golden. The classification does not show that each injected run entered that handler;
+  - 0 are handlers whose `try` body was not injected, and 0 are other.
+
+**Ledger** (`build_spec_r4.py` → `mutants.json`, 94 entries; `mutants_retired_r4.json`):
+- **Kept: 20 entries** whose anchors and tests survive the repair (W1, W3–W12, P12, B1, S1, S2, D1–D3, O14, O16).
+- **Retired: 71 entries** (the 69 others, plus W2 and W2b for the removed `collect`). None of their anchors occurs anywhere in the code (checked).
+- **New:** Q1–Q40 for the witness core and H1–H34 for the hooks beside the deployed statements.
+- The builder checks that every anchor is unique and every named test collects.
+- **Full run at `c007271`** (`mutants_r4.out`): 89 RED, 5 SURVIVED.
+  - **Q21** (the cache hash's identity check) and **Q27** (the withheld-digest error): their named tests never reached the distinguishing case. New unit tests pin each hook's contract.
+  - **O14** (the take's `pop`) is masked by `save_slate`'s backstop drop. **H34** (the warning's guard) is masked by `save_slate`'s call-site guard. Each now runs combined with its masking layer, as r1's O11. The backstop alone is H31.
+  - **Q7** (`confirm`'s last-record clause) is the recorded equivalent. It can differ only after a record is appended outside `hold`/`confirm`, and such a record can never be confirmed, so `complete()` is false either way.
+- **Resume at `6c9f0d7`** (`mutants_r4_resume.out`): O14, Q21, Q27 and H34 RED; Q7 survives as recorded.
+- **Result: 93 of 93 attributable mutants RED; Q7 equivalent.**
+
+**Fast suite** (`fast_suite_r4.out`, at `a916853`, whose `src` and tests equal the reviewed commit's): **4105 passed, 7 skipped, 70 deselected (the slow gate tests), 22 xfailed, 0 failed.** The first run, at `acfe983`, gave 4098 passed and 69 deselected; the difference is `test_sweep_verdict.py`'s 7 tests and the slow `test_every_scenario_observes_its_own_health_dms`.
+
+**The c2_2a suite with the golden gate** (`c2_2a_suite_r4.out`, at `a916853`): **229 passed**, including all 61 gate scenarios against the f882411 goldens (first run at `acfe983`: 221; since then `a910c11`'s test and `c0adb12`'s 7).
+
+### Phase-level memory re-run (`cost/phases_r4.jsonl`, `cost/phases_r4_summary.json`)
+**Method:** the declared driver `cost/phases_drive.py`, unchanged, on all six phases, because the repair rewired every one of them.
+- The bench (`tests/c2_2a/bench/phases.py`, `bb51d81`; the copy in the f882411 worktree is byte-identical) was adapted to the context-scoped witness, on the candidate only:
+  - load and save call `run_pipeline` and `save_blend` directly, so they open a witness as `predict_local` does (with none open, the hooks record nothing);
+  - the tail stand-in leaves in the open witness what the real `run_pipeline` records.
+- Each candidate phase then checks that its witness work happened. With the opening disabled, load fails loudly (checked).
+- **Code measured:** the candidate's `src` at `e36e038`; the baseline is the f882411 worktree.
+
+**First run** (`cost/phases_r4.jsonl`, `cost/phases_r4.log`, `cost/phases_r4_summary.json`; 16:41–16:43 EDT, with nothing else of the author's running):
+
+| phase | paired Δpeak, max / median (MB) | control max \|Δ\| (MB) | verdict |
+|---|---|---|---|
+| load | 307.2 / 30.5 | **516.1** | **UNRESOLVED** |
+| cache | 9.6 / 8.3 | 2.9 | PASS |
+| save | 0.8 / 0.1 | 3.8 | PASS |
+| tail_off | 1.4 / 1.2 | 1.8 | PASS |
+| tail_on | 16.3 / 12.5 | 4.2 | PASS |
+| slate | 1.3 / 0.9 | 2.0 | PASS |
+
+- **The five counted phases pass** the unchanged 250 MB limit, with every control within the 125 MB aim.
+- tail_on grew from r3's 6.0 MB maximum to 16.3 MB. The likely reason (reasoning, not measured separately): `current_pa = _sw.calibration_pa(current_pa)` keeps calibration's held PA buffer (`pa_2026`, 13.3 MB in the bench world) referenced by `predict_local` until it returns, so the buffer is still alive through the fit and the witness build. r3 freed it when its reader returned. It is still far under the limit.
+- **load was UNRESOLVED.**
+  - Its pairs were +307.2, +28.5, −182.4, +247.0 and +30.5 MB, and its same-code controls were +1.4, +183.7, +77.9, +516.1 and −0.3 MB.
+  - The Mac was under heavy memory pressure (`cost/conditions_r4.txt`): about 20 GB in the compressor, about 1.5 GB free, and 1.16 M pages swapped out. The pressure came from the owner's own applications, and identical baseline runs peaked anywhere from 2,011 to 2,590 MB.
+  - The two pairs taken while the controls were calm (+28.5 and +30.5) match r3's single held parquet (median +19.6, max +20.5).
+  - Under the method, an UNRESOLVED phase returns to the manager. **The manager's ruling (row `C2-2a-cost-r4-load`):** re-run load with the declared driver unchanged, at most three attempts spaced apart, gated on the control only (within the 125 MB aim), every attempt reported here, never selecting on the candidate's delta. If no attempt has a calm control, load goes to the review UNRESOLVED with this disclosure.
+
+**Load re-run attempts** (`cost/phases_r4_load.py`, the declared driver imported unchanged and restricted to load; `cost/load_attempt.sh`; `cost/load_r4_a<N>.*`, each with its conditions before and after):
+- **Attempt 1** (18:15 EDT, `fbca22a`, no warm-up; memory free 46%):
+  - Control calm (max |Δ| 2.7 MB), so it counts under row `C2-2a-cost-r4-load`.
+  - Pairs: +292.2, +26.3, +32.1, +30.0 and +28.9 MB. **By the declared rule, EXCEEDED.**
+  - Raw peaks: the candidate's five runs were 2,616–2,619 MB. The f882411 code's 15 runs (5 baseline, 10 control) were 2,587–2,591 MB on 14 of them. The one exception was the first process of the series, a baseline, at 2,324 MB. So the +292 pair is one low baseline reading, and the other four pairs (+26 to +32) are one held parquet, as in r3.
+  - The driver always runs a baseline first in repeat 0, and the controls run third and fourth in each repeat, so a low reading of the series' first process would land on pair 0 and on no control.
+  - **That cause is a hypothesis, not established.** The 16:41 series had low readings at many positions, not only the first: baseline r0 2,029; candidate r0 2,336; control_a r1 2,404; candidate r2 2,405; control_a r2 2,511; baseline r3 2,372; control_a r3 2,011; control_b r3 2,527. That fits sporadic under-reads under memory pressure at least as well.
+- **Eric's ruling (row `C2-2a-cost-r4-warmup`, relayed by the manager): B, re-measure.**
+  - The warm-up was added AFTER this failing attempt. It is one discarded f882411 process before the series, with its peak recorded and reported below. It was committed before any run (`d106f54`); the driver is otherwise unchanged, and the rule is unchanged.
+  - At most two more attempts, spaced at least 30 minutes after 18:15. The first calm-control attempt under the warm-up is final, and EXCEEDED there stops 2a.
+  - If neither attempt is calm, attempt 1 stands: EXCEEDED.
+- **Attempt 2** (18:45 EDT, `d106f54` with the warm-up; memory free 52%; `cost/load_r4_a2.*`):
+  - The discarded warm-up process peaked at **2,281 MB**: low, as the hypothesis predicted. That is consistent with it, not proof.
+  - Then the f882411 code peaked at 2,587–2,590 MB on all 15 runs, and the candidate at 2,616–2,620 MB on all 5.
+  - Pairs: +28.0, +29.5, +29.3, +31.6 and +32.2 MB. Controls: −2.5, +2.9, 0.0, −2.6 and +2.3 MB.
+  - **Control calm, so this attempt is final: PASS** (max 32.2 MB, against the 250 MB limit).
+  - Attempt 3 was not run.
+- **Result: all six phases PASS** under the method as ruled (rows `C2-2a-cost-method`, `C2-2a-cost-r4-load`, `C2-2a-cost-r4-warmup`). Load's steady cost is one held parquet (+28 to +32 MB, against r3's +19.6 median).
+
+### Whole-run timing re-run (`cost/runs_r4.jsonl`, `cost/summary_r4.json`)
+**Method:** the declared driver `cost/drive.py` and bench `tests/c2_2a/bench/bench.py`, both unchanged. The bench's timing wrapper for the removed `_attach_serving_witness` simply finds nothing to wrap.
+
+**Not re-run (row `C2-2a-cost-r4-load`, the manager's ruling):** the run was started at 16:43 EDT and stopped before its first measurement. Its warm runs peak at 5–6 GB, so on this Mac under the pressure recorded in `cost/conditions_r4.txt` they would swap. Its acceptance has no control gate, so swap noise could have produced a spurious failure. The files of the stopped run were removed.
+
+**Why time is settled without it.** All of the witness's work lies inside the six phases measured above:
+- load: the PA files' hold, hash and listing;
+- cache: the cache's hold and hash;
+- save: the hashing writer;
+- tail_off and tail_on: calibration's PA and pick reads, the fit witness and the build;
+- slate: the take and the envelope.
+
+The phases' median elapsed deltas (candidate − baseline) are:
+
+| phase | baseline → candidate (s) | Δ (s) |
+|---|---|---|
+| load | 1.585 → 1.631 | +0.046 |
+| cache | 0.0012 → 0.0049 | +0.004 |
+| save | 0.0018 → 0.0050 | +0.003 |
+| tail_off | 0.0002 → 0.0049 | +0.005 |
+| tail_on | 0.437 → 0.443 | +0.006 |
+| slate | 0.0049 → 0.0055 | +0.001 |
+
+That totals about +0.06 s, against the predeclared ≤ 2.0 s median and ≤ 5.0 s maximum. Round 3 skipped the whole-run timing on the same reasoning. The round-2 whole-run re-run met every case.
