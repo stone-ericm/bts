@@ -1,0 +1,17 @@
+{
+ "reviewed_commit": "a3f5e3e89d8b2615e50d8c4aed5c08cbfe02a56f",
+ "review_report": "docs/audit/2026-10-08-c2-framing-codex-r10.md",
+ "exposure_commit": "105561842e2bdf2580d3ecc867e1ee5e57df04f2",
+ "input_pins": {
+  "pa_2017.parquet": "f202ebc9d3bc36177a307571f92c579411f647c3ae49ebbb03a865ce8a3132bd",
+  "pa_2018.parquet": "30410e7250b99c3eb50f44d5224f68b161d9a34ba3dc17bd41b1f6868ff1213c",
+  "pa_2019.parquet": "1057e5d13fcc5a5ad238e4a62633cb02860115dd9082335ee930fe7c0831c899",
+  "pa_2020.parquet": "5b9d4e3f64e5ba43b9435b3e3ee640e07255b12d498001b993a7e2a140cb42a0",
+  "pa_2021.parquet": "8f570f0e83cb2482a8fdaf62b0407f342b04b9d465a66d7f97770368bea16b3f",
+  "pa_2022.parquet": "37fae4579c8de054d2b5e41324bd1b3c7429a8cd23b8901625dcb7b9887e03bf",
+  "pa_2023.parquet": "d4acf3804b54113f5f59da591e6f074a3686ec5424ba49f03948aedd433ed9f4",
+  "pa_2024.parquet": "f27a7def5224b7927ab39e7375c1ec0ae477711e7783ce36eeed8807a91029fa",
+  "pa_2025.parquet": "fa69bb098844bd24857d182c9c885a02e19eff712b5f6cc5eae0638dd244d44e",
+  "probable_pitcher_lookup.2017-2025.json": "4a8989587f97412bcb7498da3a27d8cd1ff0321a5186028fc17f8ce9f4536454"
+ }
+}
