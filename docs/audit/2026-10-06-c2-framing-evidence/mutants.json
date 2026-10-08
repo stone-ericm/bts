@@ -527,14 +527,15 @@
   "id": "G25",
   "rule": "run: the seed order enforced",
   "file": "scripts/audit/c2_framing/screen.py",
-  "old": "    ok, why, _ = seed_allowed(seed, register, out_root, identity=identity, pins=adm[\"input_pins\"])\n    if not ok:",
-  "new": "    ok, why, _ = seed_allowed(seed, register, out_root, identity=identity, pins=adm[\"input_pins\"])\n    if False:",
+  "old": "    ok, why, budget = seed_allowed(seed, register, out_root, identity=identity, pins=adm[\"input_pins\"])\n    if not ok:",
+  "new": "    ok, why, budget = seed_allowed(seed, register, out_root, identity=identity, pins=adm[\"input_pins\"])\n    if False:",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_seeds_two_and_three_are_refused_without_the_release",
    "tests/scripts/c2_framing/test_screen.py::test_an_ericsson_source_does_not_release",
    "tests/scripts/c2_framing/test_screen.py::test_an_empty_seed1_completion_does_not_release"
   ],
-  "reanchored_rev3": true
+  "reanchored_rev3": true,
+  "reanchored_s2": true
  },
  {
   "id": "G26",
@@ -882,14 +883,15 @@
  },
  {
   "id": "N15",
-  "rule": "R3-3: aggregate validates against the gate's identity, not the runs'",
+  "rule": "R3-3: aggregate validates against the trusted identity (stage one's, since s2), not the runs'",
   "file": "scripts/audit/c2_framing/screen.py",
-  "old": "valid = [validate_run(d, s, out_root=out_root, identity=identity, pins=adm[\"input_pins\"])",
+  "old": "valid = [validate_run(d, s, out_root=out_root, identity=STAGE_ONE_IDENTITY, pins=adm[\"input_pins\"])",
   "new": "valid = [validate_run(d, s, out_root=out_root, identity=json.loads((d / \"manifest.json\").read_text())[\"identity\"], pins=adm[\"input_pins\"])",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[bogus_identity]"
   ],
-  "added_rev4": true
+  "added_rev4": true,
+  "reanchored_s2": true
  },
  {
   "id": "N16",
@@ -3165,12 +3167,13 @@
   "id": "S37",
   "rule": "stage two: the job itself checks the window (run alone)",
   "file": "scripts/audit/c2_framing/screen.py",
-  "old": "        raise SystemExit(f\"refusing: {why}\")\n    refuse_inside_the_window(seed)\n    from bts.model.predict import LGB_PARAMS",
-  "new": "        raise SystemExit(f\"refusing: {why}\")\n    from bts.model.predict import LGB_PARAMS",
+  "old": "            raise SystemExit(f\"refusing: a claimed run already exists under {root}\")\n        refuse_inside_the_window(seed)                # the last check before the claim (review s1 B1)\n",
+  "new": "            raise SystemExit(f\"refusing: a claimed run already exists under {root}\")\n",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_run_refuses_stage_two_seeds_inside_the_launch_window"
   ],
-  "added_stage2_restart": true
+  "added_stage2_restart": true,
+  "reanchored_s2": true
  },
  {
   "id": "S38",
@@ -3186,14 +3189,16 @@
  },
  {
   "id": "S39",
-  "rule": "stage two: run checks the window after its validation",
+  "rule": "stage two: run checks the window after all its validations, at the claim",
   "file": "scripts/audit/c2_framing/screen.py",
-  "old": "    register = (A.REPO / REGISTER_REL).read_text()\n    ok, why, _ = seed_allowed(seed, register, out_root, identity=identity, pins=adm[\"input_pins\"])\n    if not ok:\n        raise SystemExit(f\"refusing: {why}\")\n    refuse_inside_the_window(seed)\n",
-  "new": "    refuse_inside_the_window(seed)\n    register = (A.REPO / REGISTER_REL).read_text()\n    ok, why, _ = seed_allowed(seed, register, out_root, identity=identity, pins=adm[\"input_pins\"])\n    if not ok:\n        raise SystemExit(f\"refusing: {why}\")\n",
+  "old": "    from bts.model.predict import LGB_PARAMS\n    if not (LGB_PARAMS.get(\"deterministic\") is True and LGB_PARAMS.get(\"force_row_wise\") is True):\n        raise SystemExit(\"refusing: LightGBM's params were built without the deterministic flags\")\n    settings = check_settings()\n    os.environ[\"BTS_LGBM_RANDOM_STATE\"] = str(seed)\n    root = out_root / f\"seed_{seed}\"\n    with A.admission_lock(root):\n        if A.claimed_runs(root, register):\n            raise SystemExit(f\"refusing: a claimed run already exists under {root}\")\n        refuse_inside_the_window(seed)                # the last check before the claim (review s1 B1)\n",
+  "new": "    refuse_inside_the_window(seed)\n    from bts.model.predict import LGB_PARAMS\n    if not (LGB_PARAMS.get(\"deterministic\") is True and LGB_PARAMS.get(\"force_row_wise\") is True):\n        raise SystemExit(\"refusing: LightGBM's params were built without the deterministic flags\")\n    settings = check_settings()\n    os.environ[\"BTS_LGBM_RANDOM_STATE\"] = str(seed)\n    root = out_root / f\"seed_{seed}\"\n    with A.admission_lock(root):\n        if A.claimed_runs(root, register):\n            raise SystemExit(f\"refusing: a claimed run already exists under {root}\")\n",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py::test_run_checks_the_window_after_its_validation"
+   "tests/scripts/c2_framing/test_screen.py::test_run_checks_the_window_after_its_validation",
+   "tests/scripts/c2_framing/test_screen.py::test_run_checks_the_window_immediately_before_its_claim"
   ],
-  "added_stage2_restart": true
+  "added_stage2_restart": true,
+  "reanchored_s2": true
  },
  {
   "id": "S40",
@@ -3216,5 +3221,126 @@
    "tests/scripts/c2_framing/test_screen.py::test_stage_one_seeds_have_no_launch_window"
   ],
   "added_stage2_restart": true
+ },
+ {
+  "id": "S42",
+  "rule": "stage two: run checks the window after the existing-claim check",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        if A.claimed_runs(root, register):\n            raise SystemExit(f\"refusing: a claimed run already exists under {root}\")\n        refuse_inside_the_window(seed)                # the last check before the claim (review s1 B1)\n",
+  "new": "        refuse_inside_the_window(seed)                # the last check before the claim (review s1 B1)\n        if A.claimed_runs(root, register):\n            raise SystemExit(f\"refusing: a claimed run already exists under {root}\")\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_run_checks_the_window_immediately_before_its_claim"
+  ],
+  "added_s2": true
+ },
+ {
+  "id": "S43",
+  "rule": "stage two: the cgroup factor (removed alone)",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    if not (parts and parts[-1] == \"payload\" and m and int(m.group(1)) == SEEDS.index(seed) + 1):\n        return f\"stage-two seeds run only",
+  "new": "    if False:\n        return f\"stage-two seeds run only",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_an_unguarded_stage_two_run_refuses_before_its_claim_or_inputs"
+  ],
+  "added_s2": true
+ },
+ {
+  "id": "S44",
+  "rule": "stage two: the launcher-record factor (removed alone)",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    try:\n        rec = json.loads((c1_dir / f\"PENDING_{unit}.json\").read_text())\n    except (OSError, ValueError):\n        return f\"no launcher record PENDING_{unit}.json for this C1 launcher unit\"\n    if not (isinstance(rec, dict) and rec.get(\"unit\") == unit and rec.get(\"declared_cpu_hours\") == budget):\n        return f\"the launcher record for {unit} does not declare this seed's budget {budget:g}\"\n    return None\n",
+  "new": "    return None\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_an_unguarded_stage_two_run_refuses_before_its_claim_or_inputs"
+  ],
+  "added_s2": true
+ },
+ {
+  "id": "S45",
+  "rule": "stage two: the launcher record declares this seed's budget",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "rec.get(\"declared_cpu_hours\") == budget)",
+  "new": "True)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_guarded_unit_check_needs_the_seeds_own_launcher_unit_and_payload"
+  ],
+  "added_s2": true
+ },
+ {
+  "id": "S46",
+  "rule": "stage two: the unit is named for this seed",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "and int(m.group(1)) == SEEDS.index(seed) + 1):",
+  "new": "):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_guarded_unit_check_needs_the_seeds_own_launcher_unit_and_payload"
+  ],
+  "added_s2": true
+ },
+ {
+  "id": "S47",
+  "rule": "stage two: the guard's payload leaf",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "parts and parts[-1] == \"payload\" and m",
+  "new": "parts and m",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_guarded_unit_check_needs_the_seeds_own_launcher_unit_and_payload"
+  ],
+  "added_s2": true
+ },
+ {
+  "id": "S48",
+  "rule": "stage two: run calls the guarded-unit check for seeds 4-10",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    if seed in STAGE_TWO_SEEDS:\n        problem = guarded_unit_problem(seed, budget, proc_cgroup_text(), C1_DIR)\n        if problem:\n            raise SystemExit(f\"refusing: {problem}\")\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_an_unguarded_stage_two_run_refuses_before_its_claim_or_inputs"
+  ],
+  "added_s2": true
+ },
+ {
+  "id": "S49",
+  "rule": "stage two: the launcher's unit-name pattern",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "UNIT_RE = re.compile(r\"c1-c2-framing-seed(\\d+)-\\d{8}T\\d{6}Z-[0-9a-f]{8}\")",
+  "new": "UNIT_RE = re.compile(r\"c1-c2-framing-seed(\\d+).*\")",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_guarded_unit_check_needs_the_seeds_own_launcher_unit_and_payload"
+  ],
+  "added_s2": true
+ },
+ {
+  "id": "S50",
+  "rule": "stage two: the record names exactly this unit",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "rec.get(\"unit\") == unit and ",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_guarded_unit_check_needs_the_seeds_own_launcher_unit_and_payload"
+  ],
+  "added_s2": true
+ },
+ {
+  "id": "S51",
+  "rule": "stage two: stage one is closed under any other admission",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    if {k: identity.get(k) for k in IDENTITY_KEYS} != STAGE_ONE_IDENTITY:\n        return False, \"stage one is closed",
+  "new": "    if False:\n        return False, \"stage one is closed",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_stage_one_seeds_never_run_under_the_stage_two_admission"
+  ],
+  "added_s2": true
+ },
+ {
+  "id": "S52",
+  "rule": "stage two: the stage-one aggregate validates under stage one's identity",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    _, adm, _ = admission_gate()                     # trusted evidence: never the runs' own declarations (r3 R3-3)\n    valid = [validate_run(d, s, out_root=out_root, identity=STAGE_ONE_IDENTITY, pins=adm[\"input_pins\"])",
+  "new": "    _, adm, now_identity = admission_gate()          # trusted evidence: never the runs' own declarations (r3 R3-3)\n    valid = [validate_run(d, s, out_root=out_root, identity=now_identity, pins=adm[\"input_pins\"])",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_stage_one_still_revalidates_and_aggregates_under_the_stage_two_admission"
+  ],
+  "added_s2": true
  }
 ]
