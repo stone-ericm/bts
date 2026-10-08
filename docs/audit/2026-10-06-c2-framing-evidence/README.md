@@ -350,3 +350,33 @@ The driver guarantee is stated precisely: evidence is written after `pytest.main
 **Suites:** the permitted suite has 381 tests (277 framing, 25 shared admission, 79 C1 cycle), all passing locally at `a6a5e37`.
 - In a Codex `:workspace` sandbox it gives 377 passed and 4 failed.
 - The four are C1 guard tests (`guard preexec failed: PermissionError`). They fail identically in the same sandbox on unchanged main (`2e077a3`), so they are a sandbox limit: the guard's pre-exec hook.
+
+### The window check in the job itself; review s1 restarted (2026-10-08)
+**The gap:** after handing the first s1 reviewer its brief (fresh Codex `c2-framing-s1`, 16:39 EDT, at `83ac2c1`), the lead found that only the launch wrapper checked the 00:45–03:10 window, and before its validation. A seed started by hand through the C1 launcher, or validated across 00:45, would have run. The reviewer had begun probing the same timing point.
+
+**The manager's instruction** was to fix the gap now and restart s1 on the new commit. Register note `C2-framing-stage-two-review-restart` (on main) records it; it is not a ruling.
+- The first s1 reviewer was stopped before it wrote anything: it was interrupted, its background terminal stopped, and it quit, with no report. Its scratch was deleted.
+- The restarted s1 is a fresh reviewer on the new tip. It stays round s1 of at most 2, since no report was produced.
+
+**The fix:**
+- `e493abc` adds `refuse_inside_the_window(seed)`, the one check. Both `launch` and `run` call it, each after its validation and immediately before it calls the launcher or claims the seed.
+- **Tests:**
+  - `run` refuses inside the window, claiming nothing, and both edges run;
+  - stage-one seeds have no window;
+  - a validation that crosses 00:45 is refused by `run` and by `launch`.
+  - The stage-one fixture's clock is pinned to 12:00, so the suite does not depend on the hour.
+- `4dc493b` (C1, the manager's check): the launcher's "another C1 job is active" refusal, in the failure direction, for stage-two job names. The behaviour is unchanged.
+- `9e1f560` adds the mutants:
+  - S37: `run`'s check removed alone. It is RED through the `run` test only, as the manager required.
+  - S38: `launch`'s check removed.
+  - S39 and S40: each check moved before its validation.
+  - S41: the check widened to stage-one seeds.
+  - S19 is re-described (the window check applies to seeds 4–10).
+
+**Runs** (appended to `mutants.out`):
+- **The six window entries at `9e1f560`:** all RED.
+- **The full ledger at `9e1f560`:** one pass of 28 minutes (16:48–17:16 EDT), with no change-scan alarm in 283 entries. 280 RED; G8, H12 and N10 survived, as recorded.
+
+**Result:** 280 of 280 attributable RED in one pass (R133 message-only, as disclosed); G8, H12 and N10 equivalent.
+
+**Suites at `9e1f560`:** 387 passed locally (281 framing, 25 shared admission, 81 C1 cycle). In the Codex `:workspace` sandbox: 383 passed, and the same 4 C1 guard tests failed with `PermissionError` in the pre-exec hook, as before. Main's suite with the register note: 349 passed. This README commit changes nothing else.
