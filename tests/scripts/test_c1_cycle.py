@@ -157,6 +157,16 @@ def test_failed_units_are_read_from_systemd_failure_messages():
     assert launch.failed_units(lines) == ["c1-r4b-run-20261005T010000Z"]
 
 
+@pytest.mark.parametrize("name", ["c2-framing-seed5", "c2-framing-seed10"])
+def test_a_stage_two_seed_is_refused_while_another_c1_job_is_active(name):
+    """One box job at a time holds for the framing screen's stage-two seeds: a seed is refused while the previous
+    seed's unit is still active (the launcher's own check, whatever the job's name)."""
+    p = plan(name=name, cpu_hours=20.0, max_hours=16.0,
+             active_units=["c1-c2-framing-seed4-20261009T130000Z-0a1b2c3d.service"])
+    assert p["ok"] is False and any("another C1 job is active" in r for r in p["reasons"]), p["reasons"]
+    assert "argv" not in p
+
+
 @pytest.mark.parametrize("kw,reason", [
     (dict(name="R2 build"), "name"),
     (dict(active_units=["c1-r3-fit-20261005T110000Z.service"]), "another C1 job is active"),
