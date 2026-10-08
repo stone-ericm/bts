@@ -311,6 +311,19 @@ def _release_row(run_name, source="Eric 2026-10-08, relayed", budget="30"):
             f"framing screen after seed-1 run `{run_name}`; declared budget {budget} CPU-hours per seed** | {source} |")
 
 
+REAL_READ_TEXT = Path.read_text
+
+
+def _register_plus(rows):
+    """The real register with these rows in place of any real row of the same id. The lookup takes a row id's first
+    line, and since Eric's real release (11e0cfd) a row appended after the real one was never read."""
+    from scripts.audit.c1 import admission as A
+    ids = [r.split("|")[1].strip() for r in rows]
+    real = REAL_READ_TEXT(A.REPO / S.REGISTER_REL).split("\n")
+    kept = [x for x in real if not any(x.startswith(f"| {i} |") for i in ids)]
+    return "\n".join(kept + rows) + "\n"
+
+
 def test_release_needs_the_exact_ruling_eric_and_a_positive_budget():
     run = "aaaaaaa-20261007T000000Z"
     assert S.release(_release_row(run)) == (run, 30.0)
@@ -538,7 +551,7 @@ def _released(stubbed, monkeypatch, *, source="Eric 2026-10-08, relayed"):
     seed1 = _run_dir(out, S.STAGE_ONE_SEEDS[0])
     adm.head = "c" * 40
     from scripts.audit.c1 import admission as A
-    text = (A.REPO / S.REGISTER_REL).read_text() + "\n" + _release_row(seed1.name, source=source) + "\n"
+    text = _register_plus([_release_row(seed1.name, source=source)])
     real_read = Path.read_text
 
     def read_text(self, *a, **k):
@@ -577,7 +590,7 @@ def test_an_empty_seed1_completion_does_not_release(stubbed, monkeypatch, tmp_pa
     fake.mkdir(parents=True)
     (fake / "results.json").write_text("{}")                             # r2 R2-2: a filename is not a completion
     from scripts.audit.c1 import admission as A
-    text = (A.REPO / S.REGISTER_REL).read_text() + "\n" + _release_row(fake.name) + "\n"
+    text = _register_plus([_release_row(fake.name)])
     real_read = Path.read_text
     monkeypatch.setattr(Path, "read_text", lambda self, *a, **k: text if self == A.REPO / S.REGISTER_REL
                         else real_read(self, *a, **k))
@@ -667,7 +680,7 @@ def test_a_release_naming_another_run_does_not_release(stubbed, monkeypatch):
     out, _, adm = stubbed
     assert _run(stubbed, S.STAGE_ONE_SEEDS[0]) == 0
     from scripts.audit.c1 import admission as A
-    text = (A.REPO / S.REGISTER_REL).read_text() + "\n" + _release_row("bbbbbbb-20261007T000000Z") + "\n"
+    text = _register_plus([_release_row("bbbbbbb-20261007T000000Z")])
     real_read = Path.read_text
     monkeypatch.setattr(Path, "read_text", lambda self, *a, **k: text if self == A.REPO / S.REGISTER_REL
                         else real_read(self, *a, **k))
