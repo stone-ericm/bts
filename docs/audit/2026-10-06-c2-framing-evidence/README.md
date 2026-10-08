@@ -450,3 +450,20 @@ The driver guarantee is stated precisely: evidence is written after `pytest.main
 - Locally, 404 passed: 298 framing, 25 shared admission, 81 C1 cycle.
 - In the Codex `:workspace` sandbox, 400 passed, and the same 4 C1 guard tests failed with `PermissionError` in the pre-exec hook.
 - Main's suite at `31f15ab`, which holds the s1 archive (pushed before its run): 349 passed.
+
+### Added after review s2 (evidence only; not part of the reviewed commit)
+**The guard's construction** (the herdr manager's sentence; `scripts/audit/c1/guard.py`, module docstring and its cgroup split):
+- The guard refuses to start unless `payload/cgroup.kill` exists, writable, under its own unit's cgroup.
+- All three stage-one seeds ran under it.
+- So the `<unit>.service/payload` leaf existed on the box for each of them.
+
+**Observed at seed 4's real launch** (2026-10-08 19:50:24 EDT, read-only, `/proc/<pid>/cgroup` on the box):
+- The payload process (PID 4174727, `screen run --seed 2048`) read `0::/user.slice/user-1000.slice/user@1000.service/app.slice/c1-c2-framing-seed4-20261008T235024Z-30b27165.service/payload`.
+- The guard (PID 4174726) read the same path ending in `/guard`.
+- So the transient unit does sit in `app.slice`, which review s2 recorded as inferred.
+- The job passed its guarded-unit check: it claimed its run `88e426e-20261008T235044Z` 20 seconds after the launch.
+
+**Review s2's nonblocking notes, carried as known items:**
+- The kernel-reader test's fallback is weak (P3). A future regression should capture the exact path read and exercise the read-error branch.
+- Addendum §3's "before anything is … read" is broader than the code. Admission metadata, the register and prior-run validation are read before the guarded-unit check; the refusal precedes the claim, the seed's pinned inputs and its model work.
+- The addendum is frozen in the executable closure, so neither note is edited there.
