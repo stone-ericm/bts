@@ -1160,6 +1160,21 @@ def test_stage_two_seeds_run_one_at_a_time_in_order_under_their_own_identity(sta
     assert man["identity"] == IDENT2 and man["head"] == STAGE_TWO_HEAD
 
 
+@pytest.mark.parametrize("damage", ["two_runs", "stopped"])
+def test_an_earlier_stage_two_seed_must_hold_one_complete_run(stage_one, damage):
+    out, _, _ = stage_one
+    assert _run_mixed(stage_one, S.STAGE_TWO_SEEDS[0]) == 0
+    d = _run_dir(out, S.STAGE_TWO_SEEDS[0])
+    if damage == "two_runs":
+        (d.parent / "zzzzzzz-20261009T000000Z").mkdir()
+        expect = "earlier seed 2048 has 2 runs, not one"
+    else:
+        (d / "STOPPED.json").write_text("{}")
+        expect = "earlier seed 2048's run is not a complete admitted run"
+    with pytest.raises(SystemExit, match=expect):
+        _run_mixed(stage_one, S.STAGE_TWO_SEEDS[1])
+
+
 def test_stage_two_needs_erics_cap_row(stage_one, monkeypatch):
     _to_stage_two(stage_one, monkeypatch, [])
     with pytest.raises(SystemExit, match="C2-framing-stage-two-cap"):
@@ -1235,8 +1250,36 @@ def test_launch_runs_stage_two_with_erics_budget_outside_the_window(stage_one, m
 
 
 def test_the_clock_reads_new_york_time():
+    """Against the system clock asked for America/New_York (a minute boundary between the two reads is allowed)."""
+    want = subprocess.run(["env", "TZ=America/New_York", "date", "+%H %M"], capture_output=True, text=True,
+                          check=True).stdout.split()
     hour, minute = S.ny_clock()
-    assert 0 <= hour < 24 and 0 <= minute < 60
+    assert (hour * 60 + minute - int(want[0]) * 60 - int(want[1])) % 1440 in (0, 1)
+
+
+def test_stage_two_is_admitted_under_its_own_exposure_row_and_design():
+    assert S.EXPOSURE_ROW == "X-36" and S.SCOPE == "catcher framing screen stage two"
+    assert S.DESIGN in S.CLOSURE and S.DESIGN_TWO in S.CLOSURE and (ROOT / S.DESIGN_TWO).is_file()
+
+
+def test_stage_ones_identity_and_runs_are_what_the_repository_holds():
+    """The stage-one constants, checked against git: the admission record at stage one's admission commit, the review
+    report at its exposure commit, and the committed hash list naming the three accepted runs."""
+    def show(path):
+        return subprocess.run(["git", "-C", str(ROOT), "show", path], capture_output=True, check=True).stdout
+    ident = S.STAGE_ONE_IDENTITY
+    record = show(f"22d31f23a0c2683a7dfe530ea3380861c090667f:{S.ADMISSION_REL}")
+    assert hashlib.sha256(record).hexdigest() == ident["admission_sha256"]
+    adm = json.loads(record)
+    assert adm["reviewed_commit"] == ident["reviewed_commit"] and adm["exposure_commit"] == ident["exposure_commit"]
+    assert adm["review_report"] == ident["review_report"]
+    report = show(f"{ident['exposure_commit']}:{ident['review_report']}")
+    assert hashlib.sha256(report).hexdigest() == ident["review_report_sha256"]
+    listing = (ROOT / S.STAGE_ONE_FILES).read_bytes()
+    assert hashlib.sha256(listing).hexdigest() == S.STAGE_ONE_FILES_SHA256
+    names = {x.split()[1].split("/")[1] for x in (ROOT / S.STAGE_ONE_FILES).read_text().split("\n") if x.strip()}
+    assert sorted(S.STAGE_ONE_RUNS) == sorted(S.STAGE_ONE_SEEDS)
+    assert names == {S.STAGE_ONE_RUNS[s] for s in S.STAGE_ONE_SEEDS}
 
 
 def test_aggregate_the_ten_registered_seeds_across_both_stages(ten_runs):
@@ -1270,6 +1313,13 @@ def test_aggregate_stage_two_validates_each_stage_under_its_own_identity(ten_run
     _rewrite(d[3] / "manifest.json", lambda r: r.update(identity=dict(IDENT)))      # a stage-two run of stage one's identity
     with pytest.raises(S.RunInvalid, match=r"\['admitted identity'\]"):
         S.aggregate_stage_two(d, _test_out_root=out)
+
+
+def test_aggregate_stage_two_takes_only_stage_ones_accepted_run_directories(ten_runs):
+    out, d = ten_runs
+    other = d[0].parent / "zzzzzzz-20261009T000000Z"           # a path in the namespace, never a run
+    with pytest.raises(S.RunInvalid, match="not stage one's accepted run"):
+        S.aggregate_stage_two([other] + d[1:], _test_out_root=out)
 
 
 def test_aggregate_stage_two_needs_stage_ones_accepted_bytes(ten_runs):
