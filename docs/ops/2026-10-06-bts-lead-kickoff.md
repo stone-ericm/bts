@@ -181,6 +181,9 @@ The draft `docs/superpowers/specs/2026-10-05-c1-r2-p3-consistent-capture-design.
   - run `git checkout <file>` over uncommitted work;
   - use the Claude-in-Chrome extension;
   - copy the healthchecks ping URL anywhere (E107). Redact URLs when you print the crontab: `sed -E 's#https?://[^ "]+#<URL>#g'`.
+- **Run the suite before pushing any commit that touches a file the suite reads, register rows included** (the manager, 2026-10-08).
+  - **Why:** Eric's real release row (`11e0cfd`, a register-only commit) shadowed the release row the framing tests append, because the lookup takes a row id's first line. 50 framing tests failed on main from 09:42 EDT until the fix `2d9bf55` on the stage-two branch, and nobody noticed, since no suite ran after the metadata commit.
+  - **How to apply:** a register, admission-record or evidence-list commit is not "docs only" when tests read it. Run the permitted suite before the push.
 - **No unapproved production code on main.** The next `main:deploy` ships everything, so revert or park it, as was done for the serving witness and W0. Deploy a specific reviewed SHA: `git push origin <sha>:refs/heads/deploy`.
 
 ## 5. Lessons from C1
