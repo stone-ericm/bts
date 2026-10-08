@@ -1081,15 +1081,16 @@
   "id": "R8",
   "rule": "R6-1: the mutated run goes through the driver",
   "file": "scripts/audit/c2_framing/mutant_runner.py",
-  "old": "[*_python(), str(work / \"framing_runner_driver.py\"), str(evidence),\n                        *_args(root, \"-q\", *tests)]",
-  "new": "_pytest_cmd(root, \"-q\", *tests)",
+  "old": "    return _drive(root, [\"-q\", *tests], overrides)\n",
+  "new": "    r = subprocess.run([*_python(), \"-m\", \"pytest\", *_args(root, \"-q\", *tests)], cwd=root, env=_env(),\n                       capture_output=True, text=True)\n    return r.returncode, r.stdout, None\n",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test"
   ],
   "added_rev5": true,
   "reanchored_rev7": true,
   "moved_rev9": true,
-  "reanchored_rev9": true
+  "reanchored_rev9": true,
+  "re_anchored_rev10": true
  },
  {
   "id": "R9",
@@ -2153,5 +2154,609 @@
    "tests/scripts/c2_framing/test_screen.py::test_a_wrapper_gone_before_yielding_without_an_abort_is_still_seen"
   ],
   "added_rev9": true
+ },
+ {
+  "id": "R98",
+  "rule": "r10 (R9-1): collection is cut off at the root",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "f\"--confcutdir={root}\", ",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_collection_and_runs_stay_inside_the_root",
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_environment_is_scrubbed"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R99",
+  "rule": "r10: the boundary is checked before collection",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": " + boundary_problems(root, m[\"tests\"])",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_refuses_a_boundary_problem_before_collecting",
+   "tests/scripts/c2_framing/test_screen.py::test_a_look_alike_module_is_refused_before_the_run[committed]"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R100",
+  "rule": "r10: the root must be a committed work tree's top",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if head is None:\n        return [f\"{root}: not the top of a git work tree with a commit\"]\n",
+  "new": "    if head is None:\n        return []\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_refuses_a_root_that_is_not_a_committed_work_tree"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R101",
+  "rule": "r10: an installed tree containing the root is refused",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    problems = [f\"{t}: an installed tree containing the root\" for t in trees if _inside(str(root), (t,))]\n",
+  "new": "    problems = []\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_refuses_an_installed_tree_containing_the_root"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R102",
+  "rule": "r10: an installed tree containing the root does not make the root's files installed",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    trees = [t for t in trees if not _inside(str(root), (t,))]\n    names = installed_names(trees)\n",
+  "new": "    names = installed_names(trees)\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_refuses_an_installed_tree_containing_the_root"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R103",
+  "rule": "r10: a startup entry inside the root is walked",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    entries = {p for p in path if _inside(p, (str(root),)) and not _inside(p, trees) and os.path.isdir(p)}\n",
+  "new": "    entries = set()\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_walks_a_startup_entry_inside_the_root"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R104",
+  "rule": "r10: the named tests' package roots are walked",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                entries.add(str(d))\n",
+  "new": "                pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_walks_the_directories_a_run_imports_from",
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_refuses_uncommitted_modules"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R105",
+  "rule": "r10: the package root is above the topmost package",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            while (d / \"__init__.py\").is_file():\n                d = d.parent\n            if _inside(str(d), (str(root),)):",
+  "new": "            if _inside(str(d), (str(root),)):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_walks_from_the_package_root"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R106",
+  "rule": "r10: the boundary never walks above the root",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            if _inside(str(d), (str(root),)):\n                entries.add(str(d))\n",
+  "new": "            if True:\n                entries.add(str(d))\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_never_walks_above_the_root"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R107",
+  "rule": "r10 (R9-3): a symlink where a run imports from is refused",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                if link:\n                    problems.append(f\"{rel}: a symlink\")\n                elif directory:",
+  "new": "                if False:\n                    pass\n                elif directory:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_refuses_symlinks",
+   "tests/scripts/c2_framing/test_screen.py::test_a_linked_module_is_refused_before_the_run"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R108",
+  "rule": "r10: importable directories are walked recursively",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                elif directory:\n                    stack.append(x.path)\n",
+  "new": "                elif directory:\n                    pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_refuses_uncommitted_modules"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R109",
+  "rule": "r10: a compiled module is refused",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                elif x.name.endswith(_COMPILED):\n                    problems.append(f\"{rel}: a compiled module\")\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_refuses_compiled_modules"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R110",
+  "rule": "r10: an uncommitted module is refused",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                elif rel not in blobs:\n                    problems.append(f\"{rel}: not committed\")\n",
+  "new": "                elif rel not in blobs:\n                    pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_refuses_uncommitted_modules",
+   "tests/scripts/c2_framing/test_screen.py::test_a_file_in_place_of_a_committed_symlink_is_not_committed"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R111",
+  "rule": "r10: a module that differs from the commit is refused",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                elif blob_id(algorithm, Path(x.path).read_bytes()) != blobs[rel]:",
+  "new": "                elif False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_refuses_a_module_that_differs_from_the_commit"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R112",
+  "rule": "r10 (R9-2): a look-alike is refused before the run",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                if d == e and mod in names and (not directory or _holds_importable(x.path)):",
+  "new": "                if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_look_alike_module_is_refused_before_the_run[committed]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_walks_the_directories_a_run_imports_from"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R113",
+  "rule": "r10: only a top-level name can be a look-alike",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                if d == e and mod in names",
+  "new": "                if mod in names",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_admits_a_committed_root"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R114",
+  "rule": "r10: a directory holding code under an installed name is a look-alike",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "(not directory or _holds_importable(x.path))",
+  "new": "(not directory)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_directory_holding_code_under_an_installed_name_is_a_look_alike"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R115",
+  "rule": "r10: a directory holding nothing importable is no look-alike",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "(not directory or _holds_importable(x.path))",
+  "new": "(True)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_ignores_what_cannot_be_imported"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R116",
+  "rule": "r10: a bytecode cache holds nothing importable",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    return any(_module_name(c.name, c.is_dir()) for c in os.scandir(d))\n",
+  "new": "    return any(True for c in os.scandir(d))\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_ignores_what_cannot_be_imported"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R117",
+  "rule": "r10: names that cannot be imported are ignored",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                if mod is None or _inside(x.path, trees):",
+  "new": "                if _inside(x.path, trees):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_ignores_what_cannot_be_imported"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R118",
+  "rule": "r10: an installed tree inside the root is not the root's code",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                if mod is None or _inside(x.path, trees):",
+  "new": "                if mod is None:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_skips_installed_trees_inside_the_root"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R119",
+  "rule": "r10: a directory is importable only under an identifier",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        return name if name.isidentifier() else None\n",
+  "new": "        return name\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_ignores_what_cannot_be_imported"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R120",
+  "rule": "r10: a file is importable only when its stem is an identifier",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            return name[:-len(s)] if name[:-len(s)].isidentifier() else None\n",
+  "new": "            return name[:-len(s)]\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_ignores_what_cannot_be_imported"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R121",
+  "rule": "r10: the longest import suffix is tried first",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "key=len, reverse=True)",
+  "new": "key=len)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_a_compiled_module_outside_the_installed_trees"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R122",
+  "rule": "r10: bytecode files are compiled modules",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "_COMPILED = tuple(importlib.machinery.BYTECODE_SUFFIXES + importlib.machinery.EXTENSION_SUFFIXES)",
+  "new": "_COMPILED = tuple(importlib.machinery.EXTENSION_SUFFIXES)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_refuses_compiled_modules"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R123",
+  "rule": "r10: extensions are compiled modules",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "_COMPILED = tuple(importlib.machinery.BYTECODE_SUFFIXES + importlib.machinery.EXTENSION_SUFFIXES)",
+  "new": "_COMPILED = tuple(importlib.machinery.BYTECODE_SUFFIXES)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_refuses_compiled_modules",
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_a_compiled_module_outside_the_installed_trees"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R124",
+  "rule": "r10: the installed names come from the installed trees",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    names = set()\n    for t in trees:",
+  "new": "    names = set()\n    for t in []:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_look_alike_module_is_refused_before_the_run[committed]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_a_committed_look_alike"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R125",
+  "rule": "r10: a subdirectory of a work tree is not its top",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if top is None or os.path.realpath(os.fsdecode(top.strip())) != os.path.realpath(root):",
+  "new": "    if top is None:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_refuses_a_root_that_is_not_a_committed_work_tree"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R126",
+  "rule": "r10: only regular-file blobs are committed code",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            if kind == b\"blob\" and mode in (b\"100644\", b\"100755\"):",
+  "new": "            if kind == b\"blob\":",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_file_in_place_of_a_committed_symlink_is_not_committed"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R127",
+  "rule": "r10: a sha256 repository's blob ids",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    algorithm = \"sha256\" if len(head.strip()) == 64 else \"sha1\"",
+  "new": "    algorithm = \"sha1\"",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_reads_a_sha256_repository"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R128",
+  "rule": "r10: a blob id hashes git's blob header",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "hashlib.new(algorithm, b\"blob %d\\0\" % len(data) + data)",
+  "new": "hashlib.new(algorithm, data)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_admits_a_committed_root"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R129",
+  "rule": "r10: inherited GIT_* variables never steer the runner's git",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    env = {k: v for k, v in os.environ.items() if not k.startswith(\"GIT_\")}",
+  "new": "    env = dict(os.environ)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_boundary_ignores_inherited_git_variables"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R130",
+  "rule": "r10: a startup entry outside the root is installed",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": " | {p for p in path if not _inside(p, (root,))}",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_an_editable_install_outside_the_root_is_installed"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R131",
+  "rule": "r10: the run's audit hook is added",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "sys.addaudithook(_audit)\n",
+  "new": "\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_an_uncommitted_module",
+   "tests/scripts/c2_framing/test_screen.py::test_collection_runs_under_the_boundary"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R132",
+  "rule": "r10: code compiled from a file is checked when it runs",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            why = _code_problem(name)\n",
+  "new": "            why = None\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_an_uncommitted_module"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R133",
+  "rule": "r10 (R9-3): code from outside the root and the installed trees is refused (message pinned)",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        return \"outside the root and the installed trees\"\n",
+  "new": "        pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_a_module_outside_the_root"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R134",
+  "rule": "r10: code reached through a symlink is refused in the run",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        if os.path.islink(a):\n            return \"a symlink\"\n",
+  "new": "        if False:\n            pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_a_module_reached_through_a_symlink"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R135",
+  "rule": "r10 (R9-2): a look-alike is refused in the run",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "                return \"shadows an installed module\"\n",
+  "new": "                pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_a_committed_look_alike"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R136",
+  "rule": "r10: uncommitted code is refused in the run",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if rel not in BLOBS:\n        return \"not committed\"\n",
+  "new": "    if rel not in BLOBS:\n        return None\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_an_uncommitted_module"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R137",
+  "rule": "r10: code that differs from the commit is refused in the run",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if COMPILED.get(name) != BLOBS[rel]:\n",
+  "new": "    if False:\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_a_module_that_differs_from_the_commit"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R138",
+  "rule": "r10: the bytes compiled under each file name are recorded",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            COMPILED[name] = _blob(source if isinstance(source, bytes) else source.encode(\"utf-8\", \"surrogatepass\"))\n",
+  "new": "            pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_clean_run_has_no_foreign_plugins_and_no_plugin_changes"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R139",
+  "rule": "r10: code compiled from text (not a file) is not a file's code",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": " and not (name.startswith(\"<\") and name.endswith(\">\"))",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_clean_run_has_no_foreign_plugins_and_no_plugin_changes"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R140",
+  "rule": "r10: no bytecode is deserialized in the run",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        _refuse(\"bytecode deserialized\", event)\n",
+  "new": "        pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_never_deserializes_bytecode"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R141",
+  "rule": "r10: no compiled module loads from outside the installed trees",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            _refuse(\"a compiled module outside the installed trees\", os.fsdecode(args[1]))\n",
+  "new": "            pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_a_compiled_module_outside_the_installed_trees"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R142",
+  "rule": "r10: no native library loads from outside the installed trees",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            _refuse(\"a native library outside the installed trees\", os.fsdecode(args[0]))\n",
+  "new": "            pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_a_native_library_outside_the_installed_trees"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R143",
+  "rule": "r10: a refusal in the run is never RED",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if bundle.get(\"boundary\") != []:\n        return f\"INCONCLUSIVE({tag}, code outside the boundary)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[boundary]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[boundary_missing]"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R144",
+  "rule": "r10: the run's refusals reach the evidence",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "            \"boundary\": list(REFUSED)}",
+  "new": "            \"boundary\": []}",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_refuses_an_uncommitted_module"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R145",
+  "rule": "r10: a refusal during collection selects nothing",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "bundle.get(\"boundary\") != [] or ",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_collection_runs_under_the_boundary"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R146",
+  "rule": "r10: collection runs through the driver, under the boundary",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    rc, _, bundle = _drive(root, [\"--collect-only\", \"-q\", *tests])\n    if rc != 0 or bundle is None or bundle.get(\"boundary\") != [] or any(\"collecterror\" in r for r in bundle[\"records\"]):\n        return None\n    return bundle.get(\"collected\") or None\n",
+  "new": "    r = subprocess.run([*_python(), \"-m\", \"pytest\", *_args(root, \"--collect-only\", \"-q\", *tests)], cwd=root, env=_env(),\n                       capture_output=True, text=True)\n    nodes = [l.strip() for l in r.stdout.splitlines() if \"::\" in l and not l.startswith(\" \")]\n    return nodes if r.returncode == 0 and nodes else None\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_collection_runs_under_the_boundary"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R147",
+  "rule": "r10: the intended nodes come from the collection's evidence",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        self.collected = [i.nodeid for i in session.items]\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_collection_and_runs_stay_inside_the_root"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R148",
+  "rule": "r10: the mutated target is the run's one allowed change",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "run_mutant(root, m[\"tests\"], {f: mutated})",
+  "new": "run_mutant(root, m[\"tests\"])",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_mutated_target_is_the_one_change_a_run_executes"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R149",
+  "rule": "r10: the hook's committed bytes carry the mutation",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "        blobs[os.path.relpath(os.path.realpath(f), root)] = blob_id(algorithm, data)\n",
+  "new": "        pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_mutated_target_is_the_one_change_a_run_executes"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R150",
+  "rule": "r10: an installed tree containing the root is not installed in the run",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    trees = [t for t in trees if not _inside(str(root), (t,))]\n    algorithm, blobs",
+  "new": "    algorithm, blobs",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_run_ignores_an_installed_tree_containing_the_root"
+  ],
+  "added_rev10": true
+ },
+ {
+  "id": "R152",
+  "rule": "r10: installed code runs",
+  "file": "scripts/audit/c2_framing/mutant_runner.py",
+  "old": "    if _inside(real, TREES):\n        return None\n    if real == ROOT",
+  "new": "    if real == ROOT",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_clean_run_has_no_foreign_plugins_and_no_plugin_changes"
+  ],
+  "added_rev10": true
  }
 ]
