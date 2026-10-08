@@ -303,3 +303,150 @@ The driver guarantee is stated precisely: evidence is written after `pytest.main
 **Result:** 239 of 239 attributable RED in one pass (R133 message-only, disclosed); G8, H12 and N10 equivalent.
 
 **Suites:** the permitted suite has 271 tests (246 framing and 25 shared admission), all passing locally and in the sandbox at `487f54c`.
+
+## Stage two (Eric's rows C2-framing-stage-two, C2-framing-stage-two-cap and C2-framing-checkpoint-50, 2026-10-08)
+**The change:** the addendum `docs/sota_audit/2026-10-08-prereg-c2-framing-stage-two.md` and the code that runs it. `run`'s computation is unchanged. Each part is its own commit on branch `c2-framing-stage-two`:
+- `2d9bf55` **fixes the suite on main.**
+  - Since Eric's real release row landed (`11e0cfd`), the register lookup (the first line per row id) has read the real row, never the row a test appends. 50 framing tests had failed on main since then: 6 failed and 44 errors, confirmed at `2e077a3`.
+  - The fix: a test's rows replace real rows of the same id.
+  - It is test-only: the runs, the run path and the stage-one acceptance are unaffected.
+- `da50103` adds **the addendum**, written after stage one was opened, as it discloses. Every rule is the mechanical extension of the stage-one pre-registration.
+- `33556db` adds **the code:**
+  - `stage_two_release` (Eric's cap-and-budget row);
+  - `stage_one_runs` (stage one's three accepted runs: exactly their accepted bytes, by the committed hash list pinned by sha256, validated under stage one's own identity);
+  - `stage_two_allowed` (the row's cap equal to the launcher's; stage one with an inconclusive variant; every earlier stage-two seed one complete run under the stage-two admission);
+  - `ny_clock` and `launch_window_problem` (no launch of seeds 4–10 from 00:45 to 03:10 America/New_York);
+  - `aggregate_stage_two` (exactly the ten seeds, each stage under its own identity, the stages agreeing on pins, params, settings, basis, retrain interval and seasons);
+  - `disposition(per_seed, n)` (default 3, unchanged).
+  - The exposure row and scope move to X-36 and "catcher framing screen stage two". Stage-one paths are unchanged.
+- `f780a8d` raises **the launcher's cap**, `CAP_H`, from 100 to 165 CPU-hours, citing row C2-framing-stage-two-cap.
+  - Also changed: the module docstring's cap sentence, and the two C1 tests that hard-coded 100 (one gate case, one plan case), which now read the constant.
+  - The gate's logic and the 50 checkpoint are unchanged.
+- `332a5ae` adds **cases** for rules no test could fail when the mutants were planned:
+  - an earlier stage-two seed with two runs or a stopped run;
+  - an aggregate given a stage-one path other than the accepted run;
+  - the exposure row, scope and closure;
+  - the stage-one identity, hash list and run names, checked against git;
+  - the clock, checked against the system clock.
+
+**Large seeds:** five of seeds 4–10 exceed 2³¹−1. LightGBM 4.6.0 reads them with 32-bit wraparound. Measured: 3629294338 trains the same model as −665672958, with no warning, and repeats exactly. The seven stay distinct.
+
+**Vocabulary:**
+- The suite gains 17 attribute names: the screen's new constants and functions, `ledger` and `CAP_H`. It also gains 3 parameter names (`cap`, `stage_one`, `ten_runs`) and the module `scripts.audit.c1.ledger`.
+- None is in the escape-route lists.
+- `gadget_audit.py` re-run: the same flags as revision 10, 163 objects visited (158 before; the ledger module and its reachable allowed names).
+
+**Spec** (`2f49648`): 278 entries. G10 and G13 are re-anchored, with the same mutations: G13 is now anchored with its `RELEASE_RE` line, because `stage_two_release` holds the same Eric-token check. S1–S36 are new.
+
+**Runs** (appended to `mutants.out`):
+- **The 38 new and re-anchored entries at `2f49648`:** 37 RED, and S9 SURVIVED.
+  - S9 (each stage-one seed holds exactly its accepted run) was masked. The test's extra run sorted before the accepted one, so the byte check refused it instead.
+  - `a6a5e37` names the extra run so that it sorts after the accepted one, and gives each damage case its own check's message.
+  - The resume at `a6a5e37`: S8, S9, S10 and S36 are RED.
+- **The full ledger at `a6a5e37`:** one pass of 28 minutes (15:50–16:18 EDT), with no change-scan alarm in 278 entries. 275 RED; G8, H12 and N10 survived, as recorded since revisions 3–5.
+
+**Result:** 275 of 275 attributable RED in one pass (R133 message-only, as disclosed in revision 10); G8, H12 and N10 equivalent.
+
+**Suites:** the permitted suite has 381 tests (277 framing, 25 shared admission, 79 C1 cycle), all passing locally at `a6a5e37`.
+- In a Codex `:workspace` sandbox it gives 377 passed and 4 failed.
+- The four are C1 guard tests (`guard preexec failed: PermissionError`). They fail identically in the same sandbox on unchanged main (`2e077a3`), so they are a sandbox limit: the guard's pre-exec hook.
+
+### The window check in the job itself; review s1 restarted (2026-10-08)
+**The gap:** after handing the first s1 reviewer its brief (fresh Codex `c2-framing-s1`, 16:39 EDT, at `83ac2c1`), the lead found that only the launch wrapper checked the 00:45–03:10 window, and before its validation. A seed started by hand through the C1 launcher, or validated across 00:45, would have run. The reviewer had begun probing the same timing point.
+
+**The manager's instruction** was to fix the gap now and restart s1 on the new commit. Register note `C2-framing-stage-two-review-restart` (on main) records it; it is not a ruling.
+- The first s1 reviewer was stopped before it wrote anything: it was interrupted, its background terminal stopped, and it quit, with no report. Its scratch was deleted.
+- The restarted s1 is a fresh reviewer on the new tip. It stays round s1 of at most 2, since no report was produced.
+
+**The fix:**
+- `e493abc` adds `refuse_inside_the_window(seed)`, the one check. Both `launch` and `run` call it, each after its validation and immediately before it calls the launcher or claims the seed.
+- **Tests:**
+  - `run` refuses inside the window, claiming nothing, and both edges run;
+  - stage-one seeds have no window;
+  - a validation that crosses 00:45 is refused by `run` and by `launch`.
+  - The stage-one fixture's clock is pinned to 12:00, so the suite does not depend on the hour.
+- `4dc493b` (C1, the manager's check): the launcher's "another C1 job is active" refusal, in the failure direction, for stage-two job names. The behaviour is unchanged.
+- `9e1f560` adds the mutants:
+  - S37: `run`'s check removed alone. It is RED through the `run` test only, as the manager required.
+  - S38: `launch`'s check removed.
+  - S39 and S40: each check moved before its validation.
+  - S41: the check widened to stage-one seeds.
+  - S19 is re-described (the window check applies to seeds 4–10).
+
+**Runs** (appended to `mutants.out`):
+- **The six window entries at `9e1f560`:** all RED.
+- **The full ledger at `9e1f560`:** one pass of 28 minutes (16:48–17:16 EDT), with no change-scan alarm in 283 entries. 280 RED; G8, H12 and N10 survived, as recorded.
+
+**Result:** 280 of 280 attributable RED in one pass (R133 message-only, as disclosed); G8, H12 and N10 equivalent.
+
+**Suites at `9e1f560`:** 387 passed locally (281 framing, 25 shared admission, 81 C1 cycle). In the Codex `:workspace` sandbox: 383 passed, and the same 4 C1 guard tests failed with `PermissionError` in the pre-exec hook, as before. Main's suite with the register note: 349 passed. This README commit changes nothing else.
+
+### Review s1 BLOCK (B1–B3) and round 2
+**Review s1** (restarted; fresh Codex `c2-framing-s1b`, at `70dccc4`) returned BLOCK: `docs/audit/2026-10-08-c2-framing-stage-two-codex-s1.md`, sha256 `d445b833…`. The reviewer gave its required changes as prose, not a diff, so nothing was applied by script. Each maps to `4555c2a`:
+- **B1:** `run`'s window check is moved inside the claim lock, after the LightGBM-flag check, `check_settings` and the existing-claim check, immediately before `make_run_dir`.
+- **B2:** `guarded_unit_problem` checks two facts the caller does not set, which must agree:
+  - the kernel's `/proc/self/cgroup` places the job in `<unit>.service/payload` of a launcher unit named for its seed;
+  - the launcher's `PENDING_<unit>.json` for exactly that unit declares the seed's budget.
+  - `run` calls it for seeds 4–10 before anything is claimed or read. It fails closed.
+- **B3:** seeds 1–3 refuse under any admission but stage one's own. The three-seed aggregate validates under `STAGE_ONE_IDENTITY`, so stage one re-validates and aggregates under the stage-two admission.
+- **The addendum** (`6a54dc3`) states B1–B3 as rules. It now cites the recorded rows, and it distinguishes the acknowledgement row from the not-yet-written file (the reviewer's nonblocking correction).
+
+**B2's provenance.** The direct-run weakness predated stage two, but it was never exercised.
+- Seeds 1, 2 and 3 each ran as the guard's payload inside their own launcher unit:
+  - `c1-c2-framing-seed1-20261008T061510Z-ad237918`, PID 4156291;
+  - `c1-c2-framing-seed2-20261008T134258Z-6b2aae98`, PID 4164956;
+  - `c1-c2-framing-seed3-20261008T163012Z-650ee8e4`, PID 4168119.
+- The evidence is in `stage-one-units.txt`, read-only from the box:
+  - each unit's user-manager journal line, "Started <unit> - …/guard.py … -- … screen run --seed …";
+  - the launcher's `PENDING_` record (45, 30 and 30 CPU-hours declared);
+  - the guard's own `TERMINAL_` receipt (exit, rc 0);
+  - `RECONCILED_` (no problems), all under `data/hetzner_results/c1/` on the box.
+- The PIDs are from the lead's launch records (C2 index row (e)).
+
+**The cgroup format** was captured read-only from the box, from two running user services (uid 1000):
+`0::/user.slice/user-1000.slice/user@1000.service/app.slice/bts-scheduler.service`.
+- The tests use that prefix with the launcher's unit name and the guard's `payload` leaf.
+- That a transient `systemd-run --user` unit sits in `app.slice` too is inferred: no unit was started to find out.
+- The check reads only the last two components.
+
+**The fixture.** The `stage_one` fixture gives every stage-two run through `_run_mixed` its own guarded context: the box-format cgroup record for its unit (`GUARD_SEED`), and the launcher's PENDING record for each unit. So the real check runs in every stage-two test, and a direct `S.run` outside `_run_mixed` refuses.
+
+**The reviewer's witnesses, replayed twice on each tip.** The scripts are in the review checkout's `.codex-review/c2-framing-s2/witnesses/`, and `replay_s1_witnesses.py` keeps their logic.
+- **At `70dccc4`, both runs identical:**
+  - B1: seed 4 ran and claimed at 00:45, after one clock read at 00:44.
+  - B2: seed 5, run directly while another C1 job was active, ran, with zero active-job probes.
+  - B3: seed 1, its directory moved aside, launched (one launcher command) and ran under the stage-two identity.
+  - Seeds 2 and 3, with their claims missing, were already refused there by the release's seed-1 validation.
+- **At `19b5a8d`, both runs identical; every witness refuses, with no run directory and no launcher command:**
+  - B1: refused at the claim. The single clock read, at the claim, was 00:45.
+  - B2: refused by the guarded-unit check.
+  - B3: seeds 1–3, on both routes: "stage one is closed".
+- **The reviewer's own `probes.py` and `missing_stage_one.py`, run verbatim** but for their scratch path: they reproduce at `70dccc4`, and refuse at `19b5a8d`.
+
+**Mutants** (`5fcb917`, `52522a1`, `19b5a8d`):
+- **New:**
+  - S42: the window check before the existing-claim check;
+  - S43: the cgroup factor removed alone, RED only through the direct-run test's guard-leaf case;
+  - S44: the record factor removed alone, RED through its missing-record case;
+  - S45–S50: the budget, seed, payload, call, unit-pattern and record-unit bindings;
+  - S51: stage one closed;
+  - S52: the stage-one aggregate's identity.
+- **Re-anchored:** S37, S39, G25 and N15.
+- **S50 survived first.** No case had a record under the right file name naming another unit; `52522a1` adds one. S44 was then re-anchored to the new message.
+
+**Runs** (appended to `mutants.out`):
+- **The 15 new and re-anchored entries at `5fcb917`:** 14 RED; S50 SURVIVED.
+- **The resumes at `52522a1` and `19b5a8d`:** S45, S50 and S44 RED.
+- **The full ledger at `19b5a8d`:** one pass of 32 minutes (18:30–19:02 EDT), with no change-scan alarm in 294 entries. 291 RED; G8, H12 and N10 survived, as recorded.
+
+**Result:** 291 of 291 attributable RED in one pass (R133 message-only, as disclosed); G8, H12 and N10 equivalent.
+
+**Corrected counts** (the reviewer's nonblocking note):
+- Before round 2, the vocabulary gained 18 attribute names, not 17, and the gadget audit visited 164 objects.
+- Round 2 adds 5 more names, for 23 attributes in all, plus 3 parameters and the module `scripts.audit.c1.ledger`.
+- The audit result at this tip: the same seven flags as revision 10, 168 objects visited.
+
+**Suites at `19b5a8d`** (this README commit changes nothing else):
+- Locally, 404 passed: 298 framing, 25 shared admission, 81 C1 cycle.
+- In the Codex `:workspace` sandbox, 400 passed, and the same 4 C1 guard tests failed with `PermissionError` in the pre-exec hook.
+- Main's suite at `31f15ab`, which holds the s1 archive (pushed before its run): 349 passed.

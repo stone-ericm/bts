@@ -54,11 +54,22 @@ def test_tsv_round_trip(tmp_path):
     (49.0, 10.0, False, "ok"),        # crossing 50 during a job is allowed; the next launch stops
     (50.0, 1.0, False, "checkpoint"),  # at 50: stop and report until Eric's acknowledgement exists
     (50.0, 1.0, True, "ok"),
-    (95.0, 6.0, True, "over_cap"),     # the declared budget may not cross 100
-    (100.0, 0.5, True, "stop"),
+    (ledger.CAP_H - 5, 6.0, True, "over_cap"),     # the declared budget may not cross the cap
+    (ledger.CAP_H, 0.5, True, "stop"),
 ])
 def test_gate(total, declared, acked, expect):
     assert ledger.gate(total, declared, acked) == expect
+
+
+def test_the_cap_is_erics_ruled_165():
+    """Eric raised the shared cap from 100 to 165 (register row C2-framing-stage-two-cap, 2026-10-08). The gate tests
+    above are relative to the constant; this pins its value to his ruling, so a silent edit of either goes red."""
+    from scripts.audit.c1 import admission
+    cells = admission.row_cells((admission.REPO / "docs/audit/2026-09-22-exposure-register.md").read_text(),
+                                "C2-framing-stage-two-cap")
+    assert ledger.CAP_H == 165.0
+    assert cells and cells[3].split()[:1] == ["Eric"]
+    assert "RAISE the shared C1/C2 compute cap from 100 to 165 CPU-hours" in cells[2]
 
 
 # ---------- scheduler sleep window ----------
@@ -146,11 +157,21 @@ def test_failed_units_are_read_from_systemd_failure_messages():
     assert launch.failed_units(lines) == ["c1-r4b-run-20261005T010000Z"]
 
 
+@pytest.mark.parametrize("name", ["c2-framing-seed5", "c2-framing-seed10"])
+def test_a_stage_two_seed_is_refused_while_another_c1_job_is_active(name):
+    """One box job at a time holds for the framing screen's stage-two seeds: a seed is refused while the previous
+    seed's unit is still active (the launcher's own check, whatever the job's name)."""
+    p = plan(name=name, cpu_hours=20.0, max_hours=16.0,
+             active_units=["c1-c2-framing-seed4-20261009T130000Z-0a1b2c3d.service"])
+    assert p["ok"] is False and any("another C1 job is active" in r for r in p["reasons"]), p["reasons"]
+    assert "argv" not in p
+
+
 @pytest.mark.parametrize("kw,reason", [
     (dict(name="R2 build"), "name"),
     (dict(active_units=["c1-r3-fit-20261005T110000Z.service"]), "another C1 job is active"),
     (dict(rows=[{"invocation": "a", "unit": "c1-x.service", "stopped_at": "t", "cpu_seconds": 50 * 3600.0}]), "checkpoint"),
-    (dict(cpu_hours=101.0), "over_cap"),
+    (dict(cpu_hours=ledger.CAP_H + 1), "over_cap"),
     (dict(now=datetime(2027, 4, 1, 12, tzinfo=UTC)), "sleep window"),
     (dict(command=[]), "command"),
 ])

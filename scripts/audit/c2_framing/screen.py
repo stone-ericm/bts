@@ -27,6 +27,13 @@ command (name, budget, deterministic flag) under the same checks.
 distinct, completed, claimed run of the same reviewed code and inputs; each seed's summary is recomputed from its
 retained diff, never taken from the caller.
 
+**Stage two (addendum `docs/sota_audit/2026-10-08-prereg-c2-framing-stage-two.md`; register rows C2-framing-stage-two,
+C2-framing-stage-two-cap and C2-framing-checkpoint-50, Eric 2026-10-08).** Seeds 4-10 (canonical-n10 positions 3-9) run
+one at a time, in order, under the stage-two admission and Eric's per-seed budget, never launched from 00:45 to 03:10
+America/New_York. Stage one's three accepted runs keep stage one's identity and must equal the accepted bytes.
+`aggregate_stage_two` gives the ten-seed dispositions (the stage-one rule, a majority of 6 of 10). `run`'s computation
+is unchanged.
+
 Research code: it changes nothing in production.
 """
 from __future__ import annotations
@@ -46,9 +53,13 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+from scripts.audit.c1 import ledger
+
 SEASONS_IN = tuple(range(2017, 2026))            # the inputs: 2017–2025 PA parquets (2026 excluded)
 TEST_SEASONS = (2024, 2025)
 STAGE_ONE_SEEDS = (2273360, 260991262, 1746737973)   # canonical-n10 positions 0, 1, 2 (data/seed_sets)
+STAGE_TWO_SEEDS = (2048, 3629294338, 1277948386, 3219332220, 2207587974, 3170105529, 2675988121)   # positions 3-9
+SEEDS = STAGE_ONE_SEEDS + STAGE_TWO_SEEDS
 RETRAIN_EVERY = 7
 BASIS = "estimated_pa"
 FIRST_UNIT_STOP_CPU_H = 7.5                      # 1.5 x the lead's unmeasured ~5 CPU-h per season walk-forward
@@ -65,11 +76,27 @@ OUT_ROOT = Path.home() / "projects" / "bts" / "data" / "hetzner_results" / "c2" 
 ADMISSION_REL = "scripts/audit/c2_framing/admission.json"
 REGISTER_REL = "docs/audit/2026-09-22-exposure-register.md"
 DESIGN = "docs/sota_audit/2026-10-06-prereg-c2-framing-screen.md"
-EXPOSURE_ROW = "X-35"
+DESIGN_TWO = "docs/sota_audit/2026-10-08-prereg-c2-framing-stage-two.md"
+EXPOSURE_ROW = "X-36"
 RELEASE_ROW = "C2-framing-release-seeds-2-3"
-SCOPE = "catcher framing screen stage one"
+STAGE_TWO_ROW = "C2-framing-stage-two-cap"
+SCOPE = "catcher framing screen stage two"
 CLOSURE = ("scripts/__init__.py", "scripts/audit/__init__.py", "scripts/audit/c1", "scripts/audit/c2_framing",
-           "src/bts", "pyproject.toml", "uv.lock", DESIGN)
+           "src/bts", "pyproject.toml", "uv.lock", DESIGN, DESIGN_TWO)
+# Stage one as accepted (addendum §2, §4): the identity its runs were admitted under (X-35, review r10), its three runs,
+# and the accepted hash list of their files, pinned by its own sha256.
+STAGE_ONE_IDENTITY = {"review_report": "docs/audit/2026-10-08-c2-framing-codex-r10.md",
+                      "review_report_sha256": "ba182a95171c19664540271734dbe6c79ddfe5322d0c9a404879a655de130b75",
+                      "reviewed_commit": "a3f5e3e89d8b2615e50d8c4aed5c08cbfe02a56f",
+                      "exposure_commit": "105561842e2bdf2580d3ecc867e1ee5e57df04f2",
+                      "admission_sha256": "588472f1e8ce73cd9e761ee89ee70877d4d8a4e28325cbeaa6f89c35df43eb7c"}
+STAGE_ONE_RUNS = {2273360: "22d31f2-20261008T061514Z", 260991262: "11e0cfd-20261008T134306Z",
+                  1746737973: "11e0cfd-20261008T163019Z"}
+STAGE_ONE_FILES = "docs/audit/2026-10-08-c2-framing-stage-one-evidence/runs.sha256"
+STAGE_ONE_FILES_SHA256 = "053439314b4c65a7eef1aaacac294e0da53e241dec21b41ebc908c745977d6e2"
+QUIET_MINUTES = (45, 190)      # no stage-two launch from 00:45 to 03:10 America/New_York (addendum §3)
+C1_DIR = OUT_ROOT.parents[1] / "c1"                  # the C1 launcher's records (PENDING_<unit>.json)
+UNIT_RE = re.compile(r"c1-c2-framing-seed(\d+)-\d{8}T\d{6}Z-[0-9a-f]{8}")   # the launcher's unit names for this job
 INPUT_NAMES = tuple(f"pa_{s}.parquet" for s in SEASONS_IN) + (LOOKUP_NAME,)
 
 
@@ -229,10 +256,11 @@ def _t(values: list[float]) -> float:
     return m / (sd / math.sqrt(len(values)))
 
 
-def disposition(per_seed: list[dict]) -> dict:
-    """Stage one for one variant, over exactly the three registered seeds' summaries (note §5)."""
+def disposition(per_seed: list[dict], n: int = len(STAGE_ONE_SEEDS)) -> dict:
+    """One variant over exactly n registered seeds' summaries: stage one's 3 (note §5) or both stages' 10 (addendum §5,
+    the same rule; a majority is 6 of 10)."""
     seasons = [str(s) for s in TEST_SEASONS]
-    if len(per_seed) != len(STAGE_ONE_SEEDS) or any(set(p["p_at_1_delta"]) != set(seasons) for p in per_seed):
+    if len(per_seed) != n or any(set(p["p_at_1_delta"]) != set(seasons) for p in per_seed):
         return {"disposition": "incomplete", "n_seeds": len(per_seed)}
     mean_by_season = {s: statistics.fmean(p["p_at_1_delta"][s] for p in per_seed) for s in seasons}
     seed_level = [statistics.fmean(p["p_at_1_delta"][s] for s in seasons) for p in per_seed]
@@ -320,9 +348,13 @@ def seed_allowed(seed: int, register_text: str, out_root: Path, *, identity: dic
                  pins: dict) -> tuple[bool, str, float | None]:
     """Seed order (row C2-framing-seed-gate): seed 1 first; seeds 2-3 only after Eric's release, which must name seed
     1's run, and only when that run validates as a complete run of the same admitted code and inputs (r2 R2-2).
-    Returns (allowed, reason, declared budget)."""
+    Seeds 4-10 follow the stage-two rules (`stage_two_allowed`). Returns (allowed, reason, declared budget)."""
+    if seed in STAGE_TWO_SEEDS:
+        return stage_two_allowed(seed, register_text, out_root, identity=identity, pins=pins)
     if seed not in STAGE_ONE_SEEDS:
-        return False, f"{seed} is not a stage-one seed {STAGE_ONE_SEEDS}", None
+        return False, f"{seed} is not a registered seed {SEEDS}", None
+    if {k: identity.get(k) for k in IDENTITY_KEYS} != STAGE_ONE_IDENTITY:
+        return False, "stage one is closed: under any admission but stage one's own, only seeds 4-10 run (review s1 B3)", None
     if seed == STAGE_ONE_SEEDS[0]:
         return True, "seed 1", SEED1_BUDGET_CPU_H
     rel = release(register_text)
@@ -338,6 +370,142 @@ def seed_allowed(seed: int, register_text: str, out_root: Path, *, identity: dic
     except RunInvalid as e:
         return False, f"seed 1's run is not a complete admitted run: {e}", None
     return True, "released", budget
+
+
+STAGE_TWO_RE = re.compile(r"^\*\*RULED (\d{4}-\d{2}-\d{2}) \(Eric\): RAISE the shared C1/C2 compute cap from 100 to "
+                          r"(\d+(?:\.\d+)?) CPU-hours for the framing screen's stage two; declared budget "
+                          r"(\d+(?:\.\d+)?) CPU-hours per seed for seeds 4–10\*\*$")
+
+
+def stage_two_release(register_text: str) -> tuple[float, float] | None:
+    """Eric's stage-two cap and per-seed budget (register row STAGE_TWO_ROW; addendum §3): the ruling cell must match
+    exactly, the source cell's first token must be exactly `Eric`, the cap must be a raise above 100 and the budget a
+    finite positive number. Returns (cap, per-seed declared budget), or None."""
+    from scripts.audit.c1 import admission as A
+    cells = A.row_cells(register_text, STAGE_TWO_ROW)
+    if not cells or len(cells) < 4:
+        return None
+    m = STAGE_TWO_RE.match(cells[2].strip())
+    if not m or cells[3].split()[:1] != ["Eric"]:
+        return None
+    cap, budget = float(m.group(2)), float(m.group(3))
+    if not (math.isfinite(cap) and cap > 100 and math.isfinite(budget) and budget > 0):
+        return None
+    return cap, budget
+
+
+def stage_one_runs(out_root: Path, *, pins: dict) -> list[dict]:
+    """Stage one's three accepted runs (addendum §2, §4), in seed order, each validated by `validate_run` under stage
+    one's own identity and the given pins. Each seed holds exactly its accepted run, and the three runs' files are
+    exactly the accepted hash list (itself pinned by sha256): no file added, removed or changed."""
+    from scripts.audit.c1 import admission as A
+    listing = A.REPO / STAGE_ONE_FILES
+    raw = listing.read_bytes() if listing.is_file() else b""
+    if _sha(raw) != STAGE_ONE_FILES_SHA256:
+        raise RunInvalid(f"the accepted stage-one hash list {STAGE_ONE_FILES} does not have its pinned sha256")
+    accepted = {}
+    for line in raw.decode().split("\n"):
+        if line.strip():
+            digest, rel = line.split(maxsplit=1)
+            accepted[rel] = digest
+    found = {}
+    for seed in STAGE_ONE_SEEDS:
+        root = out_root / f"seed_{seed}"
+        runs = sorted(d.name for d in root.iterdir() if d.is_dir()) if root.is_dir() else []
+        if runs != [STAGE_ONE_RUNS[seed]]:
+            raise RunInvalid(f"seed {seed} holds {runs}, not exactly its accepted run {STAGE_ONE_RUNS[seed]}")
+        for f in sorted((root / runs[0]).iterdir()):
+            found[f"seed_{seed}/{runs[0]}/{f.name}"] = _sha(f.read_bytes()) if f.is_file() else "not a file"
+    if found != accepted:
+        diff = sorted(k for k in set(found) | set(accepted) if found.get(k) != accepted.get(k))
+        raise RunInvalid(f"stage one's files are not the accepted bytes: {diff[:5]}")
+    return [validate_run(out_root / f"seed_{s}" / STAGE_ONE_RUNS[s], s, out_root=out_root,
+                         identity=STAGE_ONE_IDENTITY, pins=pins) for s in STAGE_ONE_SEEDS]
+
+
+def stage_two_allowed(seed: int, register_text: str, out_root: Path, *, identity: dict,
+                      pins: dict) -> tuple[bool, str, float | None]:
+    """Seeds 4-10 (addendum §2, §3): Eric's cap-and-budget row, whose cap is the launcher's; stage one exactly its
+    accepted runs, with an inconclusive variant (pre-registration §5); and every earlier stage-two seed one complete run
+    under the stage-two admission (one at a time, in order). Returns (allowed, reason, declared budget)."""
+    rel = stage_two_release(register_text)
+    if rel is None:
+        return False, f"stage two needs Eric's cap and budget (register row {STAGE_TWO_ROW})", None
+    cap, budget = rel
+    if cap != ledger.CAP_H:
+        return False, f"Eric's cap {cap:g} is not the launcher's cap {ledger.CAP_H:g}", None
+    try:
+        first = stage_one_runs(out_root, pins=pins)
+    except RunInvalid as e:
+        return False, f"stage one is not its accepted runs: {e}", None
+    verdicts = [disposition([v["summaries"][var] for v in first])["disposition"] for var in ("A", "B")]
+    if "inconclusive" not in verdicts:
+        return False, f"stage two needs an inconclusive stage-one variant (pre-registration §5); stage one gave {verdicts}", None
+    for s in STAGE_TWO_SEEDS[:STAGE_TWO_SEEDS.index(seed)]:
+        root = out_root / f"seed_{s}"
+        runs = sorted(d for d in root.iterdir() if d.is_dir()) if root.is_dir() else []
+        if len(runs) != 1:
+            return False, f"seeds run one at a time, in order: earlier seed {s} has {len(runs)} runs, not one", None
+        try:
+            validate_run(runs[0], s, out_root=out_root, identity=identity, pins=pins)
+        except RunInvalid as e:
+            return False, f"seeds run in order: earlier seed {s}'s run is not a complete admitted run: {e}", None
+    return True, "stage two", budget
+
+
+def ny_clock() -> tuple[int, int]:
+    """The hour and minute now, America/New_York."""
+    from zoneinfo import ZoneInfo
+    t = datetime.now(ZoneInfo("America/New_York"))
+    return t.hour, t.minute
+
+
+def launch_window_problem(hour: int, minute: int) -> str | None:
+    """Addendum §3: no stage-two launch from 00:45 to 03:10 America/New_York (production's nightly chain trains its
+    blend at about 03:04; a seed launched before 00:45 is expected to finish first)."""
+    if QUIET_MINUTES[0] <= hour * 60 + minute < QUIET_MINUTES[1]:
+        return "no stage-two launch from 00:45 to 03:10 America/New_York (production's 03:00 chain; addendum §3)"
+    return None
+
+
+def refuse_inside_the_window(seed: int) -> None:
+    """Seeds 4-10 never start from 00:45 to 03:10 America/New_York (addendum §3). The launch wrapper calls this after its
+    validation, immediately before it calls the launcher; the job itself calls it inside its claim lock, after every
+    validation and the existing-claim check, immediately before it creates its run directory (review s1 B1)."""
+    if seed in STAGE_TWO_SEEDS:
+        problem = launch_window_problem(*ny_clock())
+        if problem:
+            raise SystemExit(f"refusing: {problem}")
+
+
+def proc_cgroup_text() -> str:
+    """This process's cgroup record from the kernel (/proc/self/cgroup); empty when there is none to read."""
+    try:
+        return Path("/proc/self/cgroup").read_text()
+    except OSError:
+        return ""
+
+
+def guarded_unit_problem(seed: int, budget: float, cgroup_text: str, c1_dir: Path) -> str | None:
+    """Review s1 B2: a stage-two seed runs only as the guard's payload inside its own C1 launcher unit, so the launcher's
+    one-job-at-a-time rule, the 50 checkpoint and the CPU guard apply. Two facts the caller does not set, which must
+    agree: the kernel's cgroup record places this process in `<unit>.service/payload` (the guard's leaf) of a unit the
+    launcher names for this seed; and the launcher's PENDING record for exactly that unit declares this seed's budget.
+    Fails closed: no cgroup v2 record, another leaf, unit or seed, or no matching record, refuses. Deliberate imitation
+    of the launcher's unit by the operator is outside the threat model."""
+    path = next((x[3:].strip() for x in cgroup_text.splitlines() if x.startswith("0::")), None)
+    parts = path.split("/") if path else []
+    unit = parts[-2].removesuffix(".service") if len(parts) >= 2 and parts[-2].endswith(".service") else None
+    m = UNIT_RE.fullmatch(unit) if unit else None
+    if not (parts and parts[-1] == "payload" and m and int(m.group(1)) == SEEDS.index(seed) + 1):
+        return f"stage-two seeds run only as the guarded payload of their own C1 launcher unit (cgroup {path!r})"
+    try:
+        rec = json.loads((c1_dir / f"PENDING_{unit}.json").read_text())
+    except (OSError, ValueError):
+        return f"no launcher record PENDING_{unit}.json for this C1 launcher unit"
+    if not (isinstance(rec, dict) and rec.get("unit") == unit and rec.get("declared_cpu_hours") == budget):
+        return f"the launcher record for {unit} does not name this unit with this seed's budget {budget:g}"
+    return None
 
 
 def load_inputs(data_dir: Path, pins: dict):
@@ -359,16 +527,20 @@ def run(seed: int, data_dir: Path, inputs_dir: Path, *, walk_forward=None, now=N
     out_root = OUT_ROOT if _test_out_root is None else _test_out_root
     if os.environ.get("BTS_LGBM_DETERMINISTIC") != "1":
         raise SystemExit("refusing: BTS_LGBM_DETERMINISTIC=1 is pre-registered (set before bts is imported)")
-    if seed not in STAGE_ONE_SEEDS:
-        raise SystemExit(f"refusing: {seed} is not a stage-one seed {STAGE_ONE_SEEDS}")
+    if seed not in SEEDS:
+        raise SystemExit(f"refusing: {seed} is not a registered seed {SEEDS}")
     head, adm, identity = admission_gate()
     foreign = A.foreign_imports()
     if foreign:
         raise SystemExit(f"refusing: modules from outside this checkout: {foreign}")
     register = (A.REPO / REGISTER_REL).read_text()
-    ok, why, _ = seed_allowed(seed, register, out_root, identity=identity, pins=adm["input_pins"])
+    ok, why, budget = seed_allowed(seed, register, out_root, identity=identity, pins=adm["input_pins"])
     if not ok:
         raise SystemExit(f"refusing: {why}")
+    if seed in STAGE_TWO_SEEDS:
+        problem = guarded_unit_problem(seed, budget, proc_cgroup_text(), C1_DIR)
+        if problem:
+            raise SystemExit(f"refusing: {problem}")
     from bts.model.predict import LGB_PARAMS
     if not (LGB_PARAMS.get("deterministic") is True and LGB_PARAMS.get("force_row_wise") is True):
         raise SystemExit("refusing: LightGBM's params were built without the deterministic flags")
@@ -378,6 +550,7 @@ def run(seed: int, data_dir: Path, inputs_dir: Path, *, walk_forward=None, now=N
     with A.admission_lock(root):
         if A.claimed_runs(root, register):
             raise SystemExit(f"refusing: a claimed run already exists under {root}")
+        refuse_inside_the_window(seed)                # the last check before the claim (review s1 B1)
         stamp = (now or datetime.now(timezone.utc)).strftime("%Y%m%dT%H%M%SZ")
         run_dir = A.make_run_dir(root, f"{head[:7]}-{stamp}")
         claim_sha = A.write_claim(run_dir, head)
@@ -642,8 +815,8 @@ def validate_run(d: Path, seed: int, *, out_root: Path, identity: dict, pins: di
 
 def aggregate(run_dirs: list[Path], *, _test_out_root=None) -> dict:
     """Stage one's dispositions, only from exactly three distinct runs of the three registered seeds, each validated by
-    `validate_run` in the canonical namespace, all of the same admitted code (accepted identity), inputs and settings.
-    Each run keeps its own commit: a metadata-only descendant such as Eric's committed release is admitted by the
+    `validate_run` in the canonical namespace under stage one's own admitted identity (STAGE_ONE_IDENTITY, so stage one
+    still re-validates under a later admission), all of the same inputs and settings. Each run keeps its own commit: a metadata-only descendant such as Eric's committed release is admitted by the
     shared gate, so equal HEADs are not required (r2 R2-1)."""
     out_root = OUT_ROOT if _test_out_root is None else _test_out_root
     dirs = [Path(d).resolve() for d in run_dirs]
@@ -655,8 +828,9 @@ def aggregate(run_dirs: list[Path], *, _test_out_root=None) -> dict:
         seeds.append(int(m.group(1)) if m else None)
     if sorted(s for s in seeds if s is not None) != sorted(STAGE_ONE_SEEDS) or None in seeds:
         raise RunInvalid(f"seeds {seeds} are not exactly the registered {list(STAGE_ONE_SEEDS)}")
-    _, adm, identity = admission_gate()               # trusted evidence: never the runs' own declarations (r3 R3-3)
-    valid = [validate_run(d, s, out_root=out_root, identity=identity, pins=adm["input_pins"]) for d, s in zip(dirs, seeds)]
+    _, adm, _ = admission_gate()                     # trusted evidence: never the runs' own declarations (r3 R3-3)
+    valid = [validate_run(d, s, out_root=out_root, identity=STAGE_ONE_IDENTITY, pins=adm["input_pins"])
+             for d, s in zip(dirs, seeds)]            # stage one keeps its own identity under any later admission
     first = valid[0]["manifest"]
     for key in ("identity", "input_pins", "inputs_digest", "lgb_params", "feature_settings", "basis", "retrain_every",
                 "test_seasons"):
@@ -670,10 +844,47 @@ def aggregate(run_dirs: list[Path], *, _test_out_root=None) -> dict:
                                **disposition([valid[i]["summaries"][var] for i in order])} for var in ("A", "B")}}
 
 
+def aggregate_stage_two(run_dirs: list[Path], *, _test_out_root=None) -> dict:
+    """The ten-seed dispositions (addendum §5): exactly one run directory per registered seed in the canonical
+    namespace. Stage one's three are its accepted runs, validated under stage one's identity (`stage_one_runs`); each
+    stage-two run is validated under the stage-two admission. All ten agree on pins, inputs, LightGBM params, feature
+    settings, basis, retrain interval and test seasons."""
+    out_root = OUT_ROOT if _test_out_root is None else _test_out_root
+    dirs = [Path(d).resolve() for d in run_dirs]
+    if len(dirs) != len(SEEDS) or len(set(dirs)) != len(dirs):
+        raise RunInvalid(f"need exactly {len(SEEDS)} distinct run directories, got {len(run_dirs)}")
+    seeds = []
+    for d in dirs:
+        m = re.fullmatch(r"seed_(\d+)", d.parent.name)
+        seeds.append(int(m.group(1)) if m else None)
+    if None in seeds or sorted(seeds) != sorted(SEEDS):
+        raise RunInvalid(f"seeds {seeds} are not exactly the registered {list(SEEDS)}")
+    _, adm, identity = admission_gate()
+    pins = adm["input_pins"]
+    valid = dict(zip(STAGE_ONE_SEEDS, stage_one_runs(out_root, pins=pins)))
+    for d, s in zip(dirs, seeds):
+        if s in STAGE_ONE_SEEDS:
+            if d != (out_root / f"seed_{s}" / STAGE_ONE_RUNS[s]).resolve():
+                raise RunInvalid(f"{d}: not stage one's accepted run for seed {s}")
+        else:
+            valid[s] = validate_run(d, s, out_root=out_root, identity=identity, pins=pins)
+    first = valid[SEEDS[0]]["manifest"]
+    for key in ("input_pins", "inputs_digest", "lgb_params", "feature_settings", "basis", "retrain_every",
+                "test_seasons"):
+        if any(valid[s]["manifest"].get(key) != first.get(key) for s in SEEDS[1:]):
+            raise RunInvalid(f"runs disagree on {key}")
+    total = sum(valid[s]["results"]["total_cpu_s"] for s in SEEDS)
+    return {"seeds": list(SEEDS), "heads": [valid[s]["manifest"]["head"] for s in SEEDS],
+            "identities": {"stage_one": dict(STAGE_ONE_IDENTITY), "stage_two": identity}, "total_cpu_h": total / 3600,
+            "variants": {var: {"per_seed": [valid[s]["summaries"][var] for s in SEEDS],
+                               **disposition([valid[s]["summaries"][var] for s in SEEDS], len(SEEDS))}
+                         for var in ("A", "B")}}
+
+
 # ---------------------------------------------------------------- the launch wrapper
 
 def launch_command(seed: int, budget: float, data_dir: Path, inputs_dir: Path) -> list[str]:
-    k = STAGE_ONE_SEEDS.index(seed) + 1
+    k = SEEDS.index(seed) + 1
     return [".venv/bin/python", "-m", "scripts.audit.c1.launch", "run", "--name", f"c2-framing-seed{k}",
             "--cpu-hours", f"{budget:g}", "--max-hours", str(MAX_WALL_H), "--",
             "env", "BTS_LGBM_DETERMINISTIC=1", "TZ=America/New_York", ".venv/bin/python", "-m",
@@ -683,7 +894,8 @@ def launch_command(seed: int, budget: float, data_dir: Path, inputs_dir: Path) -
 
 def launch(seed: int, data_dir: Path, inputs_dir: Path, *, execute=subprocess.run, _test_out_root=None) -> int:
     """The reviewed launch: the same admission and seed-order checks as `run`, then the C1 launcher with the seed's
-    declared budget (seed 1: 45; seeds 2-3: the budget in Eric's release row)."""
+    declared budget (seed 1: 45; seeds 2-3: the budget in Eric's release row; seeds 4-10: the budget in his stage-two
+    row, never from 00:45 to 03:10 America/New_York)."""
     from scripts.audit.c1 import admission as A
     out_root = OUT_ROOT if _test_out_root is None else _test_out_root
     _, adm, identity = admission_gate()
@@ -691,6 +903,7 @@ def launch(seed: int, data_dir: Path, inputs_dir: Path, *, execute=subprocess.ru
                                    pins=adm.get("input_pins"))
     if not ok:
         raise SystemExit(f"refusing: {why}")
+    refuse_inside_the_window(seed)
     return execute(launch_command(seed, budget, data_dir, inputs_dir), cwd=A.REPO).returncode
 
 
@@ -709,6 +922,8 @@ def main(argv=None) -> int:
     f.add_argument("--out", type=Path, required=True)
     g = sub.add_parser("aggregate")
     g.add_argument("run_dirs", type=Path, nargs="+")
+    g2 = sub.add_parser("aggregate-stage-two")
+    g2.add_argument("run_dirs", type=Path, nargs="+")
     a = ap.parse_args(argv)
     if a.cmd == "run":
         return run(a.seed, a.data_dir, a.inputs_dir)
@@ -725,6 +940,9 @@ def main(argv=None) -> int:
         out = freeze_lookup(a.cache.read_bytes(), pks)
         A.durable_write(a.out, out)
         print(json.dumps({"games": len(pks), "covered": len(json.loads(out)), "sha256": _sha(out)}))
+        return 0
+    if a.cmd == "aggregate-stage-two":
+        print(json.dumps(aggregate_stage_two(a.run_dirs), indent=1, sort_keys=True))
         return 0
     print(json.dumps(aggregate(a.run_dirs), indent=1, sort_keys=True))
     return 0

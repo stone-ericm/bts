@@ -124,7 +124,7 @@ REPO = Path(__file__).resolve().parents[3]
 ALLOWED_MODULES = frozenset({
     'ast', 'bts.features.compute', 'bts.features.park_drag', 'bts.model.predict', 'bts.validate.scorecard', 'hashlib',
     'json', 'math', 'numpy', 'pandas', 'pathlib', 'pytest', 'scripts.audit.c1', 'scripts.audit.c1.admission',
-    'scripts.audit.c2_framing', 'scripts.audit.c2_framing.mutant_runner', 'scripts.audit.c2_framing.screen', 'shutil',
+    'scripts.audit.c1.ledger', 'scripts.audit.c2_framing', 'scripts.audit.c2_framing.mutant_runner', 'scripts.audit.c2_framing.screen', 'shutil',
     'subprocess',
 })
 ALLOWED_BUILTINS = frozenset({
@@ -153,6 +153,11 @@ ALLOWED_ATTRIBUTES = frozenset({
     'sha256', 'sort_index', 'split', 'sqrt', 'st_ctime_ns', 'startswith', 'stat', 'stdout', 'strip', 'suite_files',
     'testing', 'to_datetime', 'to_dict', 'to_numpy', 'to_parquet', 'unique', 'unlink', 'update', 'validate_run',
     'with_name', 'write_bytes', 'write_text',
+    # stage two (addendum 2026-10-08): the screen's new names, and the launcher's cap the tests pin
+    'CAP_H', 'SEEDS', 'STAGE_ONE_FILES', 'STAGE_ONE_FILES_SHA256', 'STAGE_ONE_IDENTITY', 'STAGE_ONE_RUNS',
+    'STAGE_TWO_SEEDS', 'aggregate_stage_two', 'launch_window_problem', 'ledger', 'ny_clock', 'stage_two_release',
+    'CLOSURE', 'DESIGN', 'DESIGN_TWO', 'EXPOSURE_ROW', 'SCOPE', 'stage_two_allowed',
+    'C1_DIR', 'claimed_runs', 'guarded_unit_problem', 'proc_cgroup_text', 'stage_one_runs',  # review s1 B1-B3
 })
 ALLOWED_KEYWORDS = frozenset({
     '_test_out_root', 'actual_hit', 'atol', 'basis', 'boundary', 'budget', 'calls', 'capture_output', 'check', 'code',
@@ -170,6 +175,7 @@ ALLOWED_PARAMETERS = frozenset({
     'out', 'outcome', 'over', 'p', 'pas', 'passed', 'path', 'pick', 'pins', 'plugin', 'r', 'rc', 'records',
     'register', 'repo', 'retrain_every', 'rows', 'run_name', 'season', 'seed', 'self', 'source', 'stubbed', 'tests',
     'three_runs', 'tmp_path', 'v', 'verdict', 'wasxfail', 'when', 'why',
+    'cap', 'stage_one', 'ten_runs',                                        # stage two (addendum 2026-10-08)
 })
 PYTEST_ATTRIBUTES = frozenset({"fixture", "mark", "raises"})
 ALLOWED_DUNDER_NAMES = frozenset({"__file__"})

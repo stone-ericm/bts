@@ -314,11 +314,12 @@ def _release_row(run_name, source="Eric 2026-10-08, relayed", budget="30"):
 REAL_READ_TEXT = Path.read_text
 
 
-def _register_plus(rows):
-    """The real register with these rows in place of any real row of the same id. The lookup takes a row id's first
-    line, and since Eric's real release (11e0cfd) a row appended after the real one was never read."""
+def _register_plus(rows, *a):
+    """The real register with these rows in place of any real row of the same id, and without the real rows named in a.
+    The lookup takes a row id's first line, and since Eric's real release (11e0cfd) a row appended after the real one
+    was never read."""
     from scripts.audit.c1 import admission as A
-    ids = [r.split("|")[1].strip() for r in rows]
+    ids = [r.split("|")[1].strip() for r in rows] + list(a)
     real = REAL_READ_TEXT(A.REPO / S.REGISTER_REL).split("\n")
     kept = [x for x in real if not any(x.startswith(f"| {i} |") for i in ids)]
     return "\n".join(kept + rows) + "\n"
@@ -345,7 +346,7 @@ def test_run_refuses_without_the_deterministic_flag_or_a_stage_one_seed(monkeypa
     with pytest.raises(SystemExit, match="DETERMINISTIC"):
         S.run(S.STAGE_ONE_SEEDS[0], tmp_path, tmp_path, _test_out_root=tmp_path)
     monkeypatch.setenv("BTS_LGBM_DETERMINISTIC", "1")
-    with pytest.raises(SystemExit, match="stage-one seed"):
+    with pytest.raises(SystemExit, match="registered seed"):
         S.run(42, tmp_path, tmp_path, _test_out_root=tmp_path)
 
 
@@ -431,6 +432,7 @@ def stubbed(monkeypatch, tmp_path):
     monkeypatch.setattr(FC, "compute_all_features", lambda df: df)
     monkeypatch.setattr(S, "SCORING", {"mc_trials": 200, "season_length": 180})      # speed only; same code path
     monkeypatch.setattr(S, "head_admitted", _fake_head_admitted)     # real git ancestry: test_head_admitted_*
+    monkeypatch.setattr(S, "STAGE_ONE_IDENTITY", dict(IDENT))        # the stubbed admission is stage one's own
     out = tmp_path / "out"
     out.mkdir()
     return out, inputs, adm
@@ -1009,6 +1011,557 @@ def test_validate_refuses_pins_other_than_the_ten_even_when_admitted(three_runs)
     nine = json.loads((d / "manifest.json").read_text())["input_pins"]
     with pytest.raises(S.RunInvalid, match=r"\['pins'\]"):
         S.validate_run(d, S.STAGE_ONE_SEEDS[0], out_root=out, identity=IDENT, pins=nine)
+
+
+# ---------------------------------------------------------------- stage two (addendum 2026-10-08-prereg-c2-framing-stage-two)
+
+IDENT2 = {k: f"{k}-two" for k in S.IDENTITY_KEYS}
+STAGE_TWO_HEAD = "d" * 40
+
+
+def _cap_row(cap, budget, source="Eric 2026-10-08, relayed"):
+    return (f"| C2-framing-stage-two-cap | the stage-two package | **RULED 2026-10-08 (Eric): RAISE the shared C1/C2 "
+            f"compute cap from 100 to {cap} CPU-hours for the framing screen's stage two; declared budget {budget} "
+            f"CPU-hours per seed for seeds 4–10** | {source} |")
+
+
+def _with_register(monkeypatch, rows):
+    """The real register, without Eric's real stage-two row, plus these rows, as every reader of the file sees it."""
+    from scripts.audit.c1 import admission as A
+    text = _register_plus(rows, "C2-framing-stage-two-cap")
+
+    def read_text(self, *a, **k):
+        return text if self == A.REPO / S.REGISTER_REL else REAL_READ_TEXT(self, *a, **k)
+    monkeypatch.setattr(Path, "read_text", read_text)
+
+
+def _mixed(calls):
+    """A walk-forward stub under which A ties the baseline in 2024 and beats it in 2025 (B ties both): A is
+    inconclusive over any number of seeds, B negative."""
+    def wf(df, season, retrain_every, blend_configs, game_probability_mode):
+        calls.append(season)
+        is_a = S.NEW_COL in blend_configs[0][1] and S.OLD_COL not in blend_configs[0][1]
+        part = df[df["season"] == season]
+        rows = []
+        for date, g in part.groupby("date"):
+            order = sorted(g["batter_id"].unique(), reverse=is_a and season == 2025)
+            for rank, b in enumerate(order, start=1):
+                rows.append({"date": date, "rank": rank, "batter_id": int(b),
+                             "game_pk": int(g.loc[g["batter_id"] == b, "game_pk"].iloc[0]),
+                             "p_game_hit": 0.9 - 0.01 * rank, "actual_hit": 1, "n_pas": 4})
+        return pd.DataFrame(rows)
+    return wf
+
+
+GUARD_SEED = [None]     # the seed _run_mixed is running: the stage_one fixture's cgroup record places it in its own unit
+GUARDED = "0::/user.slice/user-1000.slice/user@1000.service/app.slice/{unit}.service/payload\n"   # the box's format
+
+
+def _unit_for(seed):
+    """The launcher's unit name for this seed's job (`c1-<name>-<UTC stamp>-<8 hex>`)."""
+    return f"c1-c2-framing-seed{S.SEEDS.index(seed) + 1}-20261009T130000Z-0a1b2c3d"
+
+
+def _run_mixed(stubbed, seed):
+    """run, as the guard's payload of this seed's own C1 launcher unit (the stage_one fixture's cgroup record)."""
+    out, inputs, _ = stubbed
+    GUARD_SEED[0] = seed
+    try:
+        return S.run(seed, out, inputs, walk_forward=_mixed([]), _test_out_root=out)
+    finally:
+        GUARD_SEED[0] = None
+
+
+def _pin_stage_one(monkeypatch, out):
+    """Stage one as accepted: its runs' names, and a hash list of their files pinned by its own sha256."""
+    lines = []
+    names = {}
+    for seed in S.STAGE_ONE_SEEDS:
+        d = _run_dir(out, seed)
+        names[seed] = d.name
+        for f in sorted(d.iterdir()):
+            lines.append(f"{hashlib.sha256(f.read_bytes()).hexdigest()}  {f.relative_to(out).as_posix()}")
+    listing = out.parent / "runs.sha256"
+    listing.write_text("\n".join(lines) + "\n")
+    monkeypatch.setattr(S, "STAGE_ONE_RUNS", names)
+    monkeypatch.setattr(S, "STAGE_ONE_FILES", str(listing))
+    monkeypatch.setattr(S, "STAGE_ONE_FILES_SHA256", hashlib.sha256(listing.read_bytes()).hexdigest())
+    monkeypatch.setattr(S, "STAGE_ONE_IDENTITY", dict(IDENT))
+
+
+def _to_stage_two(stubbed, monkeypatch, rows):
+    """Stage two's admission (its own identity and head, the same pins) and the register with these rows."""
+    out, _, adm = stubbed
+    monkeypatch.setattr(S, "admission_gate", lambda: (STAGE_TWO_HEAD, {"input_pins": adm.pins}, dict(IDENT2)))
+    monkeypatch.setattr(S.ledger, "CAP_H", 165.0)
+    _with_register(monkeypatch, [_release_row(_run_dir(out, S.STAGE_ONE_SEEDS[0]).name)] + rows)
+
+
+def _stage_one_by(stubbed, monkeypatch, fn):
+    """Stage one's three runs under stage one's identity: seed 1, Eric's release, then seeds 2 and 3."""
+    out, _, adm = stubbed
+    assert fn(stubbed, S.STAGE_ONE_SEEDS[0]) == 0
+    adm.head = "c" * 40
+    _with_register(monkeypatch, [_release_row(_run_dir(out, S.STAGE_ONE_SEEDS[0]).name)])
+    for seed in S.STAGE_ONE_SEEDS[1:]:
+        assert fn(stubbed, seed) == 0
+    _pin_stage_one(monkeypatch, out)
+
+
+def _admitted_heads(repo, identity, head):
+    """The stubbed repository with both stages: stage one's two heads under IDENT, stage two's under IDENT2."""
+    if identity == IDENT2:
+        return [] if head == STAGE_TWO_HEAD else [f"run HEAD {str(head)[:7]} is not admitted"]
+    return _fake_head_admitted(repo, identity, head)
+
+
+@pytest.fixture
+def stage_one(stubbed, monkeypatch):
+    monkeypatch.setattr(S, "ny_clock", lambda: (12, 0))              # outside the launch window, whatever the hour
+    c1 = stubbed[0].parent / "c1"                                      # the launcher's records, one per stage-two unit
+    for seed in S.STAGE_TWO_SEEDS:
+        _pending(c1, _unit_for(seed), 20.0)
+    monkeypatch.setattr(S, "C1_DIR", c1)
+    monkeypatch.setattr(S, "proc_cgroup_text", lambda: GUARDED.replace("{unit}", _unit_for(GUARD_SEED[0]))
+                        if GUARD_SEED[0] in S.STAGE_TWO_SEEDS else "")    # outside _run_mixed: no guarded context
+    monkeypatch.setattr(S, "head_admitted", _admitted_heads)
+    _stage_one_by(stubbed, monkeypatch, _run_mixed)
+    _to_stage_two(stubbed, monkeypatch, [_cap_row("165", "20")])
+    return stubbed
+
+
+@pytest.fixture
+def ten_runs(stage_one):
+    out, _, _ = stage_one
+    for seed in S.STAGE_TWO_SEEDS:
+        assert _run_mixed(stage_one, seed) == 0
+    return out, [_run_dir(out, s) for s in S.SEEDS]
+
+
+def test_stage_two_seeds_are_the_rest_of_canonical_n10_in_order():
+    seeds = json.loads((ROOT / "data/seed_sets/canonical-n10.json").read_text())["seeds"]
+    assert S.STAGE_TWO_SEEDS == tuple(seeds[3:10]) and S.SEEDS == tuple(seeds[:10]) == S.STAGE_ONE_SEEDS + S.STAGE_TWO_SEEDS
+
+
+def test_the_stage_two_row_needs_the_exact_ruling_eric_a_raise_and_a_positive_budget():
+    assert S.stage_two_release(_cap_row("165", "20")) == (165.0, 20.0)
+    assert S.stage_two_release(_cap_row("165", "20", source="Ericsson, manager; no owner ruling")) is None
+    assert S.stage_two_release(_cap_row("165", "20", source="Manager 2026-10-08")) is None
+    assert S.stage_two_release(_cap_row("165", "0")) is None
+    assert S.stage_two_release(_cap_row("100", "20")) is None                         # not a raise
+    assert S.stage_two_release(_cap_row("90", "20")) is None
+    assert S.stage_two_release(_cap_row("165", "20").replace("RAISE the", "KEEP the")) is None
+    assert S.stage_two_release(_cap_row("165", "20").replace("seeds 4–10**", "seeds 4–10** and more")) is None
+    assert S.stage_two_release(_release_row("aaaaaaa-20261007T000000Z")) is None
+    assert S.stage_two_release("no row here") is None
+
+
+def test_the_launchers_cap_is_the_cap_in_erics_row():
+    """The launcher's cap constant equals the cap Eric ruled (row C2-framing-stage-two-cap), read from the real register,
+    and both are 165: a silent edit of either goes red."""
+    assert S.stage_two_release((ROOT / S.REGISTER_REL).read_text()) == (S.ledger.CAP_H, 20.0) == (165.0, 20.0)
+
+
+def test_disposition_over_ten_seeds_needs_six_passes():
+    strong = _seed(0.02, 0.02, True)
+    weak = _seed(0.02, 0.02, False)
+    assert S.disposition([strong] * 6 + [weak] * 4, 10)["disposition"] == "positive"
+    five = S.disposition([strong] * 5 + [weak] * 5, 10)
+    assert five["disposition"] == "inconclusive" and five["per_seed_passes"] == 5 and five["n_seeds"] == 10
+    assert S.disposition([_seed(-0.01, -0.01, False)] * 10, 10)["disposition"] == "negative"
+    assert S.disposition([strong] * 9, 10)["disposition"] == "incomplete"
+    assert S.disposition([strong] * 10, 3)["disposition"] == "incomplete"
+
+
+def test_stage_two_seeds_run_one_at_a_time_in_order_under_their_own_identity(stage_one):
+    out, _, _ = stage_one
+    with pytest.raises(SystemExit, match="in order: earlier seed 2048"):
+        _run_mixed(stage_one, S.STAGE_TWO_SEEDS[1])
+    assert _run_mixed(stage_one, S.STAGE_TWO_SEEDS[0]) == 0
+    assert _run_mixed(stage_one, S.STAGE_TWO_SEEDS[1]) == 0
+    man = json.loads((_run_dir(out, S.STAGE_TWO_SEEDS[0]) / "manifest.json").read_text())
+    assert man["identity"] == IDENT2 and man["head"] == STAGE_TWO_HEAD
+
+
+@pytest.mark.parametrize("damage", ["two_runs", "stopped"])
+def test_an_earlier_stage_two_seed_must_hold_one_complete_run(stage_one, damage):
+    out, _, _ = stage_one
+    assert _run_mixed(stage_one, S.STAGE_TWO_SEEDS[0]) == 0
+    d = _run_dir(out, S.STAGE_TWO_SEEDS[0])
+    if damage == "two_runs":
+        (d.parent / "zzzzzzz-20261009T000000Z").mkdir()
+        expect = "earlier seed 2048 has 2 runs, not one"
+    else:
+        (d / "STOPPED.json").write_text("{}")
+        expect = "earlier seed 2048's run is not a complete admitted run"
+    with pytest.raises(SystemExit, match=expect):
+        _run_mixed(stage_one, S.STAGE_TWO_SEEDS[1])
+
+
+def test_stage_two_needs_erics_cap_row(stage_one, monkeypatch):
+    _to_stage_two(stage_one, monkeypatch, [])
+    with pytest.raises(SystemExit, match="C2-framing-stage-two-cap"):
+        _run_mixed(stage_one, S.STAGE_TWO_SEEDS[0])
+    _to_stage_two(stage_one, monkeypatch, [_cap_row("165", "20", source="Manager 2026-10-08")])
+    with pytest.raises(SystemExit, match="C2-framing-stage-two-cap"):
+        _run_mixed(stage_one, S.STAGE_TWO_SEEDS[0])
+
+
+def test_stage_two_needs_the_rows_cap_to_be_the_launchers(stage_one, monkeypatch):
+    monkeypatch.setattr(S.ledger, "CAP_H", 150.0)
+    with pytest.raises(SystemExit, match="is not the launcher's cap 150"):
+        _run_mixed(stage_one, S.STAGE_TWO_SEEDS[0])
+
+
+@pytest.mark.parametrize("damage", ["extra_file", "changed_byte", "second_run", "listing", "renamed"])
+def test_stage_two_needs_stage_ones_accepted_runs_byte_for_byte(stage_one, monkeypatch, damage):
+    """Each damage is one only its own check can refuse: a second run named to sort after the accepted one leaves the
+    accepted run's bytes and validation intact."""
+    out, _, _ = stage_one
+    d = _run_dir(out, S.STAGE_ONE_SEEDS[1])
+    if damage == "extra_file":                       # validate_run never reads it: only the hash list can refuse
+        (d / "notes.txt").write_text("x\n")
+        expect = "not the accepted bytes"
+    elif damage == "changed_byte":
+        (d / "units.json").write_bytes((d / "units.json").read_bytes() + b" ")
+        expect = "not the accepted bytes"
+    elif damage == "second_run":
+        (d.parent / "zzzzzzz-20261009T000000Z").mkdir()
+        expect = "not exactly its accepted run"
+    elif damage == "listing":
+        monkeypatch.setattr(S, "STAGE_ONE_FILES_SHA256", "0" * 64)
+        expect = "does not have its pinned sha256"
+    else:
+        monkeypatch.setattr(S, "STAGE_ONE_RUNS", {**S.STAGE_ONE_RUNS, S.STAGE_ONE_SEEDS[1]: "zzzzzzz-20261009T000000Z"})
+        expect = "not exactly its accepted run"
+    with pytest.raises(SystemExit, match=f"stage one is not its accepted runs: .*{expect}"):
+        _run_mixed(stage_one, S.STAGE_TWO_SEEDS[0])
+
+
+def test_stage_ones_runs_are_validated_under_stage_ones_identity(stage_one, monkeypatch):
+    monkeypatch.setattr(S, "STAGE_ONE_IDENTITY", dict(IDENT2))
+    with pytest.raises(SystemExit, match=r"stage one is not its accepted runs: .*\['admitted identity'\]"):
+        _run_mixed(stage_one, S.STAGE_TWO_SEEDS[0])
+
+
+def test_stage_two_needs_an_inconclusive_stage_one_variant(stubbed, monkeypatch):
+    """Pre-registration §5: only an inconclusive variant justifies stage two. Under the plain stub stage one gives A
+    positive and B negative."""
+    monkeypatch.setattr(S, "head_admitted", _admitted_heads)
+    _stage_one_by(stubbed, monkeypatch, _run)
+    _to_stage_two(stubbed, monkeypatch, [_cap_row("165", "20")])
+    with pytest.raises(SystemExit, match=r"needs an inconclusive stage-one variant .*\['positive', 'negative'\]"):
+        _run_mixed(stubbed, S.STAGE_TWO_SEEDS[0])
+
+
+def test_the_launch_window_is_closed_from_0045_to_0310():
+    assert S.launch_window_problem(0, 44) is None and S.launch_window_problem(3, 10) is None
+    assert S.launch_window_problem(23, 59) is None and S.launch_window_problem(12, 0) is None
+    for hour, minute in ((0, 45), (1, 30), (3, 0), (3, 9)):
+        assert "00:45 to 03:10" in S.launch_window_problem(hour, minute)
+
+
+def test_launch_runs_stage_two_with_erics_budget_outside_the_window(stage_one, monkeypatch):
+    out, inputs, _ = stage_one
+    calls = []
+
+    class R:
+        returncode = 0
+    execute = lambda cmd, cwd: (calls.append(cmd), R())[1]      # noqa: E731
+    monkeypatch.setattr(S, "ny_clock", lambda: (1, 0))
+    with pytest.raises(SystemExit, match="00:45 to 03:10"):
+        S.launch(S.STAGE_TWO_SEEDS[0], out, inputs, _test_out_root=out, execute=execute)
+    assert calls == []
+    monkeypatch.setattr(S, "ny_clock", lambda: (12, 0))
+    assert S.launch(S.STAGE_TWO_SEEDS[0], out, inputs, _test_out_root=out, execute=execute) == 0
+    cmd = calls[0]
+    assert cmd[cmd.index("--cpu-hours") + 1] == "20" and cmd[cmd.index("--name") + 1] == "c2-framing-seed4"
+    assert cmd[cmd.index("--seed") + 1] == str(S.STAGE_TWO_SEEDS[0]) and "BTS_LGBM_DETERMINISTIC=1" in cmd
+
+
+def test_run_refuses_stage_two_seeds_inside_the_launch_window(stage_one, monkeypatch):
+    """The job itself checks the window (the wrapper's own function), so a seed started by hand through the C1 launcher
+    still refuses; nothing is claimed. Both edges: 00:45 refuses, 03:10 and 00:44 run."""
+    out, _, _ = stage_one
+    root = out / f"seed_{S.STAGE_TWO_SEEDS[0]}"
+    for hour, minute in ((0, 45), (1, 30), (3, 9)):
+        monkeypatch.setattr(S, "ny_clock", lambda: (hour, minute))
+        with pytest.raises(SystemExit, match="00:45 to 03:10"):
+            _run_mixed(stage_one, S.STAGE_TWO_SEEDS[0])
+        assert not root.exists() or not any(x.is_dir() for x in root.iterdir())
+    monkeypatch.setattr(S, "ny_clock", lambda: (3, 10))
+    assert _run_mixed(stage_one, S.STAGE_TWO_SEEDS[0]) == 0
+    monkeypatch.setattr(S, "ny_clock", lambda: (0, 44))
+    assert _run_mixed(stage_one, S.STAGE_TWO_SEEDS[1]) == 0
+
+
+def test_stage_one_seeds_have_no_launch_window(stubbed, monkeypatch):
+    monkeypatch.setattr(S, "ny_clock", lambda: (1, 30))
+    assert _run(stubbed, S.STAGE_ONE_SEEDS[0]) == 0
+
+
+def _validation_passes_0045(monkeypatch):
+    """A clock at 00:44 that the stage-two validation moves to 00:45 (a slow validation across the window's start)."""
+    now = [(0, 44)]
+    real = S.stage_two_allowed
+
+    def slow(seed, register, out, **k):
+        now[0] = (0, 45)
+        return real(seed, register, out, **k)
+    monkeypatch.setattr(S, "stage_two_allowed", slow)
+    monkeypatch.setattr(S, "ny_clock", lambda: now[0])
+
+
+def test_run_checks_the_window_after_its_validation(stage_one, monkeypatch):
+    _validation_passes_0045(monkeypatch)
+    with pytest.raises(SystemExit, match="00:45 to 03:10"):
+        _run_mixed(stage_one, S.STAGE_TWO_SEEDS[0])
+
+
+def test_launch_checks_the_window_after_its_validation(stage_one, monkeypatch):
+    out, inputs, _ = stage_one
+    calls = []
+
+    class R:
+        returncode = 0
+    _validation_passes_0045(monkeypatch)
+    with pytest.raises(SystemExit, match="00:45 to 03:10"):
+        S.launch(S.STAGE_TWO_SEEDS[0], out, inputs, _test_out_root=out,
+                 execute=lambda cmd, cwd: (calls.append(cmd), R())[1])
+    assert calls == []
+
+
+def _settings_cross_0045(monkeypatch):
+    """A clock at 00:44 that the settings validation moves to 00:45."""
+    now = [(0, 44)]
+    real = S.check_settings
+
+    def slow():
+        now[0] = (0, 45)
+        return real()
+    monkeypatch.setattr(S, "check_settings", slow)
+    monkeypatch.setattr(S, "ny_clock", lambda: now[0])
+
+
+def _claim_check_cross_0045(monkeypatch):
+    """A clock at 00:44 that the locked existing-claim check moves to 00:45."""
+    from scripts.audit.c1 import admission as A
+    now = [(0, 44)]
+    real = A.claimed_runs
+
+    def slow(*a, **k):
+        now[0] = (0, 45)
+        return real(*a, **k)
+    monkeypatch.setattr(A, "claimed_runs", slow)
+    monkeypatch.setattr(S, "ny_clock", lambda: now[0])
+
+
+@pytest.mark.parametrize("fn", [_settings_cross_0045, _claim_check_cross_0045])
+def test_run_checks_the_window_immediately_before_its_claim(stage_one, monkeypatch, fn):
+    """Review s1 B1: the job's last check of the window is inside the claim lock, after every validation and the
+    existing-claim check, so a clock crossing 00:45 during any of them refuses with nothing claimed."""
+    out, _, _ = stage_one
+    fn(monkeypatch)
+    with pytest.raises(SystemExit, match="00:45 to 03:10"):
+        _run_mixed(stage_one, S.STAGE_TWO_SEEDS[0])
+    root = out / f"seed_{S.STAGE_TWO_SEEDS[0]}"
+    assert not root.exists() or not any(x.is_dir() for x in root.iterdir())
+
+
+UNIT4 = "c1-c2-framing-seed4-20261009T130000Z-0a1b2c3d"
+
+
+def _pending(d, name, budget):
+    """The launcher's PENDING record for unit `name`, as `scripts.audit.c1.launch` writes it (the fields checked)."""
+    d.mkdir(parents=True, exist_ok=True)
+    (d / f"PENDING_{name}.json").write_text(json.dumps({"unit": name, "declared_cpu_hours": budget}))
+
+
+def test_the_guarded_unit_check_needs_the_seeds_own_launcher_unit_and_payload(tmp_path):
+    """Review s1 B2: the kernel's cgroup record must place the job in the guard's payload leaf of the C1 unit named for
+    its seed, and the launcher's record for that unit must declare Eric's budget. Each bad cgroup case has a launcher
+    record for the unit it names (with the right budget), so only the cgroup factor can refuse it."""
+    c1 = tmp_path / "c1"
+    seed4 = S.STAGE_TWO_SEEDS[0]
+    good = GUARDED.replace("{unit}", UNIT4)
+    _pending(c1, UNIT4, 20.0)
+    assert S.guarded_unit_problem(seed4, 20.0, good, c1) is None
+    bad = {
+        "no cgroup v2 record": ("", None),
+        "a login session": ("0::/user.slice/user-1000.slice/session-3.scope\n", None),
+        "the guard's own leaf": (good.replace("/payload", "/guard"), UNIT4),
+        "another seed's unit": (GUARDED.replace("{unit}", UNIT4.replace("seed4", "seed5")), UNIT4.replace("seed4", "seed5")),
+        "a unit not drawn by the launcher": (GUARDED.replace("{unit}", "c1-c2-framing-seed4"), "c1-c2-framing-seed4"),
+        "a hand-started transient unit": (GUARDED.replace("{unit}", "run-r0a1b2c3d"), "run-r0a1b2c3d"),
+        "a payload nested deeper": (good.replace("/payload", "/payload/x"), UNIT4),
+    }
+    for why, (text, name) in bad.items():
+        if name:
+            _pending(c1, name, 20.0)
+        assert "C1 launcher unit" in (S.guarded_unit_problem(seed4, 20.0, text, c1) or ""), why
+    assert "PENDING" in S.guarded_unit_problem(seed4, 20.0, good, tmp_path / "none")
+    _pending(c1, UNIT4, 30.0)
+    assert "budget" in S.guarded_unit_problem(seed4, 20.0, good, c1)
+    (c1 / f"PENDING_{UNIT4}.json").write_text(json.dumps({"unit": UNIT4.replace("0a1b2c3d", "ffffffff"),
+                                                           "declared_cpu_hours": 20.0}))
+    assert "does not name this unit" in S.guarded_unit_problem(seed4, 20.0, good, c1)      # a record for another unit
+
+
+@pytest.mark.parametrize("damage", ["login_session", "guard_leaf", "no_pending"])
+def test_an_unguarded_stage_two_run_refuses_before_its_claim_or_inputs(stage_one, monkeypatch, damage):
+    """Review s1 B2, end to end through run (the real check, as in every stage-two test). Each refusing context fails one factor alone: a login
+    session (no launcher unit), the guard's own leaf of seed 4's real unit (cgroup alone: its record is present), and
+    the right payload with no launcher record (the record alone). Nothing is claimed and no input is read; the guarded
+    payload with its record then runs. The cgroup line is the box's captured format (uid 1000, app.slice)."""
+    out, _, _ = stage_one
+    c1 = out.parent / "c1"
+    reads = []
+    monkeypatch.setattr(S, "load_inputs", lambda data_dir, pins: (reads.append(1), _stub_df())[1])
+    good = GUARDED.replace("{unit}", UNIT4)
+    assert UNIT4 == _unit_for(S.STAGE_TWO_SEEDS[0])
+    if damage == "login_session":
+        text = "0::/user.slice/user-1000.slice/session-3.scope\n"
+    elif damage == "guard_leaf":
+        text = good.replace("/payload", "/guard")
+    else:
+        (c1 / f"PENDING_{UNIT4}.json").unlink()
+        text = good
+    monkeypatch.setattr(S, "proc_cgroup_text", lambda: text)
+    with pytest.raises(SystemExit, match="C1 launcher unit"):
+        _run_mixed(stage_one, S.STAGE_TWO_SEEDS[0])
+    root = out / f"seed_{S.STAGE_TWO_SEEDS[0]}"
+    assert reads == [] and (not root.exists() or not any(x.is_dir() for x in root.iterdir()))
+    _pending(c1, UNIT4, 20.0)
+    monkeypatch.setattr(S, "proc_cgroup_text", lambda: good)
+    assert _run_mixed(stage_one, S.STAGE_TWO_SEEDS[0]) == 0 and reads == [1]
+
+
+def test_the_cgroup_record_is_read_from_the_kernel():
+    """On Linux the job's own /proc/self/cgroup; elsewhere (this Mac) nothing, which refuses."""
+    text = S.proc_cgroup_text()
+    assert isinstance(text, str) and (text.startswith("0::") or "\n0::" in text or not (ROOT / "proc").exists())
+
+
+@pytest.mark.parametrize("k", [0, 1, 2])
+@pytest.mark.parametrize("damage", ["none", "moved", "claim_missing"])
+def test_stage_one_seeds_never_run_under_the_stage_two_admission(stage_one, damage, k):
+    """Review s1 B3: under any admission but stage one's own, each of seeds 1-3 refuses on both routes, also when its
+    accepted directory or its claim is missing (moved aside here, never deleted)."""
+    out, inputs, _ = stage_one
+    seed = S.STAGE_ONE_SEEDS[k]
+    d = _run_dir(out, seed)
+    if damage == "moved":
+        d.replace(out.parent / f"retained-{d.parent.name}")
+    elif damage == "claim_missing":
+        (d / "CLAIM.json").unlink()
+    calls = []
+    with pytest.raises(SystemExit, match="stage one is closed"):
+        _run_mixed(stage_one, seed)
+    with pytest.raises(SystemExit, match="stage one is closed"):
+        S.launch(seed, out, inputs, _test_out_root=out, execute=lambda cmd, cwd: calls.append(cmd))
+    assert calls == []
+
+
+def test_stage_one_still_revalidates_and_aggregates_under_the_stage_two_admission(stage_one):
+    """What must keep working for stage one under X-36: the acceptance's re-validation (its accepted runs, bytes and
+    identity) and the three-seed aggregate, both under stage one's own identity."""
+    out, _, adm = stage_one
+    first = S.stage_one_runs(out, pins=adm.pins)
+    assert [v["manifest"]["seed"] for v in first] == list(S.STAGE_ONE_SEEDS)
+    assert all(v["manifest"]["identity"] == IDENT for v in first)
+    agg = S.aggregate([_run_dir(out, s) for s in S.STAGE_ONE_SEEDS], _test_out_root=out)
+    assert agg["identity"] == IDENT and agg["variants"]["A"]["disposition"] == "inconclusive"
+    assert agg["variants"]["B"]["disposition"] == "negative"
+
+
+def test_the_clock_reads_new_york_time():
+    """Against the system clock asked for America/New_York (a minute boundary between the two reads is allowed)."""
+    want = subprocess.run(["env", "TZ=America/New_York", "date", "+%H %M"], capture_output=True, text=True,
+                          check=True).stdout.split()
+    hour, minute = S.ny_clock()
+    assert (hour * 60 + minute - int(want[0]) * 60 - int(want[1])) % 1440 in (0, 1)
+
+
+def test_stage_two_is_admitted_under_its_own_exposure_row_and_design():
+    assert S.EXPOSURE_ROW == "X-36" and S.SCOPE == "catcher framing screen stage two"
+    assert S.DESIGN in S.CLOSURE and S.DESIGN_TWO in S.CLOSURE and (ROOT / S.DESIGN_TWO).is_file()
+
+
+def test_stage_ones_identity_and_runs_are_what_the_repository_holds():
+    """The stage-one constants, checked against git: the admission record at stage one's admission commit, the review
+    report at its exposure commit, and the committed hash list naming the three accepted runs."""
+    def show(path):
+        return subprocess.run(["git", "-C", str(ROOT), "show", path], capture_output=True, check=True).stdout
+    ident = S.STAGE_ONE_IDENTITY
+    record = show(f"22d31f23a0c2683a7dfe530ea3380861c090667f:{S.ADMISSION_REL}")
+    assert hashlib.sha256(record).hexdigest() == ident["admission_sha256"]
+    adm = json.loads(record)
+    assert adm["reviewed_commit"] == ident["reviewed_commit"] and adm["exposure_commit"] == ident["exposure_commit"]
+    assert adm["review_report"] == ident["review_report"]
+    report = show(f"{ident['exposure_commit']}:{ident['review_report']}")
+    assert hashlib.sha256(report).hexdigest() == ident["review_report_sha256"]
+    listing = (ROOT / S.STAGE_ONE_FILES).read_bytes()
+    assert hashlib.sha256(listing).hexdigest() == S.STAGE_ONE_FILES_SHA256
+    names = {x.split()[1].split("/")[1] for x in (ROOT / S.STAGE_ONE_FILES).read_text().split("\n") if x.strip()}
+    assert sorted(S.STAGE_ONE_RUNS) == sorted(S.STAGE_ONE_SEEDS)
+    assert names == {S.STAGE_ONE_RUNS[s] for s in S.STAGE_ONE_SEEDS}
+
+
+def test_aggregate_the_ten_registered_seeds_across_both_stages(ten_runs):
+    out, d = ten_runs
+    agg = S.aggregate_stage_two(d, _test_out_root=out)
+    assert agg["seeds"] == list(S.SEEDS) and agg["identities"] == {"stage_one": IDENT, "stage_two": IDENT2}
+    assert agg["heads"] == ["a" * 40] + ["c" * 40] * 2 + [STAGE_TWO_HEAD] * 7
+    a, b = agg["variants"]["A"], agg["variants"]["B"]
+    assert a["n_seeds"] == 10 and a["disposition"] == "inconclusive" and a["mean_p_at_1_delta"]["2024"] == 0.0
+    assert a["mean_p_at_1_delta"]["2025"] > 0 and b["disposition"] == "negative"
+
+
+@pytest.mark.parametrize("pick", [lambda d: d[:9], lambda d: d[:3], lambda d: d[:9] + d[:1], lambda d: d + d[:1]])
+def test_aggregate_stage_two_refuses_partial_duplicate_or_extra_runs(ten_runs, pick):
+    out, d = ten_runs
+    with pytest.raises(S.RunInvalid, match="exactly 10 distinct run directories"):
+        S.aggregate_stage_two(pick(d), _test_out_root=out)
+
+
+def test_aggregate_stage_two_refuses_a_foreign_seed(ten_runs):
+    import shutil
+    out, d = ten_runs
+    foreign = out / "seed_42" / d[9].name
+    shutil.copytree(d[9], foreign)
+    with pytest.raises(S.RunInvalid, match="registered"):
+        S.aggregate_stage_two(d[:9] + [foreign], _test_out_root=out)
+
+
+def test_aggregate_stage_two_validates_each_stage_under_its_own_identity(ten_runs):
+    out, d = ten_runs
+    _rewrite(d[3] / "manifest.json", lambda r: r.update(identity=dict(IDENT)))      # a stage-two run of stage one's identity
+    with pytest.raises(S.RunInvalid, match=r"\['admitted identity'\]"):
+        S.aggregate_stage_two(d, _test_out_root=out)
+
+
+def test_aggregate_stage_two_takes_only_stage_ones_accepted_run_directories(ten_runs):
+    out, d = ten_runs
+    other = d[0].parent / "zzzzzzz-20261009T000000Z"           # a path in the namespace, never a run
+    with pytest.raises(S.RunInvalid, match="not stage one's accepted run"):
+        S.aggregate_stage_two([other] + d[1:], _test_out_root=out)
+
+
+def test_aggregate_stage_two_needs_stage_ones_accepted_bytes(ten_runs):
+    out, d = ten_runs
+    (d[0] / "notes.txt").write_text("x\n")
+    with pytest.raises(S.RunInvalid, match="accepted"):
+        S.aggregate_stage_two(d, _test_out_root=out)
+
+
+def test_aggregate_stage_two_refuses_stages_that_disagree(ten_runs):
+    """A parameter validate_run leaves to the cross-run check (its deterministic flags kept), changed consistently in
+    all seven stage-two runs: only the agreement across the stages can refuse."""
+    out, d = ten_runs
+    for x in d[3:]:
+        _rewrite(x / "manifest.json", lambda r: r["lgb_params"].update({"learning_rate": 0.1}))
+    with pytest.raises(S.RunInvalid, match="runs disagree on lgb_params"):
+        S.aggregate_stage_two(d, _test_out_root=out)
 
 
 # ---------------------------------------------------------------- the mutant runner's classification (r2 R2-4)
