@@ -303,3 +303,50 @@ The driver guarantee is stated precisely: evidence is written after `pytest.main
 **Result:** 239 of 239 attributable RED in one pass (R133 message-only, disclosed); G8, H12 and N10 equivalent.
 
 **Suites:** the permitted suite has 271 tests (246 framing and 25 shared admission), all passing locally and in the sandbox at `487f54c`.
+
+## Stage two (Eric's rows C2-framing-stage-two, C2-framing-stage-two-cap and C2-framing-checkpoint-50, 2026-10-08)
+**The change:** the addendum `docs/sota_audit/2026-10-08-prereg-c2-framing-stage-two.md` and the code that runs it. `run`'s computation is unchanged. Each part is its own commit on branch `c2-framing-stage-two`:
+- `2d9bf55` **fixes the suite on main.**
+  - Since Eric's real release row landed (`11e0cfd`), the register lookup (the first line per row id) has read the real row, never the row a test appends. 50 framing tests had failed on main since then: 6 failed and 44 errors, confirmed at `2e077a3`.
+  - The fix: a test's rows replace real rows of the same id.
+  - It is test-only: the runs, the run path and the stage-one acceptance are unaffected.
+- `da50103` adds **the addendum**, written after stage one was opened, as it discloses. Every rule is the mechanical extension of the stage-one pre-registration.
+- `33556db` adds **the code:**
+  - `stage_two_release` (Eric's cap-and-budget row);
+  - `stage_one_runs` (stage one's three accepted runs: exactly their accepted bytes, by the committed hash list pinned by sha256, validated under stage one's own identity);
+  - `stage_two_allowed` (the row's cap equal to the launcher's; stage one with an inconclusive variant; every earlier stage-two seed one complete run under the stage-two admission);
+  - `ny_clock` and `launch_window_problem` (no launch of seeds 4–10 from 00:45 to 03:10 America/New_York);
+  - `aggregate_stage_two` (exactly the ten seeds, each stage under its own identity, the stages agreeing on pins, params, settings, basis, retrain interval and seasons);
+  - `disposition(per_seed, n)` (default 3, unchanged).
+  - The exposure row and scope move to X-36 and "catcher framing screen stage two". Stage-one paths are unchanged.
+- `f780a8d` raises **the launcher's cap**, `CAP_H`, from 100 to 165 CPU-hours, citing row C2-framing-stage-two-cap.
+  - Also changed: the module docstring's cap sentence, and the two C1 tests that hard-coded 100 (one gate case, one plan case), which now read the constant.
+  - The gate's logic and the 50 checkpoint are unchanged.
+- `332a5ae` adds **cases** for rules no test could fail when the mutants were planned:
+  - an earlier stage-two seed with two runs or a stopped run;
+  - an aggregate given a stage-one path other than the accepted run;
+  - the exposure row, scope and closure;
+  - the stage-one identity, hash list and run names, checked against git;
+  - the clock, checked against the system clock.
+
+**Large seeds:** five of seeds 4–10 exceed 2³¹−1. LightGBM 4.6.0 reads them with 32-bit wraparound. Measured: 3629294338 trains the same model as −665672958, with no warning, and repeats exactly. The seven stay distinct.
+
+**Vocabulary:**
+- The suite gains 17 attribute names: the screen's new constants and functions, `ledger` and `CAP_H`. It also gains 3 parameter names (`cap`, `stage_one`, `ten_runs`) and the module `scripts.audit.c1.ledger`.
+- None is in the escape-route lists.
+- `gadget_audit.py` re-run: the same flags as revision 10, 163 objects visited (158 before; the ledger module and its reachable allowed names).
+
+**Spec** (`2f49648`): 278 entries. G10 and G13 are re-anchored, with the same mutations: G13 is now anchored with its `RELEASE_RE` line, because `stage_two_release` holds the same Eric-token check. S1–S36 are new.
+
+**Runs** (appended to `mutants.out`):
+- **The 38 new and re-anchored entries at `2f49648`:** 37 RED, and S9 SURVIVED.
+  - S9 (each stage-one seed holds exactly its accepted run) was masked. The test's extra run sorted before the accepted one, so the byte check refused it instead.
+  - `a6a5e37` names the extra run so that it sorts after the accepted one, and gives each damage case its own check's message.
+  - The resume at `a6a5e37`: S8, S9, S10 and S36 are RED.
+- **The full ledger at `a6a5e37`:** one pass of 28 minutes (15:50–16:18 EDT), with no change-scan alarm in 278 entries. 275 RED; G8, H12 and N10 survived, as recorded since revisions 3–5.
+
+**Result:** 275 of 275 attributable RED in one pass (R133 message-only, as disclosed in revision 10); G8, H12 and N10 equivalent.
+
+**Suites:** the permitted suite has 381 tests (277 framing, 25 shared admission, 79 C1 cycle), all passing locally at `a6a5e37`.
+- In a Codex `:workspace` sandbox it gives 377 passed and 4 failed.
+- The four are C1 guard tests (`guard preexec failed: PermissionError`). They fail identically in the same sandbox on unchanged main (`2e077a3`), so they are a sandbox limit: the guard's pre-exec hook.
