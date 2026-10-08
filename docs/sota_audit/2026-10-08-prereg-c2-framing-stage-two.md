@@ -4,8 +4,8 @@
 
 **Authority:** Eric, 2026-10-08, relayed by job-search-52.
 - Register row **C2-framing-stage-two**: "Expand to 10 runs"; the Mets application is no longer held.
-- The cap and the per-seed budget: the row **C2-framing-stage-two-cap** (below), still to be ruled.
-- The 50 CPU-hour checkpoint: his written acknowledgement, still to be given.
+- Register row **C2-framing-stage-two-cap**: the cap raised from 100 to 165 CPU-hours, and 20 CPU-hours per seed for seeds 4–10.
+- Register row **C2-framing-checkpoint-50**: the 50 CPU-hour checkpoint acknowledged, including the lead's one box write of the acknowledgement file. The row is his acknowledgement. The file `CHECKPOINT_50_ACK.json`, which the launcher checks, does not exist yet: the lead writes it at stage-two admission, right before seed 4.
 - Register row **C2-framing-side-item**, unchanged: no production change and no deploy; stage two runs to 10 seeds and needs his second go-ahead, which is the row above.
 - Pre-registration §5: "Only an inconclusive variant could justify stage two". Stage one gave **both** variants inconclusive (results note `docs/sota_audit/2026-10-08-result-c2-framing-stage-one.md`, accepted in `docs/audit/2026-10-08-c2-framing-stage-one-acceptance-codex-a1.md`).
 
@@ -38,17 +38,27 @@
 - **Stage one's runs.** They are the three accepted runs: `22d31f2-20261008T061514Z` (seed 2273360), `11e0cfd-20261008T134306Z` (260991262) and `11e0cfd-20261008T163019Z` (1746737973).
   - Their files must equal, byte for byte, the accepted hash list `docs/audit/2026-10-08-c2-framing-stage-one-evidence/runs.sha256` (sha256 `05343931…`).
   - They must validate under stage one's own identity: review r10's report, its reviewed commit `a3f5e3e`, exposure commit `1055618` and admission record sha256 `588472f1…`.
+- **Stage one is closed** (review s1 B3). Under any admission but stage one's own, seeds 1–3 never run, on either route, even when an accepted directory or claim is missing. Stage one's accepted runs still re-validate, and its three-seed aggregate still recomputes, under stage one's own identity.
 - **The justification is checked, not assumed.** Stage two is admitted only when stage one's dispositions, recomputed from those runs, include an inconclusive variant (§5's condition).
 
 ## 3. Budgets, the cap and the launch window
 - **Per-seed declared budget:** the number in Eric's row C2-framing-stage-two-cap (proposed 20 CPU-hours).
   - The measured costs it is set against: uncontended seeds 13.22 and 13.34 CPU-hours; seed 1, which collided with production's 03:00 preview, 18.23.
 - **The shared cap:** the number in the same row (proposed 165 CPU-hours). The launcher's cap constant must equal it: the stage-two admission refuses a row whose cap differs from the launcher's.
-- **The 50 checkpoint:** Eric's written acknowledgement, recorded in the register. The launcher reads only the file `CHECKPOINT_50_ACK.json`, which the lead writes after his row, with his permission.
+- **The 50 checkpoint:** Eric's written acknowledgement is the register row C2-framing-checkpoint-50. The launcher reads only the file `CHECKPOINT_50_ACK.json`, which the lead writes at stage-two admission, right before seed 4, with his permission.
 - **The launch window.** No stage-two seed launches from 00:45 to 03:10 America/New_York.
   - Production's nightly chain trains its blend at about 03:04. A seed overlapping it cost seed 1 about 5 CPU-hours, and slowed production's preview from about 1 minute to about 70.
   - Uncontended seeds measured 1 h 53 min and 1 h 54 min of wall time, so a seed launched before 00:45 is expected to finish before 03:00.
-  - **Enforcement:** both the launch wrapper and the job itself refuse inside the window. Each checks after its validation, immediately before it calls the launcher or claims the seed, so a seed started by hand through the C1 launcher, or validated across 00:45, still refuses.
+  - **Enforcement:** both the launch wrapper and the job itself refuse inside the window.
+    - The wrapper checks after its validation, immediately before it calls the launcher.
+    - The job checks inside its claim lock, after every validation and the existing-claim check, immediately before it creates its run directory (review s1 B1).
+    - So a seed started by hand, or validated across 00:45, still refuses, with nothing claimed.
+- **Only inside its guarded C1 unit** (review s1 B2). A stage-two seed runs only as the guard's payload inside its own C1 launcher unit, so the launcher's one-job-at-a-time rule, the 50 checkpoint and the CPU guard apply. The job checks two facts the caller does not set, which must agree:
+  - the kernel's cgroup record (`/proc/self/cgroup`) places it in `<unit>.service/payload`, the guard's leaf, of a unit the launcher named for this seed;
+  - the launcher's `PENDING_<unit>.json` for exactly that unit declares Eric's per-seed budget.
+  - **It fails closed:** no record, another leaf, unit or seed, or no matching launcher record, refuses before anything is claimed or read.
+  - **Out of scope:** deliberate imitation of the launcher's unit by the operator.
+  - **Provenance:** the weakness predated stage two but was never exercised. Seeds 1–3 each ran as the guard's payload in their own launcher units; the evidence is in the evidence README.
 - **Stops:** a stopped or killed seed, or any 403/429, pauses stage two. It is reported to Eric, with no rerun without his decision. A stopped seed is not a complete seed, and stage two is then incomplete.
 
 ## 4. Identities
