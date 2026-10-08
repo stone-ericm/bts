@@ -1,7 +1,7 @@
 {
- "reviewed_commit": "a3f5e3e89d8b2615e50d8c4aed5c08cbfe02a56f",
- "review_report": "docs/audit/2026-10-08-c2-framing-codex-r10.md",
- "exposure_commit": "105561842e2bdf2580d3ecc867e1ee5e57df04f2",
+ "reviewed_commit": "448d5891cc616165ff1b7077a0680578e883620a",
+ "review_report": "docs/audit/2026-10-08-c2-framing-stage-two-codex-s2.md",
+ "exposure_commit": "fbae42f991a1da0ea61a64f3f83f87ef3a8580cf",
  "input_pins": {
   "pa_2017.parquet": "f202ebc9d3bc36177a307571f92c579411f647c3ae49ebbb03a865ce8a3132bd",
   "pa_2018.parquet": "30410e7250b99c3eb50f44d5224f68b161d9a34ba3dc17bd41b1f6868ff1213c",
