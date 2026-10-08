@@ -1095,7 +1095,7 @@ _GIT = ["git", "-c", "user.name=scratch", "-c", "user.email=scratch@example.inva
         "-c", "core.hooksPath=/dev/null"]
 
 
-def _commit(repo):
+def _commit_all(repo):
     """Commit everything in a scratch root (r10: a run executes only installed and committed code)."""
     for args in (["init", "-q"], ["add", "-A"], ["commit", "-q", "--allow-empty", "-m", "scratch"]):
         subprocess.run([*_GIT, "-C", str(repo), *args], check=True, capture_output=True)
@@ -1109,7 +1109,7 @@ def _scratch_mutant(tmp_path, tests, body):
     root.mkdir()
     (root / "target.py").write_text("value = 1\n")
     (root / "test_scratch.py").write_text(body(root))
-    _commit(root)
+    _commit_all(root)
     spec = tmp_path / "spec.json"
     spec.write_text(json.dumps([{"id": "X1", "rule": "scratch", "file": "target.py", "old": "value = 1",
                                  "new": "value = 2", "tests": tests}]))
@@ -1158,7 +1158,7 @@ def test_the_runs_load_no_conftest(tmp_path, capsys):
     """r9: conftests are never loaded (--noconftest), in the collection or the run, so their hooks never run."""
     spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], _two_read_failing())
     (root / "conftest.py").write_text("import pathlib\npathlib.Path(__file__).with_name('conftest_ran').write_text('y')\n")
-    _commit(root)                                      # r10: committed, so only --noconftest keeps it from loading
+    _commit_all(root)                                      # r10: committed, so only --noconftest keeps it from loading
     assert R.main(str(spec), root=root) == 0
     assert "X1 RED" in capsys.readouterr().out and not (root / "conftest_ran").exists()
 
@@ -1414,7 +1414,7 @@ def test_mutants_across_two_targets_are_all_red(tmp_path, capsys):
         "def test_first():\n"
         f"    assert val() == {_ONE} and pathlib.Path(__file__).with_name('other.py').read_text() == {_ONE}\n"))
     (root / "other.py").write_text("value = 1\n")
-    _commit(root)
+    _commit_all(root)
     x1 = json.loads(spec.read_text())[0]
     spec.write_text(json.dumps([x1, dict(x1, id="X2", file="other.py"), dict(x1, id="X3", new="value = 3")]))
     assert R.main(str(spec), root=root) == 0
@@ -1439,7 +1439,7 @@ def _dynamic(tmp_path, body, gate, expect, plugin=None):
     spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], body)
     if plugin:
         (root / "scratch_plugin.py").write_text(_VAL + plugin)
-        _commit(root)
+        _commit_all(root)
     problems = R.scope_problems(root, ["test_scratch.py"])
     assert any(gate in p for p in problems), problems
     intended = R.collect(root, ["test_scratch.py"])
@@ -1730,7 +1730,7 @@ def test_a_look_alike_module_is_refused_before_the_run(tmp_path, capsys, v, expe
     spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], _numpy_suite)
     (root / "numpy.py").write_text(_look_alike(canary))
     if v:
-        _commit(root)
+        _commit_all(root)
     assert R.main(str(spec), root=root) == 1
     out = capsys.readouterr().out
     assert "X1 REFUSED" in out and "NOT RED: X1" in out and not canary.exists(), out
@@ -1746,7 +1746,7 @@ def test_a_linked_module_is_refused_before_the_run(tmp_path, capsys):
     (tmp_path / "outside" / "numpy.py").write_text(_look_alike(canary))
     spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], _numpy_suite)
     subprocess.run(["ln", "-s", str(tmp_path / "outside" / "numpy.py"), str(root / "numpy.py")], check=True)
-    _commit(root)                                                 # git records the link, never what it names
+    _commit_all(root)                                                 # git records the link, never what it names
     assert R.main(str(spec), root=root) == 1
     out = capsys.readouterr().out
     assert "X1 REFUSED" in out and not canary.exists(), out
@@ -1762,7 +1762,7 @@ def _committed_root(tmp_path, files):
     for name, text in files.items():
         (root / name).parent.mkdir(parents=True, exist_ok=True)
         (root / name).write_text(text)
-    _commit(root)
+    _commit_all(root)
     return root
 
 
@@ -1798,7 +1798,7 @@ def test_the_boundary_refuses_symlinks(tmp_path):
     (tmp_path / "outside").mkdir()
     for target, link in (("helper.py", "alias.py"), (str(tmp_path / "outside"), "pkg")):
         subprocess.run(["ln", "-s", target, str(root / link)], check=True)
-    _commit(root)
+    _commit_all(root)
     assert _boundary(root) == ["alias.py: a symlink", "pkg: a symlink"]
 
 
@@ -1806,7 +1806,7 @@ def test_the_boundary_refuses_compiled_modules(tmp_path):
     root = _committed_root(tmp_path, {})
     for name in ("cached.pyc", "native.so"):
         (root / name).write_bytes(b"\0")
-    _commit(root)
+    _commit_all(root)
     assert _boundary(root) == ["cached.pyc: a compiled module", "native.so: a compiled module"]
 
 
