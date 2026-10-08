@@ -7,10 +7,10 @@
   - Both are scored against the same seed's baseline on 2024 and 2025.
 - **What it can support** (pre-registration, "What it can support"): at most "worth testing on untouched 2027 data", never "ship it". 2024 and 2025 are already consumed seasons. The three seeds measure sensitivity to the algorithm's seed; they are not three new season samples.
 
-**Status:** all three registered seeds ran; `aggregate` passed. **Independent acceptance: pending.** Per pre-registration §7, nothing in this note goes to Eric or job-search-52 before the acceptance. Nothing here approves a production change, a deploy or stage two.
+**Status:** all three registered seeds ran; `aggregate` passed on the box. **Independent acceptance: ACCEPT WITH CORRECTIONS** (2026-10-08 14:35–14:48 EDT, a fresh Codex session, Part 1 blind; `docs/audit/2026-10-08-c2-framing-stage-one-acceptance-codex-a1.md`, sha256 `c35f2474…`). The reviewer's corrections are applied verbatim to this note. Per pre-registration §7, the result goes to Eric through job-search-52 only after this acceptance. Nothing here approves a production change, a deploy or stage two.
 
 ## Reading record
-Who read what, and when (all 2026-10-08, EDT):
+Who read what, and when (all 2026-10-08, EDT), according to the lead's account. The supplied artifacts support the production chronology, but do not independently audit reads or distribution:
 - **Until 14:27:11 EDT, only costs and label counts were read:**
   - the `cpu_s`, `wall_s` and `labels` fields of units.json;
   - the progress lines of the log tails;
@@ -31,11 +31,10 @@ All three were launched through the C1 launcher from `~/projects/bts-c1`, at nic
 - **Exit and records.** Every unit exited rc 0, and its guard records `exit` and RECONCILED with no problems. Every walk-forward reports labels changed 0 and void 0.
 - **Code.** `11e0cfd` adds only Eric's release row to the register: it is a metadata-only descendant of `22d31f2`. `validate_run`'s descent-and-closure rule admitted both commits.
 - **Seed 1's slow walk-forward.** Seed 1's A 2024 walk-forward cost 7.04 CPU-h against about 2 for its peers, because it collided with production's 03:00 `bts preview` (C2 index, row (e)).
-  - The collision is observed. That it changed nothing but cost is inferred: LightGBM ran with `deterministic=True` and `force_row_wise=True`, with no thread count among the manifest's recorded parameters, so the thread count does not depend on load. This is not tested.
+  - The collision is reported in the C2 index. That it changed nothing but cost is inferred, not tested: the manifests record `deterministic=True` and `force_row_wise=True`, but omit the effective thread count and provide no uncontended replay of this run.
 - **Output root:** `data/hetzner_results/c2/framing_screen/seed_<seed>/<run>/` on the box (restic-backed archive set).
 
 ## Result
-**Both variants are inconclusive.** Neither is positive, so neither reaches "worth testing on untouched 2027 data".
 
 **P@1 by seed** (top-ranked pick hit rate; 185 test days in 2024, 184 in 2025; hits in brackets):
 
@@ -60,13 +59,15 @@ All three were launched through the C1 launcher from `~/projects/bts-c1`, at nic
 | Per-seed rule passed | **1 of 3** (seed 2) | **1 of 3** (seed 2) |
 | **Disposition** | **inconclusive** | **inconclusive** |
 
+**Both variants are inconclusive.** Neither is positive, so neither reaches "worth testing on untouched 2027 data".
+
 **Why:**
 - **A** meets three of the four positive conditions: both season means are above 0, m ≥ +0.3pp, and t ≥ 1.5. It fails the fourth: the per-seed rule holds on only 1 seed, not the 2 required. It is not negative because m > 0.
 - **B** fails two positive conditions: its 2024 mean is below 0, and the per-seed rule holds on only 1 seed. It is not negative because m > 0.
 
 **The per-seed rule** (`bts.experiment.runner.evaluate_pass_fail`) passes a seed when either:
 1. P@1 improves in both seasons; or
-2. the neutral fallback holds: no season's P@1 drops more than 0.3pp (delta ≥ −0.003), `mean_max_streak` ≥ 0, and exact P(57) strictly improves.
+2. the neutral fallback holds: no season's P@1 drops more than 0.3pp (delta ≥ −0.003), the `mean_max_streak` delta is ≥ 0, and exact P(57) strictly improves.
 
 Seed by seed:
 - **Seed 2** passes for both variants on condition 1.
@@ -85,11 +86,11 @@ Seed by seed:
 
 ## Things to weigh in the result
 - **The seasons disagree.** Every seed improves 2025 under both variants, by +2.2 to +7.6pp. 2024 is mixed: A gives 0.00, +3.24 and −1.08pp; B gives −1.62, +2.16 and −1.62pp.
-- **The seed noise is as large as the deltas.** The baseline's own P@1 spans 74.6–78.9% in 2024 across the three seeds.
-- **B's t of 6.08 comes from a coincidence of whole hit counts, not from consistency.**
+- **Baseline P@1 also varies by seed.** It spans 74.6–78.9% in 2024 and 66.8–67.9% in 2025 across the three seeds. The spread matters particularly to the mixed 2024 result; every seed still improves 2025 under both variants.
+- **B's t of 6.08 reflects a small spread in the two-season seed averages.** Those averages are consistently positive across seeds, while the 2024 deltas are mixed.
   - Seeds 1 and 3 give B the same deltas: −3 of 185 in 2024 and +8 of 184 in 2025.
   - The underlying counts differ: B 143 and 132 hits against a baseline of 146 and 124, versus B 141 and 133 against 144 and 125.
-  - Two of the three seed-level values are therefore identical, so the standard deviation is small (0.47pp) and t is large.
+  - Two of the three seed-level values are identical. Their sample standard deviation is 0.46472965pp (0.46pp rounded), giving t = 6.08. The matching counts are observed; calling them a coincidence would be an inference.
   - With 3 seeds, t ≥ 1.5 is a screening convention, not a significance test (pre-registration §5).
 - **The streak metrics point the other way.**
   - On seeds 2 and 3, exact P(57) falls for both variants.
@@ -100,7 +101,7 @@ Seed by seed:
 - **On the box, it passes.** `aggregate` ran on the box from `~/projects/bts-c1` at `11e0cfd` (clean) at 14:26:52–14:27:11 EDT, with rc 0. It ran under the passing admission gate and validated all three runs: claim, manifest, pins, identity, code descent and closure, season evidence, and every scorecard, diff and summary recomputed from the retained profiles with exact equality.
   - Its output is `aggregate.box.json` (sha256 `8d02d0bc…`), in `docs/audit/2026-10-08-c2-framing-stage-one-evidence/`.
 - **On the Mac, exact equality fails.** Re-running it there on the hash-matched copies, with the copies as the namespace root, refuses seed 1's baseline scorecard: the stored value does not equal the Mac's recomputation.
-  - **The cause, measured** (`rescore_diff.py`, output `rescore_diff.out`): over the nine scorecards, 17 values differ, and only two fields: `p_57_exact` and `p_57_mdp`. Every difference is in the last digits, with relative size at most 5.85e-16. Every other field is equal, including every P@1, streak metric, calibration and precision value.
+  - **The cause, measured** (`rescore_diff.py`, output `rescore_diff.out`): over the nine scorecards, 16 values differ, and only two fields: `p_57_exact` and `p_57_mdp`. Every difference is in the last digits, with relative size at most 5.85e-16. Every other field is equal, including every P@1, streak metric, calibration and precision value.
   - **The platforms:** the box is x86_64 with Python 3.12.6; the Mac is arm64 with Python 3.12.13. Both have numpy 2.4.3 and pandas 3.0.1.
   - **Mechanism:** platform floating-point differences, inferred and not tested.
 - **No decision changes.**
@@ -118,10 +119,10 @@ Seed by seed:
 - **Mac CPU:** the Mac re-run and the diagnostics used Mac CPU only.
 
 ## What follows
-1. **Independent acceptance** of this note and the run artifacts, by a fresh Codex session that has not reviewed this item.
+1. **Independent acceptance** of this note and the run artifacts, by a fresh Codex session that has not reviewed this item: done, ACCEPT WITH CORRECTIONS (above).
 2. **Then the result goes to Eric through job-search-52** (§7): per-seed and mean P@1 deltas per season for A and B, the dispositions and the measured cost. The fallback is `~/projects/job-search/mets-2026-10-06/catcher-experiment-result.md`, with the herdr manager told.
 3. **Stage two is Eric's call.** Under §5, only an inconclusive variant could justify stage two (to 10 seeds), and both variants are inconclusive. Stage two needs his second go-ahead; nothing here asks for it or approves it.
-   - **The cost arithmetic** (projection from the two uncontended seeds, n = 2): 7 more seeds at about 13.2–13.3 CPU-h each come to about 93 CPU-h. Only about 54.7 remain under the 100 cap, and C2's planned jobs need about 11.1 CPU-h of it.
+   - **The cost arithmetic** (projection from the two uncontended seeds, n = 2): 7 more seeds at about 13.2–13.3 CPU-h each come to about 93 CPU-h. Only about 54.7 remain under the 100 cap, before reserving any CPU for planned C2 jobs.
    - Stage two therefore does not fit under the current cap, and it would also need the 50 acknowledgement. Raising the cap is a separate decision, never made here (§6).
 4. **The Mets application stays held** until Eric has this result.
 
@@ -129,5 +130,7 @@ Seed by seed:
 - **Seasons:** 2024 and 2025 are consumed seasons. Three seeds measure the algorithm's seed sensitivity, not new season samples.
 - **Catcher identity** is a postgame, game-level proxy: one catcher per side per game, which need not be the starter. A 2027 test needs a pregame catcher identity, specified independently.
 - **History:** there is no catcher history before 2019; the pitcher feature has it.
+- **Event availability:** feature history keeps resumed-portion PAs at the original official game date. Date-level shift(1) can therefore admit events before they happened. Baseline and both variants share this convention; the screen does not establish unconditional pregame availability (pre-registration §8).
+- **Labels:** the run rebuilds labels through `filter_out_resumed_portion` and drops void profile rows. All units report zero label changes and zero void rows, and all manifests have `resumed_portion_rows={}`. That empty record can mean no flagged rows or an absent flag column; the filter returns the input unchanged if the column is absent. These copies do not independently certify original-portion label correctness.
 - **Multiplicity:** A and B are reported separately, with no multiplicity adjustment.
 - **The seeds:** they are positions 0–2 of `canonical-n10.json`, which is neither an outcome-independent random sample nor full-range coverage.
