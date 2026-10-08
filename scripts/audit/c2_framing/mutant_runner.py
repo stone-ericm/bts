@@ -156,7 +156,7 @@ ALLOWED_ATTRIBUTES = frozenset({
     # stage two (addendum 2026-10-08): the screen's new names, and the launcher's cap the tests pin
     'CAP_H', 'SEEDS', 'STAGE_ONE_FILES', 'STAGE_ONE_FILES_SHA256', 'STAGE_ONE_IDENTITY', 'STAGE_ONE_RUNS',
     'STAGE_TWO_SEEDS', 'aggregate_stage_two', 'launch_window_problem', 'ledger', 'ny_clock', 'stage_two_release',
-    'CLOSURE', 'DESIGN', 'DESIGN_TWO', 'EXPOSURE_ROW', 'SCOPE',
+    'CLOSURE', 'DESIGN', 'DESIGN_TWO', 'EXPOSURE_ROW', 'SCOPE', 'stage_two_allowed',
 })
 ALLOWED_KEYWORDS = frozenset({
     '_test_out_root', 'actual_hit', 'atol', 'basis', 'boundary', 'budget', 'calls', 'capture_output', 'check', 'code',

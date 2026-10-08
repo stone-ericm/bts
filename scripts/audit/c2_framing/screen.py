@@ -464,6 +464,16 @@ def launch_window_problem(hour: int, minute: int) -> str | None:
     return None
 
 
+def refuse_inside_the_window(seed: int) -> None:
+    """Seeds 4-10 never start from 00:45 to 03:10 America/New_York (addendum §3). The launch wrapper and the job itself
+    both call this, after their validation and immediately before they call the launcher or claim the seed, so a seed
+    started by hand through the C1 launcher, or validated across 00:45, still refuses."""
+    if seed in STAGE_TWO_SEEDS:
+        problem = launch_window_problem(*ny_clock())
+        if problem:
+            raise SystemExit(f"refusing: {problem}")
+
+
 def load_inputs(data_dir: Path, pins: dict):
     """Read each pinned parquet once from the hashed bytes; nothing else in the directory is read."""
     import pandas as pd
@@ -493,6 +503,7 @@ def run(seed: int, data_dir: Path, inputs_dir: Path, *, walk_forward=None, now=N
     ok, why, _ = seed_allowed(seed, register, out_root, identity=identity, pins=adm["input_pins"])
     if not ok:
         raise SystemExit(f"refusing: {why}")
+    refuse_inside_the_window(seed)
     from bts.model.predict import LGB_PARAMS
     if not (LGB_PARAMS.get("deterministic") is True and LGB_PARAMS.get("force_row_wise") is True):
         raise SystemExit("refusing: LightGBM's params were built without the deterministic flags")
@@ -848,15 +859,12 @@ def launch(seed: int, data_dir: Path, inputs_dir: Path, *, execute=subprocess.ru
     row, never from 00:45 to 03:10 America/New_York)."""
     from scripts.audit.c1 import admission as A
     out_root = OUT_ROOT if _test_out_root is None else _test_out_root
-    if seed in STAGE_TWO_SEEDS:
-        problem = launch_window_problem(*ny_clock())
-        if problem:
-            raise SystemExit(f"refusing: {problem}")
     _, adm, identity = admission_gate()
     ok, why, budget = seed_allowed(seed, (A.REPO / REGISTER_REL).read_text(), out_root, identity=identity,
                                    pins=adm.get("input_pins"))
     if not ok:
         raise SystemExit(f"refusing: {why}")
+    refuse_inside_the_window(seed)
     return execute(launch_command(seed, budget, data_dir, inputs_dir), cwd=A.REPO).returncode
 
 

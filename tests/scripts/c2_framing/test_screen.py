@@ -1102,6 +1102,7 @@ def _admitted_heads(repo, identity, head):
 
 @pytest.fixture
 def stage_one(stubbed, monkeypatch):
+    monkeypatch.setattr(S, "ny_clock", lambda: (12, 0))              # outside the launch window, whatever the hour
     monkeypatch.setattr(S, "head_admitted", _admitted_heads)
     _stage_one_by(stubbed, monkeypatch, _run_mixed)
     _to_stage_two(stubbed, monkeypatch, [_cap_row("165", "20")])
@@ -1255,6 +1256,58 @@ def test_launch_runs_stage_two_with_erics_budget_outside_the_window(stage_one, m
     cmd = calls[0]
     assert cmd[cmd.index("--cpu-hours") + 1] == "20" and cmd[cmd.index("--name") + 1] == "c2-framing-seed4"
     assert cmd[cmd.index("--seed") + 1] == str(S.STAGE_TWO_SEEDS[0]) and "BTS_LGBM_DETERMINISTIC=1" in cmd
+
+
+def test_run_refuses_stage_two_seeds_inside_the_launch_window(stage_one, monkeypatch):
+    """The job itself checks the window (the wrapper's own function), so a seed started by hand through the C1 launcher
+    still refuses; nothing is claimed. Both edges: 00:45 refuses, 03:10 and 00:44 run."""
+    out, _, _ = stage_one
+    root = out / f"seed_{S.STAGE_TWO_SEEDS[0]}"
+    for hour, minute in ((0, 45), (1, 30), (3, 9)):
+        monkeypatch.setattr(S, "ny_clock", lambda: (hour, minute))
+        with pytest.raises(SystemExit, match="00:45 to 03:10"):
+            _run_mixed(stage_one, S.STAGE_TWO_SEEDS[0])
+        assert not root.exists() or not any(x.is_dir() for x in root.iterdir())
+    monkeypatch.setattr(S, "ny_clock", lambda: (3, 10))
+    assert _run_mixed(stage_one, S.STAGE_TWO_SEEDS[0]) == 0
+    monkeypatch.setattr(S, "ny_clock", lambda: (0, 44))
+    assert _run_mixed(stage_one, S.STAGE_TWO_SEEDS[1]) == 0
+
+
+def test_stage_one_seeds_have_no_launch_window(stubbed, monkeypatch):
+    monkeypatch.setattr(S, "ny_clock", lambda: (1, 30))
+    assert _run(stubbed, S.STAGE_ONE_SEEDS[0]) == 0
+
+
+def _validation_passes_0045(monkeypatch):
+    """A clock at 00:44 that the stage-two validation moves to 00:45 (a slow validation across the window's start)."""
+    now = [(0, 44)]
+    real = S.stage_two_allowed
+
+    def slow(seed, register, out, **k):
+        now[0] = (0, 45)
+        return real(seed, register, out, **k)
+    monkeypatch.setattr(S, "stage_two_allowed", slow)
+    monkeypatch.setattr(S, "ny_clock", lambda: now[0])
+
+
+def test_run_checks_the_window_after_its_validation(stage_one, monkeypatch):
+    _validation_passes_0045(monkeypatch)
+    with pytest.raises(SystemExit, match="00:45 to 03:10"):
+        _run_mixed(stage_one, S.STAGE_TWO_SEEDS[0])
+
+
+def test_launch_checks_the_window_after_its_validation(stage_one, monkeypatch):
+    out, inputs, _ = stage_one
+    calls = []
+
+    class R:
+        returncode = 0
+    _validation_passes_0045(monkeypatch)
+    with pytest.raises(SystemExit, match="00:45 to 03:10"):
+        S.launch(S.STAGE_TWO_SEEDS[0], out, inputs, _test_out_root=out,
+                 execute=lambda cmd, cwd: (calls.append(cmd), R())[1])
+    assert calls == []
 
 
 def test_the_clock_reads_new_york_time():

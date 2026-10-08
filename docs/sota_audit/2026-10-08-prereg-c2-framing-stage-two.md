@@ -47,7 +47,8 @@
 - **The 50 checkpoint:** Eric's written acknowledgement, recorded in the register. The launcher reads only the file `CHECKPOINT_50_ACK.json`, which the lead writes after his row, with his permission.
 - **The launch window.** No stage-two seed launches from 00:45 to 03:10 America/New_York.
   - Production's nightly chain trains its blend at about 03:04. A seed overlapping it cost seed 1 about 5 CPU-hours, and slowed production's preview from about 1 minute to about 70.
-  - Uncontended seeds measured 1 h 53 min and 1 h 54 min of wall time, so a seed launched before 00:45 is expected to finish before 03:00. The launch wrapper refuses inside the window.
+  - Uncontended seeds measured 1 h 53 min and 1 h 54 min of wall time, so a seed launched before 00:45 is expected to finish before 03:00.
+  - **Enforcement:** both the launch wrapper and the job itself refuse inside the window. Each checks after its validation, immediately before it calls the launcher or claims the seed, so a seed started by hand through the C1 launcher, or validated across 00:45, still refuses.
 - **Stops:** a stopped or killed seed, or any 403/429, pauses stage two. It is reported to Eric, with no rerun without his decision. A stopped seed is not a complete seed, and stage two is then incomplete.
 
 ## 4. Identities
