@@ -2961,14 +2961,16 @@
  },
  {
   "id": "S19",
-  "rule": "stage two: launch checks the window for seeds 4-10",
+  "rule": "stage two: the window check applies to seeds 4-10",
   "file": "scripts/audit/c2_framing/screen.py",
   "old": "    if seed in STAGE_TWO_SEEDS:\n        problem = launch_window_problem(*ny_clock())",
   "new": "    if False:\n        problem = launch_window_problem(*ny_clock())",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py::test_launch_runs_stage_two_with_erics_budget_outside_the_window"
+   "tests/scripts/c2_framing/test_screen.py::test_launch_runs_stage_two_with_erics_budget_outside_the_window",
+   "tests/scripts/c2_framing/test_screen.py::test_run_refuses_stage_two_seeds_inside_the_launch_window"
   ],
-  "added_stage2": true
+  "added_stage2": true,
+  "reanchored_restart": true
  },
  {
   "id": "S20",
@@ -3158,5 +3160,61 @@
    "tests/scripts/c2_framing/test_screen.py::test_the_launchers_cap_is_the_cap_in_erics_row"
   ],
   "added_stage2": true
+ },
+ {
+  "id": "S37",
+  "rule": "stage two: the job itself checks the window (run alone)",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        raise SystemExit(f\"refusing: {why}\")\n    refuse_inside_the_window(seed)\n    from bts.model.predict import LGB_PARAMS",
+  "new": "        raise SystemExit(f\"refusing: {why}\")\n    from bts.model.predict import LGB_PARAMS",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_run_refuses_stage_two_seeds_inside_the_launch_window"
+  ],
+  "added_stage2_restart": true
+ },
+ {
+  "id": "S38",
+  "rule": "stage two: the wrapper checks the window (launch alone)",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    refuse_inside_the_window(seed)\n    return execute(",
+  "new": "    return execute(",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_launch_runs_stage_two_with_erics_budget_outside_the_window",
+   "tests/scripts/c2_framing/test_screen.py::test_launch_checks_the_window_after_its_validation"
+  ],
+  "added_stage2_restart": true
+ },
+ {
+  "id": "S39",
+  "rule": "stage two: run checks the window after its validation",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    register = (A.REPO / REGISTER_REL).read_text()\n    ok, why, _ = seed_allowed(seed, register, out_root, identity=identity, pins=adm[\"input_pins\"])\n    if not ok:\n        raise SystemExit(f\"refusing: {why}\")\n    refuse_inside_the_window(seed)\n",
+  "new": "    refuse_inside_the_window(seed)\n    register = (A.REPO / REGISTER_REL).read_text()\n    ok, why, _ = seed_allowed(seed, register, out_root, identity=identity, pins=adm[\"input_pins\"])\n    if not ok:\n        raise SystemExit(f\"refusing: {why}\")\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_run_checks_the_window_after_its_validation"
+  ],
+  "added_stage2_restart": true
+ },
+ {
+  "id": "S40",
+  "rule": "stage two: launch checks the window after its validation",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    _, adm, identity = admission_gate()\n    ok, why, budget = seed_allowed(seed, (A.REPO / REGISTER_REL).read_text(), out_root, identity=identity,\n                                   pins=adm.get(\"input_pins\"))\n    if not ok:\n        raise SystemExit(f\"refusing: {why}\")\n    refuse_inside_the_window(seed)\n    return execute(",
+  "new": "    refuse_inside_the_window(seed)\n    _, adm, identity = admission_gate()\n    ok, why, budget = seed_allowed(seed, (A.REPO / REGISTER_REL).read_text(), out_root, identity=identity,\n                                   pins=adm.get(\"input_pins\"))\n    if not ok:\n        raise SystemExit(f\"refusing: {why}\")\n    return execute(",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_launch_checks_the_window_after_its_validation"
+  ],
+  "added_stage2_restart": true
+ },
+ {
+  "id": "S41",
+  "rule": "stage two: stage-one seeds have no window",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    if seed in STAGE_TWO_SEEDS:\n        problem = launch_window_problem(*ny_clock())",
+  "new": "    if seed in SEEDS:\n        problem = launch_window_problem(*ny_clock())",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_stage_one_seeds_have_no_launch_window"
+  ],
+  "added_stage2_restart": true
  }
 ]
