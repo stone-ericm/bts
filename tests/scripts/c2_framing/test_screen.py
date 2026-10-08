@@ -1771,7 +1771,8 @@ def _boundary(repo):
 
 
 def test_the_boundary_admits_a_committed_root(tmp_path):
-    root = _committed_root(tmp_path, {"helper.py": "x = 1\n", "pkg/__init__.py": "", "pkg/m.py": "y = 2\n"})
+    root = _committed_root(tmp_path, {"helper.py": "x = 1\n", "pkg/__init__.py": "", "pkg/m.py": "y = 2\n",
+                                      "pkg/json.py": "z = 3\n"})            # an installed name only below the top
     assert _boundary(root) == []
 
 
@@ -1851,9 +1852,11 @@ def test_the_boundary_refuses_an_installed_tree_containing_the_root(tmp_path, mo
     """A startup entry outside the root is an installed tree; one containing the root would make the root's own files
     look installed."""
     root = _committed_root(tmp_path, {})
+    (root / "helper.py").write_text("x = 1\n")                             # still the root's own: not committed
     path, trees = R._startup()
     monkeypatch.setattr(R, "_startup", lambda: ([*path, str(tmp_path)], trees))
-    assert _boundary(root) == [f"{tmp_path.resolve()}: an installed tree containing the root"]
+    assert _boundary(root) == [f"{tmp_path.resolve()}: an installed tree containing the root",
+                               "helper.py: not committed"]
 
 
 # The run's own audit hook, exercised past the gate and the boundary check (run_mutant alone, on the unmutated source).
@@ -1937,6 +1940,7 @@ def test_the_run_refuses_a_compiled_module_outside_the_installed_trees(tmp_path)
                            capture_output=True, text=True, check=True).stdout.strip()
     root = _committed_root(tmp_path, {"test_scratch.py": _catching("_umath_linalg")})
     (root / Path(found).name).write_bytes(Path(found).read_bytes())
+    assert _boundary(root) == [f"{Path(found).name}: a compiled module"]           # its full platform suffix
     _in_run(root, "a compiled module outside the installed trees")
 
 
@@ -1952,6 +1956,109 @@ def test_the_run_refuses_a_native_library_outside_the_installed_trees(tmp_path):
 def test_collection_runs_under_the_boundary(tmp_path):
     """r10: collecting executes the test modules, so collection runs under the same hook; a refusal selects nothing."""
     canary = tmp_path / "ran"
-    root = _committed_root(tmp_path, {"test_scratch.py": "import helper\ndef test_first():\n    assert 0\n"})
+    root = _committed_root(tmp_path, {"test_scratch.py": _catching("helper")})     # so collection itself completes
     (root / "helper.py").write_text(_canary_module(canary))
     assert R.collect(root, ["test_scratch.py"]) is None and not canary.exists()
+
+
+def test_the_runner_refuses_a_boundary_problem_before_collecting(tmp_path, capsys):
+    """Refused before collection: the committed test module's own top-level code never runs, and nothing is mutated."""
+    canary = tmp_path / "collected"
+    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], lambda r: (
+        f"import pathlib\npathlib.Path({str(canary)!r}).write_text('y')\ndef test_first():\n    assert 1\n"))
+    (root / "helper.py").write_text("x = 1\n")                             # uncommitted, never imported
+    assert R.main(str(spec), root=root) == 1
+    out = capsys.readouterr().out
+    assert "X1 REFUSED" in out and "helper.py: not committed" in out and not canary.exists(), out
+    assert (root / "target.py").read_text() == "value = 1\n"
+
+
+def test_the_boundary_walks_a_startup_entry_inside_the_root(tmp_path, monkeypatch):
+    """A startup entry inside the root (the repository's own src, for the real root) is walked from its own top, which
+    the named test's package root does not reach."""
+    root = _committed_root(tmp_path, {"t/test_inner.py": "def test_first():\n    assert 0\n",
+                                      "lib/numpy.py": "x = 1\n"})
+    path, trees = R._startup()
+    monkeypatch.setattr(R, "_startup", lambda: ([*path, str(root / "lib")], trees))
+    assert R.boundary_problems(root, ["t/test_inner.py"]) == ["lib/numpy.py: shadows the installed module numpy"]
+
+
+def test_the_boundary_walks_from_the_package_root(tmp_path):
+    """A test inside packages runs with the directory above its topmost package first on the path."""
+    root = _committed_root(tmp_path, {"pkg/__init__.py": "", "pkg/test_inner.py": "def test_first():\n    assert 0\n"})
+    (root / "numpy.py").write_text("x = 1\n")
+    assert R.boundary_problems(root, ["pkg/test_inner.py"]) == ["numpy.py: not committed",
+                                                               "numpy.py: shadows the installed module numpy"]
+
+
+def test_the_boundary_never_walks_above_the_root(tmp_path):
+    """Packages reaching above the root are the gate's refusal; the boundary walks only inside the root."""
+    (tmp_path / "__init__.py").write_text("")
+    (tmp_path / "numpy.py").write_text("x = 1\n")
+    assert _boundary(_committed_root(tmp_path, {"__init__.py": ""})) == []
+
+
+def test_the_boundary_skips_installed_trees_inside_the_root(tmp_path, monkeypatch):
+    """An installed tree inside the root (a virtual environment's site-packages) is installed code, not the root's."""
+    root = _committed_root(tmp_path, {})
+    (root / "site").mkdir()
+    (root / "site" / "numpy.py").write_text("x = 1\n")
+    path, trees = R._startup()
+    monkeypatch.setattr(R, "_startup", lambda: (path, [*trees, str(root / "site")]))
+    assert _boundary(root) == []
+
+
+def test_a_file_in_place_of_a_committed_symlink_is_not_committed(tmp_path):
+    """git stores a symlink as a blob of its target text; a regular file holding that text is not committed code."""
+    root = _committed_root(tmp_path, {})
+    subprocess.run(["ln", "-s", "x = 1", str(root / "alias.py")], check=True)
+    _commit_all(root)
+    (root / "alias.py").unlink()
+    (root / "alias.py").write_text("x = 1")
+    assert _boundary(root) == ["alias.py: not committed"]
+
+
+def test_the_boundary_reads_a_sha256_repository(tmp_path):
+    root = tmp_path / "root"
+    root.mkdir()
+    (root / "test_scratch.py").write_text("def test_first():\n    assert 0\n")
+    subprocess.run([*_GIT, "-C", str(root), "init", "-q", "--object-format=sha256"], check=True, capture_output=True)
+    _commit_all(root)
+    assert _boundary(root) == []
+
+
+def test_the_boundary_ignores_inherited_git_variables(tmp_path, monkeypatch):
+    root = _committed_root(tmp_path, {})
+    other = tmp_path / "other"
+    other.mkdir()
+    _commit_all(other)
+    monkeypatch.setenv("GIT_DIR", str(other / ".git"))
+    assert _boundary(root) == []
+
+
+def test_an_editable_install_outside_the_root_is_installed(tmp_path):
+    """For a scratch root, the repository's own src (an editable install) is outside the root: installed code."""
+    root = _committed_root(tmp_path, {"test_scratch.py": "import bts\ndef test_first():\n    assert 0\n"})
+    rc, _, bundle = R.run_mutant(root, ["test_scratch.py"])
+    assert bundle is not None and bundle["boundary"] == [] and rc == 1, bundle
+
+
+def test_the_mutated_target_is_the_one_change_a_run_executes(tmp_path, capsys):
+    """The runner's own mutation is the run's one allowed difference from the commit, even for an imported target."""
+    root = _committed_root(tmp_path, {"scripts/audit/c2_framing/screen.py": "SETTINGS = 1\n", "test_scratch.py": (
+        "import scripts.audit.c2_framing.screen as S\ndef test_first():\n    assert S.SETTINGS == 1\n")})
+    spec = tmp_path / "spec.json"
+    spec.write_text(json.dumps([{"id": "X1", "rule": "imported", "file": "scripts/audit/c2_framing/screen.py",
+                                 "old": "SETTINGS = 1", "new": "SETTINGS = 2", "tests": ["test_scratch.py"]}]))
+    assert R.main(str(spec), root=root) == 0
+    assert "X1 RED" in capsys.readouterr().out
+
+
+def test_the_run_ignores_an_installed_tree_containing_the_root(tmp_path, monkeypatch):
+    canary = tmp_path / "ran"
+    root = _committed_root(tmp_path, {"test_scratch.py": _catching("helper")})
+    (root / "helper.py").write_text(_canary_module(canary))
+    path, trees = R._startup()
+    monkeypatch.setattr(R, "_startup", lambda: (path, [*trees, str(tmp_path)]))
+    _in_run(root, "not committed")
+    assert not canary.exists()

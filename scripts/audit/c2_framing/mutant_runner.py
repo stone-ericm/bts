@@ -39,13 +39,13 @@ tree with a commit. Inside the root, a run imports from the named tests' package
 path) and from any startup import-path entry inside the root. There, recursively through importable directories, every
 importable entry must be a regular file committed with these bytes: never uncommitted or changed, never a symlink (r9
 R9-3: a link names source the scans never see), never a compiled module (bytecode or an extension). No top-level name
-there may be one that an installed tree, the standard library or the interpreter also provides, so an allowed import
-spelled like an installed module (`numpy`) can only load the installed module (r9 R9-2). The installed trees are the
-standard library, site-packages and every startup entry outside the root (for a scratch root, the repository's own
-editable install); none may contain the root.
+there may be one that an installed tree also provides (built-in and frozen modules are found before the import path), so
+an allowed import spelled like an installed module (`numpy`) can only load the installed module (r9 R9-2). The installed
+trees are the standard library, site-packages and every startup entry outside the root (for a scratch root, the
+repository's own editable install); none may contain the root.
 
 ENFORCEMENT of the boundary, during every collection and run (the driver's audit hook, added before pytest is
-imported). Module code may run from a file only when the file is in an installed tree, or is in the root, reached
+imported). Code compiled from a file may run only when the file is in an installed tree, or is in the root, reached
 without a symlink, with the commit's bytes as compiled (the mutated target: the mutation's), under a top-level name no
 installed tree provides. No bytecode is ever deserialized (sourceless bytecode can name any file as its source), and no
 compiled module or native library (ctypes) loads from outside the installed trees. Each refusal raises ImportError and
@@ -176,10 +176,10 @@ ALLOWED_DUNDER_NAMES = frozenset({"__file__"})
 ALLOWED_DUNDER_METHODS = frozenset({"__init__", "__call__"})
 _BUILTIN_NAMES = frozenset(dir(builtins))
 
-DRIVER = '''import _thread, hashlib, json, os, sys
+DRIVER = '''import hashlib, json, os, sys
 
-# r10: the boundary, enforced in the run by an audit hook added before pytest or anything else is imported. Module code
-# may run from a file only when the file is in an installed tree, or is in the root, reached without a symlink, with the
+# r10: the boundary, enforced in the run by an audit hook added before pytest or anything else is imported. Code compiled
+# from a file may run only when the file is in an installed tree, or is in the root, reached without a symlink, with the
 # commit's bytes as compiled (the mutated target: the mutation's), under a top-level name no installed tree provides.
 # No bytecode is deserialized, and no compiled module or native library loads from outside the installed trees. Each
 # refusal is recorded, so a refusal the test code catches still refuses the run.
@@ -187,7 +187,7 @@ with open(sys.argv[2]) as _f:
     _CONFIG = json.load(_f)
 ROOT, TREES, NAMES = _CONFIG["root"], tuple(_CONFIG["trees"]), frozenset(_CONFIG["names"])
 BLOBS, ALGORITHM = _CONFIG["blobs"], _CONFIG["algorithm"]
-REFUSED, COMPILED, _BUSY = [], {}, set()
+REFUSED, COMPILED = [], {}
 
 
 def _inside(p, trees):
@@ -199,7 +199,7 @@ def _blob(data):
 
 
 def _code_problem(name):
-    """Why module code compiled under the file name `name` may not run (None: it may)."""
+    """Why code compiled under the file name `name` may not run (None: it may)."""
     real = os.path.realpath(name)
     if _inside(real, TREES):
         return None
@@ -229,33 +229,24 @@ def _refuse(why, what):
 
 
 def _audit(event, args):
-    me = _thread.get_ident()
-    if me in _BUSY:                                   # the hook's own file-system calls
-        return
-    _BUSY.add(me)
-    try:
-        if event == "compile":
-            source, name = args
-            if isinstance(name, str) and not name.startswith("<") and isinstance(source, (bytes, str)):
-                data = source if isinstance(source, bytes) else source.encode("utf-8", "surrogatepass")
-                COMPILED[name] = _blob(data)
-        elif event == "exec":
-            name = getattr(args[0], "co_filename", None)
-            if (getattr(args[0], "co_name", None) == "<module>" and isinstance(name, str)
-                    and not (name.startswith("<") and name.endswith(">"))):
-                why = _code_problem(name)
-                if why:
-                    _refuse(why, name)
-        elif event in ("marshal.loads", "marshal.load"):
-            _refuse("bytecode deserialized", event)
-        elif event == "import" and args[1] is not None:
-            if not _inside(os.path.realpath(os.fsdecode(args[1])), TREES):
-                _refuse("a compiled module outside the installed trees", os.fsdecode(args[1]))
-        elif event == "ctypes.dlopen" and args[0] is not None:
-            if not _inside(os.path.realpath(os.fsdecode(args[0])), TREES):
-                _refuse("a native library outside the installed trees", os.fsdecode(args[0]))
-    finally:
-        _BUSY.discard(me)
+    if event == "compile":
+        source, name = args
+        if isinstance(name, str) and isinstance(source, (bytes, str)):
+            COMPILED[name] = _blob(source if isinstance(source, bytes) else source.encode("utf-8", "surrogatepass"))
+    elif event == "exec":
+        name = getattr(args[0], "co_filename", None)
+        if isinstance(name, str) and not (name.startswith("<") and name.endswith(">")):
+            why = _code_problem(name)
+            if why:
+                _refuse(why, name)
+    elif event in ("marshal.loads", "marshal.load"):
+        _refuse("bytecode deserialized", event)
+    elif event == "import" and args[1] is not None:
+        if not _inside(os.path.realpath(os.fsdecode(args[1])), TREES):
+            _refuse("a compiled module outside the installed trees", os.fsdecode(args[1]))
+    elif event == "ctypes.dlopen" and args[0] is not None:
+        if not _inside(os.path.realpath(os.fsdecode(args[0])), TREES):
+            _refuse("a native library outside the installed trees", os.fsdecode(args[0]))
 
 
 sys.addaudithook(_audit)
@@ -649,8 +640,9 @@ def _holds_importable(d: str) -> bool:
 
 
 def installed_names(trees) -> set[str]:
-    """Every top-level module name the installed trees, the standard library or the interpreter itself provides."""
-    names = set(sys.stdlib_module_names) | set(sys.builtin_module_names)
+    """Every top-level module name the installed trees provide (the standard library's directory is one). Built-in and
+    frozen modules are found before the import path, so no file in the root can take their place."""
+    names = set()
     for t in trees:
         for x in os.scandir(t):
             n = _module_name(x.name, x.is_dir())
@@ -671,10 +663,11 @@ def committed(root: Path) -> tuple[str, dict] | None:
     top = _git(root, "rev-parse", "--show-toplevel")
     if top is None or os.path.realpath(os.fsdecode(top.strip())) != os.path.realpath(root):
         return None
-    algorithm = (_git(root, "rev-parse", "--show-object-format") or b"").decode().strip()
+    head = _git(root, "rev-parse", "HEAD")
     listing = _git(root, "ls-tree", "-r", "-z", "--full-tree", "HEAD")
-    if algorithm not in ("sha1", "sha256") or listing is None:
+    if head is None or listing is None:
         return None
+    algorithm = "sha256" if len(head.strip()) == 64 else "sha1"
     blobs = {}
     for entry in listing.split(b"\0"):
         if entry:
@@ -695,8 +688,8 @@ def boundary_problems(root: Path, tests: list[str]) -> list[str]:
     (empty: as of now it cannot). Inside the root a run imports from the named tests' package roots (pytest puts each
     first on the path) and from any startup entry inside the root. There, recursively through importable directories,
     an importable entry must be a regular file committed with these bytes, never a symlink or a compiled module, and no
-    top-level name may be one an installed tree, the standard library or the interpreter also provides (a look-alike).
-    So an allowed import can only resolve to installed or committed code."""
+    top-level name may be one an installed tree also provides (a look-alike). So an allowed import can only resolve to
+    installed or committed code."""
     root = Path(root).resolve()
     head = committed(root)
     if head is None:
@@ -732,7 +725,7 @@ def boundary_problems(root: Path, tests: list[str]) -> list[str]:
                 if mod is None or _inside(x.path, trees):
                     continue
                 rel = os.path.relpath(x.path, root)
-                if d == e and mod in names and (link or not directory or _holds_importable(x.path)):
+                if d == e and mod in names and (not directory or _holds_importable(x.path)):
                     problems.append(f"{rel}: shadows the installed module {mod}")
                 if link:
                     problems.append(f"{rel}: a symlink")
