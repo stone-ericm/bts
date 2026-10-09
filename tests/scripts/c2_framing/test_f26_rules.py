@@ -485,3 +485,45 @@ def test_the_resampling_calls_on_continuous_deltas():
     other = np.random.default_rng(20261010).integers(0, n, size=(10000, n))
     assert out["L"] != float(np.quantile(daily[other].mean(axis=1), 0.1, method="linear"))
     assert out["L"] != float(np.quantile(daily[idx].mean(axis=1), 0.1, method="lower"))
+
+
+# ---------------------------------------------------------------- review c2 nonblocking: flag direction, exact boundary
+
+def test_the_dependence_disagreement_flag_covers_both_directions():
+    x = np.tile(np.array([-1, 1, -1, 1, -1, 1, 1] * 6, dtype=float), (10, 1))     # the review's 10 x 42 matrix
+    out = F.dispose(x)
+    assert out["L"] < 0 < out["L_block7"]                      # the iid bound below zero, the block bound above
+    assert out["dependence_disagreement"] is True
+    y = np.zeros((10, 100))
+    y[:, :30] = 1.0
+    both = F.dispose(y)
+    assert both["L"] > 0 and both["L_block7"] > 0 and both["dependence_disagreement"] is False
+
+
+def _exact_boundary():
+    """Ten seeds of {-1, 0, 1} hit differences over 1,000 days: six at +1pp, three at -1pp, one at zero. Rows are
+    ordered until numpy's unrounded mean of the seed means is exactly 0.003 (the review's construction)."""
+    import itertools
+    rows = []
+    for k, n in enumerate([10] * 6 + [-10] * 3 + [0]):
+        r = np.zeros(1000)
+        r[k * 13: k * 13 + abs(n)] = np.sign(n)
+        rows.append(r)
+    for order in itertools.permutations(range(10)):
+        x = np.array([rows[i] for i in order])
+        if float(x.mean(axis=1).mean()) == 0.003:
+            return x
+    raise AssertionError("no ordering reaches exactly 0.003")
+
+
+def test_a_mean_of_exactly_the_practical_threshold_is_positive():
+    out = F.dispose(_exact_boundary())
+    assert out["m"] == 0.003 and out["L"] > 0 and out["seeds_positive"] == 6
+    assert out["disposition"] == "positive"                    # m >= +0.3pp, not m > +0.3pp
+
+
+def test_a_table_with_two_away_records_and_no_home_refuses():
+    t = _good_table()
+    t[1] = {**t[0], "catcher_id": 51}
+    with pytest.raises(F.InputRefused, match="one away and one home"):
+        F.table_frame(t)

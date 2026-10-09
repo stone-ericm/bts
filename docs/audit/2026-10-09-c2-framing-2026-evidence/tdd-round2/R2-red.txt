@@ -1,0 +1,403 @@
+UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run --offline pytest -q -p no:cacheprovider tests/scripts/c2_framing/test_f26_run.py -k 'source_inventory or without_a_citation or but_the_inventorys or without_an_inventory or its_own_cpu or fabricated_catcher_value or cannot_be_faked'
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-c2f26-code
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 122 items / 107 deselected / 15 selected
+
+tests/scripts/c2_framing/test_f26_run.py FFFFFFFFFFFFFFF                 [100%]
+
+=================================== FAILURES ===================================
+___________ test_the_source_inventory_is_read_at_the_exposure_commit ___________
+
+tmp_path = PosixPath('<pytest-tmp>/pytest-12380/test_the_source_inventory_is_r0')
+
+    def test_the_source_inventory_is_read_at_the_exposure_commit(tmp_path):
+>       inv = _inventory()
+              ^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:1060: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+prep = None, over = {}
+
+    def _inventory(prep=None, **over):
+        inv = {"pa_dir": str(prep["data"]) if prep else "/home/bts/projects/bts/data/processed",
+               "raw_root": str(prep["raw"]) if prep else "/home/bts/projects/bts/data/raw",
+>              "screen_inputs": str(prep["screen_inputs"]) if prep else "/x", "selection": F.SELECTION,
+                                                                                           ^^^^^^^^^^^
+               "extraction": list(F.EXTRACTION_FIELDS)}
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'SELECTION'
+
+tests/scripts/c2_framing/test_f26_run.py:1034: AttributeError
+_ test_the_source_inventory_must_be_cited_published_and_exact[kw0-inv_over0-sha256] _
+
+tmp_path = PosixPath('<pytest-tmp>/pytest-12380/test_the_source_inventory_must0')
+kw = {'cite_sha': 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'}
+inv_over = {}, match = 'sha256'
+
+    @pytest.mark.parametrize("kw, inv_over, match", [
+        (dict(cite_sha="f" * 64), {}, "sha256"),
+        (dict(publish_inventory=False), {}, "inventory"),
+        (dict(inventory_before=True), {}, "published"),
+        ({}, {"extraction": ["gameData.game.pk"]}, "extraction"),
+        ({}, {"selection": "every feed"}, "selection"),
+        ({}, {"extra": 1}, "fields"),
+    ])
+    def test_the_source_inventory_must_be_cited_published_and_exact(tmp_path, kw, inv_over, match):
+>       repo, xc = _x37_repo(tmp_path, _inventory(**inv_over), **kw)
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:1075: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+prep = None, over = {}
+
+    def _inventory(prep=None, **over):
+        inv = {"pa_dir": str(prep["data"]) if prep else "/home/bts/projects/bts/data/processed",
+               "raw_root": str(prep["raw"]) if prep else "/home/bts/projects/bts/data/raw",
+>              "screen_inputs": str(prep["screen_inputs"]) if prep else "/x", "selection": F.SELECTION,
+                                                                                           ^^^^^^^^^^^
+               "extraction": list(F.EXTRACTION_FIELDS)}
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'SELECTION'
+
+tests/scripts/c2_framing/test_f26_run.py:1034: AttributeError
+_ test_the_source_inventory_must_be_cited_published_and_exact[kw1-inv_over1-inventory] _
+
+tmp_path = PosixPath('<pytest-tmp>/pytest-12380/test_the_source_inventory_must1')
+kw = {'publish_inventory': False}, inv_over = {}, match = 'inventory'
+
+    @pytest.mark.parametrize("kw, inv_over, match", [
+        (dict(cite_sha="f" * 64), {}, "sha256"),
+        (dict(publish_inventory=False), {}, "inventory"),
+        (dict(inventory_before=True), {}, "published"),
+        ({}, {"extraction": ["gameData.game.pk"]}, "extraction"),
+        ({}, {"selection": "every feed"}, "selection"),
+        ({}, {"extra": 1}, "fields"),
+    ])
+    def test_the_source_inventory_must_be_cited_published_and_exact(tmp_path, kw, inv_over, match):
+>       repo, xc = _x37_repo(tmp_path, _inventory(**inv_over), **kw)
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:1075: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+prep = None, over = {}
+
+    def _inventory(prep=None, **over):
+        inv = {"pa_dir": str(prep["data"]) if prep else "/home/bts/projects/bts/data/processed",
+               "raw_root": str(prep["raw"]) if prep else "/home/bts/projects/bts/data/raw",
+>              "screen_inputs": str(prep["screen_inputs"]) if prep else "/x", "selection": F.SELECTION,
+                                                                                           ^^^^^^^^^^^
+               "extraction": list(F.EXTRACTION_FIELDS)}
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'SELECTION'
+
+tests/scripts/c2_framing/test_f26_run.py:1034: AttributeError
+_ test_the_source_inventory_must_be_cited_published_and_exact[kw2-inv_over2-published] _
+
+tmp_path = PosixPath('<pytest-tmp>/pytest-12380/test_the_source_inventory_must2')
+kw = {'inventory_before': True}, inv_over = {}, match = 'published'
+
+    @pytest.mark.parametrize("kw, inv_over, match", [
+        (dict(cite_sha="f" * 64), {}, "sha256"),
+        (dict(publish_inventory=False), {}, "inventory"),
+        (dict(inventory_before=True), {}, "published"),
+        ({}, {"extraction": ["gameData.game.pk"]}, "extraction"),
+        ({}, {"selection": "every feed"}, "selection"),
+        ({}, {"extra": 1}, "fields"),
+    ])
+    def test_the_source_inventory_must_be_cited_published_and_exact(tmp_path, kw, inv_over, match):
+>       repo, xc = _x37_repo(tmp_path, _inventory(**inv_over), **kw)
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:1075: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+prep = None, over = {}
+
+    def _inventory(prep=None, **over):
+        inv = {"pa_dir": str(prep["data"]) if prep else "/home/bts/projects/bts/data/processed",
+               "raw_root": str(prep["raw"]) if prep else "/home/bts/projects/bts/data/raw",
+>              "screen_inputs": str(prep["screen_inputs"]) if prep else "/x", "selection": F.SELECTION,
+                                                                                           ^^^^^^^^^^^
+               "extraction": list(F.EXTRACTION_FIELDS)}
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'SELECTION'
+
+tests/scripts/c2_framing/test_f26_run.py:1034: AttributeError
+_ test_the_source_inventory_must_be_cited_published_and_exact[kw3-inv_over3-extraction] _
+
+tmp_path = PosixPath('<pytest-tmp>/pytest-12380/test_the_source_inventory_must3')
+kw = {}, inv_over = {'extraction': ['gameData.game.pk']}, match = 'extraction'
+
+    @pytest.mark.parametrize("kw, inv_over, match", [
+        (dict(cite_sha="f" * 64), {}, "sha256"),
+        (dict(publish_inventory=False), {}, "inventory"),
+        (dict(inventory_before=True), {}, "published"),
+        ({}, {"extraction": ["gameData.game.pk"]}, "extraction"),
+        ({}, {"selection": "every feed"}, "selection"),
+        ({}, {"extra": 1}, "fields"),
+    ])
+    def test_the_source_inventory_must_be_cited_published_and_exact(tmp_path, kw, inv_over, match):
+>       repo, xc = _x37_repo(tmp_path, _inventory(**inv_over), **kw)
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:1075: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+prep = None, over = {'extraction': ['gameData.game.pk']}
+
+    def _inventory(prep=None, **over):
+        inv = {"pa_dir": str(prep["data"]) if prep else "/home/bts/projects/bts/data/processed",
+               "raw_root": str(prep["raw"]) if prep else "/home/bts/projects/bts/data/raw",
+>              "screen_inputs": str(prep["screen_inputs"]) if prep else "/x", "selection": F.SELECTION,
+                                                                                           ^^^^^^^^^^^
+               "extraction": list(F.EXTRACTION_FIELDS)}
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'SELECTION'
+
+tests/scripts/c2_framing/test_f26_run.py:1034: AttributeError
+_ test_the_source_inventory_must_be_cited_published_and_exact[kw4-inv_over4-selection] _
+
+tmp_path = PosixPath('<pytest-tmp>/pytest-12380/test_the_source_inventory_must4')
+kw = {}, inv_over = {'selection': 'every feed'}, match = 'selection'
+
+    @pytest.mark.parametrize("kw, inv_over, match", [
+        (dict(cite_sha="f" * 64), {}, "sha256"),
+        (dict(publish_inventory=False), {}, "inventory"),
+        (dict(inventory_before=True), {}, "published"),
+        ({}, {"extraction": ["gameData.game.pk"]}, "extraction"),
+        ({}, {"selection": "every feed"}, "selection"),
+        ({}, {"extra": 1}, "fields"),
+    ])
+    def test_the_source_inventory_must_be_cited_published_and_exact(tmp_path, kw, inv_over, match):
+>       repo, xc = _x37_repo(tmp_path, _inventory(**inv_over), **kw)
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:1075: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+prep = None, over = {'selection': 'every feed'}
+
+    def _inventory(prep=None, **over):
+        inv = {"pa_dir": str(prep["data"]) if prep else "/home/bts/projects/bts/data/processed",
+               "raw_root": str(prep["raw"]) if prep else "/home/bts/projects/bts/data/raw",
+>              "screen_inputs": str(prep["screen_inputs"]) if prep else "/x", "selection": F.SELECTION,
+                                                                                           ^^^^^^^^^^^
+               "extraction": list(F.EXTRACTION_FIELDS)}
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'SELECTION'
+
+tests/scripts/c2_framing/test_f26_run.py:1034: AttributeError
+_ test_the_source_inventory_must_be_cited_published_and_exact[kw5-inv_over5-fields] _
+
+tmp_path = PosixPath('<pytest-tmp>/pytest-12380/test_the_source_inventory_must5')
+kw = {}, inv_over = {'extra': 1}, match = 'fields'
+
+    @pytest.mark.parametrize("kw, inv_over, match", [
+        (dict(cite_sha="f" * 64), {}, "sha256"),
+        (dict(publish_inventory=False), {}, "inventory"),
+        (dict(inventory_before=True), {}, "published"),
+        ({}, {"extraction": ["gameData.game.pk"]}, "extraction"),
+        ({}, {"selection": "every feed"}, "selection"),
+        ({}, {"extra": 1}, "fields"),
+    ])
+    def test_the_source_inventory_must_be_cited_published_and_exact(tmp_path, kw, inv_over, match):
+>       repo, xc = _x37_repo(tmp_path, _inventory(**inv_over), **kw)
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:1075: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+prep = None, over = {'extra': 1}
+
+    def _inventory(prep=None, **over):
+        inv = {"pa_dir": str(prep["data"]) if prep else "/home/bts/projects/bts/data/processed",
+               "raw_root": str(prep["raw"]) if prep else "/home/bts/projects/bts/data/raw",
+>              "screen_inputs": str(prep["screen_inputs"]) if prep else "/x", "selection": F.SELECTION,
+                                                                                           ^^^^^^^^^^^
+               "extraction": list(F.EXTRACTION_FIELDS)}
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'SELECTION'
+
+tests/scripts/c2_framing/test_f26_run.py:1034: AttributeError
+_____________ test_an_x37_row_without_a_citation_has_no_inventory ______________
+
+tmp_path = PosixPath('<pytest-tmp>/pytest-12380/test_an_x37_row_without_a_cita0')
+
+    def test_an_x37_row_without_a_citation_has_no_inventory(tmp_path):
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        _git(repo, "init", "-q")
+        xc = _commit(repo, "| ID | a | b | c |\n" + f"| {F.EXPOSURE_ROW} | **PREDECLARED 2026-10-10: {F.SCOPE}** | x | y | z |\n")
+>       got, problem = F.source_inventory(repo, xc)
+                       ^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'source_inventory'
+
+tests/scripts/c2_framing/test_f26_run.py:1085: AttributeError
+________ test_the_preparation_refuses_any_path_but_the_inventorys[data] ________
+
+prep = {'data': PosixPath('<pytest-tmp>/pytest-12380/test_the_preparation_refuses_a0/screen_inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x109649610>
+tmp_path = PosixPath('<pytest-tmp>/pytest-12380/test_the_preparation_refuses_a0')
+which = 'data'
+
+    @pytest.mark.parametrize("which", ["data", "raw", "screen_inputs"])
+    def test_the_preparation_refuses_any_path_but_the_inventorys(prep, monkeypatch, tmp_path, which):
+        other = tmp_path / f"other_{which}"
+        other.mkdir()
+>       inv = _inventory(prep, **{{"data": "pa_dir", "raw": "raw_root", "screen_inputs": "screen_inputs"}[which]: str(other)})
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:1093: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+prep = {'data': PosixPath('<pytest-tmp>/pytest-12380/test_the_preparation_refuses_a0/screen_inputs'), ...}
+over = {'pa_dir': '<pytest-tmp>/pytest-12380/test_the_preparation_refuses_a0/other_data'}
+
+    def _inventory(prep=None, **over):
+        inv = {"pa_dir": str(prep["data"]) if prep else "/home/bts/projects/bts/data/processed",
+               "raw_root": str(prep["raw"]) if prep else "/home/bts/projects/bts/data/raw",
+>              "screen_inputs": str(prep["screen_inputs"]) if prep else "/x", "selection": F.SELECTION,
+                                                                                           ^^^^^^^^^^^
+               "extraction": list(F.EXTRACTION_FIELDS)}
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'SELECTION'
+
+tests/scripts/c2_framing/test_f26_run.py:1034: AttributeError
+________ test_the_preparation_refuses_any_path_but_the_inventorys[raw] _________
+
+prep = {'data': PosixPath('<pytest-tmp>/pytest-12380/test_the_preparation_refuses_a1/screen_inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10eb76de0>
+tmp_path = PosixPath('<pytest-tmp>/pytest-12380/test_the_preparation_refuses_a1')
+which = 'raw'
+
+    @pytest.mark.parametrize("which", ["data", "raw", "screen_inputs"])
+    def test_the_preparation_refuses_any_path_but_the_inventorys(prep, monkeypatch, tmp_path, which):
+        other = tmp_path / f"other_{which}"
+        other.mkdir()
+>       inv = _inventory(prep, **{{"data": "pa_dir", "raw": "raw_root", "screen_inputs": "screen_inputs"}[which]: str(other)})
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:1093: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+prep = {'data': PosixPath('<pytest-tmp>/pytest-12380/test_the_preparation_refuses_a1/screen_inputs'), ...}
+over = {'raw_root': '<pytest-tmp>/pytest-12380/test_the_preparation_refuses_a1/other_raw'}
+
+    def _inventory(prep=None, **over):
+        inv = {"pa_dir": str(prep["data"]) if prep else "/home/bts/projects/bts/data/processed",
+               "raw_root": str(prep["raw"]) if prep else "/home/bts/projects/bts/data/raw",
+>              "screen_inputs": str(prep["screen_inputs"]) if prep else "/x", "selection": F.SELECTION,
+                                                                                           ^^^^^^^^^^^
+               "extraction": list(F.EXTRACTION_FIELDS)}
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'SELECTION'
+
+tests/scripts/c2_framing/test_f26_run.py:1034: AttributeError
+___ test_the_preparation_refuses_any_path_but_the_inventorys[screen_inputs] ____
+
+prep = {'data': PosixPath('<pytest-tmp>/pytest-12380/test_the_preparation_refuses_a2/screen_inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10eb779b0>
+tmp_path = PosixPath('<pytest-tmp>/pytest-12380/test_the_preparation_refuses_a2')
+which = 'screen_inputs'
+
+    @pytest.mark.parametrize("which", ["data", "raw", "screen_inputs"])
+    def test_the_preparation_refuses_any_path_but_the_inventorys(prep, monkeypatch, tmp_path, which):
+        other = tmp_path / f"other_{which}"
+        other.mkdir()
+>       inv = _inventory(prep, **{{"data": "pa_dir", "raw": "raw_root", "screen_inputs": "screen_inputs"}[which]: str(other)})
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:1093: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+prep = {'data': PosixPath('<pytest-tmp>/pytest-12380/test_the_preparation_refuses_a2/screen_inputs'), ...}
+over = {'screen_inputs': '<pytest-tmp>/pytest-12380/test_the_preparation_refuses_a2/other_screen_inputs'}
+
+    def _inventory(prep=None, **over):
+        inv = {"pa_dir": str(prep["data"]) if prep else "/home/bts/projects/bts/data/processed",
+               "raw_root": str(prep["raw"]) if prep else "/home/bts/projects/bts/data/raw",
+>              "screen_inputs": str(prep["screen_inputs"]) if prep else "/x", "selection": F.SELECTION,
+                                                                                           ^^^^^^^^^^^
+               "extraction": list(F.EXTRACTION_FIELDS)}
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'SELECTION'
+
+tests/scripts/c2_framing/test_f26_run.py:1034: AttributeError
+______________ test_the_preparation_refuses_without_an_inventory _______________
+
+prep = {'data': PosixPath('<pytest-tmp>/pytest-12380/test_the_preparation_refuses_w0/screen_inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10eb32b40>
+
+    def test_the_preparation_refuses_without_an_inventory(prep, monkeypatch):
+>       monkeypatch.setattr(F, "source_inventory", lambda repo, xc: (None, "X-37 does not cite a source inventory"))
+E       AttributeError: <module 'scripts.audit.c2_framing.f26' from '/Users/eric/projects/bts-c2f26-code/scripts/audit/c2_framing/f26.py'> has no attribute 'source_inventory'
+
+tests/scripts/c2_framing/test_f26_run.py:1101: AttributeError
+___________________ test_the_preparation_reports_its_own_cpu ___________________
+
+prep = {'data': PosixPath('<pytest-tmp>/pytest-12380/test_the_preparation_reports_i0/screen_inputs'), ...}
+
+    def test_the_preparation_reports_its_own_cpu(prep):
+        got = F.prepare(prep["data"], prep["raw"], prep["screen_inputs"], prep["out"])
+>       assert isinstance(got["cpu_s"], float) and got["cpu_s"] >= 0
+                          ^^^^^^^^^^^^
+E       KeyError: 'cpu_s'
+
+tests/scripts/c2_framing/test_f26_run.py:1110: KeyError
+_ test_a_fabricated_catcher_value_is_refused_by_validation_and_the_next_seed_gate _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1569feba0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12380/test_a_fabricated_catcher_valu0/inputs'), ...}
+
+    def test_a_fabricated_catcher_value_is_refused_by_validation_and_the_next_seed_gate(world):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        d = _run_dir(world, seed)
+    
+        def fake(e):
+            i = e["value"].first_valid_index()
+            return e.assign(value=e["value"].where(e.index != i, e.loc[i, "value"] + 0.25))
+        _edit_evidence(d, "A_posted", fake)                     # still identified: counts and ids unchanged
+>       with pytest.raises(F.RunInvalid, match="expected"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.screen.RunInvalid'>
+
+tests/scripts/c2_framing/test_f26_run.py:1124: Failed
+__________ test_unavailable_coverage_cannot_be_faked_into_identified ___________
+
+world_no_rates = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1559925a0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12380/test_unavailable_coverage_cann0/inputs'), ...}
+
+    def test_unavailable_coverage_cannot_be_faked_into_identified(world_no_rates):
+        w = world_no_rates
+        seed = F.SEEDS[0]
+        assert _run(w, seed) == 0
+        d = _run_dir(w, seed)
+        with pytest.raises(F.RunInvalid, match="identified"):
+            _validate(w, seed)
+    
+        def fake(e):
+            named = e["catcher_id"].notna()
+            return e.assign(value=e["value"].where(~named, 0.5), reason=e["reason"].where(~named, "identified"))
+        _edit_evidence(d, "A_posted", fake)
+        ev = pd.read_parquet(d / "catcher_A_posted_2026.parquet")
+        counts = {"side_games": {r: int((ev["reason"] == r).sum()) for r in F.REASONS},
+                  "pa_rows": {r: int(ev.loc[ev["reason"] == r, "n_pa"].sum()) for r in F.REASONS}}
+        ids = sorted(int(c) for c in ev.loc[ev["reason"] == "identified", "catcher_id"].unique())
+        _edit_both(d, lambda u: u[1]["catcher"].update(counts=counts, identified_ids=ids))
+>       with pytest.raises(F.RunInvalid, match="expected"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.screen.RunInvalid'>
+
+tests/scripts/c2_framing/test_f26_run.py:1147: Failed
+=========================== short test summary info ============================
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_the_source_inventory_is_read_at_the_exposure_commit
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_the_source_inventory_must_be_cited_published_and_exact[kw0-inv_over0-sha256]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_the_source_inventory_must_be_cited_published_and_exact[kw1-inv_over1-inventory]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_the_source_inventory_must_be_cited_published_and_exact[kw2-inv_over2-published]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_the_source_inventory_must_be_cited_published_and_exact[kw3-inv_over3-extraction]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_the_source_inventory_must_be_cited_published_and_exact[kw4-inv_over4-selection]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_the_source_inventory_must_be_cited_published_and_exact[kw5-inv_over5-fields]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_an_x37_row_without_a_citation_has_no_inventory
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_the_preparation_refuses_any_path_but_the_inventorys[data]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_the_preparation_refuses_any_path_but_the_inventorys[raw]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_the_preparation_refuses_any_path_but_the_inventorys[screen_inputs]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_the_preparation_refuses_without_an_inventory
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_the_preparation_reports_its_own_cpu
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_a_fabricated_catcher_value_is_refused_by_validation_and_the_next_seed_gate
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_unavailable_coverage_cannot_be_faked_into_identified
+====================== 15 failed, 107 deselected in 3.24s ======================

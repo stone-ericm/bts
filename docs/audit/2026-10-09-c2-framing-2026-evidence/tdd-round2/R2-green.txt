@@ -1,0 +1,11 @@
+UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run --offline pytest -q -p no:cacheprovider tests/scripts/c2_framing/test_f26_run.py -k 'source_inventory or without_a_citation or but_the_inventorys or without_an_inventory or its_own_cpu or fabricated_catcher_value or cannot_be_faked'
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-c2f26-code
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 119 items / 104 deselected / 15 selected
+
+tests/scripts/c2_framing/test_f26_run.py ...............                 [100%]
+
+====================== 15 passed, 104 deselected in 4.61s ======================

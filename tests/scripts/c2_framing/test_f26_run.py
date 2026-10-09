@@ -98,6 +98,16 @@ def _allow_row(cap=None, budget="12", stop="4.1", source="Eric 2026-10-09, typed
 
 @pytest.fixture
 def world(monkeypatch, tmp_path):
+    return _make_world(monkeypatch, tmp_path)
+
+
+@pytest.fixture
+def world_no_rates(monkeypatch, tmp_path):
+    """Every borderline called-strike rate missing: no catcher can have five rates, so no value is identified."""
+    return _make_world(monkeypatch, tmp_path, no_rates=True)
+
+
+def _make_world(monkeypatch, tmp_path, *, no_rates=False):
     import bts.features.compute as FC
     import bts.features.park_drag as PD
     import bts.model.predict as PR
@@ -107,6 +117,9 @@ def world(monkeypatch, tmp_path):
     monkeypatch.setattr(FC, "_build_probable_pitcher_lookup", FC._build_probable_pitcher_lookup)
     monkeypatch.setattr(PD, "attach_park_drag", PD.attach_park_drag)
     df, table = _world()
+    if no_rates:
+        df["pa_borderline_csr"] = np.nan
+        df = S.framing_by(df.drop(columns=[S.OLD_COL]), "pitcher_id", S.OLD_COL)   # the self-check still holds
     inputs = tmp_path / "inputs"
     inputs.mkdir()
     games = {s: sorted(int(g) for g in df.loc[df["season"] == s, "game_pk"].unique()) for s in (2025, 2026)}
@@ -116,6 +129,7 @@ def world(monkeypatch, tmp_path):
         (inputs / name).write_bytes(b)
     pins = {n: "b" * 64 for n in F.INPUT_NAMES}
     pins.update({name: _sha(b) for name, b in files.items()})
+    pins[F.EXPECT_NAME] = _write_expected(inputs, df, table)
     adm = _Admission(pins)
     register = tmp_path / "register.md"
     register.write_text("| ID | a | b | c |\n" + _allow_row())
@@ -136,6 +150,14 @@ def world(monkeypatch, tmp_path):
     out.mkdir()
     return {"out": out, "inputs": inputs, "adm": adm, "register": register, "df": df, "table": table, "pins": pins,
             "c1": c1}
+
+
+def _write_expected(inputs, df, table):
+    """The pinned expected catcher evidence, as `f26.expect` computes it, for a world's inputs."""
+    truth = F.Trusted(df[df["season"] == 2026], F.table_frame(table))
+    b = _parquet(F.expected_evidence(truth, F.AsOfFraming(df)))
+    (inputs / F.EXPECT_NAME).write_bytes(b)
+    return _sha(b)
 
 
 def _parquet(frame):
@@ -182,7 +204,7 @@ def _run_dir(w, seed):
 
 
 def _truth(w):
-    return F.Trusted(w["df"][w["df"]["season"] == 2026], F.table_frame(w["table"]))
+    return F.load_trusted(w["inputs"], w["adm"].pins)
 
 
 def _validate(w, seed, **k):
@@ -525,10 +547,9 @@ def _prepare(p):
 
 def test_prepare_builds_the_inputs_from_exactly_the_pinned_games(prep):
     got = _prepare(prep)
-    assert set(got["pins"]) == set(F.INPUT_NAMES)
+    assert set(got["pins"]) == set(F.INPUT_NAMES) - {F.EXPECT_NAME}      # the expectation is pinned next
     for name in (F.FROZEN_PA, F.LOOKUP_NAME, F.TABLE_NAME, F.SOURCES_NAME):
         assert got["pins"][name] == _sha((prep["out"] / name).read_bytes())
-    assert got["pins_digest"] == S.pins_digest(got["pins"])
     lookup = json.loads((prep["out"] / F.LOOKUP_NAME).read_text())
     assert set(lookup) == {"250001", "260001", "260002"}
     assert lookup["260001"] == {"away": 7001, "home": 7002, "away_tid": 11, "home_tid": 12}
@@ -684,6 +705,7 @@ def _gated_prep(prep, monkeypatch, *, gate_problem=None, row_problem=None):
     monkeypatch.setattr(F, "RAW_DIR", prep["raw"])
     monkeypatch.setattr(F, "SCREEN_INPUTS", prep["screen_inputs"])
     monkeypatch.setattr(F, "screen_pins", lambda: prep["screen_pins"])
+    monkeypatch.setattr(F, "source_inventory", lambda repo, xc: (_inventory(prep), None))
 
 
 @pytest.mark.parametrize("gate_problem, row_problem, match", [
@@ -696,18 +718,6 @@ def test_the_preparation_function_itself_refuses_before_any_2026_read(prep, monk
     (prep["data"] / "pa_2026.parquet").unlink()               # any read would raise FileNotFoundError instead
     with pytest.raises(SystemExit, match=match):
         F.prepare(prep["data"], prep["raw"], prep["screen_inputs"], prep["out"])
-    assert not prep["out"].exists()
-
-
-@pytest.mark.parametrize("which", ["data", "raw", "screen_inputs"])
-def test_the_preparation_refuses_any_path_but_the_declared_ones(prep, monkeypatch, tmp_path, which):
-    _gated_prep(prep, monkeypatch)
-    args = {"data": prep["data"], "raw": prep["raw"], "screen_inputs": prep["screen_inputs"]}
-    other = tmp_path / f"other_{which}"
-    other.mkdir()
-    args[which] = other
-    with pytest.raises(SystemExit, match="declared"):
-        F.prepare(args["data"], args["raw"], args["screen_inputs"], prep["out"])
     assert not prep["out"].exists()
 
 
@@ -814,6 +824,7 @@ def _no_catchers(world):
     (world["inputs"] / F.TABLE_NAME).write_bytes(b)
     world["adm"].pins[F.TABLE_NAME] = _sha(b)
     world["table"] = table
+    world["adm"].pins[F.EXPECT_NAME] = _write_expected(world["inputs"], world["df"], table)
 
 
 def test_a_posted_arm_with_no_identified_catcher_is_refused_even_if_its_count_says_otherwise(world):
@@ -862,16 +873,34 @@ def test_validation_reconciles_the_recorded_counts_and_ids_with_the_evidence(wor
         _validate(world, seed)
 
 
-def test_the_aggregate_recomputes_every_catcher_value(world, ten):
-    for d in ten:                                         # the same wrong value in every run: they still agree
-        _edit_evidence(d, "A_posted", lambda e: e.assign(value=e["value"].where(e["value"].isna(), e["value"] + 0.01)))
-    with pytest.raises(F.RunInvalid, match="value"):
-        F.aggregate(ten, world["out"], world["inputs"], _test_out_root=world["out"])
+def test_the_aggregate_recomputes_every_catcher_value_even_against_a_forged_expectation(world, monkeypatch):
+    """Each run must equal the pinned expectation, so the aggregate's recomputation is what guards the expectation
+    itself. A coordinated forgery: the pinned expectation and all ten runs carry the same shifted values. Validation
+    accepts every run; only the aggregate's recomputation from the admitted inputs refuses."""
+    real = F.AsOfFraming
+
+    class Shifted(real):
+        def value(self, catcher_id, predicted_date):
+            v = super().value(catcher_id, predicted_date)
+            return v if np.isnan(v) else v + 0.01
+    truth = F.Trusted(world["df"][world["df"]["season"] == 2026], F.table_frame(world["table"]))
+    b = _parquet(F.expected_evidence(truth, Shifted(world["df"])))
+    (world["inputs"] / F.EXPECT_NAME).write_bytes(b)
+    world["adm"].pins[F.EXPECT_NAME] = _sha(b)
+    monkeypatch.setattr(F, "AsOfFraming", Shifted)
+    for s in F.SEEDS:
+        assert _run(world, s) == 0
+    dirs = [_run_dir(world, s) for s in F.SEEDS]
+    for s in F.SEEDS:
+        _validate(world, s)                                   # every run equals the (forged) expectation
+    monkeypatch.setattr(F, "AsOfFraming", real)
+    with pytest.raises(F.RunInvalid, match="recomputed"):
+        F.aggregate(dirs, world["out"], world["inputs"], _test_out_root=world["out"])
 
 
-def test_the_aggregate_refuses_runs_whose_catcher_evidence_differs(world, ten):
+def test_a_single_runs_tampered_value_is_refused_by_validation(world, ten):
     _edit_evidence(ten[3], "A_posted", lambda e: e.assign(value=e["value"].where(e["value"].isna(), e["value"] + 0.01)))
-    with pytest.raises(F.RunInvalid, match="disagree"):
+    with pytest.raises(F.RunInvalid, match="expected"):
         F.aggregate(ten, world["out"], world["inputs"], _test_out_root=world["out"])
 
 
@@ -894,7 +923,7 @@ def test_the_manifest_reports_the_2026_resumed_flag_totals(world):
 def test_the_aggregate_reports_its_indicators_streaks_and_own_cpu(world, ten):
     out = F.aggregate(ten, world["out"], world["inputs"], _test_out_root=world["out"])
     posted = out["A_posted"]
-    assert posted["dependence_disagreement"] == (posted["L"] > 0 and not posted["L_block7"] > 0)
+    assert isinstance(posted["dependence_disagreement"], bool)          # its logic: test_f26_rules, both directions
     assert isinstance(posted["block_bootstrap_constant"], bool)
     for a in ("A_posted", "A_projected"):
         deltas = out["streak"][a]["mean_max_streak_delta"]
@@ -1011,3 +1040,155 @@ def test_a_2026_row_with_every_model_feature_missing_stops_before_any_walk_forwa
 class _NoFraming:
     def value(self, catcher_id, day):
         return float("nan")
+
+
+# ---------------------------------------------------------------- review c2 R2-1: the X-37 source inventory
+
+def _inventory(prep=None, **over):
+    inv = {"pa_dir": str(prep["data"]) if prep else "/home/bts/projects/bts/data/processed",
+           "raw_root": str(prep["raw"]) if prep else "/home/bts/projects/bts/data/raw",
+           "screen_inputs": str(prep["screen_inputs"]) if prep else "/x", "selection": F.SELECTION,
+           "extraction": list(F.EXTRACTION_FIELDS)}
+    inv.update(over)
+    return inv
+
+
+def _x37_repo(tmp_path, inventory, *, cite_sha=None, publish_inventory=True, inventory_before=False):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git(repo, "init", "-q")
+    b = (json.dumps(inventory, indent=1) + "\n").encode()
+    head = "| ID | a | b | c |\n"
+    if inventory_before:
+        (repo / "docs" / "audit").mkdir(parents=True, exist_ok=True)
+        (repo / F.INVENTORY_REL).write_bytes(b)
+    _commit(repo, head)
+    sha = cite_sha or _sha(b)
+    row = (f"| {F.EXPOSURE_ROW} | **PREDECLARED 2026-10-10: {F.SCOPE}**; review `r.md` sha256 `{'d' * 16}`; reviewed "
+           f"`{'a' * 40}` | the test; source inventory `{F.INVENTORY_REL}` sha256 `{sha}` | x | y |\n")
+    if publish_inventory:
+        (repo / F.INVENTORY_REL).write_bytes(b)
+    xc = _commit(repo, head + row)
+    return repo, xc
+
+
+def test_the_source_inventory_is_read_at_the_exposure_commit(tmp_path):
+    inv = _inventory()
+    repo, xc = _x37_repo(tmp_path, inv)
+    got, problem = F.source_inventory(repo, xc)
+    assert problem is None and got == inv
+
+
+@pytest.mark.parametrize("kw, inv_over, match", [
+    (dict(cite_sha="f" * 64), {}, "sha256"),
+    (dict(publish_inventory=False), {}, "inventory"),
+    (dict(inventory_before=True), {}, "published"),
+    ({}, {"extraction": ["gameData.game.pk"]}, "extraction"),
+    ({}, {"selection": "every feed"}, "selection"),
+    ({}, {"extra": 1}, "fields"),
+])
+def test_the_source_inventory_must_be_cited_published_and_exact(tmp_path, kw, inv_over, match):
+    repo, xc = _x37_repo(tmp_path, _inventory(**inv_over), **kw)
+    got, problem = F.source_inventory(repo, xc)
+    assert got is None and match in problem
+
+
+def test_an_x37_row_without_a_citation_has_no_inventory(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git(repo, "init", "-q")
+    xc = _commit(repo, "| ID | a | b | c |\n" + f"| {F.EXPOSURE_ROW} | **PREDECLARED 2026-10-10: {F.SCOPE}** | x | y | z |\n")
+    got, problem = F.source_inventory(repo, xc)
+    assert got is None and "cite" in problem
+
+
+@pytest.mark.parametrize("which", ["data", "raw", "screen_inputs"])
+def test_the_preparation_refuses_any_path_but_the_inventorys(prep, monkeypatch, tmp_path, which):
+    other = tmp_path / f"other_{which}"
+    other.mkdir()
+    inv = _inventory(prep, **{{"data": "pa_dir", "raw": "raw_root", "screen_inputs": "screen_inputs"}[which]: str(other)})
+    monkeypatch.setattr(F, "source_inventory", lambda repo, xc: (inv, None))
+    with pytest.raises(SystemExit, match="inventory"):
+        F.prepare(prep["data"], prep["raw"], prep["screen_inputs"], prep["out"])
+    assert not prep["out"].exists()
+
+
+def test_the_preparation_refuses_without_an_inventory(prep, monkeypatch):
+    monkeypatch.setattr(F, "source_inventory", lambda repo, xc: (None, "X-37 does not cite a source inventory"))
+    (prep["data"] / "pa_2026.parquet").unlink()
+    with pytest.raises(SystemExit, match="source inventory"):
+        F.prepare(prep["data"], prep["raw"], prep["screen_inputs"], prep["out"])
+    assert not prep["out"].exists()
+
+
+def test_the_preparation_reports_its_own_cpu(prep):
+    got = F.prepare(prep["data"], prep["raw"], prep["screen_inputs"], prep["out"])
+    assert isinstance(got["cpu_s"], float) and got["cpu_s"] >= 0
+
+
+# ---------------------------------------------------------------- review c2 R2-2: values checked before the next seed
+
+def test_a_fabricated_catcher_value_is_refused_by_validation_and_the_next_seed_gate(world):
+    seed = F.SEEDS[0]
+    assert _run(world, seed) == 0
+    d = _run_dir(world, seed)
+
+    def fake(e):
+        i = e["value"].first_valid_index()
+        return e.assign(value=e["value"].where(e.index != i, e.loc[i, "value"] + 0.25))
+    _edit_evidence(d, "A_posted", fake)                     # still identified: counts and ids unchanged
+    with pytest.raises(F.RunInvalid, match="expected"):
+        _validate(world, seed)
+    with pytest.raises(SystemExit, match="expected"):
+        _run(world, F.SEEDS[1])
+
+
+def test_unavailable_coverage_cannot_be_faked_into_identified(world_no_rates):
+    w = world_no_rates
+    seed = F.SEEDS[0]
+    assert _run(w, seed) == 0
+    d = _run_dir(w, seed)
+    with pytest.raises(F.RunInvalid, match="identified"):
+        _validate(w, seed)
+
+    def fake(e):
+        named = e["catcher_id"].notna()
+        return e.assign(value=e["value"].where(~named, 0.5), reason=e["reason"].where(~named, "identified"))
+    _edit_evidence(d, "A_posted", fake)
+    ev = pd.read_parquet(d / "catcher_A_posted_2026.parquet")
+    counts = {"side_games": {r: int((ev["reason"] == r).sum()) for r in F.REASONS},
+              "pa_rows": {r: int(ev.loc[ev["reason"] == r, "n_pa"].sum()) for r in F.REASONS}}
+    ids = sorted(int(c) for c in ev.loc[ev["reason"] == "identified", "catcher_id"].unique())
+    _edit_both(d, lambda u: u[1]["catcher"].update(counts=counts, identified_ids=ids))
+    with pytest.raises(F.RunInvalid, match="expected"):
+        _validate(w, seed)
+
+
+def test_a_side_game_moved_to_another_date_is_refused(world):
+    seed = F.SEEDS[0]
+    assert _run(world, seed) == 0
+    d = _run_dir(world, seed)
+    ev = pd.read_parquet(d / "catcher_A_posted_2026.parquet")
+    days = sorted(ev["date"].unique())
+    taken = set(zip(ev["date"], ev["game_pk"], ev["fielding_side"]))
+
+    def move(e):
+        i = next(j for j, r in e.iterrows() if r["date"] == days[0] and (days[1], r["game_pk"], r["fielding_side"])
+                 not in taken)
+        return e.assign(date=e["date"].where(e.index != i, days[1]))
+    _edit_evidence(d, "A_posted", move)                        # same counts, ids, catcher and value: only the date moves
+    with pytest.raises(F.RunInvalid, match="side-games"):
+        _validate(world, seed)
+
+
+def test_the_expect_step_writes_the_evidence_every_run_must_carry(world, monkeypatch, tmp_path):
+    monkeypatch.setattr(F, "prep_row_problem", lambda repo, text, xc: None)
+    monkeypatch.setattr(F, "admission_gate", lambda repo=None, *, require_inputs=True:
+                        ("a" * 40, {"exposure_commit": "b" * 40}, dict(IDENT)))
+    out = tmp_path / "expected.parquet"
+    got = F.expect(world["out"], world["inputs"], world["adm"].pins, out)
+    assert got["sha256"] == world["adm"].pins[F.EXPECT_NAME] and got["cpu_s"] >= 0
+    assert got["identified"]["A_posted"] > 0
+    monkeypatch.setattr(F, "prep_row_problem", lambda repo, text, xc: "no structured C2-framing-2026-prep-read row")
+    with pytest.raises(SystemExit, match="prep-read"):
+        F.expect(world["out"], world["inputs"], world["adm"].pins, tmp_path / "again.parquet")

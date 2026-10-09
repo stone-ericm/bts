@@ -68,7 +68,7 @@ MUTANTS = [
      "    if False:\n        _strict_scores(p_reliever", HOOK, "reliever_score or wrong_length"),
     ("M27 F1 score index unchecked", BB, "        if not scores.index.equals(index):", "        if False:", HOOK,
      "missing_a_row"),
-    ("M28 F1 score length unchecked", BB, "        if values.shape != (len(index),):", "        if False:", HOOK,
+    ("M28 F1 score length unchecked (defense in depth: still refused downstream; killed by message)", BB, "        if values.shape != (len(index),):", "        if False:", HOOK,
      "wrong_length or array_of_scores"),
     ("M29 F2 label unchecked", F26, "        if int(h) != t[1]:", "        if False:", RUN, "coherently_wrong"),
     ("M30 F2 batter-game date unchecked", F26, "        if t is None or t[0] != d:", "        if t is None:", RUN,
@@ -80,7 +80,7 @@ MUTANTS = [
      "coherently_wrong or within_ten_rows"),
     ("M34 F3 catcher not re-derived", F26, "        if rc != cid:", "        if False:", RUN, "rederives_the_catcher"),
     ("M35 F3 side-games not re-derived", F26, "    if {k: int(r.n_pa) for k, r in got.items()} != truth.side_games:",
-     "    if False:", RUN, "rederives_the_catcher"),
+     "    if False:", RUN, "rederives_the_catcher or moved_to_another_date"),
     ("M36 F3 counts unchecked", F26, '    if recorded.get("counts") != {"side_games": side_games, "pa_rows": pa_rows}:',
      "    if False:", RUN, "count_says_otherwise or recorded_counts or counts_edited_in_both"),
     ("M37 F3 identified ids unchecked", F26, '    if recorded.get("identified_ids") != sorted(ids):', "    if False:",
@@ -88,18 +88,15 @@ MUTANTS = [
     ("M38 F3 empty posted coverage allowed", F26, '    if arm == "A_posted" and side_games["identified"] == 0:',
      "    if False:", RUN, "count_says_otherwise"),
     ("M39 F3 values not recomputed", F26, "            if not _same(float(r.value), want):", "            if False:",
-     RUN, "recomputes_every"),
-    ("M40 F3 evidence agreement unchecked", F26,
-     "        if any(not by[s][\"evidence\"][a].equals(ev) for s in SEEDS[1:]):", "        if False:", RUN,
-     "evidence_differs"),
+     RUN, "forged_expectation"),
     ("M41 F4 pre-2019 catcher ids allowed", F26,
      '    if bool((early & df["fielding_catcher_id"].notna()).any()):', "    if False:", RULES + " " + RUN,
      "before_2019 or pre_2019"),
-    ("M42 F5 prepare's row gate removed", F26, "    problem = prep_row_problem(A.REPO, (A.REPO / REGISTER_REL).read_text(), "
-     "adm[\"exposure_commit\"])\n    if problem:\n        raise SystemExit",
-     "    problem = None\n    if problem:\n        raise SystemExit", RUN, "preparation_function or prepare_command"),
-    ("M43 F5 declared paths unchecked", F26, "        if Path(given).resolve() != Path(declared).resolve():",
-     "        if False:", RUN, "declared_ones"),
+    ("M42 F5 prepare's row gate removed", F26, "    if problem:\n        raise SystemExit(f\"refusing: {problem}\")\n"
+     "    inv, problem = source_inventory(", "    if False:\n        raise SystemExit(f\"refusing: {problem}\")\n"
+     "    inv, problem = source_inventory(", RUN, "preparation_function or prepare_command"),
+    ("M43 R2-1 the inventory's paths unchecked", F26, "        if Path(given).resolve() != Path(inv[key]).resolve():",
+     "        if False:", RUN, "but_the_inventorys"),
     ("M44 F5 historical pins unchecked", F26, "    return f\"the historical pins {bad} are not the screen's\" if bad else None",
      "    return None", RUN, "historical_pins"),
     ("M45 F5 source set unchecked", F26, "    if len(got) != len(set(got)) or set(got) != want:", "    if False:", RUN,
@@ -119,7 +116,7 @@ MUTANTS = [
      "    if False:\n        raise SystemExit(f\"refusing: seed {seed} already has a run", RUN, "already_has_a_run"),
     ("M51 F7 batters' positions optional", F26, "_positions_ok(ap, required=batted)", "_positions_ok(ap, required=False)",
      RULES, "malformed_non_starting"),
-    ("M52 F7 non-starters' ids unchecked", F26, "        if not _pos_int(pid):\n            bad_player = True\n"
+    ("M52 F7 non-starters' ids unchecked (its bench-record case is accepted under it)", F26, "        if not _pos_int(pid):\n            bad_player = True\n"
      "            continue\n        batted", "        if False:\n            bad_player = True\n            continue\n"
      "        batted", RULES, "malformed_non_starting"),
     ("M53 F7 PA game ids coerced", F26, "    if not (pd.api.types.is_integer_dtype(col) and not pd.api.types.is_bool_dtype(col)):",
@@ -127,7 +124,7 @@ MUTANTS = [
     ("M54 F7 table records unchecked", F26, "        problem = _record_problem(r)", "        problem = None", RULES,
      "inconsistent_table"),
     ("M55 F7 table sides unchecked", F26, '        if sorted(r["fielding_side"] for r in rs) != ["away", "home"]:',
-     "        if False:", RULES, "inconsistent_table"),
+     "        if False:", RULES, "inconsistent_table or two_away_records"),
     # arithmetic the review listed (Part 2, item 4)
     ("M56 five rates become four", F26, "MIN_RATES = 5 ", "MIN_RATES = 4 ", RULES, "five_nonmissing or framing_by"),
     ("M57 a tenth slot", F26, 'SLOTS = frozenset(f"{k}00" for k in range(1, 10))',
@@ -142,11 +139,34 @@ MUTANTS = [
     ("M62 zero seeds count positive", F26, "positive_seeds = int((d > 0).sum())", "positive_seeds = int((d >= 0).sum())",
      RULES, "zero_seed"),
     ("M63 non-finite deltas allowed", F26, " or not bool(np.isfinite(x).all()):", ":", RULES, "non_finite"),
-    ("M64 block resampling without the reset", F26,
+    ("M64 block resampling with another generator seed", F26,
      "    starts = np.random.default_rng(BOOTSTRAP_SEED).integers(", "    starts = np.random.default_rng(1).integers(",
      RULES, "block_resampling"),
     ("M65 featureless 2026 rows not stopped early", F26, "    if featureless:\n", "    if False:\n", RUN,
      "every_model_feature_missing"),
+    # review c2: R2-1, R2-2 and the nonblocking items
+    ("M66 the practical threshold made strict", F26, "    if m >= PRACTICAL_MIN and L > 0", "    if m > PRACTICAL_MIN and L > 0",
+     RULES, "exactly_the_practical"),
+    ("M67 disagreement flag in one direction", F26, '"dependence_disagreement": (L > 0) != (L_block > 0),',
+     '"dependence_disagreement": L > 0 and not L_block > 0,', RULES, "both_directions"),
+    ("M68 R2-1 inventory sha unchecked", F26, "    if S._sha(b) != m.group(2):", "    if False:", RUN,
+     "source_inventory_must_be"),
+    ("M69 R2-1 inventory publication unchecked", F26,
+     "    if A._show_bytes(repo, f\"{exposure_commit}^:{INVENTORY_REL}\") is not None:", "    if False:", RUN,
+     "source_inventory_must_be"),
+    ("M70 R2-1 extraction fields unchecked", F26, '    if inv["extraction"] != list(EXTRACTION_FIELDS):', "    if False:",
+     RUN, "source_inventory_must_be"),
+    ("M71 R2-1 selection rule unchecked", F26, '    if inv["selection"] != SELECTION:', "    if False:", RUN,
+     "source_inventory_must_be"),
+    ("M72 R2-1 inventory fields unchecked", F26, "    if not (isinstance(inv, dict) and set(inv) == INVENTORY_KEYS",
+     "    if False and not (isinstance(inv, dict) and set(inv) == INVENTORY_KEYS", RUN, "source_inventory_must_be"),
+    ("M73 R2-2 retained values not compared with the pinned expectation", F26,
+     "        if not _same(v, want):\n            return f\"{arm}: side-game {(day, pk, side)} carries value",
+     "        if False:\n            return f\"{arm}: side-game {(day, pk, side)} carries value", RUN,
+     "fabricated_catcher_value or cannot_be_faked"),
+    ("M74 R2-2 expect step ungated", F26, "    if problem:\n        raise SystemExit(f\"refusing: {problem}\")\n"
+     "    ev = expected_evidence(", "    if False:\n        raise SystemExit(f\"refusing: {problem}\")\n"
+     "    ev = expected_evidence(", RUN, "expect_step"),
 ]
 
 

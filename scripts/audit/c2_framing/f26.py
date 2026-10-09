@@ -246,6 +246,11 @@ class AsOfFraming:
 REASONS = ("identified", "no_catcher", "too_few_rates")
 
 
+def _same(a: float, b: float) -> bool:
+    """Exact equality, with NaN equal to NaN."""
+    return (math.isnan(a) and math.isnan(b)) or a == b
+
+
 class ArmTransform:
     """The predicted day's `catcher_framing` under an A arm; every other column, the index and the order unchanged.
     Batter rows with `is_home` face the away side's catcher, the others the home side's. Counts each mutually exclusive
@@ -342,6 +347,7 @@ def dispose(x) -> dict:
     return {"disposition": verdict, "m": m, "L": L, "L_block7": L_block, "d": d.tolist(),
             "seeds_positive": positive_seeds, "n_days": n, "bootstrap_constant": constant,
             "block_bootstrap_constant": block_constant,
+            "dependence_disagreement": (L > 0) != (L_block > 0),     # either direction (review c2)
             "daily": {"positive": int((daily > 0).sum()), "negative": int((daily < 0).sum()),
                       "zero": int((daily == 0).sum()), "discordant_seed_days": int((x != 0).sum())}}
 
@@ -366,8 +372,9 @@ PROXY_SEASONS = (2025, 2026)
 LOOKUP_NAME = "probable_pitcher_lookup.2017-2026.json"
 TABLE_NAME = "starter_proxy.2025-2026.json"
 SOURCES_NAME = "raw_sources.2025-2026.json"
+EXPECT_NAME = "expected_catcher_evidence.2026.parquet"
 FROZEN_PA = "pa_2026.parquet"                       # the frozen copy, read from the inputs directory
-INPUT_NAMES = tuple(f"pa_{s}.parquet" for s in SEASONS_IN) + (LOOKUP_NAME, TABLE_NAME, SOURCES_NAME)
+INPUT_NAMES = tuple(f"pa_{s}.parquet" for s in SEASONS_IN) + (LOOKUP_NAME, TABLE_NAME, SOURCES_NAME, EXPECT_NAME)
 OUT_ROOT = Path.home() / "projects" / "bts" / "data" / "hetzner_results" / "c2" / "framing_2026"
 DATA_DIR = Path.home() / "projects" / "bts" / "data" / "processed"     # §3, X-37: the declared PA directory
 RAW_DIR = Path.home() / "projects" / "bts" / "data" / "raw"              # the declared raw-feed root
@@ -380,6 +387,19 @@ SCOPE = "catcher framing 2026 test"
 INPUTS_ROW = "C2-framing-2026-inputs"
 ALLOWANCE_ROW = "C2-framing-2026-allowance"
 PREP_ROW = "C2-framing-2026-prep-read"
+INVENTORY_REL = "docs/audit/c2-framing-2026-source-inventory.json"   # published in the X-37 commit (review c2 R2-1)
+INVENTORY_CITE = re.compile(r"source inventory `(docs/audit/c2-framing-2026-source-inventory\.json)` sha256 `([0-9a-f]{64})`")
+INVENTORY_KEYS = frozenset({"pa_dir", "raw_root", "screen_inputs", "selection", "extraction"})
+SELECTION = ("the raw feed <raw_root>/<season>/<game_pk>.json of every distinct game id in the pinned pa_2025 and "
+             "pa_2026 parquets, once each, and no other file under <raw_root>")
+EXTRACTION_FIELDS = (                       # every feed field the preparation reads (starter_proxy, lookup_entry)
+    "gameData.game.pk", "gameData.game.season", "gameData.game.type", "gameData.game.gameNumber",
+    "gameData.datetime.officialDate", "gameData.teams.away.id", "gameData.teams.home.id",
+    "gameData.probablePitchers.away.id", "gameData.probablePitchers.home.id",
+    "liveData.boxscore.teams.<side>.players.<record>.person.id",
+    "liveData.boxscore.teams.<side>.players.<record>.battingOrder",
+    "liveData.boxscore.teams.<side>.players.<record>.allPositions[].code",
+)
 CLOSURE = ("scripts/__init__.py", "scripts/audit/__init__.py", "scripts/audit/c1", "scripts/audit/c2_framing",
            "src/bts", "pyproject.toml", "uv.lock", DESIGN)
 QUIET_MINUTES = (45, 190)                           # no launch from 00:45 to 03:10 America/New_York
@@ -406,6 +426,40 @@ def pins_shape_problem(pins) -> str | None:
             and all(isinstance(v, str) and HEX.fullmatch(v) for v in pins.values())):
         return f"admission input_pins must give a sha256 for exactly {sorted(INPUT_NAMES)}"
     return None
+
+
+def source_inventory(repo: Path, exposure_commit: str) -> tuple[dict | None, str | None]:
+    """The X-37 source inventory (design §3; review c2 R2-1): X-37's description at the exposure commit cites
+    `INVENTORY_REL` and its sha256; that file is published in the exposure commit itself, so it precedes any 2026 open
+    or hash; its bytes there have the cited sha256; and it holds exactly the declared directories, the registered
+    selection rule and the extraction field list this code reads. Returns (inventory, None) or (None, problem)."""
+    from scripts.audit.c1 import admission as A
+    register = A._git(repo, "show", f"{exposure_commit}:{REGISTER_REL}", check=False).stdout
+    row = next((l for l in register.splitlines() if l.startswith(f"| {EXPOSURE_ROW} |")), None)
+    cells = [c.strip() for c in row.strip().strip("|").split("|")] if row else []
+    m = INVENTORY_CITE.search(" | ".join(cells[2:])) if cells else None
+    if not m:
+        return None, f"{EXPOSURE_ROW} does not cite a source inventory `{INVENTORY_REL}` with its sha256"
+    b = A._show_bytes(repo, f"{exposure_commit}:{INVENTORY_REL}")
+    if b is None:
+        return None, f"the cited source inventory {INVENTORY_REL} does not exist at the exposure commit"
+    if A._show_bytes(repo, f"{exposure_commit}^:{INVENTORY_REL}") is not None:
+        return None, f"the source inventory was not published in the exposure commit (it existed before it)"
+    if S._sha(b) != m.group(2):
+        return None, f"the source inventory's sha256 is not the one {EXPOSURE_ROW} cites"
+    try:
+        inv = json.loads(b)
+    except ValueError:
+        return None, "the source inventory is not JSON"
+    if not (isinstance(inv, dict) and set(inv) == INVENTORY_KEYS
+            and all(isinstance(inv[k], str) and Path(inv[k]).is_absolute() for k in ("pa_dir", "raw_root",
+                                                                                    "screen_inputs"))):
+        return None, f"the source inventory does not hold exactly the fields {sorted(INVENTORY_KEYS)}"
+    if inv["selection"] != SELECTION:
+        return None, "the source inventory's selection rule is not the registered one"
+    if inv["extraction"] != list(EXTRACTION_FIELDS):
+        return None, "the source inventory's extraction fields are not the ones this code reads"
+    return inv, None
 
 
 def screen_pins(repo: Path | None = None) -> dict:
@@ -495,6 +549,10 @@ def admission_gate(repo: Path | None = None, *, require_inputs: bool = True):
     adm = json.loads(raw)
     head, reasons = A.admission_check(repo, adm, closure=CLOSURE, admission_rel=ADMISSION_REL,
                                       register_rel=REGISTER_REL, exposure_row=EXPOSURE_ROW, scope_phrase=SCOPE)
+    if not reasons:
+        problem = source_inventory(repo, adm["exposure_commit"])[1]
+        if problem:
+            reasons.append(problem)
     if require_inputs and not reasons:
         pins = adm.get("input_pins")
         register = (repo / REGISTER_REL).read_text()
@@ -768,14 +826,18 @@ def prepare(data_dir: Path, raw_dir: Path, screen_inputs: Path, out_dir: Path) -
     from scripts.audit.c1 import admission as A
     # The acquisition boundary (review c1 finding 5): before any 2026 file is opened or hashed, X-37 and the reviewed
     # code (the shared gate), the preparation-read row recorded after X-37, and exactly the declared directories.
+    c0 = S.cpu_seconds()
     _, adm, _ = admission_gate(require_inputs=False)
     problem = prep_row_problem(A.REPO, (A.REPO / REGISTER_REL).read_text(), adm["exposure_commit"])
     if problem:
         raise SystemExit(f"refusing: {problem}")
-    for given, declared, label in ((data_dir, DATA_DIR, "PA directory"), (raw_dir, RAW_DIR, "raw-feed root"),
-                                   (screen_inputs, SCREEN_INPUTS, "screen inputs directory")):
-        if Path(given).resolve() != Path(declared).resolve():
-            raise SystemExit(f"refusing: the {label} {given} is not the declared {declared}")
+    inv, problem = source_inventory(A.REPO, adm["exposure_commit"])
+    if problem:
+        raise SystemExit(f"refusing: {problem}")
+    for given, key, label in ((data_dir, "pa_dir", "PA directory"), (raw_dir, "raw_root", "raw-feed root"),
+                              (screen_inputs, "screen_inputs", "screen inputs directory")):
+        if Path(given).resolve() != Path(inv[key]).resolve():
+            raise SystemExit(f"refusing: the {label} {given} is not the source inventory's {inv[key]}")
     screen = screen_pins()
     out_dir.mkdir(exist_ok=False)
     raw26 = (data_dir / FROZEN_PA).read_bytes()
@@ -820,7 +882,7 @@ def prepare(data_dir: Path, raw_dir: Path, screen_inputs: Path, out_dir: Path) -
         reasons[str(r["season"])][r["reason"]] += 1
     missing_pitchers = sum(1 for s in (TEST_SEASON,) for pk in games[s]
                            for k in ("away", "home") if lookup[str(pk)][k] is None)
-    return {"pins": dict(sorted(pins.items())), "pins_digest": S.pins_digest(pins), "games": manifest["counts"],
+    return {"pins": dict(sorted(pins.items())), "games": manifest["counts"], "cpu_s": S.cpu_seconds() - c0,
             "proxy_reasons": reasons, "game_number_fallbacks": sum(r["game_number_fallback"] for r in records),
             "lookup_2026_missing_probable_sides": missing_pitchers}
 
@@ -844,8 +906,9 @@ class Trusted:
     side-games with their PA-row counts (every 2026 row, as the walk-forward predicts it); and each side-game's team and
     catcher by arm, from the pinned starter-proxy table."""
 
-    def __init__(self, pa26, table):
+    def __init__(self, pa26, table, expected=None):
         import pandas as pd
+        self.expected = expected                 # {(arm, date, game_pk, side): value}, from the pinned file
         self.calendar = expected_calendar(pa26)
         for col in ("batter_id", "game_pk"):
             if not (pd.api.types.is_integer_dtype(pa26[col]) and not pd.api.types.is_bool_dtype(pa26[col])):
@@ -929,8 +992,13 @@ def evidence_problem(ev, arm: str, truth: "Trusted", recorded: dict) -> str | No
         if rc != cid:
             return f"{arm}: side-game {(day, pk, side)} names catcher {rc}, not the re-derived {cid}"
         v = float(r.value)
-        why = "no_catcher" if cid is None else ("too_few_rates" if math.isnan(v) else "identified")
-        if r.reason != why or (cid is None and not math.isnan(v)):
+        if truth.expected is None or (arm, day, pk, side) not in truth.expected:
+            return f"{arm}: no pinned expected catcher value for side-game {(day, pk, side)}"
+        want = truth.expected[(arm, day, pk, side)]
+        if not _same(v, want):
+            return f"{arm}: side-game {(day, pk, side)} carries value {v}, not the expected {want}"
+        why = "no_catcher" if cid is None else ("too_few_rates" if math.isnan(want) else "identified")
+        if r.reason != why:
             return f"{arm}: side-game {(day, pk, side)} has reason {r.reason!r}, not {why!r}"
         side_games[why] += 1
         pa_rows[why] += int(r.n_pa)
@@ -949,8 +1017,62 @@ def load_trusted(inputs_dir: Path, pins: dict) -> "Trusted":
     import pandas as pd
     from scripts.audit.c1 import admission as A
     raw26, _ = A.read_pinned(Path(inputs_dir) / FROZEN_PA, pins[FROZEN_PA])
+    expected = None
+    if EXPECT_NAME in pins:
+        ev, _ = A.read_pinned(Path(inputs_dir) / EXPECT_NAME, pins[EXPECT_NAME])
+        expected = expected_values(pd.read_parquet(io.BytesIO(ev)))
     return Trusted(pd.read_parquet(io.BytesIO(raw26)),
-                   table_frame(read_pinned_json(Path(inputs_dir) / TABLE_NAME, pins[TABLE_NAME])))
+                   table_frame(read_pinned_json(Path(inputs_dir) / TABLE_NAME, pins[TABLE_NAME])), expected)
+
+
+def expected_evidence(truth: "Trusted", asof: "AsOfFraming"):
+    """The catcher evidence every run must retain, per A arm and trusted side-game (review c2 R2-2): computed once from
+    the pinned inputs, independent of any seed."""
+    import pandas as pd
+    rows = []
+    for arm in ARMS[1:]:
+        for (day, pk, side), n in sorted(truth.side_games.items()):
+            team, cid = truth.catcher(arm, pk, side, day)
+            if team is None:
+                raise InputRefused(f"side-game {(day, pk, side)} is not in the starter-proxy table")
+            v = asof.value(cid, day) if cid is not None else math.nan
+            why = "no_catcher" if cid is None else ("too_few_rates" if math.isnan(v) else "identified")
+            rows.append({"arm": arm, "date": day, "game_pk": pk, "fielding_side": side, "team_id": team,
+                         "catcher_id": cid, "reason": why, "value": v, "n_pa": n})
+    return pd.DataFrame(rows, columns=["arm", *EVIDENCE_COLS]).astype({"catcher_id": "Int64", "value": "float64"})
+
+
+def expected_values(ev) -> dict:
+    """{(arm, date, game_pk, side): value} from a pinned expected-evidence frame; malformed or duplicate rows refuse."""
+    if tuple(ev.columns) != ("arm", *EVIDENCE_COLS):
+        raise InputRefused("the expected catcher evidence does not have the registered columns")
+    out = {}
+    for r in ev.itertuples(index=False):
+        key = (str(r.arm), str(r.date), int(r.game_pk), str(r.fielding_side))
+        if key in out or key[0] not in ARMS[1:]:
+            raise InputRefused(f"the expected catcher evidence has a duplicate or unknown row {key}")
+        out[key] = float(r.value)
+    return out
+
+
+def expect(data_dir: Path, inputs_dir: Path, pins: dict, out: Path) -> dict:
+    """The one-time expectation step (review c2 R2-2; the manager's ruling): after the preparation read, outside the
+    launcher, recompute the catcher-grouped feature from the pinned inputs under the closed inputs and write the
+    expected evidence. Its file is pinned with the other inputs and bound by the inputs row; its CPU is recorded."""
+    from scripts.audit.c1 import admission as A
+    c0 = S.cpu_seconds()
+    _, adm, _ = admission_gate(require_inputs=False)
+    problem = prep_row_problem(A.REPO, (A.REPO / REGISTER_REL).read_text(), adm["exposure_commit"])
+    if problem:
+        raise SystemExit(f"refusing: {problem}")
+    ev = expected_evidence(load_trusted(inputs_dir, {k: v for k, v in pins.items() if k != EXPECT_NAME}),
+                           recompute_asof(data_dir, inputs_dir, pins))
+    buf = io.BytesIO()
+    ev.to_parquet(buf, index=False)
+    A.durable_write(out, buf.getvalue())
+    return {"file": str(out), "sha256": S._sha(buf.getvalue()), "rows": int(len(ev)),
+            "identified": {a: int(((ev["arm"] == a) & (ev["reason"] == "identified")).sum()) for a in ARMS[1:]},
+            "cpu_s": S.cpu_seconds() - c0}
 
 
 def run(seed: int, data_dir: Path, inputs_dir: Path, *, walk_forward=None, now=None, _test_out_root=None) -> int:
@@ -1227,10 +1349,6 @@ def recompute_asof(data_dir: Path, inputs_dir: Path, pins: dict) -> "AsOfFraming
     return AsOfFraming(df)
 
 
-def _same(a: float, b: float) -> bool:
-    return (math.isnan(a) and math.isnan(b)) or a == b
-
-
 def aggregate(run_dirs: list[Path], data_dir: Path, inputs_dir: Path, *, _test_out_root=None, _repo=None) -> dict:
     """§6: exactly one run directory per registered seed, each validated under the admitted identity, pins and the
     trusted evidence re-derived here from the pinned inputs; all agree on everything that defines the run, and on their
@@ -1278,8 +1396,7 @@ def aggregate(run_dirs: list[Path], data_dir: Path, inputs_dir: Path, *, _test_o
             "total_cpu_h": sum(by[s]["results"]["total_cpu_s"] for s in SEEDS) / 3600,
             "guard_cpu_h": sum(_lifecycle_record(C1_DIR, "TERMINAL", by[s]["manifest"]["launcher_unit"])["cpu_seconds"]
                                for s in SEEDS) / 3600,
-            "A_posted": {"decides": True, **posted,
-                         "dependence_disagreement": posted.get("L", 0) > 0 and not posted.get("L_block7", 0) > 0},
+            "A_posted": {"decides": True, **posted},
             "A_projected": {"decides": False, **projected},
             "streak": {a: {"mean_max_streak_delta": streak[a],
                            "seeds_below_zero": sum(1 for v in streak[a] if v is not None and v < 0)}
@@ -1334,6 +1451,10 @@ def main(argv=None) -> int:
     pr.add_argument("--raw-dir", type=Path, default=RAW_DIR)
     pr.add_argument("--screen-inputs", type=Path, default=SCREEN_INPUTS)
     pr.add_argument("--out", type=Path, default=OUT_ROOT / "inputs")
+    ex = sub.add_parser("expect", help="once, after preparation, off-launcher: the pinned expected catcher evidence")
+    ex.add_argument("--data-dir", type=Path, default=DATA_DIR)
+    ex.add_argument("--inputs-dir", type=Path, default=OUT_ROOT / "inputs")
+    ex.add_argument("--pins", type=Path, required=True, help="JSON {name: sha256} printed by prepare")
     g = sub.add_parser("aggregate")
     g.add_argument("--data-dir", type=Path, default=DATA_DIR)
     g.add_argument("--inputs-dir", type=Path, default=OUT_ROOT / "inputs")
@@ -1345,6 +1466,10 @@ def main(argv=None) -> int:
         return launch(a.seed, a.data_dir, a.inputs_dir)
     if a.cmd == "prepare":
         print(json.dumps(prepare(a.data_dir, a.raw_dir, a.screen_inputs, a.out), indent=1, sort_keys=True))
+        return 0
+    if a.cmd == "expect":
+        print(json.dumps(expect(a.data_dir, a.inputs_dir, json.loads(a.pins.read_text()),
+                                a.inputs_dir / EXPECT_NAME), indent=1, sort_keys=True))
         return 0
     print(json.dumps(aggregate(a.run_dirs, a.data_dir, a.inputs_dir), indent=1, sort_keys=True))
     return 0
