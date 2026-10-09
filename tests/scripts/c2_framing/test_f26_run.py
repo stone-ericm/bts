@@ -872,3 +872,11 @@ def test_the_aggregate_refuses_runs_whose_catcher_evidence_differs(world, ten):
     _edit_evidence(ten[3], "A_posted", lambda e: e.assign(value=e["value"].where(e["value"].isna(), e["value"] + 0.01)))
     with pytest.raises(F.RunInvalid, match="disagree"):
         F.aggregate(ten, world["out"], world["inputs"], _test_out_root=world["out"])
+
+
+def test_validation_refuses_a_units_file_that_differs_from_the_results(world):
+    seed = F.SEEDS[0]
+    assert _run(world, seed) == 0
+    _edit_json(_run_dir(world, seed), "units.json", lambda u: u[0].update(cpu_s=u[0]["cpu_s"] + 1.0))
+    with pytest.raises(F.RunInvalid, match="units.json"):
+        _validate(world, seed)

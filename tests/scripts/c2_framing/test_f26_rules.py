@@ -454,3 +454,11 @@ def test_pre_2019_rows_without_a_catcher_id_are_fine():
     df = pd.DataFrame({"season": [2017, 2018, 2019], "fielding_catcher_id": [np.nan, np.nan, 50.0]})
     F.history_start_problem(df)
     F.history_start_problem(pd.DataFrame({"season": [2017, 2019]}).assign(fielding_catcher_id=[np.nan, 7.0]))
+
+
+def test_a_zero_seed_delta_does_not_count_toward_the_six():
+    x = np.zeros((10, 100))
+    x[:5, :20] = 1.0                       # five seeds +20pp, five seeds exactly zero: m = +10pp, L > 0
+    out = F.dispose(x)
+    assert out["m"] > F.PRACTICAL_MIN and out["L"] > 0 and out["seeds_positive"] == 5
+    assert out["disposition"] == "inconclusive"
