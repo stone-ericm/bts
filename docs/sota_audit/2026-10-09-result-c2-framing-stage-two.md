@@ -74,7 +74,7 @@ All ten were launched through the C1 launcher from `~/projects/bts-c1`, one at a
 
 Seeds 1–3 are stage one's runs; their rows equal the stage-one note's.
 
-**The addendum §5 quantities** (from `aggregate-stage-two` on the box; `tables.py` recomputes each one independently from the retained diffs and matches it):
+**The addendum §5 quantities** (`tables.py` computes this table independently from the retained diffs; the box aggregate agrees on the season means, seed-level d, m, t, passes and dispositions; sd is computed here because the box aggregate has no sd field):
 
 | | A | B |
 |---|---|---|
@@ -138,7 +138,8 @@ Seed by seed:
   - `p_57_mdp` enters no rule.
   - `p_57_exact` enters only the per-seed fallback, which only seed 1's A reaches. There the three variants share one bit-identical value on each platform (stage one note), so the delta is exactly 0 on both.
   - Every other failing seed fails on a season drop beyond 0.3pp, before P(57) is consulted, and every passing seed passes on condition 1, which does not use P(57).
-- **`tables.py`** rebuilds every table above from the copies (P@1 and hits from the profiles' rank-1 rows, the rule and §5 from the diffs with its own arithmetic) and checks them against the box aggregate: 53 of 53 cross-checks pass (`tables.out`).
+- **`tables.py`** rebuilds the P@1/hit, §5 and secondary-metric tables from the copies and prints the in-process cost totals. P@1 and hits come from the profiles' rank-1 rows; the rule and §5 use its own arithmetic over the retained diffs. Its 53 cross-checks pass (`tables.out`), covering profile/diff P@1 agreement, selected box-aggregate fields and the aggregate's in-process CPU total.
+  - **Checker limits:** it does not rebuild the run/guard table or compare the aggregate's per-seed delta maps. Its seed-level d check uses `zip` without a length check, so an empty or shortened aggregate array can pass. The secondary table comes from retained diffs and is not compared with the aggregate, which carries no secondary metrics. These passing cross-checks are partial evidence; acceptance also checks array lengths, per-seed maps and retained scorecard/diff reconciliation.
 
 ## Cost
 - **Stage two (seeds 4–10):** 332,658.1 CPU-s = **92.41 CPU-hours** (guard; the ledger's journal figures sum to 92.4051). The in-process measurement is 332,376.2 s = 92.33 h.
@@ -172,4 +173,4 @@ Seed by seed:
 - `runs.sha256`: the 105 files of the seven stage-two run directories, hashed on the box (stage one's 45 are in `docs/audit/2026-10-08-c2-framing-stage-one-evidence/runs.sha256`).
 - `aggregate.mac.out`: the Mac re-run's refusal.
 - `rescore_diff.out`: the stage-two scorecards recomputed on the Mac, with every differing field (script: stage one's `rescore_diff.py`).
-- `tables.py`, `tables.out`: this note's tables, rebuilt from the copies and checked against the box aggregate.
+- `tables.py`, `tables.out`: this note's profile and derived tables, with selected cross-checks against the box aggregate (see the checker limits above).
