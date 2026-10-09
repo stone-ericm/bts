@@ -1,0 +1,11 @@
+UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run --offline pytest -q -p no:cacheprovider tests/scripts/c2_framing/test_f26_run.py -k 'coherently_wrong or count_says_otherwise or rederives_the_catcher or recorded_counts or recomputes_every or evidence_differs'
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-c2f26-code
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 96 items / 81 deselected / 15 selected
+
+tests/scripts/c2_framing/test_f26_run.py ...............                 [100%]
+
+================= 15 passed, 81 deselected in 71.64s (0:01:11) =================

@@ -462,3 +462,26 @@ def test_a_zero_seed_delta_does_not_count_toward_the_six():
     out = F.dispose(x)
     assert out["m"] > F.PRACTICAL_MIN and out["L"] > 0 and out["seeds_positive"] == 5
     assert out["disposition"] == "inconclusive"
+
+
+def test_the_block_resampling_constant_flag():
+    assert F.dispose(np.zeros((10, 30)))["block_bootstrap_constant"] is True
+    rng = np.random.default_rng(4)
+    x = (rng.uniform(size=(10, 60)) < 0.1).astype(float)
+    assert F.dispose(x)["block_bootstrap_constant"] is False
+
+
+def test_the_resampling_calls_on_continuous_deltas():
+    """Hit differences are -1, 0 or 1, so their resampled means are discrete and a 10th percentile can coincide across
+    generator seeds or quantile methods; continuous deltas pin the exact registered calls (round-2 mutants M59, M60)."""
+    x = np.random.default_rng(7).normal(size=(10, 53))
+    out = F.dispose(x)
+    daily, n = x.mean(axis=0), 53
+    idx = np.random.default_rng(20261009).integers(0, n, size=(10000, n))
+    assert out["L"] == float(np.quantile(daily[idx].mean(axis=1), 0.1, method="linear"))
+    starts = np.random.default_rng(20261009).integers(0, n, size=(10000, math.ceil(n / 7)))
+    block = ((starts[:, :, None] + np.arange(7)) % n).reshape(10000, -1)[:, :n]
+    assert out["L_block7"] == float(np.quantile(daily[block].mean(axis=1), 0.1, method="linear"))
+    other = np.random.default_rng(20261010).integers(0, n, size=(10000, n))
+    assert out["L"] != float(np.quantile(daily[other].mean(axis=1), 0.1, method="linear"))
+    assert out["L"] != float(np.quantile(daily[idx].mean(axis=1), 0.1, method="lower"))

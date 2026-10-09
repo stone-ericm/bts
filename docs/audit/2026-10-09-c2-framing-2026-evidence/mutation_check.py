@@ -69,22 +69,22 @@ MUTANTS = [
     ("M27 F1 score index unchecked", BB, "        if not scores.index.equals(index):", "        if False:", HOOK,
      "missing_a_row"),
     ("M28 F1 score length unchecked", BB, "        if values.shape != (len(index),):", "        if False:", HOOK,
-     "wrong_length"),
+     "wrong_length or array_of_scores"),
     ("M29 F2 label unchecked", F26, "        if int(h) != t[1]:", "        if False:", RUN, "coherently_wrong"),
     ("M30 F2 batter-game date unchecked", F26, "        if t is None or t[0] != d:", "        if t is None:", RUN,
-     "coherently_wrong"),
+     "coherently_wrong or another_date"),
     ("M31 F2 basis unchecked", F26, 'not bool((part["p_game_hit_basis"] == S.BASIS).all())', "False", RUN,
      "coherently_wrong"),
-    ("M32 F2 ten-row cap unchecked", F26, ".size() > 10).any()):", ".size() > 99).any()):", RUN, "coherently_wrong"),
+    ("M32 F2 ten-row cap unchecked", F26, ".size() > 10).any()):", ".size() > 99).any()):", RUN, "coherently_wrong or eleventh"),
     ("M33 F2 duplicate batter-game allowed", F26, "        if (d, b, g) in seen:", "        if False:", RUN,
-     "coherently_wrong"),
+     "coherently_wrong or within_ten_rows"),
     ("M34 F3 catcher not re-derived", F26, "        if rc != cid:", "        if False:", RUN, "rederives_the_catcher"),
     ("M35 F3 side-games not re-derived", F26, "    if {k: int(r.n_pa) for k, r in got.items()} != truth.side_games:",
      "    if False:", RUN, "rederives_the_catcher"),
     ("M36 F3 counts unchecked", F26, '    if recorded.get("counts") != {"side_games": side_games, "pa_rows": pa_rows}:',
-     "    if False:", RUN, "count_says_otherwise or recorded_counts"),
+     "    if False:", RUN, "count_says_otherwise or recorded_counts or counts_edited_in_both"),
     ("M37 F3 identified ids unchecked", F26, '    if recorded.get("identified_ids") != sorted(ids):', "    if False:",
-     RUN, "recorded_counts"),
+     RUN, "recorded_counts or ids_edited_in_both"),
     ("M38 F3 empty posted coverage allowed", F26, '    if arm == "A_posted" and side_games["identified"] == 0:',
      "    if False:", RUN, "count_says_otherwise"),
     ("M39 F3 values not recomputed", F26, "            if not _same(float(r.value), want):", "            if False:",
@@ -103,7 +103,7 @@ MUTANTS = [
     ("M44 F5 historical pins unchecked", F26, "    return f\"the historical pins {bad} are not the screen's\" if bad else None",
      "    return None", RUN, "historical_pins"),
     ("M45 F5 source set unchecked", F26, "    if len(got) != len(set(got)) or set(got) != want:", "    if False:", RUN,
-     "source_manifest"),
+     "source_manifest or other_games_with_consistent"),
     ("M46 F5 table coverage unchecked", F26,
      '    return None if got == want else "the starter-proxy table does not cover', '    return None if True else "the',
      RUN, "cover_exactly"),
@@ -135,9 +135,9 @@ MUTANTS = [
     ("M58 tie goes to the earlier start", F26, "max((c for c in count if count[c] == top), key=lambda c: latest[c])",
      "min((c for c in count if count[c] == top), key=lambda c: latest[c])", RULES, "tie"),
     ("M59 another generator seed", F26, "BOOTSTRAP_SEED = 20261009", "BOOTSTRAP_SEED = 20261010", RULES,
-     "disposition_quantities or block_resampling"),
+     "disposition_quantities or block_resampling or continuous_deltas"),
     ("M60 another quantile method", F26, 'np.quantile(means, 0.1, method="linear")', 'np.quantile(means, 0.1, method="lower")',
-     RULES, "disposition_quantities or block_resampling"),
+     RULES, "disposition_quantities or block_resampling or continuous_deltas"),
     ("M61 five seeds suffice", F26, "SEEDS_POSITIVE_MIN = 6", "SEEDS_POSITIVE_MIN = 5", RULES, "six_positive"),
     ("M62 zero seeds count positive", F26, "positive_seeds = int((d > 0).sum())", "positive_seeds = int((d >= 0).sum())",
      RULES, "zero_seed"),
@@ -167,7 +167,13 @@ def main(commit: str, scratch: str, ledger: str) -> int:
                 continue
             try:
                 path.write_text(text.replace(old, new))
-                r = subprocess.run(["env", "UV_CACHE_DIR=/tmp/uv-cache", "TZ=America/New_York", "uv", "run",
+                # A same-size substitution written within the same second as a cached compile can be served from a
+                # stale .pyc (the cache checks only size and whole-second mtime), so caches are purged and no
+                # bytecode is written: every import compiles the mutated source.
+                for cache in scratch_p.rglob("__pycache__"):
+                    sh("rm", "-rf", str(cache))
+                r = subprocess.run(["env", "PYTHONDONTWRITEBYTECODE=1", "UV_CACHE_DIR=/tmp/uv-cache",
+                                    "TZ=America/New_York", "uv", "run",
                                     "--offline", "pytest", "-q", "-p", "no:cacheprovider", "-x", *tests.split(),
                                     "-k", selector], cwd=scratch_p, capture_output=True, text=True)
                 result = "KILLED" if r.returncode == 1 else ("SURVIVED" if r.returncode == 0 else f"ERROR rc {r.returncode}")

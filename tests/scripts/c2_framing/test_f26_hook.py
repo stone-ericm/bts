@@ -210,3 +210,12 @@ def test_strict_mode_refuses_a_reliever_score_of_the_wrong_length(monkeypatch):
     _two_models(monkeypatch, baseline, _good)
     with pytest.raises(ValueError, match="aligned"):
         _run(_many_candidates(), strict_predict=True)
+
+
+def test_strict_mode_refuses_an_array_of_scores_of_the_wrong_length(monkeypatch):
+    def short_array(_model, day_data, _cols):
+        return day_data["catcher_framing"].to_numpy(dtype=float)[1:]      # not a Series: only its length can tell
+
+    _two_models(monkeypatch, _good, short_array)
+    with pytest.raises(ValueError, match="aligned"):
+        _run(_many_candidates(), strict_predict=True)

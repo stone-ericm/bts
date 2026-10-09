@@ -880,3 +880,113 @@ def test_validation_refuses_a_units_file_that_differs_from_the_results(world):
     _edit_json(_run_dir(world, seed), "units.json", lambda u: u[0].update(cpu_s=u[0]["cpu_s"] + 1.0))
     with pytest.raises(F.RunInvalid, match="units.json"):
         _validate(world, seed)
+
+
+def test_the_manifest_reports_the_2026_resumed_flag_totals(world):
+    assert _run(world, F.SEEDS[0]) == 0
+    man = json.loads((_run_dir(world, F.SEEDS[0]) / "manifest.json").read_text())
+    flag = world["df"].loc[world["df"]["season"] == 2026, "is_resumed_portion"]
+    assert man["resumed_flag_2026"] == {"flagged": int(flag.sum()), "unflagged": int((~flag).sum())}
+    assert man["resumed_flag_2026"]["flagged"] > 0
+
+
+def test_the_aggregate_reports_its_indicators_streaks_and_own_cpu(world, ten):
+    out = F.aggregate(ten, world["out"], world["inputs"], _test_out_root=world["out"])
+    posted = out["A_posted"]
+    assert posted["dependence_disagreement"] == (posted["L"] > 0 and not posted["L_block7"] > 0)
+    assert isinstance(posted["block_bootstrap_constant"], bool)
+    for a in ("A_posted", "A_projected"):
+        deltas = out["streak"][a]["mean_max_streak_delta"]
+        assert len(deltas) == 10 and out["streak"][a]["seeds_below_zero"] == sum(1 for v in deltas if v < 0)
+    assert out["aggregate_cpu_s"] >= 0 and out["guard_cpu_h"] >= out["total_cpu_h"]
+    assert all(isinstance(out["per_seed"][str(s)]["catcher"]["A_posted"]["identified_ids"], list) for s in F.SEEDS)
+
+
+# ---------------------------------------------------------------- round-2 mutation survivors: one check each
+
+def _apply_all_arms(world, seed, edit):
+    d = _run_dir(world, seed)
+    for a in F.ARMS:
+        p = d / f"profiles_{a}_2026.parquet"
+        p.write_bytes(_parquet(edit(pd.read_parquet(p))))
+    _recohere(world, seed)
+
+
+def test_a_real_batter_game_on_another_date_is_refused(world):
+    seed = F.SEEDS[0]
+    assert _run(world, seed) == 0
+
+    def swap(f):
+        a, b = sorted(f["date"].unique())[:2]
+        return f.assign(date=f["date"].map(lambda x: b if x == a else (a if x == b else x)))
+    _apply_all_arms(world, seed, swap)
+    with pytest.raises(F.RunInvalid, match="not a scoreable batter-game of that date"):
+        _validate(world, seed)
+
+
+def test_an_eleventh_real_correctly_labelled_batter_game_is_refused(world):
+    seed = F.SEEDS[0]
+    assert _run(world, seed) == 0
+    truth = _truth(world)
+
+    def eleventh(f):
+        day = sorted(f["date"].unique())[0]
+        iso = pd.Timestamp(day).date().isoformat()
+        g = f[f["date"] == day]
+        have = set(zip(g["batter_id"].astype(int), g["game_pk"].astype(int)))
+        assert len(g) == 10
+        extra = next(k for k, (d, h) in sorted(truth.labels.items()) if d == iso and k not in have)
+        row = g.iloc[[-1]].copy()
+        row["batter_id"], row["game_pk"], row["rank"] = extra[0], extra[1], 11
+        row["actual_hit"], row["p_game_hit"] = truth.labels[extra][1], 0.01
+        return pd.concat([f, row], ignore_index=True)
+    _apply_all_arms(world, seed, eleventh)
+    with pytest.raises(F.RunInvalid, match="more than 10 rows"):
+        _validate(world, seed)
+
+
+def test_a_duplicate_batter_game_within_ten_rows_is_refused(world):
+    seed = F.SEEDS[0]
+    assert _run(world, seed) == 0
+
+    def duplicate(f):
+        f = f.copy()
+        day = sorted(f["date"].unique())[0]
+        r9 = f.index[(f["date"] == day) & (f["rank"] == 9)][0]
+        r10 = f.index[(f["date"] == day) & (f["rank"] == 10)][0]
+        for col in ("batter_id", "game_pk", "actual_hit"):
+            f.loc[r10, col] = f.loc[r9, col]
+        return f
+    _apply_all_arms(world, seed, duplicate)
+    with pytest.raises(F.RunInvalid, match="appears twice"):
+        _validate(world, seed)
+
+
+def _edit_both(d, fn):
+    """The same edit to the results' units and units.json, so they still agree with each other."""
+    _edit_json(d, "results.json", lambda r: fn(r["units"]))
+    _edit_json(d, "units.json", fn)
+
+
+def test_counts_edited_in_both_records_are_refused(world):
+    seed = F.SEEDS[0]
+    assert _run(world, seed) == 0
+    _edit_both(_run_dir(world, seed), lambda u: u[2]["catcher"]["counts"]["side_games"].update(
+        no_catcher=u[2]["catcher"]["counts"]["side_games"]["no_catcher"] + 1))
+    with pytest.raises(F.RunInvalid, match="recorded counts"):
+        _validate(world, seed)
+
+
+def test_identified_ids_edited_in_both_records_are_refused(world):
+    seed = F.SEEDS[0]
+    assert _run(world, seed) == 0
+    _edit_both(_run_dir(world, seed), lambda u: u[2]["catcher"].update(identified_ids=u[2]["catcher"]["identified_ids"][1:]))
+    with pytest.raises(F.RunInvalid, match="identified ids"):
+        _validate(world, seed)
+
+
+def test_a_source_manifest_of_other_games_with_consistent_counts_and_digest_is_refused():
+    games = {2025: [10, 11], 2026: [20, 21, 22]}
+    m = _sources({2025: [10, 11], 2026: [20, 21, 23]})      # one wrong game; its counts and digest are its own
+    assert m["counts"] == {"2025": 2, "2026": 3}
+    assert F.sources_problem(m, games) == "the source manifest is not exactly the pinned 2025 and 2026 games, once each"

@@ -1,0 +1,412 @@
+UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run --offline pytest -q -p no:cacheprovider tests/scripts/c2_framing/test_f26_run.py -k 'launcher_unit or clean_launcher_receipt or clean_receipt or already_has_a_run'
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-c2f26-code
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 65 items / 52 deselected / 13 selected
+
+tests/scripts/c2_framing/test_f26_run.py FFFFFFFFFFFFF                   [100%]
+
+=================================== FAILURES ===================================
+____________________ test_the_run_records_its_launcher_unit ____________________
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1187323c0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12253/test_the_run_records_its_launc0/inputs'), ...}
+
+    def test_the_run_records_its_launcher_unit(world):
+        assert _run(world, F.SEEDS[0]) == 0
+        man = json.loads((_run_dir(world, F.SEEDS[0]) / "manifest.json").read_text())
+>       assert man["launcher_unit"] == _unit(F.SEEDS[0])
+               ^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'launcher_unit'
+
+tests/scripts/c2_framing/test_f26_run.py:606: KeyError
+_ test_validate_run_binds_the_run_to_its_clean_launcher_receipt[<lambda>-TERMINAL0] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118904ec0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12253/test_validate_run_binds_the_ru0/inputs'), ...}
+damage = <function <lambda> at 0x110c07600>, match = 'TERMINAL'
+
+    @pytest.mark.parametrize("damage, match", [
+        (lambda w, u, d: (w["c1"] / f"TERMINAL_{u}.json").unlink(), "TERMINAL"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", rc=1), "TERMINAL"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", result="cpu_limit"), "TERMINAL"),
+        (lambda w, u, d: (w["c1"] / f"RECONCILED_{u}.json").unlink(), "RECONCILED"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", problems=["no guard TERMINAL receipt"]), "RECONCILED"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", cpu_seconds=1.0), "RECONCILED"),
+        (lambda w, u, d: _rewrite(d / "results.json", total_cpu_s=-3600), "CPU"),
+        (lambda w, u, d: _rewrite(d / "results.json", total_cpu_s=float(10**9)), "CPU"),
+        (lambda w, u, d: _rewrite(d / "manifest.json", launcher_unit=_unit(F.SEEDS[1])), "unit"),
+        (lambda w, u, d: _rewrite(d / "manifest.json", launcher_unit=None), "unit"),
+    ])
+    def test_validate_run_binds_the_run_to_its_clean_launcher_receipt(world, damage, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+>       _validate(world, seed)                                    # clean
+        ^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:630: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118904ec0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12253/test_validate_run_binds_the_ru0/inputs'), ...}
+seed = 2273360, k = {}
+
+    def _validate(w, seed, **k):
+>       return F.validate_run(_run_dir(w, seed), seed, out_root=w["out"], identity=IDENT, pins=w["pins"],
+                              calendar=_calendar(w), c1_dir=w["c1"], **k)
+E       TypeError: validate_run() got an unexpected keyword argument 'c1_dir'
+
+tests/scripts/c2_framing/test_f26_run.py:182: TypeError
+_ test_validate_run_binds_the_run_to_its_clean_launcher_receipt[<lambda>-TERMINAL1] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1185bea50>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12253/test_validate_run_binds_the_ru1/inputs'), ...}
+damage = <function <lambda> at 0x110c076a0>, match = 'TERMINAL'
+
+    @pytest.mark.parametrize("damage, match", [
+        (lambda w, u, d: (w["c1"] / f"TERMINAL_{u}.json").unlink(), "TERMINAL"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", rc=1), "TERMINAL"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", result="cpu_limit"), "TERMINAL"),
+        (lambda w, u, d: (w["c1"] / f"RECONCILED_{u}.json").unlink(), "RECONCILED"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", problems=["no guard TERMINAL receipt"]), "RECONCILED"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", cpu_seconds=1.0), "RECONCILED"),
+        (lambda w, u, d: _rewrite(d / "results.json", total_cpu_s=-3600), "CPU"),
+        (lambda w, u, d: _rewrite(d / "results.json", total_cpu_s=float(10**9)), "CPU"),
+        (lambda w, u, d: _rewrite(d / "manifest.json", launcher_unit=_unit(F.SEEDS[1])), "unit"),
+        (lambda w, u, d: _rewrite(d / "manifest.json", launcher_unit=None), "unit"),
+    ])
+    def test_validate_run_binds_the_run_to_its_clean_launcher_receipt(world, damage, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+>       _validate(world, seed)                                    # clean
+        ^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:630: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1185bea50>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12253/test_validate_run_binds_the_ru1/inputs'), ...}
+seed = 2273360, k = {}
+
+    def _validate(w, seed, **k):
+>       return F.validate_run(_run_dir(w, seed), seed, out_root=w["out"], identity=IDENT, pins=w["pins"],
+                              calendar=_calendar(w), c1_dir=w["c1"], **k)
+E       TypeError: validate_run() got an unexpected keyword argument 'c1_dir'
+
+tests/scripts/c2_framing/test_f26_run.py:182: TypeError
+_ test_validate_run_binds_the_run_to_its_clean_launcher_receipt[<lambda>-TERMINAL2] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1185a1580>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12253/test_validate_run_binds_the_ru2/inputs'), ...}
+damage = <function <lambda> at 0x110c07740>, match = 'TERMINAL'
+
+    @pytest.mark.parametrize("damage, match", [
+        (lambda w, u, d: (w["c1"] / f"TERMINAL_{u}.json").unlink(), "TERMINAL"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", rc=1), "TERMINAL"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", result="cpu_limit"), "TERMINAL"),
+        (lambda w, u, d: (w["c1"] / f"RECONCILED_{u}.json").unlink(), "RECONCILED"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", problems=["no guard TERMINAL receipt"]), "RECONCILED"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", cpu_seconds=1.0), "RECONCILED"),
+        (lambda w, u, d: _rewrite(d / "results.json", total_cpu_s=-3600), "CPU"),
+        (lambda w, u, d: _rewrite(d / "results.json", total_cpu_s=float(10**9)), "CPU"),
+        (lambda w, u, d: _rewrite(d / "manifest.json", launcher_unit=_unit(F.SEEDS[1])), "unit"),
+        (lambda w, u, d: _rewrite(d / "manifest.json", launcher_unit=None), "unit"),
+    ])
+    def test_validate_run_binds_the_run_to_its_clean_launcher_receipt(world, damage, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+>       _validate(world, seed)                                    # clean
+        ^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:630: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1185a1580>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12253/test_validate_run_binds_the_ru2/inputs'), ...}
+seed = 2273360, k = {}
+
+    def _validate(w, seed, **k):
+>       return F.validate_run(_run_dir(w, seed), seed, out_root=w["out"], identity=IDENT, pins=w["pins"],
+                              calendar=_calendar(w), c1_dir=w["c1"], **k)
+E       TypeError: validate_run() got an unexpected keyword argument 'c1_dir'
+
+tests/scripts/c2_framing/test_f26_run.py:182: TypeError
+_ test_validate_run_binds_the_run_to_its_clean_launcher_receipt[<lambda>-RECONCILED0] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1188548c0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12253/test_validate_run_binds_the_ru3/inputs'), ...}
+damage = <function <lambda> at 0x110c077e0>, match = 'RECONCILED'
+
+    @pytest.mark.parametrize("damage, match", [
+        (lambda w, u, d: (w["c1"] / f"TERMINAL_{u}.json").unlink(), "TERMINAL"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", rc=1), "TERMINAL"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", result="cpu_limit"), "TERMINAL"),
+        (lambda w, u, d: (w["c1"] / f"RECONCILED_{u}.json").unlink(), "RECONCILED"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", problems=["no guard TERMINAL receipt"]), "RECONCILED"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", cpu_seconds=1.0), "RECONCILED"),
+        (lambda w, u, d: _rewrite(d / "results.json", total_cpu_s=-3600), "CPU"),
+        (lambda w, u, d: _rewrite(d / "results.json", total_cpu_s=float(10**9)), "CPU"),
+        (lambda w, u, d: _rewrite(d / "manifest.json", launcher_unit=_unit(F.SEEDS[1])), "unit"),
+        (lambda w, u, d: _rewrite(d / "manifest.json", launcher_unit=None), "unit"),
+    ])
+    def test_validate_run_binds_the_run_to_its_clean_launcher_receipt(world, damage, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+>       _validate(world, seed)                                    # clean
+        ^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:630: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1188548c0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12253/test_validate_run_binds_the_ru3/inputs'), ...}
+seed = 2273360, k = {}
+
+    def _validate(w, seed, **k):
+>       return F.validate_run(_run_dir(w, seed), seed, out_root=w["out"], identity=IDENT, pins=w["pins"],
+                              calendar=_calendar(w), c1_dir=w["c1"], **k)
+E       TypeError: validate_run() got an unexpected keyword argument 'c1_dir'
+
+tests/scripts/c2_framing/test_f26_run.py:182: TypeError
+_ test_validate_run_binds_the_run_to_its_clean_launcher_receipt[<lambda>-RECONCILED1] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118ccb020>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12253/test_validate_run_binds_the_ru4/inputs'), ...}
+damage = <function <lambda> at 0x110c07880>, match = 'RECONCILED'
+
+    @pytest.mark.parametrize("damage, match", [
+        (lambda w, u, d: (w["c1"] / f"TERMINAL_{u}.json").unlink(), "TERMINAL"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", rc=1), "TERMINAL"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", result="cpu_limit"), "TERMINAL"),
+        (lambda w, u, d: (w["c1"] / f"RECONCILED_{u}.json").unlink(), "RECONCILED"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", problems=["no guard TERMINAL receipt"]), "RECONCILED"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", cpu_seconds=1.0), "RECONCILED"),
+        (lambda w, u, d: _rewrite(d / "results.json", total_cpu_s=-3600), "CPU"),
+        (lambda w, u, d: _rewrite(d / "results.json", total_cpu_s=float(10**9)), "CPU"),
+        (lambda w, u, d: _rewrite(d / "manifest.json", launcher_unit=_unit(F.SEEDS[1])), "unit"),
+        (lambda w, u, d: _rewrite(d / "manifest.json", launcher_unit=None), "unit"),
+    ])
+    def test_validate_run_binds_the_run_to_its_clean_launcher_receipt(world, damage, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+>       _validate(world, seed)                                    # clean
+        ^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:630: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118ccb020>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12253/test_validate_run_binds_the_ru4/inputs'), ...}
+seed = 2273360, k = {}
+
+    def _validate(w, seed, **k):
+>       return F.validate_run(_run_dir(w, seed), seed, out_root=w["out"], identity=IDENT, pins=w["pins"],
+                              calendar=_calendar(w), c1_dir=w["c1"], **k)
+E       TypeError: validate_run() got an unexpected keyword argument 'c1_dir'
+
+tests/scripts/c2_framing/test_f26_run.py:182: TypeError
+_ test_validate_run_binds_the_run_to_its_clean_launcher_receipt[<lambda>-RECONCILED2] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1188254c0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12253/test_validate_run_binds_the_ru5/inputs'), ...}
+damage = <function <lambda> at 0x110c07920>, match = 'RECONCILED'
+
+    @pytest.mark.parametrize("damage, match", [
+        (lambda w, u, d: (w["c1"] / f"TERMINAL_{u}.json").unlink(), "TERMINAL"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", rc=1), "TERMINAL"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", result="cpu_limit"), "TERMINAL"),
+        (lambda w, u, d: (w["c1"] / f"RECONCILED_{u}.json").unlink(), "RECONCILED"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", problems=["no guard TERMINAL receipt"]), "RECONCILED"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", cpu_seconds=1.0), "RECONCILED"),
+        (lambda w, u, d: _rewrite(d / "results.json", total_cpu_s=-3600), "CPU"),
+        (lambda w, u, d: _rewrite(d / "results.json", total_cpu_s=float(10**9)), "CPU"),
+        (lambda w, u, d: _rewrite(d / "manifest.json", launcher_unit=_unit(F.SEEDS[1])), "unit"),
+        (lambda w, u, d: _rewrite(d / "manifest.json", launcher_unit=None), "unit"),
+    ])
+    def test_validate_run_binds_the_run_to_its_clean_launcher_receipt(world, damage, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+>       _validate(world, seed)                                    # clean
+        ^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:630: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1188254c0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12253/test_validate_run_binds_the_ru5/inputs'), ...}
+seed = 2273360, k = {}
+
+    def _validate(w, seed, **k):
+>       return F.validate_run(_run_dir(w, seed), seed, out_root=w["out"], identity=IDENT, pins=w["pins"],
+                              calendar=_calendar(w), c1_dir=w["c1"], **k)
+E       TypeError: validate_run() got an unexpected keyword argument 'c1_dir'
+
+tests/scripts/c2_framing/test_f26_run.py:182: TypeError
+_ test_validate_run_binds_the_run_to_its_clean_launcher_receipt[<lambda>-CPU0] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118d8c110>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12253/test_validate_run_binds_the_ru6/inputs'), ...}
+damage = <function <lambda> at 0x110c079c0>, match = 'CPU'
+
+    @pytest.mark.parametrize("damage, match", [
+        (lambda w, u, d: (w["c1"] / f"TERMINAL_{u}.json").unlink(), "TERMINAL"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", rc=1), "TERMINAL"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", result="cpu_limit"), "TERMINAL"),
+        (lambda w, u, d: (w["c1"] / f"RECONCILED_{u}.json").unlink(), "RECONCILED"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", problems=["no guard TERMINAL receipt"]), "RECONCILED"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", cpu_seconds=1.0), "RECONCILED"),
+        (lambda w, u, d: _rewrite(d / "results.json", total_cpu_s=-3600), "CPU"),
+        (lambda w, u, d: _rewrite(d / "results.json", total_cpu_s=float(10**9)), "CPU"),
+        (lambda w, u, d: _rewrite(d / "manifest.json", launcher_unit=_unit(F.SEEDS[1])), "unit"),
+        (lambda w, u, d: _rewrite(d / "manifest.json", launcher_unit=None), "unit"),
+    ])
+    def test_validate_run_binds_the_run_to_its_clean_launcher_receipt(world, damage, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+>       _validate(world, seed)                                    # clean
+        ^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:630: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118d8c110>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12253/test_validate_run_binds_the_ru6/inputs'), ...}
+seed = 2273360, k = {}
+
+    def _validate(w, seed, **k):
+>       return F.validate_run(_run_dir(w, seed), seed, out_root=w["out"], identity=IDENT, pins=w["pins"],
+                              calendar=_calendar(w), c1_dir=w["c1"], **k)
+E       TypeError: validate_run() got an unexpected keyword argument 'c1_dir'
+
+tests/scripts/c2_framing/test_f26_run.py:182: TypeError
+_ test_validate_run_binds_the_run_to_its_clean_launcher_receipt[<lambda>-CPU1] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118ccb6b0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12253/test_validate_run_binds_the_ru7/inputs'), ...}
+damage = <function <lambda> at 0x110c07a60>, match = 'CPU'
+
+    @pytest.mark.parametrize("damage, match", [
+        (lambda w, u, d: (w["c1"] / f"TERMINAL_{u}.json").unlink(), "TERMINAL"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", rc=1), "TERMINAL"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", result="cpu_limit"), "TERMINAL"),
+        (lambda w, u, d: (w["c1"] / f"RECONCILED_{u}.json").unlink(), "RECONCILED"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", problems=["no guard TERMINAL receipt"]), "RECONCILED"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", cpu_seconds=1.0), "RECONCILED"),
+        (lambda w, u, d: _rewrite(d / "results.json", total_cpu_s=-3600), "CPU"),
+        (lambda w, u, d: _rewrite(d / "results.json", total_cpu_s=float(10**9)), "CPU"),
+        (lambda w, u, d: _rewrite(d / "manifest.json", launcher_unit=_unit(F.SEEDS[1])), "unit"),
+        (lambda w, u, d: _rewrite(d / "manifest.json", launcher_unit=None), "unit"),
+    ])
+    def test_validate_run_binds_the_run_to_its_clean_launcher_receipt(world, damage, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+>       _validate(world, seed)                                    # clean
+        ^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:630: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118ccb6b0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12253/test_validate_run_binds_the_ru7/inputs'), ...}
+seed = 2273360, k = {}
+
+    def _validate(w, seed, **k):
+>       return F.validate_run(_run_dir(w, seed), seed, out_root=w["out"], identity=IDENT, pins=w["pins"],
+                              calendar=_calendar(w), c1_dir=w["c1"], **k)
+E       TypeError: validate_run() got an unexpected keyword argument 'c1_dir'
+
+tests/scripts/c2_framing/test_f26_run.py:182: TypeError
+_ test_validate_run_binds_the_run_to_its_clean_launcher_receipt[<lambda>-unit0] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1188254c0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12253/test_validate_run_binds_the_ru8/inputs'), ...}
+damage = <function <lambda> at 0x110c07b00>, match = 'unit'
+
+    @pytest.mark.parametrize("damage, match", [
+        (lambda w, u, d: (w["c1"] / f"TERMINAL_{u}.json").unlink(), "TERMINAL"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", rc=1), "TERMINAL"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", result="cpu_limit"), "TERMINAL"),
+        (lambda w, u, d: (w["c1"] / f"RECONCILED_{u}.json").unlink(), "RECONCILED"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", problems=["no guard TERMINAL receipt"]), "RECONCILED"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", cpu_seconds=1.0), "RECONCILED"),
+        (lambda w, u, d: _rewrite(d / "results.json", total_cpu_s=-3600), "CPU"),
+        (lambda w, u, d: _rewrite(d / "results.json", total_cpu_s=float(10**9)), "CPU"),
+        (lambda w, u, d: _rewrite(d / "manifest.json", launcher_unit=_unit(F.SEEDS[1])), "unit"),
+        (lambda w, u, d: _rewrite(d / "manifest.json", launcher_unit=None), "unit"),
+    ])
+    def test_validate_run_binds_the_run_to_its_clean_launcher_receipt(world, damage, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+>       _validate(world, seed)                                    # clean
+        ^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:630: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1188254c0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12253/test_validate_run_binds_the_ru8/inputs'), ...}
+seed = 2273360, k = {}
+
+    def _validate(w, seed, **k):
+>       return F.validate_run(_run_dir(w, seed), seed, out_root=w["out"], identity=IDENT, pins=w["pins"],
+                              calendar=_calendar(w), c1_dir=w["c1"], **k)
+E       TypeError: validate_run() got an unexpected keyword argument 'c1_dir'
+
+tests/scripts/c2_framing/test_f26_run.py:182: TypeError
+_ test_validate_run_binds_the_run_to_its_clean_launcher_receipt[<lambda>-unit1] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118905880>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12253/test_validate_run_binds_the_ru9/inputs'), ...}
+damage = <function <lambda> at 0x110c07ba0>, match = 'unit'
+
+    @pytest.mark.parametrize("damage, match", [
+        (lambda w, u, d: (w["c1"] / f"TERMINAL_{u}.json").unlink(), "TERMINAL"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", rc=1), "TERMINAL"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", result="cpu_limit"), "TERMINAL"),
+        (lambda w, u, d: (w["c1"] / f"RECONCILED_{u}.json").unlink(), "RECONCILED"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", problems=["no guard TERMINAL receipt"]), "RECONCILED"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", cpu_seconds=1.0), "RECONCILED"),
+        (lambda w, u, d: _rewrite(d / "results.json", total_cpu_s=-3600), "CPU"),
+        (lambda w, u, d: _rewrite(d / "results.json", total_cpu_s=float(10**9)), "CPU"),
+        (lambda w, u, d: _rewrite(d / "manifest.json", launcher_unit=_unit(F.SEEDS[1])), "unit"),
+        (lambda w, u, d: _rewrite(d / "manifest.json", launcher_unit=None), "unit"),
+    ])
+    def test_validate_run_binds_the_run_to_its_clean_launcher_receipt(world, damage, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+>       _validate(world, seed)                                    # clean
+        ^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:630: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118905880>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12253/test_validate_run_binds_the_ru9/inputs'), ...}
+seed = 2273360, k = {}
+
+    def _validate(w, seed, **k):
+>       return F.validate_run(_run_dir(w, seed), seed, out_root=w["out"], identity=IDENT, pins=w["pins"],
+                              calendar=_calendar(w), c1_dir=w["c1"], **k)
+E       TypeError: validate_run() got an unexpected keyword argument 'c1_dir'
+
+tests/scripts/c2_framing/test_f26_run.py:182: TypeError
+_________ test_a_later_seed_waits_for_the_earlier_seeds_clean_receipt __________
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x11891b620>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12253/test_a_later_seed_waits_for_th0/inputs'), ...}
+
+    def test_a_later_seed_waits_for_the_earlier_seeds_clean_receipt(world):
+        assert _run(world, F.SEEDS[0], receipts=False) == 0
+>       with pytest.raises(SystemExit, match="TERMINAL"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/scripts/c2_framing/test_f26_run.py:638: Failed
+__ test_launch_refuses_a_seed_that_already_has_a_run_before_issuing_a_command __
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1100cf470>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12253/test_launch_refuses_a_seed_tha0/inputs'), ...}
+
+    def test_launch_refuses_a_seed_that_already_has_a_run_before_issuing_a_command(world):
+        seen = []
+        execute = lambda argv, cwd: seen.append(argv) or subprocess.CompletedProcess(argv, 0)   # noqa: E731
+        assert _run(world, F.SEEDS[0]) == 0
+>       with pytest.raises(SystemExit, match="already has a run"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/scripts/c2_framing/test_f26_run.py:646: Failed
+=========================== short test summary info ============================
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_the_run_records_its_launcher_unit
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_validate_run_binds_the_run_to_its_clean_launcher_receipt[<lambda>-TERMINAL0]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_validate_run_binds_the_run_to_its_clean_launcher_receipt[<lambda>-TERMINAL1]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_validate_run_binds_the_run_to_its_clean_launcher_receipt[<lambda>-TERMINAL2]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_validate_run_binds_the_run_to_its_clean_launcher_receipt[<lambda>-RECONCILED0]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_validate_run_binds_the_run_to_its_clean_launcher_receipt[<lambda>-RECONCILED1]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_validate_run_binds_the_run_to_its_clean_launcher_receipt[<lambda>-RECONCILED2]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_validate_run_binds_the_run_to_its_clean_launcher_receipt[<lambda>-CPU0]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_validate_run_binds_the_run_to_its_clean_launcher_receipt[<lambda>-CPU1]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_validate_run_binds_the_run_to_its_clean_launcher_receipt[<lambda>-unit0]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_validate_run_binds_the_run_to_its_clean_launcher_receipt[<lambda>-unit1]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_a_later_seed_waits_for_the_earlier_seeds_clean_receipt
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_launch_refuses_a_seed_that_already_has_a_run_before_issuing_a_command
+====================== 13 failed, 52 deselected in 8.67s =======================
