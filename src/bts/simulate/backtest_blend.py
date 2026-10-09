@@ -731,6 +731,8 @@ def blend_walk_forward(
     cache_reuse_configs: list[str] | None = None,
     pa_predictions_path: "Path | None" = None,
     game_probability_mode: str = GAME_PROBABILITY_ACTUAL_PA,
+    predict_day_transform=None,
+    strict_predict: bool = False,
 ) -> "pd.DataFrame":
     """Run blend walk-forward evaluation and return daily profiles.
 
@@ -766,6 +768,17 @@ def blend_walk_forward(
             Gate-B diagnostic mode that uses starter-matchup rows, lineup-slot
             estimated PAs, and training-window reliever context to mirror the
             production probability basis.
+        predict_day_transform: Optional ``f(day_data, day) -> DataFrame``
+            applied to the private copy of each predicted day's rows after any
+            retraining and before the first blend prediction, so its values
+            reach the blend scores and the estimated-PA starter and reliever
+            rows. It must return the same index and columns in the same order;
+            training frames never see it. Research plumbing for the 2026
+            framing test (``docs/sota_audit/2026-10-09-prereg-c2-framing-2026-test.md``
+            §4). None (the default) leaves behavior unchanged.
+        strict_predict: When True, a model's prediction failure is raised
+            instead of being printed and scored as missing. False (the default)
+            leaves behavior unchanged.
 
     Returns DataFrame with PROFILE_COLUMNS (plus per-model columns if requested).
     """
@@ -852,12 +865,23 @@ def blend_walk_forward(
                       f"— retrained on {len(available):,} PAs{hit_msg}",
                       file=sys.stderr)
 
+        if predict_day_transform is not None:
+            transformed = predict_day_transform(day_data, day)
+            if not (isinstance(transformed, pd.DataFrame)
+                    and list(transformed.columns) == list(day_data.columns)
+                    and transformed.index.equals(day_data.index)):
+                raise ValueError("predict_day_transform must return the day's rows with the same index, order and "
+                                 "columns")
+            day_data = transformed
+
         # Predict with all blend models
         blend_pa_scores = {}
         for name, (model, cols, predict_fn) in blend.items():
             try:
                 blend_pa_scores[name] = predict_fn(model, day_data, cols)
             except Exception as e:
+                if strict_predict:
+                    raise
                 print(f"  ! {name} predict failed on {day}: {e}", file=sys.stderr)
                 blend_pa_scores[name] = pd.Series(np.nan, index=day_data.index)
 
