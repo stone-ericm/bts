@@ -38,7 +38,7 @@ MUTANTS = [
     ("M12 L = 0 passes", F26, "L > 0 and positive_seeds", "L >= 0 and positive_seeds", RULES, "exactly_zero"),
     ("M13 any C entry counts", F26, 'if ap[0]["code"] == "2":', 'if any(e["code"] == "2" for e in ap):', RULES,
      "moved_to_catcher"),
-    ("M14 pins row may predate X-37", F26, "if A.row_cells(earlier, INPUTS_ROW):", "if False:", RUN, "inputs_row"),
+    ("M14 pins row binds other pins", F26, "if m.group(2) != S.pins_digest(pins):", "if False:", RUN, "inputs_row"),
     ("M15 resumed flag unchecked", F26, "if not pd.api.types.is_bool_dtype(flag) or bool(flag.isna().any()):",
      "if False:", RULES, "resumed_flag"),
     ("M16 hook result ignored", BB, "            day_data = transformed\n", "            pass\n", HOOK,
