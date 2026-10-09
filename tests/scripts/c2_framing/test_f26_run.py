@@ -528,3 +528,32 @@ def test_launch_runs_the_launcher_with_erics_budget_and_refuses_in_the_window(wo
     with pytest.raises(SystemExit, match="00:45 to 03:10"):
         F.launch(F.SEEDS[0], world["out"], world["inputs"], execute=execute, _test_out_root=world["out"])
     assert len(seen) == 1
+
+
+def _prep_row(text="the catcher framing 2026 test's preparation read"):
+    return f"| {F.PREP_ROW} | the first 2026 read | **DECLARED 2026-10-10: {text}** | the lead |\n"
+
+
+def test_the_preparation_read_needs_its_own_row_after_the_exposure_commit(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git(repo, "init", "-q")
+    head = "| ID | a | b | c |\n"
+    x = _commit(repo, head)
+    assert F.prep_row_problem(repo, head + _prep_row(), x) is None
+    assert "no structured" in F.prep_row_problem(repo, head, x)
+    assert "no structured" in F.prep_row_problem(repo, head + _prep_row("a preparation read"), x)
+    early = _commit(repo, head + _prep_row())
+    assert "already existed" in F.prep_row_problem(repo, head + _prep_row(), early)
+
+
+def test_the_prepare_command_refuses_without_the_row_and_before_reading_anything(monkeypatch, tmp_path):
+    monkeypatch.setattr(F, "admission_gate", lambda repo=None, *, require_inputs=True:
+                        ("a" * 40, {"exposure_commit": "b" * 40}, dict(IDENT)))
+    monkeypatch.setattr(F, "prep_row_problem", lambda repo, text, xc: "no structured row")
+    read = []
+    monkeypatch.setattr(F, "prepare", lambda *a: read.append(a))
+    with pytest.raises(SystemExit, match="no structured row"):
+        F.main(["prepare", "--data-dir", str(tmp_path), "--raw-dir", str(tmp_path), "--screen-inputs", str(tmp_path),
+                "--out", str(tmp_path / "inputs")])
+    assert read == []

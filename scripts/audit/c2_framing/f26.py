@@ -360,6 +360,7 @@ EXPOSURE_ROW = "X-37"
 SCOPE = "catcher framing 2026 test"
 INPUTS_ROW = "C2-framing-2026-inputs"
 ALLOWANCE_ROW = "C2-framing-2026-allowance"
+PREP_ROW = "C2-framing-2026-prep-read"
 CLOSURE = ("scripts/__init__.py", "scripts/audit/__init__.py", "scripts/audit/c1", "scripts/audit/c2_framing",
            "src/bts", "pyproject.toml", "uv.lock", DESIGN)
 QUIET_MINUTES = (45, 190)                           # no launch from 00:45 to 03:10 America/New_York
@@ -371,6 +372,7 @@ IDENTITY_KEYS = ("review_report", "review_report_sha256", "reviewed_commit", "ex
 HEX = re.compile(r"[0-9a-f]{64}")
 HEAD = re.compile(r"[0-9a-f]{40}")
 INPUTS_RE = re.compile(r"^\*\*PINNED (\d{4}-\d{2}-\d{2}): catcher framing 2026 test inputs `([0-9a-f]{64})`\*\*$")
+PREP_RE = re.compile(r"^\*\*DECLARED (\d{4}-\d{2}-\d{2}): the catcher framing 2026 test's preparation read\*\*$")
 ALLOW_RE = re.compile(r"^\*\*RULED (\d{4}-\d{2}-\d{2}) \(Eric\): ALLOW the catcher framing 2026 test; shared C1/C2 "
                       r"compute cap (\d+(?:\.\d+)?) CPU-hours; declared budget (\d+(?:\.\d+)?) CPU-hours per seed; "
                       r"first walk-forward stop (\d+(?:\.\d+)?) CPU-hours\*\*$")
@@ -387,20 +389,35 @@ def pins_shape_problem(pins) -> str | None:
     return None
 
 
+def _row_after_exposure(repo: Path, register_text: str, exposure_commit: str, row_id: str, pattern) -> tuple:
+    """(the ruling cell's match, problem): the row must be structured, and absent at the exposure commit, so it was
+    recorded after X-37."""
+    from scripts.audit.c1 import admission as A
+    cells = A.row_cells(register_text, row_id)
+    m = pattern.match(cells[2].strip()) if cells and len(cells) >= 4 else None
+    if not m:
+        return None, f"no structured {row_id} row"
+    earlier = A._git(repo, "show", f"{exposure_commit}:{REGISTER_REL}", check=False).stdout
+    if A.row_cells(earlier, row_id):
+        return None, f"the {row_id} row already existed at the exposure commit: it is recorded after X-37"
+    return m, None
+
+
 def inputs_row_problem(repo: Path, register_text: str, exposure_commit: str, pins: dict) -> str | None:
     """The pins are bound in the register after X-37 (§8 step 3): row INPUTS_ROW, absent at the exposure commit, whose
     ruling cell is exactly "**PINNED <date>: catcher framing 2026 test inputs `<sha256 of the canonical pins>`**"."""
-    from scripts.audit.c1 import admission as A
-    cells = A.row_cells(register_text, INPUTS_ROW)
-    m = INPUTS_RE.match(cells[2].strip()) if cells and len(cells) >= 4 else None
-    if not m:
-        return f"no structured {INPUTS_ROW} row binding the input pins"
+    m, problem = _row_after_exposure(repo, register_text, exposure_commit, INPUTS_ROW, INPUTS_RE)
+    if problem:
+        return problem if "already existed" in problem else f"{problem} binding the input pins"
     if m.group(2) != S.pins_digest(pins):
         return f"the {INPUTS_ROW} row does not bind these input pins"
-    earlier = A._git(repo, "show", f"{exposure_commit}:{REGISTER_REL}", check=False).stdout
-    if A.row_cells(earlier, INPUTS_ROW):
-        return f"the {INPUTS_ROW} row already existed at the exposure commit: pins are bound after X-37"
     return None
+
+
+def prep_row_problem(repo: Path, register_text: str, exposure_commit: str) -> str | None:
+    """The first 2026 read has its own register row, recorded after X-37 (the manager's gate, 2026-10-09): row
+    PREP_ROW whose ruling cell is exactly "**DECLARED <date>: the catcher framing 2026 test's preparation read**"."""
+    return _row_after_exposure(repo, register_text, exposure_commit, PREP_ROW, PREP_RE)[1]
 
 
 def admission_gate(repo: Path | None = None, *, require_inputs: bool = True):
@@ -914,7 +931,10 @@ def main(argv=None) -> int:
         return launch(a.seed, a.data_dir, a.inputs_dir)
     if a.cmd == "prepare":
         from scripts.audit.c1 import admission as A
-        admission_gate(require_inputs=False)        # X-37 published and the reviewed code, before any 2026 read
+        _, adm, _ = admission_gate(require_inputs=False)   # X-37 published and the reviewed code
+        problem = prep_row_problem(A.REPO, (A.REPO / REGISTER_REL).read_text(), adm["exposure_commit"])
+        if problem:                                           # before any 2026 file is opened or hashed
+            raise SystemExit(f"refusing: {problem}")
         screen_pins = json.loads((A.REPO / S.ADMISSION_REL).read_text())["input_pins"]
         print(json.dumps(prepare(a.data_dir, a.raw_dir, a.screen_inputs, screen_pins, a.out), indent=1,
                          sort_keys=True))

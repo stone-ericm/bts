@@ -776,9 +776,10 @@ def blend_walk_forward(
             training frames never see it. Research plumbing for the 2026
             framing test (``docs/sota_audit/2026-10-09-prereg-c2-framing-2026-test.md``
             §4). None (the default) leaves behavior unchanged.
-        strict_predict: When True, a model's prediction failure is raised
-            instead of being printed and scored as missing. False (the default)
-            leaves behavior unchanged.
+        strict_predict: When True, a model's prediction failure, or a
+            prediction with any non-finite score, is raised instead of being
+            printed and scored as missing. False (the default) leaves behavior
+            unchanged.
 
     Returns DataFrame with PROFILE_COLUMNS (plus per-model columns if requested).
     """
@@ -879,6 +880,8 @@ def blend_walk_forward(
         for name, (model, cols, predict_fn) in blend.items():
             try:
                 blend_pa_scores[name] = predict_fn(model, day_data, cols)
+                if strict_predict and not np.isfinite(np.asarray(blend_pa_scores[name], dtype=float)).all():
+                    raise ValueError(f"{name} returned non-finite scores on {day}")
             except Exception as e:
                 if strict_predict:
                     raise

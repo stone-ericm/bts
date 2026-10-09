@@ -132,3 +132,19 @@ def test_a_prediction_failure_is_scored_missing_by_default_and_raised_when_stric
     assert out["p_game_hit"].isna().all()
     with pytest.raises(RuntimeError, match="model failed"):
         _run(_world(), strict_predict=True)
+
+
+def test_strict_mode_refuses_a_model_that_returns_missing_scores(monkeypatch):
+    def predict(_model, day_data, _cols):
+        if (day_data["pitcher_hr_30g"] == 0.2).all():
+            return pd.Series(float("nan"), index=day_data.index)       # no exception, but no score either
+        return pd.Series(day_data["catcher_framing"].to_numpy(dtype=float), index=day_data.index)
+
+    def train(available, _configs, _params, cached_models=None):
+        return {"baseline": (object(), ["catcher_framing", "pitcher_hr_30g", "pitcher_entropy_30g"], predict),
+                "second": (object(), ["catcher_framing"], lambda m, d, c: pd.Series(0.5, index=d.index))}, set()
+
+    monkeypatch.setattr(bb, "_train_blend_for_day", train)
+    _run(_world())                              # default: the blend averages what it has, as before
+    with pytest.raises(ValueError, match="non-finite"):
+        _run(_world(), strict_predict=True)
