@@ -48,7 +48,8 @@ def _world():
                                          "fielding_catcher_id": catchers[field], "lineup_position": b + 1,
                                          "pa_borderline_csr": float(rng.random()),
                                          "is_hit": int(rng.random() < 0.3 + 0.1 * b),
-                                         "is_resumed_portion": bool(season == 2026 and d == 4 and b == 2)})
+                                         "is_resumed_portion": bool(season == 2026 and d == 4 and b == 2),
+                                         "weather_temp": 70})
     df = S.framing_by(pd.DataFrame(rows), "pitcher_id", S.OLD_COL)
     for r in table:
         if r["catcher_id"] is None:
@@ -990,3 +991,23 @@ def test_a_source_manifest_of_other_games_with_consistent_counts_and_digest_is_r
     m = _sources({2025: [10, 11], 2026: [20, 21, 23]})      # one wrong game; its counts and digest are its own
     assert m["counts"] == {"2025": 2, "2026": 3}
     assert F.sources_problem(m, games) == "the source manifest is not exactly the pinned 2025 and 2026 games, once each"
+
+
+def test_a_2026_row_with_every_model_feature_missing_stops_before_any_walk_forward(world, monkeypatch):
+    df = world["df"].drop(columns=[S.OLD_COL])
+    i = df.index[df["season"] == 2026][0]
+    df.loc[i, "pitcher_id"] = 999999                         # a debut pitcher: no framing history
+    df.loc[i, "weather_temp"] = np.nan                       # and no temperature: no feature at all in a model
+    df = S.framing_by(df, "pitcher_id", S.OLD_COL)           # the screen's self-check still holds
+    assert np.isnan(df.loc[i, S.OLD_COL])
+    monkeypatch.setattr(F, "load_inputs", lambda data_dir, inputs_dir, pins: df.copy())
+    monkeypatch.setattr(F, "AsOfFraming", lambda d: _NoFraming())
+    calls = []
+    assert _run(world, F.SEEDS[0], calls) == 5
+    stop = json.loads((_run_dir(world, F.SEEDS[0]) / "STOPPED.json").read_text())
+    assert stop["reason"] == "all_features_missing" and calls == []
+
+
+class _NoFraming:
+    def value(self, catcher_id, day):
+        return float("nan")

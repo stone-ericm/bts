@@ -18,6 +18,13 @@ Written by the lead on 2026-10-09, under the manager's ruling that test-first me
 | 6. Accepted runs are not bound to clean launcher completion | `test_f26_run.py`: `…records_its_launcher_unit`, `test_validate_run_binds_the_run_to_its_clean_launcher_receipt` (10 cases), `…waits_for_the_earlier_seeds_clean_receipt`, `…launch_refuses_a_seed_that_already_has_a_run…` | 13 failed: 10 `unexpected keyword argument 'c1_dir'`, 1 `KeyError: 'launcher_unit'`, 2 `DID NOT RAISE SystemExit` (`F6-red.txt`) | 13 passed (`F6-green.txt`) | M47–M50 |
 | 7. Malformed records are silently repaired | `test_f26_rules.py`: `…malformed_non_starting_record…` (5), `…well_formed_bench_and_pitcher_records…`, `…well_formed_table_is_accepted`, `…malformed_or_inconsistent_table_refuses` (19), `…pa_game_ids_must_be_exact_positive_integers` (5), `…returns_the_sorted_distinct_ids` | 29 failed, 3 passed: 5 `assert (102 is None)` (the side was still identified), 6 `no attribute 'pa_game_ids'`, 18 `DID NOT RAISE InputRefused`. The 3 that passed are the well-formed guards and the duplicate-side case, which the old duplicate check already refused (`F7-red.txt`) | 32 passed (`F7-green.txt`) | M51–M55 |
 
+**One more check, added for finding 1, found while reading the real prediction path.** `_predict_lgbm_classifier`, used by all twelve blend models, scores NaN on a row whose features are all missing. Strict prediction would refuse that, but only hours into a walk-forward. So the run now stops before any walk-forward (STOPPED `all_features_missing`, code 5) if a 2026 row has every feature of some model missing. A's catcher column is counted as missing for this check.
+- `weather_temp`, in every model, has no missing value in the pinned 2019-2025 files (`int64`, 0 nulls). 2026 is unverified until the preparation read.
+- The test is `test_a_2026_row_with_every_model_feature_missing_stops_before_any_walk_forward`.
+  - RED: `assert 0 == 5`. The run completed instead of stopping (`F1b-red.txt`). An earlier RED attempt failed only on the test's own setup, a broken self-check (`assert 4 == 5`), and was corrected before this RED.
+  - GREEN: 1 passed (`F1b-green.txt`).
+  - Mutant: M65.
+
 **The nonblocking items (8–11)** are implemented in `bdab58b`:
 - identified catcher ids are listed, not counted;
 - the 2026 resumed-flag totals are reported;

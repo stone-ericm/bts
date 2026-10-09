@@ -1,0 +1,34 @@
+UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run --offline pytest -q -p no:cacheprovider tests/scripts/c2_framing/test_f26_run.py -k 'every_model_feature_missing'
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-c2f26-code
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 107 items / 106 deselected / 1 selected
+
+tests/scripts/c2_framing/test_f26_run.py F                               [100%]
+
+=================================== FAILURES ===================================
+_ test_a_2026_row_with_every_model_feature_missing_stops_before_any_walk_forward _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x117fa7cb0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12322/test_a_2026_row_with_every_mod0/inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1107cbbf0>
+
+    def test_a_2026_row_with_every_model_feature_missing_stops_before_any_walk_forward(world, monkeypatch):
+        df = world["df"].drop(columns=[S.OLD_COL])
+        i = df.index[df["season"] == 2026][0]
+        df.loc[i, "pitcher_id"] = 999999                         # a debut pitcher: no framing history
+        df.loc[i, "weather_temp"] = np.nan                       # and no temperature: no feature at all in a model
+        df = S.framing_by(df, "pitcher_id", S.OLD_COL)           # the screen's self-check still holds
+        assert np.isnan(df.loc[i, S.OLD_COL])
+        monkeypatch.setattr(F, "load_inputs", lambda data_dir, inputs_dir, pins: df.copy())
+        monkeypatch.setattr(F, "AsOfFraming", lambda d: _NoFraming())
+        calls = []
+>       assert _run(world, F.SEEDS[0], calls) == 5
+E       AssertionError: assert 0 == 5
+E        +  where 0 = _run({'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x117fa7cb0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12322/test_a_2026_row_with_every_mod0/inputs'), ...}, 2273360, [{'cols': ('batter_hr_7g', 'batter_hr_30g', 'batter_hr_60g', 'batter_hr_120g', 'batter_whiff_60g', 'batter_count_tende...0g', 'batter_whiff_60g', 'batter_count_tendency_30g', ...), 'mode': 'estimated_pa', 'retrain': 7, 'season': 2026, ...}])
+
+tests/scripts/c2_framing/test_f26_run.py:1006: AssertionError
+=========================== short test summary info ============================
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_a_2026_row_with_every_model_feature_missing_stops_before_any_walk_forward
+====================== 1 failed, 106 deselected in 1.52s =======================

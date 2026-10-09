@@ -726,6 +726,20 @@ def resumed_totals(raw_df) -> dict:
     return {"flagged": int(r.sum()), "unflagged": int((~r).sum())}
 
 
+def featureless_rows(df) -> int:
+    """2026 rows on which some model of some arm has every feature missing (A's catcher column counted as missing,
+    since the arm's value can be NaN on the predicted day). LightGBM's classifier path scores such a row NaN, which
+    strict prediction refuses; finding it here stops the run before any walk-forward rather than hours into one.
+    `weather_temp`, in every model, has no missing value in 2019-2025."""
+    part = df[df["season"] == TEST_SEASON]
+    worst = 0
+    for variant in ("baseline", "A"):
+        for config in S.blend_configs(variant):
+            cols = [c for c in config[1] if not (variant == "A" and c == NEW_COL)]
+            worst = max(worst, int((~part.reindex(columns=cols).notna().any(axis=1)).sum()))
+    return worst
+
+
 HISTORY_START = 2019
 
 
@@ -1009,6 +1023,10 @@ def run(seed: int, data_dir: Path, inputs_dir: Path, *, walk_forward=None, now=N
     if not check["identical"]:
         S._json(run_dir / "STOPPED.json", {"reason": "self_check", "self_check": check})
         return 4
+    featureless = featureless_rows(df)
+    if featureless:
+        S._json(run_dir / "STOPPED.json", {"reason": "all_features_missing", "rows": featureless})
+        return 5
     units, profiles, transforms = [], {}, {}
     for arm in ARMS:
         transform = None if arm == "baseline" else ArmTransform(arm, table, asof)

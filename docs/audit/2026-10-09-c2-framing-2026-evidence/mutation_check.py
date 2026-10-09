@@ -145,6 +145,8 @@ MUTANTS = [
     ("M64 block resampling without the reset", F26,
      "    starts = np.random.default_rng(BOOTSTRAP_SEED).integers(", "    starts = np.random.default_rng(1).integers(",
      RULES, "block_resampling"),
+    ("M65 featureless 2026 rows not stopped early", F26, "    if featureless:\n", "    if False:\n", RUN,
+     "every_model_feature_missing"),
 ]
 
 
