@@ -148,3 +148,65 @@ def test_strict_mode_refuses_a_model_that_returns_missing_scores(monkeypatch):
     _run(_world())                              # default: the blend averages what it has, as before
     with pytest.raises(ValueError, match="non-finite"):
         _run(_world(), strict_predict=True)
+
+
+def _many_candidates():
+    """Twelve batter-games a day, so one dropped candidate is hidden from a top-10 profile (review c1 finding 1)."""
+    rows = []
+    for date, season in (("2024-04-01", 2024), ("2025-04-01", 2025), ("2025-04-02", 2025)):
+        base = int(date.replace("-", ""))
+        for g in range(6):
+            pk = base * 10 + g
+            for b in (1, 2):
+                for pitcher in (80 + g, 80 + g, 99):
+                    rows.append({"date": date, "season": season, "game_pk": pk, "is_home": bool(g % 2),
+                                 "batter_id": 100 * (g + 1) + b, "pitcher_id": pitcher, "lineup_position": b,
+                                 "catcher_framing": 0.1 + 0.01 * g + 0.001 * b, "pitcher_hr_30g": 0.2,
+                                 "pitcher_entropy_30g": 0.5, "is_hit": int(b == 1)})
+    return pd.DataFrame(rows)
+
+
+def _two_models(monkeypatch, first, second):
+    def train(available, _configs, _params, cached_models=None):
+        return {"baseline": (object(), ["catcher_framing", "pitcher_hr_30g", "pitcher_entropy_30g"], first),
+                "second": (object(), ["catcher_framing"], second)}, set()
+    monkeypatch.setattr(bb, "_train_blend_for_day", train)
+
+
+def _good(_model, day_data, _cols):
+    return pd.Series(day_data["catcher_framing"].to_numpy(dtype=float), index=day_data.index)
+
+
+def test_strict_mode_refuses_a_non_finite_reliever_score(monkeypatch):
+    def baseline(_model, day_data, _cols):
+        out = _good(_model, day_data, _cols)
+        if (day_data["pitcher_hr_30g"] != 0.2).all():        # the estimated-PA reliever rows
+            out.iloc[0] = float("nan")
+        return out
+
+    _two_models(monkeypatch, baseline, _good)
+    _run(_many_candidates())                                  # default: unchanged behavior
+    with pytest.raises(ValueError, match="non-finite"):
+        _run(_many_candidates(), strict_predict=True)
+
+
+def test_strict_mode_refuses_a_score_series_missing_a_row(monkeypatch):
+    def short(_model, day_data, _cols):
+        return _good(_model, day_data, _cols).iloc[1:]       # finite, but one required row has no score
+
+    _two_models(monkeypatch, _good, short)
+    _run(_many_candidates())
+    with pytest.raises(ValueError, match="aligned"):
+        _run(_many_candidates(), strict_predict=True)
+
+
+def test_strict_mode_refuses_a_reliever_score_of_the_wrong_length(monkeypatch):
+    def baseline(_model, day_data, _cols):
+        out = _good(_model, day_data, _cols)
+        if (day_data["pitcher_hr_30g"] != 0.2).all():
+            return out.iloc[1:]
+        return out
+
+    _two_models(monkeypatch, baseline, _good)
+    with pytest.raises(ValueError, match="aligned"):
+        _run(_many_candidates(), strict_predict=True)

@@ -369,3 +369,88 @@ def test_an_l_of_exactly_zero_is_not_positive_even_with_the_size_and_the_seeds()
     out = F.dispose(x)
     assert out["m"] >= F.PRACTICAL_MIN and out["seeds_positive"] == 10 and out["L"] == 0
     assert out["disposition"] == "inconclusive"
+
+
+# ---------------------------------------------------------------- review c1 finding 7: malformed records anywhere
+
+@pytest.mark.parametrize("sub, reason", [
+    (_player("1999", "201", ()), "malformed_player"),           # a substitute with a string id
+    (_player(1999, "201", ()), "malformed_positions"),          # a substitute who batted, with no positions
+    (_player(1999, "201", None), "malformed_positions"),
+    ({"person": {"id": "x"}}, "malformed_player"),              # a bench record with a bad id
+    ({"person": {"id": 1999}, "allPositions": "1"}, "malformed_positions"),
+])
+def test_a_malformed_non_starting_record_makes_the_side_unidentified(sub, reason):
+    away = _nine(100) + [sub]
+    recs = {r["fielding_side"]: r for r in F.starter_proxy(_feed(away, _nine(200)), 777, 2026)}
+    assert recs["away"]["catcher_id"] is None and recs["away"]["reason"] == reason
+
+
+def test_well_formed_bench_and_pitcher_records_do_not_disturb_the_proxy():
+    away = _nine(100) + [{"person": {"id": 1998}}, _player(1997, None, ("1",)), _player(1996, "201", ("2",))]
+    recs = {r["fielding_side"]: r for r in F.starter_proxy(_feed(away, _nine(200)), 777, 2026)}
+    assert recs["away"]["catcher_id"] == 102 and recs["away"]["reason"] == "identified"
+
+
+def _good_table():
+    return [{"game_pk": 1, "season": 2026, "game_type": "R", "official_date": "2026-04-01", "game_number": 1,
+             "game_number_fallback": False, "fielding_side": side, "team_id": tid, "catcher_id": cid,
+             "reason": "identified" if cid else "no_candidate"} for side, tid, cid in (("away", 7, 50), ("home", 8, None))]
+
+
+def test_a_well_formed_table_is_accepted():
+    assert len(F.table_frame(_good_table())) == 2
+
+
+@pytest.mark.parametrize("damage", [
+    lambda t: t[0].pop("reason"),
+    lambda t: t[0].update(extra=1),
+    lambda t: t[0].update(game_pk=1.0),
+    lambda t: t[0].update(game_pk=True),
+    lambda t: t[0].update(season=2024),
+    lambda t: t[0].update(game_type="S"),
+    lambda t: t[0].update(official_date="2026-4-1"),
+    lambda t: t[0].update(official_date="2025-04-01"),
+    lambda t: t[0].update(game_number=0),
+    lambda t: t[0].update(game_number_fallback="no"),
+    lambda t: t[0].update(fielding_side="left"),
+    lambda t: t[0].update(team_id="7"),
+    lambda t: t[0].update(catcher_id=50.0),
+    lambda t: t[0].update(reason="no_candidate"),                    # a catcher with a non-identified reason
+    lambda t: t[1].update(reason="identified"),                      # identified without a catcher
+    lambda t: t[1].update(reason="made_up"),
+    lambda t: t[1].update(official_date="2026-04-02"),               # the two sides disagree on the game
+    lambda t: t.pop(),                                               # one side only
+    lambda t: t.append(dict(t[0])),                                  # a duplicate side
+])
+def test_a_malformed_or_inconsistent_table_refuses(damage):
+    t = _good_table()
+    damage(t)
+    with pytest.raises(F.InputRefused):
+        F.table_frame(t)
+
+
+@pytest.mark.parametrize("ids", [[1.0, 2.0], [1.5, 2.0], [1, None], [0, 2], [-1, 2]])
+def test_pa_game_ids_must_be_exact_positive_integers(ids):
+    with pytest.raises(F.InputRefused, match="game_pk"):
+        F.pa_game_ids(pd.DataFrame({"game_pk": pd.Series(ids, dtype="object" if None in ids else None)}))
+
+
+def test_pa_game_ids_returns_the_sorted_distinct_ids():
+    assert F.pa_game_ids(pd.DataFrame({"game_pk": [3, 1, 3, 2]})) == [1, 2, 3]
+
+
+# ---------------------------------------------------------------- review c1 finding 4: catcher history starts in 2019
+
+def test_a_catcher_id_before_2019_refuses():
+    df = pd.DataFrame({"season": [2018] * 5 + [2019], "fielding_catcher_id": [50] * 6,
+                       "date": pd.to_datetime([f"2018-09-2{i}" for i in range(5)] + ["2019-04-01"]),
+                       "pa_borderline_csr": [1.0] * 5 + [0.5]})
+    with pytest.raises(F.InputRefused, match="2019"):
+        F.history_start_problem(df)
+
+
+def test_pre_2019_rows_without_a_catcher_id_are_fine():
+    df = pd.DataFrame({"season": [2017, 2018, 2019], "fielding_catcher_id": [np.nan, np.nan, 50.0]})
+    F.history_start_problem(df)
+    F.history_start_problem(pd.DataFrame({"season": [2017, 2019]}).assign(fielding_catcher_id=[np.nan, 7.0]))

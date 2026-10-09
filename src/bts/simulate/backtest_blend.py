@@ -653,6 +653,25 @@ def _starter_matchup_representative_rows(day_data: "pd.DataFrame") -> tuple["pd.
     return reps, int(starter_matchup_batter_games), dropped
 
 
+def _strict_scores(scores, index, label: str) -> None:
+    """Strict mode (``blend_walk_forward(strict_predict=True)``): a model's scores must cover exactly the required
+    rows, aligned with them, and be finite; a missing or misaligned row would otherwise be dropped from an average
+    or a ranking without a trace."""
+    import numpy as np
+    import pandas as pd
+
+    if isinstance(scores, pd.Series):
+        if not scores.index.equals(index):
+            raise ValueError(f"{label} scores are not aligned with the required rows")
+        values = scores.to_numpy(dtype=float)
+    else:
+        values = np.asarray(scores, dtype=float)
+        if values.shape != (len(index),):
+            raise ValueError(f"{label} scores are not aligned with the required rows")
+    if not np.isfinite(values).all():
+        raise ValueError(f"{label} returned non-finite scores")
+
+
 def _estimated_pa_game_predictions(
     day_data: "pd.DataFrame",
     *,
@@ -662,6 +681,7 @@ def _estimated_pa_game_predictions(
     model_train_window: "pd.DataFrame",
     top_n: int,
     capture_per_model: bool,
+    strict: bool = False,
 ) -> "pd.DataFrame":
     import numpy as np
     import pandas as pd
@@ -682,6 +702,8 @@ def _estimated_pa_game_predictions(
         reliever_rows["pitcher_entropy_30g"] = entropy
 
     p_reliever = baseline_predict_fn(baseline_model, reliever_rows, baseline_cols)
+    if strict:
+        _strict_scores(p_reliever, reliever_rows.index, "baseline (reliever rows)")
     p_reliever = pd.Series(p_reliever, index=reps.index, dtype=float)
 
     lineup_raw = (
@@ -776,8 +798,9 @@ def blend_walk_forward(
             training frames never see it. Research plumbing for the 2026
             framing test (``docs/sota_audit/2026-10-09-prereg-c2-framing-2026-test.md``
             §4). None (the default) leaves behavior unchanged.
-        strict_predict: When True, a model's prediction failure, or a
-            prediction with any non-finite score, is raised instead of being
+        strict_predict: When True, a model's prediction failure, or scores
+            that are not finite and aligned with every required row (the day's
+            rows and the estimated-PA reliever rows), raise instead of being
             printed and scored as missing. False (the default) leaves behavior
             unchanged.
 
@@ -880,8 +903,8 @@ def blend_walk_forward(
         for name, (model, cols, predict_fn) in blend.items():
             try:
                 blend_pa_scores[name] = predict_fn(model, day_data, cols)
-                if strict_predict and not np.isfinite(np.asarray(blend_pa_scores[name], dtype=float)).all():
-                    raise ValueError(f"{name} returned non-finite scores on {day}")
+                if strict_predict:
+                    _strict_scores(blend_pa_scores[name], day_data.index, f"{name} on {day}")
             except Exception as e:
                 if strict_predict:
                     raise
@@ -915,6 +938,7 @@ def blend_walk_forward(
                 model_train_window=model_train_window,
                 top_n=top_n,
                 capture_per_model=capture_per_model,
+                strict=strict_predict,
             )
         game_preds["date"] = pd.Timestamp(day).date()
 

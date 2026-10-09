@@ -90,8 +90,19 @@ def _game_fields(feed, game_pk: int, season: int) -> dict:
             "game_number_fallback": fallback, "team_ids": tids}
 
 
+def _positions_ok(ap, *, required: bool) -> bool:
+    if ap is None:
+        return not required
+    return isinstance(ap, list) and (bool(ap) or not required) and all(
+        isinstance(e, dict) and isinstance(e.get("code"), str) for e in ap)
+
+
 def _side_proxy(feed, side: str) -> tuple[int | None, str]:
-    """The side's starter proxy and its identification reason (§3)."""
+    """The side's starter proxy and its identification reason (§3). Every player record on the side is checked, not
+    only the starters' (review c1 finding 7): a record that is not a dict, lacks a positive integer person id, or has a
+    non-string battingOrder is malformed_player; a batter (any battingOrder) without a nonempty positions array, or any
+    malformed positions array, is malformed_positions. A malformed record makes the side unidentified rather than being
+    skipped."""
     try:
         players = feed["liveData"]["boxscore"]["teams"][side]["players"]
     except (KeyError, TypeError):
@@ -104,24 +115,21 @@ def _side_proxy(feed, side: str) -> tuple[int | None, str]:
         if not isinstance(p, dict):
             bad_player = True
             continue
-        if "battingOrder" not in p:
-            continue                                    # not in the batting order: not examined
-        bo = p["battingOrder"]
-        if not isinstance(bo, str):
-            bad_player = True
-            continue
-        if bo not in SLOTS:
-            continue                                    # a substitute's slot ("201") or another string
         person = p.get("person")
         pid = person.get("id") if isinstance(person, dict) else None
         if not _pos_int(pid):
             bad_player = True
             continue
+        batted = "battingOrder" in p
+        bo = p.get("battingOrder")
+        if batted and not isinstance(bo, str):
+            bad_player = True
+            continue
         ap = p.get("allPositions")
-        if not (isinstance(ap, list) and ap and all(isinstance(e, dict) and isinstance(e.get("code"), str) for e in ap)):
+        if not _positions_ok(ap, required=batted):
             bad_positions = True
             continue
-        if ap[0]["code"] == "2":                        # the array's given order; no later C entry, no fallback
+        if batted and bo in SLOTS and ap[0]["code"] == "2":    # the array's given order; no later C entry
             candidates.append(pid)
     if bad_player:
         return None, "malformed_player"
@@ -251,6 +259,7 @@ class ArmTransform:
         self._history = TeamHistory(table) if arm == "A_projected" else None
         self.counts = {"side_games": dict.fromkeys(REASONS, 0), "pa_rows": dict.fromkeys(REASONS, 0)}
         self.identified_ids: set[int] = set()
+        self.evidence: list[dict] = []          # one row per (date, game, opposing side): re-derived in validation
 
     def _catcher(self, rec, day):
         if self.arm == "A_posted":
@@ -264,7 +273,10 @@ class ArmTransform:
         keys = list(zip(out["game_pk"].astype(int).tolist(), sides.tolist()))
         values = np.full(len(out), math.nan)
         resolved = {}
-        for key in dict.fromkeys(keys):
+        n_rows = {}
+        for key in keys:
+            n_rows[key] = n_rows.get(key, 0) + 1
+        for key in n_rows:
             rec = self._sides.get(key)
             if rec is None:
                 raise InputRefused(f"side-game {key} is not in the starter-proxy table")
@@ -275,6 +287,9 @@ class ArmTransform:
                 self.identified_ids.add(cid)
             self.counts["side_games"][why] += 1
             resolved[key] = (v, why)
+            self.evidence.append({"date": _iso(day), "game_pk": key[0], "fielding_side": key[1],
+                                  "team_id": int(rec.team_id), "catcher_id": cid, "reason": why, "value": v,
+                                  "n_pa": n_rows[key]})
         for i, key in enumerate(keys):
             v, why = resolved[key]
             values[i] = v
@@ -316,7 +331,7 @@ def dispose(x) -> dict:
     L, constant = _quantile_draws(daily, np.random.default_rng(BOOTSTRAP_SEED).integers(0, n, size=(BOOTSTRAP_DRAWS, n)))
     starts = np.random.default_rng(BOOTSTRAP_SEED).integers(0, n, size=(BOOTSTRAP_DRAWS, math.ceil(n / BLOCK_DAYS)))
     block = ((starts[:, :, None] + np.arange(BLOCK_DAYS)) % n).reshape(BOOTSTRAP_DRAWS, -1)[:, :n]
-    L_block, _ = _quantile_draws(daily, block)
+    L_block, block_constant = _quantile_draws(daily, block)
     positive_seeds = int((d > 0).sum())
     if m >= PRACTICAL_MIN and L > 0 and positive_seeds >= SEEDS_POSITIVE_MIN:
         verdict = "positive"
@@ -326,6 +341,7 @@ def dispose(x) -> dict:
         verdict = "inconclusive"
     return {"disposition": verdict, "m": m, "L": L, "L_block7": L_block, "d": d.tolist(),
             "seeds_positive": positive_seeds, "n_days": n, "bootstrap_constant": constant,
+            "block_bootstrap_constant": block_constant,
             "daily": {"positive": int((daily > 0).sum()), "negative": int((daily < 0).sum()),
                       "zero": int((daily == 0).sum()), "discordant_seed_days": int((x != 0).sum())}}
 
@@ -353,6 +369,9 @@ SOURCES_NAME = "raw_sources.2025-2026.json"
 FROZEN_PA = "pa_2026.parquet"                       # the frozen copy, read from the inputs directory
 INPUT_NAMES = tuple(f"pa_{s}.parquet" for s in SEASONS_IN) + (LOOKUP_NAME, TABLE_NAME, SOURCES_NAME)
 OUT_ROOT = Path.home() / "projects" / "bts" / "data" / "hetzner_results" / "c2" / "framing_2026"
+DATA_DIR = Path.home() / "projects" / "bts" / "data" / "processed"     # §3, X-37: the declared PA directory
+RAW_DIR = Path.home() / "projects" / "bts" / "data" / "raw"              # the declared raw-feed root
+SCREEN_INPUTS = S.OUT_ROOT / "inputs"                                     # the screen's frozen lookup
 ADMISSION_REL = "scripts/audit/c2_framing/admission_2026.json"
 REGISTER_REL = "docs/audit/2026-09-22-exposure-register.md"
 DESIGN = "docs/sota_audit/2026-10-09-prereg-c2-framing-2026-test.md"
@@ -387,6 +406,50 @@ def pins_shape_problem(pins) -> str | None:
             and all(isinstance(v, str) and HEX.fullmatch(v) for v in pins.values())):
         return f"admission input_pins must give a sha256 for exactly {sorted(INPUT_NAMES)}"
     return None
+
+
+def screen_pins(repo: Path | None = None) -> dict:
+    """The screen's accepted input pins (its admission record): the 2017-2025 parquets and its frozen lookup."""
+    from scripts.audit.c1 import admission as A
+    return json.loads(((A.REPO if repo is None else repo) / S.ADMISSION_REL).read_text())["input_pins"]
+
+
+def historical_pins_problem(pins: dict, screen: dict) -> str | None:
+    """The 2017-2025 parquets are the screen's own pinned bytes (review c1 finding 5)."""
+    bad = [f"pa_{y}.parquet" for y in SEASONS_IN if y != TEST_SEASON
+           and pins.get(f"pa_{y}.parquet") != screen.get(f"pa_{y}.parquet")]
+    return f"the historical pins {bad} are not the screen's" if bad else None
+
+
+def sources_problem(manifest, games: dict) -> str | None:
+    """The pinned source manifest is exactly the raw feeds of the pinned 2025 and 2026 PA game ids (§3): one entry per
+    game, its relative path `<season>/<game_pk>.json`, a sha256, the counts and the canonical digest."""
+    if not (isinstance(manifest, dict) and set(manifest) == {"sources", "counts", "digest"}
+            and isinstance(manifest["sources"], list)):
+        return "the source manifest is not {sources, counts, digest}"
+    src = manifest["sources"]
+    want = {(s, g) for s in PROXY_SEASONS for g in games[s]}
+    got = []
+    for e in src:
+        if not (isinstance(e, dict) and set(e) == {"path", "sha256", "game_pk", "season"} and _pos_int(e["game_pk"])
+                and e["season"] in PROXY_SEASONS and e["path"] == f"{e['season']}/{e['game_pk']}.json"
+                and isinstance(e["sha256"], str) and HEX.fullmatch(e["sha256"])):
+            return f"a source manifest entry is malformed: {e!r}"
+        got.append((e["season"], e["game_pk"]))
+    if len(got) != len(set(got)) or set(got) != want:
+        return "the source manifest is not exactly the pinned 2025 and 2026 games, once each"
+    if manifest["counts"] != {str(s): len(games[s]) for s in PROXY_SEASONS}:
+        return "the source manifest's counts do not match the pinned games"
+    if manifest["digest"] != S._sha(canonical(src)):
+        return "the source manifest's digest is not its sources' canonical digest"
+    return None
+
+
+def table_games_problem(table, games: dict) -> str | None:
+    """The starter-proxy table covers exactly the pinned 2025 and 2026 games (two sides each, by `table_frame`)."""
+    got = set(zip(table["season"].astype(int), table["game_pk"].astype(int)))
+    want = {(s, g) for s in PROXY_SEASONS for g in games[s]}
+    return None if got == want else "the starter-proxy table does not cover exactly the pinned 2025 and 2026 games"
 
 
 def _row_after_exposure(repo: Path, register_text: str, exposure_commit: str, row_id: str, pattern) -> tuple:
@@ -434,8 +497,10 @@ def admission_gate(repo: Path | None = None, *, require_inputs: bool = True):
                                       register_rel=REGISTER_REL, exposure_row=EXPOSURE_ROW, scope_phrase=SCOPE)
     if require_inputs and not reasons:
         pins = adm.get("input_pins")
-        problem = pins_shape_problem(pins) or inputs_row_problem(repo, (repo / REGISTER_REL).read_text(),
-                                                                 adm["exposure_commit"], pins)
+        register = (repo / REGISTER_REL).read_text()
+        problem = (pins_shape_problem(pins) or prep_row_problem(repo, register, adm["exposure_commit"])
+                   or inputs_row_problem(repo, register, adm["exposure_commit"], pins)
+                   or historical_pins_problem(pins, screen_pins(repo)))
         if problem:
             reasons.append(problem)
     if reasons:
@@ -476,7 +541,7 @@ def head_admitted(repo: Path, identity: dict, head: str) -> list[str]:
 
 
 def seed_allowed(seed: int, register_text: str, out_root: Path, *, identity: dict, pins: dict,
-                 calendar: list[str], repo: Path | None = None) -> tuple[bool, str, dict | None]:
+                 truth: "Trusted", repo: Path | None = None) -> tuple[bool, str, dict | None]:
     """Eric's allowance, whose cap is the launcher's; then seeds one at a time in §5's order: every earlier seed holds
     exactly one complete admitted run. Returns (allowed, reason, allowance)."""
     if seed not in SEEDS:
@@ -492,7 +557,7 @@ def seed_allowed(seed: int, register_text: str, out_root: Path, *, identity: dic
         if len(runs) != 1:
             return False, f"seeds run one at a time, in order: earlier seed {s} has {len(runs)} runs, not one", None
         try:
-            validate_run(runs[0], s, out_root=out_root, identity=identity, pins=pins, calendar=calendar, repo=repo)
+            validate_run(runs[0], s, out_root=out_root, identity=identity, pins=pins, truth=truth, repo=repo)
         except RunInvalid as e:
             return False, f"seeds run in order: earlier seed {s}'s run is not a complete admitted run: {e}", None
     return True, "allowed", allow
@@ -510,22 +575,68 @@ def refuse_inside_the_window() -> None:
         raise SystemExit(f"refusing: {problem}")
 
 
-def guarded_unit_problem(seed: int, budget: float, cgroup_text: str, c1_dir: Path) -> str | None:
+def guarded_unit(seed: int, budget: float, cgroup_text: str, c1_dir: Path) -> tuple[str | None, str | None]:
     """`screen.guarded_unit_problem` for this test's unit names: the kernel's cgroup record places this process in
     `<unit>.service/payload` of a unit the launcher names for this seed, and that unit's PENDING record declares this
-    seed's budget. Fails closed."""
+    seed's budget. Returns (unit, None) or (None, problem). Fails closed."""
     path = next((x[3:].strip() for x in cgroup_text.splitlines() if x.startswith("0::")), None)
     parts = path.split("/") if path else []
     unit = parts[-2].removesuffix(".service") if len(parts) >= 2 and parts[-2].endswith(".service") else None
     m = UNIT_RE.fullmatch(unit) if unit else None
     if not (parts and parts[-1] == "payload" and m and int(m.group(1)) == SEEDS.index(seed) + 1):
-        return f"seeds run only as the guarded payload of their own C1 launcher unit (cgroup {path!r})"
+        return None, f"seeds run only as the guarded payload of their own C1 launcher unit (cgroup {path!r})"
     try:
         rec = json.loads((c1_dir / f"PENDING_{unit}.json").read_text())
     except (OSError, ValueError):
-        return f"no launcher record PENDING_{unit}.json for this C1 launcher unit"
+        return None, f"no launcher record PENDING_{unit}.json for this C1 launcher unit"
     if not (isinstance(rec, dict) and rec.get("unit") == unit and rec.get("declared_cpu_hours") == budget):
-        return f"the launcher record for {unit} does not name this unit with this seed's budget {budget:g}"
+        return None, f"the launcher record for {unit} does not name this unit with this seed's budget {budget:g}"
+    return unit, None
+
+
+def guarded_unit_problem(seed: int, budget: float, cgroup_text: str, c1_dir: Path) -> str | None:
+    return guarded_unit(seed, budget, cgroup_text, c1_dir)[1]
+
+
+def _lifecycle_record(c1_dir: Path, prefix: str, unit: str):
+    """The launcher's `<prefix>_<unit>.json`, at the C1 root or in its legacy `jobs/` archive (as `launch._lifecycle`
+    reads them); two different copies are refused."""
+    found = [d / f"{prefix}_{unit}.json" for d in (c1_dir, c1_dir / "jobs") if (d / f"{prefix}_{unit}.json").is_file()]
+    if not found:
+        return None
+    if len({f.read_bytes() for f in found}) > 1:
+        raise RunInvalid(f"ambiguous {prefix} records for {unit}")
+    try:
+        return json.loads(found[0].read_text())
+    except ValueError:
+        return "unreadable"
+
+
+def _finite_nonneg(v) -> bool:
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) and v >= 0
+
+
+def launcher_problems(d: Path, seed: int, man: dict, res: dict, c1_dir: Path) -> str | None:
+    """A finished run is accepted only as the clean, reconciled completion of its own C1 unit (review c1 finding 6):
+    the unit the run recorded is this seed's; its guard receipt is a clean exit (rc 0) with a measured CPU total; its
+    RECONCILED record agrees, with no problems; and the run's own CPU figures are finite, nonnegative and within it."""
+    unit = man.get("launcher_unit")
+    m = UNIT_RE.fullmatch(unit) if isinstance(unit, str) else None
+    if not (m and int(m.group(1)) == SEEDS.index(seed) + 1):
+        return f"{d}: the recorded launcher unit {unit!r} is not this seed's C1 unit"
+    t = _lifecycle_record(c1_dir, "TERMINAL", unit)
+    if not (isinstance(t, dict) and t.get("unit") == unit and t.get("result") == "exit" and type(t.get("rc")) is int
+            and t["rc"] == 0 and _finite_nonneg(t.get("cpu_seconds"))):
+        return f"{d}: no clean TERMINAL receipt (exit, rc 0, measured CPU) for {unit}"
+    r = _lifecycle_record(c1_dir, "RECONCILED", unit)
+    if not (isinstance(r, dict) and r.get("unit") == unit and r.get("result") == "exit" and r.get("rc") == 0
+            and r.get("problems") == [] and r.get("cpu_seconds") == t["cpu_seconds"]):
+        return f"{d}: no clean RECONCILED record agreeing with the TERMINAL receipt for {unit}"
+    total = res.get("total_cpu_s")
+    units_cpu = [u.get("cpu_s") for u in res.get("units") or []]
+    if not (_finite_nonneg(total) and total <= t["cpu_seconds"] and all(_finite_nonneg(c) for c in units_cpu)
+            and sum(units_cpu) <= total):
+        return f"{d}: the run's CPU figures are not finite, nonnegative and within its guard receipt"
     return None
 
 
@@ -550,29 +661,112 @@ def load_inputs(data_dir: Path, inputs_dir: Path, pins: dict):
     return pd.concat(frames, ignore_index=True)
 
 
+TABLE_KEYS = frozenset({"game_pk", "season", "game_type", "official_date", "game_number", "game_number_fallback",
+                        "fielding_side", "team_id", "catcher_id", "reason"})
+PROXY_REASONS = frozenset({"identified", "no_candidate", "multiple_candidates", "malformed_player",
+                           "malformed_positions"})
+GAME_KEYS = ("season", "game_type", "official_date", "game_number", "game_number_fallback")
+
+
+def _record_problem(r) -> str | None:
+    if not (isinstance(r, dict) and set(r) == TABLE_KEYS):
+        return "a record does not have exactly the table's fields"
+    if not (_pos_int(r["game_pk"]) and type(r["season"]) is int and r["season"] in PROXY_SEASONS
+            and r["game_type"] == "R" and _pos_int(r["game_number"]) and type(r["game_number_fallback"]) is bool
+            and r["fielding_side"] in SIDES and _pos_int(r["team_id"]) and r["reason"] in PROXY_REASONS
+            and (r["catcher_id"] is None or _pos_int(r["catcher_id"]))):
+        return f"game {r.get('game_pk')!r} side {r.get('fielding_side')!r}: a field has the wrong type or value"
+    d = r["official_date"]
+    try:
+        ok = isinstance(d, str) and bool(ISO_DATE.fullmatch(d)) and _date.fromisoformat(d).year == r["season"]
+    except ValueError:
+        ok = False
+    if not ok:
+        return f"game {r['game_pk']}: official_date {d!r} is malformed"
+    if (r["reason"] == "identified") != (r["catcher_id"] is not None):
+        return f"game {r['game_pk']} side {r['fielding_side']}: the reason disagrees with the catcher"
+    return None
+
+
 def table_frame(records: list) -> "pd.DataFrame":
+    """The starter-proxy table, validated in full (review c1 finding 7): exactly the table's fields with their types,
+    the reason consistent with the catcher, and exactly one away and one home record per game that agree on the game."""
     import pandas as pd
-    t = pd.DataFrame(records)
-    if t.duplicated(["game_pk", "fielding_side"]).any():
-        raise InputRefused("duplicate (game_pk, fielding_side) records in the starter-proxy table")
-    return t
+    if not isinstance(records, list) or not records:
+        raise InputRefused("the starter-proxy table is not a nonempty list of records")
+    games: dict[int, list] = {}
+    for r in records:
+        problem = _record_problem(r)
+        if problem:
+            raise InputRefused(f"starter-proxy table: {problem}")
+        games.setdefault(r["game_pk"], []).append(r)
+    for pk, rs in games.items():
+        if sorted(r["fielding_side"] for r in rs) != ["away", "home"]:
+            raise InputRefused(f"starter-proxy table: game {pk} does not have exactly one away and one home record")
+        if rs[0]["season"] != rs[1]["season"] or any(rs[0][k] != rs[1][k] for k in GAME_KEYS):
+            raise InputRefused(f"starter-proxy table: game {pk}'s two sides disagree on the game")
+    return pd.DataFrame(records)
+
+
+def pa_game_ids(pa) -> list[int]:
+    """The sorted distinct game ids of a pinned PA frame; each must be an exact positive integer (no float, missing or
+    coerced value: review c1 finding 7)."""
+    import pandas as pd
+    col = pa["game_pk"]
+    if not (pd.api.types.is_integer_dtype(col) and not pd.api.types.is_bool_dtype(col)):
+        raise InputRefused(f"game_pk has dtype {col.dtype}, not an integer dtype")
+    if bool(col.isna().any()) or not bool((col > 0).all()):
+        raise InputRefused("game_pk holds a missing or non-positive id")
+    return sorted({int(g) for g in col.unique()})
+
+
+def resumed_totals(raw_df) -> dict:
+    """The 2026 rows' resumed-portion flag: flagged and unflagged row counts (review c1 nonblocking 10)."""
+    r = raw_df.loc[raw_df["season"] == TEST_SEASON, "is_resumed_portion"].astype(bool)
+    return {"flagged": int(r.sum()), "unflagged": int((~r).sum())}
+
+
+HISTORY_START = 2019
+
+
+def history_start_problem(df) -> None:
+    """§4: catcher history starts in 2019. The pinned 2017 and 2018 PA files have no `fielding_catcher_id` column, so
+    the screen's feature and this test's training and as-of values have no earlier history; any catcher id on an
+    earlier row refuses rather than silently extending the history (review c1 finding 4)."""
+    if "fielding_catcher_id" not in df.columns:
+        return
+    early = df["season"] < HISTORY_START
+    if bool((early & df["fielding_catcher_id"].notna()).any()):
+        raise InputRefused(f"a row before {HISTORY_START} carries a catcher id: catcher history starts in "
+                           f"{HISTORY_START} (§4)")
 
 
 def canonical(obj) -> bytes:
     return (json.dumps(obj, sort_keys=True, separators=(",", ":")) + "\n").encode()
 
 
-def prepare(data_dir: Path, raw_dir: Path, screen_inputs: Path, screen_pins: dict, out_dir: Path) -> dict:
+def prepare(data_dir: Path, raw_dir: Path, screen_inputs: Path, out_dir: Path) -> dict:
     """The preparation read (§3, §8 step 3), once, after X-37 and its own register row: the frozen copy of `pa_2026`,
     the 2026 lookup entries and the 2025-2026 starter-proxy table from exactly the raw feeds of the game ids in the
     pinned 2025 and 2026 PA files, and the source manifest. Only identity and schedule fields are extracted. Returns
     the pins of all inputs and the counts."""
     import pandas as pd
     from scripts.audit.c1 import admission as A
+    # The acquisition boundary (review c1 finding 5): before any 2026 file is opened or hashed, X-37 and the reviewed
+    # code (the shared gate), the preparation-read row recorded after X-37, and exactly the declared directories.
+    _, adm, _ = admission_gate(require_inputs=False)
+    problem = prep_row_problem(A.REPO, (A.REPO / REGISTER_REL).read_text(), adm["exposure_commit"])
+    if problem:
+        raise SystemExit(f"refusing: {problem}")
+    for given, declared, label in ((data_dir, DATA_DIR, "PA directory"), (raw_dir, RAW_DIR, "raw-feed root"),
+                                   (screen_inputs, SCREEN_INPUTS, "screen inputs directory")):
+        if Path(given).resolve() != Path(declared).resolve():
+            raise SystemExit(f"refusing: the {label} {given} is not the declared {declared}")
+    screen = screen_pins()
     out_dir.mkdir(exist_ok=False)
     raw26 = (data_dir / FROZEN_PA).read_bytes()
     A.durable_write(out_dir / FROZEN_PA, raw26)
-    pins = {f"pa_{s}.parquet": screen_pins[f"pa_{s}.parquet"] for s in SEASONS_IN if s != TEST_SEASON}
+    pins = {f"pa_{s}.parquet": screen[f"pa_{s}.parquet"] for s in SEASONS_IN if s != TEST_SEASON}
     pins[FROZEN_PA] = S._sha(raw26)
     games = {}
     for s in PROXY_SEASONS:
@@ -580,8 +774,8 @@ def prepare(data_dir: Path, raw_dir: Path, screen_inputs: Path, screen_pins: dic
         pa = pd.read_parquet(io.BytesIO(raw), columns=["game_pk", "season"])
         if not bool((pa["season"] == s).all()):
             raise InputRefused(f"pa_{s} holds rows of another season")
-        games[s] = sorted({int(g) for g in pa["game_pk"]})
-    lookup = read_pinned_json(screen_inputs / S.LOOKUP_NAME, screen_pins[S.LOOKUP_NAME])
+        games[s] = pa_game_ids(pa)
+    lookup = read_pinned_json(screen_inputs / S.LOOKUP_NAME, screen[S.LOOKUP_NAME])
     records, sources = [], []
     for s in PROXY_SEASONS:
         for pk in games[s]:
@@ -630,6 +824,121 @@ def rank1(profiles, calendar: list[str]) -> list[int]:
     return [by[d] for d in calendar]
 
 
+class Trusted:
+    """Evidence derived here from the admitted pinned inputs, never from a run (review c1 findings 2 and 3): the
+    calendar; each scoreable (batter, game)'s official date and original-portion label; each predicted day's opposing
+    side-games with their PA-row counts (every 2026 row, as the walk-forward predicts it); and each side-game's team and
+    catcher by arm, from the pinned starter-proxy table."""
+
+    def __init__(self, pa26, table):
+        import pandas as pd
+        self.calendar = expected_calendar(pa26)
+        for col in ("batter_id", "game_pk"):
+            if not (pd.api.types.is_integer_dtype(pa26[col]) and not pd.api.types.is_bool_dtype(pa26[col])):
+                raise InputRefused(f"pa_2026's {col} is not an integer column")
+        dates = pd.to_datetime(pa26["date"]).dt.date.astype(str)
+        orig = pa26.loc[~pa26["is_resumed_portion"].to_numpy(dtype=bool)].assign(_d=dates)
+        g = orig.groupby(["batter_id", "game_pk"])
+        if bool((g["_d"].nunique() != 1).any()):
+            raise InputRefused("a 2026 batter-game has more than one official date")
+        self.labels = {(int(b), int(k)): (d, int(h)) for (b, k), d, h in
+                       zip(g.groups.keys(), g["_d"].first().tolist(), g["is_hit"].max().astype(int).tolist())}
+        sides = np.where(pa26["is_home"].astype(bool).to_numpy(), "away", "home")
+        counts: dict[tuple, int] = {}
+        for key in zip(dates.tolist(), pa26["game_pk"].astype(int).tolist(), sides.tolist()):
+            counts[key] = counts.get(key, 0) + 1
+        self.side_games = counts
+        self.table = {(int(r.game_pk), str(r.fielding_side)): r for r in table.itertuples(index=False)}
+        self.history = TeamHistory(table)
+
+    def catcher(self, arm: str, game_pk: int, side: str, day: str):
+        rec = self.table.get((game_pk, side))
+        if rec is None:
+            return None, None
+        if arm == "A_posted":
+            c = rec.catcher_id
+            return int(rec.team_id), (None if c is None or (isinstance(c, float) and math.isnan(c)) else int(c))
+        return int(rec.team_id), self.history.project(rec.team_id, day)
+
+
+EVIDENCE_COLS = ("date", "game_pk", "fielding_side", "team_id", "catcher_id", "reason", "value", "n_pa")
+
+
+def identity_problem(part, truth: "Trusted") -> str | None:
+    """Every retained row is a real scoreable batter-game of its own date with its trusted original-portion label, once
+    per day, at most 10 rows a day, on the registered estimated-PA basis (review c1 finding 2)."""
+    import pandas as pd
+    for col in ("batter_id", "game_pk"):
+        if col not in part.columns or not (pd.api.types.is_integer_dtype(part[col])
+                                           and not pd.api.types.is_bool_dtype(part[col])):
+            return f"{col} is absent or not an integer column"
+    if "p_game_hit_basis" not in part.columns or not bool((part["p_game_hit_basis"] == S.BASIS).all()):
+        return f"rows not on the registered basis {S.BASIS!r}"
+    dates = [_iso(d) for d in pd.to_datetime(part["date"])]
+    if bool((part.groupby(pd.Series(dates, index=part.index)).size() > 10).any()):
+        return "more than 10 rows on a day"
+    seen = set()
+    for d, b, g, h in zip(dates, part["batter_id"].tolist(), part["game_pk"].tolist(), part["actual_hit"].tolist()):
+        t = truth.labels.get((int(b), int(g)))
+        if t is None or t[0] != d:
+            return f"({b}, {g}) on {d} is not a scoreable batter-game of that date"
+        if (d, b, g) in seen:
+            return f"({b}, {g}) appears twice on {d}: not a scoreable batter-game ranking"
+        seen.add((d, b, g))
+        if int(h) != t[1]:
+            return f"({b}, {g}) on {d} carries label {h}, not its original-portion label {t[1]}"
+    return None
+
+
+def evidence_problem(ev, arm: str, truth: "Trusted", recorded: dict) -> str | None:
+    """An A arm's per-side-game catcher evidence, re-derived (review c1 finding 3): exactly the trusted side-games with
+    their PA-row counts; each side's team and catcher from the pinned table (A-projected through the projection); each
+    reason consistent with the catcher and value; and the counts and identified ids the run recorded equal to the
+    evidence's. The values themselves are recomputed by the aggregate."""
+    import pandas as pd
+    if tuple(ev.columns) != EVIDENCE_COLS:
+        return f"{arm}'s catcher evidence does not have the columns {EVIDENCE_COLS}"
+    got = {}
+    for r in ev.itertuples(index=False):
+        key = (str(r.date), int(r.game_pk), str(r.fielding_side))
+        if key in got:
+            return f"{arm}'s catcher evidence lists side-game {key} twice"
+        got[key] = r
+    if {k: int(r.n_pa) for k, r in got.items()} != truth.side_games:
+        return f"{arm}'s catcher evidence is not exactly the trusted side-games with their PA-row counts"
+    side_games, pa_rows, ids = dict.fromkeys(REASONS, 0), dict.fromkeys(REASONS, 0), set()
+    for (day, pk, side), r in got.items():
+        team, cid = truth.catcher(arm, pk, side, day)
+        if team is None or int(r.team_id) != team:
+            return f"{arm}: side-game {(day, pk, side)} has team {r.team_id}, not the pinned table's {team}"
+        rc = None if pd.isna(r.catcher_id) else int(r.catcher_id)
+        if rc != cid:
+            return f"{arm}: side-game {(day, pk, side)} names catcher {rc}, not the re-derived {cid}"
+        v = float(r.value)
+        why = "no_catcher" if cid is None else ("too_few_rates" if math.isnan(v) else "identified")
+        if r.reason != why or (cid is None and not math.isnan(v)):
+            return f"{arm}: side-game {(day, pk, side)} has reason {r.reason!r}, not {why!r}"
+        side_games[why] += 1
+        pa_rows[why] += int(r.n_pa)
+        if why == "identified":
+            ids.add(cid)
+    if recorded.get("counts") != {"side_games": side_games, "pa_rows": pa_rows}:
+        return f"{arm}'s recorded counts do not equal its evidence's"
+    if recorded.get("identified_ids") != sorted(ids):
+        return f"{arm}'s recorded identified ids do not equal its evidence's"
+    if arm == "A_posted" and side_games["identified"] == 0:
+        return "A_posted has no identified catcher value: the catcher contrast is unavailable"
+    return None
+
+
+def load_trusted(inputs_dir: Path, pins: dict) -> "Trusted":
+    import pandas as pd
+    from scripts.audit.c1 import admission as A
+    raw26, _ = A.read_pinned(Path(inputs_dir) / FROZEN_PA, pins[FROZEN_PA])
+    return Trusted(pd.read_parquet(io.BytesIO(raw26)),
+                   table_frame(read_pinned_json(Path(inputs_dir) / TABLE_NAME, pins[TABLE_NAME])))
+
+
 def run(seed: int, data_dir: Path, inputs_dir: Path, *, walk_forward=None, now=None, _test_out_root=None) -> int:
     import pandas as pd
     from scripts.audit.c1 import admission as A
@@ -643,13 +952,13 @@ def run(seed: int, data_dir: Path, inputs_dir: Path, *, walk_forward=None, now=N
     if foreign:
         raise SystemExit(f"refusing: modules from outside this checkout: {foreign}")
     pins = adm["input_pins"]
-    raw26, _ = A.read_pinned(inputs_dir / FROZEN_PA, pins[FROZEN_PA])
-    calendar = expected_calendar(pd.read_parquet(io.BytesIO(raw26)))
+    truth = load_trusted(inputs_dir, pins)
+    calendar = truth.calendar
     register = (A.REPO / REGISTER_REL).read_text()
-    ok, why, allow = seed_allowed(seed, register, out_root, identity=identity, pins=pins, calendar=calendar)
+    ok, why, allow = seed_allowed(seed, register, out_root, identity=identity, pins=pins, truth=truth)
     if not ok:
         raise SystemExit(f"refusing: {why}")
-    problem = guarded_unit_problem(seed, allow["budget"], S.proc_cgroup_text(), C1_DIR)
+    unit, problem = guarded_unit(seed, allow["budget"], S.proc_cgroup_text(), C1_DIR)
     if problem:
         raise SystemExit(f"refusing: {problem}")
     from bts.model.predict import LGB_PARAMS
@@ -672,7 +981,18 @@ def run(seed: int, data_dir: Path, inputs_dir: Path, *, walk_forward=None, now=N
     from bts.validate.scorecard import compute_full_scorecard, diff_scorecards
     walk_forward = walk_forward or blend_walk_forward
     t0 = S.cpu_seconds()
-    df = compute_all_features(load_inputs(data_dir, inputs_dir, pins))
+    raw_df = load_inputs(data_dir, inputs_dir, pins)
+    try:
+        history_start_problem(raw_df)
+        games = {y: pa_game_ids(raw_df[raw_df["season"] == y]) for y in PROXY_SEASONS}
+        problem = (sources_problem(read_pinned_json(inputs_dir / SOURCES_NAME, pins[SOURCES_NAME]), games)
+                   or table_games_problem(table, games))
+        if problem:
+            raise InputRefused(problem)
+    except InputRefused as e:
+        S._json(run_dir / "STOPPED.json", {"reason": "inputs", "detail": str(e)})
+        raise
+    df = compute_all_features(raw_df)
     check = S.self_check(df)
     df = S.framing_by(df, "fielding_catcher_id", NEW_COL)
     labels = S.original_portion_labels(df)
@@ -682,8 +1002,9 @@ def run(seed: int, data_dir: Path, inputs_dir: Path, *, walk_forward=None, now=N
                 "test_season": TEST_SEASON, "arms": list(ARMS), "basis": S.BASIS, "retrain_every": S.RETRAIN_EVERY,
                 "lgb_params": dict(LGB_PARAMS), "feature_settings": settings, "scoring": dict(S.SCORING),
                 "env": {k: os.environ.get(k) for k in ("BTS_LGBM_DETERMINISTIC", "BTS_LGBM_RANDOM_STATE", "TZ")},
-                "self_check": check, "calendar": calendar, "allowance": allow,
-                "resumed_portion_rows": S.resumed_counts(df), "features_cpu_s": S.cpu_seconds() - t0}
+                "self_check": check, "calendar": calendar, "allowance": allow, "launcher_unit": unit,
+                "resumed_portion_rows": S.resumed_counts(df), "resumed_flag_2026": resumed_totals(raw_df),
+                "features_cpu_s": S.cpu_seconds() - t0}
     S._json(run_dir / "manifest.json", manifest)
     if not check["identical"]:
         S._json(run_dir / "STOPPED.json", {"reason": "self_check", "self_check": check})
@@ -702,8 +1023,11 @@ def run(seed: int, data_dir: Path, inputs_dir: Path, *, walk_forward=None, now=N
         p.to_parquet(path, index=False)
         unit = {"arm": arm, "season": TEST_SEASON, "cpu_s": cpu, "wall_s": time.monotonic() - w0, "labels": counts}
         if transform is not None:
-            unit["catcher"] = {"counts": transform.counts, "identified_ids": len(transform.identified_ids)}
+            unit["catcher"] = {"counts": transform.counts, "identified_ids": sorted(transform.identified_ids)}
             transforms[arm] = unit["catcher"]
+            pd.DataFrame(transform.evidence, columns=list(EVIDENCE_COLS)).astype(
+                {"catcher_id": "Int64", "value": "float64"}).to_parquet(
+                run_dir / f"catcher_{arm}_{TEST_SEASON}.parquet", index=False)
         units.append(unit)
         S._json(run_dir / "units.json", units)
         profiles[arm] = pd.read_parquet(path)       # score exactly the retained bytes
@@ -725,19 +1049,25 @@ def run(seed: int, data_dir: Path, inputs_dir: Path, *, walk_forward=None, now=N
     return 0
 
 
+def _delta(v):
+    """A diffed field is {baseline, variant, delta} (`diff_scorecards`); its delta, or None when absent."""
+    return v.get("delta") if isinstance(v, dict) else None
+
+
 def arm_summary(diff: dict) -> dict:
-    """An A arm's P@1 delta on 2026 and its reported streak metrics (no decision weight, §6)."""
+    """An A arm's P@1 delta on 2026 and its reported streak deltas (no decision weight, §6)."""
     by = {str(k): v for k, v in (diff.get("p_at_1_by_season") or {}).items()}   # int keys before JSON, str after
     streak = diff.get("streak_metrics", {})
-    return {"p_at_1_delta": float(by[str(TEST_SEASON)]["delta"]) if str(TEST_SEASON) in by else None,
-            "p_57_exact": diff.get("p_57_exact"), "mean_max_streak": streak.get("mean_max_streak"),
-            "longest_replay_streak": streak.get("longest_replay_streak")}
+    p1 = by.get(str(TEST_SEASON))
+    return {"p_at_1_delta": float(_delta(p1)) if _delta(p1) is not None else None,
+            "p_57_exact": _delta(diff.get("p_57_exact")), "mean_max_streak": _delta(streak.get("mean_max_streak")),
+            "longest_replay_streak": _delta(streak.get("longest_replay_streak"))}
 
 
 # ---------------------------------------------------------------- validation and the aggregate
 
-def validate_run(d: Path, seed: int, *, out_root: Path, identity: dict, pins: dict, calendar: list[str],
-                 repo: Path | None = None) -> dict:
+def validate_run(d: Path, seed: int, *, out_root: Path, identity: dict, pins: dict, truth: "Trusted",
+                 repo: Path | None = None, c1_dir: Path | None = None) -> dict:
     """One completed, claimed run, checked against trusted admission evidence (`identity`, `pins`) and the calendar
     derived from the pinned 2026 PA rows (never the run's own declarations). Raises RunInvalid; returns
     {manifest, results, rank1, summaries}. The checks follow `screen.validate_run`, for three arms on one season,
@@ -748,6 +1078,7 @@ def validate_run(d: Path, seed: int, *, out_root: Path, identity: dict, pins: di
     from bts.validate.scorecard import compute_full_scorecard, diff_scorecards
     from scripts.audit.c1 import admission as A
     repo = A.REPO if repo is None else repo
+    calendar = truth.calendar
     d = Path(d)
     if d.resolve().parent != (out_root / f"seed_{seed}").resolve():
         raise RunInvalid(f"{d}: not in the canonical claim namespace {out_root / f'seed_{seed}'}")
@@ -789,12 +1120,27 @@ def validate_run(d: Path, seed: int, *, out_root: Path, identity: dict, pins: di
     problems = head_admitted(repo, identity, man["head"])
     if problems:
         raise RunInvalid(f"{d}: " + "; ".join(problems))
+    problem = launcher_problems(d, seed, man, res, C1_DIR if c1_dir is None else c1_dir)
+    if problem:
+        raise RunInvalid(problem)
     units = res.get("units")
     if not (isinstance(units, list) and [(u.get("arm"), u.get("season")) for u in units] == UNIT_ORDER):
         raise RunInvalid(f"{d}: the three registered units are not all complete")
-    posted = (units[1].get("catcher") or {}).get("counts", {}).get("pa_rows", {})
-    if not (isinstance(posted.get("identified"), int) and posted["identified"] > 0):
-        raise RunInvalid(f"{d}: A_posted has no identified catcher value: the catcher contrast is unavailable")
+    evidence = {}
+    for i, a in ((1, "A_posted"), (2, "A_projected")):
+        recorded = units[i].get("catcher") or {}
+        S._read(d, f"catcher_{a}_{TEST_SEASON}.parquet")
+        try:
+            ev = pd.read_parquet(d / f"catcher_{a}_{TEST_SEASON}.parquet")
+        except Exception as e:
+            raise RunInvalid(f"{d}: {a}'s catcher evidence is unreadable ({type(e).__name__})")
+        problem = evidence_problem(ev, a, truth, recorded)
+        if problem:
+            raise RunInvalid(f"{d}: {problem}")
+        evidence[a] = ev
+    units_file = S._json_of(d, "units.json")
+    if S._canon(units_file) != S._canon(units):
+        raise RunInvalid(f"{d}: units.json does not equal the results' units (counts)")
     cards = {a: S._json_of(d, f"scorecard_{a}.json") for a in ARMS}
     vectors = {}
     for a in ARMS:
@@ -807,6 +1153,9 @@ def validate_run(d: Path, seed: int, *, out_root: Path, identity: dict, pins: di
             raise RunInvalid(f"{d}: {name} is unreadable ({type(e).__name__})")
         if problem is not None:
             raise RunInvalid(f"{d}: {name} is not complete {TEST_SEASON} evidence: {problem}")
+        problem = identity_problem(part, truth)
+        if problem is not None:
+            raise RunInvalid(f"{d}: {name}: {problem}")
         try:
             vectors[a] = rank1(part, calendar)
         except RunInvalid as e:
@@ -837,15 +1186,40 @@ def validate_run(d: Path, seed: int, *, out_root: Path, identity: dict, pins: di
         if S._canon((res.get("arms") or {}).get(a)) != S._canon(summary):
             raise RunInvalid(f"{d}: arm {a}'s stored summary does not match its diff")
         summaries[a] = summary
-    return {"manifest": man, "results": res, "rank1": vectors, "summaries": summaries}
+    return {"manifest": man, "results": res, "rank1": vectors, "summaries": summaries, "evidence": evidence}
 
 
-def aggregate(run_dirs: list[Path], inputs_dir: Path, *, _test_out_root=None, _repo=None) -> dict:
-    """§6: exactly one run directory per registered seed, each validated under the admitted identity, pins and the
-    calendar re-derived here from the pinned `pa_2026`; all agree on everything that defines the run. A-posted decides;
-    A-projected is descriptive."""
-    import pandas as pd
+def recompute_asof(data_dir: Path, inputs_dir: Path, pins: dict) -> "AsOfFraming":
+    """The catcher-grouped feature recomputed here from the admitted inputs under the same closed inputs and checks as
+    a run (review c1 finding 3): the values every run's evidence must carry."""
     from scripts.audit.c1 import admission as A
+    from bts.features.compute import compute_all_features
+    S.install_closed_inputs(S.frozen_lookup(A.read_pinned(Path(inputs_dir) / LOOKUP_NAME, pins[LOOKUP_NAME])[0]))
+    raw_df = load_inputs(data_dir, inputs_dir, pins)
+    history_start_problem(raw_df)
+    games = {y: pa_game_ids(raw_df[raw_df["season"] == y]) for y in PROXY_SEASONS}
+    table = table_frame(read_pinned_json(Path(inputs_dir) / TABLE_NAME, pins[TABLE_NAME]))
+    problem = (sources_problem(read_pinned_json(Path(inputs_dir) / SOURCES_NAME, pins[SOURCES_NAME]), games)
+               or table_games_problem(table, games))
+    if problem:
+        raise RunInvalid(problem)
+    df = compute_all_features(raw_df)
+    if not S.self_check(df)["identical"]:
+        raise RunInvalid("the recomputed features fail the screen's self-check")
+    return AsOfFraming(df)
+
+
+def _same(a: float, b: float) -> bool:
+    return (math.isnan(a) and math.isnan(b)) or a == b
+
+
+def aggregate(run_dirs: list[Path], data_dir: Path, inputs_dir: Path, *, _test_out_root=None, _repo=None) -> dict:
+    """§6: exactly one run directory per registered seed, each validated under the admitted identity, pins and the
+    trusted evidence re-derived here from the pinned inputs; all agree on everything that defines the run, and on their
+    catcher evidence, whose every value equals a recomputation from the admitted inputs. A-posted decides; A-projected
+    is descriptive. The aggregate's own CPU is reported: it runs outside the launcher."""
+    import pandas as pd
+    c0 = S.cpu_seconds()
     out_root = OUT_ROOT if _test_out_root is None else _test_out_root
     dirs = [Path(d).resolve() for d in run_dirs]
     if len(dirs) != len(SEEDS) or len(set(dirs)) != len(dirs):
@@ -858,24 +1232,44 @@ def aggregate(run_dirs: list[Path], inputs_dir: Path, *, _test_out_root=None, _r
         raise RunInvalid(f"seeds {seeds} are not exactly the registered {list(SEEDS)}")
     _, adm, identity = admission_gate(_repo)
     pins = adm["input_pins"]
-    raw26, _ = A.read_pinned(Path(inputs_dir) / FROZEN_PA, pins[FROZEN_PA])
-    calendar = expected_calendar(pd.read_parquet(io.BytesIO(raw26)))
-    by = {s: validate_run(d, s, out_root=out_root, identity=identity, pins=pins, calendar=calendar, repo=_repo)
+    truth = load_trusted(inputs_dir, pins)
+    by = {s: validate_run(d, s, out_root=out_root, identity=identity, pins=pins, truth=truth, repo=_repo)
           for d, s in zip(dirs, seeds)}
     first = by[SEEDS[0]]["manifest"]
     for key in ("input_pins", "inputs_digest", "lgb_params", "feature_settings", "basis", "retrain_every",
                 "test_season", "arms", "calendar", "scoring", "identity"):
         if any(by[s]["manifest"].get(key) != first.get(key) for s in SEEDS[1:]):
             raise RunInvalid(f"runs disagree on {key}")
+    asof = recompute_asof(data_dir, inputs_dir, pins)
+    for a in ARMS[1:]:
+        ev = by[SEEDS[0]]["evidence"][a]
+        if any(not by[s]["evidence"][a].equals(ev) for s in SEEDS[1:]):
+            raise RunInvalid(f"runs disagree on {a}'s catcher evidence")
+        for r in ev.itertuples(index=False):
+            cid = None if pd.isna(r.catcher_id) else int(r.catcher_id)
+            want = asof.value(cid, r.date) if cid is not None else math.nan
+            if not _same(float(r.value), want):
+                raise RunInvalid(f"{a}: side-game {(r.date, r.game_pk, r.fielding_side)}'s value {r.value} is not "
+                                 f"the recomputed {want}")
     x = {a: np.array([[h - b for h, b in zip(by[s]["rank1"][a], by[s]["rank1"]["baseline"])] for s in SEEDS])
          for a in ARMS[1:]}
+    posted, projected = dispose(x["A_posted"]), dispose(x["A_projected"])
+    streak = {a: [by[s]["summaries"][a]["mean_max_streak"] for s in SEEDS] for a in ARMS[1:]}
     return {"seeds": list(SEEDS), "heads": [by[s]["manifest"]["head"] for s in SEEDS], "identity": identity,
-            "calendar_days": len(calendar), "total_cpu_h": sum(by[s]["results"]["total_cpu_s"] for s in SEEDS) / 3600,
-            "A_posted": {"decides": True, **dispose(x["A_posted"])},
-            "A_projected": {"decides": False, **dispose(x["A_projected"])},
+            "calendar_days": len(truth.calendar),
+            "total_cpu_h": sum(by[s]["results"]["total_cpu_s"] for s in SEEDS) / 3600,
+            "guard_cpu_h": sum(_lifecycle_record(C1_DIR, "TERMINAL", by[s]["manifest"]["launcher_unit"])["cpu_seconds"]
+                               for s in SEEDS) / 3600,
+            "A_posted": {"decides": True, **posted,
+                         "dependence_disagreement": posted.get("L", 0) > 0 and not posted.get("L_block7", 0) > 0},
+            "A_projected": {"decides": False, **projected},
+            "streak": {a: {"mean_max_streak_delta": streak[a],
+                           "seeds_below_zero": sum(1 for v in streak[a] if v is not None and v < 0)}
+                       for a in ARMS[1:]},
             "per_seed": {str(s): {"summaries": by[s]["summaries"],
                                   "catcher": {u["arm"]: u.get("catcher") for u in by[s]["results"]["units"][1:]}}
-                         for s in SEEDS}}
+                         for s in SEEDS},
+            "aggregate_cpu_s": S.cpu_seconds() - c0}
 
 
 # ---------------------------------------------------------------- the launch wrapper and the command line
@@ -896,12 +1290,13 @@ def launch(seed: int, data_dir: Path, inputs_dir: Path, *, execute=subprocess.ru
     import pandas as pd
     from scripts.audit.c1 import admission as A
     out_root = OUT_ROOT if _test_out_root is None else _test_out_root
+    root = out_root / f"seed_{seed}"
+    if root.is_dir() and any(p.is_dir() for p in root.iterdir()):
+        raise SystemExit(f"refusing: seed {seed} already has a run under {root}")
     _, adm, identity = admission_gate()
     pins = adm["input_pins"]
-    raw26, _ = A.read_pinned(inputs_dir / FROZEN_PA, pins[FROZEN_PA])
-    calendar = expected_calendar(pd.read_parquet(io.BytesIO(raw26)))
     ok, why, allow = seed_allowed(seed, (A.REPO / REGISTER_REL).read_text(), out_root, identity=identity, pins=pins,
-                                  calendar=calendar)
+                                  truth=load_trusted(inputs_dir, pins))
     if not ok:
         raise SystemExit(f"refusing: {why}")
     refuse_inside_the_window()
@@ -917,11 +1312,12 @@ def main(argv=None) -> int:
         p.add_argument("--data-dir", type=Path, required=True)
         p.add_argument("--inputs-dir", type=Path, default=OUT_ROOT / "inputs")
     pr = sub.add_parser("prepare", help="once, after X-37 and its own register row: the 2026 inputs and their pins")
-    pr.add_argument("--data-dir", type=Path, required=True)
-    pr.add_argument("--raw-dir", type=Path, required=True)
-    pr.add_argument("--screen-inputs", type=Path, required=True)
+    pr.add_argument("--data-dir", type=Path, default=DATA_DIR)
+    pr.add_argument("--raw-dir", type=Path, default=RAW_DIR)
+    pr.add_argument("--screen-inputs", type=Path, default=SCREEN_INPUTS)
     pr.add_argument("--out", type=Path, default=OUT_ROOT / "inputs")
     g = sub.add_parser("aggregate")
+    g.add_argument("--data-dir", type=Path, default=DATA_DIR)
     g.add_argument("--inputs-dir", type=Path, default=OUT_ROOT / "inputs")
     g.add_argument("run_dirs", type=Path, nargs="+")
     a = ap.parse_args(argv)
@@ -930,16 +1326,9 @@ def main(argv=None) -> int:
     if a.cmd == "launch":
         return launch(a.seed, a.data_dir, a.inputs_dir)
     if a.cmd == "prepare":
-        from scripts.audit.c1 import admission as A
-        _, adm, _ = admission_gate(require_inputs=False)   # X-37 published and the reviewed code
-        problem = prep_row_problem(A.REPO, (A.REPO / REGISTER_REL).read_text(), adm["exposure_commit"])
-        if problem:                                           # before any 2026 file is opened or hashed
-            raise SystemExit(f"refusing: {problem}")
-        screen_pins = json.loads((A.REPO / S.ADMISSION_REL).read_text())["input_pins"]
-        print(json.dumps(prepare(a.data_dir, a.raw_dir, a.screen_inputs, screen_pins, a.out), indent=1,
-                         sort_keys=True))
+        print(json.dumps(prepare(a.data_dir, a.raw_dir, a.screen_inputs, a.out), indent=1, sort_keys=True))
         return 0
-    print(json.dumps(aggregate(a.run_dirs, a.inputs_dir), indent=1, sort_keys=True))
+    print(json.dumps(aggregate(a.run_dirs, a.data_dir, a.inputs_dir), indent=1, sort_keys=True))
     return 0
 
 

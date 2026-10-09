@@ -74,7 +74,8 @@ def _stub_walk_forward(calls):
             for rank, b in enumerate(score.sort_values(ascending=False, kind="stable").index[:10], start=1):
                 rows.append({"date": day.date(), "rank": rank, "batter_id": int(b),
                              "game_pk": int(g.loc[g["batter_id"] == b, "game_pk"].iloc[0]),
-                             "p_game_hit": 0.9 - 0.01 * rank, "actual_hit": 1, "n_pas": 2})
+                             "p_game_hit": 0.9 - 0.01 * rank, "actual_hit": 1, "n_pas": 2,
+                             "p_game_hit_basis": "estimated_pa"})
         return pd.DataFrame(rows)
     return wf
 
@@ -107,8 +108,9 @@ def world(monkeypatch, tmp_path):
     df, table = _world()
     inputs = tmp_path / "inputs"
     inputs.mkdir()
+    games = {s: sorted(int(g) for g in df.loc[df["season"] == s, "game_pk"].unique()) for s in (2025, 2026)}
     files = {F.FROZEN_PA: _parquet(df[df["season"] == 2026]), F.LOOKUP_NAME: b'{"1":{"away":5}}\n',
-             F.TABLE_NAME: F.canonical(table), F.SOURCES_NAME: b"{}\n"}
+             F.TABLE_NAME: F.canonical(table), F.SOURCES_NAME: F.canonical(_sources(games))}
     for name, b in files.items():
         (inputs / name).write_bytes(b)
     pins = {n: "b" * 64 for n in F.INPUT_NAMES}
@@ -124,10 +126,15 @@ def world(monkeypatch, tmp_path):
     monkeypatch.setattr(F, "head_admitted", lambda repo, identity, head: [] if identity == IDENT and head in HEADS
                         else [f"run HEAD {head[:7]} is not admitted"])
     monkeypatch.setattr(F, "guarded_unit_problem", lambda seed, budget, text, c1: None)
+    monkeypatch.setattr(F, "guarded_unit", lambda seed, budget, text, c1: (_unit(seed), None), raising=False)
     monkeypatch.setattr(S, "ny_clock", lambda: (12, 0))
+    c1 = tmp_path / "c1"
+    c1.mkdir()
+    monkeypatch.setattr(F, "C1_DIR", c1)
     out = tmp_path / "out"
     out.mkdir()
-    return {"out": out, "inputs": inputs, "adm": adm, "register": register, "df": df, "table": table, "pins": pins}
+    return {"out": out, "inputs": inputs, "adm": adm, "register": register, "df": df, "table": table, "pins": pins,
+            "c1": c1}
 
 
 def _parquet(frame):
@@ -140,9 +147,31 @@ def _calendar(w):
     return F.expected_calendar(w["df"][w["df"]["season"] == 2026])
 
 
-def _run(w, seed, calls=None, **k):
-    return F.run(seed, w["out"], w["inputs"], walk_forward=_stub_walk_forward([] if calls is None else calls),
-                 _test_out_root=w["out"], **k)
+def _unit(seed):
+    k = F.SEEDS.index(seed) + 1
+    return f"c1-c2-f26-seed{k}-20261010T120000Z-{k:08x}"
+
+
+def _receipts(w, seed, *, rc=0, result="exit", extra_cpu=60.0, problems=()):
+    """What the C1 launcher and its guard leave for a finished unit: PENDING, TERMINAL and RECONCILED records."""
+    unit = _unit(seed)
+    res = json.loads((_run_dir(w, seed) / "results.json").read_text())
+    cpu = res["total_cpu_s"] + extra_cpu
+    budget = 12 * 3600
+    (w["c1"] / f"PENDING_{unit}.json").write_text(json.dumps({"unit": unit, "limit_cpu_seconds": budget,
+                                                             "declared_cpu_hours": 12.0}))
+    (w["c1"] / f"TERMINAL_{unit}.json").write_text(json.dumps({"unit": unit, "budget_seconds": budget,
+                                                              "result": result, "rc": rc, "cpu_seconds": cpu}))
+    (w["c1"] / f"RECONCILED_{unit}.json").write_text(json.dumps({"unit": unit, "result": result, "cpu_seconds": cpu,
+                                                                "rc": rc, "problems": list(problems)}))
+
+
+def _run(w, seed, calls=None, receipts=True, **k):
+    rc = F.run(seed, w["out"], w["inputs"], walk_forward=_stub_walk_forward([] if calls is None else calls),
+               _test_out_root=w["out"], **k)
+    if rc == 0 and receipts:
+        _receipts(w, seed)
+    return rc
 
 
 def _run_dir(w, seed):
@@ -151,9 +180,13 @@ def _run_dir(w, seed):
     return dirs[0]
 
 
+def _truth(w):
+    return F.Trusted(w["df"][w["df"]["season"] == 2026], F.table_frame(w["table"]))
+
+
 def _validate(w, seed, **k):
     return F.validate_run(_run_dir(w, seed), seed, out_root=w["out"], identity=IDENT, pins=w["pins"],
-                          calendar=_calendar(w), **k)
+                          truth=_truth(w), c1_dir=w["c1"], **k)
 
 
 # ---------------------------------------------------------------- the run
@@ -262,7 +295,10 @@ def test_a_changed_input_file_is_refused(world):
 
 def test_the_guarded_unit_check_is_called_with_eric_s_budget(world, monkeypatch):
     seen = []
-    monkeypatch.setattr(F, "guarded_unit_problem", lambda seed, budget, text, c1: seen.append(budget) or "not a unit")
+    def guarded(seed, budget, text, c1):
+        seen.append(budget)
+        return None, "not a unit"
+    monkeypatch.setattr(F, "guarded_unit", guarded)
     with pytest.raises(SystemExit, match="not a unit"):
         _run(world, F.SEEDS[0])
     assert seen == [12.0]
@@ -280,12 +316,25 @@ def test_guarded_unit_problem(tmp_path):
     assert F.guarded_unit_problem(F.SEEDS[0], 12.0, "", tmp_path) is not None
 
 
-def test_arm_summary_reads_int_and_str_season_keys():
+def test_arm_summary_reads_int_and_str_season_keys_and_reports_deltas():
+    def d(v):
+        return {"baseline": 0.0, "variant": v, "delta": v}
     for key in (2026, "2026"):
-        diff = {"p_at_1_by_season": {key: {"delta": 0.01}}, "p_57_exact": 1e-9,
-                "streak_metrics": {"mean_max_streak": -0.5, "longest_replay_streak": 2}}
+        diff = {"p_at_1_by_season": {key: d(0.01)}, "p_57_exact": d(1e-9),
+                "streak_metrics": {"mean_max_streak": d(-0.5), "longest_replay_streak": d(2)}}
         assert F.arm_summary(diff) == {"p_at_1_delta": 0.01, "p_57_exact": 1e-9, "mean_max_streak": -0.5,
                                        "longest_replay_streak": 2}
+
+
+def test_arm_summary_matches_a_real_diff():
+    from bts.validate.scorecard import diff_scorecards
+    base = {"p_at_1_by_season": {2026: 0.70}, "p_57_exact": 1e-8,
+            "streak_metrics": {"mean_max_streak": 9.0, "longest_replay_streak": 12}}
+    var = {"p_at_1_by_season": {2026: 0.72}, "p_57_exact": 2e-8,
+           "streak_metrics": {"mean_max_streak": 8.5, "longest_replay_streak": 14}}
+    out = F.arm_summary(diff_scorecards(base, var))
+    assert out["p_at_1_delta"] == pytest.approx(0.02) and out["mean_max_streak"] == pytest.approx(-0.5)
+    assert out["longest_replay_streak"] == pytest.approx(2) and out["p_57_exact"] == pytest.approx(1e-8)
 
 
 # ---------------------------------------------------------------- validation
@@ -305,7 +354,7 @@ def _drop_day(frame):
     (lambda d: _rewrite_profile(d, "A_posted", _drop_day), "calendar|scorecard"),
     (lambda d: [_rewrite_profile(d, a, _drop_day) for a in F.ARMS], "calendar|scorecard"),
     (lambda d: _rewrite_profile(d, "baseline", lambda f: pd.concat([f, f[f["rank"] == 1]])), "ranks|calendar"),
-    (lambda d: _rewrite_profile(d, "A_posted", lambda f: f.assign(actual_hit=1 - f["actual_hit"])), "scorecard"),
+    (lambda d: _rewrite_profile(d, "A_posted", lambda f: f.assign(actual_hit=1 - f["actual_hit"])), "label|scorecard"),
 ])
 def test_validate_run_refuses_damaged_evidence(world, damage, match):
     seed = F.SEEDS[0]
@@ -324,7 +373,7 @@ def _edit_json(d, name, fn):
 
 @pytest.mark.parametrize("name, fn, match", [
     ("results.json", lambda r: r["rank1"]["A_posted"].reverse(), "rank-1 vector"),
-    ("results.json", lambda r: r["units"][1]["catcher"]["counts"]["pa_rows"].update(identified=0), "no identified"),
+    ("results.json", lambda r: r["units"][1]["catcher"]["counts"]["pa_rows"].update(identified=0), "counts|identified"),
     ("results.json", lambda r: r["arms"]["A_posted"].update(p_at_1_delta=0.5), "summary"),
     ("manifest.json", lambda m: m["calendar"].pop(), "calendar"),
     ("manifest.json", lambda m: m.update(test_season=2025), "season"),
@@ -343,7 +392,7 @@ def test_validate_run_refuses_another_calendar(world):
     assert _run(world, seed) == 0
     with pytest.raises(F.RunInvalid, match="calendar"):
         F.validate_run(_run_dir(world, seed), seed, out_root=world["out"], identity=IDENT, pins=world["pins"],
-                       calendar=_calendar(world)[1:])
+                       truth=_truth_with_calendar(world, _calendar(world)[1:]), c1_dir=world["c1"])
 
 
 def test_validate_run_refuses_an_unadmitted_head(world):
@@ -364,13 +413,14 @@ def ten(world):
 
 
 def test_aggregate_the_ten_registered_seeds(world, ten):
-    out = F.aggregate(ten, world["inputs"], _test_out_root=world["out"])
+    out = F.aggregate(ten, world["out"], world["inputs"], _test_out_root=world["out"])
     assert out["seeds"] == list(F.SEEDS) and out["calendar_days"] == len(_calendar(world))
     assert out["A_posted"]["decides"] is True and out["A_projected"]["decides"] is False
     assert out["A_posted"]["disposition"] in ("positive", "negative", "inconclusive")
     rows = []
     for d, s in zip(ten, F.SEEDS):
-        r = F.validate_run(d, s, out_root=world["out"], identity=IDENT, pins=world["pins"], calendar=_calendar(world))
+        r = F.validate_run(d, s, out_root=world["out"], identity=IDENT, pins=world["pins"], truth=_truth(world),
+                           c1_dir=world["c1"])
         rows.append([a - b for a, b in zip(r["rank1"]["A_posted"], r["rank1"]["baseline"])])
     x = np.array(rows, dtype=float)
     assert out["A_posted"]["m"] == pytest.approx(x.mean())
@@ -379,7 +429,7 @@ def test_aggregate_the_ten_registered_seeds(world, ten):
 @pytest.mark.parametrize("pick", [lambda t: t[:9], lambda t: t + t[:1], lambda t: t[:9] + t[:1]])
 def test_aggregate_refuses_partial_duplicate_or_extra_runs(world, ten, pick):
     with pytest.raises(F.RunInvalid):
-        F.aggregate(pick(ten), world["inputs"], _test_out_root=world["out"])
+        F.aggregate(pick(ten), world["out"], world["inputs"], _test_out_root=world["out"])
 
 
 def test_aggregate_rederives_the_calendar_from_the_pinned_rows(world, ten):
@@ -389,7 +439,7 @@ def test_aggregate_rederives_the_calendar_from_the_pinned_rows(world, ten):
     (world["inputs"] / F.FROZEN_PA).write_bytes(b)
     world["adm"].pins[F.FROZEN_PA] = _sha(b)                       # a different pinned file, a different calendar
     with pytest.raises(F.RunInvalid, match="calendar"):
-        F.aggregate(ten, world["inputs"], _test_out_root=world["out"])
+        F.aggregate(ten, world["out"], world["inputs"], _test_out_root=world["out"])
 
 
 # ---------------------------------------------------------------- the inputs row and the allowance
@@ -446,7 +496,7 @@ def _feed(pk, season, date, away=11, home=12, catcher_away=1101, catcher_home=12
 
 
 @pytest.fixture
-def prep(tmp_path):
+def prep(tmp_path, monkeypatch):
     data, raw, screen_inputs = tmp_path / "processed", tmp_path / "raw", tmp_path / "screen_inputs"
     for p in (data, raw / "2025", raw / "2026", screen_inputs):
         p.mkdir(parents=True)
@@ -462,12 +512,14 @@ def prep(tmp_path):
     lookup = b'{"250001":{"away":1,"home":2,"away_tid":11,"home_tid":12}}\n'
     (screen_inputs / S.LOOKUP_NAME).write_bytes(lookup)
     screen_pins[S.LOOKUP_NAME] = _sha(lookup)
-    return {"data": data, "raw": raw, "screen_inputs": screen_inputs, "screen_pins": screen_pins,
-            "out": tmp_path / "inputs"}
+    out = {"data": data, "raw": raw, "screen_inputs": screen_inputs, "screen_pins": screen_pins,
+           "out": tmp_path / "inputs"}
+    _gated_prep(out, monkeypatch)
+    return out
 
 
 def _prepare(p):
-    return F.prepare(p["data"], p["raw"], p["screen_inputs"], p["screen_pins"], p["out"])
+    return F.prepare(p["data"], p["raw"], p["screen_inputs"], p["out"])
 
 
 def test_prepare_builds_the_inputs_from_exactly_the_pinned_games(prep):
@@ -547,13 +599,276 @@ def test_the_preparation_read_needs_its_own_row_after_the_exposure_commit(tmp_pa
     assert "already existed" in F.prep_row_problem(repo, head + _prep_row(), early)
 
 
-def test_the_prepare_command_refuses_without_the_row_and_before_reading_anything(monkeypatch, tmp_path):
-    monkeypatch.setattr(F, "admission_gate", lambda repo=None, *, require_inputs=True:
-                        ("a" * 40, {"exposure_commit": "b" * 40}, dict(IDENT)))
-    monkeypatch.setattr(F, "prep_row_problem", lambda repo, text, xc: "no structured row")
-    read = []
-    monkeypatch.setattr(F, "prepare", lambda *a: read.append(a))
-    with pytest.raises(SystemExit, match="no structured row"):
-        F.main(["prepare", "--data-dir", str(tmp_path), "--raw-dir", str(tmp_path), "--screen-inputs", str(tmp_path),
-                "--out", str(tmp_path / "inputs")])
-    assert read == []
+def test_the_prepare_command_refuses_without_the_row_and_before_reading_anything(prep, monkeypatch):
+    monkeypatch.setattr(F, "prep_row_problem", lambda repo, text, xc: "no structured C2-framing-2026-prep-read row")
+    (prep["data"] / "pa_2026.parquet").unlink()               # any read would raise FileNotFoundError instead
+    with pytest.raises(SystemExit, match="prep-read"):
+        F.main(["prepare", "--data-dir", str(prep["data"]), "--raw-dir", str(prep["raw"]),
+                "--screen-inputs", str(prep["screen_inputs"]), "--out", str(prep["out"])])
+    assert not prep["out"].exists()
+
+
+def test_the_run_refuses_pre_2019_catcher_history_before_any_walk_forward(world, monkeypatch):
+    sentinel = pd.DataFrame([{**world["df"].iloc[0].to_dict(), "season": 2018, "date": "2018-09-28",
+                              "fielding_catcher_id": 1101}])
+    monkeypatch.setattr(F, "load_inputs", lambda data_dir, inputs_dir, pins: pd.concat([sentinel, world["df"]]))
+    calls = []
+    with pytest.raises(F.InputRefused, match="2019"):
+        _run(world, F.SEEDS[0], calls)
+    assert calls == []
+    stop = json.loads((_run_dir(world, F.SEEDS[0]) / "STOPPED.json").read_text())
+    assert stop["reason"] == "inputs" and "2019" in stop["detail"]
+
+
+# ---------------------------------------------------------------- review c1 finding 6: clean launcher completion
+
+def test_the_run_records_its_launcher_unit(world):
+    assert _run(world, F.SEEDS[0]) == 0
+    man = json.loads((_run_dir(world, F.SEEDS[0]) / "manifest.json").read_text())
+    assert man["launcher_unit"] == _unit(F.SEEDS[0])
+
+
+def _rewrite(path, **changes):
+    obj = json.loads(path.read_text())
+    obj.update(changes)
+    path.write_text(json.dumps(obj))
+
+
+@pytest.mark.parametrize("damage, match", [
+    (lambda w, u, d: (w["c1"] / f"TERMINAL_{u}.json").unlink(), "TERMINAL"),
+    (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", rc=1), "TERMINAL"),
+    (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", result="cpu_limit"), "TERMINAL"),
+    (lambda w, u, d: (w["c1"] / f"RECONCILED_{u}.json").unlink(), "RECONCILED"),
+    (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", problems=["no guard TERMINAL receipt"]), "RECONCILED"),
+    (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", cpu_seconds=1.0), "RECONCILED"),
+    (lambda w, u, d: _rewrite(d / "results.json", total_cpu_s=-3600), "CPU"),
+    (lambda w, u, d: _rewrite(d / "results.json", total_cpu_s=float(10**9)), "CPU"),
+    (lambda w, u, d: _rewrite(d / "manifest.json", launcher_unit=_unit(F.SEEDS[1])), "unit"),
+    (lambda w, u, d: _rewrite(d / "manifest.json", launcher_unit=None), "unit"),
+])
+def test_validate_run_binds_the_run_to_its_clean_launcher_receipt(world, damage, match):
+    seed = F.SEEDS[0]
+    assert _run(world, seed) == 0
+    _validate(world, seed)                                    # clean
+    damage(world, _unit(seed), _run_dir(world, seed))
+    with pytest.raises(F.RunInvalid, match=match):
+        _validate(world, seed)
+
+
+def test_a_later_seed_waits_for_the_earlier_seeds_clean_receipt(world):
+    assert _run(world, F.SEEDS[0], receipts=False) == 0
+    with pytest.raises(SystemExit, match="TERMINAL"):
+        _run(world, F.SEEDS[1])
+
+
+def test_launch_refuses_a_seed_that_already_has_a_run_before_issuing_a_command(world):
+    seen = []
+    execute = lambda argv, cwd: seen.append(argv) or subprocess.CompletedProcess(argv, 0)   # noqa: E731
+    assert _run(world, F.SEEDS[0]) == 0
+    with pytest.raises(SystemExit, match="already has a run"):
+        F.launch(F.SEEDS[0], world["out"], world["inputs"], execute=execute, _test_out_root=world["out"])
+    assert seen == []
+
+
+# ---------------------------------------------------------------- review c1 finding 5: the acquisition boundary
+
+def _gated_prep(prep, monkeypatch, *, gate_problem=None, row_problem=None):
+    def gate(repo=None, *, require_inputs=True):
+        if gate_problem:
+            raise SystemExit(f"refusing: {gate_problem}")
+        return "a" * 40, {"exposure_commit": "b" * 40}, dict(IDENT)
+    monkeypatch.setattr(F, "admission_gate", gate)
+    monkeypatch.setattr(F, "prep_row_problem", lambda repo, text, xc: row_problem)
+    monkeypatch.setattr(F, "DATA_DIR", prep["data"])
+    monkeypatch.setattr(F, "RAW_DIR", prep["raw"])
+    monkeypatch.setattr(F, "SCREEN_INPUTS", prep["screen_inputs"])
+    monkeypatch.setattr(F, "screen_pins", lambda: prep["screen_pins"])
+
+
+@pytest.mark.parametrize("gate_problem, row_problem, match", [
+    ("X-37 is not published", None, "X-37"),
+    (None, "no structured C2-framing-2026-prep-read row", "prep-read"),
+])
+def test_the_preparation_function_itself_refuses_before_any_2026_read(prep, monkeypatch, gate_problem, row_problem,
+                                                                        match):
+    _gated_prep(prep, monkeypatch, gate_problem=gate_problem, row_problem=row_problem)
+    (prep["data"] / "pa_2026.parquet").unlink()               # any read would raise FileNotFoundError instead
+    with pytest.raises(SystemExit, match=match):
+        F.prepare(prep["data"], prep["raw"], prep["screen_inputs"], prep["out"])
+    assert not prep["out"].exists()
+
+
+@pytest.mark.parametrize("which", ["data", "raw", "screen_inputs"])
+def test_the_preparation_refuses_any_path_but_the_declared_ones(prep, monkeypatch, tmp_path, which):
+    _gated_prep(prep, monkeypatch)
+    args = {"data": prep["data"], "raw": prep["raw"], "screen_inputs": prep["screen_inputs"]}
+    other = tmp_path / f"other_{which}"
+    other.mkdir()
+    args[which] = other
+    with pytest.raises(SystemExit, match="declared"):
+        F.prepare(args["data"], args["raw"], args["screen_inputs"], prep["out"])
+    assert not prep["out"].exists()
+
+
+def test_the_gated_preparation_reads_the_declared_sources(prep, monkeypatch):
+    _gated_prep(prep, monkeypatch)
+    got = F.prepare(prep["data"], prep["raw"], prep["screen_inputs"], prep["out"])
+    assert got["games"] == {"2025": 1, "2026": 2}
+
+
+def test_historical_pins_must_be_the_screens():
+    screen = {f"pa_{s}.parquet": f"{s % 10}" * 64 for s in range(2017, 2026)}
+    pins = {**screen, F.FROZEN_PA: "e" * 64, F.LOOKUP_NAME: "f" * 64, F.TABLE_NAME: "a" * 64, F.SOURCES_NAME: "b" * 64}
+    assert F.historical_pins_problem(pins, screen) is None
+    assert "screen" in F.historical_pins_problem({**pins, "pa_2019.parquet": "c" * 64}, screen)
+
+
+def _sources(games):
+    src = [{"path": f"{s}/{g}.json", "sha256": "1" * 64, "game_pk": g, "season": s} for s in (2025, 2026)
+           for g in games[s]]
+    return {"sources": src, "counts": {str(s): len(games[s]) for s in (2025, 2026)}, "digest": S._sha(F.canonical(src))}
+
+
+@pytest.mark.parametrize("damage, ok", [
+    (lambda m: None, True),
+    (lambda m: m["sources"].pop(), False),
+    (lambda m: m["sources"].append(dict(m["sources"][0])), False),
+    (lambda m: m["sources"][0].update(path="2025/9.json"), False),
+    (lambda m: m["sources"][0].update(sha256="X"), False),
+    (lambda m: m["counts"].update({"2026": 9}), False),
+    (lambda m: m.update(digest="0" * 64), False),
+    (lambda m: m["sources"][0].update(season=2026), False),
+])
+def test_the_source_manifest_must_be_exactly_the_pinned_games(damage, ok):
+    games = {2025: [10, 11], 2026: [20, 21, 22]}
+    m = _sources(games)
+    damage(m)
+    if ok:
+        assert F.sources_problem(m, games) is None
+    else:
+        assert F.sources_problem(m, games) is not None
+
+
+def test_the_table_must_cover_exactly_the_pinned_games():
+    games = {2025: [1], 2026: [2]}
+    t = F.table_frame([{"game_pk": g, "season": s, "game_type": "R", "official_date": f"{s}-05-01", "game_number": 1,
+                        "game_number_fallback": False, "fielding_side": side, "team_id": 7, "catcher_id": None,
+                        "reason": "no_candidate"} for s, gs in games.items() for g in gs for side in ("away", "home")])
+    assert F.table_games_problem(t, games) is None
+    assert F.table_games_problem(t, {2025: [1], 2026: [2, 3]}) is not None
+
+
+def _truth_with_calendar(w, calendar):
+    truth = _truth(w)
+    truth.calendar = calendar
+    return truth
+
+
+# ---------------------------------------------------------------- review c1 finding 2: trusted identities and labels
+
+def _recohere(w, seed):
+    """Rebuild every derived record of a run from its (edited) retained profiles, so the run stays internally
+    consistent: the case only trusted evidence can refuse."""
+    from bts.validate.scorecard import compute_full_scorecard, diff_scorecards
+    d = _run_dir(w, seed)
+    res = json.loads((d / "results.json").read_text())
+    cards = {}
+    for a in F.ARMS:
+        part = pd.read_parquet(d / f"profiles_{a}_2026.parquet")
+        cards[a] = json.loads(S._canon(compute_full_scorecard(part, **S.SCORING)))
+        (d / f"scorecard_{a}.json").write_text(json.dumps(cards[a]))
+        res["p_at_1"][a] = cards[a]["p_at_1_by_season"]
+        res["rank1"][a] = F.rank1(part, _calendar(w))
+    for a in F.ARMS[1:]:
+        diff = json.loads(S._canon(diff_scorecards(cards["baseline"], cards[a])))
+        (d / f"diff_{a}.json").write_text(json.dumps(diff))
+        res["arms"][a] = F.arm_summary(diff)
+    (d / "results.json").write_text(json.dumps(res))
+
+
+@pytest.mark.parametrize("edit, match", [
+    (lambda f: f.assign(actual_hit=1), "label"),
+    (lambda f: f.assign(game_pk=-1), "batter-game"),
+    (lambda f: f.assign(batter_id=f["batter_id"] + 1000000), "batter-game"),
+    (lambda f: f.assign(p_game_hit_basis="actual_pa"), "basis"),
+    (lambda f: pd.concat([f, f[f["rank"] == 10].assign(rank=11)]), "10 rows|batter-game"),
+])
+def test_validation_refuses_coherently_wrong_profiles(world, edit, match):
+    seed = F.SEEDS[0]
+    assert _run(world, seed) == 0
+    d = _run_dir(world, seed)
+    for a in F.ARMS:
+        p = d / f"profiles_{a}_2026.parquet"
+        p.write_bytes(_parquet(edit(pd.read_parquet(p))))
+    _recohere(world, seed)
+    with pytest.raises(F.RunInvalid, match=match):
+        _validate(world, seed)
+
+
+# ---------------------------------------------------------------- review c1 finding 3: coverage from evidence
+
+def _no_catchers(world):
+    table = [{**r, "catcher_id": None, "reason": "no_candidate"} for r in world["table"]]
+    b = F.canonical(table)
+    (world["inputs"] / F.TABLE_NAME).write_bytes(b)
+    world["adm"].pins[F.TABLE_NAME] = _sha(b)
+    world["table"] = table
+
+
+def test_a_posted_arm_with_no_identified_catcher_is_refused_even_if_its_count_says_otherwise(world):
+    _no_catchers(world)
+    seed = F.SEEDS[0]
+    assert _run(world, seed) == 0
+    with pytest.raises(F.RunInvalid, match="identified"):
+        _validate(world, seed)
+    _edit_json(_run_dir(world, seed), "results.json",
+               lambda r: r["units"][1]["catcher"]["counts"]["pa_rows"].update(identified=1))
+    _edit_json(_run_dir(world, seed), "units.json", lambda u: u[1]["catcher"]["counts"]["pa_rows"].update(identified=1))
+    with pytest.raises(F.RunInvalid, match="identified|counts"):
+        _validate(world, seed)
+
+
+def _edit_evidence(d, arm, fn):
+    p = d / f"catcher_{arm}_2026.parquet"
+    p.write_bytes(_parquet(fn(pd.read_parquet(p))))
+
+
+@pytest.mark.parametrize("arm, fn, match", [
+    ("A_posted", lambda e: e.assign(catcher_id=e["catcher_id"].where(e.index != e["catcher_id"].first_valid_index(), 99)),
+     "catcher"),
+    ("A_projected", lambda e: e.assign(catcher_id=e["catcher_id"].where(e.index != e["catcher_id"].first_valid_index(), 99)),
+     "catcher"),
+    ("A_posted", lambda e: e.iloc[1:], "side-games"),
+    ("A_posted", lambda e: e.assign(n_pa=e["n_pa"] + 1), "side-games"),
+    ("A_posted", lambda e: e.assign(reason="identified"), "reason"),
+    ("A_posted", lambda e: e.assign(team_id=e["team_id"] + 1), "team"),
+])
+def test_validation_rederives_the_catcher_evidence(world, arm, fn, match):
+    seed = F.SEEDS[0]
+    assert _run(world, seed) == 0
+    _validate(world, seed)
+    _edit_evidence(_run_dir(world, seed), arm, fn)
+    with pytest.raises(F.RunInvalid, match=match):
+        _validate(world, seed)
+
+
+def test_validation_reconciles_the_recorded_counts_and_ids_with_the_evidence(world):
+    seed = F.SEEDS[0]
+    assert _run(world, seed) == 0
+    _edit_json(_run_dir(world, seed), "results.json",
+               lambda r: r["units"][2]["catcher"].update(identified_ids=[1]))
+    with pytest.raises(F.RunInvalid, match="counts|ids"):
+        _validate(world, seed)
+
+
+def test_the_aggregate_recomputes_every_catcher_value(world, ten):
+    for d in ten:                                         # the same wrong value in every run: they still agree
+        _edit_evidence(d, "A_posted", lambda e: e.assign(value=e["value"].where(e["value"].isna(), e["value"] + 0.01)))
+    with pytest.raises(F.RunInvalid, match="value"):
+        F.aggregate(ten, world["out"], world["inputs"], _test_out_root=world["out"])
+
+
+def test_the_aggregate_refuses_runs_whose_catcher_evidence_differs(world, ten):
+    _edit_evidence(ten[3], "A_posted", lambda e: e.assign(value=e["value"].where(e["value"].isna(), e["value"] + 0.01)))
+    with pytest.raises(F.RunInvalid, match="disagree"):
+        F.aggregate(ten, world["out"], world["inputs"], _test_out_root=world["out"])
