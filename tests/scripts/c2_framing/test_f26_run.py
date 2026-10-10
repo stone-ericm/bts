@@ -5,6 +5,7 @@ import hashlib
 import io
 import json
 import subprocess
+import sys
 
 import numpy as np
 import pandas as pd
@@ -86,7 +87,7 @@ class _Admission:
         self.head, self.pins = "a" * 40, pins
 
     def __call__(self, repo=None, *, require_inputs=True):
-        return self.head, {"input_pins": self.pins}, dict(IDENT)
+        return self.head, {"input_pins": self.pins, "exposure_commit": "b" * 40}, dict(IDENT)
 
 
 def _allow_row(cap=None, budget="12", stop="4.1", source="Eric 2026-10-09, typed in the lead's pane"):
@@ -120,7 +121,9 @@ def _make_world(monkeypatch, tmp_path, *, no_rates=False):
     if no_rates:
         df["pa_borderline_csr"] = np.nan
         df = S.framing_by(df.drop(columns=[S.OLD_COL]), "pitcher_id", S.OLD_COL)   # the self-check still holds
-    inputs = tmp_path / "inputs"
+    out = tmp_path / "out"
+    out.mkdir()
+    inputs = out / "inputs"                       # the fixed inputs namespace under the run root (round 4, B1)
     inputs.mkdir()
     games = {s: sorted(int(g) for g in df.loc[df["season"] == s, "game_pk"].unique()) for s in (2025, 2026)}
     files = {F.FROZEN_PA: _parquet(df[df["season"] == 2026]), F.LOOKUP_NAME: b'{"1":{"away":5}}\n',
@@ -131,8 +134,13 @@ def _make_world(monkeypatch, tmp_path, *, no_rates=False):
     pins.update({name: _sha(b) for name, b in files.items()})
     pins[F.EXPECT_NAME] = _write_expected(inputs, df, table)
     adm = _Admission(pins)
+    world = {"out": out, "inputs": inputs, "adm": adm, "df": df, "table": table, "pins": pins}
+    prepared_sha = _prepared(world)               # the preparation chain: PREPARED.json, EXPECTED.json, the prepared row
+    _expected_record(world, prepared_sha)
     register = tmp_path / "register.md"
-    register.write_text("| ID | a | b | c |\n" + _allow_row())
+    register.write_text("| ID | a | b | c |\n" + _allow_row() + _prepared_row(prepared_sha))
+    world["register"] = register
+    F.seed_record(out, 80.01, "test: the prior off-launcher total")   # the record every step appends to (round 4, B2)
     monkeypatch.setattr(F, "REGISTER_REL", str(register))           # REPO / an absolute path is that path
     monkeypatch.setattr(F, "admission_gate", adm)
     monkeypatch.setattr(F, "load_inputs", lambda data_dir, inputs_dir, pins: df.copy())
@@ -146,10 +154,8 @@ def _make_world(monkeypatch, tmp_path, *, no_rates=False):
     c1 = tmp_path / "c1"
     c1.mkdir()
     monkeypatch.setattr(F, "C1_DIR", c1)
-    out = tmp_path / "out"
-    out.mkdir()
-    return {"out": out, "inputs": inputs, "adm": adm, "register": register, "df": df, "table": table, "pins": pins,
-            "c1": c1}
+    world["c1"] = c1
+    return world
 
 
 def _write_expected(inputs, df, table):
@@ -462,6 +468,7 @@ def test_aggregate_rederives_the_calendar_from_the_pinned_rows(world, ten):
     b = _parquet(shorter)
     (world["inputs"] / F.FROZEN_PA).write_bytes(b)
     world["adm"].pins[F.FROZEN_PA] = _sha(b)                       # a different pinned file, a different calendar
+    _rechain(world)
     with pytest.raises(F.RunInvalid, match="calendar"):
         F.aggregate(ten, world["out"], world["inputs"], _test_out_root=world["out"])
 
@@ -537,13 +544,14 @@ def prep(tmp_path, monkeypatch):
     (screen_inputs / S.LOOKUP_NAME).write_bytes(lookup)
     screen_pins[S.LOOKUP_NAME] = _sha(lookup)
     out = {"data": data, "raw": raw, "screen_inputs": screen_inputs, "screen_pins": screen_pins,
-           "out": tmp_path / "inputs"}
+           "root": tmp_path, "out": tmp_path / "inputs"}
+    F.seed_record(tmp_path, 80.01, "test: the prior off-launcher total")
     _gated_prep(out, monkeypatch)
     return out
 
 
 def _prepare(p):
-    return F.prepare(p["data"], p["raw"], p["screen_inputs"], p["out"])
+    return F.prepare(p["data"], p["raw"], p["screen_inputs"], _test_out_root=p["root"])
 
 
 def test_prepare_builds_the_inputs_from_exactly_the_pinned_games(prep):
@@ -627,7 +635,7 @@ def test_the_prepare_command_refuses_without_the_row_and_before_reading_anything
     (prep["data"] / "pa_2026.parquet").unlink()               # any read would raise FileNotFoundError instead
     with pytest.raises(SystemExit, match="prep-read"):
         F.main(["prepare", "--data-dir", str(prep["data"]), "--raw-dir", str(prep["raw"]),
-                "--screen-inputs", str(prep["screen_inputs"]), "--out", str(prep["out"])])
+                "--screen-inputs", str(prep["screen_inputs"])])
     assert not prep["out"].exists()
 
 
@@ -719,13 +727,13 @@ def test_the_preparation_function_itself_refuses_before_any_2026_read(prep, monk
     _gated_prep(prep, monkeypatch, gate_problem=gate_problem, row_problem=row_problem)
     (prep["data"] / "pa_2026.parquet").unlink()               # any read would raise FileNotFoundError instead
     with pytest.raises(SystemExit, match=match):
-        F.prepare(prep["data"], prep["raw"], prep["screen_inputs"], prep["out"])
+        F.prepare(prep["data"], prep["raw"], prep["screen_inputs"], _test_out_root=prep["root"])
     assert not prep["out"].exists()
 
 
 def test_the_gated_preparation_reads_the_declared_sources(prep, monkeypatch):
     _gated_prep(prep, monkeypatch)
-    got = F.prepare(prep["data"], prep["raw"], prep["screen_inputs"], prep["out"])
+    got = F.prepare(prep["data"], prep["raw"], prep["screen_inputs"], _test_out_root=prep["root"])
     assert got["games"] == {"2025": 1, "2026": 2}
 
 
@@ -827,6 +835,7 @@ def _no_catchers(world):
     world["adm"].pins[F.TABLE_NAME] = _sha(b)
     world["table"] = table
     world["adm"].pins[F.EXPECT_NAME] = _write_expected(world["inputs"], world["df"], table)
+    _rechain(world)
 
 
 def test_a_posted_arm_with_no_identified_catcher_is_refused_even_if_its_count_says_otherwise(world):
@@ -889,6 +898,7 @@ def test_the_aggregate_recomputes_every_catcher_value_even_against_a_forged_expe
     b = _parquet(F.expected_evidence(truth, Shifted(world["df"])))
     (world["inputs"] / F.EXPECT_NAME).write_bytes(b)
     world["adm"].pins[F.EXPECT_NAME] = _sha(b)
+    _rechain(world)
     monkeypatch.setattr(F, "AsOfFraming", Shifted)
     for s in F.SEEDS:
         assert _run(world, s) == 0
@@ -1111,7 +1121,7 @@ def test_the_preparation_refuses_any_path_but_the_inventorys(prep, monkeypatch, 
     inv = _inventory(prep, **{{"data": "pa_dir", "raw": "raw_root", "screen_inputs": "screen_inputs"}[which]: str(other)})
     monkeypatch.setattr(F, "source_inventory", lambda repo, xc: (inv, None))
     with pytest.raises(SystemExit, match="inventory"):
-        F.prepare(prep["data"], prep["raw"], prep["screen_inputs"], prep["out"])
+        F.prepare(prep["data"], prep["raw"], prep["screen_inputs"], _test_out_root=prep["root"])
     assert not prep["out"].exists()
 
 
@@ -1119,12 +1129,12 @@ def test_the_preparation_refuses_without_an_inventory(prep, monkeypatch):
     monkeypatch.setattr(F, "source_inventory", lambda repo, xc: (None, "X-37 does not cite a source inventory"))
     (prep["data"] / "pa_2026.parquet").unlink()
     with pytest.raises(SystemExit, match="source inventory"):
-        F.prepare(prep["data"], prep["raw"], prep["screen_inputs"], prep["out"])
+        F.prepare(prep["data"], prep["raw"], prep["screen_inputs"], _test_out_root=prep["root"])
     assert not prep["out"].exists()
 
 
 def test_the_preparation_reports_its_own_cpu(prep):
-    got = F.prepare(prep["data"], prep["raw"], prep["screen_inputs"], prep["out"])
+    got = _prepare(prep)
     assert isinstance(got["cpu_s"], float) and got["cpu_s"] >= 0
 
 
@@ -1185,15 +1195,14 @@ def test_a_side_game_moved_to_another_date_is_refused(world):
 
 def test_the_expect_step_writes_the_evidence_every_run_must_carry(world, monkeypatch):
     _expect_world(world, monkeypatch)
-    _prepared(world)
-    got = F.expect(world["out"], world["inputs"])
+    got = _expect(world)
     assert got["sha256"] == world["adm"].pins[F.EXPECT_NAME] and got["cpu_s"] >= 0
     assert got["identified"]["A_posted"] > 0
     monkeypatch.setattr(F, "prep_row_problem", lambda repo, text, xc: "no structured C2-framing-2026-prep-read row")
     (world["inputs"] / F.EXPECT_NAME).unlink()
     (world["inputs"] / "EXPECTED.json").unlink()
     with pytest.raises(SystemExit, match="prep-read"):
-        F.expect(world["out"], world["inputs"])
+        _expect(world)
     assert _no_expectation_written(world)
 
 
@@ -1381,29 +1390,40 @@ def _ledger_row(hours):
             "cpu_seconds": hours * 3600}
 
 
-def test_f3_the_effective_total_must_leave_room_for_the_full_budget_before_a_launch_or_a_run(world):
+def _execute_recorder(seen):
+    return lambda argv, cwd: seen.append(argv) or subprocess.CompletedProcess(argv, 0)
+
+
+def _launch(world, seed, seen):
+    return F.launch(seed, world["out"], world["inputs"], execute=_execute_recorder(seen), _test_out_root=world["out"])
+
+
+def test_f3_the_effective_total_must_leave_room_for_the_full_budget_before_a_launch(world):
+    """Round 4 (B2): the reservation is decided once, in `launch`, with the wrapper's own charge recorded first; the run
+    inside the unit does not re-decide it."""
     seen = []
-    execute = lambda argv, cwd: seen.append(argv) or subprocess.CompletedProcess(argv, 0)   # noqa: E731
     ledger.write_tsv(world["c1"] / "compute_ledger.tsv", [_ledger_row(152.9)])
-    assert F.launch(F.SEEDS[0], world["out"], world["inputs"], execute=execute, _test_out_root=world["out"]) == 0
+    assert _launch(world, F.SEEDS[0], seen) == 0
     rows = F.off_launcher_rows(world["out"])
-    assert [r["step"] for r in rows] == ["launch"] and rows[0]["cpu_s"] >= 0           # the wrapper's own CPU
+    assert [r["step"] for r in rows] == ["prior", "launch", "launcher-process"] and all(r["cpu_s"] >= 0 for r in rows)
     F.record_off_launcher(world["out"], "expect", 0.2 * 3600)                           # 152.9 + 0.2 + 12 > 165
     with pytest.raises(SystemExit, match="effective"):
-        F.launch(F.SEEDS[0], world["out"], world["inputs"], execute=execute, _test_out_root=world["out"])
+        _launch(world, F.SEEDS[0], seen)
     assert len(seen) == 1
-    with pytest.raises(SystemExit, match="effective"):
-        _run(world, F.SEEDS[0])
-    assert not (world["out"] / f"seed_{F.SEEDS[0]}").exists() or not [p for p in (world["out"] / f"seed_{F.SEEDS[0]}").iterdir() if p.is_dir()]
+    assert F.off_launcher_rows(world["out"])[-1]["refused"] is True                     # the refused wrapper is charged
+    assert _run(world, F.SEEDS[0]) == 0                                                 # the run does not re-decide
 
 
-def test_f3_a_malformed_off_launcher_record_fails_closed(world):
-    (world["out"] / F.OFF_LAUNCHER_NAME).write_text('{"step": "expect", "cpu_s": -1.0}\n')
-    with pytest.raises(SystemExit, match="off-launcher"):
-        _run(world, F.SEEDS[0])
-    (world["out"] / F.OFF_LAUNCHER_NAME).write_text('not json\n')
-    with pytest.raises(SystemExit, match="off-launcher"):
-        _run(world, F.SEEDS[0])
+def test_f3_a_malformed_off_launcher_record_fails_closed(world, ten):
+    seen = []
+    for text in ('{"step": "prior", "cpu_s": 1.0}\n{"step": "expect", "cpu_s": -1.0}\n', 'not json\n',
+                 '{"step": "expect", "cpu_s": 1.0}\n'):                              # no seed row first
+        (world["out"] / F.OFF_LAUNCHER_NAME).write_text(text)
+        with pytest.raises(SystemExit, match="off-launcher"):
+            _launch(world, F.SEEDS[0], seen)
+        with pytest.raises(F.RunInvalid, match="off-launcher"):
+            F.aggregate(ten, world["out"], world["inputs"], _test_out_root=world["out"])
+    assert seen == []
 
 
 def test_f3_the_aggregate_reports_the_ledger_the_off_launcher_record_and_the_effective_total(world, ten):
@@ -1411,36 +1431,73 @@ def test_f3_the_aggregate_reports_the_ledger_the_off_launcher_record_and_the_eff
     F.record_off_launcher(world["out"], "prepare", 36.0)
     out = F.aggregate(ten, world["out"], world["inputs"], _test_out_root=world["out"])
     rows = F.off_launcher_rows(world["out"])
-    assert [r["step"] for r in rows] == ["prepare", "aggregate"] and rows[1]["cpu_s"] == out["aggregate_cpu_s"]
+    assert [r["step"] for r in rows] == ["prior", "prepare", "aggregate"] and rows[2]["cpu_s"] == out["aggregate_cpu_s"]
     assert out["ledger_total_cpu_h"] == pytest.approx(100.0)
-    assert out["off_launcher_cpu_h"] == pytest.approx((36.0 + out["aggregate_cpu_s"]) / 3600)
+    assert out["off_launcher_cpu_h"] == pytest.approx((80.01 + 36.0 + out["aggregate_cpu_s"]) / 3600)
     assert out["effective_total_cpu_h"] == pytest.approx(out["ledger_total_cpu_h"] + out["off_launcher_cpu_h"])
 
 
 # ---------------------------------------------------------------- F4: the expect step bound to the prepared inputs
 
+RAW_DIR, SCREEN_DIR = "/raw", "/screen"                       # the world's inventory directories (resolved strings)
+
+
 def _prepared(world, **over):
-    """What `prepare` leaves in the inputs directory, for a world's inputs."""
+    """What `prepare` leaves in the inputs directory, for a world's inputs. Returns the record's sha256 (the prepared
+    row binds it)."""
     rec = {"schema": "c2_framing_2026_prepared_v1", "exposure_commit": "b" * 40, "inventory_sha256": "c" * 64,
-           "data_dir": str(world["out"]), "raw_dir": "/raw", "screen_inputs": "/screen",
+           "data_dir": str(world["out"]), "raw_dir": RAW_DIR, "screen_inputs": SCREEN_DIR,
            "out_dir": str(world["inputs"]),
            "pins": {k: v for k, v in world["adm"].pins.items() if k != F.EXPECT_NAME},
            "games": {"2025": 60, "2026": 40}, "proxy_reasons": {}, "game_number_fallbacks": 0,
            "lookup_2026_missing_probable_sides": 0, "cpu_s": 1.0}
     rec.update(over)
-    (world["inputs"] / "PREPARED.json").write_text(json.dumps(rec))
+    b = (json.dumps(rec, sort_keys=True) + "\n").encode()
+    (world["inputs"] / "PREPARED.json").write_bytes(b)
+    return _sha(b)
+
+
+def _rechain(world):
+    """Re-bind EXPECTED.json to the world's current admission pins (a test that changes a pin on purpose keeps the
+    preparation chain intact, so the check it targets is the one that refuses)."""
+    _expected_record(world, _sha((world["inputs"] / "PREPARED.json").read_bytes()))
+
+
+def _expected_record(world, prepared_sha, **over):
+    """What `expect` leaves beside its output: the full pins (the admission's), bound to the prepared record."""
+    rec = {"schema": "c2_framing_2026_expected_v1", "file": str(world["inputs"] / F.EXPECT_NAME),
+           "sha256": world["adm"].pins[F.EXPECT_NAME], "rows": 1, "identified": {"A_posted": 1, "A_projected": 1},
+           "pins": dict(sorted(world["adm"].pins.items())), "pins_digest": S.pins_digest(world["adm"].pins),
+           "prepared_sha256": prepared_sha, "cpu_s": 1.0}
+    rec.update(over)
+    (world["inputs"] / "EXPECTED.json").write_text(json.dumps(rec, sort_keys=True) + "\n")
+
+
+def _prepared_row(sha, text="the catcher framing 2026 test's preparation record"):
+    return f"| {F.PREPARED_ROW} | the preparation record | **PREPARED 2026-10-10: {text} `{sha}`** | the lead |\n"
+
+
+def _register(world, *rows):
+    world["register"].write_text("| ID | a | b | c |\n" + "".join(rows))
+
+
+def _expect(world):
+    return F.expect(world["out"], _test_out_root=world["out"])
 
 
 def _expect_world(world, monkeypatch, **inv_over):
+    """`expect` on the world: the gate, the preparation row and the inventory stubbed; the chain (PREPARED.json, the
+    prepared row, the pins) real. The world pre-wrote the expectation and its record; expect creates them."""
     monkeypatch.setattr(F, "prep_row_problem", lambda repo, text, xc: None)
     monkeypatch.setattr(F, "admission_gate", lambda repo=None, *, require_inputs=True:
                         ("a" * 40, {"exposure_commit": "b" * 40}, dict(IDENT)))
-    inv = _inventory(**{"pa_dir": str(world["out"]), **inv_over})
+    inv = _inventory(**{"pa_dir": str(world["out"]), "raw_root": RAW_DIR, "screen_inputs": SCREEN_DIR, **inv_over})
     monkeypatch.setattr(F, "source_inventory", lambda repo, xc: (inv, None))
     monkeypatch.setattr(F, "cited_inventory_sha256", lambda repo, xc: "c" * 64)
     monkeypatch.setattr(F, "screen_pins", lambda repo=None: {**{f"pa_{s}.parquet": "b" * 64 for s in range(2017, 2026)},
                                                               S.LOOKUP_NAME: "b" * 64})
-    (world["inputs"] / F.EXPECT_NAME).unlink()                 # the world pre-wrote the expectation; expect creates it
+    (world["inputs"] / F.EXPECT_NAME).unlink()
+    (world["inputs"] / "EXPECTED.json").unlink()
 
 
 def _no_expectation_written(world):
@@ -1449,16 +1506,15 @@ def _no_expectation_written(world):
 
 def test_f4_expect_takes_its_pins_from_the_prepared_record_and_creates_its_output_once(world, monkeypatch):
     _expect_world(world, monkeypatch)
-    _prepared(world)
-    got = F.expect(world["out"], world["inputs"])
+    got = _expect(world)
     assert got["sha256"] == world["adm"].pins[F.EXPECT_NAME] and got["cpu_s"] >= 0 and got["identified"]["A_posted"] > 0
     assert got["pins"] == world["adm"].pins and got["pins_digest"] == S.pins_digest(world["adm"].pins)
     assert json.loads((world["inputs"] / "EXPECTED.json").read_text()) == got
     assert _sha((world["inputs"] / F.EXPECT_NAME).read_bytes()) == got["sha256"]
-    rows = F.off_launcher_rows(world["inputs"].parent)        # the record sits beside the inputs directory (OUT_ROOT)
-    assert [r["step"] for r in rows] == ["expect"] and rows[0]["cpu_s"] == got["cpu_s"]
+    rows = F.off_launcher_rows(world["out"])                   # one record, under the run root (round 4, B2)
+    assert [r["step"] for r in rows] == ["prior", "expect"] and rows[1]["cpu_s"] == got["cpu_s"]
     with pytest.raises(SystemExit, match="already"):
-        F.expect(world["out"], world["inputs"])                  # never twice, never overwritten
+        _expect(world)                                          # never twice, never overwritten
     assert _sha((world["inputs"] / F.EXPECT_NAME).read_bytes()) == got["sha256"]
 
 
@@ -1466,42 +1522,46 @@ def _pins_without_expectation(world):
     return {k: v for k, v in world["adm"].pins.items() if k != F.EXPECT_NAME}
 
 
+def _rebind(world, **over):
+    """Rewrite PREPARED.json and re-record its sha256 in the prepared row, so only the content changes."""
+    _register(world, _allow_row(), _prepared_row(_prepared(world, **over)))
+
+
 @pytest.mark.parametrize("setup, match", [
-    (lambda w: None, "PREPARED"),
-    (lambda w: _prepared(w, exposure_commit="9" * 40), "exposure"),
-    (lambda w: _prepared(w, inventory_sha256="d" * 64), "inventory"),
-    (lambda w: _prepared(w, data_dir="/elsewhere"), "inventory"),
-    (lambda w: _prepared(w, pins={**_pins_without_expectation(w), "pa_2019.parquet": "e" * 64}), "screen"),
-    (lambda w: _prepared(w, pins={k: v for k, v in _pins_without_expectation(w).items() if k != F.TABLE_NAME}), "pins"),
-    (lambda w: _prepared(w, schema="other"), "PREPARED"),
+    (lambda w: (w["inputs"] / "PREPARED.json").unlink(), "PREPARED"),
+    (lambda w: _rebind(w, exposure_commit="9" * 40), "exposure"),
+    (lambda w: _rebind(w, inventory_sha256="d" * 64), "inventory"),
+    (lambda w: _rebind(w, data_dir="/elsewhere"), "inventory"),
+    (lambda w: _rebind(w, pins={**_pins_without_expectation(w), "pa_2019.parquet": "e" * 64}), "screen"),
+    (lambda w: _rebind(w, pins={k: v for k, v in _pins_without_expectation(w).items() if k != F.TABLE_NAME}), "pins"),
+    (lambda w: _rebind(w, schema="other"), "PREPARED"),
 ])
 def test_f4_expect_refuses_an_unbound_preparation(world, monkeypatch, setup, match):
     _expect_world(world, monkeypatch)
     setup(world)
     with pytest.raises(SystemExit, match=match):
-        F.expect(world["out"], world["inputs"])
+        _expect(world)
     assert _no_expectation_written(world)
 
 
 def test_f4_expect_refuses_a_prepared_pin_that_is_not_the_files_bytes(world, monkeypatch):
     _expect_world(world, monkeypatch)
-    _prepared(world, pins={**_pins_without_expectation(world), F.TABLE_NAME: "f" * 64})
+    _rebind(world, pins={**_pins_without_expectation(world), F.TABLE_NAME: "f" * 64})
     with pytest.raises(Exception, match="sha256|pinned"):
-        F.expect(world["out"], world["inputs"])
+        _expect(world)
     assert _no_expectation_written(world)
 
 
 def test_f4_expect_refuses_a_pa_directory_that_is_not_the_inventorys(world, monkeypatch, tmp_path):
     _expect_world(world, monkeypatch, pa_dir=str(tmp_path / "elsewhere"))
-    _prepared(world)
     with pytest.raises(SystemExit, match="inventory"):
-        F.expect(world["out"], world["inputs"])
+        _expect(world)
     assert _no_expectation_written(world)
 
 
 def test_f4_the_expect_command_has_no_pins_option(tmp_path):
     with pytest.raises(SystemExit) as e:
-        F.main(["expect", "--data-dir", str(tmp_path), "--inputs-dir", str(tmp_path), "--pins", str(tmp_path / "p.json")])
+        F.main(["expect", "--data-dir", str(tmp_path), "--pins", str(tmp_path / "p.json")])
     assert e.value.code == 2
 
 
@@ -1511,8 +1571,8 @@ def test_f4_prepare_leaves_a_durable_record_of_its_pins_and_cpu(prep):
     assert rec == got and rec["schema"] == "c2_framing_2026_prepared_v1"
     assert rec["exposure_commit"] == "b" * 40 and rec["inventory_sha256"] == "c" * 64
     assert rec["data_dir"] == str(prep["data"].resolve()) and rec["out_dir"] == str(prep["out"].resolve())
-    rows = F.off_launcher_rows(prep["out"].parent)
-    assert [r["step"] for r in rows] == ["prepare"] and rows[0]["cpu_s"] == got["cpu_s"]
+    rows = F.off_launcher_rows(prep["root"])
+    assert [r["step"] for r in rows] == ["prior", "prepare"] and rows[1]["cpu_s"] == got["cpu_s"]
 
 
 # ---------------------------------------------------------------- F5: declared totals and timings
@@ -1551,11 +1611,10 @@ def test_f4_expect_refuses_a_caller_pa_directory_that_is_not_the_inventorys(worl
     """The caller's PA directory is checked against the inventory on its own, even when the prepared record names the
     inventory's directory correctly (the failing direction of its mutant)."""
     _expect_world(world, monkeypatch)
-    _prepared(world)
     elsewhere = tmp_path / "elsewhere"
     elsewhere.mkdir()
     with pytest.raises(SystemExit, match="inventory"):
-        F.expect(elsewhere, world["inputs"])
+        F.expect(elsewhere, _test_out_root=world["out"])
     assert _no_expectation_written(world)
 
 
@@ -1565,3 +1624,242 @@ def test_f4_exclusive_write_never_replaces(tmp_path):
     with pytest.raises(SystemExit, match="already exists"):
         F.exclusive_write(path, b"second")
     assert path.read_bytes() == b"first" and sorted(p.name for p in tmp_path.iterdir()) == ["once.bin"]
+
+
+# ================================================================ round 4: review f1's round-2 findings B1–B3
+# (`docs/audit/2026-10-09-c2-framing-2026-code-codex-f1r2.md`): the preparation chain bound by a register row and a
+# fixed namespace; one accounting namespace with a seeded, fail-closed record; other invocations of a seed reported
+# and refused until Eric acknowledges them.
+
+# ---------------------------------------------------------------- B1: the preparation chain
+
+def test_b1_prepare_and_expect_use_only_the_fixed_inputs_namespace(prep, tmp_path):
+    import inspect
+    assert "out_dir" not in inspect.signature(F.prepare).parameters
+    assert "inputs_dir" not in inspect.signature(F.expect).parameters
+    with pytest.raises(SystemExit) as e:
+        F.main(["prepare", "--data-dir", str(prep["data"]), "--raw-dir", str(prep["raw"]),
+                "--screen-inputs", str(prep["screen_inputs"]), "--out", str(tmp_path / "elsewhere")])
+    assert e.value.code == 2
+    with pytest.raises(SystemExit) as e:
+        F.main(["expect", "--data-dir", str(prep["data"]), "--inputs-dir", str(tmp_path / "elsewhere")])
+    assert e.value.code == 2
+    got = _prepare(prep)
+    assert got["out_dir"] == str((prep["root"] / "inputs").resolve()) and F.inputs_dir(prep["root"]) == prep["out"]
+
+
+def test_b1_expect_requires_the_prepared_row_binding_the_records_bytes(world, monkeypatch):
+    _expect_world(world, monkeypatch)
+    _register(world, _allow_row())                                            # no prepared row
+    with pytest.raises(SystemExit, match="prepared"):
+        _expect(world)
+    assert _no_expectation_written(world)
+    _register(world, _allow_row(), _prepared_row("0" * 64))                   # a row binding other bytes
+    with pytest.raises(SystemExit, match="prepared"):
+        _expect(world)
+    assert _no_expectation_written(world)
+    _register(world, _allow_row(), _prepared_row(_sha((world["inputs"] / "PREPARED.json").read_bytes()), "a record"))
+    with pytest.raises(SystemExit, match="prepared"):                         # the wrong grammar
+        _expect(world)
+    assert _no_expectation_written(world)
+
+
+def test_b1_a_replaced_table_with_its_own_pin_in_a_rewritten_record_is_refused(world, monkeypatch):
+    """Review f1's round-2 reproduction: the inputs copied, catcher ids changed, the table's pin updated in a
+    rewritten PREPARED record with every identity intact. The prepared row still binds the genuine record."""
+    _expect_world(world, monkeypatch)
+    table = [dict(r) for r in world["table"]]
+    first = next(r for r in table if r["catcher_id"] is not None)
+    first["catcher_id"] += 1
+    b = F.canonical(table)
+    (world["inputs"] / F.TABLE_NAME).write_bytes(b)
+    _prepared(world, pins={**_pins_without_expectation(world), F.TABLE_NAME: _sha(b)})   # the row keeps the old sha
+    with pytest.raises(SystemExit, match="prepared"):
+        _expect(world)
+    assert _no_expectation_written(world)
+
+
+@pytest.mark.parametrize("over, match", [
+    ({"raw_dir": "/elsewhere"}, "inventory"),
+    ({"screen_inputs": "/elsewhere"}, "inventory"),
+    ({"out_dir": "/elsewhere"}, "namespace"),
+    ({"cpu_s": -1.0}, "cpu"),
+])
+def test_b1_expect_refuses_a_record_whose_directories_or_cpu_are_not_the_inventorys(world, monkeypatch, over, match):
+    _expect_world(world, monkeypatch)
+    _rebind(world, **over)
+    with pytest.raises(SystemExit, match=match):
+        _expect(world)
+    assert _no_expectation_written(world)
+
+
+def _break_chain(world, how):
+    inputs = world["inputs"]
+    prepared_sha = _sha((inputs / "PREPARED.json").read_bytes())
+    if how == "expected pins":
+        _expected_record(world, prepared_sha, pins={**dict(world["adm"].pins), F.TABLE_NAME: "f" * 64})
+    elif how == "expected prepared sha":
+        _expected_record(world, "0" * 64)
+    elif how == "no prepared":
+        (inputs / "PREPARED.json").unlink()
+    elif how == "no expected":
+        (inputs / "EXPECTED.json").unlink()
+    elif how == "prepared row":
+        _register(world, _allow_row())
+    elif how == "prepared bytes":
+        _prepared(world, games={"2025": 1, "2026": 1})                        # rewritten; the row binds the old bytes
+
+
+@pytest.mark.parametrize("how", ["expected pins", "expected prepared sha", "no prepared", "no expected", "prepared row",
+                                 "prepared bytes"])
+def test_b1_the_run_and_the_aggregate_require_the_preparation_chain(world, ten, how):
+    """The admitted pins must descend from the recorded preparation: EXPECTED.json carries exactly the admitted pins
+    and the prepared record's sha256; that record's bytes are the prepared row's; the row is after X-37."""
+    _break_chain(world, how)
+    with pytest.raises(F.RunInvalid, match="preparation chain"):
+        F.aggregate(ten, world["out"], world["inputs"], _test_out_root=world["out"])
+    with pytest.raises(SystemExit, match="preparation chain"):
+        _run(world, F.SEEDS[0])
+
+
+# ---------------------------------------------------------------- B2: one seeded, fail-closed accounting record
+
+def test_b2_prepare_refuses_without_the_seeded_record(prep):
+    (prep["root"] / F.OFF_LAUNCHER_NAME).unlink()
+    with pytest.raises(SystemExit, match="seed"):
+        _prepare(prep)
+    assert not prep["out"].exists()
+
+
+def test_b2_the_record_must_be_seeded_with_the_prior_total_before_any_step(world, monkeypatch, ten):
+    seen = []
+    (world["out"] / F.OFF_LAUNCHER_NAME).unlink()
+    with pytest.raises(SystemExit, match="seed"):
+        _launch(world, F.SEEDS[0], seen)
+    assert seen == []
+    with pytest.raises(F.RunInvalid, match="seed"):
+        F.aggregate(ten, world["out"], world["inputs"], _test_out_root=world["out"])
+    _expect_world(world, monkeypatch)
+    with pytest.raises(SystemExit, match="seed"):
+        _expect(world)
+    assert _no_expectation_written(world)
+    row = F.seed_record(world["out"], 80.01, "C2 index rows of 2026-10-08 and 2026-10-09")
+    assert row["step"] == "prior" and row["cpu_s"] == 80.01 and row["source"].startswith("C2 index")
+    assert F.off_launcher_rows(world["out"]) == [row]
+    with pytest.raises(SystemExit, match="already"):
+        F.seed_record(world["out"], 1.0, "again")
+    assert F.off_launcher_rows(world["out"]) == [row]
+
+
+def test_b2_a_failed_step_is_still_charged(world, monkeypatch):
+    _expect_world(world, monkeypatch)
+    _rebind(world, pins={**_pins_without_expectation(world), F.TABLE_NAME: "f" * 64})
+    with pytest.raises(Exception, match="sha256|pinned"):
+        _expect(world)
+    rows = F.off_launcher_rows(world["out"])
+    assert rows[-1]["step"] == "expect" and rows[-1]["failed"] is True and rows[-1]["cpu_s"] >= 0
+
+
+def test_b2_the_launch_gate_reserves_with_its_own_charge_first_and_the_run_does_not_re_decide(world, monkeypatch):
+    """Review f1's boundary probe: with the ledger at 153 h and a 12 h budget, the wrapper's own second of CPU must
+    not let the inner run refuse what the outer gate admitted. The wrapper's charge is recorded before the gate."""
+    seen = []
+    ledger.write_tsv(world["c1"] / "compute_ledger.tsv", [_ledger_row(152.9)])       # 152.9 + (80.01 + 1)/3600 + 12 fits
+    clock = iter([0.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+    real = S.cpu_seconds
+    monkeypatch.setattr(S, "cpu_seconds", lambda: next(clock, 1.0))
+    assert _launch(world, F.SEEDS[0], seen) == 0
+    monkeypatch.setattr(S, "cpu_seconds", real)
+    rows = F.off_launcher_rows(world["out"])
+    assert [r["step"] for r in rows] == ["prior", "launch", "launcher-process"] and rows[1]["cpu_s"] == 1.0
+    assert _run(world, F.SEEDS[0]) == 0
+    ledger.write_tsv(world["c1"] / "compute_ledger.tsv", [_ledger_row(153.0)])
+    with pytest.raises(SystemExit, match="effective"):                     # 153 + (80.01 + 1 + …)/3600 + 12 > 165
+        _launch(world, F.SEEDS[1], seen)
+    assert len(seen) == 1
+
+
+def test_b2_the_launcher_process_is_charged_from_its_own_rusage(world, monkeypatch):
+    seen = []
+
+    def burn(argv, cwd):
+        seen.append(argv)
+        subprocess.run([sys.executable, "-c", "sum(i * i for i in range(2_000_000))"], check=True)
+        return subprocess.CompletedProcess(argv, 0)
+    assert F.launch(F.SEEDS[0], world["out"], world["inputs"], execute=burn, _test_out_root=world["out"]) == 0
+    rows = F.off_launcher_rows(world["out"])
+    assert rows[-1]["step"] == "launcher-process" and rows[-1]["cpu_s"] > 0 and rows[-1]["rc"] == 0
+
+
+# ---------------------------------------------------------------- B3: other invocations of a seed
+
+def _other_invocation(world, seed, *, result="terminated", stamp="20261010T130000Z-0badcafe"):
+    """A second C1 unit for the seed, reconciled by the real reconciler: PENDING, a guard receipt with `result`."""
+    from scripts.audit.c1 import launch as L
+    k = F.SEEDS.index(seed) + 1
+    unit = f"c1-c2-f26-seed{k}-{stamp}"
+    (world["c1"] / f"PENDING_{unit}.json").write_text(json.dumps(
+        {"unit": unit, "limit_cpu_seconds": 43200, "declared_cpu_hours": 12.0, "max_hours": 16.0,
+         "written_utc": "2026-10-10T13:00:00+00:00"}))
+    receipt = {**_guard_receipt(unit, 120.0), "result": result, "rc": None if result != "exit" else 0}
+    (world["c1"] / f"TERMINAL_{unit}.json").write_text(json.dumps(receipt))
+    L.reconcile(world["c1"], world["c1"] / "compute_ledger.tsv", [])
+    return unit
+
+
+def _ack_row(unit, source="Eric 2026-10-10, typed in the lead's pane"):
+    return (f"| C2-framing-2026-invocation-{unit} | an extra invocation | **RULED 2026-10-10 (Eric): ACKNOWLEDGE "
+            f"invocation `{unit}` of the catcher framing 2026 test** | {source} |\n")
+
+
+def test_b3_another_invocation_for_a_seed_is_reported_and_blocks_progress_until_eric_acknowledges_it(world):
+    seed = F.SEEDS[0]
+    assert _run(world, seed) == 0
+    assert _validate(world, seed)["other_units"] == []
+    unit = _other_invocation(world, seed)
+    others = _validate(world, seed)["other_units"]
+    assert [(o["unit"], o["result"], o["acknowledged"]) for o in others] == [(unit, "terminated", False)]
+    with pytest.raises(SystemExit, match="invocation"):
+        _run(world, F.SEEDS[1])
+    _register(world, _allow_row(), _prepared_row(_sha((world["inputs"] / "PREPARED.json").read_bytes())),
+              _ack_row(unit, source="Ericsson, typed"))                       # not Eric's
+    with pytest.raises(SystemExit, match="invocation"):
+        _run(world, F.SEEDS[1])
+    _register(world, _allow_row(), _prepared_row(_sha((world["inputs"] / "PREPARED.json").read_bytes())),
+              _ack_row(unit))
+    assert _validate(world, seed)["other_units"][0]["acknowledged"] is True
+    assert _run(world, F.SEEDS[1]) == 0
+
+
+def test_b3_an_unacknowledged_invocation_of_the_current_seed_refuses_its_launch_and_run(world):
+    seen = []
+    unit = _other_invocation(world, F.SEEDS[0], result="exit")                 # a clean earlier attempt: a rerun
+    with pytest.raises(SystemExit, match="invocation"):
+        _launch(world, F.SEEDS[0], seen)
+    assert seen == []
+    with pytest.raises(SystemExit, match="invocation"):
+        _run(world, F.SEEDS[0])
+    assert unit.startswith("c1-c2-f26-seed1-")
+
+
+def test_b3_the_aggregate_reports_every_invocation_and_refuses_an_unacknowledged_one(world, ten):
+    unit = _other_invocation(world, F.SEEDS[3])
+    with pytest.raises(F.RunInvalid, match="invocation"):
+        F.aggregate(ten, world["out"], world["inputs"], _test_out_root=world["out"])
+    _register(world, _allow_row(), _prepared_row(_sha((world["inputs"] / "PREPARED.json").read_bytes())),
+              _ack_row(unit))
+    out = F.aggregate(ten, world["out"], world["inputs"], _test_out_root=world["out"])
+    others = out["per_seed"][str(F.SEEDS[3])]["other_units"]
+    assert [(o["unit"], o["result"], o["acknowledged"]) for o in others] == [(unit, "terminated", True)]
+    assert all(out["per_seed"][str(s)]["other_units"] == [] for s in F.SEEDS if s != F.SEEDS[3])
+
+
+@pytest.mark.parametrize("text, ok", [
+    (_ack_row("c1-c2-f26-seed1-20261010T130000Z-0badcafe"), True),
+    (_ack_row("c1-c2-f26-seed1-20261010T130000Z-0badcafe", source="the lead"), False),
+    (_ack_row("c1-c2-f26-seed1-20261010T130000Z-0badcafe").replace("ACKNOWLEDGE", "ACKNOWLEDGES"), False),
+    (_ack_row("c1-c2-f26-seed2-20261010T130000Z-0badcafe"), False),
+    ("", False),
+])
+def test_b3_the_acknowledgement_row_grammar(text, ok):
+    assert F.acknowledged_invocation("| ID | a | b | c |\n" + text, "c1-c2-f26-seed1-20261010T130000Z-0badcafe") is ok

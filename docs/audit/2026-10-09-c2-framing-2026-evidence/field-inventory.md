@@ -28,7 +28,15 @@ REPORTING with the reason no decision reads it.
   the as-of values (recomputed in the aggregate), the resumed-flag totals.
 
 **Status:** CHECKED (source) · **FINDING** (fixed this round; its RED/GREEN is in `round3-tdd-ledger.md`) · REPORTING
-(declared only; the reason it is not relied on is stated).
+(declared only; the reason it is not relied on is stated) · BOUND (a shape or range check that refuses, not an
+independent verification of the value: the field is relied on only to that extent).
+
+**Revision 2 (round 4, after review f1's round 2, `…-code-codex-f1r2.md`):** its corrections are applied in place and
+marked "(r4)": the row count is stated as measured by script; `wall_s` is BOUND, not REPORTING; the preparation and
+expectation records and the off-launcher rows are listed field by field; TERMINAL's failure-variant fields are listed;
+the register the gates read is the checked-out text, not `git show HEAD:`; and the three round-4 findings (B1 the
+preparation chain, B2 the accounting, B3 other invocations) have their rows. Their RED/GREEN is in
+`round4-tdd-ledger.md`.
 
 ## A. `manifest.json` (one per run)
 
@@ -78,7 +86,7 @@ REPORTING with the reason no decision reads it.
 |---|---|---|---|
 | `arm`, `season` | the loop | `== UNIT_ORDER` (CONST) | CHECKED |
 | `cpu_s` | `cpu_seconds()` around the walk-forward | finite, `>= 0`, `sum <= total_cpu_s`; **the first unit (baseline) `<= allowance.first_unit_stop * 3600`** (REG) — the stop the run enforces on itself was not re-checked at acceptance | **FINDING F3a** (f1 F3) |
-| `wall_s` | `time.monotonic()` | none → now finite and `>= 0` (a bound, not a verification) | REPORTING (bounded in F5c) |
+| `wall_s` | `time.monotonic()` | finite and `>= 0`; a negative or non-finite value refuses the run | BOUND (r4: it was marked REPORTING, but the bound refuses, so it is relied on to that extent) |
 | `labels.changed`, `labels.void_dropped` | `screen.relabel` | none possible: the walk-forward's pre-relabel labels are not retained. The retained labels themselves are checked row by row (§F) | REPORTING — no decision reads them |
 | `catcher.counts` (side_games / pa_rows × 3 reasons) | `ArmTransform` | `==` the counts re-derived from the retained evidence, which is itself re-derived from the pinned table, `pa_2026` and expectation (§G) | CHECKED |
 | `catcher.identified_ids` | `ArmTransform` | `== sorted ids` of the re-derived evidence | CHECKED |
@@ -134,20 +142,22 @@ REPORTING with the reason no decision reads it.
 | `PENDING.written_utc` | none | REPORTING |
 | `TERMINAL_<unit>.json` | `unit`, `result == "exit"`, integer `rc == 0`, finite `cpu_seconds` were checked. **`budget_seconds` was not.** Now `launch.terminal_problems(TERMINAL, PENDING, unit) == []`: the budget equals PENDING's limit, a known result, a measured CPU total within the budget (C1's own rule) | **FINDING F3b** |
 | `TERMINAL.act_at_seconds`, `poll_s`, `slack_s`, `ncpu`, `started_utc`, `ended_utc`, `leftover` | none | REPORTING |
+| `TERMINAL.reason`, `signal`, `payload_empty` (the guard's failure variants: `guard-error`, `terminated`) | none; a receipt with such a result is not a clean exit and the run is refused; the variant is reported in `other_units` (r4) | REPORTING |
+| other units of this seed (`c1-c2-f26-seed<k>-*`, root and `jobs/`) | **was claimed as reported and was not (f1 r2, B3).** Now `other_units`: every other invocation with its RECONCILED result (or the receipt's, or `unreconciled`), its OVERRUN marker, and whether Eric acknowledged it (row `C2-framing-2026-invocation-<unit>`, RULED grammar, source Eric). `seed_allowed` refuses any unacknowledged invocation for any seed up to the current one; the aggregate refuses too and reports all | **FINDING B3** (r4) |
 | `RECONCILED_<unit>.json` | was compared field by field. Now `==` exactly the record `launch.reconcile` writes for a clean exit: `{"unit", "result": "exit", "cpu_seconds": TERMINAL.cpu_seconds, "rc": 0, "problems": []}` (C1) | **FINDING F3b** |
-| other units of this seed (`c1-c2-f26-seed<k>-*`) | reported (with their RECONCILED result) in the validation output and the aggregate; a second unit for a seed is Eric's decision under §7, so it is disclosed, not refused | REPORTING |
-| `compute_ledger.tsv` (C1's total) | **was not read.** Now: before a launch (`launch`, and `run` through `seed_allowed`) the effective total = C1 ledger total + the test's off-launcher CPU record must leave room for the full per-seed budget under the cap (design §7; the manager's erratum of 2026-10-09). The aggregate reports the ledger total, the off-launcher total and the effective total (C1, the test's own record) | **FINDING F3c** (f1 Part 2) |
+| `compute_ledger.tsv` (C1's total) | **was not read.** Now: before a launch the effective total = C1 ledger total + the test's off-launcher CPU record (including the wrapper's own charge, recorded first) must leave room for the full per-seed budget under the cap (design §7; the manager's rulings (a)–(d) of 2026-10-09). The reservation is decided once, in `launch`; the run inside the unit is guarded by its cgroup and C1's own gate and does not re-decide it (r4, f1 r2 B2). The aggregate reports the ledger total, the off-launcher total and the effective total | **FINDING F3c** (f1 Part 2), **B2** (r4) |
 
 ## I. The preparation, the expectation and the off-launcher CPU record
 
 | Artifact / field | Trusted check | Status |
 |---|---|---|
-| `prepare` output (pins, counts, reasons, fallbacks, missing probable sides, cpu_s) | **was printed only.** Now written durably and exclusively as `<inputs>/PREPARED.json` together with the exposure commit, the cited inventory sha256 and the resolved directories; `expect` requires it | **FINDING F4** (f1 F4) |
-| `expect`: its directories | **were caller-supplied.** Now `data_dir` must be the inventory's `pa_dir` (GIT) and `inputs_dir` must hold `PREPARED.json` whose exposure commit is the admission's and whose inventory sha256 is the cited one | **FINDING F4** |
-| `expect`: its pins | **were a caller-supplied `--pins` file.** Now taken from `PREPARED.json` only (no `--pins` option); the historical pins must be the screen's; every input is read through `read_pinned` | **FINDING F4** |
-| `expect`: its output | **`durable_write` replaced an existing file.** Now created exclusively (`os.link` of a fsynced temporary onto the final name: atomic, fails if the name exists), plus an exclusive `EXPECTED.json` (sha256, rows, identified counts, cpu_s, the full pins and their digest) | **FINDING F4** |
+| `PREPARED.json` in `<OUT_ROOT>/inputs` (r4: field by field) | `schema` == the constant; `exposure_commit` == the admission's (GIT); `inventory_sha256` == X-37's cited sha256 (GIT); `data_dir`, `raw_dir`, `screen_inputs` == the inventory's resolved directories (GIT); `out_dir` == the fixed namespace; `pins` exactly the prepared inputs with the screen's historical pins (PINS), each generated file read through its pin; `cpu_s` BOUND; **the whole file's sha256 == the register row `C2-framing-2026-prepared` recorded after X-37 (REG + GIT chronology): the acquisition record that fixes which preparation is trusted (f1 r2 B1)**; `games`, `proxy_reasons`, `game_number_fallbacks`, `lookup_2026_missing_probable_sides` REPORTING. It is written into a directory `prepare` creates exclusively (the file write itself is a hard link, `exclusive_write`) | **FINDING F4**, **B1** (r4) |
+| `expect`: its directories and output namespace | no caller-supplied directory at all (r4): it reads and writes only `<OUT_ROOT>/inputs`; `data_dir` must be the inventory's `pa_dir` (GIT) | **FINDING F4**, **B1** (r4) |
+| `expect`: its pins | from the bound `PREPARED.json` only (no `--pins`); the historical pins must be the screen's; every input is read through `read_pinned` | **FINDING F4**, **B1** (r4) |
+| `expect`: its output | created exclusively (`os.link` of a fsynced temporary onto the final name: atomic, fails if the name exists), after an early existence check; one expectation per preparation, since the namespace is fixed | **FINDING F4**, **B1** (r4) |
+| `EXPECTED.json` (r4: field by field) | `schema`, `pins` (exactly the admission's), `prepared_sha256` (== `PREPARED.json`'s bytes == the prepared row) and `sha256` (== the expectation's pin) are consumed by `preparation_chain_problem` in `run` and `aggregate`: the admitted pins descend from the recorded preparation (B1); `file`, `rows`, `identified`, `pins_digest`, `cpu_s` REPORTING | **FINDING B1** (r4) |
 | the expectation's content | its sha256 is pinned (PINS, bound by the inputs row); every value recomputed from the pinned inputs at the aggregate | CHECKED |
-| off-launcher CPU (prepare, expect, pre-launch validation in `launch`, aggregate) | **was printed only** (and recorded by hand). Now one append-only `<OUT_ROOT>/off_launcher_cpu.jsonl`, one row per step, read by the §7 gate above and summed in the aggregate's report. A step that crashes before its append leaves no row: the manager's hand record remains the backstop (disclosed) | **FINDING F3c** |
+| the off-launcher record `<OUT_ROOT>/off_launcher_cpu.jsonl` (one namespace, whatever the CLI arguments; r4) | append-only; its first row is the lead's seed row `{step: "prior", cpu_s, source}` carrying the prior off-launcher total the C2 index records and the box ledger does not (ruling (b)); a missing record, a record not beginning with the seed row, a malformed line or an invalid CPU refuses every step before any work (ruling (c)). Rows: `step`, `cpu_s`, `recorded_utc`; prepare adds `out_dir`; expect adds `file`; launch adds `seed` and `refused`; the launcher-process row adds `seed`, `rc`; aggregate adds `seeds`; a step that fails after spending CPU appends `failed: true` from a `finally` (ruling (c)). The gate and the aggregate sum `cpu_s` only; `step`, `source` and the extras are REPORTING (r4) | **FINDING F3c**, **B2** (r4) |
 
 ## J. The register rows and the admission record
 
@@ -157,7 +167,9 @@ REPORTING with the reason no decision reads it.
 | X-37 source-inventory citation | path `== INVENTORY_REL`, 64 hex `== sha256` of the file at the exposure commit; the file absent at the parent commit (GIT) | CHECKED |
 | `C2-framing-2026-inputs` | the PINNED grammar; digest `== pins_digest(admission pins)`; absent at the exposure commit (REG, GIT) | CHECKED |
 | `C2-framing-2026-prep-read` | the DECLARED grammar; absent at the exposure commit (REG, GIT); required by `prepare` and `expect` | CHECKED |
-| `C2-framing-2026-allowance` | the RULED (Eric) grammar; source cell's first token `Eric`; finite positive numbers; stop below budget; `cap == ledger.CAP_H` — at `seed_allowed` (REG, CONST). **Not at acceptance** → F3a | CHECKED at the gate; **FINDING F3a** at acceptance |
+| `C2-framing-2026-allowance` | the RULED (Eric) grammar; source cell's first token `Eric`; finite positive numbers; stop below budget; `cap == ledger.CAP_H` — at `seed_allowed` and at acceptance (REG, CONST). The register the gates read is the checked-out text of the admitted checkout, not `git show HEAD:`; its commit is the process's to fix (r4, f1 r2) | CHECKED; **FINDING F3a** |
+| `C2-framing-2026-prepared` (r4) | the PREPARED grammar with the sha256 of `PREPARED.json`; absent at the exposure commit (REG, GIT); required by `expect` and by the chain check in `run` and `aggregate` | **FINDING B1** (r4) |
+| `C2-framing-2026-invocation-<unit>` (r4) | the RULED (Eric) ACKNOWLEDGE grammar naming exactly that unit; source token `Eric`; consulted by `seed_allowed`, `validate_run` and the aggregate for every other invocation of a seed | **FINDING B3** (r4) |
 | `admission_2026.json`: `reviewed_commit`, `review_report`, `exposure_commit` | `admission_check`: a plain SIGN whose single `Reviewed-commit` is the reviewed commit, the reviewed commit an ancestor of the exposure commit, which is an ancestor of HEAD; closure unchanged; nothing loose (GIT) | CHECKED |
 | `admission_2026.json`: `input_pins` | shape; the inputs row; historical pins `==` the screen's accepted pins (PINS) | CHECKED |
 | the source-inventory file | exactly `{pa_dir, raw_root, screen_inputs, selection, extraction}`; absolute paths; `selection == SELECTION`; `extraction == EXTRACTION_FIELDS` (CONST); `prepare`'s three directories `==` its (and now `expect`'s `data_dir`) | CHECKED (+ F4) |
@@ -173,7 +185,7 @@ REPORTING with the reason no decision reads it.
 
 ## Counts
 
-Counted by script over the status cells above (one row = one field or field group as listed; 86 rows): **CHECKED 55 · FINDING 19 · REPORTING 11**; 3 of these rows also carry a disclosed limit. The FINDING rows map to the ten findings below.
+Counted by script over the status cells above (one row = one field or field group as listed; 90 rows, revision 2): **CHECKED 55 · FINDING 23 · REPORTING 10 · BOUND 1**; 3 of these rows also carry a disclosed limit. The FINDING rows map to the ten round-3 findings below and the three round-4 findings B1–B3.
 
 **The finding list for this round (each gets a RED, a fix and a GREEN in `round3-tdd-ledger.md`):**
 - **F1** rank order follows `p_game_hit` within each date (ties reported).

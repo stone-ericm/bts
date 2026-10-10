@@ -1,0 +1,655 @@
+# RED: f26.py swapped to its d73693d bytes (sha256 a0b011f0d38fdb7d9f48eaffb2ecc9691b6e1afe8d84dd843b5efbd5c12ba9de); the round-4 f26.py (sha256 010d698b565f1e8d38c713e22d52defa35e1ce0f19b529a6d88ccc7b62a96a47) restored after the run
+# started Fri Oct  9 22:25:15 EDT 2026
+UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run --offline pytest -q -p no:cacheprovider tests/scripts/c2_framing/test_f26_run.py -k 'test_b1_ or test_b2_ or test_b3_'
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-c2f26-code
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 188 items / 163 deselected / 25 selected
+
+tests/scripts/c2_framing/test_f26_run.py EEEEEEEEEEEEEEEEEEEEFFFFF       [100%]
+
+==================================== ERRORS ====================================
+_ ERROR at setup of test_b1_prepare_and_expect_use_only_the_fixed_inputs_namespace _
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12462/test_b1_prepare_and_expect_use0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10cd1fad0>
+
+    @pytest.fixture
+    def prep(tmp_path, monkeypatch):
+        data, raw, screen_inputs = tmp_path / "processed", tmp_path / "raw", tmp_path / "screen_inputs"
+        for p in (data, raw / "2025", raw / "2026", screen_inputs):
+            p.mkdir(parents=True)
+        games = {2025: [(250001, "2025-09-27")], 2026: [(260001, "2026-03-26"), (260002, "2026-03-27")]}
+        screen_pins = {f"pa_{s}.parquet": "0" * 64 for s in range(2017, 2025)}
+        for s, gs in games.items():
+            b = _parquet(pd.DataFrame({"game_pk": [g for g, _ in gs], "season": s}))
+            (data / f"pa_{s}.parquet").write_bytes(b)
+            if s == 2025:
+                screen_pins["pa_2025.parquet"] = _sha(b)
+            for pk, date in gs:
+                (raw / str(s) / f"{pk}.json").write_text(json.dumps(_feed(pk, s, date)))
+        lookup = b'{"250001":{"away":1,"home":2,"away_tid":11,"home_tid":12}}\n'
+        (screen_inputs / S.LOOKUP_NAME).write_bytes(lookup)
+        screen_pins[S.LOOKUP_NAME] = _sha(lookup)
+        out = {"data": data, "raw": raw, "screen_inputs": screen_inputs, "screen_pins": screen_pins,
+               "root": tmp_path, "out": tmp_path / "inputs"}
+>       F.seed_record(tmp_path, 80.01, "test: the prior off-launcher total")
+        ^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'seed_record'
+
+tests/scripts/c2_framing/test_f26_run.py:548: AttributeError
+_ ERROR at setup of test_b1_expect_requires_the_prepared_row_binding_the_records_bytes _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c602f60>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12462/test_b1_expect_requires_the_pr0')
+
+    @pytest.fixture
+    def world(monkeypatch, tmp_path):
+>       return _make_world(monkeypatch, tmp_path)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:141: in _make_world
+    register.write_text("| ID | a | b | c |\n" + _allow_row() + _prepared_row(prepared_sha))
+                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+sha = '246e34831ee9a33ded20ab5e4e8ae527ef943104ce96b4b9cf451fed750c8987'
+text = "the catcher framing 2026 test's preparation record"
+
+    def _prepared_row(sha, text="the catcher framing 2026 test's preparation record"):
+>       return f"| {F.PREPARED_ROW} | the preparation record | **PREPARED 2026-10-10: {text} `{sha}`** | the lead |\n"
+                    ^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'PREPARED_ROW'. Did you mean: 'PREPARED_NAME'?
+
+tests/scripts/c2_framing/test_f26_run.py:1477: AttributeError
+_ ERROR at setup of test_b1_a_replaced_table_with_its_own_pin_in_a_rewritten_record_is_refused _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x114ba8f80>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12462/test_b1_a_replaced_table_with_0')
+
+    @pytest.fixture
+    def world(monkeypatch, tmp_path):
+>       return _make_world(monkeypatch, tmp_path)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:141: in _make_world
+    register.write_text("| ID | a | b | c |\n" + _allow_row() + _prepared_row(prepared_sha))
+                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+sha = 'd5c24bcad7784608828750e92d51cf16a7a567a84b61a6b39b13d9b370ba04c5'
+text = "the catcher framing 2026 test's preparation record"
+
+    def _prepared_row(sha, text="the catcher framing 2026 test's preparation record"):
+>       return f"| {F.PREPARED_ROW} | the preparation record | **PREPARED 2026-10-10: {text} `{sha}`** | the lead |\n"
+                    ^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'PREPARED_ROW'. Did you mean: 'PREPARED_NAME'?
+
+tests/scripts/c2_framing/test_f26_run.py:1477: AttributeError
+_ ERROR at setup of test_b1_expect_refuses_a_record_whose_directories_or_cpu_are_not_the_inventorys[over0-inventory] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x114bd4530>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12462/test_b1_expect_refuses_a_recor0')
+
+    @pytest.fixture
+    def world(monkeypatch, tmp_path):
+>       return _make_world(monkeypatch, tmp_path)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:141: in _make_world
+    register.write_text("| ID | a | b | c |\n" + _allow_row() + _prepared_row(prepared_sha))
+                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+sha = '61574825ed8e16c77724a1e850d12e5412f1d0f4a32241cf6f31c9e747480b9b'
+text = "the catcher framing 2026 test's preparation record"
+
+    def _prepared_row(sha, text="the catcher framing 2026 test's preparation record"):
+>       return f"| {F.PREPARED_ROW} | the preparation record | **PREPARED 2026-10-10: {text} `{sha}`** | the lead |\n"
+                    ^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'PREPARED_ROW'. Did you mean: 'PREPARED_NAME'?
+
+tests/scripts/c2_framing/test_f26_run.py:1477: AttributeError
+_ ERROR at setup of test_b1_expect_refuses_a_record_whose_directories_or_cpu_are_not_the_inventorys[over1-inventory] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x114bd4710>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12462/test_b1_expect_refuses_a_recor1')
+
+    @pytest.fixture
+    def world(monkeypatch, tmp_path):
+>       return _make_world(monkeypatch, tmp_path)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:141: in _make_world
+    register.write_text("| ID | a | b | c |\n" + _allow_row() + _prepared_row(prepared_sha))
+                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+sha = '9da4d1bedd6e36feb5d6ceb2d8492dfd663ad6478dcc7d2e9ab56fa6d65f0418'
+text = "the catcher framing 2026 test's preparation record"
+
+    def _prepared_row(sha, text="the catcher framing 2026 test's preparation record"):
+>       return f"| {F.PREPARED_ROW} | the preparation record | **PREPARED 2026-10-10: {text} `{sha}`** | the lead |\n"
+                    ^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'PREPARED_ROW'. Did you mean: 'PREPARED_NAME'?
+
+tests/scripts/c2_framing/test_f26_run.py:1477: AttributeError
+_ ERROR at setup of test_b1_expect_refuses_a_record_whose_directories_or_cpu_are_not_the_inventorys[over2-namespace] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x114ba9490>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12462/test_b1_expect_refuses_a_recor2')
+
+    @pytest.fixture
+    def world(monkeypatch, tmp_path):
+>       return _make_world(monkeypatch, tmp_path)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:141: in _make_world
+    register.write_text("| ID | a | b | c |\n" + _allow_row() + _prepared_row(prepared_sha))
+                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+sha = '91dd95f4702cd6ca095ad96a828402aafb0d8dce362c5bb5f356a45cabfb3940'
+text = "the catcher framing 2026 test's preparation record"
+
+    def _prepared_row(sha, text="the catcher framing 2026 test's preparation record"):
+>       return f"| {F.PREPARED_ROW} | the preparation record | **PREPARED 2026-10-10: {text} `{sha}`** | the lead |\n"
+                    ^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'PREPARED_ROW'. Did you mean: 'PREPARED_NAME'?
+
+tests/scripts/c2_framing/test_f26_run.py:1477: AttributeError
+_ ERROR at setup of test_b1_expect_refuses_a_record_whose_directories_or_cpu_are_not_the_inventorys[over3-cpu] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x114bd48c0>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12462/test_b1_expect_refuses_a_recor3')
+
+    @pytest.fixture
+    def world(monkeypatch, tmp_path):
+>       return _make_world(monkeypatch, tmp_path)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:141: in _make_world
+    register.write_text("| ID | a | b | c |\n" + _allow_row() + _prepared_row(prepared_sha))
+                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+sha = '69c807b72777f614ba904b25efa7b4b7431060296cb995e46243734d32e251a9'
+text = "the catcher framing 2026 test's preparation record"
+
+    def _prepared_row(sha, text="the catcher framing 2026 test's preparation record"):
+>       return f"| {F.PREPARED_ROW} | the preparation record | **PREPARED 2026-10-10: {text} `{sha}`** | the lead |\n"
+                    ^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'PREPARED_ROW'. Did you mean: 'PREPARED_NAME'?
+
+tests/scripts/c2_framing/test_f26_run.py:1477: AttributeError
+_ ERROR at setup of test_b1_the_run_and_the_aggregate_require_the_preparation_chain[expected pins] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x114be0ec0>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12462/test_b1_the_run_and_the_aggreg0')
+
+    @pytest.fixture
+    def world(monkeypatch, tmp_path):
+>       return _make_world(monkeypatch, tmp_path)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:141: in _make_world
+    register.write_text("| ID | a | b | c |\n" + _allow_row() + _prepared_row(prepared_sha))
+                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+sha = '0c395f7d9601c377da37bc5132418285eb9d884d9d501aeeaf6bcd9dc9e50fed'
+text = "the catcher framing 2026 test's preparation record"
+
+    def _prepared_row(sha, text="the catcher framing 2026 test's preparation record"):
+>       return f"| {F.PREPARED_ROW} | the preparation record | **PREPARED 2026-10-10: {text} `{sha}`** | the lead |\n"
+                    ^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'PREPARED_ROW'. Did you mean: 'PREPARED_NAME'?
+
+tests/scripts/c2_framing/test_f26_run.py:1477: AttributeError
+_ ERROR at setup of test_b1_the_run_and_the_aggregate_require_the_preparation_chain[expected prepared sha] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x114be2090>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12462/test_b1_the_run_and_the_aggreg1')
+
+    @pytest.fixture
+    def world(monkeypatch, tmp_path):
+>       return _make_world(monkeypatch, tmp_path)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:141: in _make_world
+    register.write_text("| ID | a | b | c |\n" + _allow_row() + _prepared_row(prepared_sha))
+                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+sha = '168c76b8d5809bef884b506c8f95944048b463dab3dd35cde101204fa01a9d87'
+text = "the catcher framing 2026 test's preparation record"
+
+    def _prepared_row(sha, text="the catcher framing 2026 test's preparation record"):
+>       return f"| {F.PREPARED_ROW} | the preparation record | **PREPARED 2026-10-10: {text} `{sha}`** | the lead |\n"
+                    ^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'PREPARED_ROW'. Did you mean: 'PREPARED_NAME'?
+
+tests/scripts/c2_framing/test_f26_run.py:1477: AttributeError
+_ ERROR at setup of test_b1_the_run_and_the_aggregate_require_the_preparation_chain[no prepared] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x114be31d0>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12462/test_b1_the_run_and_the_aggreg2')
+
+    @pytest.fixture
+    def world(monkeypatch, tmp_path):
+>       return _make_world(monkeypatch, tmp_path)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:141: in _make_world
+    register.write_text("| ID | a | b | c |\n" + _allow_row() + _prepared_row(prepared_sha))
+                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+sha = '0bfa7215c4f494648935b8d5e8050fb2dedbcee6e2c280f7ab06a5ed1ad09468'
+text = "the catcher framing 2026 test's preparation record"
+
+    def _prepared_row(sha, text="the catcher framing 2026 test's preparation record"):
+>       return f"| {F.PREPARED_ROW} | the preparation record | **PREPARED 2026-10-10: {text} `{sha}`** | the lead |\n"
+                    ^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'PREPARED_ROW'. Did you mean: 'PREPARED_NAME'?
+
+tests/scripts/c2_framing/test_f26_run.py:1477: AttributeError
+_ ERROR at setup of test_b1_the_run_and_the_aggregate_require_the_preparation_chain[no expected] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x114bce930>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12462/test_b1_the_run_and_the_aggreg3')
+
+    @pytest.fixture
+    def world(monkeypatch, tmp_path):
+>       return _make_world(monkeypatch, tmp_path)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:141: in _make_world
+    register.write_text("| ID | a | b | c |\n" + _allow_row() + _prepared_row(prepared_sha))
+                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+sha = '5ad9f6fba5ce91e29d09a8cc18065d3694983caaae9fb057e425db46e74a8a01'
+text = "the catcher framing 2026 test's preparation record"
+
+    def _prepared_row(sha, text="the catcher framing 2026 test's preparation record"):
+>       return f"| {F.PREPARED_ROW} | the preparation record | **PREPARED 2026-10-10: {text} `{sha}`** | the lead |\n"
+                    ^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'PREPARED_ROW'. Did you mean: 'PREPARED_NAME'?
+
+tests/scripts/c2_framing/test_f26_run.py:1477: AttributeError
+_ ERROR at setup of test_b1_the_run_and_the_aggregate_require_the_preparation_chain[prepared row] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x114ba8050>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12462/test_b1_the_run_and_the_aggreg4')
+
+    @pytest.fixture
+    def world(monkeypatch, tmp_path):
+>       return _make_world(monkeypatch, tmp_path)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:141: in _make_world
+    register.write_text("| ID | a | b | c |\n" + _allow_row() + _prepared_row(prepared_sha))
+                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+sha = 'b4341e2685055ba68af45ce786852a9619615f041fb8d22a1ec650e48eabae52'
+text = "the catcher framing 2026 test's preparation record"
+
+    def _prepared_row(sha, text="the catcher framing 2026 test's preparation record"):
+>       return f"| {F.PREPARED_ROW} | the preparation record | **PREPARED 2026-10-10: {text} `{sha}`** | the lead |\n"
+                    ^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'PREPARED_ROW'. Did you mean: 'PREPARED_NAME'?
+
+tests/scripts/c2_framing/test_f26_run.py:1477: AttributeError
+_ ERROR at setup of test_b1_the_run_and_the_aggregate_require_the_preparation_chain[prepared bytes] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x114bccb90>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12462/test_b1_the_run_and_the_aggreg5')
+
+    @pytest.fixture
+    def world(monkeypatch, tmp_path):
+>       return _make_world(monkeypatch, tmp_path)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:141: in _make_world
+    register.write_text("| ID | a | b | c |\n" + _allow_row() + _prepared_row(prepared_sha))
+                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+sha = '40335458155a1dd1a8b7c9c635c61085fbf53f0b795582dd8f2f104bf19e39dd'
+text = "the catcher framing 2026 test's preparation record"
+
+    def _prepared_row(sha, text="the catcher framing 2026 test's preparation record"):
+>       return f"| {F.PREPARED_ROW} | the preparation record | **PREPARED 2026-10-10: {text} `{sha}`** | the lead |\n"
+                    ^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'PREPARED_ROW'. Did you mean: 'PREPARED_NAME'?
+
+tests/scripts/c2_framing/test_f26_run.py:1477: AttributeError
+_ ERROR at setup of test_b2_the_record_must_be_seeded_with_the_prior_total_before_any_step _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x114bd53d0>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12462/test_b2_the_record_must_be_see0')
+
+    @pytest.fixture
+    def world(monkeypatch, tmp_path):
+>       return _make_world(monkeypatch, tmp_path)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:141: in _make_world
+    register.write_text("| ID | a | b | c |\n" + _allow_row() + _prepared_row(prepared_sha))
+                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+sha = '27f526de0075d372f0f2ef4c5594c1a920784f60ca52bcb7b08f087b901e04b4'
+text = "the catcher framing 2026 test's preparation record"
+
+    def _prepared_row(sha, text="the catcher framing 2026 test's preparation record"):
+>       return f"| {F.PREPARED_ROW} | the preparation record | **PREPARED 2026-10-10: {text} `{sha}`** | the lead |\n"
+                    ^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'PREPARED_ROW'. Did you mean: 'PREPARED_NAME'?
+
+tests/scripts/c2_framing/test_f26_run.py:1477: AttributeError
+___________ ERROR at setup of test_b2_a_failed_step_is_still_charged ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x114bcfb90>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12462/test_b2_a_failed_step_is_still0')
+
+    @pytest.fixture
+    def world(monkeypatch, tmp_path):
+>       return _make_world(monkeypatch, tmp_path)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:141: in _make_world
+    register.write_text("| ID | a | b | c |\n" + _allow_row() + _prepared_row(prepared_sha))
+                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+sha = '6c78bc859d6e67be991aba9eabc650f36a9f7a312707156783926a72a1a527d9'
+text = "the catcher framing 2026 test's preparation record"
+
+    def _prepared_row(sha, text="the catcher framing 2026 test's preparation record"):
+>       return f"| {F.PREPARED_ROW} | the preparation record | **PREPARED 2026-10-10: {text} `{sha}`** | the lead |\n"
+                    ^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'PREPARED_ROW'. Did you mean: 'PREPARED_NAME'?
+
+tests/scripts/c2_framing/test_f26_run.py:1477: AttributeError
+_ ERROR at setup of test_b2_the_launch_gate_reserves_with_its_own_charge_first_and_the_run_does_not_re_decide _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x114be1880>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12462/test_b2_the_launch_gate_reserv0')
+
+    @pytest.fixture
+    def world(monkeypatch, tmp_path):
+>       return _make_world(monkeypatch, tmp_path)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:141: in _make_world
+    register.write_text("| ID | a | b | c |\n" + _allow_row() + _prepared_row(prepared_sha))
+                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+sha = '0ecd0f209fb115a878e102672e1326371664e40b338c203a388f6f7a8791da30'
+text = "the catcher framing 2026 test's preparation record"
+
+    def _prepared_row(sha, text="the catcher framing 2026 test's preparation record"):
+>       return f"| {F.PREPARED_ROW} | the preparation record | **PREPARED 2026-10-10: {text} `{sha}`** | the lead |\n"
+                    ^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'PREPARED_ROW'. Did you mean: 'PREPARED_NAME'?
+
+tests/scripts/c2_framing/test_f26_run.py:1477: AttributeError
+_ ERROR at setup of test_b2_the_launcher_process_is_charged_from_its_own_rusage _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x114bb2990>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12462/test_b2_the_launcher_process_i0')
+
+    @pytest.fixture
+    def world(monkeypatch, tmp_path):
+>       return _make_world(monkeypatch, tmp_path)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:141: in _make_world
+    register.write_text("| ID | a | b | c |\n" + _allow_row() + _prepared_row(prepared_sha))
+                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+sha = 'd44519a05da22bcf25651030f95528577180cf442b2aada78c18a0e9a68ca1c9'
+text = "the catcher framing 2026 test's preparation record"
+
+    def _prepared_row(sha, text="the catcher framing 2026 test's preparation record"):
+>       return f"| {F.PREPARED_ROW} | the preparation record | **PREPARED 2026-10-10: {text} `{sha}`** | the lead |\n"
+                    ^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'PREPARED_ROW'. Did you mean: 'PREPARED_NAME'?
+
+tests/scripts/c2_framing/test_f26_run.py:1477: AttributeError
+_ ERROR at setup of test_b3_another_invocation_for_a_seed_is_reported_and_blocks_progress_until_eric_acknowledges_it _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x114bb3b00>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12462/test_b3_another_invocation_for0')
+
+    @pytest.fixture
+    def world(monkeypatch, tmp_path):
+>       return _make_world(monkeypatch, tmp_path)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:141: in _make_world
+    register.write_text("| ID | a | b | c |\n" + _allow_row() + _prepared_row(prepared_sha))
+                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+sha = '1f3443a4df117a3306c062ee9da71ae43325b632ec48430a05acb4dede68b93f'
+text = "the catcher framing 2026 test's preparation record"
+
+    def _prepared_row(sha, text="the catcher framing 2026 test's preparation record"):
+>       return f"| {F.PREPARED_ROW} | the preparation record | **PREPARED 2026-10-10: {text} `{sha}`** | the lead |\n"
+                    ^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'PREPARED_ROW'. Did you mean: 'PREPARED_NAME'?
+
+tests/scripts/c2_framing/test_f26_run.py:1477: AttributeError
+_ ERROR at setup of test_b3_an_unacknowledged_invocation_of_the_current_seed_refuses_its_launch_and_run _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x114baaf60>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12462/test_b3_an_unacknowledged_invo0')
+
+    @pytest.fixture
+    def world(monkeypatch, tmp_path):
+>       return _make_world(monkeypatch, tmp_path)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:141: in _make_world
+    register.write_text("| ID | a | b | c |\n" + _allow_row() + _prepared_row(prepared_sha))
+                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+sha = '1e47f03a113804029d955e1d0df252d34294ca93bac756c952158db8978f1d43'
+text = "the catcher framing 2026 test's preparation record"
+
+    def _prepared_row(sha, text="the catcher framing 2026 test's preparation record"):
+>       return f"| {F.PREPARED_ROW} | the preparation record | **PREPARED 2026-10-10: {text} `{sha}`** | the lead |\n"
+                    ^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'PREPARED_ROW'. Did you mean: 'PREPARED_NAME'?
+
+tests/scripts/c2_framing/test_f26_run.py:1477: AttributeError
+_ ERROR at setup of test_b3_the_aggregate_reports_every_invocation_and_refuses_an_unacknowledged_one _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x114c6c170>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12462/test_b3_the_aggregate_reports_0')
+
+    @pytest.fixture
+    def world(monkeypatch, tmp_path):
+>       return _make_world(monkeypatch, tmp_path)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:141: in _make_world
+    register.write_text("| ID | a | b | c |\n" + _allow_row() + _prepared_row(prepared_sha))
+                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+sha = 'cf199ddc0ae725a3f00ef9b0ffa0312c780b5a3f353e9f74796c23e35888268a'
+text = "the catcher framing 2026 test's preparation record"
+
+    def _prepared_row(sha, text="the catcher framing 2026 test's preparation record"):
+>       return f"| {F.PREPARED_ROW} | the preparation record | **PREPARED 2026-10-10: {text} `{sha}`** | the lead |\n"
+                    ^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'PREPARED_ROW'. Did you mean: 'PREPARED_NAME'?
+
+tests/scripts/c2_framing/test_f26_run.py:1477: AttributeError
+=================================== FAILURES ===================================
+_ test_b3_the_acknowledgement_row_grammar[| C2-framing-2026-invocation-c1-c2-f26-seed1-20261010T130000Z-0badcafe | an extra invocation | **RULED 2026-10-10 (Eric): ACKNOWLEDGE invocation `c1-c2-f26-seed1-20261010T130000Z-0badcafe` of the catcher framing 2026 test** | Eric 2026-10-10, typed in the lead's pane |\n-True] _
+
+text = "| C2-framing-2026-invocation-c1-c2-f26-seed1-20261010T130000Z-0badcafe | an extra invocation | **RULED 2026-10-10 (Er...26-seed1-20261010T130000Z-0badcafe` of the catcher framing 2026 test** | Eric 2026-10-10, typed in the lead's pane |\n"
+ok = True
+
+    @pytest.mark.parametrize("text, ok", [
+        (_ack_row("c1-c2-f26-seed1-20261010T130000Z-0badcafe"), True),
+        (_ack_row("c1-c2-f26-seed1-20261010T130000Z-0badcafe", source="the lead"), False),
+        (_ack_row("c1-c2-f26-seed1-20261010T130000Z-0badcafe").replace("ACKNOWLEDGE", "ACKNOWLEDGES"), False),
+        (_ack_row("c1-c2-f26-seed2-20261010T130000Z-0badcafe"), False),
+        ("", False),
+    ])
+    def test_b3_the_acknowledgement_row_grammar(text, ok):
+>       assert F.acknowledged_invocation("| ID | a | b | c |\n" + text, "c1-c2-f26-seed1-20261010T130000Z-0badcafe") is ok
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'acknowledged_invocation'
+
+tests/scripts/c2_framing/test_f26_run.py:1862: AttributeError
+_ test_b3_the_acknowledgement_row_grammar[| C2-framing-2026-invocation-c1-c2-f26-seed1-20261010T130000Z-0badcafe | an extra invocation | **RULED 2026-10-10 (Eric): ACKNOWLEDGE invocation `c1-c2-f26-seed1-20261010T130000Z-0badcafe` of the catcher framing 2026 test** | the lead |\n-False] _
+
+text = '| C2-framing-2026-invocation-c1-c2-f26-seed1-20261010T130000Z-0badcafe | an extra invocation | **RULED 2026-10-10 (Eric): ACKNOWLEDGE invocation `c1-c2-f26-seed1-20261010T130000Z-0badcafe` of the catcher framing 2026 test** | the lead |\n'
+ok = False
+
+    @pytest.mark.parametrize("text, ok", [
+        (_ack_row("c1-c2-f26-seed1-20261010T130000Z-0badcafe"), True),
+        (_ack_row("c1-c2-f26-seed1-20261010T130000Z-0badcafe", source="the lead"), False),
+        (_ack_row("c1-c2-f26-seed1-20261010T130000Z-0badcafe").replace("ACKNOWLEDGE", "ACKNOWLEDGES"), False),
+        (_ack_row("c1-c2-f26-seed2-20261010T130000Z-0badcafe"), False),
+        ("", False),
+    ])
+    def test_b3_the_acknowledgement_row_grammar(text, ok):
+>       assert F.acknowledged_invocation("| ID | a | b | c |\n" + text, "c1-c2-f26-seed1-20261010T130000Z-0badcafe") is ok
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'acknowledged_invocation'
+
+tests/scripts/c2_framing/test_f26_run.py:1862: AttributeError
+_ test_b3_the_acknowledgement_row_grammar[| C2-framing-2026-invocation-c1-c2-f26-seed1-20261010T130000Z-0badcafe | an extra invocation | **RULED 2026-10-10 (Eric): ACKNOWLEDGES invocation `c1-c2-f26-seed1-20261010T130000Z-0badcafe` of the catcher framing 2026 test** | Eric 2026-10-10, typed in the lead's pane |\n-False] _
+
+text = "| C2-framing-2026-invocation-c1-c2-f26-seed1-20261010T130000Z-0badcafe | an extra invocation | **RULED 2026-10-10 (Er...26-seed1-20261010T130000Z-0badcafe` of the catcher framing 2026 test** | Eric 2026-10-10, typed in the lead's pane |\n"
+ok = False
+
+    @pytest.mark.parametrize("text, ok", [
+        (_ack_row("c1-c2-f26-seed1-20261010T130000Z-0badcafe"), True),
+        (_ack_row("c1-c2-f26-seed1-20261010T130000Z-0badcafe", source="the lead"), False),
+        (_ack_row("c1-c2-f26-seed1-20261010T130000Z-0badcafe").replace("ACKNOWLEDGE", "ACKNOWLEDGES"), False),
+        (_ack_row("c1-c2-f26-seed2-20261010T130000Z-0badcafe"), False),
+        ("", False),
+    ])
+    def test_b3_the_acknowledgement_row_grammar(text, ok):
+>       assert F.acknowledged_invocation("| ID | a | b | c |\n" + text, "c1-c2-f26-seed1-20261010T130000Z-0badcafe") is ok
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'acknowledged_invocation'
+
+tests/scripts/c2_framing/test_f26_run.py:1862: AttributeError
+_ test_b3_the_acknowledgement_row_grammar[| C2-framing-2026-invocation-c1-c2-f26-seed2-20261010T130000Z-0badcafe | an extra invocation | **RULED 2026-10-10 (Eric): ACKNOWLEDGE invocation `c1-c2-f26-seed2-20261010T130000Z-0badcafe` of the catcher framing 2026 test** | Eric 2026-10-10, typed in the lead's pane |\n-False] _
+
+text = "| C2-framing-2026-invocation-c1-c2-f26-seed2-20261010T130000Z-0badcafe | an extra invocation | **RULED 2026-10-10 (Er...26-seed2-20261010T130000Z-0badcafe` of the catcher framing 2026 test** | Eric 2026-10-10, typed in the lead's pane |\n"
+ok = False
+
+    @pytest.mark.parametrize("text, ok", [
+        (_ack_row("c1-c2-f26-seed1-20261010T130000Z-0badcafe"), True),
+        (_ack_row("c1-c2-f26-seed1-20261010T130000Z-0badcafe", source="the lead"), False),
+        (_ack_row("c1-c2-f26-seed1-20261010T130000Z-0badcafe").replace("ACKNOWLEDGE", "ACKNOWLEDGES"), False),
+        (_ack_row("c1-c2-f26-seed2-20261010T130000Z-0badcafe"), False),
+        ("", False),
+    ])
+    def test_b3_the_acknowledgement_row_grammar(text, ok):
+>       assert F.acknowledged_invocation("| ID | a | b | c |\n" + text, "c1-c2-f26-seed1-20261010T130000Z-0badcafe") is ok
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'acknowledged_invocation'
+
+tests/scripts/c2_framing/test_f26_run.py:1862: AttributeError
+_______________ test_b3_the_acknowledgement_row_grammar[-False] ________________
+
+text = '', ok = False
+
+    @pytest.mark.parametrize("text, ok", [
+        (_ack_row("c1-c2-f26-seed1-20261010T130000Z-0badcafe"), True),
+        (_ack_row("c1-c2-f26-seed1-20261010T130000Z-0badcafe", source="the lead"), False),
+        (_ack_row("c1-c2-f26-seed1-20261010T130000Z-0badcafe").replace("ACKNOWLEDGE", "ACKNOWLEDGES"), False),
+        (_ack_row("c1-c2-f26-seed2-20261010T130000Z-0badcafe"), False),
+        ("", False),
+    ])
+    def test_b3_the_acknowledgement_row_grammar(text, ok):
+>       assert F.acknowledged_invocation("| ID | a | b | c |\n" + text, "c1-c2-f26-seed1-20261010T130000Z-0badcafe") is ok
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'acknowledged_invocation'
+
+tests/scripts/c2_framing/test_f26_run.py:1862: AttributeError
+=========================== short test summary info ============================
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_b3_the_acknowledgement_row_grammar[| C2-framing-2026-invocation-c1-c2-f26-seed1-20261010T130000Z-0badcafe | an extra invocation | **RULED 2026-10-10 (Eric): ACKNOWLEDGE invocation `c1-c2-f26-seed1-20261010T130000Z-0badcafe` of the catcher framing 2026 test** | Eric 2026-10-10, typed in the lead's pane |\n-True]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_b3_the_acknowledgement_row_grammar[| C2-framing-2026-invocation-c1-c2-f26-seed1-20261010T130000Z-0badcafe | an extra invocation | **RULED 2026-10-10 (Eric): ACKNOWLEDGE invocation `c1-c2-f26-seed1-20261010T130000Z-0badcafe` of the catcher framing 2026 test** | the lead |\n-False]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_b3_the_acknowledgement_row_grammar[| C2-framing-2026-invocation-c1-c2-f26-seed1-20261010T130000Z-0badcafe | an extra invocation | **RULED 2026-10-10 (Eric): ACKNOWLEDGES invocation `c1-c2-f26-seed1-20261010T130000Z-0badcafe` of the catcher framing 2026 test** | Eric 2026-10-10, typed in the lead's pane |\n-False]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_b3_the_acknowledgement_row_grammar[| C2-framing-2026-invocation-c1-c2-f26-seed2-20261010T130000Z-0badcafe | an extra invocation | **RULED 2026-10-10 (Eric): ACKNOWLEDGE invocation `c1-c2-f26-seed2-20261010T130000Z-0badcafe` of the catcher framing 2026 test** | Eric 2026-10-10, typed in the lead's pane |\n-False]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_b3_the_acknowledgement_row_grammar[-False]
+ERROR tests/scripts/c2_framing/test_f26_run.py::test_b1_prepare_and_expect_use_only_the_fixed_inputs_namespace
+ERROR tests/scripts/c2_framing/test_f26_run.py::test_b1_expect_requires_the_prepared_row_binding_the_records_bytes
+ERROR tests/scripts/c2_framing/test_f26_run.py::test_b1_a_replaced_table_with_its_own_pin_in_a_rewritten_record_is_refused
+ERROR tests/scripts/c2_framing/test_f26_run.py::test_b1_expect_refuses_a_record_whose_directories_or_cpu_are_not_the_inventorys[over0-inventory]
+ERROR tests/scripts/c2_framing/test_f26_run.py::test_b1_expect_refuses_a_record_whose_directories_or_cpu_are_not_the_inventorys[over1-inventory]
+ERROR tests/scripts/c2_framing/test_f26_run.py::test_b1_expect_refuses_a_record_whose_directories_or_cpu_are_not_the_inventorys[over2-namespace]
+ERROR tests/scripts/c2_framing/test_f26_run.py::test_b1_expect_refuses_a_record_whose_directories_or_cpu_are_not_the_inventorys[over3-cpu]
+ERROR tests/scripts/c2_framing/test_f26_run.py::test_b1_the_run_and_the_aggregate_require_the_preparation_chain[expected pins]
+ERROR tests/scripts/c2_framing/test_f26_run.py::test_b1_the_run_and_the_aggregate_require_the_preparation_chain[expected prepared sha]
+ERROR tests/scripts/c2_framing/test_f26_run.py::test_b1_the_run_and_the_aggregate_require_the_preparation_chain[no prepared]
+ERROR tests/scripts/c2_framing/test_f26_run.py::test_b1_the_run_and_the_aggregate_require_the_preparation_chain[no expected]
+ERROR tests/scripts/c2_framing/test_f26_run.py::test_b1_the_run_and_the_aggregate_require_the_preparation_chain[prepared row]
+ERROR tests/scripts/c2_framing/test_f26_run.py::test_b1_the_run_and_the_aggregate_require_the_preparation_chain[prepared bytes]
+ERROR tests/scripts/c2_framing/test_f26_run.py::test_b2_the_record_must_be_seeded_with_the_prior_total_before_any_step
+ERROR tests/scripts/c2_framing/test_f26_run.py::test_b2_a_failed_step_is_still_charged
+ERROR tests/scripts/c2_framing/test_f26_run.py::test_b2_the_launch_gate_reserves_with_its_own_charge_first_and_the_run_does_not_re_decide
+ERROR tests/scripts/c2_framing/test_f26_run.py::test_b2_the_launcher_process_is_charged_from_its_own_rusage
+ERROR tests/scripts/c2_framing/test_f26_run.py::test_b3_another_invocation_for_a_seed_is_reported_and_blocks_progress_until_eric_acknowledges_it
+ERROR tests/scripts/c2_framing/test_f26_run.py::test_b3_an_unacknowledged_invocation_of_the_current_seed_refuses_its_launch_and_run
+ERROR tests/scripts/c2_framing/test_f26_run.py::test_b3_the_aggregate_reports_every_invocation_and_refuses_an_unacknowledged_one
+================= 5 failed, 163 deselected, 20 errors in 3.58s =================
+# pytest exit 1 at Fri Oct  9 22:25:23 EDT 2026
+# restored: 010d698b565f1e8d38c713e22d52defa35e1ce0f19b529a6d88ccc7b62a96a47 (expected 010d698b565f1e8d38c713e22d52defa35e1ce0f19b529a6d88ccc7b62a96a47)

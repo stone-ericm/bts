@@ -1,0 +1,19 @@
+# started Fri Oct  9 22:46:15 EDT 2026
+UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run --offline pytest -q -p no:cacheprovider tests/scripts/c2_framing/test_f26_run.py tests/scripts/c2_framing/test_f26_rules.py tests/scripts/c2_framing/test_f26_hook.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-c2f26-code
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 304 items
+
+tests/scripts/c2_framing/test_f26_run.py ............................... [ 10%]
+........................................................................ [ 33%]
+........................................................................ [ 57%]
+..............                                                           [ 62%]
+tests/scripts/c2_framing/test_f26_rules.py ............................. [ 71%]
+.......................................................................  [ 95%]
+tests/scripts/c2_framing/test_f26_hook.py ...............                [100%]
+
+======================= 304 passed in 748.35s (0:12:28) ========================
+# pytest exit 0 at Fri Oct  9 22:58:44 EDT 2026

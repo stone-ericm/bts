@@ -1,0 +1,71 @@
+# started Fri Oct  9 22:29:49 EDT 2026
+UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run --offline pytest -q -p no:cacheprovider tests/scripts/c2_framing/test_f26_run.py tests/scripts/c2_framing/test_f26_rules.py tests/scripts/c2_framing/test_f26_hook.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-c2f26-code
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 303 items
+
+tests/scripts/c2_framing/test_f26_run.py ............................... [ 10%]
+........................................................................ [ 33%]
+.............F.......................................................... [ 57%]
+.E...........                                                            [ 62%]
+tests/scripts/c2_framing/test_f26_rules.py ............................. [ 71%]
+.......................................................................  [ 95%]
+tests/scripts/c2_framing/test_f26_hook.py ...............                [100%]
+
+==================================== ERRORS ====================================
+_ ERROR at setup of test_b2_the_record_must_be_seeded_with_the_prior_total_before_any_step _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x114b62570>, 'c1': PosixPath('/private/var/folder...ders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12464/test_b2_the_record_must_be_see0/out/inputs'), ...}
+
+    @pytest.fixture
+    def ten(world):
+        for s in F.SEEDS:
+>           assert _run(world, s) == 0
+                   ^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:441: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:200: in _run
+    rc = F.run(seed, w["out"], w["inputs"], walk_forward=_stub_walk_forward([] if calls is None else calls),
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+seed = 2273360
+data_dir = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12464/test_b2_the_record_must_be_see0/out')
+inputs_dir = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12464/test_b2_the_record_must_be_see0/out/inputs')
+
+    def run(seed: int, data_dir: Path, inputs_dir: Path, *, walk_forward=None, now=None, _test_out_root=None) -> int:
+        import pandas as pd
+        from scripts.audit.c1 import admission as A
+        out_root = OUT_ROOT if _test_out_root is None else _test_out_root
+        if os.environ.get("BTS_LGBM_DETERMINISTIC") != "1":
+            raise SystemExit("refusing: BTS_LGBM_DETERMINISTIC=1 is pre-registered (set before bts is imported)")
+        if seed not in SEEDS:
+            raise SystemExit(f"refusing: {seed} is not a registered seed {SEEDS}")
+        head, adm, identity = admission_gate()
+        foreign = A.foreign_imports()
+        if foreign:
+            raise SystemExit(f"refusing: modules from outside this checkout: {foreign}")
+>       pins = adm["input_pins"]
+               ^^^^^^^^^^^^^^^^^
+E       KeyError: 'input_pins'
+
+scripts/audit/c2_framing/f26.py:1414: KeyError
+=================================== FAILURES ===================================
+___________________ test_the_preparation_reports_its_own_cpu ___________________
+
+prep = {'data': PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12464/test_the_prep...ate/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12464/test_the_preparation_reports_i0'), ...}
+
+    def test_the_preparation_reports_its_own_cpu(prep):
+>       got = F.prepare(prep["data"], prep["raw"], prep["screen_inputs"], prep["out"])
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: prepare() takes 3 positional arguments but 4 were given
+
+tests/scripts/c2_framing/test_f26_run.py:1137: TypeError
+=========================== short test summary info ============================
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_the_preparation_reports_its_own_cpu
+ERROR tests/scripts/c2_framing/test_f26_run.py::test_b2_the_record_must_be_seeded_with_the_prior_total_before_any_step
+============== 1 failed, 301 passed, 1 error in 720.36s (0:12:00) ==============
+# pytest exit 1 at Fri Oct  9 22:41:50 EDT 2026

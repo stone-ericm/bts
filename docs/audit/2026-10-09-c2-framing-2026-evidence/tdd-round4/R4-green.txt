@@ -1,0 +1,14 @@
+# GREEN (second attempt; the first had one fixture-conflict error, kept as R4-green-attempt1.txt): the round-4 f26.py (sha256 010d698b565f1e8d38c713e22d52defa35e1ce0f19b529a6d88ccc7b62a96a47)
+# started Fri Oct  9 22:42:32 EDT 2026
+UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run --offline pytest -q -p no:cacheprovider tests/scripts/c2_framing/test_f26_run.py -k 'test_b1_ or test_b2_ or test_b3_'
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-c2f26-code
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 189 items / 163 deselected / 26 selected
+
+tests/scripts/c2_framing/test_f26_run.py ..........................      [100%]
+
+================ 26 passed, 163 deselected in 222.66s (0:03:42) ================
+# pytest exit 0 at Fri Oct  9 22:46:15 EDT 2026

@@ -395,6 +395,14 @@ PREPARED_SCHEMA = "c2_framing_2026_prepared_v1"
 EXPECTED_NAME = "EXPECTED.json"                    # the expect step's durable record
 EXPECTED_SCHEMA = "c2_framing_2026_expected_v1"
 OFF_LAUNCHER_NAME = "off_launcher_cpu.jsonl"       # design §7: CPU spent outside the launcher, append-only, at OUT_ROOT
+PRIOR_STEP = "prior"                               # the record's first row: the prior off-launcher total, seeded by the lead
+INPUTS_NAME = "inputs"                             # the one inputs namespace under OUT_ROOT (review f1 round 2, B1)
+PREPARED_ROW = "C2-framing-2026-prepared"          # the register row binding PREPARED.json's bytes (B1)
+PREPARED_RE = re.compile(r"^\*\*PREPARED (\d{4}-\d{2}-\d{2}): the catcher framing 2026 test's preparation record "
+                         r"`([0-9a-f]{64})`\*\*$")
+INVOCATION_ROW = "C2-framing-2026-invocation-"     # + <unit>: Eric's acknowledgement of another invocation (B3)
+INVOCATION_RE = re.compile(r"^\*\*RULED (\d{4}-\d{2}-\d{2}) \(Eric\): ACKNOWLEDGE invocation `([^`]+)` of the catcher "
+                           r"framing 2026 test\*\*$")
 SELECTION = ("the raw feed <raw_root>/<season>/<game_pk>.json of every distinct game id in the pinned pa_2025 and "
              "pa_2026 parquets, once each, and no other file under <raw_root>")
 EXTRACTION_FIELDS = (                       # every feed field the preparation reads (starter_proxy, lookup_entry)
@@ -549,6 +557,77 @@ def prep_row_problem(repo: Path, register_text: str, exposure_commit: str) -> st
     return _row_after_exposure(repo, register_text, exposure_commit, PREP_ROW, PREP_RE)[1]
 
 
+def prepared_row_problem(repo: Path, register_text: str, exposure_commit: str, sha256: str) -> str | None:
+    """The preparation's record is bound by a register row recorded after X-37 (review f1 round 2, B1): row
+    PREPARED_ROW whose ruling cell is exactly "**PREPARED <date>: the catcher framing 2026 test's preparation record
+    `<sha256 of PREPARED.json>`**". The register is the checked-out text of the admitted checkout; its commit is the
+    process's to fix."""
+    m, problem = _row_after_exposure(repo, register_text, exposure_commit, PREPARED_ROW, PREPARED_RE)
+    if problem:
+        return problem if "already existed" in problem else f"{problem} binding the prepared record"
+    if m.group(2) != sha256:
+        return f"the {PREPARED_ROW} row binds another preparation record, not this PREPARED.json"
+    return None
+
+
+def acknowledged_invocation(register_text: str, unit: str) -> bool:
+    """Eric's acknowledgement of another C1 invocation for a seed (design §7: no rerun, replacement or further launch
+    without his decision; review f1 round 2, B3): row `C2-framing-2026-invocation-<unit>` whose ruling cell is exactly
+    "**RULED <date> (Eric): ACKNOWLEDGE invocation `<unit>` of the catcher framing 2026 test**", source token Eric."""
+    from scripts.audit.c1 import admission as A
+    cells = A.row_cells(register_text, f"{INVOCATION_ROW}{unit}")
+    if not cells or len(cells) < 4:
+        return False
+    m = INVOCATION_RE.match(cells[2].strip())
+    return bool(m and m.group(2) == unit and cells[3].split()[:1] == ["Eric"])
+
+
+def other_units(c1_dir: Path, seed: int, register_text: str, exclude: str | None = None) -> list[dict]:
+    """Every other C1 invocation of this seed's unit name (`c1-c2-f26-seed<k>-*`) in the launcher's records, root and
+    legacy `jobs/`, with its reconciled result and whether Eric acknowledged it (B3)."""
+    k = SEEDS.index(seed) + 1
+    found = set()
+    for d in (Path(c1_dir), Path(c1_dir) / "jobs"):
+        for f in (sorted(d.glob("*.json")) if d.is_dir() else []):
+            prefix, _, unit = f.stem.partition("_")
+            if prefix in ("PENDING", "TERMINAL", "RECONCILED", "OVERRUN", "RESUME"):
+                m = UNIT_RE.fullmatch(unit)
+                if m and int(m.group(1)) == k and unit != exclude:
+                    found.add(unit)
+    out = []
+    for unit in sorted(found):
+        r = _lifecycle_record(c1_dir, "RECONCILED", unit)
+        tr = _lifecycle_record(c1_dir, "TERMINAL", unit)
+        result = (r.get("result") if isinstance(r, dict) else None) or \
+            (tr.get("result") if isinstance(tr, dict) else None) or "unreconciled"
+        out.append({"unit": unit, "result": result, "rc": r.get("rc") if isinstance(r, dict) else None,
+                    "cpu_seconds": r.get("cpu_seconds") if isinstance(r, dict) else None,
+                    "reconciled": isinstance(r, dict), "overrun_marker": (Path(c1_dir) / f"OVERRUN_{unit}.json").exists(),
+                    "acknowledged": acknowledged_invocation(register_text, unit)})
+    return out
+
+
+def preparation_chain_problem(repo: Path, register_text: str, exposure_commit: str, inputs: Path, pins: dict) -> str | None:
+    """The admitted pins descend from the recorded preparation (B1): `EXPECTED.json` in the inputs namespace carries
+    exactly the admitted pins and the sha256 of `PREPARED.json`, whose bytes the prepared row binds."""
+    inputs = Path(inputs)
+    try:
+        prepared_bytes = (inputs / PREPARED_NAME).read_bytes()
+    except OSError:
+        return f"the preparation chain: no {PREPARED_NAME} in {inputs}"
+    problem = prepared_row_problem(repo, register_text, exposure_commit, S._sha(prepared_bytes))
+    if problem:
+        return f"the preparation chain: {problem}"
+    try:
+        rec = json.loads((inputs / EXPECTED_NAME).read_bytes())
+    except (OSError, ValueError):
+        return f"the preparation chain: no readable {EXPECTED_NAME} in {inputs}"
+    if not (isinstance(rec, dict) and rec.get("schema") == EXPECTED_SCHEMA and rec.get("pins") == pins
+            and rec.get("prepared_sha256") == S._sha(prepared_bytes) and rec.get("sha256") == pins.get(EXPECT_NAME)):
+        return f"the preparation chain: {EXPECTED_NAME} does not bind these pins to the recorded preparation"
+    return None
+
+
 def admission_gate(repo: Path | None = None, *, require_inputs: bool = True):
     """X-37 (published, unchanged, binding the reviewed code and its review), an unchanged executable closure, and,
     once the inputs are prepared, the pins bound by the inputs row. Returns (head, admission, identity)."""
@@ -596,14 +675,65 @@ def off_launcher_path(out_root: Path) -> Path:
     return Path(out_root) / OFF_LAUNCHER_NAME
 
 
+def inputs_dir(out_root: Path) -> Path:
+    """The one inputs namespace: `prepare` creates it, `expect` reads and writes only there (B1)."""
+    return Path(out_root) / INPUTS_NAME
+
+
+def seed_record(out_root: Path, cpu_s: float, source: str) -> dict:
+    """The lead seeds the off-launcher record once, before any step, with the prior off-launcher total the C2 index
+    records and the box ledger does not (the manager's ruling (b), 2026-10-09). Created exclusively."""
+    if not (_finite_nonneg(cpu_s) and isinstance(source, str) and source.strip()):
+        raise SystemExit("refusing: the seed row needs a finite nonnegative CPU total and a source")
+    row = {"step": PRIOR_STEP, "cpu_s": float(cpu_s), "source": source,
+           "recorded_utc": datetime.now(timezone.utc).isoformat()}
+    exclusive_write(off_launcher_path(out_root), (json.dumps(row, sort_keys=True) + "\n").encode())
+    return row
+
+
+def require_record(out_root: Path) -> None:
+    """Fail closed before any work: the seeded record must exist and be well formed (the manager's ruling (c))."""
+    try:
+        off_launcher_rows(out_root)
+    except RunInvalid as e:
+        raise SystemExit(f"refusing: {e}") from None
+
+
+class charged:
+    """Context manager charging a step's CPU to the record, failed or not (ruling (c)): on exit it appends one row
+    with the CPU since entry (or the value frozen by `freeze()`), `failed: True` when an exception is propagating. If
+    the record is missing or malformed while an exception propagates, that exception propagates unchanged."""
+
+    def __init__(self, out_root: Path, step: str, **extra):
+        self.out_root, self.step, self.extra, self.cpu = out_root, step, extra, None
+
+    def __enter__(self):
+        self.c0 = S.cpu_seconds()
+        return self
+
+    def freeze(self) -> float:
+        self.cpu = S.cpu_seconds() - self.c0
+        return self.cpu
+
+    def __exit__(self, exc_type, exc, tb):
+        cpu = self.cpu if self.cpu is not None else S.cpu_seconds() - self.c0
+        try:
+            record_off_launcher(self.out_root, self.step, cpu, **({"failed": True} if exc_type else {}), **self.extra)
+        except RunInvalid as e:
+            if exc_type is None:
+                raise SystemExit(f"refusing: {e}") from None
+        return False
+
+
 def record_off_launcher(out_root: Path, step: str, cpu_s: float, **extra) -> dict:
     """Append one row to the test's own append-only record of CPU spent outside the launcher (design §7: it is charged
-    to the allowance; the manager's erratum of 2026-10-09). Durable: written, flushed and fsynced before returning."""
+    to the allowance; the manager's erratum of 2026-10-09). The record must already exist and be well formed (seeded
+    by the lead); a missing or malformed record refuses. Durable: written, flushed and fsynced before returning."""
     if not _finite_nonneg(cpu_s):
         raise ValueError(f"off-launcher CPU for {step} is not a finite nonnegative number: {cpu_s!r}")
+    off_launcher_rows(out_root)                                   # fail closed on a missing or malformed record
     row = {"step": step, "cpu_s": float(cpu_s), "recorded_utc": datetime.now(timezone.utc).isoformat(), **extra}
     path = off_launcher_path(out_root)
-    path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "ab") as f:
         f.write((json.dumps(row, sort_keys=True) + "\n").encode())
         f.flush()
@@ -612,10 +742,11 @@ def record_off_launcher(out_root: Path, step: str, cpu_s: float, **extra) -> dic
 
 
 def off_launcher_rows(out_root: Path) -> list[dict]:
-    """Every row of the off-launcher record; a malformed line or an invalid CPU value refuses (fails closed)."""
+    """Every row of the off-launcher record. Fails closed: a missing record, a first row that is not the lead's seed
+    row (step `prior` with a source), a malformed line or an invalid CPU value refuses."""
     path = off_launcher_path(out_root)
     if not path.is_file():
-        return []
+        raise RunInvalid(f"no seeded off-launcher CPU record at {path}: the lead seeds it with the prior total first")
     rows = []
     for i, line in enumerate(path.read_text().splitlines(), start=1):
         if not line.strip():
@@ -627,6 +758,9 @@ def off_launcher_rows(out_root: Path) -> list[dict]:
         if not (isinstance(r, dict) and isinstance(r.get("step"), str) and _finite_nonneg(r.get("cpu_s"))):
             raise RunInvalid(f"the off-launcher CPU record {path} has an invalid row at line {i}")
         rows.append(r)
+    if not (rows and rows[0].get("step") == PRIOR_STEP and isinstance(rows[0].get("source"), str)):
+        raise RunInvalid(f"the off-launcher CPU record {path} does not begin with the lead's seed row (step "
+                         f"{PRIOR_STEP!r} with a source)")
     return rows
 
 
@@ -686,10 +820,13 @@ def head_admitted(repo: Path, identity: dict, head: str) -> list[str]:
 
 
 def seed_allowed(seed: int, register_text: str, out_root: Path, *, identity: dict, pins: dict,
-                 truth: "Trusted", repo: Path | None = None, c1_dir: Path | None = None) -> tuple[bool, str, dict | None]:
-    """Eric's allowance, whose cap is the launcher's; the §7 effective total leaves room for the full budget; then seeds
-    one at a time in §5's order: every earlier seed holds exactly one complete admitted run. Returns (allowed, reason,
-    allowance)."""
+                 truth: "Trusted", repo: Path | None = None, c1_dir: Path | None = None,
+                 current_unit: str | None = None) -> tuple[bool, str, dict | None]:
+    """Eric's allowance, whose cap is the launcher's; then seeds one at a time in §5's order: every earlier seed holds
+    exactly one complete admitted run, and no seed up to this one has another C1 invocation that Eric has not
+    acknowledged (design §7; review f1 round 2, B3). The §7 effective-total reservation is `launch`'s (B2). Returns
+    (allowed, reason, allowance)."""
+    c1 = C1_DIR if c1_dir is None else c1_dir
     if seed not in SEEDS:
         return False, f"{seed} is not a registered seed {SEEDS}", None
     allow = allowance(register_text)
@@ -697,18 +834,23 @@ def seed_allowed(seed: int, register_text: str, out_root: Path, *, identity: dic
         return False, f"the test needs Eric's compute allowance (register row {ALLOWANCE_ROW})", None
     if allow["cap"] != ledger.CAP_H:
         return False, f"Eric's cap {allow['cap']:g} is not the launcher's cap {ledger.CAP_H:g}", None
-    problem = effective_total_problem(allow, out_root, C1_DIR if c1_dir is None else c1_dir)
-    if problem:
-        return False, problem, None
-    for s in SEEDS[:SEEDS.index(seed)]:
-        root = out_root / f"seed_{s}"
-        runs = sorted(d for d in root.iterdir() if d.is_dir()) if root.is_dir() else []
-        if len(runs) != 1:
-            return False, f"seeds run one at a time, in order: earlier seed {s} has {len(runs)} runs, not one", None
-        try:
-            validate_run(runs[0], s, out_root=out_root, identity=identity, pins=pins, truth=truth, repo=repo)
-        except RunInvalid as e:
-            return False, f"seeds run in order: earlier seed {s}'s run is not a complete admitted run: {e}", None
+    for s in SEEDS[:SEEDS.index(seed) + 1]:
+        exclude = current_unit if s == seed else None
+        if s != seed:
+            root = out_root / f"seed_{s}"
+            runs = sorted(d for d in root.iterdir() if d.is_dir()) if root.is_dir() else []
+            if len(runs) != 1:
+                return False, f"seeds run one at a time, in order: earlier seed {s} has {len(runs)} runs, not one", None
+            try:
+                v = validate_run(runs[0], s, out_root=out_root, identity=identity, pins=pins, truth=truth, repo=repo,
+                                 c1_dir=c1)
+            except RunInvalid as e:
+                return False, f"seeds run in order: earlier seed {s}'s run is not a complete admitted run: {e}", None
+            exclude = v["manifest"]["launcher_unit"]
+        for o in other_units(c1, s, register_text, exclude=exclude):
+            if not o["acknowledged"]:
+                return False, (f"seed {s} has another invocation {o['unit']} ({o['result']}) without Eric's "
+                               f"acknowledgement (register row {INVOCATION_ROW}{o['unit']})"), None
     return True, "allowed", allow
 
 
@@ -918,17 +1060,25 @@ def canonical(obj) -> bytes:
     return (json.dumps(obj, sort_keys=True, separators=(",", ":")) + "\n").encode()
 
 
-def prepare(data_dir: Path, raw_dir: Path, screen_inputs: Path, out_dir: Path) -> dict:
+def prepare(data_dir: Path, raw_dir: Path, screen_inputs: Path, *, _test_out_root=None) -> dict:
     """The preparation read (§3, §8 step 3), once, after X-37 and its own register row: the frozen copy of `pa_2026`,
     the 2026 lookup entries and the 2025-2026 starter-proxy table from exactly the raw feeds of the game ids in the
-    pinned 2025 and 2026 PA files, and the source manifest. Only identity and schedule fields are extracted. Returns
-    the record it writes as `PREPARED.json` in the output directory: the pins of all inputs, the counts, the exposure
-    commit and cited inventory it ran under, and its CPU (also appended to the off-launcher record at `OUT_ROOT`)."""
+    pinned 2025 and 2026 PA files, and the source manifest. Only identity and schedule fields are extracted. Writes
+    only to `OUT_ROOT/inputs`, created exclusively (B1), and returns the record it writes there as `PREPARED.json`: the
+    pins of all inputs, the counts, the exposure commit and cited inventory it ran under, and its CPU. The lead then
+    records that file's sha256 in the register row `C2-framing-2026-prepared`, which `expect` requires. Its CPU is
+    charged to the off-launcher record at `OUT_ROOT`, which must be seeded first (rulings (b), (c))."""
+    root = OUT_ROOT if _test_out_root is None else Path(_test_out_root)
+    out_dir = inputs_dir(root)                                     # the one inputs namespace (B1)
+    with charged(root, "prepare", out_dir=str(out_dir)) as step:   # charged, failed or not (ruling (c))
+        return _prepare(data_dir, raw_dir, screen_inputs, root, out_dir, step)
+
+
+def _prepare(data_dir: Path, raw_dir: Path, screen_inputs: Path, root: Path, out_dir: Path, step: "charged") -> dict:
     import pandas as pd
     from scripts.audit.c1 import admission as A
     # The acquisition boundary (review c1 finding 5): before any 2026 file is opened or hashed, X-37 and the reviewed
     # code (the shared gate), the preparation-read row recorded after X-37, and exactly the declared directories.
-    c0 = S.cpu_seconds()
     _, adm, _ = admission_gate(require_inputs=False)
     problem = prep_row_problem(A.REPO, (A.REPO / REGISTER_REL).read_text(), adm["exposure_commit"])
     if problem:
@@ -940,6 +1090,7 @@ def prepare(data_dir: Path, raw_dir: Path, screen_inputs: Path, out_dir: Path) -
                               (screen_inputs, "screen_inputs", "screen inputs directory")):
         if Path(given).resolve() != Path(inv[key]).resolve():
             raise SystemExit(f"refusing: the {label} {given} is not the source inventory's {inv[key]}")
+    require_record(root)                                           # fail closed before any 2026 read (ruling (c))
     screen = screen_pins()
     out_dir.mkdir(exist_ok=False)
     raw26 = (data_dir / FROZEN_PA).read_bytes()
@@ -984,7 +1135,7 @@ def prepare(data_dir: Path, raw_dir: Path, screen_inputs: Path, out_dir: Path) -
         reasons[str(r["season"])][r["reason"]] += 1
     missing_pitchers = sum(1 for s in (TEST_SEASON,) for pk in games[s]
                            for k in ("away", "home") if lookup[str(pk)][k] is None)
-    cpu = S.cpu_seconds() - c0
+    cpu = step.freeze()
     rec = {"schema": PREPARED_SCHEMA, "exposure_commit": adm["exposure_commit"],
            "inventory_sha256": cited_inventory_sha256(A.REPO, adm["exposure_commit"]),
            "data_dir": str(Path(data_dir).resolve()), "raw_dir": str(Path(raw_dir).resolve()),
@@ -992,8 +1143,7 @@ def prepare(data_dir: Path, raw_dir: Path, screen_inputs: Path, out_dir: Path) -
            "pins": dict(sorted(pins.items())), "games": manifest["counts"], "proxy_reasons": reasons,
            "game_number_fallbacks": sum(r["game_number_fallback"] for r in records),
            "lookup_2026_missing_probable_sides": missing_pitchers, "cpu_s": cpu}
-    A.durable_write(out_dir / PREPARED_NAME, canonical(rec))   # the preparation's durable record (review f1 F4)
-    record_off_launcher(Path(out_dir).parent, "prepare", cpu, out_dir=str(out_dir))
+    exclusive_write(out_dir / PREPARED_NAME, canonical(rec))   # the preparation's record; the prepared row binds it
     return rec
 
 
@@ -1166,29 +1316,37 @@ def expected_values(ev) -> dict:
     return out
 
 
-def expect(data_dir: Path, inputs_dir: Path) -> dict:
-    """The one-time expectation step (review c2 R2-2; review f1 F4): after the preparation read, outside the launcher,
-    recompute the catcher-grouped feature from the prepared, pinned inputs and write the expected evidence once. It is
-    bound to the preparation: the PA directory is the source inventory's; the pins are the ones `prepare` recorded in
-    `PREPARED.json` under this admission's exposure commit and cited inventory; the historical pins are the screen's;
-    every input is read through its pin; and the output and its `EXPECTED.json` record are created exclusively, never
-    replaced. Its CPU is appended to the off-launcher record."""
+def expect(data_dir: Path, *, _test_out_root=None) -> dict:
+    """The one-time expectation step (review c2 R2-2; review f1 F4 and round 2 B1): after the preparation read, outside
+    the launcher, recompute the catcher-grouped feature from the recorded, pinned inputs and write the expected
+    evidence once. It is bound to the preparation: it reads and writes only `OUT_ROOT/inputs`; the PA directory is the
+    source inventory's; `PREPARED.json` there must be the record the register row `C2-framing-2026-prepared` binds by
+    sha256, carry the admission's exposure commit, the cited inventory sha256 and the inventory's three directories,
+    and name this namespace; its pins are the prepared inputs with the screen's historical pins; every input is read
+    through its pin; the output and `EXPECTED.json` are created exclusively, never replaced. Its CPU is charged to the
+    off-launcher record, failed or not."""
+    root = OUT_ROOT if _test_out_root is None else Path(_test_out_root)
+    with charged(root, "expect") as step:
+        return _expect(Path(data_dir), root, inputs_dir(root), step)
+
+
+def _expect(data_dir: Path, root: Path, inputs: Path, step: "charged") -> dict:
     from scripts.audit.c1 import admission as A
-    c0 = S.cpu_seconds()
     _, adm, _ = admission_gate(require_inputs=False)
     xc = adm["exposure_commit"]
-    problem = prep_row_problem(A.REPO, (A.REPO / REGISTER_REL).read_text(), xc)
+    register = (A.REPO / REGISTER_REL).read_text()
+    problem = prep_row_problem(A.REPO, register, xc)
     if problem:
         raise SystemExit(f"refusing: {problem}")
     inv, problem = source_inventory(A.REPO, xc)
     if problem:
         raise SystemExit(f"refusing: {problem}")
-    data_dir, inputs_dir = Path(data_dir), Path(inputs_dir)
     if data_dir.resolve() != Path(inv["pa_dir"]).resolve():
         raise SystemExit(f"refusing: the PA directory {data_dir} is not the source inventory's {inv['pa_dir']}")
-    prepared_path = inputs_dir / PREPARED_NAME
+    require_record(root)
+    prepared_path = inputs / PREPARED_NAME
     if not prepared_path.is_file():
-        raise SystemExit(f"refusing: no {PREPARED_NAME} in {inputs_dir}: the expect step follows the preparation read")
+        raise SystemExit(f"refusing: no {PREPARED_NAME} in {inputs}: the expect step follows the preparation read")
     prepared_bytes = prepared_path.read_bytes()
     try:
         prepared = json.loads(prepared_bytes)
@@ -1196,14 +1354,25 @@ def expect(data_dir: Path, inputs_dir: Path) -> dict:
         prepared = None
     if not (isinstance(prepared, dict) and prepared.get("schema") == PREPARED_SCHEMA):
         raise SystemExit(f"refusing: {prepared_path} is not a {PREPARED_SCHEMA} record")
+    problem = prepared_row_problem(A.REPO, register, xc, S._sha(prepared_bytes))
+    if problem:
+        raise SystemExit(f"refusing: {problem}")
     if prepared.get("exposure_commit") != xc:
         raise SystemExit(f"refusing: {PREPARED_NAME} names exposure commit {prepared.get('exposure_commit')!r}, not "
                          f"the admission's {xc}")
     if prepared.get("inventory_sha256") != cited_inventory_sha256(A.REPO, xc):
         raise SystemExit(f"refusing: {PREPARED_NAME} does not record the cited source inventory's sha256")
-    if prepared.get("data_dir") != str(Path(inv["pa_dir"]).resolve()):
-        raise SystemExit(f"refusing: {PREPARED_NAME} records PA directory {prepared.get('data_dir')!r}, not the source "
-                         f"inventory's")
+    for key, inv_key, label in (("data_dir", "pa_dir", "PA directory"), ("raw_dir", "raw_root", "raw-feed root"),
+                                ("screen_inputs", "screen_inputs", "screen inputs directory")):
+        if prepared.get(key) != str(Path(inv[inv_key]).resolve()):
+            raise SystemExit(f"refusing: {PREPARED_NAME} records {label} {prepared.get(key)!r}, not the source "
+                             f"inventory's")
+    if prepared.get("out_dir") != str(inputs.resolve()):
+        raise SystemExit(f"refusing: {PREPARED_NAME} records output namespace {prepared.get('out_dir')!r}, not "
+                         f"{inputs}")
+    if not _finite_nonneg(prepared.get("cpu_s")):
+        raise SystemExit(f"refusing: {PREPARED_NAME} records cpu_s {prepared.get('cpu_s')!r}, not a finite "
+                         f"nonnegative number")
     pins = prepared.get("pins")
     if not (isinstance(pins, dict) and set(pins) == set(INPUT_NAMES) - {EXPECT_NAME}
             and all(isinstance(v, str) and HEX.fullmatch(v) for v in pins.values())):
@@ -1211,22 +1380,22 @@ def expect(data_dir: Path, inputs_dir: Path) -> dict:
     problem = historical_pins_problem(pins, screen_pins())
     if problem:
         raise SystemExit(f"refusing: {problem}")
-    out, rec_path = inputs_dir / EXPECT_NAME, inputs_dir / EXPECTED_NAME
+    out, rec_path = inputs / EXPECT_NAME, inputs / EXPECTED_NAME
     if out.exists() or rec_path.exists():
         raise SystemExit(f"refusing: {out} or {rec_path} already exists: the expect step runs once and never overwrites")
-    asof, _ = recompute_asof(data_dir, inputs_dir, pins)
-    ev = expected_evidence(load_trusted(inputs_dir, pins), asof)
+    asof, _ = recompute_asof(data_dir, inputs, pins)
+    ev = expected_evidence(load_trusted(inputs, pins), asof)
     buf = io.BytesIO()
     ev.to_parquet(buf, index=False)
     data = buf.getvalue()
     exclusive_write(out, data)
     full = dict(sorted({**pins, EXPECT_NAME: S._sha(data)}.items()))
-    cpu = S.cpu_seconds() - c0
+    cpu = step.freeze()
     rec = {"schema": EXPECTED_SCHEMA, "file": str(out), "sha256": S._sha(data), "rows": int(len(ev)),
            "identified": {a: int(((ev["arm"] == a) & (ev["reason"] == "identified")).sum()) for a in ARMS[1:]},
            "pins": full, "pins_digest": S.pins_digest(full), "prepared_sha256": S._sha(prepared_bytes), "cpu_s": cpu}
     exclusive_write(rec_path, canonical(rec))
-    record_off_launcher(inputs_dir.parent, "expect", cpu, file=str(out))
+    step.extra["file"] = str(out)
     return rec
 
 
@@ -1246,10 +1415,17 @@ def run(seed: int, data_dir: Path, inputs_dir: Path, *, walk_forward=None, now=N
     truth = load_trusted(inputs_dir, pins)
     calendar = truth.calendar
     register = (A.REPO / REGISTER_REL).read_text()
-    ok, why, allow = seed_allowed(seed, register, out_root, identity=identity, pins=pins, truth=truth)
+    allow = allowance(register)
+    if allow is None:
+        raise SystemExit(f"refusing: the test needs Eric's compute allowance (register row {ALLOWANCE_ROW})")
+    unit, problem = guarded_unit(seed, allow["budget"], S.proc_cgroup_text(), C1_DIR)
+    if problem:
+        raise SystemExit(f"refusing: {problem}")
+    ok, why, allow = seed_allowed(seed, register, out_root, identity=identity, pins=pins, truth=truth,
+                                  current_unit=unit)
     if not ok:
         raise SystemExit(f"refusing: {why}")
-    unit, problem = guarded_unit(seed, allow["budget"], S.proc_cgroup_text(), C1_DIR)
+    problem = preparation_chain_problem(A.REPO, register, adm["exposure_commit"], inputs_dir, pins)
     if problem:
         raise SystemExit(f"refusing: {problem}")
     from bts.model.predict import LGB_PARAMS
@@ -1462,9 +1638,10 @@ def validate_run(d: Path, seed: int, *, out_root: Path, identity: dict, pins: di
         raise RunInvalid(f"{d}: the blend configurations are not the reviewed ones")
     # Review f1 F3: Eric's allowance, read from the register now, with the launcher's cap; then the first-unit stop.
     try:
-        allow = allowance((repo / REGISTER_REL).read_text())
+        register_text = (repo / REGISTER_REL).read_text()
     except OSError:
-        allow = None
+        register_text = ""
+    allow = allowance(register_text)
     if allow is None or allow["cap"] != ledger.CAP_H:
         raise RunInvalid(f"{d}: no allowance row of Eric's with the launcher's cap (register row {ALLOWANCE_ROW})")
     if man.get("allowance") != allow:
@@ -1553,7 +1730,8 @@ def validate_run(d: Path, seed: int, *, out_root: Path, identity: dict, pins: di
             raise RunInvalid(f"{d}: arm {a}'s stored summary does not match its diff")
         summaries[a] = summary
     return {"manifest": man, "results": res, "rank1": vectors, "summaries": summaries, "evidence": evidence,
-            "ties": ties}
+            "ties": ties, "other_units": other_units(C1_DIR if c1_dir is None else c1_dir, seed, register_text,
+                                                     exclude=man["launcher_unit"])}
 
 
 def recompute_asof(data_dir: Path, inputs_dir: Path, pins: dict) -> tuple["AsOfFraming", dict]:
@@ -1580,11 +1758,18 @@ def recompute_asof(data_dir: Path, inputs_dir: Path, pins: dict) -> tuple["AsOfF
 def aggregate(run_dirs: list[Path], data_dir: Path, inputs_dir: Path, *, _test_out_root=None, _repo=None) -> dict:
     """§6: exactly one run directory per registered seed, each validated under the admitted identity, pins and the
     trusted evidence re-derived here from the pinned inputs; all agree on everything that defines the run, and on their
-    catcher evidence, whose every value equals a recomputation from the admitted inputs. A-posted decides; A-projected
-    is descriptive. The aggregate's own CPU is reported: it runs outside the launcher."""
-    import pandas as pd
-    c0 = S.cpu_seconds()
+    catcher evidence, whose every value equals a recomputation from the admitted inputs; the admitted pins descend from
+    the recorded preparation (B1); no seed has another C1 invocation Eric has not acknowledged, and every invocation is
+    reported (B3). A-posted decides; A-projected is descriptive. Its own CPU is charged to the off-launcher record,
+    which must be seeded, and the ledger, off-launcher and effective totals are reported (B2)."""
     out_root = OUT_ROOT if _test_out_root is None else _test_out_root
+    with charged(out_root, "aggregate", seeds=list(SEEDS)) as step:
+        return _aggregate(run_dirs, data_dir, inputs_dir, out_root, _repo, step)
+
+
+def _aggregate(run_dirs: list[Path], data_dir: Path, inputs_dir: Path, out_root: Path, _repo, step: "charged") -> dict:
+    import pandas as pd
+    from scripts.audit.c1 import admission as A
     dirs = [Path(d).resolve() for d in run_dirs]
     if len(dirs) != len(SEEDS) or len(set(dirs)) != len(dirs):
         raise RunInvalid(f"need exactly {len(SEEDS)} distinct run directories, got {len(run_dirs)}")
@@ -1594,11 +1779,22 @@ def aggregate(run_dirs: list[Path], data_dir: Path, inputs_dir: Path, *, _test_o
         seeds.append(int(m.group(1)) if m else None)
     if None in seeds or sorted(seeds) != sorted(SEEDS):
         raise RunInvalid(f"seeds {seeds} are not exactly the registered {list(SEEDS)}")
+    off_launcher_rows(out_root)                                    # fail closed before any work (ruling (c))
     _, adm, identity = admission_gate(_repo)
     pins = adm["input_pins"]
+    repo = A.REPO if _repo is None else _repo
+    register = (repo / REGISTER_REL).read_text()
+    problem = preparation_chain_problem(repo, register, adm["exposure_commit"], inputs_dir, pins)
+    if problem:
+        raise RunInvalid(problem)
     truth = load_trusted(inputs_dir, pins)
     by = {s: validate_run(d, s, out_root=out_root, identity=identity, pins=pins, truth=truth, repo=_repo)
           for d, s in zip(dirs, seeds)}
+    for s in SEEDS:
+        for o in by[s]["other_units"]:
+            if not o["acknowledged"]:
+                raise RunInvalid(f"seed {s} has another invocation {o['unit']} ({o['result']}) without Eric's "
+                                 f"acknowledgement (register row {INVOCATION_ROW}{o['unit']})")
     first = by[SEEDS[0]]["manifest"]
     for key in ("input_pins", "inputs_digest", "lgb_params", "feature_settings", "basis", "retrain_every",
                 "test_season", "arms", "calendar", "scoring", "identity"):
@@ -1622,10 +1818,9 @@ def aggregate(run_dirs: list[Path], data_dir: Path, inputs_dir: Path, *, _test_o
          for a in ARMS[1:]}
     posted, projected = dispose(x["A_posted"]), dispose(x["A_projected"])
     streak = {a: [by[s]["summaries"][a]["mean_max_streak"] for s in SEEDS] for a in ARMS[1:]}
-    aggregate_cpu = S.cpu_seconds() - c0
-    record_off_launcher(out_root, "aggregate", aggregate_cpu, seeds=list(SEEDS))
+    aggregate_cpu = step.freeze()                                  # this row is appended on exit with this value
     ledger_h = ledger_total_hours(C1_DIR)
-    off_h = sum(r["cpu_s"] for r in off_launcher_rows(out_root)) / 3600
+    off_h = (sum(r["cpu_s"] for r in off_launcher_rows(out_root)) + aggregate_cpu) / 3600
     return {"seeds": list(SEEDS), "heads": [by[s]["manifest"]["head"] for s in SEEDS], "identity": identity,
             "calendar_days": len(truth.calendar),
             "total_cpu_h": sum(by[s]["results"]["total_cpu_s"] for s in SEEDS) / 3600,
@@ -1637,6 +1832,7 @@ def aggregate(run_dirs: list[Path], data_dir: Path, inputs_dir: Path, *, _test_o
                            "seeds_below_zero": sum(1 for v in streak[a] if v is not None and v < 0)}
                        for a in ARMS[1:]},
             "per_seed": {str(s): {"summaries": by[s]["summaries"], "rank_ties": by[s]["ties"],
+                                  "other_units": by[s]["other_units"],
                                   "catcher": {u["arm"]: u.get("catcher") for u in by[s]["results"]["units"][1:]}}
                          for s in SEEDS},
             "aggregate_cpu_s": aggregate_cpu, "ledger_total_cpu_h": ledger_h, "off_launcher_cpu_h": off_h,
@@ -1654,13 +1850,24 @@ def launch_command(seed: int, budget: float, data_dir: Path, inputs_dir: Path) -
             "--inputs-dir", str(inputs_dir)]
 
 
+def _children_cpu_s() -> float:
+    """CPU of this process's waited-for children (the C1 launcher's own Python process, when `launch` ran it)."""
+    import resource
+    r = resource.getrusage(resource.RUSAGE_CHILDREN)
+    return r.ru_utime + r.ru_stime
+
+
 def launch(seed: int, data_dir: Path, inputs_dir: Path, *, execute=subprocess.run, _test_out_root=None) -> int:
-    """The reviewed launch: the same admission, seed-order and §7 effective-total checks as `run`, never from 00:45 to
-    03:10 America/New_York, then the C1 launcher with Eric's per-seed budget (the launcher reserves it in full against
-    the cap). Its own CPU, spent outside the launcher, is appended to the off-launcher record, refused or not."""
+    """The reviewed launch: the same admission and seed-order checks as `run` (every earlier seed complete; no
+    unacknowledged other invocation), never from 00:45 to 03:10 America/New_York; then the §7 reservation, decided
+    here and once (review f1 round 2, B2): the wrapper's own CPU so far is charged to the record first, and the
+    effective total (C1's ledger plus the record) must leave room for the full per-seed budget under the cap; then the
+    C1 launcher with Eric's per-seed budget (it reserves the budget in full against its own ledger). The C1 launcher
+    process's CPU is charged afterwards from this process's child rusage. A refused launch is charged too."""
     from scripts.audit.c1 import admission as A
-    c0 = S.cpu_seconds()
     out_root = OUT_ROOT if _test_out_root is None else _test_out_root
+    require_record(out_root)                                       # fail closed before any work (ruling (c))
+    c0, charged_s = S.cpu_seconds(), 0.0
     root = out_root / f"seed_{seed}"
     try:
         if root.is_dir() and any(p.is_dir() for p in root.iterdir()):
@@ -1672,11 +1879,22 @@ def launch(seed: int, data_dir: Path, inputs_dir: Path, *, execute=subprocess.ru
         if not ok:
             raise SystemExit(f"refusing: {why}")
         refuse_inside_the_window()
+        charged_s = S.cpu_seconds() - c0
+        record_off_launcher(out_root, "launch", charged_s, seed=seed)      # the wrapper's own charge, before the gate
+        problem = effective_total_problem(allow, out_root, C1_DIR)
+        if problem:
+            raise SystemExit(f"refusing: {problem}")
     except SystemExit:
-        record_off_launcher(out_root, "launch", S.cpu_seconds() - c0, seed=seed, refused=True)
+        delta = S.cpu_seconds() - c0 - charged_s
+        try:
+            record_off_launcher(out_root, "launch", delta, seed=seed, refused=True)
+        except RunInvalid:
+            pass                                                            # the original refusal stands
         raise
-    record_off_launcher(out_root, "launch", S.cpu_seconds() - c0, seed=seed)   # the wrapper's own CPU (§7)
-    return execute(launch_command(seed, allow["budget"], data_dir, inputs_dir), cwd=A.REPO).returncode
+    children0 = _children_cpu_s()
+    rc = execute(launch_command(seed, allow["budget"], data_dir, inputs_dir), cwd=A.REPO).returncode
+    record_off_launcher(out_root, "launcher-process", _children_cpu_s() - children0, seed=seed, rc=rc)
+    return rc
 
 
 def main(argv=None) -> int:
@@ -1687,14 +1905,18 @@ def main(argv=None) -> int:
         p.add_argument("--seed", type=int, required=True)
         p.add_argument("--data-dir", type=Path, required=True)
         p.add_argument("--inputs-dir", type=Path, default=OUT_ROOT / "inputs")
-    pr = sub.add_parser("prepare", help="once, after X-37 and its own register row: the 2026 inputs and their pins")
+    sr = sub.add_parser("seed-record", help="once, before any step: seed the off-launcher CPU record with the prior "
+                                            "off-launcher total (the manager's ruling (b))")
+    sr.add_argument("--cpu-s", type=float, required=True)
+    sr.add_argument("--source", required=True)
+    pr = sub.add_parser("prepare", help="once, after X-37 and its own register row: the 2026 inputs and their pins, "
+                                        f"written to {OUT_ROOT / INPUTS_NAME}")
     pr.add_argument("--data-dir", type=Path, default=DATA_DIR)
     pr.add_argument("--raw-dir", type=Path, default=RAW_DIR)
     pr.add_argument("--screen-inputs", type=Path, default=SCREEN_INPUTS)
-    pr.add_argument("--out", type=Path, default=OUT_ROOT / "inputs")
-    ex = sub.add_parser("expect", help="once, after preparation, off-launcher: the pinned expected catcher evidence")
+    ex = sub.add_parser("expect", help="once, after preparation and its register row, off-launcher: the pinned "
+                                       f"expected catcher evidence, in {OUT_ROOT / INPUTS_NAME}")
     ex.add_argument("--data-dir", type=Path, default=DATA_DIR)
-    ex.add_argument("--inputs-dir", type=Path, default=OUT_ROOT / "inputs")
     g = sub.add_parser("aggregate")
     g.add_argument("--data-dir", type=Path, default=DATA_DIR)
     g.add_argument("--inputs-dir", type=Path, default=OUT_ROOT / "inputs")
@@ -1704,11 +1926,14 @@ def main(argv=None) -> int:
         return run(a.seed, a.data_dir, a.inputs_dir)
     if a.cmd == "launch":
         return launch(a.seed, a.data_dir, a.inputs_dir)
+    if a.cmd == "seed-record":
+        print(json.dumps(seed_record(OUT_ROOT, a.cpu_s, a.source), indent=1, sort_keys=True))
+        return 0
     if a.cmd == "prepare":
-        print(json.dumps(prepare(a.data_dir, a.raw_dir, a.screen_inputs, a.out), indent=1, sort_keys=True))
+        print(json.dumps(prepare(a.data_dir, a.raw_dir, a.screen_inputs), indent=1, sort_keys=True))
         return 0
     if a.cmd == "expect":
-        print(json.dumps(expect(a.data_dir, a.inputs_dir), indent=1, sort_keys=True))
+        print(json.dumps(expect(a.data_dir), indent=1, sort_keys=True))
         return 0
     print(json.dumps(aggregate(a.run_dirs, a.data_dir, a.inputs_dir), indent=1, sort_keys=True))
     return 0
