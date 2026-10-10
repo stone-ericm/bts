@@ -1,0 +1,20 @@
+{
+ "pa_dir": "/home/bts/projects/bts/data/processed",
+ "raw_root": "/home/bts/projects/bts/data/raw",
+ "screen_inputs": "/home/bts/projects/bts/data/hetzner_results/c2/framing_screen/inputs",
+ "selection": "the raw feed <raw_root>/<season>/<game_pk>.json of every distinct game id in the pinned pa_2025 and pa_2026 parquets, once each, and no other file under <raw_root>",
+ "extraction": [
+  "gameData.game.pk",
+  "gameData.game.season",
+  "gameData.game.type",
+  "gameData.game.gameNumber",
+  "gameData.datetime.officialDate",
+  "gameData.teams.away.id",
+  "gameData.teams.home.id",
+  "gameData.probablePitchers.away.id",
+  "gameData.probablePitchers.home.id",
+  "liveData.boxscore.teams.<side>.players.<record>.person.id",
+  "liveData.boxscore.teams.<side>.players.<record>.battingOrder",
+  "liveData.boxscore.teams.<side>.players.<record>.allPositions[].code"
+ ]
+}
