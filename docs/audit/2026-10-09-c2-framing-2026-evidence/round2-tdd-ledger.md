@@ -38,7 +38,7 @@ These were implemented before their tests; the tests were added afterwards, in t
 - `test_the_block_resampling_constant_flag`;
 - `test_the_aggregate_reports_its_indicators_streaks_and_own_cpu`.
 
-The aggregate's CPU is spent outside the launcher, as are the preparation's and the expect step's. Review c2 found that preparation did not report its CPU, though an earlier version of this ledger said it did. From this round, `prepare` and `expect` report `cpu_s` (`test_the_preparation_reports_its_own_cpu`, `…expect_step…`), and the aggregate reports `aggregate_cpu_s`. The manager records them by hand; they are not counted against the allowance.
+The aggregate's CPU is spent outside the launcher, as are the preparation's and the expect step's. Review c2 found that preparation did not report its CPU, though an earlier version of this ledger said it did. From this round, `prepare` and `expect` report `cpu_s` (`test_the_preparation_reports_its_own_cpu`, `…expect_step…`), and the aggregate reports `aggregate_cpu_s`. They are charged to the allowance, as design §7 requires. Review f1 found that an earlier version of this line said they were not counted, following a manager ruling of 10/09 that the manager has since withdrawn as an erratum. The manager records these costs by hand into the effective total before any allowance or launch.
 
 **Two tests changed while the fixes went in.** Neither weakens a check:
 - `test_arm_summary_…` assumed scalar streak values. A real `diff_scorecards` stores `{baseline, variant, delta}`, so the test now uses that shape, and a new test runs `arm_summary` on a real diff.
