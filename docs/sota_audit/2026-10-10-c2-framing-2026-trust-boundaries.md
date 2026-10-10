@@ -28,9 +28,15 @@ exists only when both `--extra-charges <path>` and `--require-ledger` are given;
 (c) **observed from code on 2026-10-10 at commit `caf38c9`** (`grep` over `src/`, the top-level `scripts/*.py`,
 `scripts/cron-setup-hetzner.sh` and `pyproject.toml` for `scripts.audit.c1`, `scripts/audit/c1` and `audit.c1`): nothing
 in production imports or invokes `scripts/audit/c1`; its only importers are the research code under `scripts/audit/`
-(`c1_r3`, `c1_r4a`, `c1_r4b`, `c2_framing`) and their tests. The box's crontab and user units were not read from here;
-the repository's cron installer carries no such line. Should any production path be found to invoke it, the change goes
-back to the manager before code;
+(`c1_r3`, `c1_r4a`, `c1_r4b`, `c2_framing`) and their tests. **Observed on the box on 2026-10-10 at 00:37:57 EDT** (user
+`bts` on `bts-mlb`, a read-only status read over SSH with a timeout: `crontab -l`, `systemctl --user list-timers --all`,
+`systemctl --user list-units --type=service --all`, every `ExecStart` of `~/.config/systemd/user/*.service`, and a grep of
+the crontab and unit files for `audit/c1`, `audit.c1`, `c1_launch` and `scripts.audit`): the crontab's 17 lines run the
+`bts` command line, `scripts/check_heartbeat.py` and a heartbeat `curl`; the two timers activate the live-forward capture
+and resolve services; the services' `ExecStart` lines are `bts.web`, `bts leaderboard scrape`, the two live-forward
+scripts and `bts schedule`; the grep found nothing. Nothing in production invokes `scripts/audit/c1` or its launcher.
+The reading is kept at `~/projects/bts-c2-framing-results/2026-test/box-status-read-20261010-0038.txt`. Condition (c) is
+met; should any production path ever be found to invoke it, the change goes back to the manager before code;
 (d) **deploying the changed launcher to the box is its own step with a written procedure:** pull by commit into
 `~/projects/bts-c1`, checksum-verify `scripts/audit/c1/launch.py` and `guard.py` against the admitted commit, record it
 as a C2 index row, never inside 00:45–03:10 box clock, and nothing launches in combined mode until the box's launcher is
