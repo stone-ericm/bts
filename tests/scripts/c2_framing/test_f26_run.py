@@ -182,7 +182,8 @@ def _receipts(w, seed, *, rc=0, result="exit", extra_cpu=60.0, problems=()):
     cpu = res["total_cpu_s"] + extra_cpu
     budget = 12 * 3600
     (w["c1"] / f"PENDING_{unit}.json").write_text(json.dumps({"unit": unit, "limit_cpu_seconds": budget,
-                                                             "declared_cpu_hours": 12.0}))
+                                                             "declared_cpu_hours": 12.0, "max_hours": 16.0,
+                                                             "written_utc": "2026-10-10T12:00:00+00:00"}))
     (w["c1"] / f"TERMINAL_{unit}.json").write_text(json.dumps({"unit": unit, "budget_seconds": budget,
                                                               "result": result, "rc": rc, "cpu_seconds": cpu}))
     (w["c1"] / f"RECONCILED_{unit}.json").write_text(json.dumps({"unit": unit, "result": result, "cpu_seconds": cpu,
@@ -679,7 +680,7 @@ def test_validate_run_binds_the_run_to_its_clean_launcher_receipt(world, damage,
 
 def test_a_later_seed_waits_for_the_earlier_seeds_clean_receipt(world):
     assert _run(world, F.SEEDS[0], receipts=False) == 0
-    with pytest.raises(SystemExit, match="TERMINAL"):
+    with pytest.raises(SystemExit, match="PENDING|TERMINAL"):       # no launcher record at all: PENDING is missing first
         _run(world, F.SEEDS[1])
 
 
@@ -706,6 +707,7 @@ def _gated_prep(prep, monkeypatch, *, gate_problem=None, row_problem=None):
     monkeypatch.setattr(F, "SCREEN_INPUTS", prep["screen_inputs"])
     monkeypatch.setattr(F, "screen_pins", lambda: prep["screen_pins"])
     monkeypatch.setattr(F, "source_inventory", lambda repo, xc: (_inventory(prep), None))
+    monkeypatch.setattr(F, "cited_inventory_sha256", lambda repo, xc: "c" * 64)
 
 
 @pytest.mark.parametrize("gate_problem, row_problem, match", [
@@ -1181,14 +1183,385 @@ def test_a_side_game_moved_to_another_date_is_refused(world):
         _validate(world, seed)
 
 
-def test_the_expect_step_writes_the_evidence_every_run_must_carry(world, monkeypatch, tmp_path):
-    monkeypatch.setattr(F, "prep_row_problem", lambda repo, text, xc: None)
-    monkeypatch.setattr(F, "admission_gate", lambda repo=None, *, require_inputs=True:
-                        ("a" * 40, {"exposure_commit": "b" * 40}, dict(IDENT)))
-    out = tmp_path / "expected.parquet"
-    got = F.expect(world["out"], world["inputs"], world["adm"].pins, out)
+def test_the_expect_step_writes_the_evidence_every_run_must_carry(world, monkeypatch):
+    _expect_world(world, monkeypatch)
+    _prepared(world)
+    got = F.expect(world["out"], world["inputs"])
     assert got["sha256"] == world["adm"].pins[F.EXPECT_NAME] and got["cpu_s"] >= 0
     assert got["identified"]["A_posted"] > 0
     monkeypatch.setattr(F, "prep_row_problem", lambda repo, text, xc: "no structured C2-framing-2026-prep-read row")
+    (world["inputs"] / F.EXPECT_NAME).unlink()
+    (world["inputs"] / "EXPECTED.json").unlink()
     with pytest.raises(SystemExit, match="prep-read"):
-        F.expect(world["out"], world["inputs"], world["adm"].pins, tmp_path / "again.parquet")
+        F.expect(world["out"], world["inputs"])
+    assert _no_expectation_written(world)
+
+
+# ================================================================ round 3: the fresh review f1 and the field inventory
+# (`docs/audit/2026-10-09-c2-framing-2026-evidence/field-inventory.md`). Each test is a coherent forgery or a trusted
+# re-derivation: the records agree with each other and only a trusted source can refuse them.
+
+# ---------------------------------------------------------------- F1: ranks follow the retained probabilities
+
+def _rank_swap_that_changes_the_hit(f):
+    """Swap ranks 1 and 3 on the first date whose rank-1 and rank-3 labels differ (review f1, F1): every other column
+    stays with its row, so the forgery is coherent and changes the rank-1 hit."""
+    f = f.copy()
+    for day in sorted(f["date"].unique()):
+        i1 = f.index[(f["date"] == day) & (f["rank"] == 1)]
+        i3 = f.index[(f["date"] == day) & (f["rank"] == 3)]
+        if len(i1) == 1 and len(i3) == 1 and f.loc[i1[0], "actual_hit"] != f.loc[i3[0], "actual_hit"]:
+            f.loc[i1[0], "rank"], f.loc[i3[0], "rank"] = 3, 1
+            return f.sort_values(["date", "rank"], kind="stable").reset_index(drop=True)
+    raise AssertionError("no date with differing labels at ranks 1 and 3")
+
+
+def test_f1_a_coherent_rank_swap_that_changes_p_at_1_is_refused(world):
+    seed = F.SEEDS[0]
+    assert _run(world, seed) == 0
+    d = _run_dir(world, seed)
+    before = json.loads((d / "results.json").read_text())["rank1"]["A_posted"]
+    _rewrite_profile(d, "A_posted", _rank_swap_that_changes_the_hit)
+    _recohere(world, seed)
+    after = json.loads((d / "results.json").read_text())["rank1"]["A_posted"]
+    assert after != before                                 # the forgery moved P@1 and every derived record agrees
+    with pytest.raises(F.RunInvalid, match="probabilit"):
+        _validate(world, seed)
+
+
+def test_f1_exact_ties_between_adjacent_ranks_are_reported_not_refused(world):
+    seed = F.SEEDS[0]
+    assert _run(world, seed) == 0
+    d = _run_dir(world, seed)
+    assert _validate(world, seed)["ties"] == {a: {"adjacent": 0, "top": 0} for a in F.ARMS}
+
+    def tie(f):
+        f = f.copy()
+        day = sorted(f["date"].unique())[0]
+        i1 = f.index[(f["date"] == day) & (f["rank"] == 1)][0]
+        i2 = f.index[(f["date"] == day) & (f["rank"] == 2)][0]
+        f.loc[i2, "p_game_hit"] = f.loc[i1, "p_game_hit"]
+        return f
+    _rewrite_profile(d, "A_projected", tie)
+    _recohere(world, seed)
+    assert _validate(world, seed)["ties"]["A_projected"] == {"adjacent": 1, "top": 1}
+
+
+# ---------------------------------------------------------------- F2: the reviewed model recipe and blend configurations
+
+@pytest.mark.parametrize("edit", [
+    lambda p: p.update(n_estimators=1, learning_rate=0.9),         # review f1's case: one tree, a hot learning rate
+    lambda p: p.update(num_threads=1),                              # an extra key
+    lambda p: p.pop("max_depth"),                                   # a missing key
+])
+def test_f2_a_common_wrong_model_recipe_is_refused_by_validation_and_by_the_aggregate(world, ten, edit):
+    for d in ten:
+        _edit_json(d, "manifest.json", lambda m: edit(m["lgb_params"]))
+    with pytest.raises(F.RunInvalid, match="lgb_params"):
+        _validate(world, F.SEEDS[0])
+    with pytest.raises(F.RunInvalid, match="lgb_params"):
+        F.aggregate(ten, world["out"], world["inputs"], _test_out_root=world["out"])
+
+
+def _configs_as_recorded(variant):
+    return [[c[0], list(c[1]), *c[2:]] for c in S.blend_configs(variant)]
+
+
+def test_f2_the_manifest_records_the_reviewed_blend_configurations(world):
+    seed = F.SEEDS[0]
+    assert _run(world, seed) == 0
+    man = json.loads((_run_dir(world, seed) / "manifest.json").read_text())
+    assert man["blend_configs"] == {"baseline": _configs_as_recorded("baseline"), "A_posted": _configs_as_recorded("A"),
+                                    "A_projected": _configs_as_recorded("A")}
+    assert len(man["blend_configs"]["A_posted"]) == 12 and "catcher_framing" in man["blend_configs"]["A_posted"][0][1]
+
+
+def _swap_in_the_old_column(cols):
+    cols[cols.index("catcher_framing")] = "pitcher_catcher_framing"
+
+
+@pytest.mark.parametrize("edit", [
+    lambda b: b["A_posted"][1][1].pop(),                            # one A config loses its Statcast extra
+    lambda b: b["baseline"].pop(),                                  # eleven models
+    lambda b: _swap_in_the_old_column(b["A_projected"][0][1]),      # the A arm quietly keeps production's column
+])
+def test_f2_a_coherent_wrong_blend_configuration_is_refused_everywhere(world, ten, edit):
+    for d in ten:
+        _edit_json(d, "manifest.json", lambda m: edit(m["blend_configs"]))
+    with pytest.raises(F.RunInvalid, match="blend"):
+        _validate(world, F.SEEDS[0])
+    with pytest.raises(F.RunInvalid, match="blend"):
+        F.aggregate(ten, world["out"], world["inputs"], _test_out_root=world["out"])
+
+
+# ---------------------------------------------------------------- F3a: Eric's allowance and the first-unit stop at acceptance
+
+def test_f3_the_manifests_allowance_must_equal_erics_row_at_validation(world):
+    seed = F.SEEDS[0]
+    assert _run(world, seed) == 0
+    _validate(world, seed)
+    d = _run_dir(world, seed)
+    _edit_json(d, "manifest.json", lambda m: m["allowance"].update(budget=20.0))
+    with pytest.raises(F.RunInvalid, match="allowance"):
+        _validate(world, seed)
+    _edit_json(d, "manifest.json", lambda m: m["allowance"].update(budget=12.0))
+    _validate(world, seed)
+    world["register"].write_text("| ID | a | b | c |\n" + _allow_row(stop="3"))     # the row changed after the run
+    with pytest.raises(F.RunInvalid, match="allowance"):
+        _validate(world, seed)
+    world["register"].write_text("| ID | a | b | c |\n")                            # no row at all
+    with pytest.raises(F.RunInvalid, match="allowance"):
+        _validate(world, seed)
+
+
+def test_f3_a_baseline_unit_over_the_first_unit_stop_is_refused_at_acceptance_and_at_the_next_seed(world):
+    seed = F.SEEDS[0]
+    assert _run(world, seed) == 0
+    d = _run_dir(world, seed)
+    _edit_both(d, lambda u: u[0].update(cpu_s=4.2 * 3600))         # review f1's case: 4.2 CPU-h against the 4.1 stop
+    _edit_json(d, "results.json", lambda r: r.update(total_cpu_s=16000.0))
+    _receipts(world, seed, extra_cpu=2000.0)                        # the receipts agree: 18,000 s, under the 12 h budget
+    with pytest.raises(F.RunInvalid, match="first"):
+        _validate(world, seed)
+    with pytest.raises(SystemExit, match="first"):
+        _run(world, F.SEEDS[1])
+
+
+# ---------------------------------------------------------------- F3b: C1's own rules on the launcher records
+
+@pytest.mark.parametrize("damage, match", [
+    (lambda w, u, d: (w["c1"] / f"PENDING_{u}.json").unlink(), "PENDING"),
+    (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", declared_cpu_hours=13.0), "PENDING"),
+    (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", limit_cpu_seconds=43199), "PENDING"),
+    (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", max_hours=17.0), "PENDING"),
+    (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", unit=_unit(F.SEEDS[1])), "PENDING"),
+    (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", budget_seconds=50.0), "TERMINAL"),   # review f1's case
+    (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", extra="field"), "RECONCILED"),
+])
+def test_f3_acceptance_applies_c1s_own_rules_to_the_launcher_records(world, damage, match):
+    seed = F.SEEDS[0]
+    assert _run(world, seed) == 0
+    _validate(world, seed)
+    damage(world, _unit(seed), _run_dir(world, seed))
+    with pytest.raises(F.RunInvalid, match=match):
+        _validate(world, seed)
+
+
+def _guard_receipt(unit, cpu):
+    """A TERMINAL receipt with every field the guard writes on a clean exit."""
+    return {"unit": unit, "budget_seconds": 43200.0, "act_at_seconds": 43160.0, "poll_s": 2.0, "slack_s": 3.0,
+            "ncpu": 8, "started_utc": "2026-10-10T12:00:00+00:00", "result": "exit", "rc": 0, "cpu_seconds": cpu,
+            "ended_utc": "2026-10-10T14:00:00+00:00", "leftover": False}
+
+
+def test_f3_the_real_reconcilers_records_are_accepted_at_the_root_and_in_jobs(world):
+    from scripts.audit.c1 import launch as L
+    seed = F.SEEDS[0]
+    assert _run(world, seed, receipts=False) == 0
+    unit = _unit(seed)
+    cpu = json.loads((_run_dir(world, seed) / "results.json").read_text())["total_cpu_s"] + 60.0
+    (world["c1"] / f"PENDING_{unit}.json").write_text(json.dumps(
+        {"unit": unit, "limit_cpu_seconds": 43200, "declared_cpu_hours": 12.0, "max_hours": 16.0,
+         "written_utc": "2026-10-10T12:00:00+00:00"}))
+    (world["c1"] / f"TERMINAL_{unit}.json").write_text(json.dumps(_guard_receipt(unit, cpu)))
+    _, done = L.reconcile(world["c1"], world["c1"] / "compute_ledger.tsv", [])
+    assert done == [unit]
+    _validate(world, seed)
+    jobs = world["c1"] / "jobs"
+    jobs.mkdir()
+    for prefix in ("PENDING", "TERMINAL", "RECONCILED"):
+        (world["c1"] / f"{prefix}_{unit}.json").rename(jobs / f"{prefix}_{unit}.json")
+    _validate(world, seed)
+
+
+# ---------------------------------------------------------------- F3c: the §7 effective total before a launch or a run
+
+def _ledger_row(hours):
+    return {"invocation": "i1", "unit": "c1-old.service", "stopped_at": "2026-10-01T00:00:00+00:00",
+            "cpu_seconds": hours * 3600}
+
+
+def test_f3_the_effective_total_must_leave_room_for_the_full_budget_before_a_launch_or_a_run(world):
+    seen = []
+    execute = lambda argv, cwd: seen.append(argv) or subprocess.CompletedProcess(argv, 0)   # noqa: E731
+    ledger.write_tsv(world["c1"] / "compute_ledger.tsv", [_ledger_row(152.9)])
+    assert F.launch(F.SEEDS[0], world["out"], world["inputs"], execute=execute, _test_out_root=world["out"]) == 0
+    rows = F.off_launcher_rows(world["out"])
+    assert [r["step"] for r in rows] == ["launch"] and rows[0]["cpu_s"] >= 0           # the wrapper's own CPU
+    F.record_off_launcher(world["out"], "expect", 0.2 * 3600)                           # 152.9 + 0.2 + 12 > 165
+    with pytest.raises(SystemExit, match="effective"):
+        F.launch(F.SEEDS[0], world["out"], world["inputs"], execute=execute, _test_out_root=world["out"])
+    assert len(seen) == 1
+    with pytest.raises(SystemExit, match="effective"):
+        _run(world, F.SEEDS[0])
+    assert not (world["out"] / f"seed_{F.SEEDS[0]}").exists() or not [p for p in (world["out"] / f"seed_{F.SEEDS[0]}").iterdir() if p.is_dir()]
+
+
+def test_f3_a_malformed_off_launcher_record_fails_closed(world):
+    (world["out"] / F.OFF_LAUNCHER_NAME).write_text('{"step": "expect", "cpu_s": -1.0}\n')
+    with pytest.raises(SystemExit, match="off-launcher"):
+        _run(world, F.SEEDS[0])
+    (world["out"] / F.OFF_LAUNCHER_NAME).write_text('not json\n')
+    with pytest.raises(SystemExit, match="off-launcher"):
+        _run(world, F.SEEDS[0])
+
+
+def test_f3_the_aggregate_reports_the_ledger_the_off_launcher_record_and_the_effective_total(world, ten):
+    ledger.write_tsv(world["c1"] / "compute_ledger.tsv", [_ledger_row(100.0)])
+    F.record_off_launcher(world["out"], "prepare", 36.0)
+    out = F.aggregate(ten, world["out"], world["inputs"], _test_out_root=world["out"])
+    rows = F.off_launcher_rows(world["out"])
+    assert [r["step"] for r in rows] == ["prepare", "aggregate"] and rows[1]["cpu_s"] == out["aggregate_cpu_s"]
+    assert out["ledger_total_cpu_h"] == pytest.approx(100.0)
+    assert out["off_launcher_cpu_h"] == pytest.approx((36.0 + out["aggregate_cpu_s"]) / 3600)
+    assert out["effective_total_cpu_h"] == pytest.approx(out["ledger_total_cpu_h"] + out["off_launcher_cpu_h"])
+
+
+# ---------------------------------------------------------------- F4: the expect step bound to the prepared inputs
+
+def _prepared(world, **over):
+    """What `prepare` leaves in the inputs directory, for a world's inputs."""
+    rec = {"schema": "c2_framing_2026_prepared_v1", "exposure_commit": "b" * 40, "inventory_sha256": "c" * 64,
+           "data_dir": str(world["out"]), "raw_dir": "/raw", "screen_inputs": "/screen",
+           "out_dir": str(world["inputs"]),
+           "pins": {k: v for k, v in world["adm"].pins.items() if k != F.EXPECT_NAME},
+           "games": {"2025": 60, "2026": 40}, "proxy_reasons": {}, "game_number_fallbacks": 0,
+           "lookup_2026_missing_probable_sides": 0, "cpu_s": 1.0}
+    rec.update(over)
+    (world["inputs"] / "PREPARED.json").write_text(json.dumps(rec))
+
+
+def _expect_world(world, monkeypatch, **inv_over):
+    monkeypatch.setattr(F, "prep_row_problem", lambda repo, text, xc: None)
+    monkeypatch.setattr(F, "admission_gate", lambda repo=None, *, require_inputs=True:
+                        ("a" * 40, {"exposure_commit": "b" * 40}, dict(IDENT)))
+    inv = _inventory(**{"pa_dir": str(world["out"]), **inv_over})
+    monkeypatch.setattr(F, "source_inventory", lambda repo, xc: (inv, None))
+    monkeypatch.setattr(F, "cited_inventory_sha256", lambda repo, xc: "c" * 64)
+    monkeypatch.setattr(F, "screen_pins", lambda repo=None: {**{f"pa_{s}.parquet": "b" * 64 for s in range(2017, 2026)},
+                                                              S.LOOKUP_NAME: "b" * 64})
+    (world["inputs"] / F.EXPECT_NAME).unlink()                 # the world pre-wrote the expectation; expect creates it
+
+
+def _no_expectation_written(world):
+    return not (world["inputs"] / F.EXPECT_NAME).exists() and not (world["inputs"] / "EXPECTED.json").exists()
+
+
+def test_f4_expect_takes_its_pins_from_the_prepared_record_and_creates_its_output_once(world, monkeypatch):
+    _expect_world(world, monkeypatch)
+    _prepared(world)
+    got = F.expect(world["out"], world["inputs"])
+    assert got["sha256"] == world["adm"].pins[F.EXPECT_NAME] and got["cpu_s"] >= 0 and got["identified"]["A_posted"] > 0
+    assert got["pins"] == world["adm"].pins and got["pins_digest"] == S.pins_digest(world["adm"].pins)
+    assert json.loads((world["inputs"] / "EXPECTED.json").read_text()) == got
+    assert _sha((world["inputs"] / F.EXPECT_NAME).read_bytes()) == got["sha256"]
+    rows = F.off_launcher_rows(world["inputs"].parent)        # the record sits beside the inputs directory (OUT_ROOT)
+    assert [r["step"] for r in rows] == ["expect"] and rows[0]["cpu_s"] == got["cpu_s"]
+    with pytest.raises(SystemExit, match="already"):
+        F.expect(world["out"], world["inputs"])                  # never twice, never overwritten
+    assert _sha((world["inputs"] / F.EXPECT_NAME).read_bytes()) == got["sha256"]
+
+
+def _pins_without_expectation(world):
+    return {k: v for k, v in world["adm"].pins.items() if k != F.EXPECT_NAME}
+
+
+@pytest.mark.parametrize("setup, match", [
+    (lambda w: None, "PREPARED"),
+    (lambda w: _prepared(w, exposure_commit="9" * 40), "exposure"),
+    (lambda w: _prepared(w, inventory_sha256="d" * 64), "inventory"),
+    (lambda w: _prepared(w, data_dir="/elsewhere"), "inventory"),
+    (lambda w: _prepared(w, pins={**_pins_without_expectation(w), "pa_2019.parquet": "e" * 64}), "screen"),
+    (lambda w: _prepared(w, pins={k: v for k, v in _pins_without_expectation(w).items() if k != F.TABLE_NAME}), "pins"),
+    (lambda w: _prepared(w, schema="other"), "PREPARED"),
+])
+def test_f4_expect_refuses_an_unbound_preparation(world, monkeypatch, setup, match):
+    _expect_world(world, monkeypatch)
+    setup(world)
+    with pytest.raises(SystemExit, match=match):
+        F.expect(world["out"], world["inputs"])
+    assert _no_expectation_written(world)
+
+
+def test_f4_expect_refuses_a_prepared_pin_that_is_not_the_files_bytes(world, monkeypatch):
+    _expect_world(world, monkeypatch)
+    _prepared(world, pins={**_pins_without_expectation(world), F.TABLE_NAME: "f" * 64})
+    with pytest.raises(Exception, match="sha256|pinned"):
+        F.expect(world["out"], world["inputs"])
+    assert _no_expectation_written(world)
+
+
+def test_f4_expect_refuses_a_pa_directory_that_is_not_the_inventorys(world, monkeypatch, tmp_path):
+    _expect_world(world, monkeypatch, pa_dir=str(tmp_path / "elsewhere"))
+    _prepared(world)
+    with pytest.raises(SystemExit, match="inventory"):
+        F.expect(world["out"], world["inputs"])
+    assert _no_expectation_written(world)
+
+
+def test_f4_the_expect_command_has_no_pins_option(tmp_path):
+    with pytest.raises(SystemExit) as e:
+        F.main(["expect", "--data-dir", str(tmp_path), "--inputs-dir", str(tmp_path), "--pins", str(tmp_path / "p.json")])
+    assert e.value.code == 2
+
+
+def test_f4_prepare_leaves_a_durable_record_of_its_pins_and_cpu(prep):
+    got = _prepare(prep)
+    rec = json.loads((prep["out"] / "PREPARED.json").read_text())
+    assert rec == got and rec["schema"] == "c2_framing_2026_prepared_v1"
+    assert rec["exposure_commit"] == "b" * 40 and rec["inventory_sha256"] == "c" * 64
+    assert rec["data_dir"] == str(prep["data"].resolve()) and rec["out_dir"] == str(prep["out"].resolve())
+    rows = F.off_launcher_rows(prep["out"].parent)
+    assert [r["step"] for r in rows] == ["prepare"] and rows[0]["cpu_s"] == got["cpu_s"]
+
+
+# ---------------------------------------------------------------- F5: declared totals and timings
+
+@pytest.mark.parametrize("fn, match", [
+    (lambda m: m["resumed_flag_2026"].update(flagged=m["resumed_flag_2026"]["flagged"] + 1), "resumed"),
+    (lambda m: m["resumed_portion_rows"].update({"2026": 0}), "resumed"),
+    (lambda m: m.update(features_cpu_s=-1.0), "features_cpu_s"),
+    (lambda m: m.update(features_cpu_s=10.0 ** 9), "features_cpu_s"),
+])
+def test_f5_declared_totals_and_timings_are_checked_against_the_pinned_rows_and_the_run_total(world, fn, match):
+    seed = F.SEEDS[0]
+    assert _run(world, seed) == 0
+    _edit_json(_run_dir(world, seed), "manifest.json", fn)
+    with pytest.raises(F.RunInvalid, match=match):
+        _validate(world, seed)
+
+
+def test_f5_a_negative_wall_time_is_refused(world):
+    seed = F.SEEDS[0]
+    assert _run(world, seed) == 0
+    _edit_both(_run_dir(world, seed), lambda u: u[0].update(wall_s=-1.0))
+    with pytest.raises(F.RunInvalid, match="wall"):
+        _validate(world, seed)
+
+
+def test_f5_the_aggregate_checks_every_seasons_resumed_rows_against_the_pinned_inputs(world, ten):
+    for d in ten:
+        _edit_json(d, "manifest.json", lambda m: m["resumed_portion_rows"].update({"2025": 3}))
+    _validate(world, F.SEEDS[0])                               # validation checks 2026 only: the pinned pa_2026
+    with pytest.raises(F.RunInvalid, match="resumed"):
+        F.aggregate(ten, world["out"], world["inputs"], _test_out_root=world["out"])
+
+
+def test_f4_expect_refuses_a_caller_pa_directory_that_is_not_the_inventorys(world, monkeypatch, tmp_path):
+    """The caller's PA directory is checked against the inventory on its own, even when the prepared record names the
+    inventory's directory correctly (the failing direction of its mutant)."""
+    _expect_world(world, monkeypatch)
+    _prepared(world)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    with pytest.raises(SystemExit, match="inventory"):
+        F.expect(elsewhere, world["inputs"])
+    assert _no_expectation_written(world)
+
+
+def test_f4_exclusive_write_never_replaces(tmp_path):
+    path = tmp_path / "once.bin"
+    F.exclusive_write(path, b"first")
+    with pytest.raises(SystemExit, match="already exists"):
+        F.exclusive_write(path, b"second")
+    assert path.read_bytes() == b"first" and sorted(p.name for p in tmp_path.iterdir()) == ["once.bin"]

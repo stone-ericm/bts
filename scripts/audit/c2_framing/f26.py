@@ -390,6 +390,11 @@ PREP_ROW = "C2-framing-2026-prep-read"
 INVENTORY_REL = "docs/audit/c2-framing-2026-source-inventory.json"   # published in the X-37 commit (review c2 R2-1)
 INVENTORY_CITE = re.compile(r"source inventory `(docs/audit/c2-framing-2026-source-inventory\.json)` sha256 `([0-9a-f]{64})`")
 INVENTORY_KEYS = frozenset({"pa_dir", "raw_root", "screen_inputs", "selection", "extraction"})
+PREPARED_NAME = "PREPARED.json"                    # the preparation read's durable record (review f1 F4)
+PREPARED_SCHEMA = "c2_framing_2026_prepared_v1"
+EXPECTED_NAME = "EXPECTED.json"                    # the expect step's durable record
+EXPECTED_SCHEMA = "c2_framing_2026_expected_v1"
+OFF_LAUNCHER_NAME = "off_launcher_cpu.jsonl"       # design §7: CPU spent outside the launcher, append-only, at OUT_ROOT
 SELECTION = ("the raw feed <raw_root>/<season>/<game_pk>.json of every distinct game id in the pinned pa_2025 and "
              "pa_2026 parquets, once each, and no other file under <raw_root>")
 EXTRACTION_FIELDS = (                       # every feed field the preparation reads (starter_proxy, lookup_entry)
@@ -428,24 +433,31 @@ def pins_shape_problem(pins) -> str | None:
     return None
 
 
+def cited_inventory_sha256(repo: Path, exposure_commit: str) -> str | None:
+    """The sha256 X-37's description cites for `INVENTORY_REL` at the exposure commit, or None if it cites none."""
+    from scripts.audit.c1 import admission as A
+    register = A._git(repo, "show", f"{exposure_commit}:{REGISTER_REL}", check=False).stdout
+    row = next((l for l in register.splitlines() if l.startswith(f"| {EXPOSURE_ROW} |")), None)
+    cells = [c.strip() for c in row.strip().strip("|").split("|")] if row else []
+    m = INVENTORY_CITE.search(" | ".join(cells[2:])) if cells else None
+    return m.group(2) if m else None
+
+
 def source_inventory(repo: Path, exposure_commit: str) -> tuple[dict | None, str | None]:
     """The X-37 source inventory (design §3; review c2 R2-1): X-37's description at the exposure commit cites
     `INVENTORY_REL` and its sha256; that file is published in the exposure commit itself, so it precedes any 2026 open
     or hash; its bytes there have the cited sha256; and it holds exactly the declared directories, the registered
     selection rule and the extraction field list this code reads. Returns (inventory, None) or (None, problem)."""
     from scripts.audit.c1 import admission as A
-    register = A._git(repo, "show", f"{exposure_commit}:{REGISTER_REL}", check=False).stdout
-    row = next((l for l in register.splitlines() if l.startswith(f"| {EXPOSURE_ROW} |")), None)
-    cells = [c.strip() for c in row.strip().strip("|").split("|")] if row else []
-    m = INVENTORY_CITE.search(" | ".join(cells[2:])) if cells else None
-    if not m:
+    cited = cited_inventory_sha256(repo, exposure_commit)
+    if not cited:
         return None, f"{EXPOSURE_ROW} does not cite a source inventory `{INVENTORY_REL}` with its sha256"
     b = A._show_bytes(repo, f"{exposure_commit}:{INVENTORY_REL}")
     if b is None:
         return None, f"the cited source inventory {INVENTORY_REL} does not exist at the exposure commit"
     if A._show_bytes(repo, f"{exposure_commit}^:{INVENTORY_REL}") is not None:
         return None, f"the source inventory was not published in the exposure commit (it existed before it)"
-    if S._sha(b) != m.group(2):
+    if S._sha(b) != cited:
         return None, f"the source inventory's sha256 is not the one {EXPOSURE_ROW} cites"
     try:
         inv = json.loads(b)
@@ -566,6 +578,81 @@ def admission_gate(repo: Path | None = None, *, require_inputs: bool = True):
     return head, adm, {**A.accepted_identity(repo, adm), "admission_sha256": S._sha(raw)}
 
 
+def reviewed_lgb_params() -> dict:
+    """The model recipe a run must record (review f1 F2): production's `LGB_PARAMS` at the admitted commit, with the
+    two pre-registered deterministic flags; nothing more, nothing less."""
+    from bts.model.predict import LGB_PARAMS
+    return {**LGB_PARAMS, "deterministic": True, "force_row_wise": True}
+
+
+def recorded_blend_configs() -> dict:
+    """The twelve blend configurations per arm, as the run records them and as validation re-derives them from the
+    reviewed `screen.blend_configs` (review f1 F2): JSON-shaped lists, so a stored manifest compares exactly."""
+    return {arm: [[c[0], list(c[1]), *c[2:]] for c in S.blend_configs("baseline" if arm == "baseline" else "A")]
+            for arm in ARMS}
+
+
+def off_launcher_path(out_root: Path) -> Path:
+    return Path(out_root) / OFF_LAUNCHER_NAME
+
+
+def record_off_launcher(out_root: Path, step: str, cpu_s: float, **extra) -> dict:
+    """Append one row to the test's own append-only record of CPU spent outside the launcher (design §7: it is charged
+    to the allowance; the manager's erratum of 2026-10-09). Durable: written, flushed and fsynced before returning."""
+    if not _finite_nonneg(cpu_s):
+        raise ValueError(f"off-launcher CPU for {step} is not a finite nonnegative number: {cpu_s!r}")
+    row = {"step": step, "cpu_s": float(cpu_s), "recorded_utc": datetime.now(timezone.utc).isoformat(), **extra}
+    path = off_launcher_path(out_root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "ab") as f:
+        f.write((json.dumps(row, sort_keys=True) + "\n").encode())
+        f.flush()
+        os.fsync(f.fileno())
+    return row
+
+
+def off_launcher_rows(out_root: Path) -> list[dict]:
+    """Every row of the off-launcher record; a malformed line or an invalid CPU value refuses (fails closed)."""
+    path = off_launcher_path(out_root)
+    if not path.is_file():
+        return []
+    rows = []
+    for i, line in enumerate(path.read_text().splitlines(), start=1):
+        if not line.strip():
+            continue
+        try:
+            r = json.loads(line)
+        except ValueError:
+            raise RunInvalid(f"the off-launcher CPU record {path} is malformed at line {i}")
+        if not (isinstance(r, dict) and isinstance(r.get("step"), str) and _finite_nonneg(r.get("cpu_s"))):
+            raise RunInvalid(f"the off-launcher CPU record {path} has an invalid row at line {i}")
+        rows.append(r)
+    return rows
+
+
+def ledger_total_hours(c1_dir: Path) -> float:
+    """C1's own accounting (`compute_ledger.tsv`) through C1's own reader, which refuses invalid values."""
+    try:
+        return ledger.total_hours(ledger.read_tsv(Path(c1_dir) / "compute_ledger.tsv"))
+    except ValueError as e:
+        raise RunInvalid(f"C1's compute ledger is invalid: {e}")
+
+
+def effective_total_problem(allow: dict, out_root: Path, c1_dir: Path) -> str | None:
+    """Design §7: the effective shared total (C1's ledger plus this test's off-launcher CPU) must leave room for the
+    full per-seed budget under Eric's cap before any launch or run."""
+    try:
+        ledger_h = ledger_total_hours(c1_dir)
+        off_h = sum(r["cpu_s"] for r in off_launcher_rows(out_root)) / 3600
+    except RunInvalid as e:
+        return str(e)
+    effective = ledger_h + off_h
+    if effective + allow["budget"] > allow["cap"]:
+        return (f"the effective total {effective:.4f} CPU-h (C1 ledger {ledger_h:.4f} + off-launcher {off_h:.4f}) "
+                f"leaves no room for the full budget {allow['budget']:g} under the cap {allow['cap']:g}")
+    return None
+
+
 def allowance(register_text: str) -> dict | None:
     """Eric's compute allowance (row ALLOWANCE_ROW): the ruling cell must match exactly and the source cell's first token
     must be exactly `Eric`; every number finite and positive, the stop below the per-seed budget."""
@@ -599,9 +686,10 @@ def head_admitted(repo: Path, identity: dict, head: str) -> list[str]:
 
 
 def seed_allowed(seed: int, register_text: str, out_root: Path, *, identity: dict, pins: dict,
-                 truth: "Trusted", repo: Path | None = None) -> tuple[bool, str, dict | None]:
-    """Eric's allowance, whose cap is the launcher's; then seeds one at a time in §5's order: every earlier seed holds
-    exactly one complete admitted run. Returns (allowed, reason, allowance)."""
+                 truth: "Trusted", repo: Path | None = None, c1_dir: Path | None = None) -> tuple[bool, str, dict | None]:
+    """Eric's allowance, whose cap is the launcher's; the §7 effective total leaves room for the full budget; then seeds
+    one at a time in §5's order: every earlier seed holds exactly one complete admitted run. Returns (allowed, reason,
+    allowance)."""
     if seed not in SEEDS:
         return False, f"{seed} is not a registered seed {SEEDS}", None
     allow = allowance(register_text)
@@ -609,6 +697,9 @@ def seed_allowed(seed: int, register_text: str, out_root: Path, *, identity: dic
         return False, f"the test needs Eric's compute allowance (register row {ALLOWANCE_ROW})", None
     if allow["cap"] != ledger.CAP_H:
         return False, f"Eric's cap {allow['cap']:g} is not the launcher's cap {ledger.CAP_H:g}", None
+    problem = effective_total_problem(allow, out_root, C1_DIR if c1_dir is None else c1_dir)
+    if problem:
+        return False, problem, None
     for s in SEEDS[:SEEDS.index(seed)]:
         root = out_root / f"seed_{s}"
         runs = sorted(d for d in root.iterdir() if d.is_dir()) if root.is_dir() else []
@@ -674,27 +765,37 @@ def _finite_nonneg(v) -> bool:
     return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) and v >= 0
 
 
-def launcher_problems(d: Path, seed: int, man: dict, res: dict, c1_dir: Path) -> str | None:
-    """A finished run is accepted only as the clean, reconciled completion of its own C1 unit (review c1 finding 6):
-    the unit the run recorded is this seed's; its guard receipt is a clean exit (rc 0) with a measured CPU total; its
-    RECONCILED record agrees, with no problems; and the run's own CPU figures are finite, nonnegative and within it."""
+def launcher_problems(d: Path, seed: int, man: dict, res: dict, c1_dir: Path, budget: float) -> str | None:
+    """A finished run is accepted only as the clean, reconciled completion of its own C1 unit, under C1's own rules
+    (review c1 finding 6; review f1 F3): the unit the run recorded is this seed's; the launcher's PENDING record names
+    that unit with Eric's per-seed budget declared in full and the reviewed wrapper's wall time; the guard's TERMINAL
+    receipt passes `launch.terminal_problems` against that PENDING record and is a clean exit (rc 0); the RECONCILED
+    record is exactly what `launch.reconcile` writes for it; and the run's own CPU and wall figures are finite,
+    nonnegative and within the receipt."""
+    from scripts.audit.c1 import launch as L
     unit = man.get("launcher_unit")
     m = UNIT_RE.fullmatch(unit) if isinstance(unit, str) else None
     if not (m and int(m.group(1)) == SEEDS.index(seed) + 1):
         return f"{d}: the recorded launcher unit {unit!r} is not this seed's C1 unit"
+    p = _lifecycle_record(c1_dir, "PENDING", unit)
+    if not (isinstance(p, dict) and p.get("unit") == unit and p.get("declared_cpu_hours") == budget
+            and p.get("limit_cpu_seconds") == int(budget * 3600) and p.get("max_hours") == MAX_WALL_H):
+        return (f"{d}: no PENDING record for {unit} declaring Eric's budget {budget:g} CPU-hours in full "
+                f"({int(budget * 3600)} s) with the wrapper's wall time {MAX_WALL_H} h")
     t = _lifecycle_record(c1_dir, "TERMINAL", unit)
-    if not (isinstance(t, dict) and t.get("unit") == unit and t.get("result") == "exit" and type(t.get("rc")) is int
-            and t["rc"] == 0 and _finite_nonneg(t.get("cpu_seconds"))):
-        return f"{d}: no clean TERMINAL receipt (exit, rc 0, measured CPU) for {unit}"
+    problems = L.terminal_problems(t, p, unit) if isinstance(t, dict) else ["no receipt"]
+    if problems or not (t.get("result") == "exit" and t.get("rc") == 0):
+        return f"{d}: no clean TERMINAL receipt (exit, rc 0, measured CPU within the budget) for {unit}: {problems}"
     r = _lifecycle_record(c1_dir, "RECONCILED", unit)
-    if not (isinstance(r, dict) and r.get("unit") == unit and r.get("result") == "exit" and r.get("rc") == 0
-            and r.get("problems") == [] and r.get("cpu_seconds") == t["cpu_seconds"]):
-        return f"{d}: no clean RECONCILED record agreeing with the TERMINAL receipt for {unit}"
+    if r != {"unit": unit, "result": "exit", "cpu_seconds": t["cpu_seconds"], "rc": 0, "problems": []}:
+        return f"{d}: no RECONCILED record equal to the launcher's reconciliation of {unit}"
     total = res.get("total_cpu_s")
     units_cpu = [u.get("cpu_s") for u in res.get("units") or []]
     if not (_finite_nonneg(total) and total <= t["cpu_seconds"] and all(_finite_nonneg(c) for c in units_cpu)
             and sum(units_cpu) <= total):
         return f"{d}: the run's CPU figures are not finite, nonnegative and within its guard receipt"
+    if not all(_finite_nonneg(u.get("wall_s")) for u in res.get("units") or []):
+        return f"{d}: a unit's wall_s is not a finite nonnegative number"
     return None
 
 
@@ -821,7 +922,8 @@ def prepare(data_dir: Path, raw_dir: Path, screen_inputs: Path, out_dir: Path) -
     """The preparation read (§3, §8 step 3), once, after X-37 and its own register row: the frozen copy of `pa_2026`,
     the 2026 lookup entries and the 2025-2026 starter-proxy table from exactly the raw feeds of the game ids in the
     pinned 2025 and 2026 PA files, and the source manifest. Only identity and schedule fields are extracted. Returns
-    the pins of all inputs and the counts."""
+    the record it writes as `PREPARED.json` in the output directory: the pins of all inputs, the counts, the exposure
+    commit and cited inventory it ran under, and its CPU (also appended to the off-launcher record at `OUT_ROOT`)."""
     import pandas as pd
     from scripts.audit.c1 import admission as A
     # The acquisition boundary (review c1 finding 5): before any 2026 file is opened or hashed, X-37 and the reviewed
@@ -882,9 +984,17 @@ def prepare(data_dir: Path, raw_dir: Path, screen_inputs: Path, out_dir: Path) -
         reasons[str(r["season"])][r["reason"]] += 1
     missing_pitchers = sum(1 for s in (TEST_SEASON,) for pk in games[s]
                            for k in ("away", "home") if lookup[str(pk)][k] is None)
-    return {"pins": dict(sorted(pins.items())), "games": manifest["counts"], "cpu_s": S.cpu_seconds() - c0,
-            "proxy_reasons": reasons, "game_number_fallbacks": sum(r["game_number_fallback"] for r in records),
-            "lookup_2026_missing_probable_sides": missing_pitchers}
+    cpu = S.cpu_seconds() - c0
+    rec = {"schema": PREPARED_SCHEMA, "exposure_commit": adm["exposure_commit"],
+           "inventory_sha256": cited_inventory_sha256(A.REPO, adm["exposure_commit"]),
+           "data_dir": str(Path(data_dir).resolve()), "raw_dir": str(Path(raw_dir).resolve()),
+           "screen_inputs": str(Path(screen_inputs).resolve()), "out_dir": str(Path(out_dir).resolve()),
+           "pins": dict(sorted(pins.items())), "games": manifest["counts"], "proxy_reasons": reasons,
+           "game_number_fallbacks": sum(r["game_number_fallback"] for r in records),
+           "lookup_2026_missing_probable_sides": missing_pitchers, "cpu_s": cpu}
+    A.durable_write(out_dir / PREPARED_NAME, canonical(rec))   # the preparation's durable record (review f1 F4)
+    record_off_launcher(Path(out_dir).parent, "prepare", cpu, out_dir=str(out_dir))
+    return rec
 
 
 # ---------------------------------------------------------------- the admitted run
@@ -910,6 +1020,7 @@ class Trusted:
         import pandas as pd
         self.expected = expected                 # {(arm, date, game_pk, side): value}, from the pinned file
         self.calendar = expected_calendar(pa26)
+        self.resumed_flag_2026 = resumed_totals(pa26)   # the pinned rows' flagged/unflagged totals (the lead's F5)
         for col in ("batter_id", "game_pk"):
             if not (pd.api.types.is_integer_dtype(pa26[col]) and not pd.api.types.is_bool_dtype(pa26[col])):
                 raise InputRefused(f"pa_2026's {col} is not an integer column")
@@ -1055,24 +1166,68 @@ def expected_values(ev) -> dict:
     return out
 
 
-def expect(data_dir: Path, inputs_dir: Path, pins: dict, out: Path) -> dict:
-    """The one-time expectation step (review c2 R2-2; the manager's ruling): after the preparation read, outside the
-    launcher, recompute the catcher-grouped feature from the pinned inputs under the closed inputs and write the
-    expected evidence. Its file is pinned with the other inputs and bound by the inputs row; its CPU is recorded."""
+def expect(data_dir: Path, inputs_dir: Path) -> dict:
+    """The one-time expectation step (review c2 R2-2; review f1 F4): after the preparation read, outside the launcher,
+    recompute the catcher-grouped feature from the prepared, pinned inputs and write the expected evidence once. It is
+    bound to the preparation: the PA directory is the source inventory's; the pins are the ones `prepare` recorded in
+    `PREPARED.json` under this admission's exposure commit and cited inventory; the historical pins are the screen's;
+    every input is read through its pin; and the output and its `EXPECTED.json` record are created exclusively, never
+    replaced. Its CPU is appended to the off-launcher record."""
     from scripts.audit.c1 import admission as A
     c0 = S.cpu_seconds()
     _, adm, _ = admission_gate(require_inputs=False)
-    problem = prep_row_problem(A.REPO, (A.REPO / REGISTER_REL).read_text(), adm["exposure_commit"])
+    xc = adm["exposure_commit"]
+    problem = prep_row_problem(A.REPO, (A.REPO / REGISTER_REL).read_text(), xc)
     if problem:
         raise SystemExit(f"refusing: {problem}")
-    ev = expected_evidence(load_trusted(inputs_dir, {k: v for k, v in pins.items() if k != EXPECT_NAME}),
-                           recompute_asof(data_dir, inputs_dir, pins))
+    inv, problem = source_inventory(A.REPO, xc)
+    if problem:
+        raise SystemExit(f"refusing: {problem}")
+    data_dir, inputs_dir = Path(data_dir), Path(inputs_dir)
+    if data_dir.resolve() != Path(inv["pa_dir"]).resolve():
+        raise SystemExit(f"refusing: the PA directory {data_dir} is not the source inventory's {inv['pa_dir']}")
+    prepared_path = inputs_dir / PREPARED_NAME
+    if not prepared_path.is_file():
+        raise SystemExit(f"refusing: no {PREPARED_NAME} in {inputs_dir}: the expect step follows the preparation read")
+    prepared_bytes = prepared_path.read_bytes()
+    try:
+        prepared = json.loads(prepared_bytes)
+    except ValueError:
+        prepared = None
+    if not (isinstance(prepared, dict) and prepared.get("schema") == PREPARED_SCHEMA):
+        raise SystemExit(f"refusing: {prepared_path} is not a {PREPARED_SCHEMA} record")
+    if prepared.get("exposure_commit") != xc:
+        raise SystemExit(f"refusing: {PREPARED_NAME} names exposure commit {prepared.get('exposure_commit')!r}, not "
+                         f"the admission's {xc}")
+    if prepared.get("inventory_sha256") != cited_inventory_sha256(A.REPO, xc):
+        raise SystemExit(f"refusing: {PREPARED_NAME} does not record the cited source inventory's sha256")
+    if prepared.get("data_dir") != str(Path(inv["pa_dir"]).resolve()):
+        raise SystemExit(f"refusing: {PREPARED_NAME} records PA directory {prepared.get('data_dir')!r}, not the source "
+                         f"inventory's")
+    pins = prepared.get("pins")
+    if not (isinstance(pins, dict) and set(pins) == set(INPUT_NAMES) - {EXPECT_NAME}
+            and all(isinstance(v, str) and HEX.fullmatch(v) for v in pins.values())):
+        raise SystemExit(f"refusing: {PREPARED_NAME}'s pins are not exactly the prepared inputs with a sha256 each")
+    problem = historical_pins_problem(pins, screen_pins())
+    if problem:
+        raise SystemExit(f"refusing: {problem}")
+    out, rec_path = inputs_dir / EXPECT_NAME, inputs_dir / EXPECTED_NAME
+    if out.exists() or rec_path.exists():
+        raise SystemExit(f"refusing: {out} or {rec_path} already exists: the expect step runs once and never overwrites")
+    asof, _ = recompute_asof(data_dir, inputs_dir, pins)
+    ev = expected_evidence(load_trusted(inputs_dir, pins), asof)
     buf = io.BytesIO()
     ev.to_parquet(buf, index=False)
-    A.durable_write(out, buf.getvalue())
-    return {"file": str(out), "sha256": S._sha(buf.getvalue()), "rows": int(len(ev)),
-            "identified": {a: int(((ev["arm"] == a) & (ev["reason"] == "identified")).sum()) for a in ARMS[1:]},
-            "cpu_s": S.cpu_seconds() - c0}
+    data = buf.getvalue()
+    exclusive_write(out, data)
+    full = dict(sorted({**pins, EXPECT_NAME: S._sha(data)}.items()))
+    cpu = S.cpu_seconds() - c0
+    rec = {"schema": EXPECTED_SCHEMA, "file": str(out), "sha256": S._sha(data), "rows": int(len(ev)),
+           "identified": {a: int(((ev["arm"] == a) & (ev["reason"] == "identified")).sum()) for a in ARMS[1:]},
+           "pins": full, "pins_digest": S.pins_digest(full), "prepared_sha256": S._sha(prepared_bytes), "cpu_s": cpu}
+    exclusive_write(rec_path, canonical(rec))
+    record_off_launcher(inputs_dir.parent, "expect", cpu, file=str(out))
+    return rec
 
 
 def run(seed: int, data_dir: Path, inputs_dir: Path, *, walk_forward=None, now=None, _test_out_root=None) -> int:
@@ -1136,10 +1291,11 @@ def run(seed: int, data_dir: Path, inputs_dir: Path, *, walk_forward=None, now=N
     manifest = {"schema": "c2_framing_2026_run_v1", "head": head, "claim_sha256": claim_sha, "seed": seed,
                 "identity": identity, "input_pins": pins, "inputs_digest": S.pins_digest(pins),
                 "test_season": TEST_SEASON, "arms": list(ARMS), "basis": S.BASIS, "retrain_every": S.RETRAIN_EVERY,
-                "lgb_params": dict(LGB_PARAMS), "feature_settings": settings, "scoring": dict(S.SCORING),
+                "lgb_params": dict(LGB_PARAMS), "blend_configs": recorded_blend_configs(),
+                "feature_settings": settings, "scoring": dict(S.SCORING),
                 "env": {k: os.environ.get(k) for k in ("BTS_LGBM_DETERMINISTIC", "BTS_LGBM_RANDOM_STATE", "TZ")},
                 "self_check": check, "calendar": calendar, "allowance": allow, "launcher_unit": unit,
-                "resumed_portion_rows": S.resumed_counts(df), "resumed_flag_2026": resumed_totals(raw_df),
+                "resumed_portion_rows": S.resumed_counts(raw_df), "resumed_flag_2026": resumed_totals(raw_df),
                 "features_cpu_s": S.cpu_seconds() - t0}
     S._json(run_dir / "manifest.json", manifest)
     if not check["identical"]:
@@ -1206,6 +1362,42 @@ def arm_summary(diff: dict) -> dict:
 
 # ---------------------------------------------------------------- validation and the aggregate
 
+def order_problem(part) -> tuple[str | None, dict]:
+    """Review f1 F1: within each date the retained probabilities must be non-increasing with rank, so the rank-1 row
+    is the day's highest probability. Exact ties between adjacent ranks cannot be ordered from retained evidence; they
+    are counted (every adjacent pair, and the pairs at ranks 1 and 2) and reported, not refused."""
+    adjacent = top = 0
+    for day, g in part.sort_values(["date", "rank"], kind="stable").groupby("date", sort=True):
+        pr = g["p_game_hit"].to_numpy(dtype=float)
+        if bool((pr[1:] > pr[:-1]).any()):
+            return f"the ranks do not follow the retained probabilities on {_iso(day)}", {}
+        eq = pr[1:] == pr[:-1]
+        adjacent += int(eq.sum())
+        top += int(eq[0]) if len(eq) else 0
+    return None, {"adjacent": adjacent, "top": top}
+
+
+def exclusive_write(path: Path, data: bytes) -> None:
+    """Create `path` with `data` exactly once (review f1 F4): a fsynced temporary is hard-linked onto the final name,
+    which is atomic and fails if the name exists; then the directory is fsynced. Never replaces an existing file."""
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    with open(tmp, "wb") as f:
+        f.write(data)
+        f.flush()
+        os.fsync(f.fileno())
+    try:
+        os.link(tmp, path)
+    except FileExistsError:
+        tmp.unlink()
+        raise SystemExit(f"refusing: {path} already exists: it is created once and never overwritten") from None
+    tmp.unlink()
+    fd = os.open(path.parent, os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
 def validate_run(d: Path, seed: int, *, out_root: Path, identity: dict, pins: dict, truth: "Trusted",
                  repo: Path | None = None, c1_dir: Path | None = None) -> dict:
     """One completed, claimed run, checked against trusted admission evidence (`identity`, `pins`) and the calendar
@@ -1213,7 +1405,10 @@ def validate_run(d: Path, seed: int, *, out_root: Path, identity: dict, pins: di
     {manifest, results, rank1, summaries}. The checks follow `screen.validate_run`, for three arms on one season,
     plus: every retained profile has exactly one rank-1 row per calendar date and no other date; the rank-1 vectors,
     P@1, scorecards, diffs and summaries all reconcile with the retained profiles; and A-posted has at least one
-    identified catcher value."""
+    identified catcher value. Round 3 (review f1; `field-inventory.md`): ranks follow the retained probabilities; the
+    model recipe and blend configurations equal the reviewed ones; the manifest's allowance is Eric's row at HEAD and
+    the first unit is within its stop; the launcher records pass C1's own rules; the declared resumed totals and
+    timings are checked against the pinned rows and the run total."""
     import pandas as pd
     from bts.validate.scorecard import compute_full_scorecard, diff_scorecards
     from scripts.audit.c1 import admission as A
@@ -1260,12 +1455,40 @@ def validate_run(d: Path, seed: int, *, out_root: Path, identity: dict, pins: di
     problems = head_admitted(repo, identity, man["head"])
     if problems:
         raise RunInvalid(f"{d}: " + "; ".join(problems))
-    problem = launcher_problems(d, seed, man, res, C1_DIR if c1_dir is None else c1_dir)
-    if problem:
-        raise RunInvalid(problem)
+    # Review f1 F2: the registered settings against the reviewed code's own constants, never the runs' agreement.
+    if lgb != reviewed_lgb_params():
+        raise RunInvalid(f"{d}: lgb_params are not the reviewed recipe with the deterministic flags")
+    if man.get("blend_configs") != recorded_blend_configs():
+        raise RunInvalid(f"{d}: the blend configurations are not the reviewed ones")
+    # Review f1 F3: Eric's allowance, read from the register now, with the launcher's cap; then the first-unit stop.
+    try:
+        allow = allowance((repo / REGISTER_REL).read_text())
+    except OSError:
+        allow = None
+    if allow is None or allow["cap"] != ledger.CAP_H:
+        raise RunInvalid(f"{d}: no allowance row of Eric's with the launcher's cap (register row {ALLOWANCE_ROW})")
+    if man.get("allowance") != allow:
+        raise RunInvalid(f"{d}: the manifest's allowance {man.get('allowance')} is not Eric's allowance row {allow}")
     units = res.get("units")
     if not (isinstance(units, list) and [(u.get("arm"), u.get("season")) for u in units] == UNIT_ORDER):
         raise RunInvalid(f"{d}: the three registered units are not all complete")
+    problem = launcher_problems(d, seed, man, res, C1_DIR if c1_dir is None else c1_dir, allow["budget"])
+    if problem:
+        raise RunInvalid(problem)
+    if units[0]["cpu_s"] > allow["first_unit_stop"] * 3600:
+        raise RunInvalid(f"{d}: the first unit's CPU {units[0]['cpu_s']:.1f} s exceeds the first-unit stop "
+                         f"{allow['first_unit_stop']:g} CPU-hours")
+    fc = man.get("features_cpu_s")
+    if not (_finite_nonneg(fc) and fc <= res["total_cpu_s"]):
+        raise RunInvalid(f"{d}: features_cpu_s {fc!r} is not finite, nonnegative and within the run total")
+    # The lead's F5: declared totals against the pinned rows.
+    if man.get("resumed_flag_2026") != truth.resumed_flag_2026:
+        raise RunInvalid(f"{d}: resumed_flag_2026 {man.get('resumed_flag_2026')} is not the pinned pa_2026's "
+                         f"{truth.resumed_flag_2026}")
+    by_season = man.get("resumed_portion_rows")
+    if not (isinstance(by_season, dict)
+            and by_season.get(str(TEST_SEASON), 0) == truth.resumed_flag_2026["flagged"]):
+        raise RunInvalid(f"{d}: resumed_portion_rows' {TEST_SEASON} entry is not the pinned pa_2026's flagged count")
     evidence = {}
     for i, a in ((1, "A_posted"), (2, "A_projected")):
         recorded = units[i].get("catcher") or {}
@@ -1282,7 +1505,7 @@ def validate_run(d: Path, seed: int, *, out_root: Path, identity: dict, pins: di
     if S._canon(units_file) != S._canon(units):
         raise RunInvalid(f"{d}: units.json does not equal the results' units (counts)")
     cards = {a: S._json_of(d, f"scorecard_{a}.json") for a in ARMS}
-    vectors = {}
+    vectors, ties = {}, {}
     for a in ARMS:
         name = f"profiles_{a}_{TEST_SEASON}.parquet"
         S._read(d, name)
@@ -1294,6 +1517,9 @@ def validate_run(d: Path, seed: int, *, out_root: Path, identity: dict, pins: di
         if problem is not None:
             raise RunInvalid(f"{d}: {name} is not complete {TEST_SEASON} evidence: {problem}")
         problem = identity_problem(part, truth)
+        if problem is not None:
+            raise RunInvalid(f"{d}: {name}: {problem}")
+        problem, ties[a] = order_problem(part)
         if problem is not None:
             raise RunInvalid(f"{d}: {name}: {problem}")
         try:
@@ -1326,12 +1552,14 @@ def validate_run(d: Path, seed: int, *, out_root: Path, identity: dict, pins: di
         if S._canon((res.get("arms") or {}).get(a)) != S._canon(summary):
             raise RunInvalid(f"{d}: arm {a}'s stored summary does not match its diff")
         summaries[a] = summary
-    return {"manifest": man, "results": res, "rank1": vectors, "summaries": summaries, "evidence": evidence}
+    return {"manifest": man, "results": res, "rank1": vectors, "summaries": summaries, "evidence": evidence,
+            "ties": ties}
 
 
-def recompute_asof(data_dir: Path, inputs_dir: Path, pins: dict) -> "AsOfFraming":
+def recompute_asof(data_dir: Path, inputs_dir: Path, pins: dict) -> tuple["AsOfFraming", dict]:
     """The catcher-grouped feature recomputed here from the admitted inputs under the same closed inputs and checks as
-    a run (review c1 finding 3): the values every run's evidence must carry."""
+    a run (review c1 finding 3): the values every run's evidence must carry; and the pinned rows' resumed-portion
+    counts per season, which every manifest must declare (the lead's F5a)."""
     from scripts.audit.c1 import admission as A
     from bts.features.compute import compute_all_features
     S.install_closed_inputs(S.frozen_lookup(A.read_pinned(Path(inputs_dir) / LOOKUP_NAME, pins[LOOKUP_NAME])[0]))
@@ -1346,7 +1574,7 @@ def recompute_asof(data_dir: Path, inputs_dir: Path, pins: dict) -> "AsOfFraming
     df = compute_all_features(raw_df)
     if not S.self_check(df)["identical"]:
         raise RunInvalid("the recomputed features fail the screen's self-check")
-    return AsOfFraming(df)
+    return AsOfFraming(df), S.resumed_counts(raw_df)
 
 
 def aggregate(run_dirs: list[Path], data_dir: Path, inputs_dir: Path, *, _test_out_root=None, _repo=None) -> dict:
@@ -1376,7 +1604,10 @@ def aggregate(run_dirs: list[Path], data_dir: Path, inputs_dir: Path, *, _test_o
                 "test_season", "arms", "calendar", "scoring", "identity"):
         if any(by[s]["manifest"].get(key) != first.get(key) for s in SEEDS[1:]):
             raise RunInvalid(f"runs disagree on {key}")
-    asof = recompute_asof(data_dir, inputs_dir, pins)
+    asof, resumed_rows = recompute_asof(data_dir, inputs_dir, pins)
+    for s in SEEDS:
+        if by[s]["manifest"].get("resumed_portion_rows") != resumed_rows:
+            raise RunInvalid(f"seed {s}'s resumed_portion_rows are not the pinned inputs' {resumed_rows}")
     for a in ARMS[1:]:
         ev = by[SEEDS[0]]["evidence"][a]
         if any(not by[s]["evidence"][a].equals(ev) for s in SEEDS[1:]):
@@ -1391,6 +1622,10 @@ def aggregate(run_dirs: list[Path], data_dir: Path, inputs_dir: Path, *, _test_o
          for a in ARMS[1:]}
     posted, projected = dispose(x["A_posted"]), dispose(x["A_projected"])
     streak = {a: [by[s]["summaries"][a]["mean_max_streak"] for s in SEEDS] for a in ARMS[1:]}
+    aggregate_cpu = S.cpu_seconds() - c0
+    record_off_launcher(out_root, "aggregate", aggregate_cpu, seeds=list(SEEDS))
+    ledger_h = ledger_total_hours(C1_DIR)
+    off_h = sum(r["cpu_s"] for r in off_launcher_rows(out_root)) / 3600
     return {"seeds": list(SEEDS), "heads": [by[s]["manifest"]["head"] for s in SEEDS], "identity": identity,
             "calendar_days": len(truth.calendar),
             "total_cpu_h": sum(by[s]["results"]["total_cpu_s"] for s in SEEDS) / 3600,
@@ -1401,10 +1636,11 @@ def aggregate(run_dirs: list[Path], data_dir: Path, inputs_dir: Path, *, _test_o
             "streak": {a: {"mean_max_streak_delta": streak[a],
                            "seeds_below_zero": sum(1 for v in streak[a] if v is not None and v < 0)}
                        for a in ARMS[1:]},
-            "per_seed": {str(s): {"summaries": by[s]["summaries"],
+            "per_seed": {str(s): {"summaries": by[s]["summaries"], "rank_ties": by[s]["ties"],
                                   "catcher": {u["arm"]: u.get("catcher") for u in by[s]["results"]["units"][1:]}}
                          for s in SEEDS},
-            "aggregate_cpu_s": S.cpu_seconds() - c0}
+            "aggregate_cpu_s": aggregate_cpu, "ledger_total_cpu_h": ledger_h, "off_launcher_cpu_h": off_h,
+            "effective_total_cpu_h": ledger_h + off_h}
 
 
 # ---------------------------------------------------------------- the launch wrapper and the command line
@@ -1419,22 +1655,27 @@ def launch_command(seed: int, budget: float, data_dir: Path, inputs_dir: Path) -
 
 
 def launch(seed: int, data_dir: Path, inputs_dir: Path, *, execute=subprocess.run, _test_out_root=None) -> int:
-    """The reviewed launch: the same admission and seed-order checks as `run`, never from 00:45 to 03:10
-    America/New_York, then the C1 launcher with Eric's per-seed budget (the launcher reserves it in full against the
-    cap)."""
-    import pandas as pd
+    """The reviewed launch: the same admission, seed-order and §7 effective-total checks as `run`, never from 00:45 to
+    03:10 America/New_York, then the C1 launcher with Eric's per-seed budget (the launcher reserves it in full against
+    the cap). Its own CPU, spent outside the launcher, is appended to the off-launcher record, refused or not."""
     from scripts.audit.c1 import admission as A
+    c0 = S.cpu_seconds()
     out_root = OUT_ROOT if _test_out_root is None else _test_out_root
     root = out_root / f"seed_{seed}"
-    if root.is_dir() and any(p.is_dir() for p in root.iterdir()):
-        raise SystemExit(f"refusing: seed {seed} already has a run under {root}")
-    _, adm, identity = admission_gate()
-    pins = adm["input_pins"]
-    ok, why, allow = seed_allowed(seed, (A.REPO / REGISTER_REL).read_text(), out_root, identity=identity, pins=pins,
-                                  truth=load_trusted(inputs_dir, pins))
-    if not ok:
-        raise SystemExit(f"refusing: {why}")
-    refuse_inside_the_window()
+    try:
+        if root.is_dir() and any(p.is_dir() for p in root.iterdir()):
+            raise SystemExit(f"refusing: seed {seed} already has a run under {root}")
+        _, adm, identity = admission_gate()
+        pins = adm["input_pins"]
+        ok, why, allow = seed_allowed(seed, (A.REPO / REGISTER_REL).read_text(), out_root, identity=identity,
+                                      pins=pins, truth=load_trusted(inputs_dir, pins))
+        if not ok:
+            raise SystemExit(f"refusing: {why}")
+        refuse_inside_the_window()
+    except SystemExit:
+        record_off_launcher(out_root, "launch", S.cpu_seconds() - c0, seed=seed, refused=True)
+        raise
+    record_off_launcher(out_root, "launch", S.cpu_seconds() - c0, seed=seed)   # the wrapper's own CPU (§7)
     return execute(launch_command(seed, allow["budget"], data_dir, inputs_dir), cwd=A.REPO).returncode
 
 
@@ -1454,7 +1695,6 @@ def main(argv=None) -> int:
     ex = sub.add_parser("expect", help="once, after preparation, off-launcher: the pinned expected catcher evidence")
     ex.add_argument("--data-dir", type=Path, default=DATA_DIR)
     ex.add_argument("--inputs-dir", type=Path, default=OUT_ROOT / "inputs")
-    ex.add_argument("--pins", type=Path, required=True, help="JSON {name: sha256} printed by prepare")
     g = sub.add_parser("aggregate")
     g.add_argument("--data-dir", type=Path, default=DATA_DIR)
     g.add_argument("--inputs-dir", type=Path, default=OUT_ROOT / "inputs")
@@ -1468,8 +1708,7 @@ def main(argv=None) -> int:
         print(json.dumps(prepare(a.data_dir, a.raw_dir, a.screen_inputs, a.out), indent=1, sort_keys=True))
         return 0
     if a.cmd == "expect":
-        print(json.dumps(expect(a.data_dir, a.inputs_dir, json.loads(a.pins.read_text()),
-                                a.inputs_dir / EXPECT_NAME), indent=1, sort_keys=True))
+        print(json.dumps(expect(a.data_dir, a.inputs_dir), indent=1, sort_keys=True))
         return 0
     print(json.dumps(aggregate(a.run_dirs, a.data_dir, a.inputs_dir), indent=1, sort_keys=True))
     return 0
