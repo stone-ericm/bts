@@ -9,15 +9,25 @@ f2 once) each found a new unenforced trust path at the run boundary, round 5 sta
 file the caller creates; a separate C1 `status` call did not serialize the combined decision with the launch; boundary
 7 had no state machine and an unobservable, double-counting CPU measure; boundary 0 could not tell a plan certificate
 from a code certificate; boundaries 3 and 14 had no enforced order or failure rule; the map omitted the nonblocking
-items. Revision 2 answers each, in place and marked "(r2)". Code follows only after a reviewer signs this revision; a new
-fresh reviewer on the whole range is the merge gate.
+items. Revision 2 answers each, in place and marked "(r2)". **Revision 3 (2026-10-10):** revision 2 (commit `f4edff3`) was
+reviewed by the fresh design reviewer d1 (report `…-design-codex-d1.md`, BLOCK, not counted) with seven findings:
+D1 C1's decision was not bound to the canonical account (a stale prefix file produces a genuine receipt; account appends
+were outside C1's lock); D2 the account could not tell the current in-flight launch from an abandoned attempt, had no
+attempt identity and no settlement algebra; D3 git subprocess CPU had no owner and the aggregate needed a final measured
+cap check; D4 the wrapper read inputs before checking its own paths; D5 a clean working-tree check is not a register
+snapshot; D6 the Review-kind rule in the shared admission helper would change other callers; D7 a receipt-only unit was
+invisible to C1's collision check. Revision 3 answers each, in place and marked "(r3)". Code follows only after a
+reviewer signs this revision; a new fresh reviewer on the whole range is the merge gate.
 
-**Scope statement (r2, the manager's rule of 2026-10-10):** a sound reservation (boundaries 8 and 9) requires
+**Scope statement (r2, the manager's rule of 2026-10-10; r3 narrowed):** a sound reservation (boundaries 8 and 9) requires
 enforcement inside C1's own launch lock — a change to `scripts/audit/c1/launch.py` (a combined mode: `--extra-charges`,
-`--require-ledger`, the overhead reserve, and a C1-written `RESERVATION_<unit>.json`) and to its tests in
-`tests/scripts/test_c1_cycle.py` — not only to `f26.py`. C1 is shared infrastructure; that change is a separate reviewed
-change with its own gate, brought to the manager before any code. Everything else in this note changes `f26.py`, its
-tests and the evidence only. Nothing under `src/` changes.
+`--attempt`, `--require-ledger`, the overhead reserve, a C1-written `RESERVATION_<unit>.json`, and `RESERVATION_` added
+to `unit_taken`'s identity scan) and to its tests in `tests/scripts/test_c1_cycle.py` — not only to `f26.py`. C1 is
+shared infrastructure; that change is a separate reviewed change with its own gate, brought to the manager before any
+code. **(r3) Nothing else under `scripts/audit/c1/` changes:** `admission.py`, `guard.py` and `ledger.py` are untouched;
+the certificate kind rule (boundary 0) lives in `f26.py`'s own gate, so the shared admission helper and its other
+callers (the count build, rank 4a, the framing screen, correction certificates) behave as today. Everything else in this
+note changes `f26.py`, its tests and the evidence only. Nothing under `src/` changes.
 
 **The C1 launcher change is in scope on the manager's conditions (2026-10-10), which bind this plan:**
 (a) **additive and default-off** — `launch.py run` behaves byte-for-byte as today without the new flags; the combined mode
@@ -70,9 +80,10 @@ declaration, however exclusive or random its name.
   `uv.lock`, the design) at the reviewed commit, by `git diff` against it; a plain SIGN whose single
   `Reviewed-commit` line is that commit, from the archived report's bytes at the exposure commit (GIT). **(r2) The
   eligible certificate is a code review of the whole range, not a design review of this note:** the report must carry,
-  in its verdict section, exactly one line `Review-kind: code, whole range <base>..<commit>` with the reviewed commit,
-  and `admission._review_signs` requires it; a report without it, or with another kind, is not a certificate. The
-  fresh reviewer's brief asks for that line; this note's reviews do not carry it and cannot admit code.
+  in its verdict section, exactly one line `Review-kind: code, whole range <base>..<commit>` with the reviewed commit.
+  **(r3) That rule is f26's own:** `f26.admission_gate` reads the report's bytes at the exposure commit (the same bytes
+  `accepted_identity` hashes) and refuses without that exact line; `admission._review_signs` and its other callers do
+  not change (D6). This note's reviews carry `Review-kind: design` and cannot admit code.
 - **Missing or failed:** the admission gate refuses every entry point.
 - **Findings:** f2r2 (a plan SIGN could admit unchanged code); the process gates (the kickoff, rows
   `C2-framing-2026-design-frozen`, `-code-reviews`).
@@ -144,11 +155,11 @@ declaration, however exclusive or random its name.
   three directories == the inventory's; `out_dir` == the namespace); then `EXPECTED.json` must carry exactly the admitted
   pins, `prepared_sha256` equal to that record's sha256 and `sha256` equal to the admitted expectation pin.
   `validate_run` applies the same chain check (today only `run` and `aggregate` did). **(r2) The actual arguments are
-  checked, not only strings inside the record:** `run` and `aggregate` require their `inputs_dir` argument to resolve to
-  the fixed namespace and their `data_dir` to the inventory's `pa_dir` (the historical parquets are read from there
-  through their pins; a copy of already-pinned historical bytes elsewhere is not a protected read, but the gate
-  refuses it anyway so that the one namespace rule has no exception); the pins fix the bytes, the namespace fixes the
-  place, and a hash check after an open cannot undo an out-of-inventory read, which is why the place is checked first.
+  checked, not only strings inside the record:** `run`, `aggregate` **and `launch` (r3, D4)** require their `inputs_dir`
+  argument to resolve to the fixed namespace and their `data_dir` to the inventory's `pa_dir`, **before their first
+  protected read** (`launch` today calls `load_trusted` before invoking C1; that read moves behind the check); the pins
+  fix the bytes, the namespace fixes the place, and a hash check after an open cannot undo an out-of-inventory read,
+  which is why the place is checked first. The test instruments the opens and proves refusal before any read.
 - **Missing or failed:** `run`, `validate_run`, `seed_allowed` (through earlier seeds) and `aggregate` refuse.
 - **Test:** the genuine `PREPARED.json` and row kept; the table, its pin, a recomputed expectation, its pin and
   `EXPECTED.json` all changed coherently; `run`, `validate_run`, `seed_allowed` and `aggregate` refuse.
@@ -161,108 +172,144 @@ declaration, however exclusive or random its name.
   runs deliberately.
 - **Findings:** f1 F3 (the manifest's allowance and the stop at acceptance).
 
-### 7. The accounting record  — **round 5 (f2 B2, f2 B4; r2: the state machine and the CPU model)**
+### 7. The accounting record  — **round 5 (f2 B2, f2 B4; r2: the state machine and the CPU model; r3: attempts, the lock, owners)**
 - **Binds today:** C1's `compute_ledger.tsv` through C1's reader (C1) plus `OUT_ROOT/off_launcher_cpu.jsonl`
   (append-only; the first row the lead's seed row; every step a row).
 - **The defects:** a missing `compute_ledger.tsv` reads as zero (f2 B2); the seed row accepts any total and source (f2
   B2); a shortened account passes (f2 B2); a failing `execute()` or launcher child is not charged, and `freeze()` before
   the durable writes excludes bookkeeping and startup CPU (f2 B4); revision 1 had no state machine, counted children
-  twice and promised a "complete CPU" no process can observe of itself (f2r2).
+  twice and promised a "complete CPU" no process can observe of itself (f2r2); revision 2 could not tell the current
+  in-flight launch from an abandoned attempt, had no attempt identity, no settlement algebra and no owner for git
+  subprocess CPU (d1 D2, D3).
 - **The authoritative ledger (r2):** `ledger_total_hours` refuses a missing ledger, a ledger without C1's header or
   columns, or an invalid value (C1's reader refuses the last already); nothing in the test's code ever creates or
   rewrites the ledger; the combined decision happens inside C1's launcher (boundary 8), which validates the ledger
   before its own sweep so a missing or headerless ledger refuses rather than being recreated.
-- **The account's rows (r2):** every row carries `step`, `state`, `cpu_s`, `cpu_source`, `recorded_utc`, and the
-  identities that bind it to its subject: `prepare` rows carry the exposure commit and, when completed, the sha256 of
-  `PREPARED.json`; `expect` rows the `PREPARED.json` sha256 and, when completed, the expectation's sha256; `launch`
-  rows the seed, the admission's sha256, the pins digest, and, when admitted, the C1 unit name from the launcher's
-  reservation receipt; `launcher-process` rows the unit and the launcher's exit code; `aggregate` rows the ten units;
-  `settlement` rows (written by the lead under a recorded decision) the attempt they settle, the CPU charged for it
-  and the source of that figure. States: `begun` (written at entry, before any protected read), then exactly one of
-  `completed`, `refused` (a prerequisite failed before protected reads), `failed` (an exception after them),
-  `unresolved` (the process could not write its own end row: the next step finds a `begun` without an end). The seed
-  row is the ruled prior: `PRIOR_CPU_S = 80.01`, `PRIOR_SOURCE = "C2 index rows of 2026-10-08 and 2026-10-09"`
-  (constants; the manager's ruling (b)); `seed_record` writes only those; any other first row refuses.
-- **Phases (r2):** each step requires its predecessors in the account, bound by digests, before any protected read:
-  `prepare` requires the seed row and a valid ledger and no `begun` prepare without an end row; `expect` requires the
-  `completed` prepare row whose sha256 is this `PREPARED.json`'s; the first `launch` requires the `completed` expect row
-  whose sha256 is the admitted expectation pin; a later `launch` requires every earlier seed's selected run to have an
-  `admitted` launch row naming its unit and a `launcher-process` row for that unit, and every other attempt of any
-  earlier seed to be `refused`, `failed` or `settled`; the `aggregate` requires all of that for the ten seeds. An
-  `unresolved` attempt (a `begun` without an end row, or a `launcher-process` row without the unit's RECONCILED
-  record) pauses every further step until a `settlement` row for it exists: that row is the manager's hand record
-  brought into the account (its CPU figure is the manager's, labelled so), under Eric's acknowledgement row when the
-  attempt was a C1 invocation (boundary 12). "Exactly one admitted launch per seed" means one selected run; every other
-  attempt stays in the account, charged and judged.
-- **The CPU model (r2):** one additive owner per CPU-second. `cpu_source` names it: `self` (RUSAGE_SELF of the step's
-  process, from process start for CLI steps, so imports and startup are included, from entry for library calls);
-  `children` (the RUSAGE_CHILDREN delta around a waited child, used for the `launcher-process` row only — the launcher
-  and its `systemd-run`; the guarded unit's CPU is C1's and is never charged here); `manual` (a settlement row's
-  figure). The wrapper's own row never uses `screen.cpu_seconds`, which sums self and children. The end row's `cpu_s`
-  is sampled at the end of the step's work; the CPU of the final append, shutdown and interpreter exit is not
-  observable by the step itself, so **each step's end row adds a fixed `tail_reserve_s`** (a constant, 2 s, declared
-  in the code) and the account states it as a reserve, not a measurement; `cpu_s_at_write` in `PREPARED.json` and
-  `EXPECTED.json` is a labelled snapshot with no claim of equality to the account. A process killed before its end
-  row leaves `begun` without an end: `unresolved`, settled as above. `finally` covers every Python exception; it does
-  not cover SIGKILL, which the `unresolved` state covers.
+- **The account's rows (r3):** every row carries `attempt` (an identity `<step>-<UTC stamp>-<8 hex random>`, drawn by
+  the step at entry), `step`, `state`, `recorded_utc`, the identities that bind it to its subject, and on end rows the
+  two CPU figures `cpu_self_s` and `cpu_children_s` (below). A step writes a `begun` row at entry (before any protected
+  read) and exactly one end row with the same `attempt`: `completed`, `refused` (a prerequisite failed before protected
+  reads) or `failed` (an exception after them). A `begun` row whose process is dead and which has no end row is an
+  **`unresolved` attempt**; it is settled by a `settlement` row written by the lead under a recorded decision, naming
+  the attempt and carrying the CPU the account never captured for it (`cpu_source: manual`, the manager's hand record
+  brought into the account). **Settlement algebra (D2):** a settlement is a delta — only CPU no other row charged; the
+  guarded unit's CPU is never in the account (it is C1's ledger's, whether from the guard's receipt or C1's
+  full-budget reservation for a missing receipt); a settled attempt's `begun` row contributes nothing by itself (begun
+  rows carry no CPU); the account total is the sum of end rows' `cpu_self_s + cpu_children_s` plus settlement rows'
+  `cpu_s` plus the seed row — each second has one owner. Subjects: `prepare` rows carry the exposure commit and, when
+  completed, the sha256 of `PREPARED.json`; `expect` rows that sha256 and, when completed, the expectation's sha256;
+  `launch` rows the seed, the admission's sha256 and the pins digest, and the `completed` row the C1 unit name read from
+  the launcher's printed plan and receipt; `aggregate` rows the ten units; `settlement` rows the attempt settled and
+  the figure's source. The seed row is the ruled prior: `PRIOR_CPU_S = 80.01`, `PRIOR_SOURCE = "C2 index rows of
+  2026-10-08 and 2026-10-09"` (constants; the manager's ruling (b)); `seed_record` writes only those; any other first
+  row refuses.
+- **The current attempt (r3, D2):** a step exempts exactly one in-flight attempt from the unresolved rule: its own
+  (the `begun` row it just wrote). The payload inside the unit exempts exactly one too: the launch attempt named in its
+  reservation receipt (boundary 9), whose `begun` row is the last row of the receipted snapshot; the wrapper may still
+  be running, about to write that attempt's `completed` row. Every other `begun` without an end row, whose process is
+  dead, is `unresolved` and pauses the step. (Whether the process is dead: the `begun` row carries the pid and the
+  process start time; a live process with that pid and start time is in flight — a second concurrent step is refused
+  by the account lock below, so only the wrapper-to-payload overlap is ever in flight legitimately.)
+- **The account lock (r3, D1):** every f26 step that appends to the account holds `flock` on `OUT_ROOT/.account.lock`
+  from before its `begun` row until after its end row — `prepare`, `expect`, `aggregate`, and `launch` for its whole
+  duration including C1's run and its own end row. The payload never appends (its CPU is C1's) and reads without the
+  lock (the file is append-only; a reader sees a prefix). So while C1 snapshots the account inside the wrapper's
+  critical section, no f26 writer can append: the snapshot is the whole canonical account at decision, and the
+  wrapper's `begun` row is its last row. A second step blocked on the lock waits; nothing refuses for that.
+- **Phases (r2, r3):** each step requires its predecessors in the account, bound by digests, before any protected read:
+  `prepare` requires the seed row and a valid ledger; `expect` requires the `completed` prepare row whose sha256 is this
+  `PREPARED.json`'s; the first `launch` requires the `completed` expect row whose sha256 is the admitted expectation
+  pin; a later `launch` requires every earlier seed's selected run to have a `completed` launch row naming its unit,
+  and every other attempt of any earlier seed to be `refused`, `failed` or settled; the `aggregate` requires all of that
+  for the ten seeds. "Exactly one selected run per seed" leaves every other attempt in the account, charged and judged
+  (boundary 12).
+- **The CPU model (r3, D3):** two owners per step, both measured by the step's own process over the step: `cpu_self_s`
+  = RUSAGE_SELF (from process start for CLI steps, so imports and startup are included; from entry for library calls)
+  and `cpu_children_s` = the RUSAGE_CHILDREN delta over the step, which covers every waited child — the git
+  subprocesses of the gates, and for `launch` the C1 launcher process and `systemd-run` (the guarded unit is not a
+  waited child: `systemd-run` returns at once, and the unit's CPU is C1's ledger's). No separate launcher-process row.
+  The end row's figures are sampled at the end of the step's work; the final append, shutdown and interpreter exit are
+  not observable by the step, so every end row adds `TAIL_RESERVE_S` (a constant, 2 s), stated as a reserve, not a
+  measurement; `cpu_s_at_write` in `PREPARED.json` and `EXPECTED.json` is a labelled snapshot with no claim of equality
+  to the account. `finally` covers every Python exception; SIGKILL leaves `begun` without an end: `unresolved`.
 - **The reserve for what has not run yet (r2):** before a launch is admitted, the combined decision (boundary 8) adds
-  `OVERHEAD_RESERVE_H` (a constant, 0.5 CPU-h) for the launcher processes, settlements and the final aggregate still to
-  come, so the cap is never reached exactly by seeds alone; the aggregate refuses to open outcomes when the effective
-  total (including its own `begun` row's reserve) exceeds the cap or when any attempt is `unresolved`.
-- **Missing or failed:** a missing or malformed ledger or account, a wrong seed row, a missing predecessor or an
-  `unresolved` attempt refuses the step before any protected read (the manager's ruling (c)). **Scope, stated:** the
-  account's integrity rests on its append-only process rule and the manager's hand record; the gate's claim is that the
-  required rows exist, are linked to the actual records by digest and unit, and sum without double counting; it does
-  not authenticate a manual figure or prove the file was never truncated.
-- **Findings:** f1 Part 2 (§7 charging), f1r2 B2, f2 B2, f2 B4, f2r2 (state machine, CPU model, reserves).
+  `OVERHEAD_RESERVE_H` (a constant, 0.5 CPU-h) for the wrapper tails, settlements and the final aggregate still to come.
+  **(r3) The aggregate checks the cap twice:** at entry (effective total + its own tail reserve ≤ cap) and after its
+  computation, before writing or printing any disposition (effective total + its measured `cpu_self_s + cpu_children_s`
+  + tail ≤ cap); if the final check fails it writes `AGGREGATE_STOPPED.json` with the figures, prints no disposition,
+  and its end row is `failed`; a repeated aggregate attempt is a new attempt, charged like any other.
+- **Missing or failed:** a missing or malformed ledger or account, a wrong seed row, a missing predecessor, a dead
+  `begun` without an end (other than the one exempt current attempt) refuses the step before any protected read (the
+  manager's ruling (c)). **Scope, stated:** the account's integrity rests on its append-only process rule, the account
+  lock and the manager's hand record; the gate's claim is that the required rows exist, are linked to the actual
+  records by digest, unit and attempt, and sum with one owner per second; it does not authenticate a manual figure or
+  prove the file was never truncated.
+- **Findings:** f1 Part 2 (§7 charging), f1r2 B2, f2 B2, f2 B4, f2r2 (state machine, CPU model, reserves), d1 D2, D3.
 
-### 8. The launch reservation  — **round 5 (f2 B3; r2: issued by C1 under its lock)**
+### 8. The launch reservation  — **round 5 (f2 B3; r2: issued by C1 under its lock; r3: bound to the canonical account and the attempt)**
 - **Binds today:** `launch` charges its own CPU, then requires ledger total + record + the full budget ≤ cap, then runs
   C1 with the budget; the decision is made once, here.
 - **The defects:** no durable evidence that the once-only decision happened for a given invocation (f2 B3); revision
-  1's nonce file was the wrapper's own creation, which any caller can manufacture, and a separate C1 `status` call is a
-  refresh whose lock ends before the launch (f2r2).
-- **Round 5 binds (r2): the combined decision is C1's.** `scripts/audit/c1/launch.py run` gains a combined mode,
-  `--extra-charges <path> --require-ledger`, used by the reviewed wrapper and reviewed with it. Inside `_locked`, under
+  1's nonce file was the wrapper's own creation (f2r2); revision 2 let the caller choose the account file C1 read, so an
+  older prefix at another path produced a genuine receipt with charges omitted, and account appends were not under C1's
+  lock (d1 D1).
+- **Round 5 binds (r2, r3): the combined decision is C1's, over the canonical account, inside the wrapper's critical
+  section.** `scripts/audit/c1/launch.py run` gains a combined mode, `--extra-charges <path> --attempt <id>
+  --require-ledger`, used by the reviewed wrapper and reviewed with it (additive, default-off). Inside `_locked`, under
   C1's launch lock and after its sweep and reconciliation: (a) with `--require-ledger` the ledger must already exist
   with C1's header before the sweep (a missing or headerless ledger refuses; the sweep never creates it in this mode);
-  (b) the extra-charges file is read with the same fail-closed structural rule as the account (every line a JSON object
-  with a finite nonnegative `cpu_s`; a missing or malformed file refuses) and summed; (c) `plan_launch` decides
-  `ledger total + extra total + OVERHEAD_RESERVE_H + declared ≤ CAP_H` (the ledger-only gate stays as well); (d) on
-  admission the launcher writes **`RESERVATION_<unit>.json`** beside `PENDING_<unit>.json`, with the same durable writer,
-  carrying the unit, the declared budget and limit, the ledger total, the extra total, the extra file's byte length and
-  sha256 at decision, the cap, the overhead reserve and the decision time; then PENDING, then `systemd-run`. The
-  receipt has a trusted producer (C1 under its lock), a prior unit binding (the unit C1 chose), and the decision is
-  serialized with the launch and with every other C1 launch; a later C1 job cannot slip between the decision and the
-  start. **The wrapper's part shrinks to what it can attest:** it validates the account's phase (boundary 7), writes
-  its `begun` row, checks the seed order and the window, and invokes C1 in combined mode with the account's path; it
-  makes no reservation of its own. A refused C1 launch leaves no RESERVATION (C1 writes it only on admission) and the
-  wrapper's row ends `refused`; a C1 failure after the receipt (a `systemd-run` error keeps PENDING, as today) ends the
-  wrapper's row `failed` and the attempt is `unresolved` until settled (boundary 7).
-- **Missing or failed:** no receipt, a receipt for another unit, a receipt whose account prefix no longer hashes, or a
-  decision over the cap: the payload refuses (boundary 9) and acceptance refuses (boundary 11).
-- **Findings:** f1 F3 (the budget), f1r2 B2 (the double decision), f2 B3, f2r2 (the manufactured reservation; the lock).
+  (b) the extra-charges file is read **once, as one byte snapshot**: C1 records its resolved absolute path, byte length
+  and sha256, validates every line structurally (a JSON object with finite nonnegative `cpu_self_s + cpu_children_s`, or
+  `cpu_s` for seed and settlement rows; a missing or malformed file refuses) and sums the charges; (c) `plan_launch`
+  decides `ledger total + extra total + OVERHEAD_RESERVE_H + declared ≤ CAP_H` (the ledger-only gate stays as well);
+  (d) on admission the launcher writes **`RESERVATION_<unit>.json`** beside `PENDING_<unit>.json`, with the same durable
+  writer, carrying the unit, the attempt id, the declared budget and limit, the ledger total, the extra path, length,
+  sha256 and total, the cap, the overhead reserve and the decision time; then PENDING, then `systemd-run`; (e) **(r3,
+  D7)** `unit_taken` also scans `RESERVATION_` so a receipt-only identity (a crash between the receipt and PENDING) is
+  never reused, and such an orphan receipt is a C1 invocation for the seed under boundary 12 (reported, and refused
+  until Eric acknowledges it) and an `unresolved` attempt under boundary 7 (settled). **The wrapper's part (r3):** under
+  the account lock (boundary 7) it checks its actual arguments before any protected read (boundary 5), validates the
+  account's phase, draws its attempt id and writes its `begun` row (the snapshot's last row), checks the seed order and
+  the window, invokes C1 with `--extra-charges <the canonical account path> --attempt <its id>`, parses C1's printed
+  plan for the unit, and writes its end row (`completed` with the unit; `refused` when C1 refused; `failed` on an
+  exception, inside `finally`) — then releases the lock. It makes no reservation of its own and never passes another
+  path.
+- **Why the stale prefix no longer works (r3):** the payload requires the receipt's `extra_path` to be the canonical
+  account path, requires the receipt's snapshot to end with the `begun` row of the attempt the receipt names, and
+  re-checks the phase over that snapshot (boundary 7); a file at another path fails the path rule; a shortened
+  canonical file would have to be the canonical file itself (append-only, locked), and its snapshot must still end with
+  this attempt's `begun` row, so every earlier charge is inside it; charges that can follow the snapshot are only this
+  attempt's own end row and tail (covered by the overhead reserve), because no other f26 writer can append while the
+  wrapper holds the lock.
+- **Missing or failed:** no receipt, a receipt for another unit or attempt, another path, a snapshot that does not end
+  with this attempt's `begun` row or no longer hashes, or a decision over the cap: the payload refuses (boundary 9) and
+  acceptance refuses (boundary 11).
+- **Findings:** f1 F3 (the budget), f1r2 B2 (the double decision), f2 B3, f2r2 (the manufactured reservation; the lock),
+  d1 D1, D7.
 
-### 9. The C1 unit  — **round 5 (f2 B3; r2: the receipt is checked, nothing is consumed)**
+### 9. The C1 unit  — **round 5 (f2 B3; r2: the receipt is checked, nothing is consumed; r3: the attempt is checked too)**
 - **Binds today:** the kernel's cgroup record (`<unit>.service/payload`) with a unit name of this seed's; C1's
   `PENDING` naming that unit with Eric's budget in full and the wrapper's wall time; the guard's `TERMINAL` under
   `launch.terminal_problems`; `RECONCILED` equal to the exact record `reconcile` writes (C1).
-- **Round 5 binds (r2):** `run` reads `RESERVATION_<unit>.json` for its own cgroup unit (the same place and producer as
-  PENDING) and requires: the unit equals its own; the budget equals Eric's; the cap equals `CAP_H`; `ledger + extra +
-  reserve + budget ≤ cap` as recorded; and the account's first `extra_bytes` bytes still hash to the receipt's
-  `extra_sha256` (append-only: later rows do not disturb the prefix). There is no nonce and nothing to consume: the
-  unit name is the binding, chosen by C1 before the start, and a receipt cannot be reused because a unit name is never
-  reused (C1 redraws a taken name). `validate_run` requires the same receipt for the manifest's unit under C1's rules
-  and that the combined decision it records fits the cap; `seed_allowed` and the aggregate inherit it.
+- **Round 5 binds (r2, r3):** `run` reads `RESERVATION_<unit>.json` for its own cgroup unit (the same place and producer
+  as PENDING) and requires: the unit equals its own; the budget equals Eric's; the cap equals `CAP_H`; `ledger + extra +
+  reserve + budget ≤ cap` as recorded; **(r3)** `extra_path` equals the canonical account path; the account's first
+  `extra_bytes` bytes hash to `extra_sha256`; the last row of that prefix is a `launch` `begun` row whose `attempt`
+  equals the receipt's and whose seed, admission sha256 and pins digest are this run's; and the phase over that prefix
+  holds (boundary 7, with that attempt as the one exempt in-flight attempt). There is no nonce and nothing to consume:
+  the unit name is the binding, chosen by C1 before the start, never reused (`unit_taken`, now including receipts).
+  `validate_run` requires the same receipt for the manifest's unit under C1's rules, with the same attempt and account
+  checks against the retained account; `seed_allowed` and the aggregate inherit it.
 - **Missing or failed:** `run` refuses before the claim; at acceptance a run whose unit has no receipt, or a receipt
   that does not fit, is refused.
-- **Findings:** c1-6 (receipts), f1 F3 (C1's rules), f1r2 B3 (other invocations), f2 B3, f2r2.
+- **Findings:** c1-6 (receipts), f1 F3 (C1's rules), f1r2 B3 (other invocations), f2 B3, f2r2, d1 D1, D7.
 
 ### 10. The run
-- **Binds, before the claim (r2: the two stages distinguished):** the admission gate (0, 1, 5), foreign imports, the
-  pins, the trusted evidence, the allowance (6), the guarded unit and its reservation receipt (9), seed order and other
-  invocations (12), the chain and the actual directories (5), the deterministic flags and settings (CONST), the account's
-  phase (7), then, inside the claim lock, the existing-claim check and the quiet window, then the claim.
+- **Binds, before the claim (r2: the two stages distinguished; r3: the order):** first the actual directories (5),
+  then the admission gate (0, 1, 5), foreign imports, the pins, the trusted evidence, the allowance (6), the guarded
+  unit and its reservation receipt with its attempt and account snapshot (9), the account's phase over that snapshot
+  (7), seed order and other invocations (12), the chain (5), the deterministic flags and settings (CONST), then, inside
+  the claim lock, the existing-claim check and the quiet window, then the claim.
 - **Binds, after the claim, during computation:** strict prediction, the self-check, the featureless stop, the
   first-unit stop; each failure writes `STOPPED.json` durably with its reason, which acceptance refuses, and the unit's
   TERMINAL/RECONCILED records the exit; the attempt is then judged under boundary 12 (Eric's acknowledgement) before any
@@ -287,24 +334,28 @@ declaration, however exclusive or random its name.
   **(r2) the pre-launch check that the current seed has no run directory at all** (today in `launch`; it answers c1-6's
   repeated launch and stays); an acknowledged other invocation is a recorded history, never a release of any other
   gate, and its account rows stay (boundary 7).
+- **(r3)** `other_units` also discovers `RESERVATION_` records, so a receipt-only unit (a crash before PENDING) is an
+  invocation of the seed like any other.
 - **Missing or failed:** refuses the launch and the run.
-- **Findings:** c1-6 (repeat launch), c2 R2-2, f1 F3, f1r2 B3, f2r2.
+- **Findings:** c1-6 (repeat launch), c2 R2-2, f1 F3, f1r2 B3, f2r2, d1 D7.
 
 ### 13. The aggregate
 - **Binds:** exactly the ten registered seeds, each passing 11 under the admitted identity and pins; the chain (5);
   the account (7) complete for all ten seeds and every attempt settled; agreement on everything that defines the run;
   the resumed rows and every catcher value recomputed from the pinned inputs; §6's dispositions; every invocation
-  reported; its own CPU charged; **(r2) the cap: the effective total, including its own `begun` row and the tail
-  reserve, must not exceed the cap, or it refuses to compute any disposition and reports** (an exhausted allowance
-  stops and reports; §7).
+  reported; its own CPU charged; **(r2, r3) the cap, twice:** at entry (effective total + its tail reserve ≤ cap) and
+  after computing, before any disposition is written or printed (effective total + its measured CPU + tail ≤ cap);
+  a failed final check writes `AGGREGATE_STOPPED.json`, prints no disposition and ends `failed` (boundary 7).
 - **Missing or failed:** `RunInvalid`; its own failure is charged; an `unresolved` attempt or an exceeded cap refuses.
-- **Findings:** c1-3, c2 R2-2, f1r2 B2, f2 B2, f2r2 (the final cap rule).
+- **Findings:** c1-3, c2 R2-2, f1r2 B2, f2 B2, f2r2 (the final cap rule), d1 D3.
 
 ### 14. The register as a source
-- **Binds (r2):** the register **at HEAD** of the admitted checkout: the admission gate refuses when the register path
-  is modified or untracked against HEAD (`git status --porcelain -- <register>` non-empty), so the text every gate reads
-  is a committed text, identified by HEAD; the chronology of rows by their first-appearance commits (boundary 3) and
-  against the exposure commit; the rows' grammars; Eric's rows by their source token. **What the code does not and
+- **Binds (r2, r3):** the register **at one HEAD, captured once per invocation**: every gate resolves HEAD at entry and
+  reads the register's bytes from that commit (`git show <head>:<register>`), carrying that snapshot and commit through
+  every row parse, chronology check and decision; no gate reads the working-tree register (D5); the dirty-register
+  refusal (`git status --porcelain -- <register>` non-empty) stays as an additional rule; the chronology of rows by their
+  first-appearance commits (boundary 3) and against the exposure commit; the rows' grammars; Eric's rows by their source
+  token. A row injected into the working tree after any check is never authority. **What the code does not and
   cannot establish:** that Eric typed the words (the manager verifies the prompt log; the source token is the process's
   attestation) or that HEAD is on origin (the process rule: main is pushed only with a full suite at that commit).
 - **Missing or failed:** a required row missing, malformed, present at the exposure commit when it must be later, or
@@ -335,7 +386,7 @@ declaration, however exclusive or random its name.
 | c1 | 3 coverage self-certified | 11, 13 |
 | c1 | 4 history start | 10 |
 | c1 | 5 acquisition unbound | 1, 2 |
-| c1 | 6 completion and costs unbound; repeat launch | 9, 11 |
+| c1 | 6 completion and costs unbound; repeat launch | 9, 11, 12 (the pre-launch claim check) |
 | c1 | 7 malformed records repaired | 2 |
 | c2 | R2-1 inventory unchecked pre-read | 1 |
 | c2 | R2-2 coverage self-certified at the next-seed gate | 4, 12, 13 |
@@ -357,13 +408,21 @@ declaration, however exclusive or random its name.
 | f2r2 | a plan SIGN could admit code | 0 |
 | f2r2 | no failure rule for the register; row order unenforced | 14, 3 |
 | f2r2 | actual arguments unchecked; timing wording; the stages of run | 5, 2, 4, 10 |
+| d1 | D1 the receipt's account input was caller-selected; appends outside the lock | 7 (the account lock), 8, 9 |
+| d1 | D2 no attempt identity; the current in-flight launch; settlement algebra | 7 |
+| d1 | D3 git subprocess CPU unowned; the aggregate's final cap check | 7, 13 |
+| d1 | D4 the wrapper's protected read before its path check | 5 |
+| d1 | D5 a clean working tree is not a snapshot | 14 |
+| d1 | D6 the certificate rule in the shared helper | 0 (f26's own gate), the scope statement |
+| d1 | D7 receipt-only identities and the receipt-to-PENDING crash | 8, 12, 7 |
 | c1 | nonblocking 8 (hook placement and default parity) | 10: closed; the base-vs-current parity is each reviewer's own probe |
 | c1 | nonblocking 9 (projection, as-of, disposition arithmetic) | 2, 10, 13: closed |
-| c1 | nonblocking 10 (reporting: identified ids, resumed totals, disagreement flag, streak statement, off-launcher costs) | 11, 13 and 7: the machine fields exist; the results note (design §6, §8) must still state coverage denominators, the disagreement prominently and streak movement first |
+| c1 | nonblocking 10 (reporting: identified ids, resumed totals, disagreement flag, streak statement, off-launcher costs; also the allowance, window and claim protections that checked out, the exact raw-source selection, and the human heads-up and sealed-opening obligations) | 11, 13 and 7 for the machine fields; 6, 10, 2 for the protections that checked out; the results note (design §6, §8) must still state coverage denominators, the disagreement prominently and streak movement first; heads-up and sealed opening are protocol obligations of the lead and the manager, proved by no receipt |
 | c1 | nonblocking 11 (stubbed integration; the test names) | the evidence: the run tests stub admission, features and the walk-forward and say so; only an admitted real run exercises them |
-| c2 | nonblocking 3–6 (strict paths, labels, history, receipts: closed cases) | 10, 11, 9: closed |
+| c2 | nonblocking 3–5 (strict paths, labels, history, receipts: closed cases) | 10, 11, 9: closed |
+| c2 | nonblocking 6 (reporting: the dependence-disagreement flag in both directions, block degeneracy, identified and resumed coverage, streak statement first) | 11, 13: the flag covers both directions and has its test and mutant; the prose requirements are the results note's |
 | c2 | nonblocking 7 (ledger provenance, preparation CPU) | 7 |
-| c2 | nonblocking 8–10 (mutation kills' meaning, the exact threshold, the bytecode account) | the evidence: message-only and masked kills are labelled; the threshold has its test and mutant; the bytecode cause is "plausible, not measured" |
+| c2 | nonblocking 8–10 (mutation kills' meaning, the exact threshold, the bytecode account) | the evidence: message-only and masked kills are labelled, M64's label corrected (it changes the registered seed, not the reset), the oldest ledger's per-restore cleanliness claim narrowed to its final check; the threshold has its test and mutant; the bytecode cause is "plausible, not measured" |
 | f1 | the ledger error (off-launcher CPU), the early stop's basis, weak test names | 7; the evidence (corrected) |
 | f1r2, f2 | inventory inaccuracies, the setup-TypeError RED, six repairs, M87's attribution, the round-4 commit wording | the evidence: revision 3 of the inventory, the ledgers, a NOTE row |
 
@@ -374,35 +433,48 @@ every starter-table field as its own row; every aggregate output field, marking 
 `RESERVATION_` receipt's fields; the account's rows field by field with `step`, `state` and `cpu_source` as BOUND; the
 TERMINAL failure variants as not carried into `other_units`; `data_dir` as "supplied and checked against the inventory".
 Status cells distinguish CHECKED (an independent source), BOUND (a shape or range that refuses), REPORTING (no decision
-reads it) and RECOMPUTED (derived here from validated inputs). The count is by script, with every row classified.
+reads it) and RECOMPUTED (derived here from validated inputs). The count is by script, with every row classified. (r3)
+The account's `attempt`, `state`, `cpu_self_s`, `cpu_children_s`, `cpu_source`, the settlement rows and the receipt's
+`attempt`, `extra_path`, `extra_bytes`, `extra_sha256` are listed as their own rows.
 
-## What round 5 implements, test-first, in this order (r2)
+## What round 5 implements, test-first, in this order (r3)
 Each item's RED runs on the current code before its fix, against the existing boundary, with controls that carry the
 legitimate history the new rules require (the ruled seed row, a C1 ledger with its header, the completed prepare and
-expect rows), so that a new rule never masks an older test and no RED rests on a missing attribute at setup.
-1. Boundary 0: the `Review-kind` line in `admission._review_signs` and in the fresh reviewer's brief. Test: a plan
-   SIGN naming the commit is not a certificate; the code SIGN is.
-2. Boundary 14: the register path must be unmodified against HEAD at every gate. Test: an edited working-tree register
-   refuses; HEAD's row is read.
+expect rows with their digests), so that a new rule never masks an older test and no RED rests on a missing attribute
+at setup; a RED is observed through an existing public entry point.
+1. Boundary 0: the `Review-kind` line required by `f26.admission_gate` (f26's own; the shared helper untouched). Test:
+   an archived design SIGN naming the commit is refused as a certificate; a code SIGN with the line is accepted; the
+   shared `admission_check` still accepts the legacy certificates (its existing tests unchanged).
+2. Boundary 14: every gate reads the register from one captured HEAD; the dirty refusal stays. Test: a row injected
+   into the working tree after the cleanliness check is never read; HEAD's row is.
 3. Boundary 3: the row order by first appearance. Test: a prepared row introduced in the same or an earlier commit than
    the prep-read row refuses (synthetic git history).
-4. Boundary 5: the prepared-pins comparison, the content re-checks, the actual-argument checks, and the chain in
-   `validate_run`. Test: f2's coherent replacement; a run with another `inputs_dir`.
-5. Boundary 7: the row schema with `state`, `cpu_source` and identities; the phases; the ruled seed row; the ledger's
-   existence and header; `self`-only CPU for the wrapper; the tail reserve; `unresolved` and settlement rows; whole-
-   process CPU for CLI steps. Tests: f2's missing ledger, zero prior, shortened account; the valid first sequence
-   (seed → prepare → expect → launch) as a control; a `begun` without an end row pauses; a settlement row releases.
-6. Boundaries 8 and 9: C1's combined mode (`--extra-charges`, `--require-ledger`, the overhead reserve,
-   `RESERVATION_<unit>.json` under the lock) with its own tests in `tests/scripts/test_c1_cycle.py` (the plan's
-   arithmetic at the boundary; a missing or headerless ledger refuses in that mode; the receipt's fields); the
-   wrapper's invocation of it; `run`'s receipt check against its own unit and the account prefix; `validate_run`'s
-   receipt check. Tests: a payload whose unit has no receipt; a receipt for another unit; a receipt whose prefix no
-   longer hashes; the f2r2 interleaving (an extra charge between decision and start is impossible under the lock,
-   shown by the decision and the PENDING being written in one `_locked` call).
+4. Boundary 5: the prepared-pins comparison, the content re-checks, the actual-argument checks in `run`, `aggregate`
+   and `launch` before any protected read (instrumented opens), and the chain in `validate_run`. Test: f2's coherent
+   replacement; a run, an aggregate and a launch with another `inputs_dir` holding identical pinned bytes refuse before
+   opening it.
+5. Boundary 7: the row schema (attempt, state, the two CPU figures, identities); the account lock; the phases; the
+   ruled seed row; the ledger's existence and header; the current-attempt exemption; `unresolved` and settlement rows;
+   the tail reserve; whole-process `self` plus `children` for every step. Tests: f2's missing ledger, zero prior,
+   shortened account; the valid first sequence as a control; a dead `begun` without an end pauses, a live one (the
+   wrapper-to-payload overlap, simulated with the wrapper's row present and the receipt naming it) does not; a
+   settlement row releases; CPU figures from a child-spawning step are owned once.
+6. Boundaries 8, 9, 12: C1's combined mode (`--extra-charges`, `--attempt`, `--require-ledger`, the one-snapshot read,
+   the overhead reserve, `RESERVATION_<unit>.json` under the lock, `RESERVATION_` in `unit_taken`) with its own tests in
+   `tests/scripts/test_c1_cycle.py` (legacy behavior byte-identical without the flags: the same plan JSON, records and
+   return codes on the existing fixtures; a lone new flag refused; the plan's arithmetic at the boundary; a missing or
+   headerless ledger refuses in that mode; the receipt's fields; a receipt-only identity is taken); the wrapper under
+   the account lock with its `begun` row as the snapshot's last row; `run`'s receipt check (path, prefix hash, the
+   attempt's `begun` row last, the phase over the prefix); `validate_run`'s receipt check; `other_units` discovering
+   receipts. Tests: d1's stale-prefix file at another path (refused by the path rule); a shortened canonical account
+   (its snapshot cannot end with this attempt's row); a payload whose unit has no receipt, or a receipt for another
+   unit or attempt; a receipt without PENDING is an invocation of the seed; the wrapper's protected read refused before
+   its open.
 7. Boundary 11: exact integer fields; nullable catcher ids only where the trusted catcher is missing. Test: f2's +0.25
    probe; a valid missing-catcher row accepted.
-8. Boundary 13: the final cap rule and the `unresolved` refusal.
+8. Boundary 13: the two cap checks and `AGGREGATE_STOPPED.json`; the `unresolved` refusal. Test: an entry refusal; a
+   final refusal after simulated aggregate work raises the measured total; no disposition written.
 9. The evidence: the selectors (M106, M107); inventory revision 3 as listed above; the round-3 ledger's M87
-   sentence; the NOTE rows (the round-4 commit wording; the f2 hashes).
+   sentence; the NOTE rows (the round-4 commit wording; the f2 hashes; d1's blindness observation).
 10. Mutants M115+ for every new guard, anchors and non-empty selectors verified before any run; no mutation run until
     the manager lifts the disk pause.
