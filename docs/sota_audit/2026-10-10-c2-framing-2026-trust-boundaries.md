@@ -19,6 +19,24 @@ enforcement inside C1's own launch lock — a change to `scripts/audit/c1/launch
 change with its own gate, brought to the manager before any code. Everything else in this note changes `f26.py`, its
 tests and the evidence only. Nothing under `src/` changes.
 
+**The C1 launcher change is in scope on the manager's conditions (2026-10-10), which bind this plan:**
+(a) **additive and default-off** — `launch.py run` behaves byte-for-byte as today without the new flags; the combined mode
+exists only when both `--extra-charges <path>` and `--require-ledger` are given; `status` is unchanged;
+(b) the existing C1 tests in `tests/scripts/test_c1_cycle.py` pass unchanged, and new tests cover the combined mode, the
+`RESERVATION_<unit>.json` receipt, the fail-closed ledger checks and the lock ordering (decision, receipt, PENDING and
+`systemd-run` inside one `_locked` call);
+(c) **observed from code on 2026-10-10 at commit `caf38c9`** (`grep` over `src/`, the top-level `scripts/*.py`,
+`scripts/cron-setup-hetzner.sh` and `pyproject.toml` for `scripts.audit.c1`, `scripts/audit/c1` and `audit.c1`): nothing
+in production imports or invokes `scripts/audit/c1`; its only importers are the research code under `scripts/audit/`
+(`c1_r3`, `c1_r4a`, `c1_r4b`, `c2_framing`) and their tests. The box's crontab and user units were not read from here;
+the repository's cron installer carries no such line. Should any production path be found to invoke it, the change goes
+back to the manager before code;
+(d) **deploying the changed launcher to the box is its own step with a written procedure:** pull by commit into
+`~/projects/bts-c1`, checksum-verify `scripts/audit/c1/launch.py` and `guard.py` against the admitted commit, record it
+as a C2 index row, never inside 00:45–03:10 box clock, and nothing launches in combined mode until the box's launcher is
+verified at that commit;
+(e) the C1 change rides in the same review package as `f26.py`'s changes, so the merge-gate reviewer (f3) sees both.
+
 **What this note is.** The chain, in order, from the exposure row to the aggregate. For each boundary: **what binds
 it** (bytes by sha256, a register row, a file identity created exclusively, a cgroup unit, a reviewed constant), **what
 happens when the bound thing is missing or failed** (always a refusal, never a default), **which findings** of the five
