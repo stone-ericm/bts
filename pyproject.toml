@@ -50,3 +50,7 @@ dev = [
 # a relative window would embed different wall-clock timestamps on each env.
 # Update this line manually when refreshing the supply-chain-defense window.
 exclude-newer = "2026-04-11"
+# Per-package exception (2026-10-20): certifi 2026.10.19 is the trust-store fix for
+# the eMudhra intermediate-CA compromise (Mozilla bug 2083449); every older certifi
+# still trusts the compromised chains. Only certifi may pass the window.
+exclude-newer-package = { certifi = "2026-10-21T00:00:00Z" }
