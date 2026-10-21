@@ -41,6 +41,7 @@ bash scripts/cron-setup-hetzner.sh install   # install to bts user crontab
 - See `the claude-shared memory file reference_bts_deploy_workflow.md` for full details.
 
 ## Box access (bts-hetzner) gotchas
+- **🛑 bts-mlb is DELETED for the 2026–27 offseason (2026-10-21).** `ssh bts-hetzner`, the dashboard, crons and `git push origin main:deploy` all fail until the box is recreated from Hetzner snapshot `446156433` onto the retained Primary IPv4 `204.168.243.169` (id 126036156). Runbook + spring restore recipe + Codex sign-off review: memory `project_bts_hetzner_offseason_2026_10_21.md` and `docs/reviews/2026-10-21-offseason-teardown/`. Before activation follow `docs/ops/2027-season-start.md`; the resolve timer is `Persistent=true` and will catch up on first boot.
 - Non-interactive SSH lands as user `bts` with `uv` NOT on PATH → use `~/.local/bin/uv`. No sudo needed (or available) for the user units: `export XDG_RUNTIME_DIR=/run/user/$(id -u)` then `systemctl --user ...`.
 - The dashboard binds the **tailnet IP only** (`tailscale ip -4`:3003) — `curl localhost:3003` returns 000 by design, not an outage.
 - Data layout: `data/picks/<date>/decision.json` (per-day dirs) vs `data/picks/<date>.policy_shadow.json` (flat files) — skip-day shadow records are NOT inside the date dirs.
