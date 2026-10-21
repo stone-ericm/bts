@@ -270,7 +270,7 @@ def test_rate_limit_on_a_board_page_aborts_everything_and_archives_the_error_bod
     assert code == EXIT_ABORTED_RATE_LIMITED and status["terminal_state"] == "aborted_rate_limited"
     kinds = [c["kind"] for c in t.calls]
     assert kinds[-1] == "board" and "profile" not in kinds
-    err_bodies = [p for p in (cfg.run_root / "raw" / "board").glob("*.json.gz")]
+    err_bodies = sorted((cfg.run_root / "raw" / "board").glob("*.json.gz"))  # glob order is filesystem-dependent (ext4 ≠ APFS)
     assert len(err_bodies) == 2 and gzip.decompress(err_bodies[-1].read_bytes()) == b"slow down"
     assert status["requests"][-1]["outcome"] == "aborted" and status["requests"][-1]["http_status"] == 429
     assert any(r["outcome"] == "unattempted" for r in status["planned_unattempted"]) or status["planned_unattempted"]
