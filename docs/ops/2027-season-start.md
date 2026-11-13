@@ -23,6 +23,9 @@
 | B2 | **I-113 R2 tail-policy backup**: hotfix `3577e8b`, deployed 2026-10-03 and **verified 2026-10-04 03:07 ET**. That night's sync uploaded `models/mdp_tail_policy.npz` (sha `dc5d0c99…`; manifest 12 → 13 files); the R2 object exists and its downloaded bytes match; the restored tail validates against the restored base `66d15471`. The same verifier failed before the fix, so the check was shown in both directions. For 2027: confirm the R2 manifest still lists the tail policy. | Claude | manifest listing |
 | B3 | **`BTS_LGBM_DETERMINISTIC`**: decide whether to flip it, only after a deliberate re-baseline cycle (CLAUDE.md). | Eric decides; Claude measures | paired-seed memo |
 
+| B4 | **Preseason pick-path changes of 2026-11-12/13** (season-end lookup `29e10bf`, cron season `1137cbe`, thin-slate checks `9998bbf`, `bts day-outcome` and its two cron lines `222d18e`). ONE fresh whole-range Codex review (tier A, work policies) before the deploy that precedes the opener; then Eric's deploy approval. After the cron install, verify the two `day-outcome` lines and run the failure-direction check on the box: move a day's `decision.json` aside, run `bts day-outcome --date <that day>`, see exit 1 and the DM, restore the file. | Claude; Eric approves the deploy | the review's SIGN; the crontab diff; the DM received and the file restored |
+| B5 | **Add 2028 to `bts.strategy.SEASON_END_DATES`** when that schedule is published, and re-check 2027's 09-26 if a labor stoppage moves the season. | Claude | the `tail_policy` health check silent for the year |
+
 ## C. Added by Eric after W1.5 (2026-10-03)
 | # | Item | Executor | Acceptance evidence |
 |---|---|---|---|

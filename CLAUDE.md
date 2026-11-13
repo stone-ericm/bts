@@ -49,7 +49,11 @@ Source, mapping and what this supersedes: `docs/superpowers/notes/work-policies-
 
 ## 2027 season (Eric 2026-11-12: "We're gonna play in 2027"; "Activation approved")
 - Opening Night Wed 2027-03-24 (one game, the singleton-slate case), traditional opener 03-25, season ends 09-26. The labor contract expires 2026-12-01 and a lockout is expected: the box is restored 21 days before a CONFIRMED opener, not before.
-- Known 2027 blockers: `src/bts/strategy.py:42` `SEASON_END_DATE = "2026-09-28"`; `scripts/cron-setup-hetzner.sh:91` `--seasons 2026`.
+- **Season-bound values (fixed 2026-11-13):** the season end is looked up per year in `bts.strategy.SEASON_END_DATES` (add each new year; an unconfigured year falls back to September 28 and the `tail_policy` health check WARNs; re-check 2027's 09-26 after any labor stoppage). The nightly cron builds `$(date +%Y)`. The old single constant made every 2027 date read as zero days left, which skips the whole season without an error.
+- **Thin slates** (one or two games) get extra lineup checks at start−180 and start−120 (`scheduler.plan_run_times`; the 2026-07-16 case). A start moved up by more than about two hours after the morning fetch can still outrun every check.
+- **`bts day-outcome`** (`src/bts/day_outcome.py`; cron 23:50 for today and 08:30 for yesterday, under either intent): read-only and stateless. It names the day's end state from `decision.json` and the sealed entry receipts and DMs unless it is clean (`no_games`, `deliberate_skip`, `entered`, `research_commit`). Missing evidence reads as unverifiable, never as a pass. It replaces the deferred C1 rank-2 watchdog. Deploys never touch crontab: the lines exist on the box only after `cron-setup-hetzner.sh install`.
+- **The 2026 framing test is closed: NEGATIVE** (2026-11-13, `docs/sota_audit/2026-11-13-result-c2-framing-2026-test.md`). It ran on the Mac Studio through `scripts/audit/c2_framing/f26_studio.py`; the 2017–2025 probable-pitcher lookup rebuilds byte-identically from the public schedule endpoint with `hydrate=probablePitcher` (sha `4a898958…`), so that pinned file does not need the box.
+- **Rulings ledger and progress:** the roadmap's "Progress and rulings ledger" section.
 - Reopened by Eric 11/12: the longest-streak policy (4b, trade table still needs his D7 approval before it affects picks) and a narrower watchdog.
 
 ## Deployment

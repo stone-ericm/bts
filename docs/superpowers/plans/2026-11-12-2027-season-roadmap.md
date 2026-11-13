@@ -125,6 +125,27 @@ Follows `docs/ops/2027-season-start.md`; items in order.
 
 ---
 
+## Progress and rulings ledger
+
+**Done (2026-11-12 and 11-13), all on `main`:**
+- **Thread A.** Season end follows the year (`29e10bf`); the nightly cron builds the current season (`4f…` cron commit). Audit of every 2025–2027 literal in `src/bts` code (16 lines): the only season-bound logic was `strategy.SEASON_END_DATE` and the cron line. `leaderboard.scraper.scrape_leaderboard` defaults `season=2026`, but both production callers pass `today.year`. The tail policy needs no rebuild: 2027 has 186 days opener to end, clamped to the same 180-day table as 2026. Still open in A: the fixture-day dry run (checklist A6).
+- **Thread B.** Thin slates (one or two games) get checks at start−180 and start−120 as well (`plan_run_times`). Limit: a start moved up by more than about two hours after the morning fetch can still outrun every check.
+- **Thread C.** `bts day-outcome` (`src/bts/day_outcome.py`), installed by cron at 23:50 and 08:30 under either intent.
+- **Decision 5.** The 2026 framing test ran and came back NEGATIVE (`docs/sota_audit/2026-11-13-result-c2-framing-2026-test.md`). The framing thread is closed; the pregame-catcher capture in thread D is dropped with it.
+
+**Design rulings made under the standing design authority (Eric can overrule any of them):**
+
+| # | Ruling | Why | Cost if wrong |
+|---|---|---|---|
+| R1 | An unconfigured season year falls back to September 28 and WARNs, instead of raising | A raise in the pick path would idle or crash the day; a wrong end date by a few days is inside the policy's stated tolerance | Days-left is off by up to a few days in a year nobody configured, until the WARN is read |
+| R2 | Thin-slate checks are added only for slates of one or two games, at fixed offsets, with no mid-day re-planning of the schedule | The smallest change that covers 7/16 and Opening Night; re-planning the run list mid-loop touches the fallback and coalescing logic | A start moved up by more than about two hours on a thin slate, or any large move on a normal slate whose other checks are all later, is still missed; the day-outcome check then reports it the same night |
+| R3 | The watchdog is one stateless read-only command, not the frozen W0 design | W0 failed three review rounds on its own notification state; cron cadence is the dedup | A problem day produces two DMs (23:50 and 08:30), not one; no escalation ladder |
+| R4 | "Entered" needs a sealed `observed` receipt with `qualification.all_confirmed`, bound to the decision bytes on disk, the expected account and the date, before the cutoff | The receipt's own consumer rules (`docs/ops/pick-entry-receipt-v1.md`) | A real entry that no check observed in time reads `entry_unverifiable` and DMs: a false alarm, not a miss |
+| R5 | The framing test ran on the Mac Studio without the C1 launcher, on a rebuilt `pa_2026` | The box is deleted; X-37 declares each deviation | The result is not byte-comparable with October's box runs; it is a self-contained test |
+| R6 | Decision 6–8 defaults stand until Eric says otherwise: day-one captures proceed; field-capture footprint decided in February; C3, C4, register Phase 2 and the determinism flag wait until after the opener | Unanswered on 11/12; all reversible | Captures built that he did not want cost only build time |
+
+**Tier A changes awaiting the one whole-range review before the pre-season deploy:** the season-end lookup, the thin-slate planner, the day-outcome check and its cron lines, the cron season.
+
 ## 4. Critical path
 
 1. Threads A and B are required to play at all on 03-24 and depend on no decision. Start here.
