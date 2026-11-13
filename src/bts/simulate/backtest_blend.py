@@ -653,6 +653,25 @@ def _starter_matchup_representative_rows(day_data: "pd.DataFrame") -> tuple["pd.
     return reps, int(starter_matchup_batter_games), dropped
 
 
+def _strict_scores(scores, index, label: str) -> None:
+    """Strict mode (``blend_walk_forward(strict_predict=True)``): a model's scores must cover exactly the required
+    rows, aligned with them, and be finite; a missing or misaligned row would otherwise be dropped from an average
+    or a ranking without a trace."""
+    import numpy as np
+    import pandas as pd
+
+    if isinstance(scores, pd.Series):
+        if not scores.index.equals(index):
+            raise ValueError(f"{label} scores are not aligned with the required rows")
+        values = scores.to_numpy(dtype=float)
+    else:
+        values = np.asarray(scores, dtype=float)
+        if values.shape != (len(index),):
+            raise ValueError(f"{label} scores are not aligned with the required rows")
+    if not np.isfinite(values).all():
+        raise ValueError(f"{label} returned non-finite scores")
+
+
 def _estimated_pa_game_predictions(
     day_data: "pd.DataFrame",
     *,
@@ -662,6 +681,7 @@ def _estimated_pa_game_predictions(
     model_train_window: "pd.DataFrame",
     top_n: int,
     capture_per_model: bool,
+    strict: bool = False,
 ) -> "pd.DataFrame":
     import numpy as np
     import pandas as pd
@@ -682,6 +702,8 @@ def _estimated_pa_game_predictions(
         reliever_rows["pitcher_entropy_30g"] = entropy
 
     p_reliever = baseline_predict_fn(baseline_model, reliever_rows, baseline_cols)
+    if strict:
+        _strict_scores(p_reliever, reliever_rows.index, "baseline (reliever rows)")
     p_reliever = pd.Series(p_reliever, index=reps.index, dtype=float)
 
     lineup_raw = (
@@ -731,6 +753,8 @@ def blend_walk_forward(
     cache_reuse_configs: list[str] | None = None,
     pa_predictions_path: "Path | None" = None,
     game_probability_mode: str = GAME_PROBABILITY_ACTUAL_PA,
+    predict_day_transform=None,
+    strict_predict: bool = False,
 ) -> "pd.DataFrame":
     """Run blend walk-forward evaluation and return daily profiles.
 
@@ -766,6 +790,19 @@ def blend_walk_forward(
             Gate-B diagnostic mode that uses starter-matchup rows, lineup-slot
             estimated PAs, and training-window reliever context to mirror the
             production probability basis.
+        predict_day_transform: Optional ``f(day_data, day) -> DataFrame``
+            applied to the private copy of each predicted day's rows after any
+            retraining and before the first blend prediction, so its values
+            reach the blend scores and the estimated-PA starter and reliever
+            rows. It must return the same index and columns in the same order;
+            training frames never see it. Research plumbing for the 2026
+            framing test (``docs/sota_audit/2026-10-09-prereg-c2-framing-2026-test.md``
+            §4). None (the default) leaves behavior unchanged.
+        strict_predict: When True, a model's prediction failure, or scores
+            that are not finite and aligned with every required row (the day's
+            rows and the estimated-PA reliever rows), raise instead of being
+            printed and scored as missing. False (the default) leaves behavior
+            unchanged.
 
     Returns DataFrame with PROFILE_COLUMNS (plus per-model columns if requested).
     """
@@ -852,12 +889,25 @@ def blend_walk_forward(
                       f"— retrained on {len(available):,} PAs{hit_msg}",
                       file=sys.stderr)
 
+        if predict_day_transform is not None:
+            transformed = predict_day_transform(day_data, day)
+            if not (isinstance(transformed, pd.DataFrame)
+                    and list(transformed.columns) == list(day_data.columns)
+                    and transformed.index.equals(day_data.index)):
+                raise ValueError("predict_day_transform must return the day's rows with the same index, order and "
+                                 "columns")
+            day_data = transformed
+
         # Predict with all blend models
         blend_pa_scores = {}
         for name, (model, cols, predict_fn) in blend.items():
             try:
                 blend_pa_scores[name] = predict_fn(model, day_data, cols)
+                if strict_predict:
+                    _strict_scores(blend_pa_scores[name], day_data.index, f"{name} on {day}")
             except Exception as e:
+                if strict_predict:
+                    raise
                 print(f"  ! {name} predict failed on {day}: {e}", file=sys.stderr)
                 blend_pa_scores[name] = pd.Series(np.nan, index=day_data.index)
 
@@ -888,6 +938,7 @@ def blend_walk_forward(
                 model_train_window=model_train_window,
                 top_n=top_n,
                 capture_per_model=capture_per_model,
+                strict=strict_predict,
             )
         game_preds["date"] = pd.Timestamp(day).date()
 

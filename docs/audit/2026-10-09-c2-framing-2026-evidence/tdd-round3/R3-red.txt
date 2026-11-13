@@ -1,0 +1,967 @@
+UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run --offline pytest -q -p no:cacheprovider tests/scripts/c2_framing/test_f26_run.py -k 'test_f1_ or test_f2_ or test_f3_ or test_f4_ or test_f5_'
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-c2f26-code
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 161 items / 121 deselected / 40 selected
+
+tests/scripts/c2_framing/test_f26_run.py FFFFFFFFFFFFFFFFFF.FFFFFFFFFFFF [ 77%]
+FFFFFFFFF                                                                [100%]
+
+=================================== FAILURES ===================================
+_________ test_f1_a_coherent_rank_swap_that_changes_p_at_1_is_refused __________
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1187c3320>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f1_a_coherent_rank_swap_t0/inputs'), ...}
+
+    def test_f1_a_coherent_rank_swap_that_changes_p_at_1_is_refused(world):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        d = _run_dir(world, seed)
+        before = json.loads((d / "results.json").read_text())["rank1"]["A_posted"]
+        _rewrite_profile(d, "A_posted", _rank_swap_that_changes_the_hit)
+        _recohere(world, seed)
+        after = json.loads((d / "results.json").read_text())["rank1"]["A_posted"]
+        assert after != before                                 # the forgery moved P@1 and every derived record agrees
+>       with pytest.raises(F.RunInvalid, match="probabilit"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.screen.RunInvalid'>
+
+tests/scripts/c2_framing/test_f26_run.py:1226: Failed
+______ test_f1_exact_ties_between_adjacent_ranks_are_reported_not_refused ______
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x11764e180>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f1_exact_ties_between_adj0/inputs'), ...}
+
+    def test_f1_exact_ties_between_adjacent_ranks_are_reported_not_refused(world):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        d = _run_dir(world, seed)
+>       assert _validate(world, seed)["ties"] == {a: {"adjacent": 0, "top": 0} for a in F.ARMS}
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'ties'
+
+tests/scripts/c2_framing/test_f26_run.py:1234: KeyError
+_ test_f2_a_common_wrong_model_recipe_is_refused_by_validation_and_by_the_aggregate[<lambda>0] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118622900>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f2_a_common_wrong_model_r0/inputs'), ...}
+ten = [PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f2_a_common_wron...00gn/T/pytest-of-eric/pytest-12439/test_f2_a_common_wrong_model_r0/out/seed_1277948386/aaaaaaa-20261010T003210Z'), ...]
+edit = <function <lambda> at 0x110bc4a40>
+
+    @pytest.mark.parametrize("edit", [
+        lambda p: p.update(n_estimators=1, learning_rate=0.9),         # review f1's case: one tree, a hot learning rate
+        lambda p: p.update(num_threads=1),                              # an extra key
+        lambda p: p.pop("max_depth"),                                   # a missing key
+    ])
+    def test_f2_a_common_wrong_model_recipe_is_refused_by_validation_and_by_the_aggregate(world, ten, edit):
+        for d in ten:
+            _edit_json(d, "manifest.json", lambda m: edit(m["lgb_params"]))
+>       with pytest.raises(F.RunInvalid, match="lgb_params"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.screen.RunInvalid'>
+
+tests/scripts/c2_framing/test_f26_run.py:1258: Failed
+_ test_f2_a_common_wrong_model_recipe_is_refused_by_validation_and_by_the_aggregate[<lambda>1] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118803230>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f2_a_common_wrong_model_r1/inputs'), ...}
+ten = [PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f2_a_common_wron...00gn/T/pytest-of-eric/pytest-12439/test_f2_a_common_wrong_model_r1/out/seed_1277948386/aaaaaaa-20261010T003235Z'), ...]
+edit = <function <lambda> at 0x110bc4ae0>
+
+    @pytest.mark.parametrize("edit", [
+        lambda p: p.update(n_estimators=1, learning_rate=0.9),         # review f1's case: one tree, a hot learning rate
+        lambda p: p.update(num_threads=1),                              # an extra key
+        lambda p: p.pop("max_depth"),                                   # a missing key
+    ])
+    def test_f2_a_common_wrong_model_recipe_is_refused_by_validation_and_by_the_aggregate(world, ten, edit):
+        for d in ten:
+            _edit_json(d, "manifest.json", lambda m: edit(m["lgb_params"]))
+>       with pytest.raises(F.RunInvalid, match="lgb_params"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.screen.RunInvalid'>
+
+tests/scripts/c2_framing/test_f26_run.py:1258: Failed
+_ test_f2_a_common_wrong_model_recipe_is_refused_by_validation_and_by_the_aggregate[<lambda>2] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118fa38f0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f2_a_common_wrong_model_r2/inputs'), ...}
+ten = [PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f2_a_common_wron...00gn/T/pytest-of-eric/pytest-12439/test_f2_a_common_wrong_model_r2/out/seed_1277948386/aaaaaaa-20261010T003300Z'), ...]
+edit = <function <lambda> at 0x110bc4b80>
+
+    @pytest.mark.parametrize("edit", [
+        lambda p: p.update(n_estimators=1, learning_rate=0.9),         # review f1's case: one tree, a hot learning rate
+        lambda p: p.update(num_threads=1),                              # an extra key
+        lambda p: p.pop("max_depth"),                                   # a missing key
+    ])
+    def test_f2_a_common_wrong_model_recipe_is_refused_by_validation_and_by_the_aggregate(world, ten, edit):
+        for d in ten:
+            _edit_json(d, "manifest.json", lambda m: edit(m["lgb_params"]))
+>       with pytest.raises(F.RunInvalid, match="lgb_params"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.screen.RunInvalid'>
+
+tests/scripts/c2_framing/test_f26_run.py:1258: Failed
+________ test_f2_the_manifest_records_the_reviewed_blend_configurations ________
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x11888b050>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f2_the_manifest_records_t0/inputs'), ...}
+
+    def test_f2_the_manifest_records_the_reviewed_blend_configurations(world):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        man = json.loads((_run_dir(world, seed) / "manifest.json").read_text())
+>       assert man["blend_configs"] == {"baseline": _configs_as_recorded("baseline"), "A_posted": _configs_as_recorded("A"),
+               ^^^^^^^^^^^^^^^^^^^^
+                                        "A_projected": _configs_as_recorded("A")}
+E       KeyError: 'blend_configs'
+
+tests/scripts/c2_framing/test_f26_run.py:1272: KeyError
+_ test_f2_a_coherent_wrong_blend_configuration_is_refused_everywhere[<lambda>0] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x11884e060>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f2_a_coherent_wrong_blend0/inputs'), ...}
+ten = [PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f2_a_coherent_wr...00gn/T/pytest-of-eric/pytest-12439/test_f2_a_coherent_wrong_blend0/out/seed_1277948386/aaaaaaa-20261010T003326Z'), ...]
+edit = <function <lambda> at 0x110bc4ea0>
+
+    @pytest.mark.parametrize("edit", [
+        lambda b: b["A_posted"][1][1].pop(),                            # one A config loses its Statcast extra
+        lambda b: b["baseline"].pop(),                                  # eleven models
+        lambda b: _swap_in_the_old_column(b["A_projected"][0][1]),      # the A arm quietly keeps production's column
+    ])
+    def test_f2_a_coherent_wrong_blend_configuration_is_refused_everywhere(world, ten, edit):
+        for d in ten:
+>           _edit_json(d, "manifest.json", lambda m: edit(m["blend_configs"]))
+
+tests/scripts/c2_framing/test_f26_run.py:1288: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:394: in _edit_json
+    fn(obj)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+m = {'allowance': {'budget': 12.0, 'cap': 165.0, 'first_unit_stop': 4.1}, 'arms': ['baseline', 'A_posted', 'A_projected'],...imated_pa', 'calendar': ['2026-05-01', '2026-05-02', '2026-05-03', '2026-05-04', '2026-05-05', '2026-05-06', ...], ...}
+
+>   _edit_json(d, "manifest.json", lambda m: edit(m["blend_configs"]))
+                                                  ^^^^^^^^^^^^^^^^^^
+E   KeyError: 'blend_configs'
+
+tests/scripts/c2_framing/test_f26_run.py:1288: KeyError
+_ test_f2_a_coherent_wrong_blend_configuration_is_refused_everywhere[<lambda>1] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118801670>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f2_a_coherent_wrong_blend1/inputs'), ...}
+ten = [PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f2_a_coherent_wr...00gn/T/pytest-of-eric/pytest-12439/test_f2_a_coherent_wrong_blend1/out/seed_1277948386/aaaaaaa-20261010T003350Z'), ...]
+edit = <function <lambda> at 0x110bc4f40>
+
+    @pytest.mark.parametrize("edit", [
+        lambda b: b["A_posted"][1][1].pop(),                            # one A config loses its Statcast extra
+        lambda b: b["baseline"].pop(),                                  # eleven models
+        lambda b: _swap_in_the_old_column(b["A_projected"][0][1]),      # the A arm quietly keeps production's column
+    ])
+    def test_f2_a_coherent_wrong_blend_configuration_is_refused_everywhere(world, ten, edit):
+        for d in ten:
+>           _edit_json(d, "manifest.json", lambda m: edit(m["blend_configs"]))
+
+tests/scripts/c2_framing/test_f26_run.py:1288: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:394: in _edit_json
+    fn(obj)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+m = {'allowance': {'budget': 12.0, 'cap': 165.0, 'first_unit_stop': 4.1}, 'arms': ['baseline', 'A_posted', 'A_projected'],...imated_pa', 'calendar': ['2026-05-01', '2026-05-02', '2026-05-03', '2026-05-04', '2026-05-05', '2026-05-06', ...], ...}
+
+>   _edit_json(d, "manifest.json", lambda m: edit(m["blend_configs"]))
+                                                  ^^^^^^^^^^^^^^^^^^
+E   KeyError: 'blend_configs'
+
+tests/scripts/c2_framing/test_f26_run.py:1288: KeyError
+_ test_f2_a_coherent_wrong_blend_configuration_is_refused_everywhere[<lambda>2] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118f9fbc0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f2_a_coherent_wrong_blend2/inputs'), ...}
+ten = [PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f2_a_coherent_wr...00gn/T/pytest-of-eric/pytest-12439/test_f2_a_coherent_wrong_blend2/out/seed_1277948386/aaaaaaa-20261010T003415Z'), ...]
+edit = <function <lambda> at 0x110bc4fe0>
+
+    @pytest.mark.parametrize("edit", [
+        lambda b: b["A_posted"][1][1].pop(),                            # one A config loses its Statcast extra
+        lambda b: b["baseline"].pop(),                                  # eleven models
+        lambda b: _swap_in_the_old_column(b["A_projected"][0][1]),      # the A arm quietly keeps production's column
+    ])
+    def test_f2_a_coherent_wrong_blend_configuration_is_refused_everywhere(world, ten, edit):
+        for d in ten:
+>           _edit_json(d, "manifest.json", lambda m: edit(m["blend_configs"]))
+
+tests/scripts/c2_framing/test_f26_run.py:1288: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:394: in _edit_json
+    fn(obj)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+m = {'allowance': {'budget': 12.0, 'cap': 165.0, 'first_unit_stop': 4.1}, 'arms': ['baseline', 'A_posted', 'A_projected'],...imated_pa', 'calendar': ['2026-05-01', '2026-05-02', '2026-05-03', '2026-05-04', '2026-05-05', '2026-05-06', ...], ...}
+
+>   _edit_json(d, "manifest.json", lambda m: edit(m["blend_configs"]))
+                                                  ^^^^^^^^^^^^^^^^^^
+E   KeyError: 'blend_configs'
+
+tests/scripts/c2_framing/test_f26_run.py:1288: KeyError
+______ test_f3_the_manifests_allowance_must_equal_erics_row_at_validation ______
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x10b76d040>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f3_the_manifests_allowanc0/inputs'), ...}
+
+    def test_f3_the_manifests_allowance_must_equal_erics_row_at_validation(world):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        _validate(world, seed)
+        d = _run_dir(world, seed)
+        _edit_json(d, "manifest.json", lambda m: m["allowance"].update(budget=20.0))
+>       with pytest.raises(F.RunInvalid, match="allowance"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.screen.RunInvalid'>
+
+tests/scripts/c2_framing/test_f26_run.py:1303: Failed
+_ test_f3_a_baseline_unit_over_the_first_unit_stop_is_refused_at_acceptance_and_at_the_next_seed _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118f873b0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f3_a_baseline_unit_over_t0/inputs'), ...}
+
+    def test_f3_a_baseline_unit_over_the_first_unit_stop_is_refused_at_acceptance_and_at_the_next_seed(world):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        d = _run_dir(world, seed)
+        _edit_both(d, lambda u: u[0].update(cpu_s=4.2 * 3600))         # review f1's case: 4.2 CPU-h against the 4.1 stop
+        _edit_json(d, "results.json", lambda r: r.update(total_cpu_s=16000.0))
+        _receipts(world, seed, extra_cpu=2000.0)                        # the receipts agree: 18,000 s, under the 12 h budget
+>       with pytest.raises(F.RunInvalid, match="first"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.screen.RunInvalid'>
+
+tests/scripts/c2_framing/test_f26_run.py:1322: Failed
+_ test_f3_acceptance_applies_c1s_own_rules_to_the_launcher_records[<lambda>-PENDING0] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1187ebd10>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f3_acceptance_applies_c1s0/inputs'), ...}
+damage = <function <lambda> at 0x110bc5260>, match = 'PENDING'
+
+    @pytest.mark.parametrize("damage, match", [
+        (lambda w, u, d: (w["c1"] / f"PENDING_{u}.json").unlink(), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", declared_cpu_hours=13.0), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", limit_cpu_seconds=43199), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", max_hours=17.0), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", unit=_unit(F.SEEDS[1])), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", budget_seconds=50.0), "TERMINAL"),   # review f1's case
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", extra="field"), "RECONCILED"),
+    ])
+    def test_f3_acceptance_applies_c1s_own_rules_to_the_launcher_records(world, damage, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        _validate(world, seed)
+        damage(world, _unit(seed), _run_dir(world, seed))
+>       with pytest.raises(F.RunInvalid, match=match):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.screen.RunInvalid'>
+
+tests/scripts/c2_framing/test_f26_run.py:1344: Failed
+_ test_f3_acceptance_applies_c1s_own_rules_to_the_launcher_records[<lambda>-PENDING1] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1187eb860>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f3_acceptance_applies_c1s1/inputs'), ...}
+damage = <function <lambda> at 0x110bc5300>, match = 'PENDING'
+
+    @pytest.mark.parametrize("damage, match", [
+        (lambda w, u, d: (w["c1"] / f"PENDING_{u}.json").unlink(), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", declared_cpu_hours=13.0), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", limit_cpu_seconds=43199), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", max_hours=17.0), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", unit=_unit(F.SEEDS[1])), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", budget_seconds=50.0), "TERMINAL"),   # review f1's case
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", extra="field"), "RECONCILED"),
+    ])
+    def test_f3_acceptance_applies_c1s_own_rules_to_the_launcher_records(world, damage, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        _validate(world, seed)
+        damage(world, _unit(seed), _run_dir(world, seed))
+>       with pytest.raises(F.RunInvalid, match=match):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.screen.RunInvalid'>
+
+tests/scripts/c2_framing/test_f26_run.py:1344: Failed
+_ test_f3_acceptance_applies_c1s_own_rules_to_the_launcher_records[<lambda>-PENDING2] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118e2aea0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f3_acceptance_applies_c1s2/inputs'), ...}
+damage = <function <lambda> at 0x110bc53a0>, match = 'PENDING'
+
+    @pytest.mark.parametrize("damage, match", [
+        (lambda w, u, d: (w["c1"] / f"PENDING_{u}.json").unlink(), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", declared_cpu_hours=13.0), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", limit_cpu_seconds=43199), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", max_hours=17.0), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", unit=_unit(F.SEEDS[1])), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", budget_seconds=50.0), "TERMINAL"),   # review f1's case
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", extra="field"), "RECONCILED"),
+    ])
+    def test_f3_acceptance_applies_c1s_own_rules_to_the_launcher_records(world, damage, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        _validate(world, seed)
+        damage(world, _unit(seed), _run_dir(world, seed))
+>       with pytest.raises(F.RunInvalid, match=match):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.screen.RunInvalid'>
+
+tests/scripts/c2_framing/test_f26_run.py:1344: Failed
+_ test_f3_acceptance_applies_c1s_own_rules_to_the_launcher_records[<lambda>-PENDING3] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118803170>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f3_acceptance_applies_c1s3/inputs'), ...}
+damage = <function <lambda> at 0x110bc5440>, match = 'PENDING'
+
+    @pytest.mark.parametrize("damage, match", [
+        (lambda w, u, d: (w["c1"] / f"PENDING_{u}.json").unlink(), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", declared_cpu_hours=13.0), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", limit_cpu_seconds=43199), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", max_hours=17.0), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", unit=_unit(F.SEEDS[1])), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", budget_seconds=50.0), "TERMINAL"),   # review f1's case
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", extra="field"), "RECONCILED"),
+    ])
+    def test_f3_acceptance_applies_c1s_own_rules_to_the_launcher_records(world, damage, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        _validate(world, seed)
+        damage(world, _unit(seed), _run_dir(world, seed))
+>       with pytest.raises(F.RunInvalid, match=match):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.screen.RunInvalid'>
+
+tests/scripts/c2_framing/test_f26_run.py:1344: Failed
+_ test_f3_acceptance_applies_c1s_own_rules_to_the_launcher_records[<lambda>-PENDING4] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118dff6e0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f3_acceptance_applies_c1s4/inputs'), ...}
+damage = <function <lambda> at 0x110bc54e0>, match = 'PENDING'
+
+    @pytest.mark.parametrize("damage, match", [
+        (lambda w, u, d: (w["c1"] / f"PENDING_{u}.json").unlink(), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", declared_cpu_hours=13.0), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", limit_cpu_seconds=43199), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", max_hours=17.0), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", unit=_unit(F.SEEDS[1])), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", budget_seconds=50.0), "TERMINAL"),   # review f1's case
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", extra="field"), "RECONCILED"),
+    ])
+    def test_f3_acceptance_applies_c1s_own_rules_to_the_launcher_records(world, damage, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        _validate(world, seed)
+        damage(world, _unit(seed), _run_dir(world, seed))
+>       with pytest.raises(F.RunInvalid, match=match):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.screen.RunInvalid'>
+
+tests/scripts/c2_framing/test_f26_run.py:1344: Failed
+_ test_f3_acceptance_applies_c1s_own_rules_to_the_launcher_records[<lambda>-TERMINAL] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x11888ab40>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f3_acceptance_applies_c1s5/inputs'), ...}
+damage = <function <lambda> at 0x110bc5580>, match = 'TERMINAL'
+
+    @pytest.mark.parametrize("damage, match", [
+        (lambda w, u, d: (w["c1"] / f"PENDING_{u}.json").unlink(), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", declared_cpu_hours=13.0), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", limit_cpu_seconds=43199), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", max_hours=17.0), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", unit=_unit(F.SEEDS[1])), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", budget_seconds=50.0), "TERMINAL"),   # review f1's case
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", extra="field"), "RECONCILED"),
+    ])
+    def test_f3_acceptance_applies_c1s_own_rules_to_the_launcher_records(world, damage, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        _validate(world, seed)
+        damage(world, _unit(seed), _run_dir(world, seed))
+>       with pytest.raises(F.RunInvalid, match=match):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.screen.RunInvalid'>
+
+tests/scripts/c2_framing/test_f26_run.py:1344: Failed
+_ test_f3_acceptance_applies_c1s_own_rules_to_the_launcher_records[<lambda>-RECONCILED] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1187eb5c0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f3_acceptance_applies_c1s6/inputs'), ...}
+damage = <function <lambda> at 0x110bc5620>, match = 'RECONCILED'
+
+    @pytest.mark.parametrize("damage, match", [
+        (lambda w, u, d: (w["c1"] / f"PENDING_{u}.json").unlink(), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", declared_cpu_hours=13.0), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", limit_cpu_seconds=43199), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", max_hours=17.0), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"PENDING_{u}.json", unit=_unit(F.SEEDS[1])), "PENDING"),
+        (lambda w, u, d: _rewrite(w["c1"] / f"TERMINAL_{u}.json", budget_seconds=50.0), "TERMINAL"),   # review f1's case
+        (lambda w, u, d: _rewrite(w["c1"] / f"RECONCILED_{u}.json", extra="field"), "RECONCILED"),
+    ])
+    def test_f3_acceptance_applies_c1s_own_rules_to_the_launcher_records(world, damage, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        _validate(world, seed)
+        damage(world, _unit(seed), _run_dir(world, seed))
+>       with pytest.raises(F.RunInvalid, match=match):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.screen.RunInvalid'>
+
+tests/scripts/c2_framing/test_f26_run.py:1344: Failed
+_ test_f3_the_effective_total_must_leave_room_for_the_full_budget_before_a_launch_or_a_run _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118ebb950>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f3_the_effective_total_mu0/inputs'), ...}
+
+    def test_f3_the_effective_total_must_leave_room_for_the_full_budget_before_a_launch_or_a_run(world):
+        seen = []
+        execute = lambda argv, cwd: seen.append(argv) or subprocess.CompletedProcess(argv, 0)   # noqa: E731
+        ledger.write_tsv(world["c1"] / "compute_ledger.tsv", [_ledger_row(152.9)])
+        assert F.launch(F.SEEDS[0], world["out"], world["inputs"], execute=execute, _test_out_root=world["out"]) == 0
+>       rows = F.off_launcher_rows(world["out"])
+               ^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'off_launcher_rows'
+
+tests/scripts/c2_framing/test_f26_run.py:1387: AttributeError
+_____________ test_f3_a_malformed_off_launcher_record_fails_closed _____________
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118864530>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f3_a_malformed_off_launch0/inputs'), ...}
+
+    def test_f3_a_malformed_off_launcher_record_fails_closed(world):
+>       (world["out"] / F.OFF_LAUNCHER_NAME).write_text('{"step": "expect", "cpu_s": -1.0}\n')
+                        ^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'OFF_LAUNCHER_NAME'
+
+tests/scripts/c2_framing/test_f26_run.py:1399: AttributeError
+_ test_f3_the_aggregate_reports_the_ledger_the_off_launcher_record_and_the_effective_total _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118ebbec0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f3_the_aggregate_reports_0/inputs'), ...}
+ten = [PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f3_the_aggregate...00gn/T/pytest-of-eric/pytest-12439/test_f3_the_aggregate_reports_0/out/seed_1277948386/aaaaaaa-20261010T003454Z'), ...]
+
+    def test_f3_the_aggregate_reports_the_ledger_the_off_launcher_record_and_the_effective_total(world, ten):
+        ledger.write_tsv(world["c1"] / "compute_ledger.tsv", [_ledger_row(100.0)])
+>       F.record_off_launcher(world["out"], "prepare", 36.0)
+        ^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'record_off_launcher'
+
+tests/scripts/c2_framing/test_f26_run.py:1409: AttributeError
+_ test_f4_expect_takes_its_pins_from_the_prepared_record_and_creates_its_output_once _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x11764ef60>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_expect_takes_its_pins_0/inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118f16ab0>
+
+    def test_f4_expect_takes_its_pins_from_the_prepared_record_and_creates_its_output_once(world, monkeypatch):
+>       _expect_world(world, monkeypatch)
+
+tests/scripts/c2_framing/test_f26_run.py:1449: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x11764ef60>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_expect_takes_its_pins_0/inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118f16ab0>
+inv_over = {}
+
+    def _expect_world(world, monkeypatch, **inv_over):
+        monkeypatch.setattr(F, "prep_row_problem", lambda repo, text, xc: None)
+        monkeypatch.setattr(F, "admission_gate", lambda repo=None, *, require_inputs=True:
+                            ("a" * 40, {"exposure_commit": "b" * 40}, dict(IDENT)))
+        inv = _inventory(pa_dir=str(world["out"]), **inv_over)
+        monkeypatch.setattr(F, "source_inventory", lambda repo, xc: (inv, None))
+>       monkeypatch.setattr(F, "cited_inventory_sha256", lambda repo, xc: "c" * 64)
+E       AttributeError: <module 'scripts.audit.c2_framing.f26' from '/Users/eric/projects/bts-c2f26-code/scripts/audit/c2_framing/f26.py'> has no attribute 'cited_inventory_sha256'
+
+tests/scripts/c2_framing/test_f26_run.py:1438: AttributeError
+______ test_f4_expect_refuses_an_unbound_preparation[<lambda>-PREPARED0] _______
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1188000e0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_expect_refuses_an_unbo0/inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118801520>
+setup = <function <lambda> at 0x110bc5e40>, match = 'PREPARED'
+
+    @pytest.mark.parametrize("setup, match", [
+        (lambda w: None, "PREPARED"),
+        (lambda w: _prepared(w, exposure_commit="9" * 40), "exposure"),
+        (lambda w: _prepared(w, inventory_sha256="d" * 64), "inventory"),
+        (lambda w: _prepared(w, data_dir="/elsewhere"), "inventory"),
+        (lambda w: _prepared(w, pins={**_pins_without_expectation(w), "pa_2019.parquet": "e" * 64}), "screen"),
+        (lambda w: _prepared(w, pins={k: v for k, v in _pins_without_expectation(w).items() if k != F.TABLE_NAME}), "pins"),
+        (lambda w: _prepared(w, schema="other"), "PREPARED"),
+    ])
+    def test_f4_expect_refuses_an_unbound_preparation(world, monkeypatch, setup, match):
+>       _expect_world(world, monkeypatch)
+
+tests/scripts/c2_framing/test_f26_run.py:1477: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1188000e0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_expect_refuses_an_unbo0/inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118801520>
+inv_over = {}
+
+    def _expect_world(world, monkeypatch, **inv_over):
+        monkeypatch.setattr(F, "prep_row_problem", lambda repo, text, xc: None)
+        monkeypatch.setattr(F, "admission_gate", lambda repo=None, *, require_inputs=True:
+                            ("a" * 40, {"exposure_commit": "b" * 40}, dict(IDENT)))
+        inv = _inventory(pa_dir=str(world["out"]), **inv_over)
+        monkeypatch.setattr(F, "source_inventory", lambda repo, xc: (inv, None))
+>       monkeypatch.setattr(F, "cited_inventory_sha256", lambda repo, xc: "c" * 64)
+E       AttributeError: <module 'scripts.audit.c2_framing.f26' from '/Users/eric/projects/bts-c2f26-code/scripts/audit/c2_framing/f26.py'> has no attribute 'cited_inventory_sha256'
+
+tests/scripts/c2_framing/test_f26_run.py:1438: AttributeError
+_______ test_f4_expect_refuses_an_unbound_preparation[<lambda>-exposure] _______
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1188673b0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_expect_refuses_an_unbo1/inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118e786e0>
+setup = <function <lambda> at 0x110bc5ee0>, match = 'exposure'
+
+    @pytest.mark.parametrize("setup, match", [
+        (lambda w: None, "PREPARED"),
+        (lambda w: _prepared(w, exposure_commit="9" * 40), "exposure"),
+        (lambda w: _prepared(w, inventory_sha256="d" * 64), "inventory"),
+        (lambda w: _prepared(w, data_dir="/elsewhere"), "inventory"),
+        (lambda w: _prepared(w, pins={**_pins_without_expectation(w), "pa_2019.parquet": "e" * 64}), "screen"),
+        (lambda w: _prepared(w, pins={k: v for k, v in _pins_without_expectation(w).items() if k != F.TABLE_NAME}), "pins"),
+        (lambda w: _prepared(w, schema="other"), "PREPARED"),
+    ])
+    def test_f4_expect_refuses_an_unbound_preparation(world, monkeypatch, setup, match):
+>       _expect_world(world, monkeypatch)
+
+tests/scripts/c2_framing/test_f26_run.py:1477: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1188673b0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_expect_refuses_an_unbo1/inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118e786e0>
+inv_over = {}
+
+    def _expect_world(world, monkeypatch, **inv_over):
+        monkeypatch.setattr(F, "prep_row_problem", lambda repo, text, xc: None)
+        monkeypatch.setattr(F, "admission_gate", lambda repo=None, *, require_inputs=True:
+                            ("a" * 40, {"exposure_commit": "b" * 40}, dict(IDENT)))
+        inv = _inventory(pa_dir=str(world["out"]), **inv_over)
+        monkeypatch.setattr(F, "source_inventory", lambda repo, xc: (inv, None))
+>       monkeypatch.setattr(F, "cited_inventory_sha256", lambda repo, xc: "c" * 64)
+E       AttributeError: <module 'scripts.audit.c2_framing.f26' from '/Users/eric/projects/bts-c2f26-code/scripts/audit/c2_framing/f26.py'> has no attribute 'cited_inventory_sha256'
+
+tests/scripts/c2_framing/test_f26_run.py:1438: AttributeError
+______ test_f4_expect_refuses_an_unbound_preparation[<lambda>-inventory0] ______
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118e9d520>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_expect_refuses_an_unbo2/inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118e9d040>
+setup = <function <lambda> at 0x110bc5f80>, match = 'inventory'
+
+    @pytest.mark.parametrize("setup, match", [
+        (lambda w: None, "PREPARED"),
+        (lambda w: _prepared(w, exposure_commit="9" * 40), "exposure"),
+        (lambda w: _prepared(w, inventory_sha256="d" * 64), "inventory"),
+        (lambda w: _prepared(w, data_dir="/elsewhere"), "inventory"),
+        (lambda w: _prepared(w, pins={**_pins_without_expectation(w), "pa_2019.parquet": "e" * 64}), "screen"),
+        (lambda w: _prepared(w, pins={k: v for k, v in _pins_without_expectation(w).items() if k != F.TABLE_NAME}), "pins"),
+        (lambda w: _prepared(w, schema="other"), "PREPARED"),
+    ])
+    def test_f4_expect_refuses_an_unbound_preparation(world, monkeypatch, setup, match):
+>       _expect_world(world, monkeypatch)
+
+tests/scripts/c2_framing/test_f26_run.py:1477: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118e9d520>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_expect_refuses_an_unbo2/inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118e9d040>
+inv_over = {}
+
+    def _expect_world(world, monkeypatch, **inv_over):
+        monkeypatch.setattr(F, "prep_row_problem", lambda repo, text, xc: None)
+        monkeypatch.setattr(F, "admission_gate", lambda repo=None, *, require_inputs=True:
+                            ("a" * 40, {"exposure_commit": "b" * 40}, dict(IDENT)))
+        inv = _inventory(pa_dir=str(world["out"]), **inv_over)
+        monkeypatch.setattr(F, "source_inventory", lambda repo, xc: (inv, None))
+>       monkeypatch.setattr(F, "cited_inventory_sha256", lambda repo, xc: "c" * 64)
+E       AttributeError: <module 'scripts.audit.c2_framing.f26' from '/Users/eric/projects/bts-c2f26-code/scripts/audit/c2_framing/f26.py'> has no attribute 'cited_inventory_sha256'
+
+tests/scripts/c2_framing/test_f26_run.py:1438: AttributeError
+______ test_f4_expect_refuses_an_unbound_preparation[<lambda>-inventory1] ______
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1188668a0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_expect_refuses_an_unbo3/inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118e78a40>
+setup = <function <lambda> at 0x110bc6020>, match = 'inventory'
+
+    @pytest.mark.parametrize("setup, match", [
+        (lambda w: None, "PREPARED"),
+        (lambda w: _prepared(w, exposure_commit="9" * 40), "exposure"),
+        (lambda w: _prepared(w, inventory_sha256="d" * 64), "inventory"),
+        (lambda w: _prepared(w, data_dir="/elsewhere"), "inventory"),
+        (lambda w: _prepared(w, pins={**_pins_without_expectation(w), "pa_2019.parquet": "e" * 64}), "screen"),
+        (lambda w: _prepared(w, pins={k: v for k, v in _pins_without_expectation(w).items() if k != F.TABLE_NAME}), "pins"),
+        (lambda w: _prepared(w, schema="other"), "PREPARED"),
+    ])
+    def test_f4_expect_refuses_an_unbound_preparation(world, monkeypatch, setup, match):
+>       _expect_world(world, monkeypatch)
+
+tests/scripts/c2_framing/test_f26_run.py:1477: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1188668a0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_expect_refuses_an_unbo3/inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118e78a40>
+inv_over = {}
+
+    def _expect_world(world, monkeypatch, **inv_over):
+        monkeypatch.setattr(F, "prep_row_problem", lambda repo, text, xc: None)
+        monkeypatch.setattr(F, "admission_gate", lambda repo=None, *, require_inputs=True:
+                            ("a" * 40, {"exposure_commit": "b" * 40}, dict(IDENT)))
+        inv = _inventory(pa_dir=str(world["out"]), **inv_over)
+        monkeypatch.setattr(F, "source_inventory", lambda repo, xc: (inv, None))
+>       monkeypatch.setattr(F, "cited_inventory_sha256", lambda repo, xc: "c" * 64)
+E       AttributeError: <module 'scripts.audit.c2_framing.f26' from '/Users/eric/projects/bts-c2f26-code/scripts/audit/c2_framing/f26.py'> has no attribute 'cited_inventory_sha256'
+
+tests/scripts/c2_framing/test_f26_run.py:1438: AttributeError
+________ test_f4_expect_refuses_an_unbound_preparation[<lambda>-screen] ________
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1187c3560>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_expect_refuses_an_unbo4/inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118e79130>
+setup = <function <lambda> at 0x110bc60c0>, match = 'screen'
+
+    @pytest.mark.parametrize("setup, match", [
+        (lambda w: None, "PREPARED"),
+        (lambda w: _prepared(w, exposure_commit="9" * 40), "exposure"),
+        (lambda w: _prepared(w, inventory_sha256="d" * 64), "inventory"),
+        (lambda w: _prepared(w, data_dir="/elsewhere"), "inventory"),
+        (lambda w: _prepared(w, pins={**_pins_without_expectation(w), "pa_2019.parquet": "e" * 64}), "screen"),
+        (lambda w: _prepared(w, pins={k: v for k, v in _pins_without_expectation(w).items() if k != F.TABLE_NAME}), "pins"),
+        (lambda w: _prepared(w, schema="other"), "PREPARED"),
+    ])
+    def test_f4_expect_refuses_an_unbound_preparation(world, monkeypatch, setup, match):
+>       _expect_world(world, monkeypatch)
+
+tests/scripts/c2_framing/test_f26_run.py:1477: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1187c3560>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_expect_refuses_an_unbo4/inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118e79130>
+inv_over = {}
+
+    def _expect_world(world, monkeypatch, **inv_over):
+        monkeypatch.setattr(F, "prep_row_problem", lambda repo, text, xc: None)
+        monkeypatch.setattr(F, "admission_gate", lambda repo=None, *, require_inputs=True:
+                            ("a" * 40, {"exposure_commit": "b" * 40}, dict(IDENT)))
+        inv = _inventory(pa_dir=str(world["out"]), **inv_over)
+        monkeypatch.setattr(F, "source_inventory", lambda repo, xc: (inv, None))
+>       monkeypatch.setattr(F, "cited_inventory_sha256", lambda repo, xc: "c" * 64)
+E       AttributeError: <module 'scripts.audit.c2_framing.f26' from '/Users/eric/projects/bts-c2f26-code/scripts/audit/c2_framing/f26.py'> has no attribute 'cited_inventory_sha256'
+
+tests/scripts/c2_framing/test_f26_run.py:1438: AttributeError
+_________ test_f4_expect_refuses_an_unbound_preparation[<lambda>-pins] _________
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1188e04d0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_expect_refuses_an_unbo5/inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118ebb8f0>
+setup = <function <lambda> at 0x110bc6160>, match = 'pins'
+
+    @pytest.mark.parametrize("setup, match", [
+        (lambda w: None, "PREPARED"),
+        (lambda w: _prepared(w, exposure_commit="9" * 40), "exposure"),
+        (lambda w: _prepared(w, inventory_sha256="d" * 64), "inventory"),
+        (lambda w: _prepared(w, data_dir="/elsewhere"), "inventory"),
+        (lambda w: _prepared(w, pins={**_pins_without_expectation(w), "pa_2019.parquet": "e" * 64}), "screen"),
+        (lambda w: _prepared(w, pins={k: v for k, v in _pins_without_expectation(w).items() if k != F.TABLE_NAME}), "pins"),
+        (lambda w: _prepared(w, schema="other"), "PREPARED"),
+    ])
+    def test_f4_expect_refuses_an_unbound_preparation(world, monkeypatch, setup, match):
+>       _expect_world(world, monkeypatch)
+
+tests/scripts/c2_framing/test_f26_run.py:1477: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1188e04d0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_expect_refuses_an_unbo5/inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118ebb8f0>
+inv_over = {}
+
+    def _expect_world(world, monkeypatch, **inv_over):
+        monkeypatch.setattr(F, "prep_row_problem", lambda repo, text, xc: None)
+        monkeypatch.setattr(F, "admission_gate", lambda repo=None, *, require_inputs=True:
+                            ("a" * 40, {"exposure_commit": "b" * 40}, dict(IDENT)))
+        inv = _inventory(pa_dir=str(world["out"]), **inv_over)
+        monkeypatch.setattr(F, "source_inventory", lambda repo, xc: (inv, None))
+>       monkeypatch.setattr(F, "cited_inventory_sha256", lambda repo, xc: "c" * 64)
+E       AttributeError: <module 'scripts.audit.c2_framing.f26' from '/Users/eric/projects/bts-c2f26-code/scripts/audit/c2_framing/f26.py'> has no attribute 'cited_inventory_sha256'
+
+tests/scripts/c2_framing/test_f26_run.py:1438: AttributeError
+______ test_f4_expect_refuses_an_unbound_preparation[<lambda>-PREPARED1] _______
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118e9d910>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_expect_refuses_an_unbo6/inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118eba090>
+setup = <function <lambda> at 0x110bc6200>, match = 'PREPARED'
+
+    @pytest.mark.parametrize("setup, match", [
+        (lambda w: None, "PREPARED"),
+        (lambda w: _prepared(w, exposure_commit="9" * 40), "exposure"),
+        (lambda w: _prepared(w, inventory_sha256="d" * 64), "inventory"),
+        (lambda w: _prepared(w, data_dir="/elsewhere"), "inventory"),
+        (lambda w: _prepared(w, pins={**_pins_without_expectation(w), "pa_2019.parquet": "e" * 64}), "screen"),
+        (lambda w: _prepared(w, pins={k: v for k, v in _pins_without_expectation(w).items() if k != F.TABLE_NAME}), "pins"),
+        (lambda w: _prepared(w, schema="other"), "PREPARED"),
+    ])
+    def test_f4_expect_refuses_an_unbound_preparation(world, monkeypatch, setup, match):
+>       _expect_world(world, monkeypatch)
+
+tests/scripts/c2_framing/test_f26_run.py:1477: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118e9d910>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_expect_refuses_an_unbo6/inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118eba090>
+inv_over = {}
+
+    def _expect_world(world, monkeypatch, **inv_over):
+        monkeypatch.setattr(F, "prep_row_problem", lambda repo, text, xc: None)
+        monkeypatch.setattr(F, "admission_gate", lambda repo=None, *, require_inputs=True:
+                            ("a" * 40, {"exposure_commit": "b" * 40}, dict(IDENT)))
+        inv = _inventory(pa_dir=str(world["out"]), **inv_over)
+        monkeypatch.setattr(F, "source_inventory", lambda repo, xc: (inv, None))
+>       monkeypatch.setattr(F, "cited_inventory_sha256", lambda repo, xc: "c" * 64)
+E       AttributeError: <module 'scripts.audit.c2_framing.f26' from '/Users/eric/projects/bts-c2f26-code/scripts/audit/c2_framing/f26.py'> has no attribute 'cited_inventory_sha256'
+
+tests/scripts/c2_framing/test_f26_run.py:1438: AttributeError
+______ test_f4_expect_refuses_a_prepared_pin_that_is_not_the_files_bytes _______
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118eb8f50>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_expect_refuses_a_prepa0/inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118fb9d60>
+
+    def test_f4_expect_refuses_a_prepared_pin_that_is_not_the_files_bytes(world, monkeypatch):
+>       _expect_world(world, monkeypatch)
+
+tests/scripts/c2_framing/test_f26_run.py:1485: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118eb8f50>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_expect_refuses_a_prepa0/inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118fb9d60>
+inv_over = {}
+
+    def _expect_world(world, monkeypatch, **inv_over):
+        monkeypatch.setattr(F, "prep_row_problem", lambda repo, text, xc: None)
+        monkeypatch.setattr(F, "admission_gate", lambda repo=None, *, require_inputs=True:
+                            ("a" * 40, {"exposure_commit": "b" * 40}, dict(IDENT)))
+        inv = _inventory(pa_dir=str(world["out"]), **inv_over)
+        monkeypatch.setattr(F, "source_inventory", lambda repo, xc: (inv, None))
+>       monkeypatch.setattr(F, "cited_inventory_sha256", lambda repo, xc: "c" * 64)
+E       AttributeError: <module 'scripts.audit.c2_framing.f26' from '/Users/eric/projects/bts-c2f26-code/scripts/audit/c2_framing/f26.py'> has no attribute 'cited_inventory_sha256'
+
+tests/scripts/c2_framing/test_f26_run.py:1438: AttributeError
+_______ test_f4_expect_refuses_a_pa_directory_that_is_not_the_inventorys _______
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118fbbfe0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_expect_refuses_a_pa_di0/inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118f85040>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_expect_refuses_a_pa_di0')
+
+    def test_f4_expect_refuses_a_pa_directory_that_is_not_the_inventorys(world, monkeypatch, tmp_path):
+>       _expect_world(world, monkeypatch, pa_dir=str(tmp_path / "elsewhere"))
+
+tests/scripts/c2_framing/test_f26_run.py:1493: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118fbbfe0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_expect_refuses_a_pa_di0/inputs'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118f85040>
+inv_over = {'pa_dir': '/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_expect_refuses_a_pa_di0/elsewhere'}
+
+    def _expect_world(world, monkeypatch, **inv_over):
+        monkeypatch.setattr(F, "prep_row_problem", lambda repo, text, xc: None)
+        monkeypatch.setattr(F, "admission_gate", lambda repo=None, *, require_inputs=True:
+                            ("a" * 40, {"exposure_commit": "b" * 40}, dict(IDENT)))
+>       inv = _inventory(pa_dir=str(world["out"]), **inv_over)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: tests.scripts.c2_framing.test_f26_run._inventory() got multiple values for keyword argument 'pa_dir'
+
+tests/scripts/c2_framing/test_f26_run.py:1436: TypeError
+________________ test_f4_the_expect_command_has_no_pins_option _________________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_the_expect_command_has0')
+
+    def test_f4_the_expect_command_has_no_pins_option(tmp_path):
+        with pytest.raises(SystemExit) as e:
+>           F.main(["expect", "--data-dir", str(tmp_path), "--inputs-dir", str(tmp_path), "--pins", str(tmp_path / "p.json")])
+
+tests/scripts/c2_framing/test_f26_run.py:1502: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit/c2_framing/f26.py:1471: in main
+    print(json.dumps(expect(a.data_dir, a.inputs_dir, json.loads(a.pins.read_text()),
+                                                                 ^^^^^^^^^^^^^^^^^^
+../../.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_the_expect_command_has0/p.json')
+mode = 'r', buffering = -1, encoding = 'locale', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_the_expect_command_has0/p.json'
+
+../../.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/pathlib.py:1013: FileNotFoundError
+_________ test_f4_prepare_leaves_a_durable_record_of_its_pins_and_cpu __________
+
+prep = {'data': PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_prepa...s/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_prepare_leaves_a_durab0/screen_inputs'), ...}
+
+    def test_f4_prepare_leaves_a_durable_record_of_its_pins_and_cpu(prep):
+        got = _prepare(prep)
+>       rec = json.loads((prep["out"] / "PREPARED.json").read_text())
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/scripts/c2_framing/test_f26_run.py:1508: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_prepare_leaves_a_durab0/inputs/PREPARED.json')
+mode = 'r', buffering = -1, encoding = 'locale', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f4_prepare_leaves_a_durab0/inputs/PREPARED.json'
+
+../../.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/pathlib.py:1013: FileNotFoundError
+_ test_f5_declared_totals_and_timings_are_checked_against_the_pinned_rows_and_the_run_total[<lambda>-resumed0] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1188e2720>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f5_declared_totals_and_ti0/inputs'), ...}
+fn = <function <lambda> at 0x110bc65c0>, match = 'resumed'
+
+    @pytest.mark.parametrize("fn, match", [
+        (lambda m: m["resumed_flag_2026"].update(flagged=m["resumed_flag_2026"]["flagged"] + 1), "resumed"),
+        (lambda m: m["resumed_portion_rows"].update({"2026": 0}), "resumed"),
+        (lambda m: m.update(features_cpu_s=-1.0), "features_cpu_s"),
+        (lambda m: m.update(features_cpu_s=10.0 ** 9), "features_cpu_s"),
+    ])
+    def test_f5_declared_totals_and_timings_are_checked_against_the_pinned_rows_and_the_run_total(world, fn, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        _edit_json(_run_dir(world, seed), "manifest.json", fn)
+>       with pytest.raises(F.RunInvalid, match=match):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.screen.RunInvalid'>
+
+tests/scripts/c2_framing/test_f26_run.py:1528: Failed
+_ test_f5_declared_totals_and_timings_are_checked_against_the_pinned_rows_and_the_run_total[<lambda>-resumed1] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118fb9040>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f5_declared_totals_and_ti1/inputs'), ...}
+fn = <function <lambda> at 0x110bc6660>, match = 'resumed'
+
+    @pytest.mark.parametrize("fn, match", [
+        (lambda m: m["resumed_flag_2026"].update(flagged=m["resumed_flag_2026"]["flagged"] + 1), "resumed"),
+        (lambda m: m["resumed_portion_rows"].update({"2026": 0}), "resumed"),
+        (lambda m: m.update(features_cpu_s=-1.0), "features_cpu_s"),
+        (lambda m: m.update(features_cpu_s=10.0 ** 9), "features_cpu_s"),
+    ])
+    def test_f5_declared_totals_and_timings_are_checked_against_the_pinned_rows_and_the_run_total(world, fn, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        _edit_json(_run_dir(world, seed), "manifest.json", fn)
+>       with pytest.raises(F.RunInvalid, match=match):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.screen.RunInvalid'>
+
+tests/scripts/c2_framing/test_f26_run.py:1528: Failed
+_ test_f5_declared_totals_and_timings_are_checked_against_the_pinned_rows_and_the_run_total[<lambda>-features_cpu_s0] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118f9ec30>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f5_declared_totals_and_ti2/inputs'), ...}
+fn = <function <lambda> at 0x110bc6700>, match = 'features_cpu_s'
+
+    @pytest.mark.parametrize("fn, match", [
+        (lambda m: m["resumed_flag_2026"].update(flagged=m["resumed_flag_2026"]["flagged"] + 1), "resumed"),
+        (lambda m: m["resumed_portion_rows"].update({"2026": 0}), "resumed"),
+        (lambda m: m.update(features_cpu_s=-1.0), "features_cpu_s"),
+        (lambda m: m.update(features_cpu_s=10.0 ** 9), "features_cpu_s"),
+    ])
+    def test_f5_declared_totals_and_timings_are_checked_against_the_pinned_rows_and_the_run_total(world, fn, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        _edit_json(_run_dir(world, seed), "manifest.json", fn)
+>       with pytest.raises(F.RunInvalid, match=match):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.screen.RunInvalid'>
+
+tests/scripts/c2_framing/test_f26_run.py:1528: Failed
+_ test_f5_declared_totals_and_timings_are_checked_against_the_pinned_rows_and_the_run_total[<lambda>-features_cpu_s1] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118e9c860>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f5_declared_totals_and_ti3/inputs'), ...}
+fn = <function <lambda> at 0x110bc67a0>, match = 'features_cpu_s'
+
+    @pytest.mark.parametrize("fn, match", [
+        (lambda m: m["resumed_flag_2026"].update(flagged=m["resumed_flag_2026"]["flagged"] + 1), "resumed"),
+        (lambda m: m["resumed_portion_rows"].update({"2026": 0}), "resumed"),
+        (lambda m: m.update(features_cpu_s=-1.0), "features_cpu_s"),
+        (lambda m: m.update(features_cpu_s=10.0 ** 9), "features_cpu_s"),
+    ])
+    def test_f5_declared_totals_and_timings_are_checked_against_the_pinned_rows_and_the_run_total(world, fn, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        _edit_json(_run_dir(world, seed), "manifest.json", fn)
+>       with pytest.raises(F.RunInvalid, match=match):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.screen.RunInvalid'>
+
+tests/scripts/c2_framing/test_f26_run.py:1528: Failed
+___________________ test_f5_a_negative_wall_time_is_refused ____________________
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118eba0c0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f5_a_negative_wall_time_i0/inputs'), ...}
+
+    def test_f5_a_negative_wall_time_is_refused(world):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        _edit_both(_run_dir(world, seed), lambda u: u[0].update(wall_s=-1.0))
+>       with pytest.raises(F.RunInvalid, match="wall"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.screen.RunInvalid'>
+
+tests/scripts/c2_framing/test_f26_run.py:1536: Failed
+_ test_f5_the_aggregate_checks_every_seasons_resumed_rows_against_the_pinned_inputs _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x118e720f0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f5_the_aggregate_checks_e0/inputs'), ...}
+ten = [PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12439/test_f5_the_aggregate...00gn/T/pytest-of-eric/pytest-12439/test_f5_the_aggregate_checks_e0/out/seed_1277948386/aaaaaaa-20261010T003524Z'), ...]
+
+    def test_f5_the_aggregate_checks_every_seasons_resumed_rows_against_the_pinned_inputs(world, ten):
+        for d in ten:
+            _edit_json(d, "manifest.json", lambda m: m["resumed_portion_rows"].update({"2025": 3}))
+        _validate(world, F.SEEDS[0])                               # validation checks 2026 only: the pinned pa_2026
+>       with pytest.raises(F.RunInvalid, match="resumed"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.screen.RunInvalid'>
+
+tests/scripts/c2_framing/test_f26_run.py:1544: Failed
+=========================== short test summary info ============================
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f1_a_coherent_rank_swap_that_changes_p_at_1_is_refused
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f1_exact_ties_between_adjacent_ranks_are_reported_not_refused
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f2_a_common_wrong_model_recipe_is_refused_by_validation_and_by_the_aggregate[<lambda>0]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f2_a_common_wrong_model_recipe_is_refused_by_validation_and_by_the_aggregate[<lambda>1]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f2_a_common_wrong_model_recipe_is_refused_by_validation_and_by_the_aggregate[<lambda>2]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f2_the_manifest_records_the_reviewed_blend_configurations
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f2_a_coherent_wrong_blend_configuration_is_refused_everywhere[<lambda>0]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f2_a_coherent_wrong_blend_configuration_is_refused_everywhere[<lambda>1]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f2_a_coherent_wrong_blend_configuration_is_refused_everywhere[<lambda>2]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f3_the_manifests_allowance_must_equal_erics_row_at_validation
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f3_a_baseline_unit_over_the_first_unit_stop_is_refused_at_acceptance_and_at_the_next_seed
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f3_acceptance_applies_c1s_own_rules_to_the_launcher_records[<lambda>-PENDING0]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f3_acceptance_applies_c1s_own_rules_to_the_launcher_records[<lambda>-PENDING1]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f3_acceptance_applies_c1s_own_rules_to_the_launcher_records[<lambda>-PENDING2]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f3_acceptance_applies_c1s_own_rules_to_the_launcher_records[<lambda>-PENDING3]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f3_acceptance_applies_c1s_own_rules_to_the_launcher_records[<lambda>-PENDING4]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f3_acceptance_applies_c1s_own_rules_to_the_launcher_records[<lambda>-TERMINAL]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f3_acceptance_applies_c1s_own_rules_to_the_launcher_records[<lambda>-RECONCILED]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f3_the_effective_total_must_leave_room_for_the_full_budget_before_a_launch_or_a_run
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f3_a_malformed_off_launcher_record_fails_closed
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f3_the_aggregate_reports_the_ledger_the_off_launcher_record_and_the_effective_total
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f4_expect_takes_its_pins_from_the_prepared_record_and_creates_its_output_once
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f4_expect_refuses_an_unbound_preparation[<lambda>-PREPARED0]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f4_expect_refuses_an_unbound_preparation[<lambda>-exposure]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f4_expect_refuses_an_unbound_preparation[<lambda>-inventory0]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f4_expect_refuses_an_unbound_preparation[<lambda>-inventory1]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f4_expect_refuses_an_unbound_preparation[<lambda>-screen]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f4_expect_refuses_an_unbound_preparation[<lambda>-pins]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f4_expect_refuses_an_unbound_preparation[<lambda>-PREPARED1]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f4_expect_refuses_a_prepared_pin_that_is_not_the_files_bytes
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f4_expect_refuses_a_pa_directory_that_is_not_the_inventorys
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f4_the_expect_command_has_no_pins_option
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f4_prepare_leaves_a_durable_record_of_its_pins_and_cpu
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f5_declared_totals_and_timings_are_checked_against_the_pinned_rows_and_the_run_total[<lambda>-resumed0]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f5_declared_totals_and_timings_are_checked_against_the_pinned_rows_and_the_run_total[<lambda>-resumed1]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f5_declared_totals_and_timings_are_checked_against_the_pinned_rows_and_the_run_total[<lambda>-features_cpu_s0]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f5_declared_totals_and_timings_are_checked_against_the_pinned_rows_and_the_run_total[<lambda>-features_cpu_s1]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f5_a_negative_wall_time_is_refused
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_f5_the_aggregate_checks_every_seasons_resumed_rows_against_the_pinned_inputs
+=========== 39 failed, 1 passed, 121 deselected in 229.00s (0:03:48) ===========

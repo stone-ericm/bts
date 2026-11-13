@@ -1,0 +1,26 @@
+UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run --offline pytest -q -p no:cacheprovider tests/scripts/c2_framing/test_f26_rules.py tests/scripts/c2_framing/test_f26_run.py -k 'both_directions or exactly_the_practical or moved_to_another_date or expect_step or two_away_records'
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-c2f26-code
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 221 items / 216 deselected / 5 selected
+
+tests/scripts/c2_framing/test_f26_rules.py F..                           [ 60%]
+tests/scripts/c2_framing/test_f26_run.py ..                              [100%]
+
+=================================== FAILURES ===================================
+_________ test_the_dependence_disagreement_flag_covers_both_directions _________
+
+    def test_the_dependence_disagreement_flag_covers_both_directions():
+        x = np.tile(np.array([-1, 1, -1, 1, -1, 1, 1] * 6, dtype=float), (10, 1))     # the review's 10 x 42 matrix
+        out = F.dispose(x)
+        assert out["L"] < 0 < out["L_block7"]                      # the iid bound below zero, the block bound above
+>       assert out["dependence_disagreement"] is True
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'dependence_disagreement'
+
+tests/scripts/c2_framing/test_f26_rules.py:496: KeyError
+=========================== short test summary info ============================
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_the_dependence_disagreement_flag_covers_both_directions
+================= 1 failed, 4 passed, 216 deselected in 1.59s ==================

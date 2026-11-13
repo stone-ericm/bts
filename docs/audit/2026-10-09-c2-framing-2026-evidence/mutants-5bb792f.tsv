@@ -1,0 +1,27 @@
+mutant	file	tests	selector	result	pytest_rc
+M1 allowance source not Eric	scripts/audit/c2_framing/f26.py	tests/scripts/c2_framing/test_f26_run.py	allowance	KILLED	1
+M2 allowance cap not the launcher's	scripts/audit/c2_framing/f26.py	tests/scripts/c2_framing/test_f26_run.py	allowance	KILLED	1
+M3 seed order skipped	scripts/audit/c2_framing/f26.py	tests/scripts/c2_framing/test_f26_run.py	one_at_a_time	KILLED	1
+M4 run's window refusal removed	scripts/audit/c2_framing/f26.py	tests/scripts/c2_framing/test_f26_run.py	refuses_inside_the_window	KILLED	1
+M5 first-unit stop removed	scripts/audit/c2_framing/f26.py	tests/scripts/c2_framing/test_f26_run.py	expensive	KILLED	1
+M6 manifest calendar unchecked	scripts/audit/c2_framing/f26.py	tests/scripts/c2_framing/test_f26_run.py	inconsistent_records or another_calendar	KILLED	1
+M7 rank-1 calendar unchecked	scripts/audit/c2_framing/f26.py	tests/scripts/c2_framing/test_f26_run.py	damaged_evidence or aggregate_rederives	KILLED	1
+M8 as-of admits the same date	scripts/audit/c2_framing/f26.py	tests/scripts/c2_framing/test_f26_rules.py	doubleheader or framing_by	KILLED	1
+M9 fielding side swapped	scripts/audit/c2_framing/f26.py	tests/scripts/c2_framing/test_f26_rules.py	posted_arm or projected_arm	KILLED	1
+M10 projection admits same-day games	scripts/audit/c2_framing/f26.py	tests/scripts/c2_framing/test_f26_rules.py	same_day	KILLED	1
+M11 unknowns dropped before the window	scripts/audit/c2_framing/f26.py	tests/scripts/c2_framing/test_f26_rules.py	window_is_taken_first	KILLED	1
+M12 L = 0 passes	scripts/audit/c2_framing/f26.py	tests/scripts/c2_framing/test_f26_rules.py	exactly_zero	KILLED	1
+M13 any C entry counts	scripts/audit/c2_framing/f26.py	tests/scripts/c2_framing/test_f26_rules.py	moved_to_catcher	KILLED	1
+M14 pins row binds other pins	scripts/audit/c2_framing/f26.py	tests/scripts/c2_framing/test_f26_run.py	inputs_row	KILLED	1
+M15 resumed flag unchecked	scripts/audit/c2_framing/f26.py	tests/scripts/c2_framing/test_f26_rules.py	resumed_flag	KILLED	1
+M16 hook result ignored	src/bts/simulate/backtest_blend.py	tests/scripts/c2_framing/test_f26_hook.py	override_reaches	KILLED	1
+M17 strict mode ignored	src/bts/simulate/backtest_blend.py	tests/scripts/c2_framing/test_f26_hook.py	strict	KILLED	1
+M18 hook shape unchecked	src/bts/simulate/backtest_blend.py	tests/scripts/c2_framing/test_f26_hook.py	shape	KILLED	1
+M19 preparation scans unpinned feeds	scripts/audit/c2_framing/f26.py	tests/scripts/c2_framing/test_f26_run.py	no_unpinned	KILLED	1
+M20 run not strict	scripts/audit/c2_framing/f26.py	tests/scripts/c2_framing/test_f26_run.py	end_to_end	KILLED	1
+M21 posted identification unchecked	scripts/audit/c2_framing/f26.py	tests/scripts/c2_framing/test_f26_run.py	inconsistent_records	KILLED	1
+M22 seed count unchecked	scripts/audit/c2_framing/f26.py	tests/scripts/c2_framing/test_f26_rules.py	anything_but_ten	KILLED	1
+M23 preparation row unchecked	scripts/audit/c2_framing/f26.py	tests/scripts/c2_framing/test_f26_run.py	prepare_command	KILLED	1
+M24 prep row may predate X-37	scripts/audit/c2_framing/f26.py	tests/scripts/c2_framing/test_f26_run.py	preparation_read or inputs_row	KILLED	1
+M25 strict mode accepts missing scores	src/bts/simulate/backtest_blend.py	tests/scripts/c2_framing/test_f26_hook.py	missing_scores	KILLED	1
+# commit 5bb792f; scratch tracked tree after restore: clean

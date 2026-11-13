@@ -1,0 +1,45 @@
+== whoami: bts @ bts-mlb Sat Oct 10 12:37:57 AM EDT 2026
+== crontab -l ==
+# BTS cron jobs (all times ET — system TZ is America/New_York)
+# BTS-HETZNER
+0 1 * * * cd /home/bts/projects/bts && set -a && . ./.env && set +a && /usr/bin/flock -n /home/bts/.check-results.lock /home/bts/.local/bin/uv run bts check-results --date $(date -d yesterday +\%Y-\%m-\%d) --wait-deadline-et 06:00 >> /home/bts/logs/cron.log 2>&1 # BTS-HETZNER
+0 2 * * * cd /home/bts/projects/bts && set -a && . ./.env && set +a && /home/bts/.local/bin/uv run bts reconcile >> /home/bts/logs/cron.log 2>&1 # BTS-HETZNER
+40 7 * * * cd /home/bts/projects/bts && set -a && . ./.env && set +a && /home/bts/.local/bin/uv run bts reconcile >> /home/bts/logs/cron.log 2>&1 # BTS-HETZNER
+10 1 * * * cd /home/bts/projects/bts && set -a && . ./.env && set +a && /home/bts/.local/bin/uv run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> /home/bts/logs/cron.log 2>&1 # BTS-HETZNER
+10 2 * * * cd /home/bts/projects/bts && set -a && . ./.env && set +a && /home/bts/.local/bin/uv run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> /home/bts/logs/cron.log 2>&1 # BTS-HETZNER
+30 10 * * * cd /home/bts/projects/bts && set -a && . ./.env && set +a && /home/bts/.local/bin/uv run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> /home/bts/logs/cron.log 2>&1 # BTS-HETZNER
+30 13 * * * cd /home/bts/projects/bts && set -a && . ./.env && set +a && /home/bts/.local/bin/uv run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> /home/bts/logs/cron.log 2>&1 # BTS-HETZNER
+30 23 * * * cd /home/bts/projects/bts && set -a && . ./.env && set +a && /home/bts/.local/bin/uv run bts skip-policy-shadow-update >> /home/bts/logs/cron.log 2>&1 # BTS-HETZNER
+45 7 * * * cd /home/bts/projects/bts && set -a && . ./.env && set +a && /home/bts/.local/bin/uv run bts park-drag-refresh >> /home/bts/logs/park_drag.log 2>&1 # BTS-HETZNER
+0 3 * * * cd /home/bts/projects/bts && set -a && . ./.env && set +a && (/home/bts/.local/bin/uv run bts data pull --start $(date -d "7 days ago" +\%Y-\%m-\%d) --end $(date +\%Y-\%m-\%d) && /home/bts/.local/bin/uv run bts data build --seasons 2026 && { /home/bts/.local/bin/uv run bts preview ; /home/bts/.local/bin/uv run bts data sync-to-r2 ; }) >> /home/bts/logs/cron.log 2>&1 # BTS-HETZNER
+*/5 * * * * cd /home/bts/projects/bts && set -a && . ./.env && set +a && /home/bts/.local/bin/uv run bts data collect-lineup-times --out-dir data/lineup_posting_times > /dev/null 2>&1 # BTS-HETZNER
+*/5 * * * * curl -fsS --max-time 5 https://hc-ping.com/605a78a6-7307-4bdf-aed1-851def6846f4 > /dev/null 2>&1 # BTS-HETZNER
+*/5 * * * * cd /home/bts/projects/bts && set -a && . ./.env && set +a && /home/bts/.local/bin/uv run python scripts/check_heartbeat.py --heartbeat-path data/.heartbeat --ping-url "$BTS_SCHEDULER_HEARTBEAT_PING_URL" >> /home/bts/logs/heartbeat.log 2>&1 # BTS-HETZNER
+*/30 * * * * cd /home/bts/projects/bts && set -a && . ./.env && set +a && /home/bts/.local/bin/uv run bts leaderboard capture-static >> /home/bts/logs/static_capture.log 2>&1 # BTS-HETZNER
+20 */3 * * * cd /home/bts/projects/bts && set -a && . ./.env && set +a && /home/bts/.local/bin/uv run bts backup run --set ops >> /home/bts/logs/backup.log 2>&1 # BTS-HETZNER
+50 4 * * * cd /home/bts/projects/bts && set -a && . ./.env && set +a && /home/bts/.local/bin/uv run bts backup run --set archive >> /home/bts/logs/backup.log 2>&1 # BTS-HETZNER
+35 5 * * 0 cd /home/bts/projects/bts && set -a && . ./.env && set +a && /home/bts/.local/bin/uv run bts backup prune >> /home/bts/logs/backup.log 2>&1 # BTS-HETZNER
+== list-timers --all ==
+NEXT                        LEFT          LAST                        PASSED       UNIT                           ACTIVATES
+Sat 2026-10-10 05:00:00 EDT 4h 22min left Fri 2026-10-09 22:45:01 EDT 1h 52min ago bts-live-forward-capture.timer bts-live-forward-capture.service
+Sat 2026-10-10 07:00:00 EDT 6h left       Fri 2026-10-09 22:00:01 EDT 2h 37min ago bts-live-forward-resolve.timer bts-live-forward-resolve.service
+
+2 timers listed.
+== list-units --type=service --all ==
+bts-dashboard.service            loaded    active   running BTS Dashboard
+bts-live-forward-capture.service loaded    inactive dead    BTS live-forward candidate artifact capture (one-shot)
+bts-live-forward-resolve.service loaded    inactive dead    BTS live-forward candidate artifact resolver (one-shot)
+bts-scheduler.service            loaded    active   running BTS Dynamic Lineup Scheduler
+dbus.service                     loaded    active   running D-Bus User Message Bus
+dirmngr.service                  loaded    inactive dead    GnuPG network certificate management daemon
+gpg-agent.service                loaded    inactive dead    GnuPG cryptographic agent and passphrase cache
+pk-debconf-helper.service        loaded    inactive dead    debconf communication service
+systemd-remount-fs.service       not-found inactive dead    systemd-remount-fs.service
+== grep audit/c1 in crontab + unit files ==
+(grep rc 1)
+== unit ExecStart lines ==
+/home/bts/.config/systemd/user/bts-dashboard.service:ExecStart=/home/bts/.local/bin/uv run python3 -m bts.web
+/home/bts/.config/systemd/user/bts-leaderboard.service:ExecStart=/home/bts/.local/bin/uv run bts leaderboard scrape \
+/home/bts/.config/systemd/user/bts-live-forward-capture.service:ExecStart=/home/bts/projects/bts/.venv/bin/python /home/bts/projects/bts/scripts/live_forward_capture_once.py --auto-recapture-on-snapshot-drift --capture-research-on-skip
+/home/bts/.config/systemd/user/bts-live-forward-resolve.service:ExecStart=/home/bts/projects/bts/.venv/bin/python /home/bts/projects/bts/scripts/live_forward_resolve_once.py
+/home/bts/.config/systemd/user/bts-scheduler.service:ExecStart=/home/bts/.local/bin/uv run bts schedule --config /home/bts/.bts-orchestrator.toml
