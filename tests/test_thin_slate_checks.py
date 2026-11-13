@@ -125,3 +125,65 @@ def test_the_day_loop_runs_the_early_checks_at_their_times(monkeypatch, tmp_path
               "health_checks": {"enabled": False}}
     sch.run_day(date=D, config=config, dry_run=False)
     assert calls[:3] == ["16:10", "17:10", "18:10"]
+
+
+# ---------------------------------------------------------------- after the checks: the wait for the fallback deadline
+
+def _drive(monkeypatch, tmp_path, results, *, preview):
+    """The real run_day for a one-game 19:05 slate (2026-04-06, the integration harness's date) on a moving clock.
+    `results` are run_single_check's returns, in order; `preview` is saved first as an undelivered pick file."""
+    import bts.scheduler as sch
+    from bts.picks import save_pick
+    from tests import test_scheduler_decision_record_integration as H
+    start = datetime.strptime(f"{H.DATE} 10:00", "%Y-%m-%d %H:%M").replace(tzinfo=ET)
+    clock = {"now": start}
+    seen = {"sleeps": [], "refreshes": []}
+
+    def sleep(seconds, *a, **k):
+        clock["now"] += timedelta(seconds=seconds)
+        seen["sleeps"].append(clock["now"].strftime("%H:%M"))
+
+    def refresh(cfg, d, cached, gap, **k):
+        seen["refreshes"].append(clock["now"].strftime("%H:%M"))
+        return sch.FallbackRefreshResult(cached, True, selection=H._sel("single", "mdp", primary=H._cand()))
+
+    if preview:
+        save_pick(H._daily(delivered=False), tmp_path)
+    monkeypatch.setattr(sch, "fetch_schedule", H._seq([[H._game(100, "19:05")], []]))
+    monkeypatch.setattr(sch, "_now_et", lambda: clock["now"])
+    monkeypatch.setattr(sch, "_watchdog_ping_sleep", sleep)
+    monkeypatch.setattr(sch.time, "sleep", lambda *a, **k: None)
+    monkeypatch.setattr(sch, "run_result_polling", lambda *a, **k: "final")
+    monkeypatch.setattr(sch, "_trigger_live_forward_capture_on_lock", lambda *a, **k: None)
+    monkeypatch.setattr(sch, "_idle_until_next_wakeup", lambda *a, **k: None)
+    monkeypatch.setattr(sch, "_maybe_alert_missed_pick", lambda *a, **k: None)
+    monkeypatch.setattr(sch, "_refresh_pick_at_fallback_decision", refresh)
+    monkeypatch.setattr(sch, "run_single_check", H._seq(list(results)))
+    seen["delivered"] = H._deliver_spy(monkeypatch)
+    config = {"orchestrator": {"picks_dir": str(tmp_path), "heartbeat_path": str(tmp_path / ".hb")}, "tiers": [],
+              "scheduler": {"pick_delivery": "private", "early_lock_gap": 0.03, "lineup_check_offset_min": 60,
+                            "cluster_min": 10, "doubleheader_recheck_min": 15, "missed_pick_alert_min": 10,
+                            "results_poll_interval_min": 15, "results_cap_hour_et": 5},
+              "health_checks": {"enabled": False}}
+    sch.run_day(date=H.DATE, config=config, dry_run=False)
+    return seen
+
+
+def test_a_selected_pick_is_delivered_at_the_deadline_when_the_later_checks_produce_nothing(monkeypatch, tmp_path):
+    """Checks at 16:05, 17:05 and 18:05 all return no pick (their cascades failed) while an undelivered pick from an
+    earlier selection is on disk. The loop ends at 18:05, 60 minutes before first pitch; the day must still wake at
+    the fallback deadline (first pitch - 35 = 18:30) and deliver. Before 2026-11-13 it ended here undelivered."""
+    from tests import test_scheduler_decision_record_integration as H
+    seen = _drive(monkeypatch, tmp_path, [H._result(), H._result(), H._result()], preview=True)
+    assert "18:30" in seen["sleeps"] and seen["refreshes"] == ["18:30"]
+    assert seen["delivered"]
+
+
+def test_a_standing_skip_does_not_wait_for_the_deadline(monkeypatch, tmp_path):
+    """On a policy skip day a stale undelivered preview can sit on disk (GH #144). The wait is for a selected pick,
+    not for that file: no sleep to 18:30, no refresh, nothing delivered."""
+    from tests import test_scheduler_decision_record_integration as H
+    skip = H._result(selection=H._sel("skip", "mdp", primary=H._cand(), streak=9, saver=False))
+    seen = _drive(monkeypatch, tmp_path, [skip, skip, skip], preview=True)
+    assert "18:30" not in seen["sleeps"] and seen["refreshes"] == []
+    assert not seen["delivered"]

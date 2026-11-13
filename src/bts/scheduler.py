@@ -3037,6 +3037,27 @@ def run_day(
                 effective_cascade_budget_min(
                     cascade_budget_min_cfg, _measured_cascade_durations(state)),
                 operator_reserve_min)
+            if (mins_to_game > fallback_min and state.final_skip_candidate is None
+                    and state.skip_summary is None):
+                # The checks are over, a selected pick is still undelivered, and its fallback
+                # deadline is still ahead: wait for it. Without this the day ended here
+                # undelivered whenever the LAST check produced no pick (its cascade failed, or
+                # returned no predictions) after an earlier check had selected one — the in-loop
+                # deadline sleep only runs after a check that returns a pick. Thin-slate early
+                # checks (plan_run_times) made that reachable on a one-game day; the incident
+                # register's L03 control caught it (2026-11-13). A standing skip does not wait.
+                deadline = earliest_game_et - timedelta(minutes=fallback_min)
+                wait = (deadline - now).total_seconds()
+                print(f"  Checks done, pick undelivered — sleeping until the fallback deadline "
+                      f"{deadline.strftime('%H:%M ET')} ({wait / 60:.0f} min)...", file=sys.stderr)
+                write_heartbeat(heartbeat_path, state=HeartbeatState.SLEEPING,
+                                sleeping_until=deadline.astimezone(UTC))
+                notify_watchdog()
+                _watchdog_ping_sleep(wait)
+                write_heartbeat(heartbeat_path, state=HeartbeatState.RUNNING)
+                notify_watchdog()
+                now = _now_et()
+                mins_to_game = (earliest_game_et - now).total_seconds() / 60
             if mins_to_game <= fallback_min:
                 # Re-run predictions first in case late-arriving lineups
                 # changed the top pick since the last scheduled check.

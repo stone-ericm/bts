@@ -772,8 +772,10 @@ def _e77_verdict(obs: dict) -> None:
             SingletonSlateUndelivered, "7/16 singleton slate")
 
 
-@pytest.mark.xfail(strict=True, raises=SingletonSlateUndelivered,
-                   reason="E77 unfixed: a moved-up singleton slate gets its only check at first pitch")
+# E77 REPAIRED 2026-11-13 (scheduler.plan_run_times: a one-game slate also gets checks at start - 180 and - 120, so
+# the plan made from the stale 19:10 start has checks at 16:10 and 17:10, before the true 18:05 cutoff). Until then
+# this node was xfail(strict, raises=SingletonSlateUndelivered); the repair turned it into XPASS(strict), as the
+# verdict's docstring says any repair would. It is now an ordinary regression test of the fixed direction.
 def test_e77_singleton_slate_moved_up_is_delivered_before_cutoff(tmp_path):
     obs = _run_singleton_day(tmp_path / "picks", _preview(_turner()), move_at=E77_MOVE_AT,
                              true_first_pitch=E77_TRUE_FIRST_PITCH)
@@ -782,12 +784,13 @@ def test_e77_singleton_slate_moved_up_is_delivered_before_cutoff(tmp_path):
 
 def test_e77_positive_execution_control_correct_schedule_delivers(tmp_path):
     """Positive execution control (component level): the SAME machinery and mocks, with the move
-    already in the morning schedule (move_at 09:00, before the 10:00 fetch), runs its 17:10 check
-    and DMs the pick before the 18:05 cutoff — and the verdict accepts it."""
+    already in the morning schedule (move_at 09:00, before the 10:00 fetch), runs its first check (15:10
+    since the 2026-11-13 thin-slate checks; it was the lone 17:10 check before) and DMs the pick before the
+    18:05 cutoff — and the verdict accepts it."""
     obs = _run_singleton_day(tmp_path / "picks", _preview(_turner(game_time="2026-07-16T22:10:00Z")),
                              move_at=datetime(2026, 7, 16, 9, 0, tzinfo=ET),
                              true_first_pitch=E77_TRUE_FIRST_PITCH)
-    assert [c["at"].strftime("%H:%M") for c in obs["checks"]][:1] == ["17:10"], obs["checks"]
+    assert [c["at"].strftime("%H:%M") for c in obs["checks"]][:1] == ["15:10"], obs["checks"]
     assert _delivery_outcome(obs) == ("delivered_before_cutoff",), (obs["dms"], obs["daily"])
     _e77_verdict(obs)
 
@@ -907,7 +910,9 @@ L03_GAME = 824801
 L03_BATTER = "Batter 660101"
 L03_FIRST_PITCH = datetime(2026, 7, 20, 19, 10, tzinfo=ET)
 L03_CUTOFF = L03_FIRST_PITCH - timedelta(minutes=5)
-L03_CHECK = datetime(2026, 7, 20, 18, 10, tzinfo=ET)          # first pitch - 60 (box TOML offset)
+# The day's FIRST check. It was 18:10 (first pitch - 60, the box TOML offset) until 2026-11-13; a one-game slate now
+# also gets checks at first pitch - 180 and - 120 (scheduler.plan_run_times, the E77 repair), so the first is 16:10.
+L03_CHECK = datetime(2026, 7, 20, 16, 10, tzinfo=ET)
 L03_FALLBACK = datetime(2026, 7, 20, 18, 35, tzinfo=ET)       # first pitch - 35 (fallback deadline)
 L03_POSTPONED_AT = datetime(2026, 7, 20, 18, 20, tzinfo=ET)
 
