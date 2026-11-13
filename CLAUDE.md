@@ -30,6 +30,28 @@ bash scripts/cron-setup-hetzner.sh show      # dry-run
 bash scripts/cron-setup-hetzner.sh install   # install to bts user crontab
 ```
 
+## Work policies (adopted from the EoR project, Eric 2026-11-12: "Update all our work policies to match those developed in the eor project")
+Source, mapping and what this supersedes: `docs/superpowers/notes/work-policies-2026-11-12.md`. Roadmap: `docs/superpowers/plans/2026-11-12-2027-season-roadmap.md`.
+- **Review by tier.** A mixed change takes its highest tier.
+  - **A, pick-path behaviour** (pick choice, delivery, entry, streak/saver state, scheduler timing, policies): RED-first tests, the gate run, a real-artifact check, and ONE fresh Codex review of behaviour, at most two rounds.
+  - **B, captures and instrumentation:** tests, the gate run, a real-artifact check. No review. Write each capture's limits beside it.
+  - **C, tools that decide acceptance** (study runners, scorers, the launcher): RED to GREEN on real excerpts, and run the tool end to end on the real input before handing over. Review only for the one tool that decides a commit or a result. Mutant ledgers live here only.
+  - **D, tests, docs, records:** no review.
+- **The gate run** is the commit test: the focused tests for the change, then the fast suite (Quick Start), plus a fixture-day dry run for pick-path changes once it exists. Green means commit and push `origin main`. No per-launch custody steps (sealed outcomes, tuple checks, markers, heads-up messages).
+- **A test-code or evidence-tooling finding is a NOTE, never a BLOCK,** unless it makes a false claim about behaviour that no gate run or real-artifact check covers. Reviewer prompts name the tier and say so.
+- **Three BLOCKs stop the session, never the work:** record the obligations, write a kickoff brief, start fresh and change something material.
+- **Draft sprint until activation:** 2027 preparation is written as best guesses without design-review rounds; one fresh whole-range review covers all tier A work before the deploy that precedes the opener.
+- **Design authority:** the lead session decides design questions, ledgers them with cost if wrong, and reports daily; Eric can overrule afterwards.
+- **Owner-only:** spending (including restoring the box), any deploy to the box, anything on the real contest account, delivery mode, reading 2027 outcomes for a study with no exposure-register row, cutting scope, publication.
+- **In season** (my adaptation; EoR's basis was that nothing is published): tier A changes are hotfixes from a clean branch at the deployed commit, reviewed once before deploy; new captures get a failure-direction check on the box in their first week.
+- **Unchanged:** every Safety Rule below, the exposure register and pre-registration (Eric's D2), test first, failure-direction verification, the frozen 2026 artifacts.
+- **Agents:** Codex lanes and reviewers with memories off and Remote Control off; check `ai-usage` before staffing; long runs go remote, not on the Mac. When agent work spans more than a day, run the daily multi-model workflow review with a delivery estimate.
+
+## 2027 season (Eric 2026-11-12: "We're gonna play in 2027"; "Activation approved")
+- Opening Night Wed 2027-03-24 (one game, the singleton-slate case), traditional opener 03-25, season ends 09-26. The labor contract expires 2026-12-01 and a lockout is expected: the box is restored 21 days before a CONFIRMED opener, not before.
+- Known 2027 blockers: `src/bts/strategy.py:42` `SEASON_END_DATE = "2026-09-28"`; `scripts/cron-setup-hetzner.sh:91` `--seasons 2026`.
+- Reopened by Eric 11/12: the longest-streak policy (4b, trade table still needs his D7 approval before it affects picks) and a narrower watchdog.
+
 ## Deployment
 - **🚨 Remote / phone incident response → see [`INCIDENT.md`](INCIDENT.md)** — what a cloud (phone) session can vs. can't fix, exact deploy/rollback commands, and the escalation triggers (esp. the on-box cookie re-capture you can't do from the cloud).
 - **Deploys trigger on push to `deploy` branch** (NOT main, since 2026-04-21). Workflow: commit/push to main freely; when ready to ship, `git push origin main:deploy`. Gives explicit control over when scheduler restart fires (avoids disrupting live-game scorecard polling).

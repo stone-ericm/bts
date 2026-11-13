@@ -14,7 +14,7 @@
 | A5 | **DM and cron configuration.** <ul><li>Restore `pick_delivery = "dm"` in `~/.bts-orchestrator.toml` (snapshot `.bak-20260914-season-over`). Once watchdog P4 (`1c0e759`) is deployed, also set `[scheduler] entry_intent = "enter"`: install refuses without an agreeing intent.</li><li>Run `bash scripts/cron-setup-hetzner.sh install` (`set -a && . ./.env && set +a` first). That re-enables `check-pick-entered` (with P4: only for `entry_intent = "enter"`) and installs the C-03 07:40 reconcile line.</li><li>Restart inside a sleep window.</li></ul> **Status 2026-10-06:** P4 is deployed and `entry_intent = "research"` is set. The crontab was installed under it, with the 07:40 line and no entry checker. At season start: `pick_delivery = "dm"`, `entry_intent = "enter"`, install again, and restart in a sleep window. | Claude, with Eric's approval at D6 | `crontab -l` diff against the 9/14 backup; the scheduler journal |
 | A6 | **Rehearsal on a fixture day.** A dry run of a full day on a pinned past date: no DM, no contest call. | Claude | dry-run log; the decision.json shape |
 | A7 | **Rollback.** Know the pre-activation SHA and config snapshot; check the canary and auto-rollback path. Revert = restore `pick_delivery = "private"` and comment out the cron line. | Claude | written rollback command set |
-| A8 | **Explicit activation approval (D6).** | **Eric** | his recorded decision |
+| A8 | **Explicit activation approval (D6).** | **Eric** | his recorded decision **APPROVED 2026-11-12** (register row D6-2027-play: "We're gonna play in 2027.", "Activation approved"). A6 and A7 still run before picks are delivered. |
 
 ## B. Code and deploy items that must ship before activation
 | # | Item | Executor | Acceptance evidence |
@@ -37,7 +37,7 @@
 - **Phase 2 of the incident register** (Route R over box data) only if the decision memo needs it: register row X-20 and Eric's go-ahead.
 - **Eric's rulings, 2026-10-04** (register §C; decision memo, last section):
   - **D1 = Option 2** (a better expected longest streak at a stated cost in the chance of 57). Any 2027 policy built on it needs a measured trade table approved under D7 before it affects picks. Building one is rank 4b, which Eric added to C1 on 10/04.
-  - **D6:** no activation decided. Activation needs his explicit A8 approval and a named owner for entry and official-state checks.
+  - **D6 (updated 2026-11-12, row D6-2027-play): Eric plays in 2027 and activation is approved.** Roadmap: `docs/superpowers/plans/2026-11-12-2027-season-roadmap.md`. Earlier text: no activation decided. Activation needs his explicit A8 approval and a named owner for entry and official-state checks.
   - **D7:** B1 is put to him after its gating review signs and before activation; B3 only after the paired-seed memo.
   - **D4: C1 APPROVED 10/04** (`docs/audit/2026-10-04-d4-cycle-proposal.md`): ranks 2, 4a, 3 and **4b**, plus the rank-1 prerequisites; tracked in `docs/sota_audit/2026-10-04-c1-cycle-index.md`. Set these up before the first 2027 capture:
     - rank 2's watchdog, reviewed and approved under D7 before activation if Eric plays;
