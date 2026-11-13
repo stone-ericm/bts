@@ -48,6 +48,8 @@ YESTERDAY='$(date -d yesterday +\%Y-\%m-\%d)'
 # late MLB scoring corrections without re-downloading the full season.
 DATA_PULL_START='$(date -d "7 days ago" +\%Y-\%m-\%d)'
 DATA_PULL_END='$(date +\%Y-\%m-\%d)'
+# The season to build is the current year, evaluated when cron runs the line (it was a hardcoded 2026).
+DATA_BUILD_SEASON='$(date +\%Y)'
 
 # install/show only: the declared entry intent, or refuse (exit 1, crontab untouched).
 ENTRY_CRON_LINE=""
@@ -88,7 +90,7 @@ CRON_LINES="$MARKER
 30 13 * * * $PREFIX $UV_BIN run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $LOG_DIR/cron.log 2>&1 $MARKER
 30 23 * * * $PREFIX $UV_BIN run bts skip-policy-shadow-update >> $LOG_DIR/cron.log 2>&1 $MARKER
 45 7 * * * $PREFIX $UV_BIN run bts park-drag-refresh >> $LOG_DIR/park_drag.log 2>&1 $MARKER
-0 3 * * * $PREFIX ($UV_BIN run bts data pull --start $DATA_PULL_START --end $DATA_PULL_END && $UV_BIN run bts data build --seasons 2026 && { $UV_BIN run bts preview ; $UV_BIN run bts data sync-to-r2 ; }) >> $LOG_DIR/cron.log 2>&1 $MARKER
+0 3 * * * $PREFIX ($UV_BIN run bts data pull --start $DATA_PULL_START --end $DATA_PULL_END && $UV_BIN run bts data build --seasons $DATA_BUILD_SEASON && { $UV_BIN run bts preview ; $UV_BIN run bts data sync-to-r2 ; }) >> $LOG_DIR/cron.log 2>&1 $MARKER
 */5 * * * * $PREFIX $UV_BIN run bts data collect-lineup-times --out-dir data/lineup_posting_times > /dev/null 2>&1 $MARKER
 */5 * * * * curl -fsS --max-time 5 $HC_PING_URL > /dev/null 2>&1 $MARKER
 */5 * * * * $PREFIX $UV_BIN run python scripts/check_heartbeat.py --heartbeat-path data/.heartbeat --ping-url \"\$BTS_SCHEDULER_HEARTBEAT_PING_URL\" >> $LOG_DIR/heartbeat.log 2>&1 $MARKER

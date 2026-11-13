@@ -272,3 +272,16 @@ def test_a_filtering_failure_refuses_and_keeps_foreign_jobs(box, action, tmp_pat
     assert box.cron.read_text() == before
     calls = Path(f"{box.cron}.calls").read_text().split()
     assert "-" not in calls
+
+
+def test_the_nightly_build_takes_its_season_from_the_clock(box):
+    """The line was `bts data build --seasons 2026`: in 2027 it would rebuild last year's file every night and never
+    build the current season (found 2026-11-12). The season is evaluated when cron runs the line, like the pull's
+    dates; `%` is escaped because cron treats a bare one as a newline."""
+    import re
+    box.config.write_text('[scheduler]\nentry_intent = "research"\npick_delivery = "private"\n')
+    assert box.run("install").returncode == 0
+    build = [ln for ln in box.lines() if "bts data build" in ln]
+    assert len(build) == 1
+    assert "bts data build --seasons $(date +\\%Y) " in build[0]
+    assert not [ln for ln in box.lines() if re.search(r"--seasons\s+20\d\d", ln)]
