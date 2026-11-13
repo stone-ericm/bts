@@ -1631,6 +1631,52 @@ def entry_intent(config_path):
     click.echo(result.intent)
 
 
+@cli.command(name="day-outcome")
+@click.option("--date", "date_str", default=None, help="Contest date YYYY-MM-DD (default: today, ET)")
+@click.option("--config", "config_path", required=True, type=click.Path(path_type=Path),
+              help="Orchestrator TOML (the box uses ~/.bts-orchestrator.toml)")
+@click.option("--picks-dir", default="data/picks", help="Picks directory")
+@click.option("--expected-username", default=None, help="The contest account an entry must be confirmed on")
+@click.option("--dm-recipient", default=None, help="Bluesky handle to DM when the day did not end in a clean state")
+def day_outcome(date_str, config_path, picks_dir, expected_username, dm_recipient):
+    """Name the day's end state from its decision record and entry receipts; exit 1 (and DM) unless it is clean.
+
+    Read-only and stateless (bts.day_outcome): it repeats an alert only as often as cron runs it. Exit codes:
+    0 clean, 1 a problem state, 2 the check itself could not run.
+    """
+    import json as _json
+    import tomllib
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    from bts.day_outcome import gather
+    from bts.orchestrator import load_config
+
+    date_str = date_str or datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
+    try:
+        config = load_config(config_path)
+        outcome = gather(date_str, Path(picks_dir), config, expected_username=expected_username)
+    except (OSError, tomllib.TOMLDecodeError, ValueError) as exc:
+        click.echo(f"day-outcome: could not run for {date_str}: {type(exc).__name__}: {exc}", err=True)
+        if dm_recipient:
+            try:
+                from bts.dm import send_dm
+                send_dm(dm_recipient, f"BTS day check {date_str}: THE CHECK COULD NOT RUN ({type(exc).__name__}). "
+                                      f"The day's end state is unknown.")
+            except Exception as dm_exc:  # the exit code still reports the failure
+                click.echo(f"day-outcome: DM failed: {type(dm_exc).__name__}", err=True)
+        raise SystemExit(2)
+    click.echo(_json.dumps(outcome.as_dict()))
+    if outcome.ok:
+        return
+    if dm_recipient:
+        try:
+            from bts.dm import send_dm
+            send_dm(dm_recipient, outcome.message())
+        except Exception as dm_exc:
+            click.echo(f"day-outcome: DM failed: {type(dm_exc).__name__}", err=True)
+    raise SystemExit(1)
+
+
 @cli.command(name="check-pick-entered")
 @click.option("--picks-dir", default="data/picks", help="Picks directory")
 @click.option("--expected-username", default=None, help="Refuse if session identity differs")
