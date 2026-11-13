@@ -8,7 +8,7 @@ PREPARED.json; a seed runs once; the aggregate refuses anything but the ten regi
 
     prepare    --data-dir D --raw-dir R --lookup L --inputs I     once: table, 2017-2026 lookup, sources, pa_2026 copy
     run        --seed N --data-dir D --inputs I --out O           one seed, three arms
-    aggregate  --inputs I --out O                                 after all ten seeds: dispositions
+    aggregate  --data-dir D --inputs I --out O                    after all ten seeds: dispositions
 """
 from __future__ import annotations
 
@@ -208,47 +208,108 @@ def run(seed: int, data_dir: Path, inputs: Path, out: Path, *, walk_forward=None
 
 # ---------------------------------------------------------------- the aggregate
 
-def seed_rank1(out: Path, seed: int, pins: dict) -> dict:
-    """One finished seed's rank-1 hits per arm, re-derived from its retained profiles (not trusted from results.json)
-    and required to equal what the run recorded."""
+REGISTERED = {"test_season": F.TEST_SEASON, "arms": list(F.ARMS), "basis": S.BASIS, "retrain_every": S.RETRAIN_EVERY}
+
+
+def trusted(data_dir: Path, inputs: Path, pins: dict) -> "F.Trusted":
+    """What every seed is checked against, derived here from the pinned inputs and never from a run (design §6,
+    review r1 B1-B3): the calendar, each scoreable batter-game's date and original-portion label, each predicted
+    day's side-games, and each A arm's catcher and as-of value per side-game, recomputed from the pinned PA files."""
+    truth = F.load_trusted(inputs, pins)
+    asof, _ = F.recompute_asof(data_dir, inputs, pins)
+    truth.expected = F.expected_values(F.expected_evidence(truth, asof))
+    return truth
+
+
+def _same_json(a, b) -> bool:
+    drop = lambda o: {k: v for k, v in o.items() if k != "timestamp"} if isinstance(o, dict) else o   # noqa: E731
+    return S._canon(drop(json.loads(S._canon(a)))) == S._canon(drop(json.loads(S._canon(b))))
+
+
+def validate_seed(out: Path, seed: int, pins: dict, truth: "F.Trusted") -> dict:
+    """One finished seed as complete, valid evidence (design §6 "Completeness first"), or RunInvalid. Nothing a run
+    recorded about itself is trusted: the calendar and labels come from the pinned inputs, the rank-1 hits, scorecards,
+    diffs and summaries are recomputed from the retained profiles, and the catcher evidence is re-derived."""
     import pandas as pd
+    from bts.validate.scorecard import compute_full_scorecard, diff_scorecards
     d = out / f"seed_{seed}"
     if (d / "STOPPED.json").exists() or not (d / "results.json").exists():
         raise F.RunInvalid(f"seed {seed} is stopped or unfinished")
     man, res = json.loads((d / "manifest.json").read_bytes()), json.loads((d / "results.json").read_bytes())
-    if man["seed"] != seed or res["seed"] != seed or man["input_pins"] != pins:
+    if man.get("seed") != seed or res.get("seed") != seed or man.get("input_pins") != pins:
         raise F.RunInvalid(f"seed {seed}: the run's seed or input pins are not this test's")
-    calendar = man["calendar"]
-    got = {}
+    env, lgb = man.get("env") or {}, man.get("lgb_params") or {}
+    if (any(man.get(k) != v for k, v in REGISTERED.items()) or man.get("scoring") != dict(S.SCORING)
+            or man.get("feature_settings") != S.SETTINGS or not (man.get("self_check") or {}).get("identical")
+            or env.get("BTS_LGBM_DETERMINISTIC") != "1" or env.get("BTS_LGBM_RANDOM_STATE") != str(seed)
+            or lgb.get("deterministic") is not True or lgb.get("force_row_wise") is not True):
+        raise F.RunInvalid(f"seed {seed}: the run was not made under the registered settings")
+    calendar = truth.calendar
+    if not calendar or man.get("calendar") != calendar:
+        raise F.RunInvalid(f"seed {seed}: its calendar is not the pinned pa_2026's complete calendar")
+    units = {u.get("arm"): u for u in res.get("units") or []}
+    if list(units) != list(F.ARMS):
+        raise F.RunInvalid(f"seed {seed}: its units are not exactly the three arms in order")
+    hits, ties, cards = {}, {}, {}
     for arm in F.ARMS:
-        hits = F.rank1(pd.read_parquet(d / f"profiles_{arm}_{F.TEST_SEASON}.parquet"), calendar)
-        if hits != res["rank1"][arm]:
+        name = f"profiles_{arm}_{F.TEST_SEASON}.parquet"
+        part = pd.read_parquet(d / name)
+        problem = S.profile_problem(part, F.TEST_SEASON) or F.identity_problem(part, truth)
+        if problem is None:
+            problem, ties[arm] = F.order_problem(part)
+        if problem is not None:
+            raise F.RunInvalid(f"seed {seed} {name}: {problem}")
+        try:
+            hits[arm] = F.rank1(part, calendar)
+        except F.RunInvalid as e:
+            raise F.RunInvalid(f"seed {seed} {name}: its dates are not the complete calendar ({e})")
+        if hits[arm] != (res.get("rank1") or {}).get(arm):
             raise F.RunInvalid(f"seed {seed} {arm}: retained profiles do not reproduce the recorded rank-1 hits")
-        got[arm] = hits
-    return {"calendar": calendar, "rank1": got, "units": res["units"], "arms": res["arms"]}
+        cards[arm] = compute_full_scorecard(part, **S.SCORING)
+        if not _same_json(cards[arm], json.loads((d / f"scorecard_{arm}.json").read_bytes())):
+            raise F.RunInvalid(f"seed {seed} {arm}: its scorecard is not what its retained profiles give")
+    summaries = {}
+    for arm in F.ARMS[1:]:
+        ev = pd.read_parquet(d / f"catcher_{arm}_{F.TEST_SEASON}.parquet")
+        problem = F.evidence_problem(ev, arm, truth, units[arm].get("catcher") or {})
+        if problem is not None:
+            raise F.RunInvalid(f"seed {seed}: {problem}")
+        diff = json.loads(S._canon(diff_scorecards(cards["baseline"], cards[arm])))
+        summaries[arm] = F.arm_summary(diff)
+        if not _same_json(summaries[arm], (res.get("arms") or {}).get(arm)):
+            raise F.RunInvalid(f"seed {seed} {arm}: its stored summary is not what its scorecards give")
+    return {"rank1": hits, "ties": ties, "summaries": summaries,
+            "coverage": {a: units[a]["catcher"]["counts"] for a in F.ARMS[1:]},
+            "walk_forward_cpu_s": sum(float(u["cpu_s"]) for u in units.values()),
+            "total_cpu_s": float(res["total_cpu_s"])}
 
 
-def aggregate(inputs: Path, out: Path) -> dict:
-    """Design §6. Refuses unless all ten registered seeds are complete on one identical calendar; A-posted decides,
-    A-projected is described on the same calendar."""
+def deltas(rank1s: list[dict], arm: str):
+    """x[s, t]: the arm's rank-1 hit minus the baseline's, seeds in the given order, dates ascending (design §6)."""
+    import numpy as np
+    return np.array([np.array(r[arm]) - np.array(r["baseline"]) for r in rank1s], dtype=float)
+
+
+def aggregate(data_dir: Path, inputs: Path, out: Path) -> dict:
+    """Design §6. Refuses unless all ten registered seeds are complete, valid evidence on the pinned calendar;
+    A-posted decides, A-projected is described on the same calendar."""
     import numpy as np
     pins = prepared(inputs)["pins"]
-    seeds = [seed_rank1(out, s, pins) for s in F.SEEDS]             # §5's literal order
-    calendar = seeds[0]["calendar"]
-    if not calendar or any(s["calendar"] != calendar for s in seeds):
-        raise F.RunInvalid("the seeds do not share one nonempty evaluation calendar")
-
-    def deltas(arm):
-        return np.array([np.array(s["rank1"][arm]) - np.array(s["rank1"]["baseline"]) for s in seeds], dtype=float)
+    truth = trusted(data_dir, inputs, pins)
+    seeds = [validate_seed(out, s, pins, truth) for s in F.SEEDS]            # §5's literal order
+    rank1s = [s["rank1"] for s in seeds]
+    calendar = truth.calendar
     agg = {"schema": SCHEMA, "seeds": list(F.SEEDS), "n_days": len(calendar),
            "calendar": [calendar[0], calendar[-1]], "calendar_sha256": _sha(F.canonical(calendar)),
-           "A_posted": F.dispose(deltas("A_posted")),
-           "A_projected_descriptive": {k: v for k, v in F.dispose(deltas("A_projected")).items() if k != "disposition"},
-           "baseline_rank1_hit_rate_by_seed": [float(np.mean(s["rank1"]["baseline"])) for s in seeds],
-           "catcher_coverage": {a: [next(u["catcher"]["counts"] for u in s["units"] if u["arm"] == a) for s in seeds]
-                                for a in F.ARMS[1:]},
-           "streak_metrics_by_seed": [s["arms"] for s in seeds],
-           "total_cpu_h": sum(u["cpu_s"] for s in seeds for u in s["units"]) / 3600}
+           "A_posted": F.dispose(deltas(rank1s, "A_posted")),
+           "A_projected_descriptive": {k: v for k, v in F.dispose(deltas(rank1s, "A_projected")).items()
+                                       if k != "disposition"},
+           "rank1_hit_rate_by_seed": {a: [float(np.mean(r[a])) for r in rank1s] for a in F.ARMS},
+           "catcher_coverage_by_seed": [s["coverage"] for s in seeds],
+           "rank_ties_by_seed": [s["ties"] for s in seeds],
+           "streak_summaries_by_seed": [s["summaries"] for s in seeds],
+           "walk_forward_cpu_h": sum(s["walk_forward_cpu_s"] for s in seeds) / 3600,
+           "total_cpu_h": sum(s["total_cpu_s"] for s in seeds) / 3600}
     _write_new(out / "aggregate.json", (json.dumps(agg, indent=1, sort_keys=True) + "\n").encode())
     return agg
 
@@ -267,6 +328,7 @@ def main(argv=None) -> int:
     r.add_argument("--inputs", type=Path, required=True)
     r.add_argument("--out", type=Path, required=True)
     a = sub.add_parser("aggregate")
+    a.add_argument("--data-dir", type=Path, required=True)
     a.add_argument("--inputs", type=Path, required=True)
     a.add_argument("--out", type=Path, required=True)
     args = ap.parse_args(argv)
@@ -277,7 +339,7 @@ def main(argv=None) -> int:
         return 0
     if args.cmd == "run":
         return run(args.seed, args.data_dir, args.inputs, args.out)
-    agg = aggregate(args.inputs, args.out)
+    agg = aggregate(args.data_dir, args.inputs, args.out)
     print(json.dumps(agg["A_posted"], indent=1))
     return 0
 
