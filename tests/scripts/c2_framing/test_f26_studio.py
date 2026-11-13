@@ -122,3 +122,18 @@ def test_an_unregistered_seed_refuses(tmp_path, monkeypatch):
     monkeypatch.setenv("BTS_LGBM_DETERMINISTIC", "1")
     with pytest.raises(SystemExit, match="not a registered seed"):
         ST.run(7, tmp_path, tmp_path, tmp_path)
+
+
+def test_the_calendar_comes_from_the_frozen_2026_file_alone(tmp_path):
+    """The first real seed-1 start refused because the calendar was taken from the ten-season concat, where the
+    resumed-portion flag is no longer boolean. The calendar must come from the pinned pa_2026 bytes."""
+    import hashlib
+    pa26 = pd.DataFrame({"date": pd.to_datetime(["2026-04-01", "2026-04-01", "2026-04-02", "2026-04-03"]),
+                         "season": 2026, "is_resumed_portion": [False, False, False, True]})
+    pa26.to_parquet(tmp_path / "pa_2026.parquet", index=False)
+    pins = {"pa_2026.parquet": hashlib.sha256((tmp_path / "pa_2026.parquet").read_bytes()).hexdigest()}
+    assert ST.calendar_2026(tmp_path, pins) == ["2026-04-01", "2026-04-02"]      # 04-03 has only resumed rows
+    older = pd.DataFrame({"date": pd.to_datetime(["2025-04-01"]), "season": 2025})
+    concat = pd.concat([older, pa26], ignore_index=True)
+    with pytest.raises(F.InputRefused):                                         # why the concat cannot be used
+        F.expected_calendar(concat[concat["season"] == 2026])

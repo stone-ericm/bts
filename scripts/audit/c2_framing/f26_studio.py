@@ -108,6 +108,16 @@ def prepare(data_dir: Path, raw_dir: Path, lookup_path: Path, inputs: Path) -> d
 
 # ---------------------------------------------------------------- one seed
 
+def calendar_2026(inputs: Path, pins: dict) -> list[str]:
+    """The evaluation calendar from the frozen pa_2026 file ALONE. The concatenated ten-season frame cannot be used:
+    2017-2025 have no `is_resumed_portion` column, so after the concat the flag is an object column with missing
+    values and f26.expected_calendar rightly refuses it (found on the first real seed-1 start, 2026-11-12)."""
+    import pandas as pd
+    from scripts.audit.c1 import admission as A
+    raw, _ = A.read_pinned(inputs / F.FROZEN_PA, pins[F.FROZEN_PA])
+    return F.expected_calendar(pd.read_parquet(io.BytesIO(raw)))
+
+
 def run(seed: int, data_dir: Path, inputs: Path, out: Path, *, walk_forward=None) -> int:
     import pandas as pd
     if os.environ.get("BTS_LGBM_DETERMINISTIC") != "1":
@@ -138,7 +148,7 @@ def run(seed: int, data_dir: Path, inputs: Path, out: Path, *, walk_forward=None
                    or F.table_games_problem(table, games))
         if problem:
             raise F.InputRefused(problem)
-        calendar = F.expected_calendar(raw_df[raw_df["season"] == F.TEST_SEASON])
+        calendar = calendar_2026(inputs, pins)
     except F.InputRefused as e:
         S._json(run_dir / "STOPPED.json", {"reason": "inputs", "detail": str(e)})
         raise
