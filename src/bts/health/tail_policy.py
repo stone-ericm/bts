@@ -32,8 +32,27 @@ def _days_remaining(today: date) -> int:
     return strategy_days(today.isoformat())
 
 
+def season_end_alerts(*, today: date) -> list[Alert]:
+    """WARN when ``today``'s year has no configured season end: days-left is then
+    computed against a September 28 default, which is only approximately right."""
+    from bts.strategy import SEASON_END_DATES, season_end_date
+    if today.year in SEASON_END_DATES:
+        return []
+    return [Alert(
+        level="WARN", source=SOURCE,
+        message=(f"season end for {today.year} is not configured: days-left uses the default "
+                 f"{season_end_date(today.isoformat())} — add {today.year} to "
+                 f"bts.strategy.SEASON_END_DATES"),
+    )]
+
+
 def check(*, base_path: Path, tail_path: Path, today: date | None = None) -> list[Alert]:
     today = today or date.today()
+    return season_end_alerts(today=today) + _artifact_alerts(
+        base_path=base_path, tail_path=tail_path, today=today)
+
+
+def _artifact_alerts(*, base_path: Path, tail_path: Path, today: date) -> list[Alert]:
     days = _days_remaining(today)
     in_window = 0 < days <= MAX_TAIL_DAYS
     level = "CRITICAL" if in_window else "WARN"

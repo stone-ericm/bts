@@ -37,9 +37,23 @@ log = logging.getLogger(__name__)
 # Loaded once on first use. Falls back to heuristic if not available.
 _mdp_cache: dict | None = None
 
-# Approximate season end — used to compute days_remaining for MDP lookup.
-# Updated each season. The MDP is robust to ±5 days.
-SEASON_END_DATE = "2026-09-28"
+# Last day of the regular season per year — used to compute days_remaining for
+# the MDP lookup. The MDP is robust to ±5 days. A year missing here falls back to
+# September 28 so the pick path keeps working, and the tail_policy health check
+# WARNs until the year is added (a stale single constant silently read every
+# 2027 date as zero days left = skip all season; found 2026-11-12).
+# 2027: 09-26 per the schedule released 2026-07; re-check after any labor stoppage.
+SEASON_END_DATES = {2026: "2026-09-28", 2027: "2027-09-26"}
+_DEFAULT_SEASON_END_MMDD = "09-28"
+# The 2026 audit scripts (gate_b rebaseline, mdp aggressiveness, boundary-shadow
+# census) import this name and mean 2026. The pick path uses season_end_date().
+SEASON_END_DATE = SEASON_END_DATES[2026]
+
+
+def season_end_date(date: str) -> str:
+    """The season end (YYYY-MM-DD) for the year of ``date``."""
+    year = int(date[:4])
+    return SEASON_END_DATES.get(year, f"{year}-{_DEFAULT_SEASON_END_MMDD}")
 
 
 def _load_mdp():
@@ -225,7 +239,7 @@ class PolicyDecision:
 
 
 def _days_remaining(date: str) -> int:
-    end = datetime.strptime(SEASON_END_DATE, "%Y-%m-%d")
+    end = datetime.strptime(season_end_date(date), "%Y-%m-%d")
     today = datetime.strptime(date, "%Y-%m-%d")
     return max(0, (end - today).days)
 
