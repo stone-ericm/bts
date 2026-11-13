@@ -128,7 +128,7 @@ Follows `docs/ops/2027-season-start.md`; items in order.
 ## Progress and rulings ledger
 
 **Done (2026-11-12 and 11-13), all on `main`:**
-- **Thread A.** Season end follows the year (`29e10bf`); the nightly cron builds the current season (`4f…` cron commit). Audit of every 2025–2027 literal in `src/bts` code (16 lines): the only season-bound logic was `strategy.SEASON_END_DATE` and the cron line. `leaderboard.scraper.scrape_leaderboard` defaults `season=2026`, but both production callers pass `today.year`. The tail policy needs no rebuild: 2027 has 186 days opener to end, clamped to the same 180-day table as 2026. Still open in A: the fixture-day dry run (checklist A6).
+- **Thread A.** Season end follows the year (`29e10bf`); the nightly cron builds the current season (`1137cbe`). Audit of every 2025–2027 literal in `src/bts` code (16 lines): the only season-bound logic was `strategy.SEASON_END_DATE` and the cron line. `leaderboard.scraper.scrape_leaderboard` defaults `season=2026`, but both production callers pass `today.year`. The tail policy needs no rebuild: 2027 has 186 days opener to end, clamped to the same 180-day table as 2026. Still open in A: the fixture-day dry run (checklist A6).
 - **Thread B.** Thin slates (one or two games) get checks at start−180 and start−120 as well (`plan_run_times`). Limit: a start moved up by more than about two hours after the morning fetch can still outrun every check.
 - **Thread C.** `bts day-outcome` (`src/bts/day_outcome.py`), installed by cron at 23:50 and 08:30 under either intent.
 - **Decision 5.** The 2026 framing test ran and came back NEGATIVE (`docs/sota_audit/2026-11-13-result-c2-framing-2026-test.md`). The framing thread is closed; the pregame-catcher capture in thread D is dropped with it.
