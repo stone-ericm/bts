@@ -186,6 +186,56 @@ def compute_run_times(
     return clusters
 
 
+# Thin slates (2026-07-16; Opening Night 2027-03-24 is a one-game slate). With one or two games the regular plan
+# is one or two checks, each at start - offset, computed once from the morning schedule. A start moved up after
+# that fetch then puts the only check at or past first pitch and the day locks undelivered. One check that runs
+# before the cutoff is enough: from then on the fallback deadline comes from the pick's CURRENT game time. Each
+# early check is a full prediction cascade (two extra on a thin-slate day); it delivers nothing by being early,
+# because locking still goes through the same confirmed-lineup decision as every other check.
+THIN_SLATE_MAX_GAMES = 2
+THIN_SLATE_EARLY_OFFSETS_MIN = (180, 120)
+
+
+def plan_run_times(
+    games: list[dict],
+    offset_min: int = 45,
+    cluster_min: int = 10,
+    *,
+    now: datetime | None = None,
+    thin_slate_max_games: int = THIN_SLATE_MAX_GAMES,
+    early_offsets_min: tuple[int, ...] = THIN_SLATE_EARLY_OFFSETS_MIN,
+) -> list[dict]:
+    """The day's lineup checks: `compute_run_times`, plus early checks on a thin slate.
+
+    On a slate of at most `thin_slate_max_games` games, each game also gets a check at start - each of
+    `early_offsets_min` that is earlier than its regular check. Early checks at or before `now` are dropped
+    (a late start must not fire back-to-back cascades); the regular checks are never dropped. Early checks
+    within `cluster_min` of each other merge, like regular checks. A larger slate is planned exactly as
+    `compute_run_times` plans it.
+    """
+    runs = compute_run_times(games, offset_min=offset_min, cluster_min=cluster_min)
+    if not games or len(games) > thin_slate_max_games:
+        return runs
+    early = []
+    for g in games:
+        for off in early_offsets_min:
+            if off <= offset_min:
+                continue
+            t = game_time_et(g) - timedelta(minutes=off)
+            if now is not None and t <= now:
+                continue
+            early.append({"time_et": t, "game_pk": g["gamePk"]})
+    early.sort(key=lambda c: c["time_et"])
+    clusters: list[dict] = []
+    for c in early:
+        if clusters and (c["time_et"] - clusters[-1]["time_et"]) <= timedelta(minutes=cluster_min):
+            if c["game_pk"] not in clusters[-1]["game_pks"]:
+                clusters[-1]["game_pks"].append(c["game_pk"])
+        else:
+            clusters.append({"time_et": c["time_et"], "game_pks": [c["game_pk"]]})
+    return sorted(runs + clusters, key=lambda r: r["time_et"])
+
+
 def detect_doubleheader_game2s(games: list[dict]) -> set[int]:
     """Detect game 2 of doubleheaders (fluid start time).
 
@@ -2593,7 +2643,7 @@ def run_day(
     dh_game2s = detect_doubleheader_game2s(games)
 
     # 2. Compute run times
-    runs = compute_run_times(games, offset_min=offset_min, cluster_min=cluster_min)
+    runs = plan_run_times(games, offset_min=offset_min, cluster_min=cluster_min, now=_now_et())
 
     print(f"  {len(games)} games, {len(runs)} scheduled checks:", file=sys.stderr)
     for r in runs:
