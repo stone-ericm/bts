@@ -1,4 +1,5 @@
 """S6: real day loop, model cascade, selection and delivery; synthetic HTTP and time."""
+import copy
 import io
 import json
 import shutil
@@ -29,17 +30,20 @@ def history(tmp_path_factory):
 
 @pytest.fixture
 def drive(tmp_path, monkeypatch, sample_game_feed, history):
+    import bts.contest_state as contest
     import bts.health.alert as alerts
     import bts.picks as picks
     import bts.scheduler as sch
 
     def run(*, starts=("19:10",), posted_at=None, outage_until=None,
-            skip=None, preview=False, now="10:00", scheduler=None, regular=True, streak=0):
+            skip=None, preview=False, now="10:00", scheduler=None, regular=True, streak=0,
+            early_sleep_targets=(), refuse_planned_pick=False):
         _isolate(monkeypatch)
         shutil.copytree(history / "data", tmp_path / "data")
         monkeypatch.chdir(tmp_path)
         clock = {"now": _at(now)}
-        calls, sent = [], []
+        calls, sent, early_sleeps = [], [], []
+        pick_status_reads = 0
         games = []
         for i, start in enumerate(starts):
             game = _game(pk=9001 + i)
@@ -58,21 +62,37 @@ def drive(tmp_path, monkeypatch, sample_game_feed, history):
                 return clock["now"].astimezone(tz) if tz else clock["now"].replace(tzinfo=None)
 
         def sleep(seconds, *a, **k):
-            clock["now"] += timedelta(seconds=seconds)
+            target = clock["now"] + timedelta(seconds=seconds)
+            if target.strftime("%H:%M") in early_sleep_targets:
+                early_sleeps.append(target)
+                clock["now"] = target - timedelta(seconds=1)
+            else:
+                clock["now"] = target
 
         def network(url, **kw):
+            nonlocal pick_status_reads
             url = getattr(url, "full_url", url)
             calls.append((clock["now"], url))
             if "/schedule" in url:
                 query = parse_qs(urlparse(url).query)
                 obj = {"dates": [{"games": games if query.get("date") == [DATE] else []}]}
+                if (refuse_planned_pick and query.get("date") == [DATE]
+                        and "hydrate" not in query and (picks_dir / f"{DATE}.json").exists()):
+                    pick_status_reads += 1
+                    # The first lookup after saving is the confirmation gate;
+                    # the next is the delivery guard. Postpone between the two.
+                    if pick_status_reads >= 2:
+                        obj = copy.deepcopy(obj)
+                        obj["dates"][0]["games"][0]["status"]["detailedState"] = "Postponed"
             elif "/feed/live" in url:
                 if outage_until and clock["now"] < _at(outage_until):
                     raise OSError("synthetic prediction-feed outage")
                 pk = int(url.split("/game/")[1].split("/")[0])
-                posted = posted_at is not None and clock["now"] >= _at(posted_at)
+                post_time = posted_at.get(pk) if isinstance(posted_at, dict) else posted_at
+                posted = post_time is not None and clock["now"] >= _at(post_time)
                 # On a multi-game day the first game's lineup never arrives.
-                if len(games) > 1 and starts[pk - 9001] == starts[0]:
+                if (not isinstance(posted_at, dict) and len(games) > 1
+                        and starts[pk - 9001] == starts[0]):
                     posted = False
                 obj = _live_feed(sample_game_feed, posted)
                 obj["gameData"]["game"]["pk"] = pk
@@ -87,7 +107,7 @@ def drive(tmp_path, monkeypatch, sample_game_feed, history):
             return io.BytesIO(json.dumps(obj).encode())
 
         _fake_http(monkeypatch, network)
-        for module in (sch, picks, alerts):
+        for module in (sch, picks, alerts, contest):
             monkeypatch.setattr(module, "datetime", Clock)
         monkeypatch.setattr(sch, "_watchdog_ping_sleep", sleep)
         monkeypatch.setattr(sch.time, "sleep", sleep)
@@ -95,8 +115,13 @@ def drive(tmp_path, monkeypatch, sample_game_feed, history):
         monkeypatch.setattr(alerts, "send_dm", lambda *a: sent.append((clock["now"], a)) or "dm-id")
         picks_dir = tmp_path / "data" / "picks"
         if streak:
-            picks_dir.mkdir(parents=True, exist_ok=True)
-            (picks_dir / "streak.json").write_text(json.dumps({"streak": streak}))
+            account_state = picks_dir / "account_state"
+            account_state.mkdir(parents=True, exist_ok=True)
+            (account_state / "contest_streak.json").write_text(json.dumps({
+                "schema_version": "bts_contest_streak_auto_v1", "source": "mlb_bts_profile",
+                "active_streak": streak, "best_streak": streak, "saver_available": False,
+                "source_date": DATE, "recorded_at": f"{DATE}T12:00:00Z",
+            }))
         if skip:
             state = sch.SchedulerState(DATE, "", [], [], [], False, None, None, None)
             if skip == "candidate":
@@ -118,7 +143,8 @@ def drive(tmp_path, monkeypatch, sample_game_feed, history):
         sch.run_day(DATE, config)
         state = sch.load_state(DATE, picks_dir)
         return SimpleNamespace(state=state, sent=sent, calls=calls, picks_dir=picks_dir,
-                               decision=load_decision(DATE, picks_dir), daily=load_pick(DATE, picks_dir))
+                               decision=load_decision(DATE, picks_dir), daily=load_pick(DATE, picks_dir),
+                               early_sleeps=early_sleeps)
     return run
 
 
@@ -132,7 +158,7 @@ def test_lineups_never_arrive_extra_attempt_then_one_immediate_alert(drive):
     assert day.daily is None and day.decision is None
     assert len(day.sent) == 1
     assert day.sent[0][0] == _at("18:35")
-    assert "no pick was selected today" in day.sent[0][1][1].lower()
+    assert "no pick is on file for today" in day.sent[0][1][1].lower()
 
 
 @pytest.mark.parametrize("skip", ["candidate", "summary"])
@@ -165,8 +191,10 @@ def test_first_extra_attempt_recording_a_skip_stops_later_attempts(drive):
     day = drive(starts=("19:10", "19:20", "19:30"), posted_at="18:34", streak=57)
     assert _times(day) == ["18:10", "18:30", "18:35"]
     assert day.daily is None and day.decision["action"] == "skip"
+    assert day.decision["streak"] == 57 and day.decision["state_source"] == "contest"
+    assert not (day.picks_dir / "streak.json").exists()
     assert not day.decision["scoreable"]
-    assert all("no pick was selected today" not in args[1].lower() for _, args in day.sent)
+    assert all("no pick is on file for today" not in args[1].lower() for _, args in day.sent)
 
 
 def test_no_deadline_ahead_has_no_extra_attempt_but_alerts_now(drive):
@@ -189,3 +217,24 @@ def test_extra_attempt_uses_morning_deadline_and_budget_floor(drive, start, now,
     day = drive(starts=(start,), now=now, scheduler=settings)
     assert _times(day)[-1] == expected
     assert len(day.sent) == 1 and day.sent[0][0] == _at(expected)
+
+
+def test_early_extra_sleep_after_refused_planned_pick_keeps_next_attempt(drive):
+    day = drive(starts=("19:10", "19:20", "19:30"), posted_at={9001: "18:29"},
+                early_sleep_targets=("18:35",), refuse_planned_pick=True)
+    assert day.state.delivery_refusals[0]["reason"] == "game_not_playable"
+    assert day.state.delivery_refusals[0]["at"] == _at("18:30").isoformat()
+    archives = list((day.picks_dir / DATE).glob("refused_delivery_*.json"))
+    assert any(json.loads(path.read_text())["pick"]["game_pk"] == 9001 for path in archives)
+    # The refused pick's existing fallback sleep and the extra attempt's sleep
+    # both return just before the same deadline.
+    assert day.early_sleeps == [_at("18:35")] * 2
+    assert _times(day)[:3] == ["18:10", "18:30", "18:45"]
+
+
+def test_early_extra_sleep_without_any_previous_check_keeps_next_attempt(drive):
+    day = drive(starts=("19:10", "19:20", "19:30"),
+                early_sleep_targets=("18:10", "18:30", "18:35"))
+    assert day.early_sleeps == [_at("18:10"), _at("18:30"), _at("18:35")]
+    assert _times(day) == ["18:45", "18:55"]
+    assert day.daily is None

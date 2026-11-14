@@ -229,8 +229,14 @@ def test_stale_refresh_result_never_sends_after_cutoff(tmp_path, capsys):
     with patch("bts.health.alert.dispatch_dm_for_health_alerts", return_value=True) as mock_alert:
         _, mock_dm = _run(tmp_path, clock, slow_refresh)
     mock_dm.assert_not_called()                              # no pick DM
-    alerts = mock_alert.call_args.args[0]                    # but a CRITICAL refusal notice
-    assert alerts[0].level == "CRITICAL" and alerts[0].source == "late_delivery"
+    notices = [(i, alert) for i, call in enumerate(mock_alert.call_args_list) for alert in call.args[0]]
+    refusals = [(i, alert) for i, alert in notices if alert.source == "late_delivery"]
+    assert refusals and all(alert.level == "CRITICAL" for _, alert in refusals)
+    day_end = [(i, alert) for i, alert in notices if alert.source == "missed_pick"]
+    assert len(day_end) == 1 and day_end[0][1].level == "CRITICAL"
+    assert all(i < day_end[0][0] for i, _ in refusals)
+    assert day_end[0][1].message == (
+        "Today's checks and remaining attempts are over. No pick is on file for today.")
     assert not (tmp_path / f"{DATE}.json").exists()
     assert list((tmp_path / DATE).glob("refused_delivery_*.json"))
     state = json.loads((tmp_path / DATE / "scheduler_state.json").read_text())

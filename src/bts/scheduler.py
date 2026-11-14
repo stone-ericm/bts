@@ -72,7 +72,7 @@ def _alert_missed_pick(config: dict, daily, mins_to_game: float) -> None:
     msg = (f"NO PICK DELIVERED with ~{mins_to_game:.0f} min to first pitch "
            f"(top pick: {name}). Deliver manually if you want to keep the streak alive.")
     if daily is None:
-        msg = "No pick was selected today. All scheduled checks and remaining fallback attempts are over."
+        msg = "Today's checks and remaining attempts are over. No pick is on file for today."
     dispatch_dm_for_health_alerts(
         [Alert("CRITICAL", "missed_pick", msg)],
         dm_recipient,
@@ -2792,10 +2792,11 @@ def run_day(
             # Even if delivery refused/archived the new pick, the first check
             # returning a pick ends these extra attempts (the existing handling
             # of that check, including its own fallback, has already run).
-            if result.get("pick_result") is not None:
+            if attempt_returned_pick:
                 return
 
     for run_idx, run_info in checks_with_last_attempts():
+        attempt_returned_pick = False
         target = run_info["time_et"]
         now = _now_et()
 
@@ -2837,6 +2838,7 @@ def run_day(
             early_lock_gap=early_lock_gap,
             unavailable_game_pks=_games_past_cutoff(state.games, _now_et()),
         )
+        attempt_returned_pick = result.get("pick_result") is not None
 
         # Track the day's finalization intent off THIS cycle's selection (Task 3).
         # Narrow lifecycle (Codex r2 P0): SET on a genuine MDP skip; CLEAR only on a

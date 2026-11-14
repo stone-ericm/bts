@@ -125,3 +125,13 @@ def test_alert_sender_dispatches_missed_pick_critical(mock_dispatch, tmp_path):
     alerts = mock_dispatch.call_args[0][0]
     assert alerts[0].source == "missed_pick"
     assert alerts[0].level == "CRITICAL"
+
+
+@patch("bts.health.alert.dispatch_dm_for_health_alerts")
+def test_empty_day_alert_describes_file_state_not_selection_history(mock_dispatch, tmp_path):
+    _alert_missed_pick(_cfg(tmp_path), None, mins_to_game=0)
+    mock_dispatch.assert_called_once()
+    alerts = mock_dispatch.call_args.args[0]
+    assert len(alerts) == 1 and alerts[0].source == "missed_pick" and alerts[0].level == "CRITICAL"
+    assert alerts[0].message == (
+        "Today's checks and remaining attempts are over. No pick is on file for today.")
