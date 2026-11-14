@@ -242,7 +242,8 @@ def late_lineup_day(tmp_path_factory):
 def test_opening_day_late_lineup_checks_today(late_lineup_day):
     assert [run["time"][11:16] for run in late_lineup_day.state.runs_completed][:3] == ["16:10", "17:10", "18:10"]
     feed_times = [time[11:16] for time, url in late_lineup_day.calls if "/feed/live" in url]
-    assert {"16:10", "17:10", "18:10", "18:35"} <= set(feed_times)
+    assert {t for t in feed_times if t < "19:10"} == {"16:10", "17:10", "18:10", "18:35"}
+    assert {t for t in feed_times if t >= "19:10"} == {"19:20"}  # result polling after delivery
     assert [run["time"][11:16] for run in late_lineup_day.state.runs_completed][3:] == ["18:35"]
 
 

@@ -60,7 +60,8 @@ def _alert_contest_state_failure(config: dict, error: Exception) -> None:
     )
 
 
-def _alert_missed_pick(config: dict, daily, mins_to_game: float) -> None:
+def _alert_missed_pick(config: dict, daily, mins_to_game: float, *,
+                       slate_date: str | None = None) -> None:
     """E3: DM the operator that no pick was delivered as first pitch nears, so
     they can post manually (the EOD post_failure DM is hours too late)."""
     from bts.health.alert import Alert, dispatch_dm_for_health_alerts
@@ -77,6 +78,7 @@ def _alert_missed_pick(config: dict, daily, mins_to_game: float) -> None:
         [Alert("CRITICAL", "missed_pick", msg)],
         dm_recipient,
         status_path=status_path,
+        now_et_date=date_type.fromisoformat(slate_date if slate_date is not None else daily.date),
     )
 
 
@@ -106,8 +108,9 @@ def _maybe_alert_missed_pick(
         return
     daily = load_pick(date, picks_dir)
     if not daily:
-        if state.games and not (decision and decision.get("action") == "skip"):
-            _alert_missed_pick(config, None, 0)
+        if (state.games and not (decision and decision.get("action") == "skip")
+                and _playable_game_pks(date, [g["game_pk"] for g in state.games])):
+            _alert_missed_pick(config, None, 0, slate_date=date)
         return
     if pick_was_delivered(daily):
         return
@@ -127,10 +130,14 @@ def _maybe_alert_missed_pick(
             notify_watchdog()
     daily = load_pick(date, picks_dir)  # a late delivery may have landed during the wait
     if daily and not pick_was_delivered(daily):
+        from bts.picks import _committed_pick_game_pks
+        game_pks = [g["game_pk"] for g in state.games] or list(_committed_pick_game_pks(daily))
+        if not _playable_game_pks(date, game_pks):
+            return
         mins = (earliest_game_et - _now_et()).total_seconds() / 60
         print(f"  MISSED-PICK ALERT — no delivery with ~{mins:.0f}min to first pitch.",
               file=sys.stderr)
-        _alert_missed_pick(config, daily, mins)
+        _alert_missed_pick(config, daily, mins, slate_date=date)
 
 
 def fetch_schedule(date: str) -> list[dict]:
@@ -1600,6 +1607,8 @@ def run_single_check(
     config: dict,
     early_lock_gap: float,
     unavailable_game_pks: "set[int] | None" = None,
+    *,
+    include_lock_decision: bool = False,
 ) -> dict:
     """Run a single lineup check cycle.
 
@@ -1609,6 +1618,9 @@ def run_single_check(
     `confirmed_sides` is a mutable set of `(game_pk, side)` tuples tracking
     team-level confirmations across runs; `count_new_confirmations` updates
     it in place.
+
+    Extra attempts request the computed lock decision so a fallback already
+    due can reuse this cascade. Planned checks keep their existing return shape.
 
     Returns {"skipped": bool, "new_lineups": int, "should_post": bool,
              "pick_result": PickResult | None, "pick_name": str | None,
@@ -1798,7 +1810,8 @@ def run_single_check(
     return {"skipped": False, "new_lineups": new_count, "should_post": do_post,
             "pick_result": pick_result,
             "pick_name": pick.batter_name, "pick_p": pick.p_game_hit,
-            "selection": sel}
+            "selection": sel,
+            **({"lock_decision": decision} if include_lock_decision else {})}
 
 
 @with_pinned_artifact
@@ -2262,6 +2275,17 @@ def _delivery_game_statuses(date: str) -> dict[int, dict]:
     so the test suite can keep the guard off the network (tests/conftest.py)."""
     from bts.picks import get_game_statuses_detailed
     return get_game_statuses_detailed(date)
+
+
+def _playable_game_pks(date: str, game_pks: list[int]) -> set[int]:
+    """Exclude only known void games; an unreadable/missing status stays playable."""
+    from bts.picks import _is_void_detailed_state
+    try:
+        statuses = _delivery_game_statuses(date)
+    except Exception:
+        return set(game_pks)
+    return {pk for pk in game_pks
+            if not _is_void_detailed_state((statuses.get(pk) or {}).get("detailed"))}
 
 
 def _void_committed_games(daily, date: str) -> dict[int, str]:
@@ -2828,6 +2852,9 @@ def run_day(
         if now < target:
             continue
 
+        if run_idx >= len(runs) and not _playable_game_pks(date, run_info["game_pks"]):
+            continue
+
         print(f"\n[{_now_et().strftime('%H:%M ET')}] Running lineup check...", file=sys.stderr)
         check_t0 = time.monotonic()
         result = run_single_check(
@@ -2837,6 +2864,7 @@ def run_day(
             config=config,
             early_lock_gap=early_lock_gap,
             unavailable_game_pks=_games_past_cutoff(state.games, _now_et()),
+            **({"include_lock_decision": True} if run_idx >= len(runs) else {}),
         )
         attempt_returned_pick = result.get("pick_result") is not None
 
