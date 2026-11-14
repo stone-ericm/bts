@@ -280,3 +280,86 @@ def test_command_writes_nothing(monkeypatch, tmp_path):
     before = sorted((str(p), p.stat().st_mtime_ns, p.stat().st_size) for p in tmp_path.rglob("*"))
     _run(monkeypatch, tmp_path, picks, cfg)
     assert sorted((str(p), p.stat().st_mtime_ns, p.stat().st_size) for p in tmp_path.rglob("*")) == before
+
+
+def _batter_only_receipt(**kw):
+    rec = _receipt(confirmed=False, **kw)
+    rec["qualification"]["slots"] = [{"state": "unit_unverified"}]
+    return rec
+
+
+@pytest.mark.parametrize("states", [["unit_unverified"], ["confirmed", "unit_unverified"]])
+def test_batter_match_with_only_unverified_games_is_clean(states):
+    rec = _batter_only_receipt()
+    rec["qualification"]["slots"] = [{"state": s} for s in states]
+    out = _classify(receipts=[rec, _receipt("already_confirmed")])
+    assert out.state == "entered_game_unverified" and out.ok
+    assert "game was not verified" in out.detail.lower()
+
+
+def test_fully_confirmed_entry_wins_over_batter_only_match():
+    assert _classify(receipts=[_batter_only_receipt(), _receipt()]).state == "entered"
+
+
+@pytest.mark.parametrize("state", ["missing", "player_unverified", "ambiguous", "wrong_round", "wrong_game",
+                                    "unsupported_duplicate_selection", "unknown"])
+def test_batter_match_with_other_qualification_states_stays_unverifiable(state):
+    rec = _batter_only_receipt()
+    rec["qualification"]["slots"].append({"state": state})
+    assert _classify(receipts=[rec]).state == "entry_unverifiable"
+
+
+@pytest.mark.parametrize("change", [
+    {"sha": "e" * 64}, {"username": "someone_else"}, {"date": "2027-04-01"},
+    {"degraded": ["hook_x"]}, {"before_cutoff": False}, {"reason": "present_unverified"},
+])
+def test_batter_only_match_requires_every_entry_binding_and_cutoff(change):
+    assert _classify(receipts=[_batter_only_receipt(**change)]).state == "entry_unverifiable"
+
+
+def test_batter_only_match_requires_same_season_and_observed_outcome():
+    rec = _batter_only_receipt()
+    rec["season"] = 2026
+    assert _classify(receipts=[rec]).state == "entry_unverifiable"
+    rec = _batter_only_receipt()
+    rec["outcome"] = "already_confirmed"
+    assert _classify(receipts=[rec]).state == "entry_unverifiable"
+
+
+@pytest.mark.parametrize("decision", [None, _decision(), _decision("skip")])
+def test_all_void_games_are_no_games_even_with_a_decision(decision):
+    out = _classify(games=3, void_games=3, decision=decision)
+    assert out.ok and out.state == "no_games"
+    assert "3" in out.detail and "postponed" in out.detail.lower()
+
+
+def test_partly_void_slate_still_needs_a_decision():
+    assert _classify(games=3, void_games=2, decision=None).state == "no_decision"
+
+
+@pytest.mark.parametrize("committed", [False, True])
+def test_command_all_postponed_or_cancelled_is_clean(monkeypatch, tmp_path, committed):
+    import json
+    import bts.scheduler as sch
+    from click.testing import CliRunner
+    from bts.cli import cli
+    picks, cfg = _box(tmp_path)
+    if committed:
+        _write_decision(picks)
+    monkeypatch.setattr(sch, "fetch_schedule", lambda date: [
+        {"status": {"detailedState": s}} for s in ("Postponed", "Cancelled", "Canceled")])
+    dms = []
+    monkeypatch.setattr("bts.dm.send_dm", lambda *a: dms.append(a))
+    res = CliRunner().invoke(cli, ["day-outcome", "--date", DATE, "--config", str(cfg),
+        "--picks-dir", str(picks), "--expected-username", "stonehengee", "--dm-recipient", "me.bsky.social"])
+    assert res.exit_code == 0, res.output
+    assert json.loads(res.output)["state"] == "no_games" and dms == []
+
+
+def test_in_time_batter_match_is_clean_even_if_game_is_confirmed_only_later():
+    out = _classify(receipts=[_batter_only_receipt(), _receipt(before_cutoff=False)])
+    assert out.ok and out.state == "entered_game_unverified"
+
+
+def test_batter_only_match_cannot_bind_without_a_decision_hash():
+    assert _classify(receipts=[_batter_only_receipt(sha=None)], decision_sha256=None).state == "entry_unverifiable"

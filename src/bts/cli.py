@@ -859,6 +859,9 @@ def build(seasons: str, raw_dir: str, out_dir: str):
         output_path = out / f"pa_{season}.parquet"
         click.echo(f"Building {output_path} from {raw}/{season}/...")
         df = build_season(raw, output_path, season)
+        if df is None:
+            click.echo(f"No regular-season games available for season {season}; nothing written.", err=True)
+            continue
         click.echo(f"  {len(df)} plate appearances written.")
 
 

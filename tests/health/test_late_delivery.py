@@ -108,3 +108,16 @@ def test_registered_in_runner():
     from bts.health import runner
     import inspect
     assert "late_delivery" in inspect.getsource(runner)
+
+
+def test_void_game_refusal_names_games_and_label_without_batter(tmp_path):
+    from bts.health import late_delivery
+    _state(tmp_path, delivery_refusals=[{
+        "reason": "game_not_playable", "label": "fallback", "batter": "Kwan",
+        "double_down": "McNeil", "void_games": {"100": "Postponed", "200": "Cancelled"}}])
+    alerts = late_delivery.check(tmp_path, today=D)
+    assert len(alerts) == 1
+    message = alerts[0].message
+    assert "fallback" in message and "game 100 is Postponed" in message and "game 200 is Cancelled" in message
+    assert "Kwan" not in message and "McNeil" not in message
+    assert "cutoff" not in message and "None" not in message

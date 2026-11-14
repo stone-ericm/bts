@@ -328,7 +328,7 @@ def build_season(
     output_path: Path,
     season: int,
     game_types: set[str] | None = None,
-) -> pd.DataFrame:
+) -> pd.DataFrame | None:
     """Build PA-level Parquet from raw game feed JSONs for one season.
 
     Args:
@@ -340,16 +340,14 @@ def build_season(
             D=division series, L=league championship, W=world series, A=all-star.
 
     Returns:
-        The built DataFrame
+        The built DataFrame, or None when no eligible game feeds are available (no output is written).
     """
     if game_types is None:
         game_types = {REGULAR_SEASON_TYPE}
 
     season_dir = raw_dir / str(season)
-    if not season_dir.exists():
-        raise FileNotFoundError(f"No raw data for season {season} at {season_dir}")
-
     all_rows = []
+    eligible_games = 0
     skipped = 0
     json_files = sorted(season_dir.glob("*.json"))
 
@@ -377,6 +375,7 @@ def build_season(
                 skipped += 1
                 continue
 
+        eligible_games += 1
         rows = parse_game_feed(feed)
 
         # Merge weather sidecar if present
@@ -388,6 +387,9 @@ def build_season(
                 row["humidity"] = weather.get("relative_humidity")
 
         all_rows.extend(rows)
+
+    if eligible_games == 0:
+        return None
 
     df = pd.DataFrame(all_rows)
     assert_columns_match_schema(df)
