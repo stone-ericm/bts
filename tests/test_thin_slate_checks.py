@@ -189,35 +189,13 @@ def test_a_standing_skip_does_not_wait_for_the_deadline(monkeypatch, tmp_path):
     assert not seen["delivered"]
 
 
-def test_regular_and_early_checks_at_the_same_minute_merge():
-    runs = plan_run_times([_game(101, "13:10", date=D), _game(202, "14:25", date=D)],
-                          offset_min=45, cluster_min=10, now=_at("09:00"))
-    at_1225 = [r for r in runs if r["time_et"] == _at("12:25")]
-    assert len(at_1225) == 1
-    assert sorted(at_1225[0]["game_pks"]) == [101, 202]
+def test_close_early_and_regular_runs_are_retained_as_separate_retry_opportunities():
+    """Codex's outage until 12:08 needs the 12:10 attempt after the 12:05 attempt fails.
 
-
-def test_two_game_grid_has_no_adjacent_runs_inside_cluster_window():
-    for offset in (45, 60):
-        for separation in range(0, 241, 5):
-            second = (_at("13:10") + timedelta(minutes=separation)).strftime("%H:%M")
-            runs = plan_run_times([_game(101, "13:10", date=D), _game(202, second, date=D)],
-                                  offset_min=offset, cluster_min=10, now=_at("09:00"))
-            assert all(b["time_et"] - a["time_et"] > timedelta(minutes=10)
-                       for a, b in zip(runs, runs[1:])), (offset, separation, runs)
-            assert all(len(r["game_pks"]) == len(set(r["game_pks"])) for r in runs)
-
-
-def test_early_check_near_regular_check_uses_earlier_time_and_union():
-    runs = plan_run_times([_game(101, "13:10", date=D), _game(202, "14:20", date=D)],
-                          offset_min=45, cluster_min=10, now=_at("09:00"))
-    merged = [r for r in runs if r["time_et"] == _at("12:20")]
-    assert len(merged) == 1 and sorted(merged[0]["game_pks"]) == [101, 202]
-    assert _at("12:25") not in [r["time_et"] for r in runs]
-
-
-def test_merged_checks_list_each_game_once():
-    runs = plan_run_times([_game(101, "19:10", date=D)], offset_min=60, cluster_min=10,
-                          now=_at("09:00"), early_offsets_min=(180, 175, 120))
-    assert _times(runs) == ["16:10", "17:10", "18:10"]
-    assert all(r["game_pks"] == [101] for r in runs)
+    Merging these checks lost the earlier game's delivery before its 13:05 cutoff.
+    """
+    runs = plan_run_times([_game(101, "13:10", date=D), _game(202, "14:05", date=D)],
+                          offset_min=60, cluster_min=10, now=_at("09:00"))
+    assert _times(runs) == ["10:10", "11:05", "12:05", "12:10", "13:05"]
+    assert next(r for r in runs if r["time_et"] == _at("12:05"))["game_pks"] == [202]
+    assert next(r for r in runs if r["time_et"] == _at("12:10"))["game_pks"] == [101]

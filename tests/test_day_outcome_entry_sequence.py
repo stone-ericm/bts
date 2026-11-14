@@ -76,7 +76,7 @@ def _mock_contest_env(date: str, bts_player_id: int = 99, mlb_id: int = 592450,
     return session, profile, pending, rounds, crosswalk
 
 
-def test_batter_only_observation_then_already_confirmed_is_clean(tmp_path, monkeypatch):
+def _batter_only_sequence(tmp_path, monkeypatch, later_feed_id):
     date = "2027-05-15"
     picks = _setup_committed_day(tmp_path, date)
     _write_units_snapshot(tmp_path, date, feed_id=None)
@@ -86,15 +86,16 @@ def test_batter_only_observation_then_already_confirmed_is_clean(tmp_path, monke
          patch("bts.leaderboard.auth.extract_uid", return_value="uid-1"), \
          patch("bts.leaderboard.auth.fetch_login_session", return_value=session), \
          patch("bts.contest_fetch.fetch_profile", return_value=profile), \
-         patch("bts.contest_fetch.fetch_pending_predictions", return_value=pending), \
+         patch("bts.contest_fetch.fetch_pending_predictions", return_value=pending) as fetch_pending, \
          patch("bts.cli._fetch_rounds", return_value=rounds), \
          patch("bts.cli._fetch_bts_to_mlb", return_value=crosswalk):
         for time in ("18:05", "18:20", "18:35"):
             if time == "18:20":
-                _write_units_snapshot(tmp_path, date, feed_id=9001, snap_name="2027-05-15T221000Z")
+                _write_units_snapshot(tmp_path, date, feed_id=later_feed_id, snap_name="2027-05-15T221000Z")
             res = runner.invoke(cli, ["check-pick-entered", "--picks-dir", str(picks),
                 "--expected-username", "stonehengee", "--now-et", f"{date}T{time}:00"])
             assert res.exit_code == 0, res.output
+    assert fetch_pending.call_count == 1  # already_confirmed makes no new observation
     receipts = discover(picks, date)
     assert sorted(r["outcome"] for r in receipts) == ["already_confirmed", "already_confirmed", "observed"]
     observed = next(r for r in receipts if r["outcome"] == "observed")
@@ -109,3 +110,20 @@ def test_batter_only_observation_then_already_confirmed_is_clean(tmp_path, monke
         "--picks-dir", str(picks), "--expected-username", "stonehengee", "--dm-recipient", "me.bsky.social"])
     assert result.exit_code == 0, result.output
     assert json.loads(result.output)["state"] == "entered_game_unverified" and dms == []
+    return picks, observed, crosswalk
+
+
+def test_batter_only_observation_then_already_confirmed_is_clean(tmp_path, monkeypatch):
+    _batter_only_sequence(tmp_path, monkeypatch, later_feed_id=9001)
+
+
+def test_limit_later_wrong_game_binding_is_not_reobserved_after_batter_only_confirmation(tmp_path, monkeypatch):
+    """Accepted limit: a clean batter-only result does not prove the right doubleheader game."""
+    from bts.entry_receipt import load_units, qualify
+    picks, observed, crosswalk = _batter_only_sequence(tmp_path, monkeypatch, later_feed_id=9002)
+    units, _ = load_units(picks, 2027)
+    assert units[700] == (9002, 42)
+    assert observed["selection"]["slots"][0]["game_pk"] == 9001
+    # A fresh observation would identify the wrong game; sealed receipts retain the earlier unverified result.
+    now_qualified = qualify(observed["selection"]["slots"], observed["observation"]["rows"], crosswalk, units)
+    assert [s["state"] for s in now_qualified["slots"]] == ["wrong_game"]

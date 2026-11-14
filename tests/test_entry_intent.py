@@ -289,12 +289,12 @@ def test_the_nightly_build_takes_its_season_from_the_clock(box):
 
 @pytest.mark.parametrize("intent,delivery", [("research", "private"), ("enter", "dm")])
 def test_the_day_outcome_check_is_installed_under_either_intent(box, intent, delivery):
-    """The end-of-day check (bts.day_outcome) runs every day whatever the intent: at 01:30 and 08:30
-    for yesterday as a second chance if the box was down overnight."""
+    """The end-of-day check (bts.day_outcome) runs every day whatever the intent: at 08:30
+    for yesterday, after late doubleheader re-checks have finished."""
     box.config.write_text(f'[scheduler]\nentry_intent = "{intent}"\npick_delivery = "{delivery}"\n')
     assert box.run("install").returncode == 0
     lines = [ln for ln in box.lines() if "bts day-outcome" in ln]
-    assert [" ".join(ln.split()[:5]) for ln in lines] == ["30 1 * * *", "30 8 * * *"]
+    assert [" ".join(ln.split()[:5]) for ln in lines] == ["30 8 * * *"]
     for ln in lines:
         assert f"--config {box.config}" in ln and "--picks-dir data/picks" in ln
         assert "--expected-username stonehengee" in ln and "--dm-recipient stonehengee.bsky.social" in ln

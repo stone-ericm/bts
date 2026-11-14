@@ -210,7 +210,7 @@ def plan_run_times(
     On a slate of at most `thin_slate_max_games` games, each game also gets a check at start - each of
     `early_offsets_min` that is earlier than its regular check. Early checks at or before `now` are dropped
     (a late start must not fire back-to-back cascades); the regular checks are never dropped. Early checks
-    within `cluster_min` of any other check merge at the earlier time. A larger slate is planned exactly as
+    within `cluster_min` of each other merge, like regular checks. A larger slate is planned exactly as
     `compute_run_times` plans it.
     """
     runs = compute_run_times(games, offset_min=offset_min, cluster_min=cluster_min)
@@ -225,7 +225,6 @@ def plan_run_times(
             if now is not None and t <= now:
                 continue
             early.append({"time_et": t, "game_pk": g["gamePk"]})
-    early.extend({"time_et": r["time_et"], "game_pk": pk} for r in runs for pk in r["game_pks"])
     early.sort(key=lambda c: c["time_et"])
     clusters: list[dict] = []
     for c in early:
@@ -234,7 +233,7 @@ def plan_run_times(
                 clusters[-1]["game_pks"].append(c["game_pk"])
         else:
             clusters.append({"time_et": c["time_et"], "game_pks": [c["game_pk"]]})
-    return clusters
+    return sorted(runs + clusters, key=lambda r: r["time_et"])
 
 
 def detect_doubleheader_game2s(games: list[dict]) -> set[int]:
