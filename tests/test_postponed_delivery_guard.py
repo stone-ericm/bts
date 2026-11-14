@@ -53,12 +53,80 @@ def test_a_playable_game_is_delivered(cfg, tmp_path):
     alert.assert_not_called()
 
 
-def test_a_double_down_leg_on_a_postponed_game_refuses_the_whole_pick(cfg, tmp_path):
+def test_a_postponed_double_down_leg_is_dropped_and_the_primary_delivered_alone(cfg, tmp_path):
+    """Review pp1 B2: refusing the whole double lost the day when no later cycle could re-pick."""
+    from bts.daily_decision import load_decision
+    daily = _daily(dd_utc="2026-08-30T20:05:00Z")
+    ok, state, dm, alert = _deliver(cfg, tmp_path, daily, lambda date: {
+        PICK_GAME: {"abstract": "P", "detailed": "Scheduled"}, DD_GAME: {"abstract": "F", "detailed": "Postponed"}})
+    assert ok is True and state.pick_locked is True
+    dm.assert_called_once()
+    assert "Kwan" in dm.call_args[0][1] and "McNeil" not in dm.call_args[0][1]
+    saved = load_pick(DATE, tmp_path)
+    assert saved.pick.batter_name == "Kwan" and saved.double_down is None
+    dec = load_decision(DATE, tmp_path)
+    assert dec["action"] == "single" and dec["double_down"] is None and dec["scoreable"] is True
+    rec = state.delivery_refusals[-1]
+    assert rec["reason"] == "leg_dropped_game_not_playable" and rec["kept"] == "Kwan"
+    assert rec["void_games"] == {str(DD_GAME): "Postponed"}
+    assert list(tmp_path.glob("**/*refused_delivery*"))                       # the double is archived
+    (alerts, _recipient), _kw = alert.call_args
+    assert alerts[0].level == "WARN" and "Kwan" not in alerts[0].message and "McNeil" not in alerts[0].message
+
+
+def test_a_postponed_primary_leaves_the_double_down_leg_as_the_single(cfg, tmp_path):
     daily = _daily(dd_utc="2026-08-30T20:05:00Z")
     ok, state, dm, _alert = _deliver(cfg, tmp_path, daily, lambda date: {
-        PICK_GAME: {"abstract": "P", "detailed": "Scheduled"}, DD_GAME: {"abstract": "F", "detailed": "Postponed"}})
+        PICK_GAME: {"abstract": "F", "detailed": "Postponed"}, DD_GAME: {"abstract": "P", "detailed": "Scheduled"}})
+    assert ok is True
+    saved = load_pick(DATE, tmp_path)
+    assert saved.pick.batter_name == "McNeil" and saved.pick.game_pk == DD_GAME and saved.double_down is None
+    assert "McNeil" in dm.call_args[0][1] and "Kwan" not in dm.call_args[0][1]
+
+
+def test_a_double_with_both_legs_postponed_is_refused(cfg, tmp_path):
+    daily = _daily(dd_utc="2026-08-30T20:05:00Z")
+    ok, state, dm, _alert = _deliver(cfg, tmp_path, daily, lambda date: {
+        PICK_GAME: {"abstract": "F", "detailed": "Postponed"}, DD_GAME: {"abstract": "F", "detailed": "Cancelled"}})
+    assert ok is False and not dm.called and load_pick(DATE, tmp_path) is None
+    assert state.delivery_refusals[-1]["reason"] == "game_not_playable"
+
+
+def test_the_kept_leg_still_faces_the_cutoff(cfg, tmp_path):
+    """The surviving leg is delivered through the normal cutoff guard: here its own game is past the cutoff."""
+    daily = _daily(dd_utc="2026-08-30T20:05:00Z")           # primary 13:40 ET (cutoff 13:35), double 16:05 ET
+    cfg["scheduler"]["pick_delivery"] = "dm"
+    save_pick(daily, tmp_path)
+    state = _state()
+    with patch("bts.scheduler._delivery_game_statuses", side_effect=lambda date: {
+            PICK_GAME: {"abstract": "P", "detailed": "Scheduled"}, DD_GAME: {"abstract": "F", "detailed": "Postponed"}}), \
+         patch("bts.scheduler._now_et", return_value=datetime(2026, 8, 30, 13, 36, 0, tzinfo=ET)), \
+         patch("bts.scheduler._trigger_live_forward_capture_on_lock"), \
+         patch("bts.contest_state.load_decision_streak_state", return_value=MagicMock(streak=0)), \
+         patch("bts.dm.send_dm", return_value="msg-1") as dm, \
+         patch("bts.health.alert.dispatch_dm_for_health_alerts", return_value=True):
+        ok = _deliver_and_lock_pick(daily, cfg, tmp_path, state, DATE, "fallback")
     assert ok is False and not dm.called
-    assert state.delivery_refusals[-1]["void_games"] == {str(DD_GAME): "Postponed"}
+    assert [r["reason"] for r in state.delivery_refusals] == ["leg_dropped_game_not_playable", "past_submission_cutoff"]
+
+
+def test_the_health_check_words_each_refusal_by_its_reason(tmp_path):
+    """Review pp1 N2: a postponement refusal used to render as 'None min past the None cutoff'."""
+    import json
+    from datetime import date as _date
+    from bts.health import late_delivery
+    day = tmp_path / DATE
+    day.mkdir()
+    (day / "scheduler_state.json").write_text(json.dumps({"delivery_refusals": [
+        {"reason": "game_not_playable", "batter": "Kwan", "label": "fallback", "void_games": {"824393": "Postponed"}},
+        {"reason": "leg_dropped_game_not_playable", "kept": "Kwan", "label": "fallback",
+         "void_games": {"824959": "Postponed"}},
+        {"batter": "Kwan", "label": "lineup", "late_min": 1.2, "cutoff_et": "2026-08-30T13:35:00-04:00"}]}))
+    alerts = late_delivery.check(tmp_path, today=_date(2026, 8, 30))
+    assert [a.level for a in alerts] == ["CRITICAL", "WARN", "CRITICAL"]
+    assert "game 824393 is Postponed" in alerts[0].message and "None" not in alerts[0].message
+    assert "Kwan was delivered alone" in alerts[1].message and "None" not in alerts[1].message
+    assert "1.2 min past" in alerts[2].message                               # a record without a reason is a late one
 
 
 def test_an_unreadable_schedule_delivers(cfg, tmp_path):
@@ -82,3 +150,24 @@ def test_private_mode_also_refuses_a_postponed_game(cfg, tmp_path):
                                      lambda date: {PICK_GAME: {"abstract": "F", "detailed": "Postponed"}},
                                      mode="private")
     assert ok is False and state.pick_locked is False and alert.called
+def test_the_decision_record_describes_the_single_not_the_selection_that_chose_a_double(cfg, tmp_path):
+    """The cycle's SelectionResult still says double, with both candidates. Once a leg is dropped the commit record
+    must come from the single on the pick file, or it would name a double-down that was never delivered."""
+    from bts.daily_decision import load_decision
+    from tests.test_scheduler_decision_record_integration import _cand, _sel
+    daily = _daily(dd_utc="2026-08-30T20:05:00Z")
+    cfg["scheduler"]["pick_delivery"] = "dm"
+    save_pick(daily, tmp_path)
+    state = _state()
+    selection = _sel("double", "mdp", primary=_cand(bid=1), double=_cand(bid=2))
+    with patch("bts.scheduler._delivery_game_statuses", side_effect=lambda date: {
+            PICK_GAME: {"abstract": "P", "detailed": "Scheduled"}, DD_GAME: {"abstract": "F", "detailed": "Postponed"}}), \
+         patch("bts.scheduler._now_et", return_value=BEFORE_CUTOFF), \
+         patch("bts.scheduler._trigger_live_forward_capture_on_lock"), \
+         patch("bts.contest_state.load_decision_streak_state", return_value=MagicMock(streak=0)), \
+         patch("bts.dm.send_dm", return_value="msg-1"), \
+         patch("bts.health.alert.dispatch_dm_for_health_alerts", return_value=True):
+        assert _deliver_and_lock_pick(daily, cfg, tmp_path, state, DATE, "fallback", selection=selection) is True
+    dec = load_decision(DATE, tmp_path)
+    assert dec["action"] == "single" and dec["double_down"] is None
+    assert dec["primary"]["batter_name"] == "Kwan" and dec["primary"]["game_pk"] == PICK_GAME

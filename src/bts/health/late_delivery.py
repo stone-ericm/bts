@@ -48,10 +48,21 @@ def check(picks_dir: Path, today: date | None = None, now: datetime | None = Non
     alerts: list[Alert] = []
     state = _state(picks_dir, day)
     for r in state.get("delivery_refusals") or []:
-        alerts.append(Alert("CRITICAL", SOURCE, (
-            f"late delivery REFUSED for {day.isoformat()}: {r.get('batter')} ({r.get('label')}) "
-            f"was {r.get('late_min')} min past the {r.get('cutoff_et')} cutoff; nothing was "
-            f"delivered by that path")))
+        reason = r.get("reason") or "past_submission_cutoff"       # records before 2026-11-13 carry no reason
+        games = ", ".join(f"game {pk} is {st}" for pk, st in sorted((r.get("void_games") or {}).items()))
+        if reason == "game_not_playable":
+            alerts.append(Alert("CRITICAL", SOURCE, (
+                f"delivery REFUSED for {day.isoformat()}: {r.get('batter')} ({r.get('label')}): {games}; "
+                f"nothing was delivered by that path")))
+        elif reason == "leg_dropped_game_not_playable":
+            alerts.append(Alert("WARN", SOURCE, (
+                f"double reduced to a single for {day.isoformat()} ({r.get('label')}): {games}; "
+                f"{r.get('kept')} was delivered alone")))
+        else:
+            alerts.append(Alert("CRITICAL", SOURCE, (
+                f"late delivery REFUSED for {day.isoformat()}: {r.get('batter')} ({r.get('label')}) "
+                f"was {r.get('late_min')} min past the {r.get('cutoff_et')} cutoff; nothing was "
+                f"delivered by that path")))
     try:
         daily = load_pick(day.isoformat(), picks_dir)
     except Exception:

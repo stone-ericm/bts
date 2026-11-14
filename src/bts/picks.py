@@ -659,6 +659,13 @@ def _replay_season_streak(
             return None
         r = data.get("result")
         if f.stem == today_iso and r not in ("hit", "miss", "void"):
+            if today_iso in load_applied_dates(picks_dir):
+                # A scorer applied today's result to streak.json and has not saved the pick's terminal
+                # result yet (it died between the two writes, or is between them now). Replaying without
+                # today would save the streak WITHOUT that result while keeping the marker that stops
+                # the scorer's retry from re-applying it: the result would be lost (review pp1 B1).
+                # Fail closed: keep the live-tracked streak until the scorer finishes.
+                return None
             continue  # today's pick, not yet resolved: an unplayed preview or a game in progress
         # Today's pick IS replayed once it carries a terminal result: that result was already applied to
         # streak.json when it was written, so leaving it out rolled the streak back (and restored a saver
