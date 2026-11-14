@@ -49,6 +49,9 @@ No temporary file may be left behind on any path, and the temporary name must no
 |---|---|---|
 | `output_path` does not exist | `None`, nothing written | unchanged |
 | `output_path` exists | `None`, the existing file kept, the nightly chain continues to `preview` and `sync-to-r2` | raise (a clear message naming the season and the directory); the existing file untouched |
+| the season path exists but is not a directory, or cannot be listed (`PermissionError`), whether or not `output_path` exists | `None`: `Path.glob` swallows the error, so even a directory full of regular-season feeds reads as "no games yet" | raise the `OSError` (`NotADirectoryError`, `PermissionError`); nothing written. List the directory in a way that propagates the error (`iterdir`), keep the missing-directory case a no-op |
+
+The last row was found by Gemini 4 Carbon's known-answer review and reproduced on `main` (`probes/lead_unreadable_season_dir.py`, `probes/carbon_build_parity.py`).
 
 `predict._refresh_season_data` needs no change: it already lets a build exception propagate.
 

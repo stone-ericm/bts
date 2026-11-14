@@ -1,6 +1,6 @@
 # Known-answer test: Gemini 4 Carbon (High) as a tier A reviewer (2026-11-14)
 
-Eric upgraded the Google subscription on 2026-11-14 ("I just upgraded my Gemini subscription, which I think includes access to a better model"). The Antigravity CLI (1.5.9) now reports the account as Google AI Ultra and lists Gemini 4 Carbon at low, medium and high effort. Carbon is Google's top model and is offered in the CLI only on Ultra and enterprise plans; Hydrogen, the parallel tier A reviewer since ruling R15, is a faster model distilled from it (sources at the end).
+Eric upgraded the Google subscription on 2026-11-14 ("I just upgraded my Gemini subscription, which I think includes access to a better model"). The Antigravity CLI (1.5.9) now reports the account as Google AI Ultra and lists Gemini 4 Carbon at low, medium and high effort. Carbon is Google's top model and is offered in the CLI only on Ultra and enterprise plans; Hydrogen, the parallel tier A reviewer since ruling R15, is a faster model distilled from it (sources at the end; the distillation claim is from third-party write-ups of Google's announcement).
 
 Ruling R15 rests on two known-answer tests of Hydrogen. This is the same test for Carbon before it replaces Hydrogen in that role.
 
@@ -28,4 +28,35 @@ What reviewers found on this commit or on this code path, each confirmed by the 
 Scoring: K1 and K2 are the blockers a reviewer had to find. K3 to K9 measure depth on the "what fails next" question. Anything outside the key is reproduced before it counts, as with every Gemini finding.
 
 ## Result
-(to be filled in when the report arrives)
+Report: `docs/audit/2026-11-14-gemini-carbon-known-answer-report.md` (verbatim; marker `AGYKA3-5047ae11` equals the file's hash). One pass, 39 minutes (11:29 to 12:08 ET). Verdict BLOCK.
+
+| # | Carbon (High), cold | Hydrogen (XHigh), round 2, warm | Codex xhigh, round 2 | Final Codex xhigh, fresh, one commit later |
+|---|---|---|---|---|
+| K1 partial build beside a regular feed | **found**, with the fix that was later adopted | found | found | (already fixed) |
+| K2 `git show main:` fixture | **found** | found | missed | (already fixed) |
+| K3 last season's streak on Opening Night | **found** (both files) | found | found | not reported |
+| K4 late lineups leave no pick | **found**, by running the real day loop | missed | missed | found |
+| K5 weather sidecar breaks the feature scan | **found** | missed | found | found |
+| K6 first-fetch health alarm | **found** | found | found | not reported |
+| K7 first-game early lock | **found** | found | missed | not reported |
+| K8 cold-start tests stub training | **found** | found | found | found |
+| K9 unknown type string is a no-op | missed | found | missed | not reported |
+| **Total of 9** | **8** | 7 | 5 | 3 of the 7 still open |
+
+Both blockers found. Carbon is the only single pass that found K4, and it found in one cold pass what three reviewer passes had found between them, except the accepted design note K9.
+
+**Outside the key, reproduced by the lead on current `main` (`ba1337a`):** an unreadable `data/raw/<season>` directory (`chmod 000`, even with regular-season feeds inside) or a regular file in its place makes `build_season` return the no-op, where the base raised. `Path.glob` swallows the `OSError`. Neither Codex (three rounds, the last by a fresh reviewer) nor Hydrogen (three rounds) reported it. It is in the landed code; the state needs a permission or mount fault, and the outcome is silent: predictions run without the current season and the nightly chain publishes. Added to the follow-up brief as part of S5 (`docs/reviews/2026-11-14-season-rollover/kickoff-draft.md`; probe `probes/lead_unreadable_season_dir.py`).
+
+**Outside the key, not reproduced (notes):** the park-drag producer crashing on an empty new-season file; `predict.py` reading the schedule with a bare `urlopen`; a thin-slate test whose docstring claims more than it runs.
+
+**Cost on the Ultra plan:** the 5-hour Gemini allowance went from 100% to 92% and the weekly one from 100% to 98%.
+
+## Decision (ruling R22)
+Gemini 4 Carbon at High replaces Hydrogen at XHigh as the second model family on tier A reviews (`agy --model gemini-4-carbon-high`). Everything else in R15 stands: it runs in an isolated copy, in parallel with Codex; Codex's verdict is the gate; every Gemini finding is reproduced before it is acted on; `/config` must read Enable Telemetry off and Use AI Credits off before each use. Hydrogen XHigh is the fallback when Carbon's allowance is short.
+
+One test, on one commit, with a brief that named the area to look in. It does not show that Carbon is the better gate; it shows that it is at least as good a second reviewer as the one it replaces, at a cost that allows it on every tier A change.
+
+## Sources
+- [Gemini 4 Carbon is now available (Google)](https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-carbon-now-available/)
+- [Choose a model (Antigravity docs)](https://antigravity.google/docs/models/)
+- `agy models` and the CLI header on 2026-11-14 ("Google AI Ultra", "Gemini 4 Carbon (High)")
