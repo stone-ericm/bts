@@ -1,11 +1,16 @@
 """Pinned season-boundary cases for decision streaks and contest health."""
 
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 import pytest
 
-from bts.contest_state import ContestStateError, load_decision_streak_state
+from bts.contest_state import (
+    ContestStateError,
+    _has_unconfirmed_miss,
+    _resolved_pick_dates,
+    load_decision_streak_state,
+)
 from bts.health.contest_state import check
 
 NOW = datetime(2027, 3, 24, 16, tzinfo=timezone.utc)
@@ -168,3 +173,85 @@ def test_s2_other_missing_source_date_still_critical(tmp_path, streak, recorded,
     if result:
         (tmp_path / "2027-03-24.json").write_text(json.dumps({"result": result}))
     assert any(a.level == "CRITICAL" for a in check(tmp_path, expected=True, now=NOW))
+
+
+BAD_PICK_SHAPES = [
+    pytest.param([], id="list"), pytest.param(None, id="null"),
+    pytest.param(7, id="number"), pytest.param("x", id="string"),
+    pytest.param({"result": []}, id="list_result"),
+    pytest.param({"result": {}}, id="object_result"),
+]
+
+
+@pytest.mark.parametrize("body", BAD_PICK_SHAPES)
+@pytest.mark.parametrize("pick_date", ["2026-09-26", "2027-03-23"])
+@pytest.mark.parametrize("contest", [False, True])
+@pytest.mark.parametrize("required", [False, True])
+def test_s1_bad_pick_shape_does_not_break_decision(tmp_path, body, pick_date, contest, required):
+    before = _model(tmp_path)
+    bad_path = tmp_path / f"{pick_date}.json"
+    bad_path.write_text(json.dumps(body))
+    bad_before = bad_path.read_bytes()
+    if contest:
+        _observation(tmp_path, active_streak=0, recorded_at="2027-03-24T12:00:00Z")
+    if required and not contest:
+        with pytest.raises(ContestStateError, match="required but missing"):
+            load_decision_streak_state(tmp_path, now=NOW, require_contest_state=True)
+    else:
+        state = load_decision_streak_state(tmp_path, now=NOW, require_contest_state=required)
+        assert (state.streak, state.model_streak) == (0, 0)
+        assert (state.source, state.status) == (("contest", "stale") if contest else ("model", "model_only"))
+    assert (tmp_path / "streak.json").read_bytes() == before
+    assert bad_path.read_bytes() == bad_before
+
+
+@pytest.mark.parametrize("body", BAD_PICK_SHAPES)
+def test_s1_bad_pick_shape_is_not_unconfirmed_miss(tmp_path, body):
+    (tmp_path / "2027-03-23.json").write_text(json.dumps(body))
+    assert _has_unconfirmed_miss(tmp_path, date(2027, 3, 22)) is False
+
+
+@pytest.mark.parametrize("result", [None, 7, True, False, [], {}])
+def test_s1_nonstring_pick_result_is_not_settled(tmp_path, result):
+    (tmp_path / "2027-03-23.json").write_text(json.dumps({"result": result}))
+    assert _resolved_pick_dates(tmp_path) == []
+    assert _has_unconfirmed_miss(tmp_path, date(2027, 3, 22)) is False
+
+
+@pytest.mark.parametrize("result", ["hit", "miss", "void", "pending"])
+def test_s1_string_pick_results_unchanged(tmp_path, result):
+    (tmp_path / "2027-03-23.json").write_text(json.dumps({"result": result}))
+    expected = [] if result == "pending" else [date(2027, 3, 23)]
+    assert _resolved_pick_dates(tmp_path) == expected
+    assert _has_unconfirmed_miss(tmp_path, date(2027, 3, 22)) is (result == "miss")
+
+
+def test_s1_cli_preview_ignores_bad_historical_pick(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    import pandas as pd
+    from click.testing import CliRunner
+
+    import bts.contest_state as contest_state
+    from bts.cli import cli
+
+    (tmp_path / "2026-09-26.json").write_text("[]")
+    _observation(tmp_path, active_streak=0, recorded_at="2027-03-24T12:00:00Z")
+    # Only fix the clock: the CLI still calls the actual decision loader.
+    monkeypatch.setattr(contest_state, "load_decision_streak_state",
+                        lambda picks_dir: load_decision_streak_state(picks_dir, now=NOW))
+    pipeline = Mock(return_value=pd.DataFrame([{"batter_name": "Fixture Batter", "p_game_hit": 0.75}]))
+    select = Mock(return_value=SimpleNamespace(pick_result=None, decision=None))
+    monkeypatch.setattr("bts.model.predict.run_pipeline", pipeline)
+    monkeypatch.setattr("bts.picks.get_game_statuses_detailed", lambda *args: {})
+    monkeypatch.setattr("bts.strategy.select_pick", select)
+
+    result = CliRunner().invoke(cli, ["preview", "--date", "2027-03-24",
+                                      "--picks-dir", str(tmp_path),
+                                      "--models-dir", str(tmp_path / "models")])
+    assert result.exit_code == 0, repr(result.exception)
+    pipeline.assert_called_once()
+    select.assert_called_once()
+    assert select.call_args.kwargs["streak"] == 0
+    assert "Skip day" in result.output

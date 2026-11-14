@@ -217,7 +217,10 @@ def _resolved_pick_dates(picks_dir: Path) -> list[date]:
             body = json.loads(path.read_text())
         except (json.JSONDecodeError, OSError):
             continue
-        if body.get("result") not in _RESOLVED_RESULTS:
+        if not isinstance(body, dict):
+            continue
+        result = body.get("result")
+        if not isinstance(result, str) or result not in _RESOLVED_RESULTS:
             continue
         dates.append(pick_date)
     return dates
@@ -259,6 +262,8 @@ def _has_unconfirmed_miss(picks_dir: Path, source_date: date) -> bool:
         try:
             body = json.loads(path.read_text())
         except (json.JSONDecodeError, OSError):
+            continue
+        if not isinstance(body, dict):
             continue
         if body.get("result") == "miss":
             return True
