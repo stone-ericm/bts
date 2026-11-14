@@ -133,6 +133,8 @@ Follows `docs/ops/2027-season-start.md`; items in order.
 - **Thread C.** `bts day-outcome` (`src/bts/day_outcome.py`), installed by cron at 23:50 and 08:30 under either intent.
 - **Decision 5.** The 2026 framing test ran and came back NEGATIVE (`docs/sota_audit/2026-11-13-result-c2-framing-2026-test.md`). The framing thread is closed; the pregame-catcher capture in thread D is dropped with it.
 
+- **Incident repairs (Eric 2026-11-13: "Repair them").** All five open incidents in `tests/test_incident_register_2026.py` are repaired and the file has no expected failures left: E77 (singleton slate), L01 (a Pass graded as a miss; Official Rules 6A–6C), L02 (same-day reconcile rollback), L03 (postponed cached pick delivered), L04 (a result applied twice across a crash). The frozen 2026 register JSON is left as the record of the season; the tests carry the repaired state.
+
 **Design rulings made under the standing design authority (Eric can overrule any of them):**
 
 | # | Ruling | Why | Cost if wrong |
@@ -142,9 +144,13 @@ Follows `docs/ops/2027-season-start.md`; items in order.
 | R3 | The watchdog is one stateless read-only command, not the frozen W0 design | W0 failed three review rounds on its own notification state; cron cadence is the dedup | A problem day produces two DMs (23:50 and 08:30), not one; no escalation ladder |
 | R4 | "Entered" needs a sealed `observed` receipt with `qualification.all_confirmed`, bound to the decision bytes on disk, the expected account and the date, before the cutoff | The receipt's own consumer rules (`docs/ops/pick-entry-receipt-v1.md`) | A real entry that no check observed in time reads `entry_unverifiable` and DMs: a false alarm, not a miss |
 | R5 | The framing test ran on the Mac Studio without the C1 launcher, on a rebuilt `pa_2026` | The box is deleted; X-37 declares each deviation | The result is not byte-comparable with October's box runs; it is a self-contained test |
+| R7 | After the checks end with a selected pick undelivered, the loop sleeps to that pick's fallback deadline (not on a standing skip) | The thin-slate checks exposed a day that ended undelivered when later checks produced nothing; the same gap existed on multi-game days | One extra fallback cascade on such days; a skip day with a stale preview is exempt |
+| R8 | Grading follows Official Rules 6A–6C: no official at-bat and no sacrifice fly, did not play, or suspended without a hit is a Pass; a suspended game never grades a miss | The pinned rules text; the contest holds the streak in these cases | If MLB's feed shows an empty batting line for a player who did bat, a miss reads as a Pass until the 02:00 or 07:40 reconcile, and the contest-anchored streak overrides the local one either way |
+| R9 | A result is applied to the streak at most once per date, by a marker in `streak.json` | The smallest change that makes both scorers idempotent across a crash | Clearing a pick's result by hand to re-score it no longer re-applies; reconcile's replay recomputes from the pick files |
+| R10 | The delivery guard delivers when the schedule cannot be read | The read fails in the same outages that make a refresh fail; a postponed pick is a Pass, not a miss | A postponed game's pick can still go out during an MLB API outage |
 | R6 | Decision 6–8 defaults stand until Eric says otherwise: day-one captures proceed; field-capture footprint decided in February; C3, C4, register Phase 2 and the determinism flag wait until after the opener | Unanswered on 11/12; all reversible | Captures built that he did not want cost only build time |
 
-**Tier A changes awaiting the one whole-range review before the pre-season deploy:** the season-end lookup, the thin-slate planner, the day-outcome check and its cron lines, the cron season.
+**Tier A changes awaiting the one whole-range review before the pre-season deploy:** the season-end lookup, the thin-slate planner, the day-outcome check and its cron lines, the cron season. Added 11/13: the post-loop deadline wait, the Pass grading, the same-day replay, the at-most-once streak marker, the postponed-game delivery guard.
 
 ## 4. Critical path
 
