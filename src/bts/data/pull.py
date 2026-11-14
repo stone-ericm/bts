@@ -1,7 +1,9 @@
 """MLB Stats API data pulling: schedule discovery and game feed download."""
 
 import json
+import os
 import sys
+import tempfile
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -71,7 +73,17 @@ def download_game_feed(game_pk: int, output_dir: Path) -> Path:
         try:
             resp = urlopen(url, timeout=30)
             data = resp.read()
-            output_path.write_bytes(data)
+            if not isinstance(json.loads(data), dict):
+                raise ValueError(f"game feed {game_pk} must be a JSON object")
+            temporary_path = None
+            try:
+                with tempfile.NamedTemporaryFile(dir=output_dir, suffix=".tmp", delete=False) as temporary:
+                    temporary_path = Path(temporary.name)
+                    temporary.write(data)
+                os.replace(temporary_path, output_path)
+            finally:
+                if temporary_path is not None:
+                    temporary_path.unlink(missing_ok=True)
             return output_path
         except Exception:
             if attempt < 2:

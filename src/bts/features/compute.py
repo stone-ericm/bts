@@ -71,6 +71,8 @@ def _build_probable_pitcher_lookup(raw_dir: str = "data/raw") -> dict:
         if not season_dir.is_dir():
             continue
         for f in season_dir.glob("*.json"):
+            if not f.stem.isdigit():
+                continue
             pk = int(f.stem)
             if pk in lookup:
                 continue
