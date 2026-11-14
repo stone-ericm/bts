@@ -258,3 +258,21 @@ def sample_feed_path(sample_game_feed, tmp_path):
     path = raw_dir / "999999.json"
     path.write_text(json.dumps(sample_game_feed))
     return path
+
+
+@pytest.fixture(autouse=True)
+def _delivery_guard_never_reads_the_real_schedule(monkeypatch):
+    """The delivery chokepoint reads MLB game statuses before every delivery (the postponed-game guard,
+    incident L03). In tests that read must never reach the network: unless a test has replaced
+    ``bts.picks.get_game_statuses_detailed`` or ``bts.picks.retry_urlopen`` itself, the guard sees no status
+    (and therefore delivers, as it does when the schedule is unreadable)."""
+    import bts.picks as picks
+    import bts.scheduler as sch
+    real_statuses, real_urlopen = picks.get_game_statuses_detailed, picks.retry_urlopen
+
+    def statuses_for_the_guard(date):
+        if picks.get_game_statuses_detailed is not real_statuses or picks.retry_urlopen is not real_urlopen:
+            return picks.get_game_statuses_detailed(date)
+        return {}
+
+    monkeypatch.setattr(sch, "_delivery_game_statuses", statuses_for_the_guard)

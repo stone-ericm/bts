@@ -1025,8 +1025,7 @@ def _l03_verdict(obs: dict) -> None:
             PostponedPickDelivered, "postponed cached fallback")
 
 
-@pytest.mark.xfail(strict=True, raises=PostponedPickDelivered,
-                   reason="L03 unfixed: the fallback delivers the cached pick of a postponed game when the refresh fails")
+# L03 REPAIRED 2026-11-13 (scheduler._void_committed_games at the delivery chokepoint); was xfail(strict).
 def test_l03_postponed_game_is_never_delivered_by_the_cached_fallback(tmp_path):
     _l03_verdict(_run_l03_day(tmp_path / "picks", postponed_at=L03_POSTPONED_AT))
 

@@ -1066,6 +1066,15 @@ def _deliver_and_lock_pick(
         _refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)
         return False
 
+    # A postponed or cancelled game is not delivered (incident L03, fixed 2026-11-13: when the fallback's
+    # refresh failed, the cached pick went out for a game MLB had already postponed). Same chokepoint as
+    # the cutoff guard, every delivery mode. If the status cannot be read the pick is delivered: the read
+    # fails in the same outages that make a refresh fail, and a postponed pick is a Pass, not a miss.
+    void_games = _void_committed_games(daily, date)
+    if void_games:
+        _refuse_void_game_delivery(daily, config, picks_dir, state, date, label, void_games)
+        return False
+
     if mode == "private":
         save_pick(daily, picks_dir)
         state.pick_locked = True
@@ -2231,6 +2240,59 @@ def _refuse_late_delivery(daily, config: dict, picks_dir: Path, state: Scheduler
            f"from later games if any remain. Enter a pick manually if you want one now.")
     dispatch_dm_for_health_alerts(
         [Alert("CRITICAL", "late_delivery", msg)],
+        config.get("bluesky", {}).get("dm_recipient"),
+        status_path=picks_dir.parent / "health_state" / "health_dm_delivery_status.json",
+    )
+
+
+def _delivery_game_statuses(date: str) -> dict[int, dict]:
+    """The schedule's detailed game statuses for the delivery guard (one public request). A function of its own
+    so the test suite can keep the guard off the network (tests/conftest.py)."""
+    from bts.picks import get_game_statuses_detailed
+    return get_game_statuses_detailed(date)
+
+
+def _void_committed_games(daily, date: str) -> dict[int, str]:
+    """{game_pk: detailed state} for the pick's games that MLB lists as postponed, cancelled or otherwise void
+    right now. Empty when none is, and when the schedule cannot be read (the caller then delivers)."""
+    from bts.picks import _committed_pick_game_pks, _is_void_detailed_state
+    try:
+        statuses = _delivery_game_statuses(date)
+    except Exception as exc:
+        print(f"  Game status unreadable before delivery ({type(exc).__name__}); delivering unverified.",
+              file=sys.stderr)
+        return {}
+    out = {}
+    for pk in _committed_pick_game_pks(daily):
+        detailed = (statuses.get(pk) or {}).get("detailed")
+        if _is_void_detailed_state(detailed):
+            out[pk] = detailed
+    return out
+
+
+def _refuse_void_game_delivery(daily, config: dict, picks_dir: Path, state: SchedulerState,
+                               date: str, label: str, void_games: dict[int, str]) -> None:
+    """Delivery-guard action for a postponed/cancelled game: archive+remove the dead candidate, record the
+    refusal on state, DM a CRITICAL. Leaves pick_locked False so a later cycle can re-pick. The DM names the
+    game and its state, not the batter: nothing in it can be read as a pick."""
+    from bts.health.alert import Alert, dispatch_dm_for_health_alerts
+
+    now = _now_et()
+    games = ", ".join(f"game {pk} is {state_name}" for pk, state_name in sorted(void_games.items()))
+    print(f"  DELIVERY REFUSED ({label}) — {games}; not delivering a pick on it.", file=sys.stderr)
+    archive = _archive_and_remove_pick(
+        picks_dir, date, daily, prefix="refused_delivery", key="refused_delivery",
+        at_key="refused_at", reason="game_not_playable",
+        extra={"label": label, "void_games": {str(k): v for k, v in void_games.items()}})
+    state.delivery_refusals = (state.delivery_refusals or []) + [{
+        "at": now.isoformat(), "label": label, "batter": daily.pick.batter_name,
+        "double_down": daily.double_down.batter_name if daily.double_down else None,
+        "void_games": {str(k): v for k, v in void_games.items()}, "archive": archive.name}]
+    save_state(state, picks_dir)
+    msg = (f"DELIVERY REFUSED for {date}: {games}. Nothing delivered; the scheduler will re-pick from "
+           f"other games if any remain. Enter a pick manually if you want one today.")
+    dispatch_dm_for_health_alerts(
+        [Alert("CRITICAL", "postponed_pick", msg)],
         config.get("bluesky", {}).get("dm_recipient"),
         status_path=picks_dir.parent / "health_state" / "health_dm_delivery_status.json",
     )
