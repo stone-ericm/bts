@@ -2044,9 +2044,10 @@ def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
         predictions = success.get("predictions", [])
         rounds = _fetch_rounds()
         source_date = derive_source_date(predictions, rounds)  # may be None when the ledger lags
+        recorded_at = datetime.now(timezone.utc)
         observation = build_observation(
             success, source_date, session.user_id, session.username,
-            datetime.now(timezone.utc),
+            recorded_at,
         )
     except httpx.HTTPError as exc:
         # Categorize by shape (r2 #6): these DMs must not consume the actionable
@@ -2099,10 +2100,11 @@ def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
         _fh.write(json.dumps(ledger_row) + "\n")
     # Streak Saver flag: safe cold-init below 10 + sound auto-earn at 10 from the reliable
     # seasonBestStreak. Never auto-inits `active` from a cold file at >=10 (fail-closed).
-    from bts.saver_state import maybe_auto_earn_saver, season_for
+    from bts.saver_state import maybe_auto_earn_saver
     from zoneinfo import ZoneInfo
-    _season = season_for(source_date, now_year=datetime.now(ZoneInfo("America/New_York")).year)
-    maybe_auto_earn_saver(picks, best_streak=observation["best_streak"], season=_season)
+    _season = recorded_at.astimezone(ZoneInfo("America/New_York")).year
+    if observation["best_streak"] < 10 or (source_date is not None and source_date.year == _season):
+        maybe_auto_earn_saver(picks, best_streak=observation["best_streak"], season=_season)
     click.echo(f"wrote {out_path}: {summary}")
 
 

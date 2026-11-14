@@ -4,6 +4,7 @@ import json
 import pytest
 import sys
 import types
+from datetime import datetime, timezone
 from unittest.mock import patch, MagicMock
 from pathlib import Path
 from click.testing import CliRunner
@@ -189,7 +190,7 @@ class TestBtsRun:
     ):
         def action(_mdp, _p, streak, _date, saver):
             assert streak == 7
-            assert saver is False
+            assert saver is True  # uninitialized, with no settled pick this season
             return "skip"
 
         mock_pipeline.return_value = _mock_predictions()
@@ -206,11 +207,14 @@ class TestBtsRun:
             "source_date": "2026-04-01",
         }))
 
-        result = CliRunner().invoke(cli, [
-            "run", "--date", "2026-04-01",
-            "--picks-dir", str(picks_dir),
-            "--models-dir", str(models_dir),
-        ])
+        from bts.contest_state import load_decision_streak_state
+        with patch("bts.contest_state.load_decision_streak_state", side_effect=lambda path:
+                   load_decision_streak_state(path, now=datetime(2026, 4, 1, 18, tzinfo=timezone.utc))):
+            result = CliRunner().invoke(cli, [
+                "run", "--date", "2026-04-01",
+                "--picks-dir", str(picks_dir),
+                "--models-dir", str(models_dir),
+            ])
 
         mock_mdp.assert_called()  # streak-threading side_effect must actually fire
         assert result.exit_code == 0
@@ -230,7 +234,7 @@ class TestBtsPreview:
     ):
         def action(_mdp, _p, streak, _date, saver):
             assert streak == 7
-            assert saver is False
+            assert saver is True  # uninitialized, with no settled pick this season
             return "skip"
 
         mock_pipeline.return_value = _mock_predictions()
@@ -247,11 +251,14 @@ class TestBtsPreview:
             "source_date": "2026-04-01",
         }))
 
-        result = CliRunner().invoke(cli, [
-            "preview", "--date", "2026-04-01",
-            "--picks-dir", str(picks_dir),
-            "--models-dir", str(models_dir),
-        ])
+        from bts.contest_state import load_decision_streak_state
+        with patch("bts.contest_state.load_decision_streak_state", side_effect=lambda path:
+                   load_decision_streak_state(path, now=datetime(2026, 4, 1, 18, tzinfo=timezone.utc))):
+            result = CliRunner().invoke(cli, [
+                "preview", "--date", "2026-04-01",
+                "--picks-dir", str(picks_dir),
+                "--models-dir", str(models_dir),
+            ])
 
         mock_mdp.assert_called()  # streak-threading side_effect must actually fire
         assert result.exit_code == 0

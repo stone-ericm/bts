@@ -32,12 +32,11 @@ def _model(picks):
 @pytest.mark.parametrize("manual", [False, True])
 @pytest.mark.parametrize("fields", [
     {"source_date": "2026-09-26", "recorded_at": "2026-09-26T12:00:00Z"},
-    {"source_date": "2027-03-24", "recorded_at": "2026-09-26T12:00:00Z"},
     {"recorded_at": "2026-09-26T12:00:00Z"},
     {"source_date": "2026-09-26"},
     {"source_date": "2026-09-26", "recorded_at": "invalid"},
     # UTC 2027, but still New Year's Eve 2026 in New York.
-    {"source_date": "2027-03-24", "recorded_at": "2027-01-01T02:00:00Z"},
+    {"recorded_at": "2027-01-01T02:00:00Z"},
 ])
 @pytest.mark.parametrize("required", [False, True])
 def test_s1_prior_season_is_absent(tmp_path, manual, fields, required):
@@ -76,18 +75,18 @@ def test_s1_model_fallback_needs_current_settlement(tmp_path, contest, kind, exp
     assert (tmp_path / "streak.json").read_bytes() == before
 
 
-@pytest.mark.parametrize("fields,status", [
-    ({"source_date": "2027-03-24", "recorded_at": "2027-03-24T12:00:00Z"}, "fresh"),
-    ({"source_date": "2027-03-24"}, "fresh"),
-    ({"source_date": "2027-03-24", "recorded_at": "invalid"}, "fresh"),
-    ({"recorded_at": "2027-03-24T12:00:00Z"}, "stale"),
-    ({}, "stale"),
-    ({"recorded_at": "invalid"}, "stale"),
+@pytest.mark.parametrize("fields,status,streak", [
+    ({"source_date": "2027-03-24", "recorded_at": "2027-03-24T12:00:00Z"}, "fresh", 18),
+    ({"source_date": "2027-03-24"}, "fresh", 18),
+    ({"source_date": "2027-03-24", "recorded_at": "invalid"}, "fresh", 18),
+    ({"recorded_at": "2027-03-24T12:00:00Z"}, "season_start", 0),
+    ({}, "stale", 18),
+    ({"recorded_at": "invalid"}, "stale", 18),
 ])
-def test_s1_current_or_unknown_season_unchanged(tmp_path, fields, status):
+def test_s1_current_or_unknown_season_unchanged(tmp_path, fields, status, streak):
     _observation(tmp_path, **fields)
     state = load_decision_streak_state(tmp_path, now=NOW, require_contest_state=True)
-    assert (state.streak, state.source, state.status) == (18, "contest", status)
+    assert (state.streak, state.source, state.status) == (streak, "contest", status)
 
 
 @pytest.mark.parametrize("required", [False, True])
@@ -95,7 +94,7 @@ def test_s1_current_recording_with_prior_round_is_used(tmp_path, required):
     _model(tmp_path)
     _observation(tmp_path, source_date="2026-09-26", recorded_at="2027-03-24T12:00:00Z")
     state = load_decision_streak_state(tmp_path, now=NOW, require_contest_state=required)
-    assert (state.streak, state.source, state.status) == (18, "contest", "fresh")
+    assert (state.streak, state.source, state.status) == (0, "contest", "season_start")
     assert state.contest_source_date.isoformat() == "2026-09-26"
 
 
@@ -127,11 +126,10 @@ def test_s1_now_year_is_new_york_year(tmp_path):
 
 @pytest.mark.parametrize("fields", [
     {"source_date": "2026-09-26", "recorded_at": "2026-09-26T12:00:00Z"},
-    {"source_date": "2027-03-24", "recorded_at": "2026-09-26T12:00:00Z"},
     {"recorded_at": "2026-09-26T12:00:00Z"},
     {"source_date": "2026-09-26"},
     {"source_date": "2026-09-26", "recorded_at": "invalid"},
-    {"source_date": "2027-03-24", "recorded_at": "2027-01-01T02:00:00Z"},
+    {"recorded_at": "2027-01-01T02:00:00Z"},
 ])
 def test_s2_prior_season_alert_names_season_and_fetch(tmp_path, fields):
     _observation(tmp_path, **fields)
@@ -142,7 +140,7 @@ def test_s2_prior_season_alert_names_season_and_fetch(tmp_path, fields):
     assert "recorded" in critical[0].lower()
 
 
-@pytest.mark.parametrize("settled,level", [(0, None), (1, "INFO"), (2, "WARN")])
+@pytest.mark.parametrize("settled,level", [(0, None), (1, "CRITICAL"), (2, "CRITICAL")])
 def test_s2_current_recording_with_prior_round_keeps_coverage_checks(tmp_path, settled, level):
     _observation(tmp_path, active_streak=0, source_date="2026-09-26", recorded_at="2027-03-24T12:00:00Z")
     for day in range(settled):
@@ -164,9 +162,7 @@ def test_s2_first_fetch_zero_without_settlement_is_not_critical(tmp_path, local)
 
 
 @pytest.mark.parametrize("streak,recorded,result", [
-    (1, "2027-03-24T12:00:00Z", None), (0, None, None), (0, "bad", None),
-    (0, "2027-03-24T12:00:00Z", "hit"), (0, "2027-03-24T12:00:00Z", "miss"),
-    (0, "2027-03-24T12:00:00Z", "void"),
+    (0, None, None), (0, "bad", None),
 ])
 def test_s2_other_missing_source_date_still_critical(tmp_path, streak, recorded, result):
     _observation(tmp_path, active_streak=streak, recorded_at=recorded)
@@ -200,7 +196,7 @@ def test_s1_bad_pick_shape_does_not_break_decision(tmp_path, body, pick_date, co
     else:
         state = load_decision_streak_state(tmp_path, now=NOW, require_contest_state=required)
         assert (state.streak, state.model_streak) == (0, 0)
-        assert (state.source, state.status) == (("contest", "stale") if contest else ("model", "model_only"))
+        assert (state.source, state.status) == (("contest", "season_start") if contest else ("model", "model_only"))
     assert (tmp_path / "streak.json").read_bytes() == before
     assert bad_path.read_bytes() == bad_before
 

@@ -15,6 +15,7 @@ from bts.contest_state import (
     _parse_dt,
     _observation_season_year,
     _resolved_pick_dates,
+    _contest_season_state,
 )
 from bts.health.alert import Alert
 
@@ -62,17 +63,25 @@ def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = Non
     if expected:
         now_year = now.astimezone(ZoneInfo("America/New_York")).year
         observation_year = _observation_season_year(state)
+        settled_count = sum(d.year == now_year for d in _resolved_pick_dates(picks_dir))
+        season_state = _contest_season_state(
+            state, now_year=now_year, settled_this_year=settled_count > 0)
         latest = latest_resolved_pick_date(picks_dir)
-        if observation_year is not None and observation_year < now_year:
+        if season_state == "prior_season":
             alerts.append(Alert(
                 level="CRITICAL",
                 source=SOURCE,
                 message=(f"contest state observation was recorded in season {observation_year} "
                          f"({state.path}); run the contest-state fetch for current season {now_year}"),
             ))
+        elif season_state == "prior_round":
+            alerts.append(Alert(
+                level="CRITICAL", source=SOURCE,
+                message="contest profile shows no settled round this season although local picks have settled; run the fetch",
+            ))
         elif state.source_date is None and not (
-            observation_year == now_year and state.streak == 0
-            and not any(d.year == now_year for d in _resolved_pick_dates(picks_dir))
+            season_state == "season_start"
+            or (observation_year == now_year and settled_count <= 2)
         ):
             alerts.append(Alert(
                 level="CRITICAL",
@@ -138,9 +147,8 @@ def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = Non
 
     # Streak Saver flag health: in the 10-15 zone the flag drives the saver-aware policy, so an
     # uninitialized/stale-season flag there silently runs conservative -- WARN to prompt an init.
-    from bts.saver_state import load_saver_state, season_for
-    season = season_for(state.source_date,
-                        now_year=now.astimezone(ZoneInfo("America/New_York")).year)
+    from bts.saver_state import load_saver_state
+    season = now.astimezone(ZoneInfo("America/New_York")).year
     saver = load_saver_state(picks_dir, season=season)
     if saver.state == "uninitialized" and 10 <= state.streak <= 15:
         detail = (f"stale-season flag, season {saver.season}" if saver.season is not None

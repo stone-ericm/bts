@@ -282,4 +282,4 @@ def test_saver_conservative_when_reached_zone_but_unconfirmed(tmp_path):
         "best_streak": 12, "source": "mlb_bts_profile"}))  # reached the zone; no ledger -> unknown
     state = load_decision_streak_state(tmp_path, now=_NOW)
     assert state.streak == 8 and state.status == "stale"
-    assert state.saver_available is False   # reached zone, unconfirmed -> conservative
+    assert state.saver_available is True   # uninitialized with no current-year settlement: still in reserve

@@ -16,7 +16,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from bts.picks import load_saver_available, load_streak
-from bts.saver_state import load_saver_state, season_for
+from bts.saver_state import load_saver_state
 
 
 _ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -131,6 +131,37 @@ def _observation_season_year(contest: ContestStreakState) -> int | None:
     if recorded is not None:
         return recorded.astimezone(ZoneInfo("America/New_York")).year
     return contest.source_date.year if contest.source_date is not None else None
+
+
+def _contest_season_state(contest: ContestStreakState, *, now_year: int,
+                          settled_this_year: bool) -> str:
+    """Classify the profile's season before using its active-streak snapshot."""
+    source_year = contest.source_date.year if contest.source_date is not None else None
+    recorded = _parse_dt(contest.recorded_at)
+    recorded_year = recorded.astimezone(ZoneInfo("America/New_York")).year if recorded else None
+    if source_year == now_year:
+        return "current"
+    if recorded_year == now_year:
+        if source_year is None or source_year < now_year:
+            if not settled_this_year:
+                return "season_start"
+            if source_year is not None:
+                return "prior_round"
+    elif ((recorded_year is not None and recorded_year < now_year)
+          or (recorded_year is None and source_year is not None and source_year < now_year)):
+        return "prior_season"
+    return "current"
+
+
+def _policy_saver_available(picks_dir: Path, *, now_year: int, streak: int,
+                            settled_this_year: bool) -> bool:
+    """The policy asks whether the saver remains in reserve, including before earning it."""
+    saver = load_saver_state(picks_dir, season=now_year)
+    if saver.state == "not_earned":
+        return streak < 10
+    if saver.state == "uninitialized":
+        return not settled_this_year
+    return saver.is_available
 
 
 def _contest_state_paths(picks_dir: Path) -> list[Path]:
@@ -299,17 +330,18 @@ def load_decision_streak_state(
 
     The decision streak is the real contest (MLB) streak; the model replay can
     NEVER raise it (the 2026-06-17 inflation bug). ``status`` in {fresh, lagged,
-    stale} reflects settlement freshness. Doubles are not frozen on staleness —
+    stale, season_start} reflects settlement freshness. Doubles are not frozen on staleness —
     Phase 1 surfaces stale-high via ``status``; Phase 2 makes strategy act on the
     uncertainty.
     """
     model_saver = load_saver_available(picks_dir)
     now_dt = now or datetime.now(timezone.utc)
     now_year = now_dt.astimezone(ZoneInfo("America/New_York")).year
-    model_streak = (load_streak(picks_dir)
-                    if any(d.year == now_year for d in _resolved_pick_dates(picks_dir)) else 0)
+    settled_this_year = any(d.year == now_year for d in _resolved_pick_dates(picks_dir))
+    model_streak = load_streak(picks_dir) if settled_this_year else 0
     contest = load_contest_streak_state(picks_dir, now=now_dt)
     missing_message = "no contest-account streak state found"
+    season_state = "current"
     if contest is not None:
         observation_year = _observation_season_year(contest)
         manual_override = (
@@ -317,8 +349,14 @@ def load_decision_streak_state(
             and contest.override_expires_at is not None
             and contest.override_expires_at > now_dt
         )
-        if observation_year is not None and observation_year < now_year and not manual_override:
-            missing_message = f"contest-account streak observation is from season {observation_year}"
+        if not manual_override:
+            season_state = _contest_season_state(
+                contest, now_year=now_year, settled_this_year=settled_this_year)
+        if season_state in {"prior_season", "prior_round"}:
+            missing_message = (
+                "contest profile shows no settled round this season although local picks have settled"
+                if season_state == "prior_round" else
+                f"contest-account streak observation is from season {observation_year}")
             if require_contest_state:
                 raise ContestStateError(missing_message)
             contest = None
@@ -330,10 +368,9 @@ def load_decision_streak_state(
             )
         return DecisionStreakState(
             streak=model_streak,
-            # Model-only fallback still reads the saver from the flag (not streak.json), so the
-            # live saver has one authority whether or not a contest observation exists.
-            saver_available=load_saver_state(
-                picks_dir, season=season_for(None, now_year=now_year)).is_available,
+            saver_available=_policy_saver_available(
+                picks_dir, now_year=now_year, streak=model_streak,
+                settled_this_year=settled_this_year),
             allow_double=True,
             source="model",
             status="model_only",
@@ -342,7 +379,11 @@ def load_decision_streak_state(
             message=missing_message,
         )
 
-    if contest_state_is_fresh(contest, picks_dir):
+    decision_streak = 0 if season_state == "season_start" else contest.streak
+    if season_state == "season_start":
+        status = "season_start"
+        message = "season start: no contest round or local pick has settled this season; using streak 0"
+    elif contest_state_is_fresh(contest, picks_dir):
         status = "fresh"
         message = f"using fresh contest streak from {contest.source}"
     elif contest.source_date is None:
@@ -363,16 +404,18 @@ def load_decision_streak_state(
     # 2026-06-18 spec. Read-only here; the flag is written by the fetch-path auto-earn and the
     # CLI/dashboard. `contest.saver_available` is retired from the decision (it is still surfaced
     # as the `contest_saver_available` diagnostic below).
-    contest_saver = load_saver_state(
-        picks_dir, season=season_for(contest.source_date, now_year=now_year)).is_available
+    contest_saver = _policy_saver_available(
+        picks_dir, now_year=now_year, streak=decision_streak,
+        settled_this_year=settled_this_year)
     best_streak, best_status = classify_best_streak(contest, now=now_dt, now_year=now_year)
 
-    # The decision streak is ALWAYS the contest (real MLB) value. The model is a
+    # In season the decision streak is the contest value; a season-start snapshot
+    # is reset to zero until this account has a settled round. The model is a
     # research replay of the bot's own suggestions and can NEVER raise it (the
     # 2026-06-17 inflation bug). Doubles are no longer frozen on staleness — Phase 1
     # surfaces stale-high via `status`; Phase 2 makes strategy act on the uncertainty.
     return DecisionStreakState(
-        streak=contest.streak,
+        streak=decision_streak,
         saver_available=contest_saver,
         allow_double=True,
         source="contest",

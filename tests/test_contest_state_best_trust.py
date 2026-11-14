@@ -10,7 +10,7 @@ would otherwise stop the account for the rest of the season.
 import json
 from datetime import datetime, timedelta, timezone
 
-from bts.contest_state import classify_best_streak, load_contest_streak_state, load_decision_streak_state
+from bts.contest_state import load_decision_streak_state
 
 NOW = datetime(2026, 9, 3, 18, 0, tzinfo=timezone.utc)
 
@@ -62,8 +62,9 @@ def test_best_above_target_is_untrusted(tmp_path):
 
 def test_previous_season_observation_is_untrusted(tmp_path):
     _auto(tmp_path, source_date="2025-09-02")
-    observation = load_contest_streak_state(tmp_path, now=NOW)
-    assert classify_best_streak(observation, now=NOW, now_year=2026) == (18, "untrusted")
+    state = load_decision_streak_state(tmp_path, now=NOW, require_contest_state=True)
+    assert (state.source, state.status, state.streak) == ("contest", "season_start", 0)
+    assert (state.best_streak, state.best_status) == (18, "untrusted")
 
 
 def test_missing_source_date_is_untrusted(tmp_path):

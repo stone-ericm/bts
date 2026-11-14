@@ -136,11 +136,9 @@ class SaverDashboardContext:
 
 def _saver_season(picks_dir, now):
     from bts.contest_state import load_contest_streak_state
-    from bts.saver_state import season_for
     contest = load_contest_streak_state(picks_dir, now=now)
-    source_date = contest.source_date if contest is not None else None
     best_streak = contest.best_streak if contest is not None else None
-    season = season_for(source_date, now_year=now.astimezone(ZoneInfo("America/New_York")).year)
+    season = now.astimezone(ZoneInfo("America/New_York")).year
     return season, best_streak
 
 
