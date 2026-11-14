@@ -826,6 +826,9 @@ def _refresh_season_data(date: str, raw_dir: str = "data/raw", processed_dir: st
     print(f"  {len(paths)} game feeds ({sum(1 for _ in (raw / str(season)).glob('*.json'))} total)", file=sys.stderr)
 
     df = build_season(raw, output_path, season)
+    if df is None:
+        print(f"  Season {season} has no regular-season games yet; using historical data.", file=sys.stderr)
+        return
     print(f"  Rebuilt {output_path.name}: {len(df)} PAs", file=sys.stderr)
 
     # Written only after a successful pull+rebuild so a failed build re-runs

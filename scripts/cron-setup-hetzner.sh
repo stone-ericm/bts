@@ -7,7 +7,7 @@
 #   01:00 — check yesterday's results, update streak
 #   02:00 — reconcile (re-check picks for scoring changes)
 #   01:10,02:10,10:30,13:30 — fetch real MLB BTS account streak (contest state); alerts if stale/failed
-#   23:50 + 08:30 — day-outcome: the day ended in a known state, or a DM (bts.day_outcome; read-only)
+#   08:30 — day-outcome: yesterday ended in a known state, or a DM (bts.day_outcome; read-only)
 #   23:30 — skip-policy shadow: record today's pick-vs-skip-band decision + reconcile (docs/audit/2026-06-20-skip-policy-shadow.md)
 #   03:00 — nightly data refresh + sync to R2 + tomorrow's preview pick
 #   */5  — lineup posting time collection
@@ -81,6 +81,7 @@ esac
 # R2 manifest over stale parquets. The `;` between them inside the group keeps them
 # decoupled: a preview error doesn't block the R2 backup, and a sync failure (R2
 # outage) doesn't block preview.
+# Check yesterday after the scheduler's late doubleheader re-checks have finished.
 CRON_LINES="$MARKER
 0 1 * * * $PREFIX /usr/bin/flock -n /home/bts/.check-results.lock $UV_BIN run bts check-results --date $YESTERDAY --wait-deadline-et 06:00 >> $LOG_DIR/cron.log 2>&1 $MARKER
 0 2 * * * $PREFIX $UV_BIN run bts reconcile >> $LOG_DIR/cron.log 2>&1 $MARKER
@@ -90,7 +91,6 @@ CRON_LINES="$MARKER
 30 10 * * * $PREFIX $UV_BIN run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $LOG_DIR/cron.log 2>&1 $MARKER
 30 13 * * * $PREFIX $UV_BIN run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $LOG_DIR/cron.log 2>&1 $MARKER
 30 23 * * * $PREFIX $UV_BIN run bts skip-policy-shadow-update >> $LOG_DIR/cron.log 2>&1 $MARKER
-50 23 * * * $PREFIX $UV_BIN run bts day-outcome --config $ORCH_CONFIG --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $LOG_DIR/cron.log 2>&1 $MARKER
 30 8 * * * $PREFIX $UV_BIN run bts day-outcome --date $YESTERDAY --config $ORCH_CONFIG --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $LOG_DIR/cron.log 2>&1 $MARKER
 45 7 * * * $PREFIX $UV_BIN run bts park-drag-refresh >> $LOG_DIR/park_drag.log 2>&1 $MARKER
 0 3 * * * $PREFIX ($UV_BIN run bts data pull --start $DATA_PULL_START --end $DATA_PULL_END && $UV_BIN run bts data build --seasons $DATA_BUILD_SEASON && { $UV_BIN run bts preview ; $UV_BIN run bts data sync-to-r2 ; }) >> $LOG_DIR/cron.log 2>&1 $MARKER

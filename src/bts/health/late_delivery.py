@@ -52,7 +52,7 @@ def check(picks_dir: Path, today: date | None = None, now: datetime | None = Non
         games = ", ".join(f"game {pk} is {st}" for pk, st in sorted((r.get("void_games") or {}).items()))
         if reason == "game_not_playable":
             alerts.append(Alert("CRITICAL", SOURCE, (
-                f"delivery REFUSED for {day.isoformat()}: {r.get('batter')} ({r.get('label')}): {games}; "
+                f"delivery REFUSED for {day.isoformat()}: {r.get('label')}: {games}; "
                 f"nothing was delivered by that path")))
         else:
             alerts.append(Alert("CRITICAL", SOURCE, (

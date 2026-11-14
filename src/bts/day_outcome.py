@@ -6,7 +6,8 @@ A narrow replacement for the deferred C1 rank-2 watchdog. It reads the day's dec
 state of its own and never writes pick, decision, streak or health state: an alert is repeated only as often as
 cron runs the check.
 
-Clean states: `no_games`, `deliberate_skip`, `entered` (intent "enter"), `research_commit` (intent "research").
+Clean states: `no_games`, `deliberate_skip`, `entered` or `entered_game_unverified` (intent "enter"),
+`research_commit` (intent "research"). The game-unverified state is a batter-only match, not a game confirmation.
 Everything else is a problem. Missing or failed evidence is reported as unverifiable, never as a quiet pass, and
 "not entered" is claimed only from a successful observation of the account (the receipt's consumer rules).
 
@@ -18,7 +19,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-OK_STATES = frozenset({"no_games", "deliberate_skip", "entered", "research_commit"})
+OK_STATES = frozenset({"no_games", "deliberate_skip", "entered", "entered_game_unverified", "research_commit"})
 ABSENT_REASONS = frozenset({"no_pick", "mismatch"})
 
 
@@ -68,6 +69,14 @@ def _entry_state(receipts: list[dict], *, date: str, decision_sha256: str | None
     in_time = [r for r in confirmed if (r.get("observation") or {}).get("before_cutoff") is True]
     if in_time:
         return "entered", f"The entry was confirmed in {len(in_time)} of {len(receipts)} checks before the cutoff."
+    batter_only = [r for r in bound
+                   if (r.get("observation") or {}).get("before_cutoff") is True
+                   and (r.get("verifier") or {}).get("reason") == "match"
+                   and (r.get("qualification") or {}).get("slots")
+                   and all(s.get("state") in ("confirmed", "unit_unverified")
+                           for s in r["qualification"]["slots"])]
+    if batter_only:
+        return "entered_game_unverified", "The batter entry matched before the cutoff; the game was not verified."
     if confirmed:
         at = min(str((r.get("observation") or {}).get("response_completed_at")) for r in confirmed)
         return "entered_late", f"The entry was first confirmed at {at}, after the cutoff."
@@ -84,9 +93,11 @@ def _entry_state(receipts: list[dict], *, date: str, decision_sha256: str | None
 
 
 def classify_day(*, date: str, games: int | None, decision: dict | None, decision_sha256: str | None,
-                 receipts: list[dict], intent: str | None, expected_username: str | None) -> DayOutcome:
+                 receipts: list[dict], intent: str | None, expected_username: str | None,
+                 void_games: int = 0) -> DayOutcome:
     """Name the day's end state. `games` is the number of regular-season games scheduled that date, or None when the
-    schedule could not be read; `receipts` are the day's SEALED entry receipts (`entry_receipt.discover`)."""
+    schedule could not be read; `void_games` counts postponed/cancelled games. `receipts` are the day's SEALED
+    entry receipts (`entry_receipt.discover`)."""
     def out(state, detail, pick=None):
         return DayOutcome(date=date, state=state, detail=detail, pick=pick)
 
@@ -95,6 +106,8 @@ def classify_day(*, date: str, games: int | None, decision: dict | None, decisio
                                      "like is undefined.")
     if games is None:
         return out("schedule_unverifiable", "The schedule could not be read, so whether a pick was due is unknown.")
+    if games > 0 and void_games == games:
+        return out("no_games", f"All {games} scheduled games were postponed or cancelled.")
     committed = decision is not None and decision.get("action") in ("single", "double")
     pick = _pick_text(decision) if committed else None
     if games == 0:
@@ -130,14 +143,19 @@ def gather(date: str, picks_dir, config: dict, *, expected_username: str | None,
     from bts import entry_receipt
     from bts.daily_decision import load_decision_bytes
     from bts.entry_intent import check_entry_intent
+    from bts.picks import _is_void_detailed_state
     if fetch_schedule is None:
         from bts.scheduler import fetch_schedule
+    void_games = 0
     try:
-        games = len(fetch_schedule(date))
+        schedule = fetch_schedule(date)
+        games = len(schedule)
+        void_games = sum(_is_void_detailed_state((g.get("status") or {}).get("detailedState")) for g in schedule)
     except Exception:
         games = None
     decision, raw = load_decision_bytes(date, picks_dir)
     intent = check_entry_intent(config)
-    return classify_day(date=date, games=games, decision=decision, decision_sha256=entry_receipt._sha(raw),
+    return classify_day(date=date, games=games, void_games=void_games,
+                        decision=decision, decision_sha256=entry_receipt._sha(raw),
                         receipts=entry_receipt.discover(picks_dir, date),
                         intent=intent.intent if intent.ok else None, expected_username=expected_username)

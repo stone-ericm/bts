@@ -2,6 +2,7 @@
 
 import json
 import re
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -328,7 +329,7 @@ def build_season(
     output_path: Path,
     season: int,
     game_types: set[str] | None = None,
-) -> pd.DataFrame:
+) -> pd.DataFrame | None:
     """Build PA-level Parquet from raw game feed JSONs for one season.
 
     Args:
@@ -340,16 +341,19 @@ def build_season(
             D=division series, L=league championship, W=world series, A=all-star.
 
     Returns:
-        The built DataFrame
+        The built DataFrame, or None when no game feeds exist or all have readable, excluded types
+        (no output is written). Untyped means a missing type or a hashable value that is not a
+        non-blank string. Untyped feeds are logged and skipped; if no requested-type feed exists
+        beside them, raise instead of treating the season as empty. Any other malformed shape
+        raises as it always has.
     """
     if game_types is None:
         game_types = {REGULAR_SEASON_TYPE}
 
     season_dir = raw_dir / str(season)
-    if not season_dir.exists():
-        raise FileNotFoundError(f"No raw data for season {season} at {season_dir}")
-
     all_rows = []
+    eligible_games = 0
+    untyped_files = []
     skipped = 0
     json_files = sorted(season_dir.glob("*.json"))
 
@@ -363,8 +367,12 @@ def build_season(
         game_info = feed.get("gameData", {}).get("game", {})
         gt = game_info.get("type", "")
         if gt not in game_types:
+            if not isinstance(gt, str) or not gt.strip():
+                untyped_files.append(str(json_path))
+                print(f"Skipping {json_path}: missing or unreadable gameData.game.type.", file=sys.stderr)
             skipped += 1
             continue
+        eligible_games += 1
 
         # Skip 7-inning doubleheader games (2020-2021 COVID rule).
         # The API reports scheduledInnings=9 even for these, so we detect
@@ -388,6 +396,12 @@ def build_season(
                 row["humidity"] = weather.get("relative_humidity")
 
         all_rows.extend(rows)
+
+    if eligible_games == 0:
+        if untyped_files:
+            raise ValueError("No requested-type game feeds; missing or unreadable gameData.game.type in "
+                             + ", ".join(untyped_files))
+        return None
 
     df = pd.DataFrame(all_rows)
     assert_columns_match_schema(df)
