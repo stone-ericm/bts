@@ -342,8 +342,10 @@ def build_season(
 
     Returns:
         The built DataFrame, or None when no game feeds exist or all have readable, excluded types
-        (no output is written). Unreadable types are logged and skipped; if no requested-type feed
-        exists beside them, raise instead of treating the season as empty.
+        (no output is written). Untyped means a missing type or a hashable value that is not a
+        non-blank string. Untyped feeds are logged and skipped; if no requested-type feed exists
+        beside them, raise instead of treating the season as empty. Any other malformed shape
+        raises as it always has.
     """
     if game_types is None:
         game_types = {REGULAR_SEASON_TYPE}
@@ -351,7 +353,7 @@ def build_season(
     season_dir = raw_dir / str(season)
     all_rows = []
     eligible_games = 0
-    unreadable_files = []
+    untyped_files = []
     skipped = 0
     json_files = sorted(season_dir.glob("*.json"))
 
@@ -361,17 +363,13 @@ def build_season(
             continue
         feed = json.loads(json_path.read_text(encoding="utf-8"))
 
-        # An unknown feed shape is not evidence that the season has no games yet.
-        try:
-            game_info = feed["gameData"]["game"]
-            gt = game_info["type"]
-        except (KeyError, TypeError):
-            gt = None
-        if not isinstance(gt, str) or not gt.strip():
-            unreadable_files.append(str(json_path))
-            print(f"Skipping {json_path}: missing or unreadable gameData.game.type.", file=sys.stderr)
-            continue
+        # Filter by game type
+        game_info = feed.get("gameData", {}).get("game", {})
+        gt = game_info.get("type", "")
         if gt not in game_types:
+            if not isinstance(gt, str) or not gt.strip():
+                untyped_files.append(str(json_path))
+                print(f"Skipping {json_path}: missing or unreadable gameData.game.type.", file=sys.stderr)
             skipped += 1
             continue
         eligible_games += 1
@@ -400,9 +398,9 @@ def build_season(
         all_rows.extend(rows)
 
     if eligible_games == 0:
-        if unreadable_files:
+        if untyped_files:
             raise ValueError("No requested-type game feeds; missing or unreadable gameData.game.type in "
-                             + ", ".join(unreadable_files))
+                             + ", ".join(untyped_files))
         return None
 
     df = pd.DataFrame(all_rows)
