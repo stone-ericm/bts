@@ -42,6 +42,30 @@ Model-only fallback, same function: the decision's model streak is `load_streak(
 
 No temporary file may be left behind on any path, and the temporary name must not match `*.json` (the builder and the feature scan glob that pattern).
 
+## S5. The pre-season no-op applies only while the season file does not exist
+`src/bts/data/build.py::build_season`, the `eligible_games == 0` branch (landed with the g2 fixes). Today a directory with no requested-type feed and no untyped feed returns `None` whether or not `pa_<season>.parquet` already exists. Once a season file exists the season has started, and a build that finds no regular-season feed is a fault (a renamed game-type code, a partial restore), which the base reported by raising.
+
+| State with no requested-type feed and no untyped feed | Today | Required |
+|---|---|---|
+| `output_path` does not exist | `None`, nothing written | unchanged |
+| `output_path` exists | `None`, the existing file kept, the nightly chain continues to `preview` and `sync-to-r2` | raise (a clear message naming the season and the directory); the existing file untouched |
+
+`predict._refresh_season_data` needs no change: it already lets a build exception propagate.
+
+## S6. A day with no selected pick gets a last attempt before each remaining cutoff
+`src/bts/scheduler.py::run_day`, the block after the lineup checks ("5. Fallback"), and the missed-pick alert near the top of the file. Found by the final g2 review (`docs/audit/2026-11-14-g2-fixes-codex-final.md`, cold start, item 1) and confirmed by reading the code: the end-of-checks fallback only acts on an existing pick file, so when every check returned no predictions the day ends with no pick, no decision and no alert until the next morning's `bts day-outcome`. On a team's first game of a season there is no prior lineup to project, so this happens whenever the lineups post after the last check: the reviewer's run of the real `run_day` for a 19:10 one-game Opening Night with offset 60 and lineups first available at 18:25 ran checks at 16:10, 17:10 and 18:10 and saved nothing.
+
+| State when the planned checks are exhausted and the pick is not locked | Today | Required |
+|---|---|---|
+| a pick file exists, undelivered, its fallback deadline ahead, no standing skip | wait for the deadline, then the fallback | unchanged |
+| a standing skip (`final_skip_candidate` or `skip_summary`) | no wait | unchanged |
+| no pick file, no standing skip, and at least one of today's regular-season games still has its fallback deadline ahead | the day ends silently | for each remaining distinct game start, in order: sleep until that start's fallback deadline (the same `resolve_fallback_deadline_min` and floor the existing wait uses), run one more check, and deliver through the existing fallback path if it selects a pick; stop at the first check that selects a pick or records a skip |
+| no pick file and no game with its deadline ahead | the day ends silently | the day ends, as today |
+
+Missed-pick alert: when no pick file exists, no skip is recorded and a regular-season game is still ahead, the alert fires at that game's start minus `missed_pick_alert_min` and says no pick has been selected (today the function returns without alerting when there is no pick file).
+
+RED test to start from: `tests/test_cold_start_integration.py::test_opening_day_late_lineup_gets_a_last_attempt` (an expected failure adopted from the reviewer's probe).
+
 ## Out of scope, on purpose
 - Rewriting `streak.json` or `contest_streak.json` at rollover; deleting last season's files.
 - The early lock on a team's first game (ruling R18).
