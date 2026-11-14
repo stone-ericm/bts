@@ -1059,21 +1059,19 @@ def _deliver_and_lock_pick(
     # mode incl. private — a pick locked after the cutoff is unenterable, and
     # this is the single chokepoint every caller (lineup lock, in-loop
     # fallback, final fallback) goes through.
-    # A postponed or cancelled game is not delivered (incident L03, fixed 2026-11-13: when the fallback's
-    # refresh failed, the cached pick went out for a game MLB had already postponed). Every delivery mode.
-    # If the status cannot be read the pick is delivered: the read fails in the same outages that make a
-    # refresh fail, and a postponed pick is a Pass, not a miss. When exactly one leg of a double is on such
-    # a game, the other leg is delivered as a single instead of losing the day (review pp1 B2): at the
-    # final fallback there is no later cycle to re-pick. This runs BEFORE the cutoff guard so the clock is
-    # read after the status request, by every mode (review pp1 N1).
+    # Refuse only when none of the pick's games remains playable (incident L03).
+    # A double with one void leg is delivered unchanged: that leg is a Pass, and
+    # removing it introduces cache/retry recovery gaps. Keep its original cutoff
+    # and selection metadata. An unreadable schedule still delivers (ruling R10).
+    # Read statuses BEFORE checking the cutoff so request latency cannot bypass it.
     void_games = _void_committed_games(daily, date)
     if void_games:
-        survivor = _playable_leg(daily, void_games)
-        if survivor is None:
+        from bts.picks import _committed_pick_game_pks
+        if len(void_games) == len(_committed_pick_game_pks(daily)):
             _refuse_void_game_delivery(daily, config, picks_dir, state, date, label, void_games)
             return False
-        daily = _keep_playable_leg(daily, survivor, config, picks_dir, state, date, label, void_games)
-        selection = None          # the commit record is built from the single now on the pick file
+        games = ", ".join(f"game {pk} is {status}" for pk, status in sorted(void_games.items()))
+        print(f"  DOUBLE HAS A VOID LEG ({label}) — {games}; retaining both picks.", file=sys.stderr)
 
     from bts.picks import submission_cutoff_et
     cutoff = submission_cutoff_et(daily)
@@ -2276,48 +2274,6 @@ def _void_committed_games(daily, date: str) -> dict[int, str]:
         if _is_void_detailed_state(detailed):
             out[pk] = detailed
     return out
-
-
-def _playable_leg(daily, void_games: dict[int, str]):
-    """The one leg of a double whose game is not void, when exactly one leg is; else None (a single on a void
-    game, or both legs void)."""
-    if daily.double_down is None:
-        return None
-    legs = [leg for leg in (daily.pick, daily.double_down) if leg.game_pk not in void_games]
-    return legs[0] if len(legs) == 1 else None
-
-
-def _keep_playable_leg(daily, survivor, config: dict, picks_dir: Path, state: SchedulerState,
-                       date: str, label: str, void_games: dict[int, str]):
-    """Turn a double with one leg on a postponed/cancelled game into a single of the other leg: archive the
-    double, save the single in its place, record it on state, DM a WARN that names the game (the pick DM that
-    follows names the batter). Returns the single to deliver."""
-    import dataclasses
-    from bts.health.alert import Alert, dispatch_dm_for_health_alerts
-    from bts.picks import save_pick
-
-    games = ", ".join(f"game {pk} is {state_name}" for pk, state_name in sorted(void_games.items()))
-    print(f"  DOUBLE REDUCED TO A SINGLE ({label}) — {games}; delivering the other leg.", file=sys.stderr)
-    archive = _archive_and_remove_pick(
-        picks_dir, date, daily, prefix="refused_delivery", key="refused_delivery",
-        at_key="refused_at", reason="leg_dropped_game_not_playable",
-        extra={"label": label, "void_games": {str(k): v for k, v in void_games.items()},
-               "kept_batter_id": survivor.batter_id})
-    single = dataclasses.replace(daily, pick=survivor, double_down=None)
-    save_pick(single, picks_dir)
-    state.delivery_refusals = (state.delivery_refusals or []) + [{
-        "at": _now_et().isoformat(), "label": label, "reason": "leg_dropped_game_not_playable",
-        "batter": daily.pick.batter_name, "double_down": daily.double_down.batter_name,
-        "kept": survivor.batter_name, "void_games": {str(k): v for k, v in void_games.items()},
-        "archive": archive.name}]
-    save_state(state, picks_dir)
-    dispatch_dm_for_health_alerts(
-        [Alert("WARN", "postponed_pick",
-               f"DOUBLE REDUCED TO A SINGLE for {date}: {games}. The other leg is being delivered alone.")],
-        config.get("bluesky", {}).get("dm_recipient"),
-        status_path=picks_dir.parent / "health_state" / "health_dm_delivery_status.json",
-    )
-    return single
 
 
 def _refuse_void_game_delivery(daily, config: dict, picks_dir: Path, state: SchedulerState,
