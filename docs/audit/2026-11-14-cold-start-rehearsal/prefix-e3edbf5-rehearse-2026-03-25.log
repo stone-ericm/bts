@@ -1,12 +1,16 @@
 REHEARSAL date=2026-03-25 cwd=/Users/eric/bts-runs/coldstart/repo
 parquets before: ['pa_2017.parquet', 'pa_2018.parquet', 'pa_2019.parquet', 'pa_2020.parquet', 'pa_2021.parquet', 'pa_2022.parquet', 'pa_2023.parquet', 'pa_2024.parquet', 'pa_2025.parquet']
-raw feeds before: no directory
+refresh markers before: []
+json files in data/raw/2026 before: no directory
+probable-pitcher cache at data/models/probable_pitcher_lookup.json: absent
+park-drag table at data/external/park_drag/park_drag_export.csv: absent
+cold state confirmed: no season parquet, no marker, no raw directory for the season
 season end used for this date: 2026-09-28
   [park_drag] WARNING: table not found at data/external/park_drag/park_drag_export.csv; park_drag_delta will be NaN
   Refreshing 2026 data through 2026-03-24...
   70 game feeds (70 total)
 Traceback (most recent call last):
-  File "/Users/eric/bts-runs/coldstart/repo/../rehearse.py", line 48, in <module>
+  File "/Users/eric/bts-runs/coldstart/repo/../rehearse.py", line 91, in <module>
     preds = run_pipeline(date, str(proc))
             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/Users/eric/bts-runs/coldstart/repo/src/bts/features/park_drag.py", line 204, in wrapper
@@ -26,14 +30,14 @@ RuntimeError: Schema drift in build_season:
   extra columns: []
 Update PA_COLUMNS in src/bts/data/schema.py to match the new schema, which will also update SCHEMA_VERSION.
 PIPELINE: raised
-pipeline seconds: 40
+pipeline seconds: 42
 parquets after: ['pa_2017.parquet', 'pa_2018.parquet', 'pa_2019.parquet', 'pa_2020.parquet', 'pa_2021.parquet', 'pa_2022.parquet', 'pa_2023.parquet', 'pa_2024.parquet', 'pa_2025.parquet']
-refresh markers: []
-raw feeds after: 70
-policy loaded: True
-  policy at streak 0, p=0.7/0.68: double (mdp; objective reach57)
-  policy at streak 0, p=0.76/0.74: double (mdp; objective reach57)
-  policy at streak 0, p=0.8/0.78: double (mdp; objective reach57)
-  policy at streak 0, p=0.84/0.82: double (mdp; objective reach57)
-  policy at streak 0, p=0.88/0.86: double (mdp; objective reach57)
-REHEARSAL END
+refresh markers after: []
+json files in data/raw/2026 after (cached and new): 70
+policy artifacts: base table loaded | tail loaded | base error: None | tail error: None
+  policy at streak 0, p=0.7/0.68: double (source mdp; objective reach57)
+  policy at streak 0, p=0.76/0.74: double (source mdp; objective reach57)
+  policy at streak 0, p=0.8/0.78: double (source mdp; objective reach57)
+  policy at streak 0, p=0.84/0.82: double (source mdp; objective reach57)
+  policy at streak 0, p=0.88/0.86: double (source mdp; objective reach57)
+RESULT: failed (the pipeline raised; expected prediction rows, got none)
