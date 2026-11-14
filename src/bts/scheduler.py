@@ -2491,7 +2491,7 @@ def run_result_polling(
                         if scored_elsewhere:
                             new_streak = load_streak(picks_dir)
                         else:
-                            new_streak = update_streak([True] * n_picks, picks_dir)
+                            new_streak = update_streak([True] * n_picks, picks_dir, date=date)
                             daily.result = "hit"
                             save_pick(daily, picks_dir)
                 if vanished:
@@ -2537,7 +2537,8 @@ def run_result_polling(
                         print(f"  Result already scored elsewhere ({daily.result}).",
                               file=sys.stderr)
                     else:
-                        new_streak = update_streak(results, picks_dir) if results else load_streak(picks_dir)
+                        new_streak = (update_streak(results, picks_dir, date=date) if results
+                                      else load_streak(picks_dir))
                         daily.slot_results = slot_results
                         daily.result = effective_daily_result(slot_results)
                         save_pick(daily, picks_dir)

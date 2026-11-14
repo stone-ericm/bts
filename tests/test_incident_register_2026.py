@@ -456,8 +456,7 @@ MISS_FEED = lambda: _feed(BATTER_A, batting=_batting(at_bats=4),  # noqa: E731
                           plays=[_play(BATTER_A, "field_out", PRE)] * 4)
 
 
-@pytest.mark.xfail(strict=True, raises=ResultAppliedTwice,
-                   reason="L04 unfixed: a death between the streak write and the pick save double-applies a hit")
+# L04 REPAIRED 2026-11-13 (update_streak applies a date at most once: streak.json's applied_dates); was xfail(strict).
 def test_l04_hit_applied_once_across_a_crash_and_restart(monkeypatch, tmp_path):
     """Streak 5, a hit, death between the writes, restart: the hit counts once (6), never twice (7)."""
     picks_dir = tmp_path / "picks"
@@ -468,8 +467,7 @@ def test_l04_hit_applied_once_across_a_crash_and_restart(monkeypatch, tmp_path):
             ResultAppliedTwice, "hit across a crash and restart")
 
 
-@pytest.mark.xfail(strict=True, raises=ResultAppliedTwice,
-                   reason="L04 unfixed: the re-applied saver-absorbed miss resets the streak")
+# L04 REPAIRED 2026-11-13 (update_streak applies a date at most once: streak.json's applied_dates); was xfail(strict).
 def test_l04_saver_miss_applied_once_across_a_crash_and_restart(monkeypatch, tmp_path):
     """Streak 12 with the saver, a miss (the saver absorbs it), death, restart: (12, saver used),
     never a second application that finds the saver gone and resets to 0."""
@@ -481,8 +479,7 @@ def test_l04_saver_miss_applied_once_across_a_crash_and_restart(monkeypatch, tmp
             ResultAppliedTwice, "saver miss across a crash and restart")
 
 
-@pytest.mark.xfail(strict=True, raises=ResultAppliedTwice,
-                   reason="L04 unfixed: the daemon's polling dies between the writes; the 01:00 scorer re-applies")
+# L04 REPAIRED 2026-11-13 (update_streak applies a date at most once: streak.json's applied_dates); was xfail(strict).
 def test_l04_polling_death_then_the_cron_scorer_applies_once(monkeypatch, tmp_path):
     """The two production scorers in sequence: the daemon's result polling dies between its writes
     (e.g. a deploy restart at midnight), then the 01:00 `bts check-results` scores the same date."""

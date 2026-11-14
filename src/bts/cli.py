@@ -2431,7 +2431,8 @@ def check_results(
                                f"Skipping streak update.")
             else:
                 daily = fresh
-                new_streak = update_streak(results, picks_path) if results else load_streak(picks_path)
+                new_streak = (update_streak(results, picks_path, date=date) if results
+                              else load_streak(picks_path))
                 daily.slot_results = slot_results
                 daily.result = effective_daily_result(slot_results)
                 save_pick(daily, picks_path)

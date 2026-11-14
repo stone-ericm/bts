@@ -529,18 +529,41 @@ def load_saver_available(picks_dir: Path) -> bool:
     return json.loads(path.read_text()).get("saver_available", True)
 
 
-def save_streak(streak: int, picks_dir: Path, saver_available: bool | None = None) -> None:
-    """Save current streak count and saver status."""
+APPLIED_DATES_KEPT = 30
+
+
+def load_applied_dates(picks_dir: Path) -> list[str]:
+    """The dates whose result update_streak has already applied (newest last); [] for a legacy file."""
+    path = Path(picks_dir) / "streak.json"
+    if not path.exists():
+        return []
+    try:
+        dates = json.loads(path.read_text()).get("applied_dates", [])
+    except Exception:
+        return []
+    return [d for d in dates if isinstance(d, str)] if isinstance(dates, list) else []
+
+
+def save_streak(streak: int, picks_dir: Path, saver_available: bool | None = None,
+                applied_date: str | None = None) -> None:
+    """Save current streak count and saver status.
+
+    ``applied_date`` records, in the SAME atomic write, that this date's result is now in the streak
+    (update_streak's idempotency marker, incident L04). Every other writer preserves the list."""
     picks_dir.mkdir(parents=True, exist_ok=True)
     path = picks_dir / "streak.json"
     # Preserve existing saver state if not explicitly set
     existing_saver = True
     if path.exists() and saver_available is None:
         existing_saver = json.loads(path.read_text()).get("saver_available", True)
+    applied = load_applied_dates(picks_dir)
+    if applied_date is not None and applied_date not in applied:
+        applied = (applied + [applied_date])[-APPLIED_DATES_KEPT:]
     atomic_write_text(path, json.dumps({
         "streak": streak,
         "saver_available": saver_available if saver_available is not None else existing_saver,
         "updated": datetime.now(timezone.utc).isoformat(),
+        "applied_dates": applied,
     }))
 
 
@@ -563,7 +586,7 @@ def scoring_lock(picks_dir: Path):
             fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 
 
-def update_streak(results: list[bool], picks_dir: Path) -> int:
+def update_streak(results: list[bool], picks_dir: Path, *, date: str | None = None) -> int:
     """Update streak based on pick results.
 
     Single pick: [True] -> +1, [False] -> 0
@@ -573,21 +596,31 @@ def update_streak(results: list[bool], picks_dir: Path) -> int:
 
     Handles streak saver: if miss at streak 10-15 with saver available,
     streak holds and saver is consumed.
+
+    ``date`` makes the update apply AT MOST ONCE per contest date (incident L04, fixed 2026-11-13). The
+    scorers write streak.json and then the pick's terminal result; a process that died between the two
+    left an applied result on a pick that still read unresolved, and the restarted scorer (or the other
+    scorer) applied it again. The date is recorded in the same atomic write as the new streak, so a
+    second call for that date changes nothing and returns the current streak; the caller then saves the
+    pick as usual. Callers without a date keep the old behaviour. The marker is about this function
+    only: reconcile's season replay recomputes the streak from the pick files and ignores it.
     """
     current = load_streak(picks_dir)
     saver = load_saver_available(picks_dir)
+    if date is not None and date in load_applied_dates(picks_dir):
+        return current
 
     if all(results):
         new = current + len(results)
-        save_streak(new, picks_dir)
+        save_streak(new, picks_dir, applied_date=date)
         return new
 
     # Miss — check saver
     if saver and 10 <= current <= 15:
-        save_streak(current, picks_dir, saver_available=False)
+        save_streak(current, picks_dir, saver_available=False, applied_date=date)
         return current  # streak preserved, saver consumed
 
-    save_streak(0, picks_dir)
+    save_streak(0, picks_dir, applied_date=date)
     return 0
 
 
