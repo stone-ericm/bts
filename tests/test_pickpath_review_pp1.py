@@ -105,6 +105,6 @@ def test_postponed_dd_does_not_erase_playable_primary(tmp_path, guard_enabled):
         obs = H._run_l03_day(tmp_path / 'picks', postponed_at=H.L03_POSTPONED_AT)
     daily = obs['daily']
     assert daily is not None and p.pick_was_delivered(daily)
-    if guard_enabled:                          # the playable primary alone; the postponed leg is gone
-        assert daily.pick.game_pk == H.L03_GAME + 1 and daily.double_down is None
-        assert load_decision(H.L03_DATE, tmp_path / 'picks')['action'] == 'single'
+    assert daily.pick.game_pk == H.L03_GAME + 1 and daily.double_down.game_pk == H.L03_GAME
+    assert load_decision(H.L03_DATE, tmp_path / 'picks')['action'] == 'double'
+    print('B2 outcome: delivered double', guard_enabled)

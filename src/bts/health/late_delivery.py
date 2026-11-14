@@ -54,10 +54,6 @@ def check(picks_dir: Path, today: date | None = None, now: datetime | None = Non
             alerts.append(Alert("CRITICAL", SOURCE, (
                 f"delivery REFUSED for {day.isoformat()}: {r.get('batter')} ({r.get('label')}): {games}; "
                 f"nothing was delivered by that path")))
-        elif reason == "leg_dropped_game_not_playable":
-            alerts.append(Alert("WARN", SOURCE, (
-                f"double reduced to a single for {day.isoformat()} ({r.get('label')}): {games}; "
-                f"{r.get('kept')} was delivered alone")))
         else:
             alerts.append(Alert("CRITICAL", SOURCE, (
                 f"late delivery REFUSED for {day.isoformat()}: {r.get('batter')} ({r.get('label')}) "
