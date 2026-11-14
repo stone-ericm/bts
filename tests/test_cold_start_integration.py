@@ -184,7 +184,7 @@ def test_next_day_prior_lineup_projection(tmp_path, monkeypatch, sample_game_fee
 
 @pytest.fixture(scope="module")
 def late_lineup_day(tmp_path_factory):
-    """One real day-loop run feeds both the passing setup control and desired-behavior xfail."""
+    """One real day-loop run feeds both the planned-check control and last-attempt check."""
     import bts.scheduler as sch
     root = tmp_path_factory.mktemp("late-opening-lineup")
     sample = _sample_game_feed.__wrapped__()
@@ -204,6 +204,12 @@ def late_lineup_day(tmp_path_factory):
                 obj = {"dates": [{"games": games}]}
             elif "/9001/feed/live" in url:
                 obj = _live_feed(sample, posted=clock["now"] >= datetime(2027, 3, 24, 18, 25, tzinfo=ET))
+                # Delivery now reaches result polling; complete this synthetic
+                # game's feed so the real day loop can finish too.
+                final = clock["now"] >= datetime(2027, 3, 24, 19, 20, tzinfo=ET)
+                obj["gameData"]["status"] = {
+                    "abstractGameCode": "F" if final else "P",
+                    "detailedState": "Final" if final else "Scheduled"}
             else:
                 raise AssertionError(f"unexpected HTTP request: {url}")
             return io.BytesIO(json.dumps(obj).encode())
@@ -234,13 +240,12 @@ def late_lineup_day(tmp_path_factory):
 
 
 def test_opening_day_late_lineup_checks_today(late_lineup_day):
-    assert [run["time"][11:16] for run in late_lineup_day.state.runs_completed] == ["16:10", "17:10", "18:10"]
+    assert [run["time"][11:16] for run in late_lineup_day.state.runs_completed][:3] == ["16:10", "17:10", "18:10"]
     feed_times = [time[11:16] for time, url in late_lineup_day.calls if "/feed/live" in url]
-    assert set(feed_times) == {"16:10", "17:10", "18:10"}
-    assert not any(time > "18:10" for time in feed_times)
+    assert {"16:10", "17:10", "18:10", "18:35"} <= set(feed_times)
+    assert [run["time"][11:16] for run in late_lineup_day.state.runs_completed][3:] == ["18:35"]
 
 
-@pytest.mark.xfail(strict=True, reason="S6: a day with no selected pick gets no last attempt (docs/reviews/2026-11-14-season-rollover/kickoff-draft.md)")
 def test_opening_day_late_lineup_gets_a_last_attempt(late_lineup_day):
     decision = load_decision(DATE, late_lineup_day.picks_dir)
     assert decision is not None, "S6: no decision was saved after the 18:10 check; no later pick attempt occurred"

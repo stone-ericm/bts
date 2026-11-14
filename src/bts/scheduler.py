@@ -71,6 +71,8 @@ def _alert_missed_pick(config: dict, daily, mins_to_game: float) -> None:
     name = daily.pick.batter_name if daily and getattr(daily, "pick", None) else "?"
     msg = (f"NO PICK DELIVERED with ~{mins_to_game:.0f} min to first pitch "
            f"(top pick: {name}). Deliver manually if you want to keep the streak alive.")
+    if daily is None:
+        msg = "No pick was selected today. All scheduled checks and remaining fallback attempts are over."
     dispatch_dm_for_health_alerts(
         [Alert("CRITICAL", "missed_pick", msg)],
         dm_recipient,
@@ -103,7 +105,11 @@ def _maybe_alert_missed_pick(
         # decision write and the state save.
         return
     daily = load_pick(date, picks_dir)
-    if not daily or pick_was_delivered(daily):
+    if not daily:
+        if state.games and not (decision and decision.get("action") == "skip"):
+            _alert_missed_pick(config, None, 0)
+        return
+    if pick_was_delivered(daily):
         return
     earliest_game_et = _earliest_pick_game_et(daily)
     alert_at = earliest_game_et - timedelta(minutes=missed_pick_alert_min)
@@ -2757,7 +2763,39 @@ def run_day(
 
     # 4. Main loop — sleep until each check time, then run
     coalesced: set[int] = set()   # run indexes covered by a fallback refresh (2026-08-30)
-    for run_idx, run_info in enumerate(runs):
+
+    def checks_with_last_attempts():
+        # Keep the planned run list intact: existing fallback/defer decisions
+        # must see exactly the same future checks as before. Only after those
+        # checks are exhausted can an empty day get another attempt.
+        yield from enumerate(runs)
+        for start in sorted({game_time_et(g) for g in games}):
+            if (state.pick_locked or load_pick(date, picks_dir) is not None
+                    or state.final_skip_candidate is not None or state.skip_summary is not None):
+                return
+            fallback_min = resolve_fallback_deadline_min(
+                start,
+                standard_min=fallback_deadline_min_standard,
+                morning_min=fallback_deadline_min_morning,
+                morning_cutoff_hour=morning_cutoff_hour,
+            )
+            fallback_min = _fallback_min_with_floor(
+                fallback_min,
+                effective_cascade_budget_min(
+                    cascade_budget_min_cfg, _measured_cascade_durations(state)),
+                operator_reserve_min)
+            deadline = start - timedelta(minutes=fallback_min)
+            if deadline <= _now_et():
+                continue
+            yield len(runs), {"time_et": deadline, "game_pks": [
+                g["gamePk"] for g in games if game_time_et(g) == start]}
+            # Even if delivery refused/archived the new pick, the first check
+            # returning a pick ends these extra attempts (the existing handling
+            # of that check, including its own fallback, has already run).
+            if result.get("pick_result") is not None:
+                return
+
+    for run_idx, run_info in checks_with_last_attempts():
         target = run_info["time_et"]
         now = _now_et()
 
