@@ -40,7 +40,13 @@ Source, mapping and what this supersedes: `docs/superpowers/notes/work-policies-
 - **The gate run** is the commit test: the focused tests for the change, then the fast suite (Quick Start), plus a fixture-day dry run for pick-path changes once it exists. Green means commit and push `origin main`. No per-launch custody steps (sealed outcomes, tuple checks, markers, heads-up messages).
 - **A test-code or evidence-tooling finding is a NOTE, never a BLOCK,** unless it makes a false claim about behaviour that no gate run or real-artifact check covers. Reviewer prompts name the tier and say so.
 - **Three BLOCKs stop the session, never the work:** record the obligations, write a kickoff brief, start fresh and change something material.
-- **Draft sprint until activation:** 2027 preparation is written as best guesses without design-review rounds; one fresh whole-range review covers all tier A work before the deploy that precedes the opener.
+- **Review cadence (Eric 2026-11-14: "let's make sure these types of reviews are more frequent going forward", about adversarial reviews by another agent; this replaces the draft sprint's single review before the opener):**
+  - **Tier A:** a fresh adversarial Codex review of each change set **the day it is written, before it is pushed**. Not batched across days.
+  - **Tiers B and C:** everything that changed is in a **daily adversarial Codex batch review** (one round), besides the pre-result review of any result-deciding tool. "No review" above now means no review of its own.
+  - **Before the pre-season deploy:** still one whole-range review, by a reviewer that has seen none of the earlier rounds.
+  - **Every review is adversarial:** the brief says to assume the author is wrong, asks for concrete counterexamples run against the real code, and asks for false greens. The reviewer's probes are adopted as regression tests. Codex reviewers run the best model at the highest reasoning effort (`-c model_reasoning_effort=xhigh`), memories off.
+  - **A second model family** (Gemini through `agy`) joins tier A reviews only if it passes a known-answer test against Codex's findings; result and decision in the roadmap ledger.
+  - Design questions are still decided by the lead without design-review rounds; it is the CODE that is reviewed more often.
 - **Design authority:** the lead session decides design questions, ledgers them with cost if wrong, and reports daily; Eric can overrule afterwards.
 - **Owner-only:** spending (including restoring the box), any deploy to the box, anything on the real contest account, delivery mode, reading 2027 outcomes for a study with no exposure-register row, cutting scope, publication.
 - **In season** (my adaptation; EoR's basis was that nothing is published): tier A changes are hotfixes from a clean branch at the deployed commit, reviewed once before deploy; new captures get a failure-direction check on the box in their first week.

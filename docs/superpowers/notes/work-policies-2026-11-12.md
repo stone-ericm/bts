@@ -6,6 +6,22 @@
 
 **Sources in the EoR repo** (`~/projects/eve_of_revolution`): `CLAUDE.md` §§ 4, 5, 8, 9; `docs/superpowers/notes/review-effort-2026-10-21.md`; `docs/superpowers/notes/overhead-cut-2026-10-31.md`.
 
+## Amendment, 2026-11-14: reviews by another agent are more frequent
+
+**Owner words (verbatim, 2026-11-14):** "Whatever we decide on Gemini, let's make sure these types of reviews are more frequent going forward". Said after he asked whether adversarial reviews by another agent were being done, and learned that two days of pick-path changes had been verified only by their author until a Codex review was started that night. That review blocked twice, on defects the author's own tests and the gate run had not shown.
+
+**What changes** (this replaces rule 5's single whole-range review, and narrows "no review" in rule 1):
+- **Tier A:** a fresh adversarial Codex review of each change set the day it is written, before it is pushed.
+- **Tiers B and C:** everything that changed goes into a daily adversarial Codex batch review, one round, besides the pre-result review of a result-deciding tool.
+- **Before the pre-season deploy:** still one whole-range review, by a reviewer that has seen none of the earlier rounds.
+- **Every review is adversarial:** assume the author is wrong; concrete counterexamples run against the real code; false greens asked for; the reviewer's probes become regression tests.
+- **Reviewer settings:** Codex on the best model at the highest reasoning effort (`model_reasoning_effort=xhigh`), memories off. The first three review rounds under this note (the framing aggregate, pick path rounds 1 and 2) ran at the default `high`, which was a lapse against the standing rule in memory `feedback-codex-max-model-reasoning`.
+- **A second model family** joins tier A only after passing a known-answer test against Codex's findings.
+
+**Measured basis (2026-11-13/14, one project, small sample):** three Codex rounds on work the author had tested, mutation-checked and gated: 3 BLOCKs, 6 blocking findings, all demonstrated by running the code, all in interactions between changes; none found by the author's tests. **Cost if wrong:** more Codex quota and about ten minutes per round; a day's push waits for its review.
+
+**The frequency and tiering above are the lead's reading of his words, not his wording.**
+
 ## Why it transfers
 
 EoR measured that its real defects were found by cheap end-to-end runs (boots, save readings) and one review of runtime logic, and that most review rejections were about the verification apparatus itself (9 of 11). BTS's October cycle has the same shape, though it was not measured the same way: the watchdog, 4a, rank 3, 4b and the 2026 framing test each stopped on review findings about evidence controls, launch accounting or test tooling, while the maths and the deployed behaviour were mostly unchallenged. That reading is my interpretation of the cycle index and the review archives, not a count.
