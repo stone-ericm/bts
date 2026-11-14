@@ -378,8 +378,7 @@ def _two_late_reconciles(picks_dir: Path, now: datetime, monkeypatch) -> list[tu
     return states
 
 
-@pytest.mark.xfail(strict=True, raises=SameDayReplayRollback,
-                   reason="L02 unfixed: replay excludes today's already-applied hit")
+# L02 REPAIRED 2026-11-13 (picks._replay_season_streak replays today's pick once it is terminal); was xfail(strict).
 def test_l02_same_day_hit_survives_two_late_reconciles(tmp_path, monkeypatch):
     picks_dir = tmp_path / "picks"
     save_pick(_resolved("2026-06-10", "hit", BATTER_A, GAME_A), picks_dir)
@@ -390,8 +389,7 @@ def test_l02_same_day_hit_survives_two_late_reconciles(tmp_path, monkeypatch):
             "two 23:00 reconciles (streak, saver)")
 
 
-@pytest.mark.xfail(strict=True, raises=SameDayReplayRollback,
-                   reason="L02 unfixed: replay restores a saver today's miss consumed")
+# L02 REPAIRED 2026-11-13 (picks._replay_season_streak replays today's pick once it is terminal); was xfail(strict).
 def test_l02_same_day_saver_consumption_survives_two_late_reconciles(tmp_path, monkeypatch):
     picks_dir = tmp_path / "picks"
     for day in range(1, 11):                       # 06-01 .. 06-10: ten single hits -> streak 10

@@ -618,13 +618,18 @@ def _replay_season_streak(
     """
     streak, saver = 0, True
     for f in sorted(picks_dir.glob(f"{season}-*.json")):
-        if not _ISO_DATE_RE.match(f.stem) or f.stem >= today_iso:
-            continue  # skip non-date files and today/future (unplayed) previews
+        if not _ISO_DATE_RE.match(f.stem) or f.stem > today_iso:
+            continue  # skip non-date files and future previews
         try:
             data = json.loads(f.read_text())
         except Exception:
             return None
         r = data.get("result")
+        if f.stem == today_iso and r not in ("hit", "miss", "void"):
+            continue  # today's pick, not yet resolved: an unplayed preview or a game in progress
+        # Today's pick IS replayed once it carries a terminal result: that result was already applied to
+        # streak.json when it was written, so leaving it out rolled the streak back (and restored a saver
+        # a miss had consumed) on any reconcile run later the same day (incident L02, fixed 2026-11-13).
         if r == "void":
             continue
         if r not in ("hit", "miss"):
