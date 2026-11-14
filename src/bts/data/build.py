@@ -341,8 +341,9 @@ def build_season(
             D=division series, L=league championship, W=world series, A=all-star.
 
     Returns:
-        The built DataFrame, or None when no game feeds exist or all have readable, excluded types
-        (no output is written). Untyped means a missing type or a hashable value that is not a
+        The built DataFrame, or None before the season output exists when no game feeds exist
+        or all have readable, excluded types (no output is written). Untyped means a missing
+        type or a hashable value that is not a
         non-blank string. Untyped feeds are logged and skipped; if no requested-type feed exists
         beside them, raise instead of treating the season as empty. Any other malformed shape
         raises as it always has.
@@ -355,7 +356,10 @@ def build_season(
     eligible_games = 0
     untyped_files = []
     skipped = 0
-    json_files = sorted(season_dir.glob("*.json"))
+    try:
+        json_files = sorted(p for p in season_dir.iterdir() if p.name.endswith(".json"))
+    except FileNotFoundError:
+        json_files = []
 
     for json_path in json_files:
         # Skip weather sidecar files
@@ -401,6 +405,9 @@ def build_season(
         if untyped_files:
             raise ValueError("No requested-type game feeds; missing or unreadable gameData.game.type in "
                              + ", ".join(untyped_files))
+        if output_path.exists():
+            raise ValueError(f"No requested-type game feeds for season {season} in {season_dir}; "
+                             f"season output already exists at {output_path}")
         return None
 
     df = pd.DataFrame(all_rows)
