@@ -13,6 +13,8 @@ from bts.contest_state import (
     load_contest_streak_state,
     resolved_pick_settlement_gap,
     _parse_dt,
+    _observation_season_year,
+    _resolved_pick_dates,
 )
 from bts.health.alert import Alert
 
@@ -58,8 +60,20 @@ def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = Non
         return alerts
 
     if expected:
+        now_year = now.astimezone(ZoneInfo("America/New_York")).year
+        observation_year = _observation_season_year(state)
         latest = latest_resolved_pick_date(picks_dir)
-        if state.source_date is None:
+        if observation_year is not None and observation_year < now_year:
+            alerts.append(Alert(
+                level="CRITICAL",
+                source=SOURCE,
+                message=(f"contest state observation was recorded in season {observation_year} "
+                         f"({state.path}); run the contest-state fetch for current season {now_year}"),
+            ))
+        elif state.source_date is None and not (
+            observation_year == now_year and state.streak == 0
+            and not any(d.year == now_year for d in _resolved_pick_dates(picks_dir))
+        ):
             alerts.append(Alert(
                 level="CRITICAL",
                 source=SOURCE,
@@ -67,7 +81,7 @@ def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = Non
                          "rounds in the profile, so coverage/freshness cannot be verified "
                          "— investigate the fetch"),
             ))
-        elif state.source_date > now.date() + timedelta(days=1):
+        elif state.source_date is not None and state.source_date > now.date() + timedelta(days=1):
             # A contest source_date can't be in the future (US contest dates trail
             # UTC). One day of grace absorbs any TZ skew; beyond that the file is
             # corrupt/fat-fingered and would otherwise pass the freshness check.
@@ -77,7 +91,7 @@ def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = Non
                 message=(f"contest state source_date={state.source_date} is in the FUTURE "
                          f"(now {now.date()}); file is corrupt/untrusted — investigate"),
             ))
-        elif latest is not None:
+        elif state.source_date is not None and latest is not None:
             # Count of *settled picks* newer than source_date, not calendar days:
             # off-days (All-Star break) have no picks and must not fire a false
             # CRITICAL. Under the Phase-1 snapshot/coverage split, source_date (from

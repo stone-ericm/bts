@@ -1,14 +1,17 @@
 import json
+from datetime import datetime, timezone
 
 from bts.health.contest_state import SOURCE, check
 
+NOW = datetime(2026, 6, 18, 18, tzinfo=timezone.utc)
+
 
 def test_no_alert_when_not_expected_and_missing(tmp_path):
-    assert check(tmp_path, expected=False) == []
+    assert check(tmp_path, expected=False, now=NOW) == []
 
 
 def test_expected_missing_is_critical(tmp_path):
-    alerts = check(tmp_path, expected=True)
+    alerts = check(tmp_path, expected=True, now=NOW)
 
     assert len(alerts) == 1
     assert alerts[0].level == "CRITICAL"
@@ -21,7 +24,7 @@ def test_malformed_existing_state_is_critical(tmp_path):
     state_dir.mkdir()
     (state_dir / "contest_streak.manual.json").write_text("{bad")
 
-    alerts = check(tmp_path, expected=False)
+    alerts = check(tmp_path, expected=False, now=NOW)
 
     assert len(alerts) == 1
     assert alerts[0].level == "CRITICAL"
@@ -34,7 +37,7 @@ def test_non_object_existing_state_is_critical(tmp_path):
     state_dir.mkdir()
     (state_dir / "contest_streak.manual.json").write_text("[]")
 
-    alerts = check(tmp_path, expected=False)
+    alerts = check(tmp_path, expected=False, now=NOW)
 
     assert len(alerts) == 1
     assert alerts[0].level == "CRITICAL"
@@ -51,7 +54,7 @@ def test_valid_auto_state_is_clean_when_expected(tmp_path):
         "source": "mlb_bts_profile", "source_date": "2026-06-06",
     }))
 
-    assert check(tmp_path, expected=True) == []
+    assert check(tmp_path, expected=True, now=NOW) == []
 
 
 def test_gap2_coverage_lag_is_warn(tmp_path):
@@ -70,7 +73,7 @@ def test_gap2_coverage_lag_is_warn(tmp_path):
     for d in ("2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05"):
         (tmp_path / f"{d}.json").write_text(json.dumps({"result": "hit"}))
 
-    alerts = check(tmp_path, expected=True)
+    alerts = check(tmp_path, expected=True, now=NOW)
     assert any(a.level == "WARN" and a.source == SOURCE for a in alerts), alerts
     assert not any(a.level == "CRITICAL" for a in alerts), alerts
 
@@ -167,7 +170,7 @@ def test_two_day_gap_is_warn_not_critical(tmp_path):
     (tmp_path / "2026-06-06.json").write_text(json.dumps({"result": "hit"}))
     (tmp_path / "2026-06-07.json").write_text(json.dumps({"result": "hit"}))
 
-    alerts = check(tmp_path, expected=True)
+    alerts = check(tmp_path, expected=True, now=NOW)
     assert any(a.level == "WARN" and a.source == SOURCE for a in alerts), alerts
     assert not any(a.level == "CRITICAL" for a in alerts), alerts
 
@@ -199,7 +202,7 @@ def test_missing_source_date_is_critical(tmp_path):
     }))  # no source_date
     (tmp_path / "2026-06-07.json").write_text(json.dumps({"result": "hit"}))
 
-    alerts = check(tmp_path, expected=True)
+    alerts = check(tmp_path, expected=True, now=NOW)
     assert any(a.level == "CRITICAL" for a in alerts), alerts
 
 
@@ -215,7 +218,7 @@ def test_legacy_manual_present_warns(tmp_path):
         "source": "mlb_bts_profile", "source_date": "2026-06-06",
     }))
 
-    alerts = check(tmp_path, expected=True)
+    alerts = check(tmp_path, expected=True, now=NOW)
     assert any(a.level == "WARN" and "legacy" in a.message.lower() for a in alerts), alerts
 
 
@@ -230,7 +233,7 @@ def _write_contest(tmp_path, active, best):
 
 def test_saver_flag_uninitialized_in_zone_warns(tmp_path):
     _write_contest(tmp_path, active=12, best=12)   # in the 10-15 zone, no saver_state.json
-    saver_alerts = [a for a in check(tmp_path, expected=False) if "Streak Saver" in a.message]
+    saver_alerts = [a for a in check(tmp_path, expected=False, now=NOW) if "Streak Saver" in a.message]
     assert len(saver_alerts) == 1 and saver_alerts[0].level == "WARN"
     assert "saver-state --init" in saver_alerts[0].message
 
@@ -240,9 +243,9 @@ def test_saver_flag_active_in_zone_is_clean(tmp_path):
     _write_contest(tmp_path, active=12, best=12)
     transition_saver_state(tmp_path, expected_prior="uninitialized", new_state="active",
                            season=2026, source="t")
-    assert [a for a in check(tmp_path, expected=False) if "Streak Saver" in a.message] == []
+    assert [a for a in check(tmp_path, expected=False, now=NOW) if "Streak Saver" in a.message] == []
 
 
 def test_saver_flag_uninitialized_below_zone_no_warn(tmp_path):
     _write_contest(tmp_path, active=8, best=9)      # below the zone -> saver irrelevant
-    assert [a for a in check(tmp_path, expected=False) if "Streak Saver" in a.message] == []
+    assert [a for a in check(tmp_path, expected=False, now=NOW) if "Streak Saver" in a.message] == []

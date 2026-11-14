@@ -125,6 +125,14 @@ def _parse_dt(value: object) -> datetime | None:
     return dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
 
 
+def _observation_season_year(contest: ContestStreakState) -> int | None:
+    """Season of the fetch, falling back to the latest settled round's date."""
+    recorded = _parse_dt(contest.recorded_at)
+    if recorded is not None:
+        return recorded.astimezone(ZoneInfo("America/New_York")).year
+    return contest.source_date.year if contest.source_date is not None else None
+
+
 def _contest_state_paths(picks_dir: Path) -> list[Path]:
     state_dir = picks_dir / "account_state"
     return [state_dir / name for name in _CONTEST_STATE_NAMES]
@@ -290,11 +298,25 @@ def load_decision_streak_state(
     Phase 1 surfaces stale-high via ``status``; Phase 2 makes strategy act on the
     uncertainty.
     """
-    model_streak = load_streak(picks_dir)
     model_saver = load_saver_available(picks_dir)
     now_dt = now or datetime.now(timezone.utc)
     now_year = now_dt.astimezone(ZoneInfo("America/New_York")).year
-    contest = load_contest_streak_state(picks_dir, now=now)
+    model_streak = (load_streak(picks_dir)
+                    if any(d.year == now_year for d in _resolved_pick_dates(picks_dir)) else 0)
+    contest = load_contest_streak_state(picks_dir, now=now_dt)
+    missing_message = "no contest-account streak state found"
+    if contest is not None:
+        observation_year = _observation_season_year(contest)
+        manual_override = (
+            contest.path.name == "contest_streak.manual.json"
+            and contest.override_expires_at is not None
+            and contest.override_expires_at > now_dt
+        )
+        if observation_year is not None and observation_year < now_year and not manual_override:
+            missing_message = f"contest-account streak observation is from season {observation_year}"
+            if require_contest_state:
+                raise ContestStateError(missing_message)
+            contest = None
     if contest is None:
         if require_contest_state:
             paths = ", ".join(str(path) for path in _contest_state_paths(picks_dir))
@@ -312,7 +334,7 @@ def load_decision_streak_state(
             status="model_only",
             model_streak=model_streak,
             model_saver_available=model_saver,
-            message="no contest-account streak state found",
+            message=missing_message,
         )
 
     if contest_state_is_fresh(contest, picks_dir):

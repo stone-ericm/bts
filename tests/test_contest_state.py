@@ -21,8 +21,9 @@ def test_model_state_used_when_no_contest_state(tmp_path):
         "saver_available": True,
     }))
     transition_saver_state(tmp_path, expected_prior="uninitialized", new_state="active", season=2026, source="t")
+    _write_pick(tmp_path / "2026-05-28.json", "hit")
 
-    state = load_decision_streak_state(tmp_path)
+    state = load_decision_streak_state(tmp_path, now=_NOW)
 
     assert state.streak == 4
     assert state.saver_available is True  # model-only branch also reads the flag (active)
@@ -39,7 +40,7 @@ def test_required_contest_state_missing_raises(tmp_path):
     }))
 
     try:
-        load_decision_streak_state(tmp_path, require_contest_state=True)
+        load_decision_streak_state(tmp_path, require_contest_state=True, now=_NOW)
     except ContestStateError as exc:
         assert "required but missing" in str(exc)
     else:
@@ -64,7 +65,7 @@ def test_fresh_contest_state_drives_live_decision(tmp_path):
     }))
 
     transition_saver_state(tmp_path, expected_prior="uninitialized", new_state="active", season=2026, source="t")
-    state = load_decision_streak_state(tmp_path)
+    state = load_decision_streak_state(tmp_path, now=_NOW)
 
     assert state.streak == 7
     assert state.model_streak == 4
@@ -84,7 +85,7 @@ def test_lagged_contest_uses_contest_value_keeps_doubles(tmp_path):
         "active_streak": 7, "source": "manual_screenshot",
         "source_date": "2026-05-28", "saver_available": True}))
     transition_saver_state(tmp_path, expected_prior="uninitialized", new_state="active", season=2026, source="t")
-    state = load_decision_streak_state(tmp_path)
+    state = load_decision_streak_state(tmp_path, now=_NOW)
     assert state.streak == 7
     assert state.allow_double is True
     assert state.status == "lagged"
@@ -99,7 +100,7 @@ def test_lagged_contest_model_does_not_inflate(tmp_path):
     sd = tmp_path / "account_state"; sd.mkdir()
     (sd / "contest_streak.manual.json").write_text(json.dumps({
         "active_streak": 7, "source_date": "2026-05-28"}))
-    state = load_decision_streak_state(tmp_path)
+    state = load_decision_streak_state(tmp_path, now=_NOW)
     assert state.streak == 7           # contest value; model 12 cannot inflate it
     assert state.model_streak == 12
     assert state.allow_double is True
@@ -167,7 +168,7 @@ def test_state_file_rejects_bool_streak(tmp_path):
     (sd / "contest_streak.json").write_text(json.dumps({
         "active_streak": True, "best_streak": 9, "source": "x", "source_date": "2026-06-06"}))
     try:
-        load_contest_streak_state(tmp_path)
+        load_contest_streak_state(tmp_path, now=_NOW)
         assert False, "bool streak should be rejected"
     except ContestStateError:
         pass
@@ -184,7 +185,7 @@ def test_missing_source_date_is_conservative_not_fail_open(tmp_path):
     (sd / "contest_streak.json").write_text(json.dumps({
         "schema_version": "bts_contest_streak_auto_v1", "active_streak": 3,
         "best_streak": 9, "source": "mlb_bts_profile"}))  # no source_date
-    st = load_contest_streak_state(tmp_path)
+    st = load_contest_streak_state(tmp_path, now=_NOW)
     assert st.source_date is None
     assert contest_state_is_fresh(st, tmp_path) is False
 
@@ -196,7 +197,7 @@ def test_missing_source_date_is_stale_but_keeps_doubles(tmp_path):
     (sd / "contest_streak.json").write_text(json.dumps({
         "schema_version": "bts_contest_streak_auto_v1", "active_streak": 3,
         "best_streak": 9, "source": "mlb_bts_profile"}))  # no source_date
-    state = load_decision_streak_state(tmp_path)
+    state = load_decision_streak_state(tmp_path, now=_NOW)
     assert state.streak == 3
     assert state.allow_double is True
     assert state.status == "stale"
@@ -214,7 +215,7 @@ def test_model_never_inflates_decision_streak(tmp_path):
         "schema_version": "bts_contest_streak_auto_v1", "active_streak": 8,
         "best_streak": 9, "source": "mlb_bts_profile", "source_date": "2026-06-15"}))
 
-    state = load_decision_streak_state(tmp_path)
+    state = load_decision_streak_state(tmp_path, now=_NOW)
 
     assert state.streak == 8            # real MLB streak, NOT the inflated model 10
     assert state.model_streak == 10
@@ -231,7 +232,7 @@ def test_two_pick_gap_is_stale(tmp_path):
     (sd / "contest_streak.json").write_text(json.dumps({
         "active_streak": 8, "best_streak": 9, "source": "mlb_bts_profile",
         "source_date": "2026-06-15"}))   # 2 settled picks behind -> stale
-    state = load_decision_streak_state(tmp_path)
+    state = load_decision_streak_state(tmp_path, now=_NOW)
     assert state.streak == 8 and state.status == "stale" and state.allow_double is True
 
 
@@ -243,7 +244,7 @@ def test_unconfirmed_local_miss_marks_stale(tmp_path):
     (sd / "contest_streak.json").write_text(json.dumps({
         "active_streak": 8, "best_streak": 9, "source": "mlb_bts_profile",
         "source_date": "2026-06-16"}))
-    state = load_decision_streak_state(tmp_path)
+    state = load_decision_streak_state(tmp_path, now=_NOW)
     assert state.streak == 8            # last confirmed; Phase 1 doesn't lower it
     assert state.status == "stale"      # but flags the stale-high risk
 
@@ -279,6 +280,6 @@ def test_saver_conservative_when_reached_zone_but_unconfirmed(tmp_path):
     (sd / "contest_streak.json").write_text(json.dumps({
         "schema_version": "bts_contest_streak_auto_v1", "active_streak": 8,
         "best_streak": 12, "source": "mlb_bts_profile"}))  # reached the zone; no ledger -> unknown
-    state = load_decision_streak_state(tmp_path)
+    state = load_decision_streak_state(tmp_path, now=_NOW)
     assert state.streak == 8 and state.status == "stale"
     assert state.saver_available is False   # reached zone, unconfirmed -> conservative

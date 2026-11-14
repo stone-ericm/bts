@@ -39,8 +39,12 @@ def test_cli_empty_season_is_success_without_writes(tmp_path, sample_game_feed, 
         pd.DataFrame({"sentinel": [1]}).to_parquet(target)
     before = {p: (p.read_bytes(), p.stat().st_mtime_ns) if p.is_file() else None for p in tmp_path.rglob("*")}
     res = _run(tmp_path)
-    assert res.exit_code == 0, res.output
-    assert res.stderr.splitlines() == ["No regular-season games available for season 2027; nothing written."]
+    if existing:
+        assert res.exit_code != 0 and isinstance(res.exception, ValueError)
+        assert "2027" in str(res.exception) and str(tmp_path / "raw" / "2027") in str(res.exception)
+    else:
+        assert res.exit_code == 0, res.output
+        assert res.stderr.splitlines() == ["No regular-season games available for season 2027; nothing written."]
     assert {p: (p.read_bytes(), p.stat().st_mtime_ns) if p.is_file() else None
             for p in tmp_path.rglob("*")} == before
 
@@ -51,7 +55,7 @@ def test_cli_empty_season_preserves_existing_parquet(tmp_path):
     pd.DataFrame({"sentinel": [1]}).to_parquet(target)
     before = (target.read_bytes(), target.stat().st_mtime_ns)
     res = _run(tmp_path)
-    assert res.exit_code == 0, res.output
+    assert res.exit_code != 0 and isinstance(res.exception, ValueError)
     assert (target.read_bytes(), target.stat().st_mtime_ns) == before
 
 
