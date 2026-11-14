@@ -49,7 +49,7 @@ def feed(hits=0, *, code="F", batter=BATTER, name="Chandler Simpson", pk=GAME):
     return {"gameData": {"status": {"abstractGameCode": code}, "datetime": {},
                          **({"game": {"pk": pk}} if pk is not None else {})},
             "liveData": {"boxscore": {"teams": {"away": {"players": {f"ID{batter}": {
-                "person": {"fullName": name}, "stats": {"batting": {"hits": hits}}}}}, "home": {"players": {}}}},
+                "person": {"fullName": name}, "stats": {"batting": {"hits": hits, "atBats": 4}}}}}, "home": {"players": {}}}},
                 "plays": {"allPlays": []}}}
 
 
@@ -593,7 +593,9 @@ def test_r4_d3_id_presence_cannot_qualify_a_name_contaminated_suspended_grade(tm
         "result": {"eventType": "single"},
         "matchup": {"batter": {"id": 123, "fullName": "Chandler Simpson"}},
         "about": {"startTime": "2026-08-21T19:01:00Z"}})
-    assert grade_pick_in_feed(payload, BATTER) == bound_grade
+    # Since 2026-11-13 (incident L01, Official Rules 6C) a suspended game never grades "miss": the pre-suspension
+    # at-bat without a hit that used to be the "miss" case is a Pass too. Both parameters now bind "void".
+    assert grade_pick_in_feed(payload, BATTER) == "void"
     plant(tmp_path)
     _, r = run(tmp_path, Net({"/schedule": schedule(), f"/game/{GAME}/": payload}), SimClock(AT_0200))
     assert load_pick(DAY, tmp_path).result == "hit"  # unchanged business grading

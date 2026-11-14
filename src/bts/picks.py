@@ -989,10 +989,11 @@ def _grade_pick_pre_suspension(
     Per BTS rules the resumed/rescheduled portion of a suspended game is never evaluated,
     so the cumulative final boxscore must not be used. Returns:
       "hit"  - a hit recorded before suspension,
-      "miss" - >=1 pre-suspension PA but no pre-suspension hit,
-      "void" - the batter appears only in the resumed portion (no evaluable PA),
-      None   - not a suspended game, OR the batter is absent from this game's PA entirely
-               (caller then grades from the boxscore / falls back to other games).
+      "void" - a Pass: no hit at the time of suspension (Official Rules 6C), including a batter who
+               appears only in the resumed portion or is on a roster without a plate appearance,
+      None   - not a suspended game, OR the batter is on neither roster and in no play
+               (caller then falls back to other games).
+    A suspended game never grades "miss".
     """
     datetime_block = resp.get("gameData", {}).get("datetime", {})
     resume_dt = _parse_feed_timestamp(datetime_block.get("resumeDateTime"))
@@ -1014,32 +1015,51 @@ def _grade_pick_pre_suspension(
         if event_type in HIT_EVENTS:
             saw_pre_hit = True
     if not saw_batter:
-        return None  # batter not in this game -> let caller fall back to other games
-    if not saw_pre_pa:
-        return "void"  # only in the resumed portion -> no evaluable original-day PA
-    return "hit" if saw_pre_hit else "miss"
+        # No PA in this game's plays. On a roster he did not play: a Pass (rule 6A). On neither roster:
+        # not this game -> let the caller fall back to other games.
+        return "void" if _boxscore_batting(resp, batter_id, batter_name) is not None else None
+    # Official Rules 6C: suspended and, at the time of suspension, no hit yet -> a Pass, whether or not he had
+    # an official at-bat by then (it was graded "miss" until 2026-11-13: incident L01). saw_pre_pa is kept for
+    # readers of the docstring's cases; both no-hit cases are a Pass.
+    return "hit" if saw_pre_hit else "void"
+
+
+def _boxscore_batting(resp: dict, batter_id: int, batter_name: str | None = None) -> dict | None:
+    """The batter's batting line in the (cumulative) final boxscore, or None when he is on neither roster.
+    Looks up by ID first, falls back to name match. A rostered player who did not bat has an empty line."""
+    for side in ("away", "home"):
+        players = resp["liveData"]["boxscore"]["teams"][side]["players"]
+        key = f"ID{batter_id}"
+        if key in players:
+            return players[key].get("stats", {}).get("batting", {}) or {}
+        if batter_name:
+            for pid, pdata in players.items():
+                if pdata["person"]["fullName"].lower() == batter_name.lower():
+                    return pdata.get("stats", {}).get("batting", {}) or {}
+    return None
 
 
 def _boxscore_hit(resp: dict, batter_id: int, batter_name: str | None = None) -> bool | None:
     """Whether a batter got a hit per the (cumulative) final boxscore. Correct for normal
     games; suspended games are graded by _grade_pick_pre_suspension instead.
 
-    Looks up by ID first, falls back to name match. Returns True/False/None (not found).
+    Returns True/False/None (not found).
     """
-    for side in ("away", "home"):
-        players = resp["liveData"]["boxscore"]["teams"][side]["players"]
-        # Try by ID first
-        key = f"ID{batter_id}"
-        if key in players:
-            hits = players[key].get("stats", {}).get("batting", {}).get("hits", 0)
-            return hits > 0
-        # Fallback: search by name
-        if batter_name:
-            for pid, pdata in players.items():
-                if pdata["person"]["fullName"].lower() == batter_name.lower():
-                    hits = pdata.get("stats", {}).get("batting", {}).get("hits", 0)
-                    return hits > 0
-    return None
+    batting = _boxscore_batting(resp, batter_id, batter_name)
+    return None if batting is None else batting.get("hits", 0) > 0
+
+
+def _boxscore_grade(resp: dict, batter_id: int, batter_name: str | None = None) -> str | None:
+    """Grade a NORMAL (not suspended) final game from the boxscore per Official Rules 6: a hit is a Hit; with
+    no hit, at least one official at-bat or one sacrifice fly is a miss; anything else is a Pass ("void") —
+    he did not play, or every plate appearance was a walk, hit batsman, interference or sacrifice bunt
+    (6A, 6B). None: on neither roster. Until 2026-11-13 every no-hit line graded "miss" (incident L01)."""
+    batting = _boxscore_batting(resp, batter_id, batter_name)
+    if batting is None:
+        return None
+    if batting.get("hits", 0) > 0:
+        return "hit"
+    return "miss" if (batting.get("atBats", 0) > 0 or batting.get("sacFlies", 0) > 0) else "void"
 
 
 def _check_hit_in_game(resp: dict, batter_id: int, batter_name: str | None = None) -> bool | None:
@@ -1056,8 +1076,9 @@ def _check_hit_in_game(resp: dict, batter_id: int, batter_name: str | None = Non
 def grade_pick_in_feed(resp: dict, batter_id: int, batter_name: str | None = None) -> str | None:
     """Grade a pick from one game-feed response: "hit" / "miss" / "void" / None.
 
-    Suspended-and-resumed games are graded from pre-suspension PA only (void = the batter
-    has no evaluable pre-suspension PA); normal games from the final boxscore. None means
+    Suspended-and-resumed games are graded from pre-suspension PA only (a hit before the
+    suspension, else a Pass: Official Rules 6C); normal games from the final boxscore, where
+    "void" is a Pass under 6A/6B (no official at-bat and no sacrifice fly). None means
     the batter was not found in this feed (caller may fall back). This is the
     status-returning sibling of _check_hit_in_game, which collapses void/miss to a bool --
     use this wherever the void/miss distinction must survive (streak, shadow backfill).
@@ -1065,8 +1086,9 @@ def grade_pick_in_feed(resp: dict, batter_id: int, batter_name: str | None = Non
     grade = _grade_pick_pre_suspension(resp, batter_id, batter_name)
     if grade is not None:
         return grade
-    hit = _boxscore_hit(resp, batter_id, batter_name)
-    return None if hit is None else ("hit" if hit else "miss")
+    if _parse_feed_timestamp(resp.get("gameData", {}).get("datetime", {}).get("resumeDateTime")) is not None:
+        return None          # a suspended game the batter is not in: never graded from the cumulative boxscore
+    return _boxscore_grade(resp, batter_id, batter_name)
 
 
 def check_hit(game_pk: int | None, batter_id: int, batter_name: str | None = None,

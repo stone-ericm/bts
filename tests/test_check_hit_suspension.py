@@ -48,9 +48,11 @@ def test_grade_pre_suspension_hit_counts():
 
 
 def test_grade_resumed_hit_does_not_count():
-    # pre-suspension out, resumed-portion home run -> the homer is excluded -> MISS
+    # pre-suspension out, resumed-portion home run -> the homer is excluded. Official Rules 6C: suspended with
+    # no hit at the time of suspension is a PASS, even after an official at-bat (graded "miss" until 2026-11-13,
+    # incident L01).
     resp = _feed(resume_dt=RESUME, plays=[_play(11, "field_out", PRE), _play(11, "home_run", POST)])
-    assert _grade_pick_pre_suspension(resp, 11) == "miss"
+    assert _grade_pick_pre_suspension(resp, 11) == "void"
 
 
 def test_grade_resumed_only_is_void():

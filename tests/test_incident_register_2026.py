@@ -183,9 +183,11 @@ XFAIL_CASES = [k for k, (_f, _r, bad, _c) in CASES.items() if bad is not None]
 
 
 def _params(names, exc):
-    return [pytest.param(n, marks=pytest.mark.xfail(strict=True, raises=exc,
-                                                    reason="L01 unfixed: BTS Pass graded as a miss"))
-            if CASES[n][2] is not None else n for n in names]
+    """L01 REPAIRED 2026-11-13 (picks._boxscore_grade and the 6C rule in _grade_pick_pre_suspension). Until then
+    every case with a declared bad grade was xfail(strict, raises=exc); the repair turned all of them into
+    XPASS(strict). They are now ordinary regression tests: the oracle still raises ``exc`` if the declared bad
+    outcome ever comes back."""
+    return list(names)
 
 
 def _route_http(monkeypatch, feeds: dict[int, dict]) -> list[str]:
@@ -293,7 +295,6 @@ def test_l01_check_results_hit_plus_pass(case, monkeypatch, tmp_path):
     _oracle(_outcome(picks_dir), required, bad, PassScoredAsNoHit, f"hit+pass[{case}]")
 
 
-@pytest.mark.xfail(strict=True, raises=PassScoredAsNoHit, reason="L01 unfixed: Pass+Pass reset the streak")
 def test_l01_check_results_pass_plus_pass_preserves(monkeypatch, tmp_path):
     """Double down: Pass + Pass = streak preserved (5 stays 5)."""
     picks_dir = tmp_path / "picks"
@@ -310,8 +311,6 @@ def test_l01_check_results_pass_plus_pass_preserves(monkeypatch, tmp_path):
     _oracle(_outcome(picks_dir), required, bad, PassScoredAsNoHit, "pass+pass")
 
 
-@pytest.mark.xfail(strict=True, raises=PassScoredAsNoHit,
-                   reason="L01 unfixed: a Pass at streak 12 consumes the saver")
 def test_l01_pass_at_saver_streak_keeps_the_saver(monkeypatch, tmp_path):
     """At streak 12 with the saver available, a Pass must leave (12, saver available)."""
     picks_dir = tmp_path / "picks"
