@@ -1,15 +1,24 @@
 """Real entry-check receipts: batter-only match, then already-confirmed runs (Gemini B3)."""
 import gzip
+import itertools
 import json
 from datetime import date as date_cls
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
+
+import pytest
 from click.testing import CliRunner
 from bts.cli import cli
 from bts.daily_decision import write_decision
 from bts.entry_receipt import discover
 from bts.picks import DailyPick, Pick, save_pick
+
+
+@pytest.fixture(autouse=True)
+def _fixed_test_provenance(monkeypatch):
+    """Receipt provenance must not launch Git even indirectly from these tests."""
+    monkeypatch.setattr("bts.picks._git_head_sha", lambda *a, **k: "0" * 40)
 
 
 def _setup_committed_day(root: Path, date: str, batter_id: int = 592450,
@@ -127,3 +136,42 @@ def test_limit_later_wrong_game_binding_is_not_reobserved_after_batter_only_conf
     # A fresh observation would identify the wrong game; sealed receipts retain the earlier unverified result.
     now_qualified = qualify(observed["selection"]["slots"], observed["observation"]["rows"], crosswalk, units)
     assert [s["state"] for s in now_qualified["slots"]] == ["wrong_game"]
+
+
+PRECEDENCE_CASES = [
+    pytest.param(order, state, id="-".join(order))
+    for kinds, state in [
+        (("absent",), "not_entered"),
+        (("late", "absent"), "entered_late"),
+        (("batter", "late", "absent"), "entered_game_unverified"),
+        (("full", "batter", "late", "absent"), "entered"),
+    ]
+    for order in itertools.permutations(kinds)
+]
+
+
+@pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+    """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+    from bts.daily_decision import load_decision_bytes
+    from bts.day_outcome import classify_day
+    from bts.entry_receipt import _sha
+    date = "2027-03-24"
+    picks = tmp_path / "picks"
+    write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                   primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+    decision, raw = load_decision_bytes(date, picks)
+
+    def receipt(kind):
+        return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                "degraded": [], "account": {"username": "owner"},
+                "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                "qualification": {"all_confirmed": kind in ("full", "late"),
+                                  "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                       "confirmed" if kind in ("full", "late") else "missing"}]}}
+
+    outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                           receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+    assert outcome.state == expected
