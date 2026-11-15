@@ -9,16 +9,17 @@ simulation, shadow, and replay paths should keep using ``streak.json``.
 from __future__ import annotations
 
 import json
+import logging
 import re
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from bts.picks import load_saver_available, load_streak
 from bts.saver_state import load_saver_state, season_for
 
 
+logger = logging.getLogger(__name__)
 _ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _CONTEST_STATE_NAMES = (
     "contest_streak.manual.json",
@@ -53,8 +54,8 @@ class DecisionStreakState:
     allow_double: bool
     source: str
     status: str
-    model_streak: int
-    model_saver_available: bool
+    model_streak: int | None
+    model_saver_available: bool | None
     contest_streak: int | None = None
     contest_saver_available: bool | None = None
     contest_source_date: date | None = None
@@ -65,6 +66,7 @@ class DecisionStreakState:
     # best = streak downstream (strategy._normalize_best), which keeps picking.
     best_streak: int | None = None
     best_status: str = "missing"   # "trusted" | "untrusted" | "missing"
+    model_state_error: str | None = None
 
 
 TARGET_STREAK = 57
@@ -130,11 +132,11 @@ def _contest_state_paths(picks_dir: Path) -> list[Path]:
     return [state_dir / name for name in _CONTEST_STATE_NAMES]
 
 
-def _parse_state_file(path: Path) -> ContestStreakState:
+def _parse_state_file(path: Path, *, require_dated: bool = False) -> ContestStreakState:
     """Parse one contest-streak observation file. Raises ContestStateError if malformed."""
     try:
-        data = json.loads(path.read_text())
-    except (json.JSONDecodeError, OSError) as exc:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError, OSError) as exc:
         raise ContestStateError(f"contest streak state malformed at {path}: {exc}") from exc
     if not isinstance(data, dict):
         raise ContestStateError(f"contest streak state malformed at {path}: expected object")
@@ -150,11 +152,24 @@ def _parse_state_file(path: Path) -> ContestStreakState:
     if best is not None and type(best) is not int:
         best = None
 
+    if path.name == "contest_streak.json" and (
+        streak > TARGET_STREAK
+        or (best is not None and (best < streak or best > TARGET_STREAK))
+    ):
+        raise ContestStateError(
+            f"automatic contest streak invalid in {path}: active_streak={streak}, best_streak={best}"
+        )
+
+    source_date = _parse_date(data.get("source_date") or data.get("as_of"))
+    if (require_dated and source_date is None and _parse_date(data.get("as_of")) is None
+            and not isinstance(data.get("recorded_at"), str)):
+        raise ContestStateError(f"automatic contest observation is undated at {path}")
+
     return ContestStreakState(
         streak=streak,
         saver_available=saver,
         source=str(data.get("source") or path.stem),
-        source_date=_parse_date(data.get("source_date") or data.get("as_of")),
+        source_date=source_date,
         recorded_at=data.get("recorded_at") if isinstance(data.get("recorded_at"), str) else None,
         path=path,
         best_streak=best,
@@ -167,6 +182,7 @@ def load_contest_streak_state(
     picks_dir: Path,
     *,
     now: datetime | None = None,
+    require_dated_auto: bool = False,
 ) -> ContestStreakState | None:
     """Select the active contest-streak observation.
 
@@ -174,6 +190,9 @@ def load_contest_streak_state(
     (``contest_streak.json``); else a legacy/expired manual file is used as a
     fallback so production keeps working until the first auto-fetch (health alerts
     on that case). Returns None when no observation exists.
+
+    Required decision reads set require_dated_auto; other callers keep legacy
+    acceptance of undated automatic files during the CS1 sequencing step.
     """
     now = now or datetime.now(timezone.utc)
     state_dir = picks_dir / "account_state"
@@ -189,7 +208,8 @@ def load_contest_streak_state(
             and manual.override_expires_at > now):
         return manual
 
-    auto = _parse_state_file(auto_path) if auto_path.exists() else None
+    auto = (_parse_state_file(auto_path, require_dated=require_dated_auto)
+            if auto_path.exists() else None)
     if auto is not None:
         return auto
     return manual
@@ -206,8 +226,10 @@ def _resolved_pick_dates(picks_dir: Path) -> list[date]:
         except ValueError:        # ISO-shaped but invalid (e.g. 2026-99-99)
             continue
         try:
-            body = json.loads(path.read_text())
-        except (json.JSONDecodeError, OSError):
+            body = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError):
+            continue
+        if not isinstance(body, dict):
             continue
         if body.get("result") not in _RESOLVED_RESULTS:
             continue
@@ -249,8 +271,10 @@ def _has_unconfirmed_miss(picks_dir: Path, source_date: date) -> bool:
         if pick_date <= source_date:
             continue
         try:
-            body = json.loads(path.read_text())
-        except (json.JSONDecodeError, OSError):
+            body = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError):
+            continue
+        if not isinstance(body, dict):
             continue
         if body.get("result") == "miss":
             return True
@@ -276,6 +300,26 @@ def contest_state_is_fresh(
     return contest.source_date >= latest
 
 
+def _load_model_diagnostics(picks_dir: Path) -> tuple[int | None, bool | None, str | None]:
+    """Read one model snapshot without changing the scorer loaders' behavior.
+
+    Missing files and missing keys keep load_streak/load_saver_available's
+    defaults. Corrupt files make BOTH diagnostics unavailable, never a zero.
+    """
+    path = picks_dir / "streak.json"
+    try:
+        if not path.exists():
+            return 0, True, None
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            raise TypeError("expected object")
+        return data.get("streak", 0), data.get("saver_available", True), None
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, TypeError) as exc:
+        error = f"{path}: {type(exc).__name__}: {exc}"
+        logger.warning("model_state_corrupt: %s", error)
+        return None, None, error
+
+
 def load_decision_streak_state(
     picks_dir: Path,
     *,
@@ -290,17 +334,19 @@ def load_decision_streak_state(
     Phase 1 surfaces stale-high via ``status``; Phase 2 makes strategy act on the
     uncertainty.
     """
-    model_streak = load_streak(picks_dir)
-    model_saver = load_saver_available(picks_dir)
+    model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir)
     now_dt = now or datetime.now(timezone.utc)
     now_year = now_dt.astimezone(ZoneInfo("America/New_York")).year
-    contest = load_contest_streak_state(picks_dir, now=now)
+    contest = load_contest_streak_state(
+        picks_dir, now=now, require_dated_auto=require_contest_state)
     if contest is None:
         if require_contest_state:
             paths = ", ".join(str(path) for path in _contest_state_paths(picks_dir))
             raise ContestStateError(
                 f"contest-account streak state required but missing; expected one of: {paths}"
             )
+        if model_error is not None:
+            raise ContestStateError(f"model state is corrupt; cannot use model fallback: {model_error}")
         return DecisionStreakState(
             streak=model_streak,
             # Model-only fallback still reads the saver from the flag (not streak.json), so the
@@ -358,4 +404,5 @@ def load_decision_streak_state(
         message=message,
         best_streak=best_streak,
         best_status=best_status,
+        model_state_error=model_error,
     )
