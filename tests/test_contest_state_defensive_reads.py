@@ -134,10 +134,22 @@ def test_legacy_fixture_exception_is_live(tmp_path, source_date):
     assert str(path) in str(exc.value)
 
 
+@pytest.mark.parametrize("recorded_at", ["", "not-a-time", 5, None])
+def test_unparseable_recorded_at_does_not_date_an_observation(tmp_path, recorded_at):
+    """Row 4 (lead's correction after the handover): only a timestamp that parses counts."""
+    path = _auto(tmp_path)
+    path.write_text(json.dumps({"schema_version": "bts_contest_streak_auto_v1",
+                                "active_streak": 14, "best_streak": 18,
+                                "recorded_at": recorded_at}))
+    assert load_decision_streak_state(tmp_path, now=NOW).status == "stale"
+    with pytest.raises(ContestStateError, match="undated"):
+        load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW)
+
+
 @pytest.mark.parametrize("metadata", [
     {"source_date": "2027-03-24"}, {"as_of": "2027-03-24"},
     {"source_date": "not-a-date", "as_of": "2027-03-24"},
-    {"recorded_at": NOW.isoformat()}, {"recorded_at": ""},
+    {"recorded_at": NOW.isoformat()},
 ])
 def test_dated_version_one_auto_still_accepted(tmp_path, metadata):
     path = _auto(tmp_path)

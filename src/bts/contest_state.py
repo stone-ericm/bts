@@ -162,7 +162,7 @@ def _parse_state_file(path: Path, *, require_dated: bool = False) -> ContestStre
 
     source_date = _parse_date(data.get("source_date") or data.get("as_of"))
     if (require_dated and source_date is None and _parse_date(data.get("as_of")) is None
-            and not isinstance(data.get("recorded_at"), str)):
+            and _parse_dt(data.get("recorded_at")) is None):
         raise ContestStateError(f"automatic contest observation is undated at {path}")
 
     return ContestStreakState(
