@@ -64,3 +64,6 @@ The definition above let a file that is not a JSON object count as "matching no 
 Cost if wrong: a corrupt `streak.json` stops scoring until someone looks, exactly as it did all of 2026 (the health check reports it as CRITICAL); the live pick does not depend on it when a contest observation exists (change set 1).
 
 Recorded for a later change set (the reviewer's note N1, row 12 left these alone on purpose): `state/export.py` and `state/regenerate.py` do not carry the season, so a restored `streak.json` is tagless and reads as season-fresh until the next complete replay.
+
+## After review round 2 (2026-11-15): one confirmation round, by the owner's decision
+Round 2 (Codex, marker `CS2RC2-a30dcb54`) closed the round-1 findings and blocked on one regression (B1): the scheduler's four new season reads rejected the unpadded dates the scheduler accepted before. The work policies cap a change at two review rounds. Put to Eric with the same three options as for change set 1, he chose the first again ("1"): apply the fix and allow one narrow confirmation. The fix is `ee9fb870` on `sb-cs2`, test first; a fresh Codex reviewer checks only `a26958dc..ee9fb870`. If the confirmation blocks, the change set stops and goes back to him.
