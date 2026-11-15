@@ -1,0 +1,506 @@
+LOADER /Users/eric/projects/bts-work/cs1-confirm-codex/.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/cs1-confirm-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 12 items
+
+tests/test_contest_state_decoder_limits.py FFFFFFFFFFFF                  [100%]
+
+=================================== FAILURES ===================================
+______ test_row5_large_json_scalar_cannot_block_observation[False-manual] ______
+tests/test_contest_state_decoder_limits.py:39: in test_row5_large_json_scalar_cannot_block_observation
+    state = load_decision_streak_state(tmp_path, require_contest_state=required, now=NOW)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:338: in load_decision_streak_state
+    model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir)
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:314: in _load_model_diagnostics
+    data = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+_______ test_row5_large_json_scalar_cannot_block_observation[False-auto] _______
+tests/test_contest_state_decoder_limits.py:39: in test_row5_large_json_scalar_cannot_block_observation
+    state = load_decision_streak_state(tmp_path, require_contest_state=required, now=NOW)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:338: in load_decision_streak_state
+    model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir)
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:314: in _load_model_diagnostics
+    data = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+______ test_row5_large_json_scalar_cannot_block_observation[True-manual] _______
+tests/test_contest_state_decoder_limits.py:39: in test_row5_large_json_scalar_cannot_block_observation
+    state = load_decision_streak_state(tmp_path, require_contest_state=required, now=NOW)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:338: in load_decision_streak_state
+    model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir)
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:314: in _load_model_diagnostics
+    data = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+_______ test_row5_large_json_scalar_cannot_block_observation[True-auto] ________
+tests/test_contest_state_decoder_limits.py:39: in test_row5_large_json_scalar_cannot_block_observation
+    state = load_decision_streak_state(tmp_path, require_contest_state=required, now=NOW)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:338: in load_decision_streak_state
+    model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir)
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:314: in _load_model_diagnostics
+    data = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+____________ test_rows6_7_large_json_scalar_has_domain_error[False] ____________
+tests/test_contest_state_decoder_limits.py:51: in test_rows6_7_large_json_scalar_has_domain_error
+    load_decision_streak_state(tmp_path, require_contest_state=required, now=NOW)
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:338: in load_decision_streak_state
+    model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir)
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:314: in _load_model_diagnostics
+    data = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+____________ test_rows6_7_large_json_scalar_has_domain_error[True] _____________
+tests/test_contest_state_decoder_limits.py:51: in test_rows6_7_large_json_scalar_has_domain_error
+    load_decision_streak_state(tmp_path, require_contest_state=required, now=NOW)
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:338: in load_decision_streak_state
+    model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir)
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:314: in _load_model_diagnostics
+    data = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+_______________ test_row1_large_json_scalar_is_skipped[resolved] _______________
+tests/test_contest_state_decoder_limits.py:58: in test_row1_large_json_scalar_is_skipped
+    assert _resolved_pick_dates(tmp_path) == []
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:229: in _resolved_pick_dates
+    body = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+_________________ test_row1_large_json_scalar_is_skipped[miss] _________________
+tests/test_contest_state_decoder_limits.py:60: in test_row1_large_json_scalar_is_skipped
+    assert not _has_unconfirmed_miss(tmp_path, date(2026, 6, 16))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:275: in _has_unconfirmed_miss
+    body = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+_ test_row2_large_json_scalar_in_contest_file_is_a_domain_error[contest_streak.json] _
+tests/test_contest_state_decoder_limits.py:76: in test_row2_large_json_scalar_in_contest_file_is_a_domain_error
+    load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW)
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:341: in load_decision_streak_state
+    contest = load_contest_streak_state(
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:211: in load_contest_streak_state
+    auto = (_parse_state_file(auto_path, require_dated=require_dated_auto)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:138: in _parse_state_file
+    data = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+_ test_row2_large_json_scalar_in_contest_file_is_a_domain_error[contest_streak.manual.json] _
+tests/test_contest_state_decoder_limits.py:76: in test_row2_large_json_scalar_in_contest_file_is_a_domain_error
+    load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW)
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:341: in load_decision_streak_state
+    contest = load_contest_streak_state(
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:202: in load_contest_streak_state
+    manual = _parse_state_file(manual_path) if manual_path.exists() else None
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:138: in _parse_state_file
+    data = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+___________ test_row1_pick_object_holding_a_large_number_is_skipped ____________
+tests/test_contest_state_decoder_limits.py:86: in test_row1_pick_object_holding_a_large_number_is_skipped
+    assert _resolved_pick_dates(tmp_path) == [date(2026, 6, 17)]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:229: in _resolved_pick_dates
+    body = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+________________ test_deeply_nested_body_is_isolated_everywhere ________________
+tests/test_contest_state_decoder_limits.py:103: in test_deeply_nested_body_is_isolated_everywhere
+    assert _resolved_pick_dates(tmp_path) == [date(2026, 6, 17)]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:229: in _resolved_pick_dates
+    body = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   RecursionError: maximum recursion depth exceeded while decoding a JSON array from a unicode string
+=========================== short test summary info ============================
+FAILED tests/test_contest_state_decoder_limits.py::test_row5_large_json_scalar_cannot_block_observation[False-manual]
+FAILED tests/test_contest_state_decoder_limits.py::test_row5_large_json_scalar_cannot_block_observation[False-auto]
+FAILED tests/test_contest_state_decoder_limits.py::test_row5_large_json_scalar_cannot_block_observation[True-manual]
+FAILED tests/test_contest_state_decoder_limits.py::test_row5_large_json_scalar_cannot_block_observation[True-auto]
+FAILED tests/test_contest_state_decoder_limits.py::test_rows6_7_large_json_scalar_has_domain_error[False]
+FAILED tests/test_contest_state_decoder_limits.py::test_rows6_7_large_json_scalar_has_domain_error[True]
+FAILED tests/test_contest_state_decoder_limits.py::test_row1_large_json_scalar_is_skipped[resolved]
+FAILED tests/test_contest_state_decoder_limits.py::test_row1_large_json_scalar_is_skipped[miss]
+FAILED tests/test_contest_state_decoder_limits.py::test_row2_large_json_scalar_in_contest_file_is_a_domain_error[contest_streak.json]
+FAILED tests/test_contest_state_decoder_limits.py::test_row2_large_json_scalar_in_contest_file_is_a_domain_error[contest_streak.manual.json]
+FAILED tests/test_contest_state_decoder_limits.py::test_row1_pick_object_holding_a_large_number_is_skipped
+FAILED tests/test_contest_state_decoder_limits.py::test_deeply_nested_body_is_isolated_everywhere
+============================== 12 failed in 0.67s ==============================
+LOADER /Users/eric/projects/bts-work/cs1-confirm-codex/.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/cs1-confirm-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 12 items
+
+tests/test_contest_state_decoder_limits.py FFFFFFFFFFFF                  [100%]
+
+=================================== FAILURES ===================================
+______ test_row5_large_json_scalar_cannot_block_observation[False-manual] ______
+tests/test_contest_state_decoder_limits.py:39: in test_row5_large_json_scalar_cannot_block_observation
+    state = load_decision_streak_state(tmp_path, require_contest_state=required, now=NOW)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:338: in load_decision_streak_state
+    model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir)
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:314: in _load_model_diagnostics
+    data = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+_______ test_row5_large_json_scalar_cannot_block_observation[False-auto] _______
+tests/test_contest_state_decoder_limits.py:39: in test_row5_large_json_scalar_cannot_block_observation
+    state = load_decision_streak_state(tmp_path, require_contest_state=required, now=NOW)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:338: in load_decision_streak_state
+    model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir)
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:314: in _load_model_diagnostics
+    data = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+______ test_row5_large_json_scalar_cannot_block_observation[True-manual] _______
+tests/test_contest_state_decoder_limits.py:39: in test_row5_large_json_scalar_cannot_block_observation
+    state = load_decision_streak_state(tmp_path, require_contest_state=required, now=NOW)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:338: in load_decision_streak_state
+    model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir)
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:314: in _load_model_diagnostics
+    data = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+_______ test_row5_large_json_scalar_cannot_block_observation[True-auto] ________
+tests/test_contest_state_decoder_limits.py:39: in test_row5_large_json_scalar_cannot_block_observation
+    state = load_decision_streak_state(tmp_path, require_contest_state=required, now=NOW)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:338: in load_decision_streak_state
+    model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir)
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:314: in _load_model_diagnostics
+    data = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+____________ test_rows6_7_large_json_scalar_has_domain_error[False] ____________
+tests/test_contest_state_decoder_limits.py:51: in test_rows6_7_large_json_scalar_has_domain_error
+    load_decision_streak_state(tmp_path, require_contest_state=required, now=NOW)
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:338: in load_decision_streak_state
+    model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir)
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:314: in _load_model_diagnostics
+    data = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+____________ test_rows6_7_large_json_scalar_has_domain_error[True] _____________
+tests/test_contest_state_decoder_limits.py:51: in test_rows6_7_large_json_scalar_has_domain_error
+    load_decision_streak_state(tmp_path, require_contest_state=required, now=NOW)
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:338: in load_decision_streak_state
+    model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir)
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:314: in _load_model_diagnostics
+    data = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+_______________ test_row1_large_json_scalar_is_skipped[resolved] _______________
+tests/test_contest_state_decoder_limits.py:58: in test_row1_large_json_scalar_is_skipped
+    assert _resolved_pick_dates(tmp_path) == []
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:229: in _resolved_pick_dates
+    body = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+_________________ test_row1_large_json_scalar_is_skipped[miss] _________________
+tests/test_contest_state_decoder_limits.py:60: in test_row1_large_json_scalar_is_skipped
+    assert not _has_unconfirmed_miss(tmp_path, date(2026, 6, 16))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:275: in _has_unconfirmed_miss
+    body = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+_ test_row2_large_json_scalar_in_contest_file_is_a_domain_error[contest_streak.json] _
+tests/test_contest_state_decoder_limits.py:76: in test_row2_large_json_scalar_in_contest_file_is_a_domain_error
+    load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW)
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:341: in load_decision_streak_state
+    contest = load_contest_streak_state(
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:211: in load_contest_streak_state
+    auto = (_parse_state_file(auto_path, require_dated=require_dated_auto)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:138: in _parse_state_file
+    data = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+_ test_row2_large_json_scalar_in_contest_file_is_a_domain_error[contest_streak.manual.json] _
+tests/test_contest_state_decoder_limits.py:76: in test_row2_large_json_scalar_in_contest_file_is_a_domain_error
+    load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW)
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:341: in load_decision_streak_state
+    contest = load_contest_streak_state(
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:202: in load_contest_streak_state
+    manual = _parse_state_file(manual_path) if manual_path.exists() else None
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:138: in _parse_state_file
+    data = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+___________ test_row1_pick_object_holding_a_large_number_is_skipped ____________
+tests/test_contest_state_decoder_limits.py:86: in test_row1_pick_object_holding_a_large_number_is_skipped
+    assert _resolved_pick_dates(tmp_path) == [date(2026, 6, 17)]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:229: in _resolved_pick_dates
+    body = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+________________ test_deeply_nested_body_is_isolated_everywhere ________________
+tests/test_contest_state_decoder_limits.py:103: in test_deeply_nested_body_is_isolated_everywhere
+    assert _resolved_pick_dates(tmp_path) == [date(2026, 6, 17)]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/cs1-confirm/scratch-acea53f8/bts/contest_state.py:229: in _resolved_pick_dates
+    body = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   RecursionError: maximum recursion depth exceeded while decoding a JSON array from a unicode string
+=========================== short test summary info ============================
+FAILED tests/test_contest_state_decoder_limits.py::test_row5_large_json_scalar_cannot_block_observation[False-manual]
+FAILED tests/test_contest_state_decoder_limits.py::test_row5_large_json_scalar_cannot_block_observation[False-auto]
+FAILED tests/test_contest_state_decoder_limits.py::test_row5_large_json_scalar_cannot_block_observation[True-manual]
+FAILED tests/test_contest_state_decoder_limits.py::test_row5_large_json_scalar_cannot_block_observation[True-auto]
+FAILED tests/test_contest_state_decoder_limits.py::test_rows6_7_large_json_scalar_has_domain_error[False]
+FAILED tests/test_contest_state_decoder_limits.py::test_rows6_7_large_json_scalar_has_domain_error[True]
+FAILED tests/test_contest_state_decoder_limits.py::test_row1_large_json_scalar_is_skipped[resolved]
+FAILED tests/test_contest_state_decoder_limits.py::test_row1_large_json_scalar_is_skipped[miss]
+FAILED tests/test_contest_state_decoder_limits.py::test_row2_large_json_scalar_in_contest_file_is_a_domain_error[contest_streak.json]
+FAILED tests/test_contest_state_decoder_limits.py::test_row2_large_json_scalar_in_contest_file_is_a_domain_error[contest_streak.manual.json]
+FAILED tests/test_contest_state_decoder_limits.py::test_row1_pick_object_holding_a_large_number_is_skipped
+FAILED tests/test_contest_state_decoder_limits.py::test_deeply_nested_body_is_isolated_everywhere
+============================== 12 failed in 0.65s ==============================
