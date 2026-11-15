@@ -36,3 +36,12 @@ Not in this change set: any season logic, the saver mapping, new schemas or file
 
 ## Handover
 Write `HANDOVER-CS1.md` in the worktree root (do not commit it): the commits; for each table row the file and lines that implement it and the test that pins it; every existing test you changed and why; every reader of the two optional fields; what you ran with the counts; anything you could not match or think is wrong. Then print `CS1A-<first 8 hex characters of the sha256 of HANDOVER-CS1.md>` and `DONE`.
+
+## Amendment to row 4 (lead session on the studio, 2026-11-15, after review round 1)
+Row 4 as written says "nor a `recorded_at` string". The branch's second commit (`7cff54d5`, the previous lead's correction) requires a `recorded_at` that PARSES as a timestamp: an empty or malformed string does not date an observation. The Codex reviewer (marker `CS1RC-58327cbb`, finding B1) correctly reported that the code rejects more than the table authorizes, and offered two ways out: restore the looser check, or revise the contract.
+
+**The contract is revised; the code stands.** Row 4 now reads: the automatic file has neither a parseable `source_date` (or `as_of`) nor a `recorded_at` that parses as a timestamp. Reason: the row exists so that an undated observation cannot drive a required live decision (the attack's "bare fixture"), and `""` or `"not-a-time"` is not a date. The reviewer's own check of the real writer (its note N1) found that the fetch has written a valid UTC `recorded_at` since June 2026, so no file the fetch produces is affected; only a hand-edited or damaged file is.
+
+Cost if wrong: with `require_contest_state` on, a file whose only date field is a damaged `recorded_at` refuses the pick with an alert where `main` picked on it as stale; the way back is the next fetch or a manual observation, with no code change.
+
+Also taken into this change set from the same review (its note N6): a date-named pick object whose `result` is not a string (a list or an object) raised `TypeError` out of `_resolved_pick_dates` on `main` and on the branch. Row 1 says no exception leaves the loader; such a file is now skipped like the other malformed pick files.

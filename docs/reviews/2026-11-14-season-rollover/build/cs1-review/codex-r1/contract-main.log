@@ -1,0 +1,10 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/cs1-rev-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 2 items
+
+.codex-review/cs1-review/test_row4_contract.py ..                        [100%]
+
+============================== 2 passed in 0.02s ===============================
