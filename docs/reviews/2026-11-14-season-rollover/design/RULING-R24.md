@@ -32,5 +32,8 @@ Asked whether, on a mid-season day when the contest reading is stale, the system
 - What changes from today's code: the stale case sends a DM (today it is a log-only warning), and the pick's record says it was made on a stale reading.
 - Not covered by this decision, and unchanged from the ruling: the opening stretch before the switch (there is no accepted current-season value to fall back on, so a streak is supplied for the date or there is no pick), and the saver after a restore (counted as spent until he confirms). This reading of the scope is the lead's; he was asked about the mid-season case.
 
+## Owner decision on the opening stretch (Eric, 2026-11-14 night)
+Told that the build's default for the opening stretch, before the switch to automatic, is that a streak is supplied for each contest date and that a day nobody supplies it has no pick and an alert: **"confirming the opening stretch"**. Item 1 under "What the owner has to accept" is now his decision, not the lead's default. Items 2 (the saver after a restore) and 3 (reading the account's responses in March) were not part of this confirmation.
+
 ## Next
 The designer revises its document into the build specification under these rulings (`design-v2.md`); the uncontested change sets (defensive reads with F1, the `streak.json` season tag, the saver mapping) go first, each to a fresh author who runs every test touching the modules it changes, with a same-day adversarial review before push.
