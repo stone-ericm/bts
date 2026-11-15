@@ -45,6 +45,12 @@ Eric chose a key file for this repository only. The EoR driver created it on the
 
 The key can push to any branch. A push to `deploy` starts the production deploy workflow: that stays owner-only, as `CLAUDE.md` says. `gh` is installed on the studio but its sign-in sits in a keychain that herdr panes cannot read, so `gh` does not work for you; use git.
 
+## How the lead session on the studio is started (2026-11-14 23:12 ET)
+In herdr workspace `w2`, pane `w2:p3`, from `~/projects/bts`:
+`claude --model claude-fable-5-2 --permission-mode auto --remote-control bts-lead-studio --add-dir /Users/eric/bts-runs /Users/eric/projects/bts-work /Users/eric/projects/bts-cs1 /Users/eric/projects/bts-speccheck /Users/eric/projects/claude-shared` (add `--resume <session id>` to continue a conversation; the first one is `a0a09172-5155-4c5d-9355-28277749576d`).
+
+The extra directories are there because the session otherwise stops to ask before every read outside the project folder. `~/projects/bts-work` is for new worktrees and isolated copies, so they are covered without widening the session to all of `~/projects`, which also holds an EoR checkout. The `fable` alias on this machine's Claude Code resolves to an older version, so the model is named in full.
+
 ## First actions
 1. `git fetch origin && git log --oneline -8 origin/main`, check out `main`, sync the environment (`UV_CACHE_DIR=/tmp/uv-cache uv sync --extra model`), run the gate once to confirm the baseline on this commit.
 2. Read the files listed at the top.
