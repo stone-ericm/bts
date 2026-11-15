@@ -50,3 +50,17 @@ Not in this change set: `saver_state.json` and its season, the saver mapping, th
 
 ## Handover
 Write `HANDOVER-CS2.md` in the worktree root (do not commit it): the commits; for each table row the file and lines that implement it and the test that pins it; every existing test you changed and why; every call site of the six functions with what season it now passes (or why none); what you ran with the counts; anything you could not match or think is wrong. Then print `CS2A-<first 8 hex characters of the sha256 of HANDOVER-CS2.md>` on its own line and `DONE`.
+
+## Amendment after review round 1 (lead session, 2026-11-15): a corrupt file is an error, not "another season"
+The definition above let a file that is not a JSON object count as "matching no season", so a dated `update_streak` treated it as season-fresh and overwrote it. The lead flagged this to the reviewers as a question; the Codex reviewer (marker `CS2RC-7b337f8a`, finding B1, a BLOCK against the contract, not against the author) showed what it costs: a scorer replaces corrupt current-season state with an invented streak of 1 and a fresh saver, exits 0, the health alert and the model diagnostic error disappear, and if an older pick is unreadable the nightly replay cannot correct it. On `main` the scorer stopped with the file intact and the pick left retryable.
+
+**Rows 1 to 3 are amended:**
+- A `streak.json` that cannot be read as a JSON object is CORRUPT. With `season=Y`, `load_streak` and `load_saver_available` raise exactly what they raise with `season=None` on that file; `load_applied_dates` returns `[]`, as it always has.
+- So a dated `update_streak` on a corrupt file raises before anything is written and the file's bytes are preserved, as on `main`; the display reads of rows 6 to 9 raise as they did on `main`.
+- `save_streak(..., season=Y)` without an explicit saver raises on a corrupt file (it has to read it); with an explicit saver, which is the reconcile replay's rebuild from a complete history, it replaces the file, as on `main`.
+- Row 3: a `date` that is not a string raises `ValueError` too (the reviewer's note N3).
+- Only a READABLE object with another season's tag, or no tag, reads as season-fresh.
+
+Cost if wrong: a corrupt `streak.json` stops scoring until someone looks, exactly as it did all of 2026 (the health check reports it as CRITICAL); the live pick does not depend on it when a contest observation exists (change set 1).
+
+Recorded for a later change set (the reviewer's note N1, row 12 left these alone on purpose): `state/export.py` and `state/regenerate.py` do not carry the season, so a restored `streak.json` is tagless and reads as season-fresh until the next complete replay.
