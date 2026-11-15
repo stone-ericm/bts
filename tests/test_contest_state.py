@@ -17,6 +17,7 @@ def test_model_state_used_when_no_contest_state(tmp_path):
     from bts.contest_state import load_decision_streak_state
 
     (tmp_path / "streak.json").write_text(json.dumps({
+        "season": 2026,
         "streak": 4,
         "saver_available": True,
     }))
@@ -34,6 +35,7 @@ def test_required_contest_state_missing_raises(tmp_path):
     from bts.contest_state import ContestStateError, load_decision_streak_state
 
     (tmp_path / "streak.json").write_text(json.dumps({
+        "season": 2026,
         "streak": 4,
         "saver_available": True,
     }))
@@ -50,6 +52,7 @@ def test_fresh_contest_state_drives_live_decision(tmp_path):
     from bts.contest_state import load_decision_streak_state
 
     (tmp_path / "streak.json").write_text(json.dumps({
+        "season": 2026,
         "streak": 4,
         "saver_available": True,
     }))
@@ -76,7 +79,7 @@ def test_fresh_contest_state_drives_live_decision(tmp_path):
 def test_lagged_contest_uses_contest_value_keeps_doubles(tmp_path):
     # model 9 > contest 7 so streak==7 also proves no max() inflation (old max(9,7)=9); 1 pick behind -> lagged.
     from bts.contest_state import load_decision_streak_state
-    (tmp_path / "streak.json").write_text(json.dumps({"streak": 9, "saver_available": True}))
+    (tmp_path / "streak.json").write_text(json.dumps({"season": 2026, "streak": 9, "saver_available": True}))
     _write_pick(tmp_path / "2026-05-28.json", "hit")
     _write_pick(tmp_path / "2026-05-29.json", "hit")
     sd = tmp_path / "account_state"; sd.mkdir()
@@ -94,7 +97,7 @@ def test_lagged_contest_uses_contest_value_keeps_doubles(tmp_path):
 def test_lagged_contest_model_does_not_inflate(tmp_path):
     # Was test_stale_..._never_lowers_model_streak: model 12, 1 pick behind -> lagged; must NOT raise the streak.
     from bts.contest_state import load_decision_streak_state
-    (tmp_path / "streak.json").write_text(json.dumps({"streak": 12, "saver_available": True}))
+    (tmp_path / "streak.json").write_text(json.dumps({"season": 2026, "streak": 12, "saver_available": True}))
     _write_pick(tmp_path / "2026-05-29.json", "hit")
     sd = tmp_path / "account_state"; sd.mkdir()
     (sd / "contest_streak.manual.json").write_text(json.dumps({
@@ -191,7 +194,7 @@ def test_missing_source_date_is_conservative_not_fail_open(tmp_path):
 
 def test_missing_source_date_is_stale_but_keeps_doubles(tmp_path):
     from bts.contest_state import load_decision_streak_state
-    (tmp_path / "streak.json").write_text(json.dumps({"streak": 3, "saver_available": True}))
+    (tmp_path / "streak.json").write_text(json.dumps({"season": 2026, "streak": 3, "saver_available": True}))
     sd = tmp_path / "account_state"; sd.mkdir()
     (sd / "contest_streak.json").write_text(json.dumps({
         "schema_version": "bts_contest_streak_auto_v1", "active_streak": 3,
@@ -207,7 +210,7 @@ def test_model_never_inflates_decision_streak(tmp_path):
     The decision streak must be 8, NOT max(10, 8)=10, and doubles must stay enabled."""
     from bts.contest_state import load_decision_streak_state
 
-    (tmp_path / "streak.json").write_text(json.dumps({"streak": 10, "saver_available": True}))
+    (tmp_path / "streak.json").write_text(json.dumps({"season": 2026, "streak": 10, "saver_available": True}))
     _write_pick(tmp_path / "2026-06-16.json", "hit")          # latest resolved local pick
     sd = tmp_path / "account_state"; sd.mkdir()
     (sd / "contest_streak.json").write_text(json.dumps({
@@ -224,7 +227,7 @@ def test_model_never_inflates_decision_streak(tmp_path):
 
 def test_two_pick_gap_is_stale(tmp_path):
     from bts.contest_state import load_decision_streak_state
-    (tmp_path / "streak.json").write_text(json.dumps({"streak": 9, "saver_available": True}))
+    (tmp_path / "streak.json").write_text(json.dumps({"season": 2026, "streak": 9, "saver_available": True}))
     _write_pick(tmp_path / "2026-06-16.json", "hit")
     _write_pick(tmp_path / "2026-06-17.json", "hit")
     sd = tmp_path / "account_state"; sd.mkdir()
@@ -237,7 +240,7 @@ def test_two_pick_gap_is_stale(tmp_path):
 
 def test_unconfirmed_local_miss_marks_stale(tmp_path):
     from bts.contest_state import load_decision_streak_state
-    (tmp_path / "streak.json").write_text(json.dumps({"streak": 0, "saver_available": True}))
+    (tmp_path / "streak.json").write_text(json.dumps({"season": 2026, "streak": 0, "saver_available": True}))
     _write_pick(tmp_path / "2026-06-17.json", "miss")   # local reset MLB hasn't posted
     sd = tmp_path / "account_state"; sd.mkdir()
     (sd / "contest_streak.json").write_text(json.dumps({
@@ -253,7 +256,7 @@ def test_unexpired_override_wins_over_auto_through_decision(tmp_path):
     # decision (8), proving precedence flows through load_decision_streak_state.
     import datetime as _dt2
     from bts.contest_state import load_decision_streak_state
-    (tmp_path / "streak.json").write_text(json.dumps({"streak": 10, "saver_available": True}))
+    (tmp_path / "streak.json").write_text(json.dumps({"season": 2026, "streak": 10, "saver_available": True}))
     _write_pick(tmp_path / "2026-06-16.json", "hit")
     sd = tmp_path / "account_state"; sd.mkdir()
     (sd / "contest_streak.json").write_text(json.dumps({            # auto says 5
@@ -274,7 +277,7 @@ def test_saver_conservative_when_reached_zone_but_unconfirmed(tmp_path):
     # saver MAY have been consumed; with no ledger evidence it survived, stay conservative ->
     # False (the local model saver=True is not trusted).
     from bts.contest_state import load_decision_streak_state
-    (tmp_path / "streak.json").write_text(json.dumps({"streak": 8, "saver_available": True}))
+    (tmp_path / "streak.json").write_text(json.dumps({"season": 2026, "streak": 8, "saver_available": True}))
     sd = tmp_path / "account_state"; sd.mkdir()
     (sd / "contest_streak.json").write_text(json.dumps({
         "schema_version": "bts_contest_streak_auto_v1", "active_streak": 8,

@@ -678,7 +678,7 @@ class TestReconcileResults:
             result="hit",
         )
         save_pick(daily, tmp_path)
-        save_streak(1, tmp_path)
+        save_streak(1, tmp_path, season=2026)
 
         with patch("bts.picks.get_game_statuses_detailed", return_value={}), \
              patch("bts.picks.check_hit", return_value=True):
@@ -702,7 +702,7 @@ class TestReconcileResults:
             result="hit",
         )
         save_pick(daily, tmp_path)
-        save_streak(1, tmp_path)
+        save_streak(1, tmp_path, season=2026)
 
         with patch("bts.picks.get_game_statuses_detailed", return_value={}), \
              patch("bts.picks.check_hit", return_value=False):
@@ -755,7 +755,7 @@ class TestReconcileResults:
             pick=today_pick, double_down=None, runner_up=None, result=None,
         ), tmp_path)
 
-        save_streak(2, tmp_path)  # pre-existing state from before reconcile
+        save_streak(2, tmp_path, season=2026)  # pre-existing state from before reconcile
 
         with patch("bts.picks.get_game_statuses_detailed", return_value={}), \
              patch("bts.picks.check_hit", return_value=True):
@@ -789,7 +789,7 @@ class TestReconcileResults:
             result="hit", slot_results={"pick": "void", "double_down": "hit"},
         )
         save_pick(daily, tmp_path)
-        save_streak(0, tmp_path)
+        save_streak(0, tmp_path, season=2026)
 
         with patch("bts.picks.get_game_statuses_detailed", return_value={
             100: {"abstract": "F", "detailed": "Postponed"},
@@ -824,7 +824,7 @@ class TestReconcileResults:
         shadow = {**main, "result": None}
         (tmp_path / f"{yesterday_iso}.shadow.json").write_text(json.dumps(shadow))
 
-        save_streak(0, tmp_path)
+        save_streak(0, tmp_path, season=2026)
 
         with patch("bts.picks.get_game_statuses_detailed", return_value={}), \
              patch("bts.picks.check_hit", return_value=True):

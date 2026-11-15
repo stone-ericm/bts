@@ -2,7 +2,7 @@ import json
 import time
 import click
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import date as date_type, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 # check-results wait-loop hooks — module-level so tests can monkeypatch the
@@ -2435,7 +2435,7 @@ def check_results(
             else:
                 daily = fresh
                 new_streak = (update_streak(results, picks_path, date=date) if results
-                              else load_streak(picks_path))
+                              else load_streak(picks_path, season=date_type.fromisoformat(date).year))
                 daily.slot_results = slot_results
                 daily.result = effective_daily_result(slot_results)
                 save_pick(daily, picks_path)
@@ -2534,11 +2534,16 @@ def reconcile(picks_dir: str, lookback: int):
     finally:
         receipt.publish(picks_path)
 
+    # The receipt's clock is also the replay's clock; convert it to ET just as
+    # reconcile_results.now_et does, including at the UTC/ET New Year boundary.
+    def now_et():
+        return receipt.clock().astimezone(et)
+
     if not corrections:
-        streak = load_streak(picks_path)
+        streak = load_streak(picks_path, season=now_et().year)
         click.echo(f"No scoring changes detected. Streak: {streak}")
     else:
-        streak = load_streak(picks_path)
+        streak = load_streak(picks_path, season=now_et().year)
         click.echo(f"CORRECTIONS FOUND ({len(corrections)}):")
         for c in corrections:
             click.echo(f"  {c['date']}: {c['batter']} — {c['old_result']} -> {c['new_result']}")

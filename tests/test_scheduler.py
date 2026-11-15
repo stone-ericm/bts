@@ -990,7 +990,7 @@ class TestPollResults:
         from bts.scheduler import run_result_polling
 
         save_pick(_daily_pick(100, double_down_game_pk=200), tmp_path)
-        save_streak(3, tmp_path)
+        save_streak(3, tmp_path, season=2026)
         mock_statuses.return_value = {
             100: {"abstract": "F", "detailed": "Postponed"},
             200: {"abstract": "F", "detailed": "Final"},
@@ -1016,7 +1016,7 @@ class TestPollResults:
         from bts.scheduler import run_result_polling
 
         save_pick(_daily_pick(100, double_down_game_pk=200), tmp_path)
-        save_streak(3, tmp_path)
+        save_streak(3, tmp_path, season=2026)
         mock_poll.side_effect = lambda game_pk: "preview" if game_pk == 100 else "final"
         mock_statuses.return_value = {
             100: {"abstract": "F", "detailed": "Postponed"},

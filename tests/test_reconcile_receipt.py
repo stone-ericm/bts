@@ -41,7 +41,7 @@ def plant(picks_dir, day=DAY, *, result="hit", dd=False):
     save_pick(DailyPick(date=day, run_time=f"{day}T15:00:00Z", pick=mk(BATTER, GAME, "Chandler Simpson"),
                         double_down=mk(DD_BATTER, DD_GAME, "DD Batter") if dd else None, runner_up=None,
                         result=result, slot_results=slots), picks_dir)
-    save_streak(1, picks_dir)
+    save_streak(1, picks_dir, season=2026)
 
 
 def feed(hits=0, *, code="F", batter=BATTER, name="Chandler Simpson", pk=GAME):

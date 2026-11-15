@@ -70,7 +70,7 @@ def test_check_results_skips_when_peer_scored_mid_flight(tmp_path, monkeypatch):
     picks_dir = tmp_path / "picks"
     picks_dir.mkdir()
     _plant_scoreable_pick(picks_dir, "2026-07-08")
-    (picks_dir / "streak.json").write_text(json.dumps({"streak": 5}))
+    (picks_dir / "streak.json").write_text(json.dumps({"season": 2026, "streak": 5}))
 
     real_resolve = picks_mod.resolve_daily_slot_results
 
@@ -142,7 +142,7 @@ def test_check_results_fails_closed_when_pick_vanishes(tmp_path, monkeypatch):
     picks_dir = tmp_path / "picks"
     picks_dir.mkdir()
     _plant_scoreable_pick(picks_dir, "2026-07-08")
-    (picks_dir / "streak.json").write_text(json.dumps({"streak": 5}))
+    (picks_dir / "streak.json").write_text(json.dumps({"season": 2026, "streak": 5}))
 
     def resolve_and_delete(daily, date):
         (picks_dir / "2026-07-08.json").unlink()
@@ -166,7 +166,7 @@ def test_check_results_adopts_fresh_metadata_before_scoring(tmp_path, monkeypatc
     picks_dir = tmp_path / "picks"
     picks_dir.mkdir()
     _plant_scoreable_pick(picks_dir, "2026-07-08")
-    (picks_dir / "streak.json").write_text(json.dumps({"streak": 5}))
+    (picks_dir / "streak.json").write_text(json.dumps({"season": 2026, "streak": 5}))
 
     def resolve_and_touch_metadata(daily, date):
         peer = picks_mod.load_pick(date, picks_dir)
@@ -200,7 +200,7 @@ def test_reconcile_results_saves_under_scoring_lock(tmp_path, monkeypatch):
     scored.result = "hit"
     scored.slot_results = {"pick": "hit"}
     picks_mod.save_pick(scored, picks_dir)
-    (picks_dir / "streak.json").write_text(json.dumps({"streak": 5}))
+    (picks_dir / "streak.json").write_text(json.dumps({"season": 2026, "streak": 5}))
 
     lock_held_during_save = []
 

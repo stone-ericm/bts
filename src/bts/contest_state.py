@@ -305,11 +305,12 @@ def contest_state_is_fresh(
     return contest.source_date >= latest
 
 
-def _load_model_diagnostics(picks_dir: Path) -> tuple[int | None, bool | None, str | None]:
+def _load_model_diagnostics(picks_dir: Path, now_year: int) -> tuple[int | None, bool | None, str | None]:
     """Read one model snapshot without changing the scorer loaders' behavior.
 
-    Missing files and missing keys keep load_streak/load_saver_available's
-    defaults. Corrupt files make BOTH diagnostics unavailable, never a zero.
+    Missing files and unmatched seasons return fresh model diagnostics. A
+    matching season keeps the legacy key defaults. Corrupt files make BOTH
+    diagnostics unavailable, never a zero.
     """
     path = picks_dir / "streak.json"
     try:
@@ -318,6 +319,8 @@ def _load_model_diagnostics(picks_dir: Path) -> tuple[int | None, bool | None, s
         data = json.loads(path.read_text(encoding="utf-8"))
         if not isinstance(data, dict):
             raise TypeError("expected object")
+        if type(data.get("season")) is not int or data["season"] != now_year:
+            return 0, True, None
         return data.get("streak", 0), data.get("saver_available", True), None
     except (*_UNREADABLE, TypeError) as exc:
         error = f"{path}: {type(exc).__name__}: {exc}"
@@ -339,9 +342,9 @@ def load_decision_streak_state(
     Phase 1 surfaces stale-high via ``status``; Phase 2 makes strategy act on the
     uncertainty.
     """
-    model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir)
     now_dt = now or datetime.now(timezone.utc)
     now_year = now_dt.astimezone(ZoneInfo("America/New_York")).year
+    model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir, now_year)
     contest = load_contest_streak_state(
         picks_dir, now=now, require_dated_auto=require_contest_state)
     if contest is None:
