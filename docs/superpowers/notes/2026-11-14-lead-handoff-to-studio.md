@@ -1,4 +1,4 @@
-# BTS lead handoff: MacBook to Mac Studio (written 2026-11-14 about 23:00 ET by the outgoing lead)
+# BTS lead handoff: MacBook to Mac Studio (written 2026-11-14 at 22:42 ET by the outgoing lead; push-access section added 22:55)
 
 ## Why you exist
 Eric, 2026-11-14 night: "the studio is staying until january 7th. eor has already been told. we're still going to get the mini on the 18th. so with that in mind, let's move everything over to the studio". You are the BTS lead session, now on the studio. The previous lead ran on the MacBook (session name `bts-70`) and stops leading once the two items under "In flight" are handed to you.
@@ -30,10 +30,15 @@ If either item is still unfinished when you start, check `git log origin/main` a
 - The studio is EoR's run host and its driver (`eor-driver-studio`, herdr pane `w1:p2`) lives here. Never touch its panes, tabs or workspace. Use your own herdr workspace. Its terms for BTS batch jobs so far: one job at a time at nice 19 through `~/bts-runs/yield_run.sh`, paused while a `victoria3` process or `~/.cache/eor-studio/bts-hold` exists (never write there), BTS under 10 GiB, no new job under 15 GiB free. The outgoing lead told the driver that BTS's lead and agents are moving here and asked for its terms for interactive agents; look for its answer in `~/bts-runs/notes-for-eor-driver/` and in its pane before staffing more than two agents at once.
 - Gate: the fast suite command is in `CLAUDE.md`. Off the MacBook a known set of 53 tests fails for environment reasons (`~/bts-runs/gate-failed.txt`); green means the failing set is exactly that list.
 - Agents: Codex with `--no-daemon -c memories.use_memories=false -c memories.generate_memories=false`, reviewers also `-c model_reasoning_effort=xhigh`, Remote Control off. Gemini: `agy --model gemini-4-carbon-high`; before each use open `/config` and confirm Enable Telemetry off, Use AI Credits off, Non-Workspace Access off, Sandbox Mode on. These were verified on the MacBook only; this machine's settings may differ, so read them before the first prompt.
-- `gh` is not installed on the studio; git works over ssh.
-- Shared memory (`~/projects/claude-shared`) was diverged on this machine until tonight; it was merged and pushed at about 22:50 ET and is in sync.
+- `gh` is not installed on the studio. **The studio cannot push to the BTS repository yet** (next section).
+- Shared memory (`~/projects/claude-shared`) was diverged on this machine until tonight; it was merged and pushed at about 22:38 ET and is in sync.
 - Allowances at 21:00 ET on 11/14: Claude main 20% of the week left, resetting in about a day and a half; Codex 51%; Gemini 86%. Lean on Codex and Gemini for the heavy passes. Check `ai-usage` before staffing.
 - The MacBook keeps one thing: a passive watcher of its herdr server's scheduling priority (`~/projects/mac-bg-priority/`, runs until 2026-11-28). It is not BTS work; leave it.
+
+## Not done at handoff: push access (Eric's decision, asked 2026-11-14 22:55 ET)
+The studio's only GitHub credential is a deploy key scoped to the shared-memory repository (`~/projects/claude-shared/.git/config`, `core.sshCommand`). The BTS checkout here fetches the public repository over HTTPS and cannot push. Until 2026-11-14 it was fed by bundles from the MacBook (its old remote was `/tmp/bts-main.bundle`; it is now `https://github.com/stone-ericm/bts.git`, at `origin/main`).
+
+The outgoing lead recommended a write-enabled deploy key for this one repository, created on the studio and added to GitHub from the MacBook, and did not create it: a push to the `deploy` branch starts the production deploy workflow, so a new credential that can push is the owner's call. **Do not start as lead until this is settled.** Until then the MacBook lead keeps leading and uses the studio for agents and gates, with code returning to the MacBook for the push.
 
 ## First actions
 1. `git fetch origin && git log --oneline -8 origin/main`, check out `main`, sync the environment (`UV_CACHE_DIR=/tmp/uv-cache uv sync --extra model`), run the gate once to confirm the baseline on this commit.
