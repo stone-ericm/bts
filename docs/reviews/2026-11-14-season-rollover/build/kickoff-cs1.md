@@ -45,3 +45,6 @@ Row 4 as written says "nor a `recorded_at` string". The branch's second commit (
 Cost if wrong: with `require_contest_state` on, a file whose only date field is a damaged `recorded_at` refuses the pick with an alert where `main` picked on it as stale; the way back is the next fetch or a manual observation, with no code change.
 
 Also taken into this change set from the same review (its note N6): a date-named pick object whose `result` is not a string (a list or an object) raised `TypeError` out of `_resolved_pick_dates` on `main` and on the branch. Row 1 says no exception leaves the loader; such a file is now skipped like the other malformed pick files.
+
+## After review round 2 (2026-11-15): one confirmation round, by the owner's decision
+Round 2 (Codex, marker `CS1RC2-5e45e3ae`) closed the round-1 findings and blocked on one gap (B2): an over-long JSON integer raises a plain `ValueError` past the new handlers. The work policies cap a change at two review rounds. Put to Eric with three options (apply the fix and allow one narrow confirmation; restart with a fresh author; merge on the gate alone), he chose the first ("1"). The fix is on `sb-cs1` after `acea53f8`, test first, with the reviewer's probes adopted; a fresh Codex reviewer checks only that delta. If the confirmation blocks, the change set stops and goes back to him.
