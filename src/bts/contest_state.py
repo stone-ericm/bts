@@ -26,6 +26,10 @@ _CONTEST_STATE_NAMES = (
     "contest_streak.json",
 )
 _RESOLVED_RESULTS = {"hit", "miss", "void"}
+# What reading and decoding a state or pick file can raise. ValueError covers malformed JSON,
+# bytes that are not UTF-8, and a JSON integer longer than the interpreter's conversion limit
+# (a plain ValueError, not JSONDecodeError); RecursionError is a body nested too deeply.
+_UNREADABLE = (OSError, ValueError, RecursionError)
 
 
 class ContestStateError(RuntimeError):
@@ -136,7 +140,7 @@ def _parse_state_file(path: Path, *, require_dated: bool = False) -> ContestStre
     """Parse one contest-streak observation file. Raises ContestStateError if malformed."""
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, UnicodeDecodeError, OSError) as exc:
+    except _UNREADABLE as exc:
         raise ContestStateError(f"contest streak state malformed at {path}: {exc}") from exc
     if not isinstance(data, dict):
         raise ContestStateError(f"contest streak state malformed at {path}: expected object")
@@ -227,7 +231,7 @@ def _resolved_pick_dates(picks_dir: Path) -> list[date]:
             continue
         try:
             body = json.loads(path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, UnicodeDecodeError, OSError):
+        except _UNREADABLE:
             continue
         if not isinstance(body, dict):
             continue
@@ -273,7 +277,7 @@ def _has_unconfirmed_miss(picks_dir: Path, source_date: date) -> bool:
             continue
         try:
             body = json.loads(path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, UnicodeDecodeError, OSError):
+        except _UNREADABLE:
             continue
         if not isinstance(body, dict):
             continue
@@ -315,7 +319,7 @@ def _load_model_diagnostics(picks_dir: Path) -> tuple[int | None, bool | None, s
         if not isinstance(data, dict):
             raise TypeError("expected object")
         return data.get("streak", 0), data.get("saver_available", True), None
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError, TypeError) as exc:
+    except (*_UNREADABLE, TypeError) as exc:
         error = f"{path}: {type(exc).__name__}: {exc}"
         logger.warning("model_state_corrupt: %s", error)
         return None, None, error
