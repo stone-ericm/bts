@@ -1,0 +1,25 @@
+# Adversarial review, round 2 of 2 (final): change set 2
+
+Same rules as round 1: assume the author (and now the lead) is wrong; change no tracked file; probes, logs and the report go in `.codex-review/cs2-review/`; pytest through `~/bts-runs/yield_run.sh`; no network, box or contest account.
+
+This checkout is now at `a26958dc`. The change under review is still everything since its base: `git diff d8eb50d0 HEAD`. What changed since your round 1: `git diff 3b4196be HEAD` (three commits by the lead).
+
+## What happened after round 1
+1. **Your B1 (a corrupt `streak.json` quietly replaced by a scorer).** Accepted in full; the second reviewer reached the same judgement independently. The contract is amended: `.codex-review/cs2-review/kickoff-cs2-amended.md`, the section "Amendment after review round 1" at the end (the table above it is unchanged; where they differ the amendment decides). In short: a file that is not a readable JSON object is corrupt, not "another season"; with a season the streak and saver readers raise exactly what the dateless ones raise; `load_applied_dates` still returns `[]`; a seasonal `save_streak` raises unless it is given an explicit saver (the reconcile replay's rebuild), in which case it replaces the file as on `main`. Commit `e6d6f0a9`. **Attack the amendment and its implementation:** every scorer branch you ran in round 1 (CLI hit, miss, void; polling final and early-hit; reconcile with complete and with incomplete history) against `{`, non-UTF-8, `[]`, `null`, a number, and a body nested past the recursion limit: is the outcome now the base's, byte for byte on disk and in exit status, and is the pick left retryable? Is there any path that still writes over a corrupt file other than the complete-replay rebuild? Does the rebuild still work for every corruption the base rebuilt?
+2. **The second reviewer's blocking finding** (another model family; verify it, do not rely on it): at `3b4196be` a body nested past the decoder's recursion limit raised `RecursionError` out of the seasonal readers AND broke the reconcile rebuild that `d8eb50d0` performed. Under the amendment the readers raising is intended; the rebuild is restored (`save_streak`'s explicit-saver path catches it). Check both.
+3. **Its notes, each fixed or ruled on. Verify or refute:**
+   - Ten decision reads in `tests/test_contest_state.py` used the wall clock, so with season-tagged fixtures four tests would fail and one would pass vacuously from 2027-01-01. Fixed in `4cf73de7` by pinning `now`. Check the pins weaken nothing, and look for the same hazard in every other test file this change set touched (run them under a clock in 2027 and in 2028 by whatever means you trust; say how).
+   - A `season` argument that is not an `int` (`2027.0`, `True`) matched or wrote tags. Now a `TypeError` (`_require_int_season`). Any production caller that could pass a non-int? Any place the guard is missing?
+   - `select_pick` accepted an unpadded date (`2027-3-24`) before this change set and raised after it when no saver was passed. Now it uses the `strptime` parse the function already uses. The other new `date.fromisoformat(date)` reads (`cli.py`, `scheduler.py`): can a production caller reach them with a string that the base accepted and they reject?
+   - NOT changed, by the lead's ruling: the reconcile command samples its clock again for the summary line after the replay, so a run that crosses midnight ET on New Year's Eve prints 0 for the new year (display only). Say if you think that is wrong to leave.
+4. **Your N3** (a `date` that is not a string raised `TypeError`): now `ValueError` before any I/O.
+5. **Adopted tests.** The second reviewer's 16 adversarial tests are `tests/test_streak_season_cs2_review.py`. Two of them pinned the corrupt-file overwrite and were rewritten by the lead to the amended contract (their docstrings say so). Check all 16, and the lead's additions to `tests/test_streak_season_cs2.py`, for false greens and for assertions that pin behaviour the amended contract does not want.
+
+## Also establish
+- Your round-1 results still hold at this commit: rerun your probe and your 2,203-case differential, and report any new difference between the round-1 commit and this one that the list above does not explain.
+- Anything else in `git diff d8eb50d0 HEAD` you now consider wrong.
+
+A finding about test code or evidence tooling is a NOTE, never a BLOCK, unless it makes a false claim about behaviour that nothing else covers. Findings in code this change does not touch are NOTES for a follow-up change set; say which.
+
+## Deliverable
+`.codex-review/cs2-review/report-r2.md`, under 120 lines: `Verdict` (SIGN, SIGN WITH EDITS, or BLOCK), `Round-1 findings` (closed or not, by what you ran), `Blocking findings`, `Notes`, `False greens and changed assertions`, `What I ran`. A BLOCK names a concrete input or state, the wrong production outcome, the file and line, the smallest fix, and how you demonstrated it. When the file is complete, print `CS2RC2-<first 8 hex characters of the sha256 of report-r2.md>` on its own line and then `DONE`.
