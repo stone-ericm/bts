@@ -10,7 +10,9 @@ would otherwise stop the account for the rest of the season.
 import json
 from datetime import datetime, timedelta, timezone
 
-from bts.contest_state import load_decision_streak_state
+import pytest
+
+from bts.contest_state import ContestStateError, load_decision_streak_state
 
 NOW = datetime(2026, 9, 3, 18, 0, tzinfo=timezone.utc)
 
@@ -49,15 +51,16 @@ def test_missing_best_is_missing(tmp_path):
     assert (st.best_streak, st.best_status) == (None, "missing")
 
 
-def test_best_below_streak_is_untrusted(tmp_path):
+def test_auto_best_below_streak_is_rejected(tmp_path):
     _auto(tmp_path, streak=5, best=3)
-    st = load_decision_streak_state(tmp_path, now=NOW)
-    assert (st.best_streak, st.best_status) == (3, "untrusted")
+    with pytest.raises(ContestStateError):
+        load_decision_streak_state(tmp_path, now=NOW)
 
 
-def test_best_above_target_is_untrusted(tmp_path):
+def test_auto_best_above_target_is_rejected(tmp_path):
     _auto(tmp_path, best=99)
-    assert load_decision_streak_state(tmp_path, now=NOW).best_status == "untrusted"
+    with pytest.raises(ContestStateError):
+        load_decision_streak_state(tmp_path, now=NOW)
 
 
 def test_previous_season_observation_is_untrusted(tmp_path):
