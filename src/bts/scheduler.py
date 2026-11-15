@@ -28,6 +28,14 @@ ET = ZoneInfo("America/New_York")
 UTC = ZoneInfo("UTC")
 
 
+def _season_of(date: str) -> int:
+    """The contest season (calendar year) of a scheduler date string.
+
+    strptime, not date.fromisoformat: it accepts the unpadded 2027-3-24 that the scheduler's
+    entry points have always accepted (review of change set 2, round 2 B1)."""
+    return datetime.strptime(date, "%Y-%m-%d").year
+
+
 def _optional_health_path(value) -> Path | None:
     """Resolve optional health-check paths with a simple disable escape hatch."""
     if value is False or value is None or value == "":
@@ -1896,7 +1904,7 @@ def _run_shadow_prediction(
             print("  [SHADOW MODEL] No predictions returned.", file=sys.stderr)
             return
 
-        streak = load_streak(picks_dir, season=date_type.fromisoformat(date).year)
+        streak = load_streak(picks_dir, season=_season_of(date))
         try:
             game_statuses_detailed = get_game_statuses_detailed(date)
         except Exception:
@@ -2558,7 +2566,7 @@ def run_result_polling(
                         scored_elsewhere = fresh.result in ("hit", "miss", "void")
                         daily = fresh  # adopt peer metadata either way
                         if scored_elsewhere:
-                            new_streak = load_streak(picks_dir, season=date_type.fromisoformat(date).year)
+                            new_streak = load_streak(picks_dir, season=_season_of(date))
                         else:
                             new_streak = update_streak([True] * n_picks, picks_dir, date=date)
                             daily.result = "hit"
@@ -2602,12 +2610,12 @@ def run_result_polling(
                         return "unresolved"  # vanished mid-flight: fail closed (review #6)
                     daily = fresh  # adopt peer metadata before mutating
                     if daily.result in ("hit", "miss", "void"):
-                        new_streak = load_streak(picks_dir, season=date_type.fromisoformat(date).year)
+                        new_streak = load_streak(picks_dir, season=_season_of(date))
                         print(f"  Result already scored elsewhere ({daily.result}).",
                               file=sys.stderr)
                     else:
                         new_streak = (update_streak(results, picks_dir, date=date) if results
-                                      else load_streak(picks_dir, season=date_type.fromisoformat(date).year))
+                                      else load_streak(picks_dir, season=_season_of(date)))
                         daily.slot_results = slot_results
                         daily.result = effective_daily_result(slot_results)
                         save_pick(daily, picks_dir)

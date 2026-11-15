@@ -13,8 +13,9 @@ Designed to be adopted directly into `tests/` once B1 (`RecursionError` in
   spent saver, once-per-date rule, pp1 B1 on tagged and tagless files, dateless updates/saves)
 - Year/date/type boundaries (2026-12-31 -> 2027-01-01, UTC/ET New Year reconcile summary,
   malformed/non-string dates, non-int season tags)
-- B1 blocker: deeply nested non-object JSON (`DEEP`) in `streak.json` must return season-fresh
-  values and let `reconcile_results` repair `streak.json`, matching CS1's decoder-limit contract
+- B1 blocker: deeply nested non-object JSON (`DEEP`) in `streak.json` is corrupt: the seasonal
+  readers raise as the dateless ones do (the amended contract), and `reconcile_results` still
+  repairs `streak.json`
 """
 from __future__ import annotations
 

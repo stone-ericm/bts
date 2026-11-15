@@ -228,22 +228,32 @@ def test_row6_cli_void_display_reads_scored_season(tmp_path, monkeypatch, tag):
     plant(tmp_path, tag)
     resolved_pick(tmp_path, "2027-03-24", None)
     monkeypatch.setattr(p, "resolve_daily_slot_results", lambda *a: {"pick": "void"})
+    # Pin the command's clock to the night of the fixture date: check-results refuses to score a
+    # date more than two days old, so on the wall clock this test turned red on 2027-03-27
+    # (review round 2 of change set 2, found under a 2028 clock).
+    import datetime as _dt
+    from zoneinfo import ZoneInfo
+    import bts.cli as cli_mod
+    monkeypatch.setattr(cli_mod, "_now_et",
+                        lambda: _dt.datetime(2027, 3, 25, 1, 0, tzinfo=ZoneInfo("America/New_York")))
     result = CliRunner().invoke(cli, ["check-results", "--date", "2027-03-24", "--picks-dir", str(tmp_path)])
     assert result.exit_code == 0, result.output
     assert "All picks void. Streak unchanged: 0" in result.output
     assert snapshot(tmp_path)["streak"] == 13  # display is read-only
 
 
+# The unpadded form is one the scheduler accepted before this change set (review round 2, B1).
+@pytest.mark.parametrize("day", ["2027-03-24", "2027-3-24"], ids=["padded", "unpadded"])
 @pytest.mark.parametrize("mode", ["void", "final_peer", "midgame_peer"])
-def test_row6_scheduler_display_reads_scored_season(tmp_path, monkeypatch, capsys, mode):
+def test_row6_scheduler_display_reads_scored_season(tmp_path, monkeypatch, capsys, mode, day):
     from bts import scheduler as s
     plant(tmp_path, 2026)
-    resolved_pick(tmp_path, "2027-03-24", None)
+    resolved_pick(tmp_path, day, None)
     monkeypatch.setattr(s, "_now_et", lambda: datetime(2027, 3, 24, 23, tzinfo=ET))
     monkeypatch.setattr(s, "poll_game_result", lambda *a: "live" if mode == "midgame_peer" else "final")
     monkeypatch.setattr(p, "get_game_statuses_detailed", lambda *a: {})
     def peer(*a):
-        daily = p.load_pick("2027-03-24", tmp_path)
+        daily = p.load_pick(day, tmp_path)
         daily.result = "hit"
         p.save_pick(daily, tmp_path)
         return [True]
@@ -253,7 +263,7 @@ def test_row6_scheduler_display_reads_scored_season(tmp_path, monkeypatch, capsy
         monkeypatch.setattr(s, "_poll_interval_sleep", lambda *a, **k: None)
         polls = iter(["live", "final"])
         monkeypatch.setattr(s, "poll_game_result", lambda *a: next(polls))
-        daily = p.load_pick("2027-03-24", tmp_path)
+        daily = p.load_pick(day, tmp_path)
         daily.bluesky_uri = "at://test"
         p.save_pick(daily, tmp_path)
     def resolve(*a):
@@ -263,7 +273,7 @@ def test_row6_scheduler_display_reads_scored_season(tmp_path, monkeypatch, capsy
     monkeypatch.setattr(p, "resolve_daily_slot_results", resolve)
     with patch("bts.posting.format_result_reply", return_value="reply") as reply, \
          patch("bts.posting.reply_to_bluesky"):
-        assert s.run_result_polling(111, "2027-03-24", tmp_path) == "final"
+        assert s.run_result_polling(111, day, tmp_path) == "final"
     if mode == "midgame_peer":
         reply.assert_called_once_with("hit", 0)
     else:
@@ -288,7 +298,8 @@ def test_row7_reconcile_summary_uses_replay_et_clock(tmp_path, monkeypatch, corr
     assert ("Streak: 0" if not corrections else "Streak recalculated: 0") in result.output
 
 
-def test_row8_shadow_selection_uses_own_date_season(tmp_path, monkeypatch):
+@pytest.mark.parametrize("day", ["2027-03-24", "2027-3-24"], ids=["padded", "unpadded"])
+def test_row8_shadow_selection_uses_own_date_season(tmp_path, monkeypatch, day):
     from bts import scheduler as s
     plant(tmp_path, 2026)
     seen = []
@@ -301,7 +312,7 @@ def test_row8_shadow_selection_uses_own_date_season(tmp_path, monkeypatch):
         seen.append(kw["streak"])
         return SimpleNamespace(pick_result=None)
     monkeypatch.setattr(s, "select_pick", select)
-    s._run_shadow_prediction({"orchestrator": {"picks_dir": str(tmp_path)}}, "2027-03-24", "Prod")
+    s._run_shadow_prediction({"orchestrator": {"picks_dir": str(tmp_path)}}, day, "Prod")
     assert seen == [0]
 
 
@@ -384,7 +395,7 @@ def test_a_season_argument_that_is_not_an_int_is_a_type_error(tmp_path, bad):
                  lambda: p.load_saver_available(tmp_path, season=bad),
                  lambda: p.load_applied_dates(tmp_path, season=bad),
                  lambda: p.save_streak(3, tmp_path, season=bad)):
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match="season must be an int or None"):
             call()
     assert (tmp_path / "streak.json").read_bytes() == before
 
