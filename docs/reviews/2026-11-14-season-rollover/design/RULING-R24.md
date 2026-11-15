@@ -25,5 +25,12 @@ Kept from the designer's proposal: `not_earned` below 10 reaches the policy as i
 2. After a mid-season restore of the box, he confirms whether the saver has been used; until then it counts as spent.
 3. Reading the real account's responses across the boundary in March is his to authorise, as now.
 
+## Owner decision (Eric, 2026-11-14 evening)
+Asked whether, on a mid-season day when the contest reading is stale, the system should keep picking on the last confirmed streak or skip, with the lead recommending keep picking plus a DM: **"i prefer keep picking"**.
+
+- Scope: an ordinary in-season day after the switch to automatic, when an accepted current-season observation exists but is behind (a failed fetch, a late contest settlement, an ambiguous new response). The decision uses the last accepted value and a pick is made.
+- What changes from today's code: the stale case sends a DM (today it is a log-only warning), and the pick's record says it was made on a stale reading.
+- Not covered by this decision, and unchanged from the ruling: the opening stretch before the switch (there is no accepted current-season value to fall back on, so a streak is supplied for the date or there is no pick), and the saver after a restore (counted as spent until he confirms). This reading of the scope is the lead's; he was asked about the mid-season case.
+
 ## Next
 The designer revises its document into the build specification under these rulings (`design-v2.md`); the uncontested change sets (defensive reads with F1, the `streak.json` season tag, the saver mapping) go first, each to a fresh author who runs every test touching the modules it changes, with a same-day adversarial review before push.
