@@ -52,12 +52,59 @@ def test_row1_dateless_corruption_behavior_is_unchanged(tmp_path, raw, error):
     assert p.load_applied_dates(tmp_path) == []
 
 
-@pytest.mark.parametrize("raw", [b"{", b"\xff", b"[]", b"null", b"7"])
-def test_row1_nonobject_or_unparseable_file_cannot_match_season(tmp_path, raw):
+DEEP = b"[" * 200_000 + b"]" * 200_000   # nested past the decoder's recursion limit (Carbon r1 B1)
+CORRUPT = [(b"{", json.JSONDecodeError), (b"\xff", UnicodeDecodeError), (b"[]", AttributeError),
+           (b"null", AttributeError), (b"7", AttributeError), (DEEP, RecursionError)]
+CORRUPT_IDS = ["brace", "not-utf8", "list", "null", "number", "deep"]
+
+
+@pytest.mark.parametrize("raw, error", CORRUPT, ids=CORRUPT_IDS)
+def test_row1_a_corrupt_file_is_an_error_with_a_season_too(tmp_path, raw, error):
+    """Review r1 B1 (contract amendment): unreadable state is corrupt, not "another season".
+
+    The season-aware readers raise exactly what the dateless ones raise; the marker reader keeps
+    swallowing, as it always has. Nothing is rewritten."""
     (tmp_path / "streak.json").write_bytes(raw)
-    assert (p.load_streak(tmp_path, season=2027), p.load_saver_available(tmp_path, season=2027),
-            p.load_applied_dates(tmp_path, season=2027)) == (0, True, [])
+    for loader in (p.load_streak, p.load_saver_available):
+        with pytest.raises(error):
+            loader(tmp_path, season=2027)
+    assert p.load_applied_dates(tmp_path, season=2027) == []
     assert (tmp_path / "streak.json").read_bytes() == raw
+
+
+@pytest.mark.parametrize("raw, error", CORRUPT, ids=CORRUPT_IDS)
+@pytest.mark.parametrize("results", [[True], [False], [True, True]])
+def test_row3_dated_update_on_a_corrupt_file_raises_and_preserves_it(tmp_path, raw, error, results):
+    """Review r1 B1: a scorer must not replace corrupt state with an invented fresh counter."""
+    (tmp_path / "streak.json").write_bytes(raw)
+    with pytest.raises(error):
+        p.update_streak(results, tmp_path, date="2027-06-01")
+    assert (tmp_path / "streak.json").read_bytes() == raw
+
+
+@pytest.mark.parametrize("raw, error", CORRUPT, ids=CORRUPT_IDS)
+def test_row2_seasonal_save_on_a_corrupt_file(tmp_path, raw, error):
+    """Without an explicit saver the save must read the file, so it raises (as the dateless save does);
+    with one (the reconcile replay's rebuild) it replaces the corrupt file, as on main."""
+    path = tmp_path / "streak.json"
+    path.write_bytes(raw)
+    with pytest.raises(error):
+        p.save_streak(4, tmp_path, season=2027)
+    assert path.read_bytes() == raw
+    p.save_streak(4, tmp_path, saver_available=False, season=2027)
+    data = json.loads(path.read_text())
+    assert (data["season"], data["streak"], data["saver_available"], data["applied_dates"]) == (2027, 4, False, [])
+
+
+def test_row3_a_date_object_is_a_value_error_before_any_io(tmp_path):
+    """Review r1 N3: the row promises ValueError for anything that is not an ISO date string."""
+    import datetime
+    (tmp_path / "streak.json").write_text(json.dumps({"season": 2027, "streak": 5}))
+    before = (tmp_path / "streak.json").read_bytes()
+    for bad in (datetime.date(2027, 3, 24), 20270324, b"2027-03-24"):
+        with pytest.raises(ValueError):
+            p.update_streak([True], tmp_path, date=bad)
+    assert (tmp_path / "streak.json").read_bytes() == before
 
 
 def test_row1_missing_file_and_missing_keys_keep_defaults(tmp_path):
@@ -311,3 +358,40 @@ def test_row12_tagged_file_still_validates_and_exports(tmp_path):
     assert check(tmp_path) == []
     exported = export_initial_state(tmp_path, tmp_path / "export.json")
     assert (exported["streak_at_cutoff"], exported["saver_available"]) == (13, False)
+
+
+def test_row9_strategy_accepts_the_unpadded_date_it_accepted_before(tmp_path):
+    """Carbon r1 N4(c): select_pick parses its date with strptime elsewhere, which takes 2027-3-24;
+    the saver fallback's season must not be stricter than the function it sits in."""
+    from bts import strategy as s
+    from tests.test_strategy import _predictions
+    plant(tmp_path, 2026)
+    preds = _predictions([{"p_game_hit": .85}])
+    with patch.object(s, "get_game_statuses", return_value={778899: "P"}), \
+         patch.object(s, "_load_mdp", return_value=None), \
+         patch.object(s, "resolve_policy_decision", wraps=s.resolve_policy_decision) as decide:
+        s.select_pick(preds, "2027-3-24", tmp_path, streak=13)
+    assert decide.call_args.args[2] is True
+
+
+@pytest.mark.parametrize("bad", [2027.0, True, "2027"])
+def test_a_season_argument_that_is_not_an_int_is_a_type_error(tmp_path, bad):
+    """Carbon r1 N2: 2027.0 == 2027 and True == 1, so an unchecked argument could match a tag or
+    write a tag no reader will ever match."""
+    (tmp_path / "streak.json").write_text(json.dumps({"season": 2027, "streak": 5}))
+    before = (tmp_path / "streak.json").read_bytes()
+    for call in (lambda: p.load_streak(tmp_path, season=bad),
+                 lambda: p.load_saver_available(tmp_path, season=bad),
+                 lambda: p.load_applied_dates(tmp_path, season=bad),
+                 lambda: p.save_streak(3, tmp_path, season=bad)):
+        with pytest.raises(TypeError):
+            call()
+    assert (tmp_path / "streak.json").read_bytes() == before
+
+
+def test_row5_reconcile_rebuilds_a_deeply_nested_file_as_it_did_before(tmp_path):
+    """Carbon r1 B1 (2): the replay's explicit-saver save replaced a corrupt file on main; it still does."""
+    (tmp_path / "streak.json").write_bytes(DEEP)
+    p.save_streak(2, tmp_path, saver_available=True, season=2027)
+    data = json.loads((tmp_path / "streak.json").read_text())
+    assert (data["season"], data["streak"], data["saver_available"]) == (2027, 2, True)

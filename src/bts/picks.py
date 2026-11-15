@@ -513,16 +513,24 @@ def parse_daily_pick(text: str) -> DailyPick:
     )
 
 
+def _require_int_season(season) -> None:
+    """2027.0 == 2027 and True == 1: an unchecked argument could match a tag, or write one that no
+    reader will ever match. None (no season) is the callers' explicit choice and is allowed."""
+    if season is not None and type(season) is not int:
+        raise TypeError(f"season must be an int or None, got {season!r}")
+
+
 def _load_streak_season(path: Path, season: int) -> dict:
-    """Only an object tagged with the exact integer season can supply model state."""
-    try:
-        data = json.loads(path.read_text())
-    except (OSError, ValueError):
-        return {}
-    if (isinstance(data, dict) and type(data.get("season")) is int
-            and data["season"] == season):
-        return data
-    return {}
+    """Only an object tagged with the exact integer season can supply model state.
+
+    A file that cannot be read as a JSON object is CORRUPT, not "another season": this raises exactly
+    what the dateless read raises on it (a decode error, or AttributeError for a non-object), so a
+    scorer stops with the file intact instead of replacing it with an invented fresh counter
+    (review of change set 2, B1).
+    """
+    data = json.loads(path.read_text())
+    tag = data.get("season")
+    return data if type(tag) is int and tag == season else {}
 
 
 def load_streak(picks_dir: Path, *, season: int | None = None) -> int:
@@ -530,6 +538,7 @@ def load_streak(picks_dir: Path, *, season: int | None = None) -> int:
 
     ``season=None`` retains the legacy read, including corrupt-file errors.
     """
+    _require_int_season(season)
     path = picks_dir / "streak.json"
     if not path.exists():
         return 0
@@ -542,6 +551,7 @@ def load_saver_available(picks_dir: Path, *, season: int | None = None) -> bool:
 
     ``season=None`` retains the legacy read, including corrupt-file errors.
     """
+    _require_int_season(season)
     path = picks_dir / "streak.json"
     if not path.exists():
         return True
@@ -554,6 +564,7 @@ APPLIED_DATES_KEPT = 30
 
 def load_applied_dates(picks_dir: Path, *, season: int | None = None) -> list[str]:
     """The dates whose result update_streak has already applied (newest last); [] for a legacy file."""
+    _require_int_season(season)
     path = Path(picks_dir) / "streak.json"
     if not path.exists():
         return []
@@ -574,12 +585,19 @@ def save_streak(streak: int, picks_dir: Path, saver_available: bool | None = Non
     saver/markers only from the matching season. A dateless save preserves any
     existing season tag verbatim and keeps the legacy saver/marker behavior.
     """
+    _require_int_season(season)
     picks_dir.mkdir(parents=True, exist_ok=True)
     path = picks_dir / "streak.json"
     existing = {}
     if path.exists():
         if season is not None:
-            existing = _load_streak_season(path, season)
+            # A seasonal save that must read the saver raises on a corrupt file, like the dateless
+            # one. With an explicit saver (the reconcile replay's rebuild) it replaces the file.
+            try:
+                existing = _load_streak_season(path, season)
+            except Exception:
+                if saver_available is None:
+                    raise
         elif saver_available is None:
             existing = json.loads(path.read_text())
         else:
@@ -647,7 +665,7 @@ def update_streak(results: list[bool], picks_dir: Path, *, date: str | None = No
     # Validate before any state read, even if a malformed marker is already present.
     season = None
     if date is not None:
-        if not _ISO_DATE_RE.fullmatch(date):
+        if not isinstance(date, str) or not _ISO_DATE_RE.fullmatch(date):
             raise ValueError(f"invalid ISO contest date: {date!r}")
         season = date_type.fromisoformat(date).year
     current = load_streak(picks_dir, season=season)

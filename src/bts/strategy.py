@@ -12,7 +12,7 @@ share the same decision logic.
 import io
 import logging
 from dataclasses import asdict, dataclass
-from datetime import date as date_type, datetime, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 import hashlib
@@ -570,7 +570,9 @@ def select_pick(
     # context carries the resolved MDP policy, the selected primary/second candidates,
     # and allow_double. second_p stays a raw pandas value so p_both is computed
     # exactly as the inline branch did (best_row * second, no dtype coercion).
-    saver = (load_saver_available(picks_dir, season=date_type.fromisoformat(date).year)
+    # The season comes from the same parse the rest of selection uses for `date` (strptime accepts
+    # an unpadded 2027-3-24, which callers could always pass here).
+    saver = (load_saver_available(picks_dir, season=datetime.strptime(date, "%Y-%m-%d").year)
              if saver_available is None else saver_available)
     second_row = diff_game.iloc[0] if len(diff_game) >= 1 else None
     ctx = DecisionContext(
