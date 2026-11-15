@@ -231,7 +231,8 @@ def _resolved_pick_dates(picks_dir: Path) -> list[date]:
             continue
         if not isinstance(body, dict):
             continue
-        if body.get("result") not in _RESOLVED_RESULTS:
+        result = body.get("result")
+        if not isinstance(result, str) or result not in _RESOLVED_RESULTS:
             continue
         dates.append(pick_date)
     return dates

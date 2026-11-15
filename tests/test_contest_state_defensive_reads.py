@@ -78,6 +78,18 @@ def test_corrupt_pick_is_skipped_by_both_scans(tmp_path, contents):
     assert (state.streak, state.status) == (13, "stale")
 
 
+@pytest.mark.parametrize("result", [[], {}, ["miss"]], ids=["list", "object", "list-of-miss"])
+def test_pick_with_unhashable_result_is_skipped_by_both_scans(tmp_path, result):
+    """Row 1 (review r1 N6): a pick object whose result is not a string is not a settled pick."""
+    _auto(tmp_path, source_date="2027-03-22")
+    (tmp_path / "2027-03-24.json").write_text(json.dumps({"result": result}))
+    (tmp_path / "2027-03-23.json").write_text('{"result":"miss"}')
+    assert _resolved_pick_dates(tmp_path) == [date(2027, 3, 23)]
+    assert _has_unconfirmed_miss(tmp_path, date(2027, 3, 22))
+    state = load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW)
+    assert (state.streak, state.status) == (13, "stale")
+
+
 @pytest.mark.parametrize("filename", ["contest_streak.json", "contest_streak.manual.json"])
 @pytest.mark.parametrize("contents", CORRUPTIONS, ids=CORRUPTION_IDS)
 def test_corrupt_contest_file_raises_domain_error(tmp_path, filename, contents):
