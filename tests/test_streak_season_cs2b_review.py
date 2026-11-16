@@ -13,8 +13,10 @@ Covers:
   compact/week and cross-spelling characterization, today unresolved+applied replay guard, dateless
   update between dated updates)
 - Corrupt state: an unreadable (chmod 000) file through the scorers and the complete-replay rebuild.
-  The other corrupt payloads are covered in tests/test_streak_season_cs2.py and
-  tests/test_streak_season_cs2_review.py, not here (corrected after review round 2).
+  Not here: tests/test_streak_season_cs2.py and tests/test_streak_season_cs2_review.py cover a
+  truncated object (`{`), non-UTF-8 bytes, `[]`, `null`, a number and a deeply nested body. No test
+  file covers an empty file, a JSON string or an over-long integer in streak.json; DEEP_JSON and
+  HUGE_INT_JSON below are unused (wording corrected after the confirmation review).
 """
 from __future__ import annotations
 
