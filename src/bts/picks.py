@@ -518,8 +518,12 @@ def season_of_date(date) -> int | None:
 
     Read callers use None for the legacy, unscoped state. Writers must reject
     an unknown season before touching state. Keep the original date as marker.
+
+    Only an exact built-in ``str`` is parsed. ``type(date) is str`` consults nothing on the value
+    (``isinstance`` reads its ``__class__``, and the parsers call methods a str subclass can
+    override), so no object can raise, exit or stall in here; a str subclass reads as "cannot tell".
     """
-    if not isinstance(date, str):
+    if type(date) is not str:
         return None
     try:
         return date_type.fromisoformat(date).year
@@ -684,7 +688,8 @@ def update_streak(results: list[bool], picks_dir: Path, *, date: str | None = No
     if date is not None:
         season = season_of_date(date)
         if season is None:
-            raise ValueError(f"cannot determine season of contest date: {date!r}")
+            shown = repr(date) if type(date) is str else f"<{type(date).__name__}>"
+            raise ValueError(f"cannot determine season of contest date: {shown}")
     current = load_streak(picks_dir, season=season)
     saver = load_saver_available(picks_dir, season=season)
     if date is not None and date in load_applied_dates(picks_dir, season=season):

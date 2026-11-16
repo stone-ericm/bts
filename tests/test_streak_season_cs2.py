@@ -28,6 +28,61 @@ DATE_CASES = [
 ]
 
 
+# Review round 1 of the second attempt (Codex B1 and R1): the season of a date is decided from an
+# exact built-in str only. Anything else, including a str SUBCLASS, reads as "cannot tell", and no
+# attribute or method of the value is ever consulted, so a hostile or broken object cannot raise,
+# exit or stall inside the helper.
+class _ClassTrap:
+    @property
+    def __class__(self):
+        raise RuntimeError("non-string class hook")
+
+    def __str__(self):
+        return "junk"
+
+
+class _LenExits(str):
+    def __len__(self):
+        raise SystemExit("string length hook")
+
+
+class _PlainSubclass(str):
+    pass
+
+
+# Built inside each test: pytest's own collection inspects parametrised values and trips the traps.
+HOOKS = {
+    "class-trap": lambda: _ClassTrap(),
+    "len-exits-unpadded": lambda: _LenExits("2027-3-24"),
+    "len-exits-padded": lambda: _LenExits("2027-03-24"),
+    "plain-subclass": lambda: _PlainSubclass("2027-03-24"),
+}
+
+
+@pytest.mark.parametrize("kind", sorted(HOOKS))
+def test_season_of_date_never_consults_the_value_unless_it_is_an_exact_str(kind):
+    try:
+        got = p.season_of_date(HOOKS[kind]())
+    except BaseException as exc:   # SystemExit must not escape into pytest
+        got = exc
+    assert got is None, repr(got)
+
+
+@pytest.mark.parametrize("kind", sorted(HOOKS))
+def test_row3_update_with_a_non_exact_str_date_is_a_value_error_before_io(tmp_path, kind):
+    plant(tmp_path, 2027)
+    before = (tmp_path / "streak.json").read_bytes()
+    raised = None
+    with patch.object(p, "load_streak", wraps=p.load_streak) as reads:
+        try:
+            p.update_streak([True], tmp_path, date=HOOKS[kind]())
+        except BaseException as exc:   # SystemExit must not escape into pytest
+            raised = exc
+    assert type(raised) is ValueError, repr(raised)
+    assert reads.call_count == 0
+    assert (tmp_path / "streak.json").read_bytes() == before
+
+
 @pytest.mark.parametrize("day,season", DATE_CASES)
 def test_season_of_date_table(day, season):
     assert p.season_of_date(day) == season
@@ -307,9 +362,9 @@ def test_row6_scheduler_display_reads_scored_season(tmp_path, monkeypatch, capsy
          patch("bts.posting.reply_to_bluesky"):
         assert s.run_result_polling(111, day, tmp_path) == "final"
     if mode == "midgame_peer":
-        reply.assert_called_once_with("hit", 0 if season else 13)
+        reply.assert_called_once_with("hit", 0 if season is not None else 13)
     else:
-        assert f"Streak: {0 if season else 13}" in capsys.readouterr().err
+        assert f"Streak: {0 if season is not None else 13}" in capsys.readouterr().err
     assert snapshot(tmp_path)["streak"] == 13
 
 
@@ -347,7 +402,7 @@ def test_row8_shadow_selection_uses_own_date_season(tmp_path, monkeypatch, day, 
         return SimpleNamespace(pick_result=None)
     monkeypatch.setattr(s, "select_pick", select)
     s._run_shadow_prediction({"orchestrator": {"picks_dir": str(tmp_path)}}, day, "Prod")
-    assert seen == [0 if season else 13]
+    assert seen == [0 if season is not None else 13]
 
 
 def test_row9_strategy_saver_fallback_uses_selection_date(tmp_path):
@@ -461,7 +516,7 @@ def test_row9_saver_read_never_rejects_date(tmp_path, day, season):
                 s.select_pick(_predictions([{"p_game_hit": .85}]), day, tmp_path, streak=13)
     read.assert_called_once_with(tmp_path, season=season)
     assert decide.call_count == 1
-    assert decide.call_args.args[2] is (True if season else False)
+    assert decide.call_args.args[2] is (season is not None)
 
 
 @pytest.mark.parametrize("day,season", DATE_CASES)

@@ -98,6 +98,12 @@ def _mock_predictions():
     ])
 
 
+
+def _current_et_year() -> int:
+    from datetime import datetime as _dt
+    from zoneinfo import ZoneInfo as _ZI
+    return _dt.now(_ZI("America/New_York")).year
+
 class TestBtsRun:
     @patch("bts.posting.post_to_bluesky")
     @patch("bts.posting.should_post_now", return_value=True)
@@ -197,7 +203,10 @@ class TestBtsRun:
         picks_dir = tmp_path / "picks"
         models_dir = tmp_path / "models"
         picks_dir.mkdir()
-        save_streak(4, picks_dir, saver_available=True, season=2026)
+        # The command reads the wall clock for the model streak's season, so the fixture carries the
+        # current ET year: the model streak (4) stays a real competitor to the contest streak (7)
+        # in any year (review of change set 2, Carbon's note N1).
+        save_streak(4, picks_dir, saver_available=True, season=_current_et_year())
         state_dir = picks_dir / "account_state"
         state_dir.mkdir()
         (state_dir / "contest_streak.manual.json").write_text(json.dumps({
@@ -238,7 +247,10 @@ class TestBtsPreview:
         picks_dir = tmp_path / "picks"
         models_dir = tmp_path / "models"
         picks_dir.mkdir()
-        save_streak(4, picks_dir, saver_available=True, season=2026)
+        # The command reads the wall clock for the model streak's season, so the fixture carries the
+        # current ET year: the model streak (4) stays a real competitor to the contest streak (7)
+        # in any year (review of change set 2, Carbon's note N1).
+        save_streak(4, picks_dir, saver_available=True, season=_current_et_year())
         state_dir = picks_dir / "account_state"
         state_dir.mkdir()
         (state_dir / "contest_streak.manual.json").write_text(json.dumps({
