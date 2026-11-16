@@ -12,8 +12,9 @@ Covers:
 - Mid-season paths on a 2027-tagged file (saver 9..16 incl. DD miss, once-per-date incl. unpadded/
   compact/week and cross-spelling characterization, today unresolved+applied replay guard, dateless
   update between dated updates)
-- Corrupt state (`{`, non-UTF-8, empty, `[]`, `null`, number, string, deep recursion, >4300-digit
-  int, `chmod 000` unreadable file) across scorers, decision state, and complete/incomplete replay
+- Corrupt state: an unreadable (chmod 000) file through the scorers and the complete-replay rebuild.
+  The other corrupt payloads are covered in tests/test_streak_season_cs2.py and
+  tests/test_streak_season_cs2_review.py, not here (corrected after review round 2).
 """
 from __future__ import annotations
 
@@ -418,11 +419,17 @@ def test_full_rollover_lifecycle_void_hit_double_race_crash_and_reconcile(tmp_pa
     _plant_daily(picks_dir, "2027-03-26", double=True)
     real_resolve = p.resolve_daily_slot_results
 
+    peer_ran = []
+
     def resolve_with_peer_interleave(daily, day):
         res = real_resolve(daily, day)
-        # Simulate cron check-results completing while polling is between resolve and lock
-        r_cron = CliRunner().invoke(cli, ["check-results", "--date", day, "--picks-dir", str(picks_dir)])
-        assert r_cron.exit_code == 0
+        # Simulate cron check-results completing while polling is between resolve and lock.
+        # The peer runs ONCE: its own scoring calls this same mock, and without the guard it
+        # recursed into itself 62 times (review round 2's note on this adopted test).
+        if not peer_ran:
+            peer_ran.append(day)
+            r_cron = CliRunner().invoke(cli, ["check-results", "--date", day, "--picks-dir", str(picks_dir)])
+            assert r_cron.exit_code == 0, r_cron.output
         return res
 
     replies_race = []

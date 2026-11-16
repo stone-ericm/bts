@@ -688,8 +688,10 @@ def update_streak(results: list[bool], picks_dir: Path, *, date: str | None = No
     if date is not None:
         season = season_of_date(date)
         if season is None:
-            shown = repr(date) if type(date) is str else f"<{type(date).__name__}>"
-            raise ValueError(f"cannot determine season of contest date: {shown}")
+            # Nothing of a non-str value is touched to build the message: its type's name, its
+            # repr and its str are all caller code (review of the second attempt, round 2 B2).
+            shown = repr(date) if type(date) is str else "<not a str>"
+            raise ValueError("cannot determine season of contest date: " + shown)
     current = load_streak(picks_dir, season=season)
     saver = load_saver_available(picks_dir, season=season)
     if date is not None and date in load_applied_dates(picks_dir, season=season):

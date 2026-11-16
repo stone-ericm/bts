@@ -50,8 +50,21 @@ class _PlainSubclass(str):
     pass
 
 
+class _NameTrapMeta(type):
+    """Review round 2, B2: asking this value's TYPE for its name runs caller code."""
+    def __getattribute__(cls, name):
+        if name == "__name__":
+            raise RuntimeError("metaclass name hook")
+        return super().__getattribute__(name)
+
+
+class _NameTrap(metaclass=_NameTrapMeta):
+    pass
+
+
 # Built inside each test: pytest's own collection inspects parametrised values and trips the traps.
 HOOKS = {
+    "type-name-trap": lambda: _NameTrap(),
     "class-trap": lambda: _ClassTrap(),
     "len-exits-unpadded": lambda: _LenExits("2027-3-24"),
     "len-exits-padded": lambda: _LenExits("2027-03-24"),
