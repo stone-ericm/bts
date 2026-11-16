@@ -23,7 +23,7 @@ import pandas as pd
 from bts.picks import (
     DailyPick, Pick, pick_from_row, load_pick, get_game_statuses,
     get_game_statuses_detailed, load_saver_available, classify_pick_lock_state,
-    pick_candidate_status_is_available,
+    pick_candidate_status_is_available, season_of_date,
 )
 from bts.simulate.tail_policy import (
     OBJECTIVE_REACH57, OBJECTIVE_TAIL, effective_best, effective_days,
@@ -570,9 +570,7 @@ def select_pick(
     # context carries the resolved MDP policy, the selected primary/second candidates,
     # and allow_double. second_p stays a raw pandas value so p_both is computed
     # exactly as the inline branch did (best_row * second, no dtype coercion).
-    # The season comes from the same parse the rest of selection uses for `date` (strptime accepts
-    # an unpadded 2027-3-24, which callers could always pass here).
-    saver = (load_saver_available(picks_dir, season=datetime.strptime(date, "%Y-%m-%d").year)
+    saver = (load_saver_available(picks_dir, season=season_of_date(date))
              if saver_available is None else saver_available)
     second_row = diff_game.iloc[0] if len(diff_game) >= 1 else None
     ctx = DecisionContext(

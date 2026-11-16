@@ -513,6 +513,23 @@ def parse_daily_pick(text: str) -> DailyPick:
     )
 
 
+def season_of_date(date) -> int | None:
+    """Return a date string's calendar year, or None when it cannot be read.
+
+    Read callers use None for the legacy, unscoped state. Writers must reject
+    an unknown season before touching state. Keep the original date as marker.
+    """
+    if not isinstance(date, str):
+        return None
+    try:
+        return date_type.fromisoformat(date).year
+    except Exception:
+        try:
+            return datetime.strptime(date, "%Y-%m-%d").year
+        except Exception:
+            return None
+
+
 def _require_int_season(season) -> None:
     """2027.0 == 2027 and True == 1: an unchecked argument could match a tag, or write one that no
     reader will ever match. None (no season) is the callers' explicit choice and is allowed."""
@@ -665,9 +682,9 @@ def update_streak(results: list[bool], picks_dir: Path, *, date: str | None = No
     # Validate before any state read, even if a malformed marker is already present.
     season = None
     if date is not None:
-        if not isinstance(date, str) or not _ISO_DATE_RE.fullmatch(date):
-            raise ValueError(f"invalid ISO contest date: {date!r}")
-        season = date_type.fromisoformat(date).year
+        season = season_of_date(date)
+        if season is None:
+            raise ValueError(f"cannot determine season of contest date: {date!r}")
     current = load_streak(picks_dir, season=season)
     saver = load_saver_available(picks_dir, season=season)
     if date is not None and date in load_applied_dates(picks_dir, season=season):

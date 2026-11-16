@@ -2,7 +2,7 @@ import json
 import time
 import click
 from pathlib import Path
-from datetime import date as date_type, datetime, timedelta
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 # check-results wait-loop hooks — module-level so tests can monkeypatch the
@@ -2266,7 +2266,7 @@ def check_results(
     """
     from pathlib import Path
     from bts.picks import (
-        load_pick, update_streak, save_pick, load_streak,
+        load_pick, update_streak, save_pick, load_streak, season_of_date,
         load_shadow_pick, save_shadow_pick,
         active_streak_results, effective_daily_result,
         iter_daily_pick_slots, resolve_daily_slot_results,
@@ -2435,7 +2435,7 @@ def check_results(
             else:
                 daily = fresh
                 new_streak = (update_streak(results, picks_path, date=date) if results
-                              else load_streak(picks_path, season=date_type.fromisoformat(date).year))
+                              else load_streak(picks_path, season=season_of_date(date)))
                 daily.slot_results = slot_results
                 daily.result = effective_daily_result(slot_results)
                 save_pick(daily, picks_path)

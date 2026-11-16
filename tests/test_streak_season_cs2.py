@@ -4,7 +4,7 @@ Real legacy bytes deliberately have no inferred season. No read may migrate them
 """
 import json
 from contextlib import nullcontext
-from datetime import datetime
+from datetime import date as date_type, datetime
 from types import SimpleNamespace
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
@@ -16,6 +16,33 @@ from bts import picks as p
 
 ET = ZoneInfo("America/New_York")
 LEGACY = b'{"streak": 13, "saver_available": false, "updated": "2026-09-13T05:01:02.123456+00:00", "applied_dates": ["2026-09-11", "2026-09-12"]}'
+
+
+DATE_CASES = [
+    ("2027-03-24", 2027), ("2027-3-24", 2027), ("2027-03-4", 2027),
+    ("2027-3-4", 2027), ("20270324", 2027), ("2027-W12-3", 2027),
+    (" 2027-03-24", None), ("2027-03-24 ", None), ("2027-03-24T10:00", None),
+    ("2027/03/24", None), ("2027.03.24", None), ("2027-02-30", None),
+    ("junk", None), ("", None), (date_type(2027, 3, 24), None),
+    (None, None), (b"2027-03-24", None), (20270324, None),
+]
+
+
+@pytest.mark.parametrize("day,season", DATE_CASES)
+def test_season_of_date_table(day, season):
+    assert p.season_of_date(day) == season
+
+
+@pytest.mark.parametrize("day,season", [(d, y) for d, y in DATE_CASES if y is not None])
+def test_row3_parseable_date_scores_once_with_original_marker(tmp_path, day, season):
+    plant(tmp_path, 2026)
+    assert p.update_streak([True], tmp_path, date=day) == 1
+    assert snapshot(tmp_path)["season"] == season
+    assert snapshot(tmp_path)["applied_dates"] == [day]
+    assert snapshot(tmp_path)["saver_available"] is True
+    before = (tmp_path / "streak.json").read_bytes()
+    assert p.update_streak([True], tmp_path, date=day) == 1
+    assert (tmp_path / "streak.json").read_bytes() == before
 
 
 def plant(d, season=None, **changes):
@@ -169,13 +196,18 @@ def test_row3_tagless_three_starts_at_one_instead_of_carrying_over(tmp_path):
     assert snapshot(tmp_path)["season"] == 2027
 
 
-@pytest.mark.parametrize("day", ["not-a-date", "2027-02-29", "20270324", "2027-3-24", "2027-03-24T00:00:00"])
+@pytest.mark.parametrize("day", [d for d, y in DATE_CASES if y is None and d is not None] + ["not-a-date", "2027-02-29", "2027-03-24T00:00:00"])
 def test_row3_invalid_date_fails_before_io(tmp_path, day):
+    plant(tmp_path, 2026)
+    before = (tmp_path / "streak.json").read_bytes()
     with patch.object(p, "load_streak", side_effect=AssertionError("read before validation")), \
-         patch.object(p, "save_streak", side_effect=AssertionError("write before validation")):
+         patch.object(p, "load_saver_available", side_effect=AssertionError("read before validation")), \
+         patch.object(p, "load_applied_dates", side_effect=AssertionError("read before validation")), \
+         patch.object(p, "save_streak", side_effect=AssertionError("write before validation")), \
+         patch("pathlib.Path.open", side_effect=AssertionError("I/O before validation")):
         with pytest.raises(ValueError):
             p.update_streak([True], tmp_path, date=day)
-    assert list(tmp_path.iterdir()) == []
+    assert (tmp_path / "streak.json").read_bytes() == before
 
 
 @pytest.mark.parametrize("tag", [2027, "2027", True, 2027.0])
@@ -198,7 +230,8 @@ def test_row4_tagless_dateless_update_keeps_legacy_state(tmp_path):
 
 def resolved_pick(d, day="2027-03-23", result="hit"):
     from tests.test_scoring_lock import _plant_scoreable_pick
-    _plant_scoreable_pick(d, day)
+    (d / f"{day}.json").parent.mkdir(parents=True, exist_ok=True)
+    _plant_scoreable_pick(d, str(day))
     daily = p.load_pick(day, d)
     daily.result = result
     daily.slot_results = {"pick": result} if result else None
@@ -242,10 +275,9 @@ def test_row6_cli_void_display_reads_scored_season(tmp_path, monkeypatch, tag):
     assert snapshot(tmp_path)["streak"] == 13  # display is read-only
 
 
-# The unpadded form is one the scheduler accepted before this change set (review round 2, B1).
-@pytest.mark.parametrize("day", ["2027-03-24", "2027-3-24"], ids=["padded", "unpadded"])
+@pytest.mark.parametrize("day,season", DATE_CASES)
 @pytest.mark.parametrize("mode", ["void", "final_peer", "midgame_peer"])
-def test_row6_scheduler_display_reads_scored_season(tmp_path, monkeypatch, capsys, mode, day):
+def test_row6_scheduler_display_reads_scored_season(tmp_path, monkeypatch, capsys, mode, day, season):
     from bts import scheduler as s
     plant(tmp_path, 2026)
     resolved_pick(tmp_path, day, None)
@@ -275,9 +307,10 @@ def test_row6_scheduler_display_reads_scored_season(tmp_path, monkeypatch, capsy
          patch("bts.posting.reply_to_bluesky"):
         assert s.run_result_polling(111, day, tmp_path) == "final"
     if mode == "midgame_peer":
-        reply.assert_called_once_with("hit", 0)
+        reply.assert_called_once_with("hit", 0 if season else 13)
     else:
-        assert "Streak: 0" in capsys.readouterr().err
+        assert f"Streak: {0 if season else 13}" in capsys.readouterr().err
+    assert snapshot(tmp_path)["streak"] == 13
 
 
 @pytest.mark.parametrize("corrections", [[], [{"date": "2027-03-23", "batter": "B", "old_result": "hit", "new_result": "miss"}]])
@@ -298,10 +331,11 @@ def test_row7_reconcile_summary_uses_replay_et_clock(tmp_path, monkeypatch, corr
     assert ("Streak: 0" if not corrections else "Streak recalculated: 0") in result.output
 
 
-@pytest.mark.parametrize("day", ["2027-03-24", "2027-3-24"], ids=["padded", "unpadded"])
-def test_row8_shadow_selection_uses_own_date_season(tmp_path, monkeypatch, day):
+@pytest.mark.parametrize("day,season", DATE_CASES)
+def test_row8_shadow_selection_uses_own_date_season(tmp_path, monkeypatch, day, season):
     from bts import scheduler as s
     plant(tmp_path, 2026)
+    monkeypatch.setattr(s, "_now_et", lambda: datetime(2027, 3, 24, 23, tzinfo=ET))
     seen = []
     monkeypatch.setattr(s, "predict_local_shadow", lambda *a, **k: object())
     monkeypatch.setattr(s, "heartbeat_watchdog", lambda *a, **k: nullcontext())
@@ -313,7 +347,7 @@ def test_row8_shadow_selection_uses_own_date_season(tmp_path, monkeypatch, day):
         return SimpleNamespace(pick_result=None)
     monkeypatch.setattr(s, "select_pick", select)
     s._run_shadow_prediction({"orchestrator": {"picks_dir": str(tmp_path)}}, day, "Prod")
-    assert seen == [0]
+    assert seen == [0 if season else 13]
 
 
 def test_row9_strategy_saver_fallback_uses_selection_date(tmp_path):
@@ -406,3 +440,48 @@ def test_row5_reconcile_rebuilds_a_deeply_nested_file_as_it_did_before(tmp_path)
     p.save_streak(2, tmp_path, saver_available=True, season=2027)
     data = json.loads((tmp_path / "streak.json").read_text())
     assert (data["season"], data["streak"], data["saver_available"]) == (2027, 2, True)
+
+
+@pytest.mark.parametrize("day,season", DATE_CASES)
+def test_row9_saver_read_never_rejects_date(tmp_path, day, season):
+    from bts import strategy as s
+    from tests.test_strategy import _predictions
+    plant(tmp_path, 2026)
+    with patch.object(s, "get_game_statuses", return_value={778899: "P"}), \
+         patch.object(s, "_load_mdp", return_value=None), \
+         patch.object(s, "load_saver_available", wraps=s.load_saver_available) as read, \
+         patch.object(s, "resolve_policy_decision", wraps=s.resolve_policy_decision) as decide:
+        # Existing strategy date restrictions happen AFTER the saver read. The
+        # recorded base run in date_matrix.py proves these exact exceptions.
+        if day in ["2027-03-24", "2027-3-24", "2027-03-4", "2027-3-4"]:
+            s.select_pick(_predictions([{"p_game_hit": .85}]), day, tmp_path, streak=13)
+        else:
+            error = TypeError if not isinstance(day, str) else ValueError
+            with pytest.raises(error):
+                s.select_pick(_predictions([{"p_game_hit": .85}]), day, tmp_path, streak=13)
+    read.assert_called_once_with(tmp_path, season=season)
+    assert decide.call_count == 1
+    assert decide.call_args.args[2] is (True if season else False)
+
+
+@pytest.mark.parametrize("day,season", DATE_CASES)
+def test_row6_cli_date_matrix_preserves_age_guard(tmp_path, monkeypatch, day, season):
+    from bts import cli as c
+    plant(tmp_path, 2026)
+    resolved_pick(tmp_path, day, None)
+    monkeypatch.setattr(c, "_now_et", lambda: datetime(2027, 3, 24, 23, tzinfo=ET))
+    monkeypatch.setattr(p, "resolve_daily_slot_results", lambda *a: {"pick": "void"})
+    before = (tmp_path / "streak.json").read_bytes()
+    if not isinstance(day, str):
+        # Click exposes a text option: its direct callback is tested here for
+        # non-string values, whose base decision-path construction raises TypeError.
+        with pytest.raises(TypeError):
+            c.check_results.callback(date=day, picks_dir=str(tmp_path), shadow_status_output=None, wait_deadline_et=None, wait_interval_min=1, allow_stale_scoring=False)
+    else:
+        result = CliRunner().invoke(c.cli, ["check-results", "--date", day, "--picks-dir", str(tmp_path)])
+        if day in ["2027-03-24", "20270324", "2027-W12-3"]:
+            assert result.exit_code == 0, result.output
+            assert "All picks void. Streak unchanged: 0" in result.output
+        else:
+            assert isinstance(result.exception, ValueError)
+    assert (tmp_path / "streak.json").read_bytes() == before
