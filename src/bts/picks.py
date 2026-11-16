@@ -12,7 +12,7 @@ import re
 import subprocess
 from contextlib import contextmanager
 from dataclasses import dataclass, asdict
-from datetime import datetime, timezone
+from datetime import date as date_type, datetime, timezone
 from collections.abc import Callable, Mapping
 from pathlib import Path
 
@@ -513,58 +513,136 @@ def parse_daily_pick(text: str) -> DailyPick:
     )
 
 
-def load_streak(picks_dir: Path) -> int:
-    """Load current streak count. Returns 0 if no streak file."""
+def season_of_date(date) -> int | None:
+    """Return a date string's calendar year, or None when it cannot be read.
+
+    Read callers use None for the legacy, unscoped state. Writers must reject
+    an unknown season before touching state. Keep the original date as marker.
+
+    Only an exact built-in ``str`` is parsed. ``type(date) is str`` consults nothing on the value
+    (``isinstance`` reads its ``__class__``, and the parsers call methods a str subclass can
+    override), so no object can raise, exit or stall in here; a str subclass reads as "cannot tell".
+    """
+    if type(date) is not str:
+        return None
+    try:
+        return date_type.fromisoformat(date).year
+    except Exception:
+        try:
+            return datetime.strptime(date, "%Y-%m-%d").year
+        except Exception:
+            return None
+
+
+def _require_int_season(season) -> None:
+    """2027.0 == 2027 and True == 1: an unchecked argument could match a tag, or write one that no
+    reader will ever match. None (no season) is the callers' explicit choice and is allowed."""
+    if season is not None and type(season) is not int:
+        raise TypeError(f"season must be an int or None, got {season!r}")
+
+
+def _load_streak_season(path: Path, season: int) -> dict:
+    """Only an object tagged with the exact integer season can supply model state.
+
+    A file that cannot be read as a JSON object is CORRUPT, not "another season": this raises exactly
+    what the dateless read raises on it (a decode error, or AttributeError for a non-object), so a
+    scorer stops with the file intact instead of replacing it with an invented fresh counter
+    (review of change set 2, B1).
+    """
+    data = json.loads(path.read_text())
+    tag = data.get("season")
+    return data if type(tag) is int and tag == season else {}
+
+
+def load_streak(picks_dir: Path, *, season: int | None = None) -> int:
+    """Load the model streak; an unmatched season starts at zero.
+
+    ``season=None`` retains the legacy read, including corrupt-file errors.
+    """
+    _require_int_season(season)
     path = picks_dir / "streak.json"
     if not path.exists():
         return 0
-    return json.loads(path.read_text()).get("streak", 0)
+    data = json.loads(path.read_text()) if season is None else _load_streak_season(path, season)
+    return data.get("streak", 0)
 
 
-def load_saver_available(picks_dir: Path) -> bool:
-    """Load streak saver status. True if not yet consumed this season."""
+def load_saver_available(picks_dir: Path, *, season: int | None = None) -> bool:
+    """Load the model saver; an unmatched season starts available.
+
+    ``season=None`` retains the legacy read, including corrupt-file errors.
+    """
+    _require_int_season(season)
     path = picks_dir / "streak.json"
     if not path.exists():
         return True
-    return json.loads(path.read_text()).get("saver_available", True)
+    data = json.loads(path.read_text()) if season is None else _load_streak_season(path, season)
+    return data.get("saver_available", True)
 
 
 APPLIED_DATES_KEPT = 30
 
 
-def load_applied_dates(picks_dir: Path) -> list[str]:
+def load_applied_dates(picks_dir: Path, *, season: int | None = None) -> list[str]:
     """The dates whose result update_streak has already applied (newest last); [] for a legacy file."""
+    _require_int_season(season)
     path = Path(picks_dir) / "streak.json"
     if not path.exists():
         return []
     try:
-        dates = json.loads(path.read_text()).get("applied_dates", [])
+        data = json.loads(path.read_text()) if season is None else _load_streak_season(path, season)
+        dates = data.get("applied_dates", [])
     except Exception:
         return []
     return [d for d in dates if isinstance(d, str)] if isinstance(dates, list) else []
 
 
 def save_streak(streak: int, picks_dir: Path, saver_available: bool | None = None,
-                applied_date: str | None = None) -> None:
+                applied_date: str | None = None, *, season: int | None = None) -> None:
     """Save current streak count and saver status.
 
     ``applied_date`` records, in the SAME atomic write, that this date's result is now in the streak
-    (update_streak's idempotency marker, incident L04). Every other writer preserves the list."""
+    (update_streak's idempotency marker, incident L04). A dated save preserves
+    saver/markers only from the matching season. A dateless save preserves any
+    existing season tag verbatim and keeps the legacy saver/marker behavior.
+    """
+    _require_int_season(season)
     picks_dir.mkdir(parents=True, exist_ok=True)
     path = picks_dir / "streak.json"
-    # Preserve existing saver state if not explicitly set
-    existing_saver = True
-    if path.exists() and saver_available is None:
-        existing_saver = json.loads(path.read_text()).get("saver_available", True)
-    applied = load_applied_dates(picks_dir)
+    existing = {}
+    if path.exists():
+        if season is not None:
+            # A seasonal save that must read the saver raises on a corrupt file, like the dateless
+            # one. With an explicit saver (the reconcile replay's rebuild) it replaces the file.
+            try:
+                existing = _load_streak_season(path, season)
+            except Exception:
+                if saver_available is None:
+                    raise
+        elif saver_available is None:
+            existing = json.loads(path.read_text())
+        else:
+            # Legacy explicit-saver saves tolerated corrupt files. Preserve a tag
+            # when readable without making those dateless saves start raising.
+            try:
+                existing = json.loads(path.read_text())
+            except Exception:
+                pass
+    existing_saver = existing.get("saver_available", True) if saver_available is None else saver_available
+    applied = load_applied_dates(picks_dir, season=season)
     if applied_date is not None and applied_date not in applied:
         applied = (applied + [applied_date])[-APPLIED_DATES_KEPT:]
-    atomic_write_text(path, json.dumps({
+    data = {
         "streak": streak,
-        "saver_available": saver_available if saver_available is not None else existing_saver,
+        "saver_available": existing_saver,
         "updated": datetime.now(timezone.utc).isoformat(),
         "applied_dates": applied,
-    }))
+    }
+    if season is not None:
+        data["season"] = season
+    elif isinstance(existing, dict) and "season" in existing:
+        data["season"] = existing["season"]
+    atomic_write_text(path, json.dumps(data))
 
 
 @contextmanager
@@ -605,22 +683,31 @@ def update_streak(results: list[bool], picks_dir: Path, *, date: str | None = No
     pick as usual. Callers without a date keep the old behaviour. The marker is about this function
     only: reconcile's season replay recomputes the streak from the pick files and ignores it.
     """
-    current = load_streak(picks_dir)
-    saver = load_saver_available(picks_dir)
-    if date is not None and date in load_applied_dates(picks_dir):
+    # Validate before any state read, even if a malformed marker is already present.
+    season = None
+    if date is not None:
+        season = season_of_date(date)
+        if season is None:
+            # Nothing of a non-str value is touched to build the message: its type's name, its
+            # repr and its str are all caller code (review of the second attempt, round 2 B2).
+            shown = repr(date) if type(date) is str else "<not a str>"
+            raise ValueError("cannot determine season of contest date: " + shown)
+    current = load_streak(picks_dir, season=season)
+    saver = load_saver_available(picks_dir, season=season)
+    if date is not None and date in load_applied_dates(picks_dir, season=season):
         return current
 
     if all(results):
         new = current + len(results)
-        save_streak(new, picks_dir, applied_date=date)
+        save_streak(new, picks_dir, applied_date=date, season=season)
         return new
 
     # Miss — check saver
     if saver and 10 <= current <= 15:
-        save_streak(current, picks_dir, saver_available=False, applied_date=date)
+        save_streak(current, picks_dir, saver_available=False, applied_date=date, season=season)
         return current  # streak preserved, saver consumed
 
-    save_streak(0, picks_dir, applied_date=date)
+    save_streak(0, picks_dir, applied_date=date, season=season)
     return 0
 
 
@@ -1324,7 +1411,7 @@ def reconcile_results(
         replay = _replay_season_streak(picks_dir, replay_day.year, replay_day.isoformat())
         if replay is not None:
             streak, saver = replay
-            save_streak(streak, picks_dir, saver_available=saver)
+            save_streak(streak, picks_dir, saver_available=saver, season=replay_day.year)
         rec.replayed(replay)
 
     return corrections

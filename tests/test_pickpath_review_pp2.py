@@ -242,7 +242,7 @@ def test_delivered_hit_plus_void_double_adds_exactly_one(monkeypatch, tmp_path, 
     daily = p.DailyPick(date=H.DATE, run_time=H.DATE+'T21:00:00Z',
                        pick=H._pick(H.BATTER_A, H.GAME_A), double_down=H._pick(H.BATTER_B, H.GAME_B), runner_up=None)
     p.save_pick(H._resolved('2026-06-09', 'hit', H.BATTER_A, H.GAME_A), picks)
-    p.save_streak(1, picks, saver_available=True)
+    p.save_streak(1, picks, saver_available=True, season=2026)
     p.save_pick(daily, picks)
     kept = daily.double_down if void_primary else daily.pick
     dead = daily.pick if void_primary else daily.double_down

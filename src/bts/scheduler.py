@@ -16,7 +16,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from bts.util import atomic_write_text, is_regular_season_game, retry_urlopen
-from bts.picks import API_BASE
+from bts.picks import API_BASE, season_of_date
 from bts.heartbeat import write_heartbeat, HeartbeatState, heartbeat_watchdog
 from bts.sd_notify import notify_ready, notify_watchdog
 from bts.features.park_drag import with_pinned_artifact
@@ -1896,7 +1896,7 @@ def _run_shadow_prediction(
             print("  [SHADOW MODEL] No predictions returned.", file=sys.stderr)
             return
 
-        streak = load_streak(picks_dir)
+        streak = load_streak(picks_dir, season=season_of_date(date))
         try:
             game_statuses_detailed = get_game_statuses_detailed(date)
         except Exception:
@@ -2558,7 +2558,7 @@ def run_result_polling(
                         scored_elsewhere = fresh.result in ("hit", "miss", "void")
                         daily = fresh  # adopt peer metadata either way
                         if scored_elsewhere:
-                            new_streak = load_streak(picks_dir)
+                            new_streak = load_streak(picks_dir, season=season_of_date(date))
                         else:
                             new_streak = update_streak([True] * n_picks, picks_dir, date=date)
                             daily.result = "hit"
@@ -2602,12 +2602,12 @@ def run_result_polling(
                         return "unresolved"  # vanished mid-flight: fail closed (review #6)
                     daily = fresh  # adopt peer metadata before mutating
                     if daily.result in ("hit", "miss", "void"):
-                        new_streak = load_streak(picks_dir)
+                        new_streak = load_streak(picks_dir, season=season_of_date(date))
                         print(f"  Result already scored elsewhere ({daily.result}).",
                               file=sys.stderr)
                     else:
                         new_streak = (update_streak(results, picks_dir, date=date) if results
-                                      else load_streak(picks_dir))
+                                      else load_streak(picks_dir, season=season_of_date(date)))
                         daily.slot_results = slot_results
                         daily.result = effective_daily_result(slot_results)
                         save_pick(daily, picks_dir)

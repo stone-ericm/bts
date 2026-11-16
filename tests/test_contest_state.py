@@ -1,4 +1,5 @@
 import json
+import datetime as _pin_dt
 
 from bts.saver_state import transition_saver_state
 
@@ -12,17 +13,24 @@ def _write_pick(path, result):
         "double_down": None,
     }))
 
+# Every decision read below is pinned to the season of its fixtures. The model streak is scoped to
+# the ET year of `now` (change set 2), so an unpinned read turns these tests red or vacuous on the
+# first day of the next year (review of change set 2, Carbon's note N1).
+_PINNED_2026 = _pin_dt.datetime(2026, 9, 1, 18, 0, tzinfo=_pin_dt.timezone.utc)
+
+
 
 def test_model_state_used_when_no_contest_state(tmp_path):
     from bts.contest_state import load_decision_streak_state
 
     (tmp_path / "streak.json").write_text(json.dumps({
+        "season": 2026,
         "streak": 4,
         "saver_available": True,
     }))
     transition_saver_state(tmp_path, expected_prior="uninitialized", new_state="active", season=2026, source="t")
 
-    state = load_decision_streak_state(tmp_path)
+    state = load_decision_streak_state(tmp_path, now=_PINNED_2026)
 
     assert state.streak == 4
     assert state.saver_available is True  # model-only branch also reads the flag (active)
@@ -34,12 +42,13 @@ def test_required_contest_state_missing_raises(tmp_path):
     from bts.contest_state import ContestStateError, load_decision_streak_state
 
     (tmp_path / "streak.json").write_text(json.dumps({
+        "season": 2026,
         "streak": 4,
         "saver_available": True,
     }))
 
     try:
-        load_decision_streak_state(tmp_path, require_contest_state=True)
+        load_decision_streak_state(tmp_path, require_contest_state=True, now=_PINNED_2026)
     except ContestStateError as exc:
         assert "required but missing" in str(exc)
     else:
@@ -50,6 +59,7 @@ def test_fresh_contest_state_drives_live_decision(tmp_path):
     from bts.contest_state import load_decision_streak_state
 
     (tmp_path / "streak.json").write_text(json.dumps({
+        "season": 2026,
         "streak": 4,
         "saver_available": True,
     }))
@@ -64,7 +74,7 @@ def test_fresh_contest_state_drives_live_decision(tmp_path):
     }))
 
     transition_saver_state(tmp_path, expected_prior="uninitialized", new_state="active", season=2026, source="t")
-    state = load_decision_streak_state(tmp_path)
+    state = load_decision_streak_state(tmp_path, now=_PINNED_2026)
 
     assert state.streak == 7
     assert state.model_streak == 4
@@ -76,7 +86,7 @@ def test_fresh_contest_state_drives_live_decision(tmp_path):
 def test_lagged_contest_uses_contest_value_keeps_doubles(tmp_path):
     # model 9 > contest 7 so streak==7 also proves no max() inflation (old max(9,7)=9); 1 pick behind -> lagged.
     from bts.contest_state import load_decision_streak_state
-    (tmp_path / "streak.json").write_text(json.dumps({"streak": 9, "saver_available": True}))
+    (tmp_path / "streak.json").write_text(json.dumps({"season": 2026, "streak": 9, "saver_available": True}))
     _write_pick(tmp_path / "2026-05-28.json", "hit")
     _write_pick(tmp_path / "2026-05-29.json", "hit")
     sd = tmp_path / "account_state"; sd.mkdir()
@@ -84,7 +94,7 @@ def test_lagged_contest_uses_contest_value_keeps_doubles(tmp_path):
         "active_streak": 7, "source": "manual_screenshot",
         "source_date": "2026-05-28", "saver_available": True}))
     transition_saver_state(tmp_path, expected_prior="uninitialized", new_state="active", season=2026, source="t")
-    state = load_decision_streak_state(tmp_path)
+    state = load_decision_streak_state(tmp_path, now=_PINNED_2026)
     assert state.streak == 7
     assert state.allow_double is True
     assert state.status == "lagged"
@@ -94,12 +104,12 @@ def test_lagged_contest_uses_contest_value_keeps_doubles(tmp_path):
 def test_lagged_contest_model_does_not_inflate(tmp_path):
     # Was test_stale_..._never_lowers_model_streak: model 12, 1 pick behind -> lagged; must NOT raise the streak.
     from bts.contest_state import load_decision_streak_state
-    (tmp_path / "streak.json").write_text(json.dumps({"streak": 12, "saver_available": True}))
+    (tmp_path / "streak.json").write_text(json.dumps({"season": 2026, "streak": 12, "saver_available": True}))
     _write_pick(tmp_path / "2026-05-29.json", "hit")
     sd = tmp_path / "account_state"; sd.mkdir()
     (sd / "contest_streak.manual.json").write_text(json.dumps({
         "active_streak": 7, "source_date": "2026-05-28"}))
-    state = load_decision_streak_state(tmp_path)
+    state = load_decision_streak_state(tmp_path, now=_PINNED_2026)
     assert state.streak == 7           # contest value; model 12 cannot inflate it
     assert state.model_streak == 12
     assert state.allow_double is True
@@ -191,12 +201,12 @@ def test_missing_source_date_is_conservative_not_fail_open(tmp_path):
 
 def test_missing_source_date_is_stale_but_keeps_doubles(tmp_path):
     from bts.contest_state import load_decision_streak_state
-    (tmp_path / "streak.json").write_text(json.dumps({"streak": 3, "saver_available": True}))
+    (tmp_path / "streak.json").write_text(json.dumps({"season": 2026, "streak": 3, "saver_available": True}))
     sd = tmp_path / "account_state"; sd.mkdir()
     (sd / "contest_streak.json").write_text(json.dumps({
         "schema_version": "bts_contest_streak_auto_v1", "active_streak": 3,
         "best_streak": 9, "source": "mlb_bts_profile"}))  # no source_date
-    state = load_decision_streak_state(tmp_path)
+    state = load_decision_streak_state(tmp_path, now=_PINNED_2026)
     assert state.streak == 3
     assert state.allow_double is True
     assert state.status == "stale"
@@ -207,14 +217,14 @@ def test_model_never_inflates_decision_streak(tmp_path):
     The decision streak must be 8, NOT max(10, 8)=10, and doubles must stay enabled."""
     from bts.contest_state import load_decision_streak_state
 
-    (tmp_path / "streak.json").write_text(json.dumps({"streak": 10, "saver_available": True}))
+    (tmp_path / "streak.json").write_text(json.dumps({"season": 2026, "streak": 10, "saver_available": True}))
     _write_pick(tmp_path / "2026-06-16.json", "hit")          # latest resolved local pick
     sd = tmp_path / "account_state"; sd.mkdir()
     (sd / "contest_streak.json").write_text(json.dumps({
         "schema_version": "bts_contest_streak_auto_v1", "active_streak": 8,
         "best_streak": 9, "source": "mlb_bts_profile", "source_date": "2026-06-15"}))
 
-    state = load_decision_streak_state(tmp_path)
+    state = load_decision_streak_state(tmp_path, now=_PINNED_2026)
 
     assert state.streak == 8            # real MLB streak, NOT the inflated model 10
     assert state.model_streak == 10
@@ -224,26 +234,26 @@ def test_model_never_inflates_decision_streak(tmp_path):
 
 def test_two_pick_gap_is_stale(tmp_path):
     from bts.contest_state import load_decision_streak_state
-    (tmp_path / "streak.json").write_text(json.dumps({"streak": 9, "saver_available": True}))
+    (tmp_path / "streak.json").write_text(json.dumps({"season": 2026, "streak": 9, "saver_available": True}))
     _write_pick(tmp_path / "2026-06-16.json", "hit")
     _write_pick(tmp_path / "2026-06-17.json", "hit")
     sd = tmp_path / "account_state"; sd.mkdir()
     (sd / "contest_streak.json").write_text(json.dumps({
         "active_streak": 8, "best_streak": 9, "source": "mlb_bts_profile",
         "source_date": "2026-06-15"}))   # 2 settled picks behind -> stale
-    state = load_decision_streak_state(tmp_path)
+    state = load_decision_streak_state(tmp_path, now=_PINNED_2026)
     assert state.streak == 8 and state.status == "stale" and state.allow_double is True
 
 
 def test_unconfirmed_local_miss_marks_stale(tmp_path):
     from bts.contest_state import load_decision_streak_state
-    (tmp_path / "streak.json").write_text(json.dumps({"streak": 0, "saver_available": True}))
+    (tmp_path / "streak.json").write_text(json.dumps({"season": 2026, "streak": 0, "saver_available": True}))
     _write_pick(tmp_path / "2026-06-17.json", "miss")   # local reset MLB hasn't posted
     sd = tmp_path / "account_state"; sd.mkdir()
     (sd / "contest_streak.json").write_text(json.dumps({
         "active_streak": 8, "best_streak": 9, "source": "mlb_bts_profile",
         "source_date": "2026-06-16"}))
-    state = load_decision_streak_state(tmp_path)
+    state = load_decision_streak_state(tmp_path, now=_PINNED_2026)
     assert state.streak == 8            # last confirmed; Phase 1 doesn't lower it
     assert state.status == "stale"      # but flags the stale-high risk
 
@@ -253,7 +263,7 @@ def test_unexpired_override_wins_over_auto_through_decision(tmp_path):
     # decision (8), proving precedence flows through load_decision_streak_state.
     import datetime as _dt2
     from bts.contest_state import load_decision_streak_state
-    (tmp_path / "streak.json").write_text(json.dumps({"streak": 10, "saver_available": True}))
+    (tmp_path / "streak.json").write_text(json.dumps({"season": 2026, "streak": 10, "saver_available": True}))
     _write_pick(tmp_path / "2026-06-16.json", "hit")
     sd = tmp_path / "account_state"; sd.mkdir()
     (sd / "contest_streak.json").write_text(json.dumps({            # auto says 5
@@ -274,11 +284,11 @@ def test_saver_conservative_when_reached_zone_but_unconfirmed(tmp_path):
     # saver MAY have been consumed; with no ledger evidence it survived, stay conservative ->
     # False (the local model saver=True is not trusted).
     from bts.contest_state import load_decision_streak_state
-    (tmp_path / "streak.json").write_text(json.dumps({"streak": 8, "saver_available": True}))
+    (tmp_path / "streak.json").write_text(json.dumps({"season": 2026, "streak": 8, "saver_available": True}))
     sd = tmp_path / "account_state"; sd.mkdir()
     (sd / "contest_streak.json").write_text(json.dumps({
         "schema_version": "bts_contest_streak_auto_v1", "active_streak": 8,
         "best_streak": 12, "source": "mlb_bts_profile"}))  # reached the zone; no ledger -> unknown
-    state = load_decision_streak_state(tmp_path)
+    state = load_decision_streak_state(tmp_path, now=_PINNED_2026)
     assert state.streak == 8 and state.status == "stale"
     assert state.saver_available is False   # reached zone, unconfirmed -> conservative

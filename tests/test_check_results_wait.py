@@ -130,7 +130,7 @@ class TestShadowReconcileOnEveryExit:
         picks_dir = tmp_path / "picks"
         picks_dir.mkdir()
         save_pick(_daily(), picks_dir)
-        save_streak(3, picks_dir)
+        save_streak(3, picks_dir, season=2026)
         _save_shadow(picks_dir)
         _install_clock(monkeypatch)  # cron-night clock: date is 1 day old
         mock_check.side_effect = _by_batter({PROD_BATTER: None, SHADOW_BATTER: True})
@@ -151,7 +151,7 @@ class TestShadowReconcileOnEveryExit:
         picks_dir = tmp_path / "picks"
         picks_dir.mkdir()
         save_pick(_daily(), picks_dir)
-        save_streak(3, picks_dir)
+        save_streak(3, picks_dir, season=2026)
         _save_shadow(picks_dir)
         _install_clock(monkeypatch)
 
@@ -180,7 +180,7 @@ class TestStaleScoringGuard:
         picks_dir = tmp_path / "picks"
         picks_dir.mkdir()
         save_pick(_daily(), picks_dir)
-        save_streak(3, picks_dir)
+        save_streak(3, picks_dir, season=2026)
         _save_shadow(picks_dir)
         _install_clock(monkeypatch, day=10)  # pick is 9 days old
         _no_sleep(monkeypatch, "stale-refused date must not wait")
@@ -202,7 +202,7 @@ class TestStaleScoringGuard:
         picks_dir = tmp_path / "picks"
         picks_dir.mkdir()
         save_pick(_daily(), picks_dir)
-        save_streak(3, picks_dir)
+        save_streak(3, picks_dir, season=2026)
         _install_clock(monkeypatch, day=10)
         mock_check.side_effect = _by_batter({PROD_BATTER: True})
 
@@ -220,7 +220,7 @@ class TestStaleScoringGuard:
         picks_dir = tmp_path / "picks"
         picks_dir.mkdir()
         save_pick(_daily(), picks_dir)
-        save_streak(3, picks_dir)
+        save_streak(3, picks_dir, season=2026)
         _install_clock(monkeypatch)  # day=2: the normal cron case
         mock_check.side_effect = _by_batter({PROD_BATTER: True})
 
@@ -240,7 +240,7 @@ class TestWaitDeadline:
         picks_dir = tmp_path / "picks"
         picks_dir.mkdir()
         save_pick(_daily(), picks_dir)
-        save_streak(3, picks_dir)
+        save_streak(3, picks_dir, season=2026)
         sleeps = _install_clock(monkeypatch)
         mock_check.side_effect = [None, True]  # attempt 1 pending, attempt 2 final
 
@@ -261,7 +261,7 @@ class TestWaitDeadline:
         picks_dir = tmp_path / "picks"
         picks_dir.mkdir()
         save_pick(_daily(), picks_dir)
-        save_streak(3, picks_dir)
+        save_streak(3, picks_dir, season=2026)
         sleeps = _install_clock(monkeypatch, start="05:50")
         mock_check.return_value = None  # never resolves
 
@@ -280,7 +280,7 @@ class TestWaitDeadline:
         picks_dir = tmp_path / "picks"
         picks_dir.mkdir()
         save_pick(_daily(), picks_dir)
-        save_streak(3, picks_dir)
+        save_streak(3, picks_dir, season=2026)
         _install_clock(monkeypatch)
         _no_sleep(monkeypatch, "must not sleep without --wait-deadline-et")
         mock_check.return_value = None
@@ -299,7 +299,7 @@ class TestWaitDeadline:
         picks_dir = tmp_path / "picks"
         picks_dir.mkdir()
         save_pick(_daily(), picks_dir)
-        save_streak(3, picks_dir)
+        save_streak(3, picks_dir, season=2026)
         sleeps = _install_clock(monkeypatch, start="14:00")
         mock_check.return_value = None
 
@@ -339,7 +339,7 @@ class TestWaitDeadline:
         daily = _daily()
         daily.result = "miss"
         save_pick(daily, picks_dir)
-        save_streak(5, picks_dir)
+        save_streak(5, picks_dir, season=2026)
         _install_clock(monkeypatch, day=10)
         _no_sleep(monkeypatch, "resolved date must not wait")
 
@@ -370,7 +370,7 @@ class TestWaitDeadline:
         picks_dir.mkdir()
         daily = _daily()
         save_pick(daily, picks_dir)
-        save_streak(3, picks_dir)
+        save_streak(3, picks_dir, season=2026)
         sleeps = _install_clock(monkeypatch)
         mock_check.return_value = True
         # First load (attempt head) sees the pick; the locked reload — and

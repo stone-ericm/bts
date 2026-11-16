@@ -29,7 +29,7 @@ def _plant_hit(picks_dir, day: str) -> None:
     )
     save_pick(DailyPick(date=day, run_time=f"{day}T15:00:00Z", pick=pick, double_down=None,
                         runner_up=None, result="hit", slot_results={"pick": "hit"}), picks_dir)
-    save_streak(1, picks_dir)
+    save_streak(1, picks_dir, season=int(day[:4]))
 
 
 class SimClock:

@@ -25,7 +25,7 @@ def test_crash_reconcile_restart_keeps_applied_hit(monkeypatch, tmp_path):
     # Complete prior history, so replay can legitimately rebuild a streak of 1.
     p.save_pick(H._resolved('2026-06-09', 'hit', H.BATTER_A, H.GAME_A), picks)
     p.save_pick(H._delivered_daily(H._pick(H.BATTER_A, H.GAME_A)), picks)
-    p.save_streak(1, picks, saver_available=True)
+    p.save_streak(1, picks, saver_available=True, season=2026)
     H._route_http(monkeypatch, {H.GAME_A: H.HIT_FEED()})
     now = datetime(2026, 6, 10, 23, 0, tzinfo=ET)
     real_save = p.save_pick

@@ -261,7 +261,7 @@ def test_l01_check_results_single_pick(case, monkeypatch, tmp_path):
     feed, required_grade, bad, as_of = CASES[case]
     picks_dir = tmp_path / "picks"
     save_pick(_delivered_daily(_pick(BATTER_A, GAME_A)), picks_dir)
-    save_streak(5, picks_dir, saver_available=True)
+    save_streak(5, picks_dir, saver_available=True, season=2026)
     calls = _route_http(monkeypatch, {GAME_A: feed()})
 
     result = _check_results(monkeypatch, picks_dir, tmp_path, as_of)
@@ -283,7 +283,7 @@ def test_l01_check_results_hit_plus_pass(case, monkeypatch, tmp_path):
     feed, _required, _bad, as_of = CASES[case]
     picks_dir = tmp_path / "picks"
     save_pick(_delivered_daily(_pick(BATTER_B, GAME_B), double_down=_pick(BATTER_A, GAME_A)), picks_dir)
-    save_streak(5, picks_dir, saver_available=True)
+    save_streak(5, picks_dir, saver_available=True, season=2026)
     hit_feed = _feed(BATTER_B, batting=_batting(hits=1, at_bats=4), plays=[_play(BATTER_B, "single", PRE)])
     calls = _route_http(monkeypatch, {GAME_B: hit_feed, GAME_A: feed()})
 
@@ -299,7 +299,7 @@ def test_l01_check_results_pass_plus_pass_preserves(monkeypatch, tmp_path):
     """Double down: Pass + Pass = streak preserved (5 stays 5)."""
     picks_dir = tmp_path / "picks"
     save_pick(_delivered_daily(_pick(BATTER_B, GAME_B), double_down=_pick(BATTER_A, GAME_A)), picks_dir)
-    save_streak(5, picks_dir, saver_available=True)
+    save_streak(5, picks_dir, saver_available=True, season=2026)
     walks_b = _feed(BATTER_B, batting=_batting(walks=3), plays=[_play(BATTER_B, "walk", PRE)] * 3)
     calls = _route_http(monkeypatch, {GAME_B: walks_b, GAME_A: CASES["did_not_play"][0]()})
 
@@ -315,7 +315,7 @@ def test_l01_pass_at_saver_streak_keeps_the_saver(monkeypatch, tmp_path):
     """At streak 12 with the saver available, a Pass must leave (12, saver available)."""
     picks_dir = tmp_path / "picks"
     save_pick(_delivered_daily(_pick(BATTER_A, GAME_A)), picks_dir)
-    save_streak(12, picks_dir, saver_available=True)
+    save_streak(12, picks_dir, saver_available=True, season=2026)
     calls = _route_http(monkeypatch, {GAME_A: CASES["walks_only"][0]()})
 
     result = _check_results(monkeypatch, picks_dir, tmp_path, AFTER_NORMAL_GAMES)
@@ -330,7 +330,7 @@ def test_l01_absent_player_stays_pending(monkeypatch, tmp_path):
     """Control: a batter on neither roster (and no other final game) is pending, never a Pass or a miss."""
     picks_dir = tmp_path / "picks"
     save_pick(_delivered_daily(_pick(BATTER_A, GAME_A)), picks_dir)
-    save_streak(5, picks_dir, saver_available=True)
+    save_streak(5, picks_dir, saver_available=True, season=2026)
     calls = _route_http(monkeypatch, {GAME_A: CASES["absent_from_rosters"][0]()})
 
     result = _check_results(monkeypatch, picks_dir, tmp_path, AFTER_NORMAL_GAMES)
@@ -383,7 +383,7 @@ def test_l02_same_day_hit_survives_two_late_reconciles(tmp_path, monkeypatch):
     picks_dir = tmp_path / "picks"
     save_pick(_resolved("2026-06-10", "hit", BATTER_A, GAME_A), picks_dir)
     save_pick(_resolved("2026-06-11", "hit", BATTER_B, GAME_B), picks_dir)
-    save_streak(2, picks_dir, saver_available=True)
+    save_streak(2, picks_dir, saver_available=True, season=2026)
     states = _two_late_reconciles(picks_dir, datetime(2026, 6, 11, 23, 0, tzinfo=ET), monkeypatch)
     _oracle(states, [(2, True), (2, True)], [(1, True), (1, True)], SameDayReplayRollback,
             "two 23:00 reconciles (streak, saver)")
@@ -395,7 +395,7 @@ def test_l02_same_day_saver_consumption_survives_two_late_reconciles(tmp_path, m
     for day in range(1, 11):                       # 06-01 .. 06-10: ten single hits -> streak 10
         save_pick(_resolved(f"2026-06-{day:02d}", "hit", BATTER_A, GAME_A + day), picks_dir)
     save_pick(_resolved("2026-06-11", "miss", BATTER_B, GAME_B), picks_dir)
-    save_streak(10, picks_dir, saver_available=False)   # today's miss at 10 consumed the saver
+    save_streak(10, picks_dir, saver_available=False, season=2026)   # today's miss at 10 consumed the saver
     states = _two_late_reconciles(picks_dir, datetime(2026, 6, 11, 23, 0, tzinfo=ET), monkeypatch)
     _oracle(states, [(10, False), (10, False)], [(10, True), (10, True)], SameDayReplayRollback,
             "two 23:00 reconciles (streak, saver)")
@@ -407,7 +407,7 @@ def test_l02_unplayed_undelivered_preview_is_excluded(tmp_path, monkeypatch):
     save_pick(_resolved("2026-06-10", "hit", BATTER_A, GAME_A), picks_dir)
     save_pick(DailyPick(date="2026-06-11", run_time="2026-06-11T07:00:00+00:00",
                         pick=_pick(BATTER_B, GAME_B), double_down=None, runner_up=None), picks_dir)
-    save_streak(1, picks_dir, saver_available=True)
+    save_streak(1, picks_dir, saver_available=True, season=2026)
     states = _two_late_reconciles(picks_dir, datetime(2026, 6, 11, 23, 0, tzinfo=ET), monkeypatch)
     assert states == [(1, True), (1, True)]
 
@@ -461,7 +461,7 @@ def test_l04_hit_applied_once_across_a_crash_and_restart(monkeypatch, tmp_path):
     """Streak 5, a hit, death between the writes, restart: the hit counts once (6), never twice (7)."""
     picks_dir = tmp_path / "picks"
     save_pick(_delivered_daily(_pick(BATTER_A, GAME_A)), picks_dir)
-    save_streak(5, picks_dir, saver_available=True)
+    save_streak(5, picks_dir, saver_available=True, season=2026)
     after = _crash_then_restart(monkeypatch, picks_dir, tmp_path, HIT_FEED())
     _oracle(after, ({"pick": "hit"}, "hit", 6, True), ({"pick": "hit"}, "hit", 7, True),
             ResultAppliedTwice, "hit across a crash and restart")
@@ -473,7 +473,7 @@ def test_l04_saver_miss_applied_once_across_a_crash_and_restart(monkeypatch, tmp
     never a second application that finds the saver gone and resets to 0."""
     picks_dir = tmp_path / "picks"
     save_pick(_delivered_daily(_pick(BATTER_A, GAME_A)), picks_dir)
-    save_streak(12, picks_dir, saver_available=True)
+    save_streak(12, picks_dir, saver_available=True, season=2026)
     after = _crash_then_restart(monkeypatch, picks_dir, tmp_path, MISS_FEED())
     _oracle(after, ({"pick": "miss"}, "miss", 12, False), ({"pick": "miss"}, "miss", 0, False),
             ResultAppliedTwice, "saver miss across a crash and restart")
@@ -486,7 +486,7 @@ def test_l04_polling_death_then_the_cron_scorer_applies_once(monkeypatch, tmp_pa
     from bts import scheduler as sched_mod
     picks_dir = tmp_path / "picks"
     save_pick(_delivered_daily(_pick(BATTER_A, GAME_A)), picks_dir)
-    save_streak(5, picks_dir, saver_available=True)
+    save_streak(5, picks_dir, saver_available=True, season=2026)
     calls = _route_http(monkeypatch, {GAME_A: HIT_FEED()})
     monkeypatch.setattr(sched_mod, "retry_urlopen", picks_mod.retry_urlopen)     # the same HTTP stub
     monkeypatch.setattr(sched_mod, "_now_et", lambda: datetime(2026, 6, 11, 0, 0, tzinfo=ET))
@@ -514,7 +514,7 @@ def test_l04_control_without_the_fault_a_rerun_is_a_no_op(monkeypatch, tmp_path)
     """Control: with the pick save completing, the same two runs apply the hit exactly once."""
     picks_dir = tmp_path / "picks"
     save_pick(_delivered_daily(_pick(BATTER_A, GAME_A)), picks_dir)
-    save_streak(5, picks_dir, saver_available=True)
+    save_streak(5, picks_dir, saver_available=True, season=2026)
     calls = _route_http(monkeypatch, {GAME_A: HIT_FEED()})
     for _ in range(2):
         result = _check_results(monkeypatch, picks_dir, tmp_path, AFTER_NORMAL_GAMES)

@@ -2266,7 +2266,7 @@ def check_results(
     """
     from pathlib import Path
     from bts.picks import (
-        load_pick, update_streak, save_pick, load_streak,
+        load_pick, update_streak, save_pick, load_streak, season_of_date,
         load_shadow_pick, save_shadow_pick,
         active_streak_results, effective_daily_result,
         iter_daily_pick_slots, resolve_daily_slot_results,
@@ -2435,7 +2435,7 @@ def check_results(
             else:
                 daily = fresh
                 new_streak = (update_streak(results, picks_path, date=date) if results
-                              else load_streak(picks_path))
+                              else load_streak(picks_path, season=season_of_date(date)))
                 daily.slot_results = slot_results
                 daily.result = effective_daily_result(slot_results)
                 save_pick(daily, picks_path)
@@ -2534,11 +2534,16 @@ def reconcile(picks_dir: str, lookback: int):
     finally:
         receipt.publish(picks_path)
 
+    # The receipt's clock is also the replay's clock; convert it to ET just as
+    # reconcile_results.now_et does, including at the UTC/ET New Year boundary.
+    def now_et():
+        return receipt.clock().astimezone(et)
+
     if not corrections:
-        streak = load_streak(picks_path)
+        streak = load_streak(picks_path, season=now_et().year)
         click.echo(f"No scoring changes detected. Streak: {streak}")
     else:
-        streak = load_streak(picks_path)
+        streak = load_streak(picks_path, season=now_et().year)
         click.echo(f"CORRECTIONS FOUND ({len(corrections)}):")
         for c in corrections:
             click.echo(f"  {c['date']}: {c['batter']} — {c['old_result']} -> {c['new_result']}")
