@@ -58,3 +58,10 @@ Do not change `_now_et`, the CLI's own age-guard date parsing, or anything else 
 
 ## Handover
 Write `HANDOVER-CS2B.md` in the worktree root (do not commit it): the commits; for L1 to L4 the file and lines and the tests; the date matrix's summary table and every base-versus-branch difference with its class (a) or (b); every changed test and why; every remaining place in `git diff d8eb50d0 HEAD -- src` that parses a date or derives a season, with what it uses; what you ran with the counts; anything you could not match or think is wrong, including in rows A to K. Then print `CS2B-<first 8 hex characters of the sha256 of HANDOVER-CS2B.md>` on its own line and `DONE`.
+
+## Amendment to row L after review round 1 (lead session, 2026-11-16): an exact `str`, nothing else
+Row L said `season_of_date` "never raises" and tested for a `str` with `isinstance`. The Codex reviewer (marker `CS2BRC-2f9ff754`, B1 and R1) showed two objects that break that promise: a non-string whose `__class__` property raises (so `isinstance` itself raises), and a `str` subclass whose `__len__` raises `SystemExit` or blocks (the parsers call it). Neither can come from command-line text or JSON; the finding is against the promise as written, and the promise was the lead's.
+
+**Row L is amended:** only an exact built-in string is parsed: `type(date) is str`. Anything else, including a `str` subclass, has season `None`. `type()` consults nothing on the value and the parsers then see a real `str`, so no attribute or method of the caller's object runs inside the helper: it cannot raise, exit or stall. A `str` subclass therefore reads as at the base in L1 to L3 and is refused by a dated `update_streak` with `ValueError` before any I/O (class (b) of the allowed differences). The `ValueError` message shows the value only when it is an exact `str`, and the type's name otherwise.
+
+Cost if wrong: code that passes a `str` subclass as a contest date (none exists in `src` or `scripts`) gets the base's unscoped read, and its scoring call is refused loudly.
