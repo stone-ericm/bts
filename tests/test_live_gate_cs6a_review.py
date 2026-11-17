@@ -31,7 +31,6 @@ import pandas as pd
 import pytest
 
 from bts import cli, contest_state, daily_decision, day_outcome, entry_intent, orchestrator, picks, scheduler, strategy
-from bts.model import predict
 
 ET = ZoneInfo("America/New_York")
 DAY = "2027-07-15"
@@ -348,6 +347,10 @@ def test_accepted_private_schedule_locks_locally_without_dm_or_post(tmp_path, is
 def test_bts_run_locked_already_posted_and_dated_corrupt_switch_and_read3_outside_window(
     tmp_path, isolated_transports, monkeypatch
 ):
+    # Imported here, not at module level (lead, on adoption): bts.model.predict imports
+    # LightGBM, and collection must survive without it (tests/test_lightgbm_optional.py).
+    pytest.importorskip("lightgbm")
+    from bts.model import predict
     monkeypatch.setattr(predict, "run_pipeline", lambda *_a, **_k: _sample_df())
     monkeypatch.setattr(picks, "get_game_statuses_detailed", lambda *_a: {})
     monkeypatch.setattr(picks, "attach_provenance", lambda *_a, **_k: None)
