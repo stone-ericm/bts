@@ -557,7 +557,9 @@ def test_dry_run_warning_case_also_keeps_the_start_date(tmp_path, monkeypatch):
     monkeypatch.setattr(scheduler, "run_day", day)
     result = invoke("schedule", path, "--dry-run")
     assert result.exit_code == 0 and "WARNING (a real run would refuse to start)" in result.stderr
+    assert loaded, "the configuration was loaded"
     assert day.call_args.kwargs["date"] == "2027-07-15"
+    assert day.call_args.kwargs["dry_run"] is True
 
 
 def test_real_run_refusal_resolves_the_date_first_and_does_nothing_else(tmp_path, monkeypatch):
