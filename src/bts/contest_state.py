@@ -451,6 +451,12 @@ def load_decision_streak_state(
     model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir, now_year)
     contest = load_contest_streak_state(
         picks_dir, now=now_dt, require_dated_auto=require_contest_state)
+    if require_contest_state and not (
+            contest is not None and dated_observation_in_effect(contest, now_dt)):
+        from bts.season_contract import live_automatic_refusal
+        refusal = live_automatic_refusal(picks_dir, now_dt, contest)
+        if refusal is not None:
+            raise ContestStateError(refusal)
     if contest is None:
         if require_contest_state:
             paths = ", ".join(str(path) for path in _contest_state_paths(picks_dir))

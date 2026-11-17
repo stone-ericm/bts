@@ -46,11 +46,19 @@ def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = Non
     """
     now = now or datetime.now(timezone.utc)
     try:
-        state = load_contest_streak_state(picks_dir, now=now)
+        state = load_contest_streak_state(picks_dir, now=now, require_dated_auto=expected)
     except ContestStateError as exc:
         return [Alert(level="CRITICAL", source=SOURCE, message=str(exc))]
 
     alerts: list[Alert] = []
+
+    def append_refusal() -> None:
+        if expected and not (state is not None and dated_observation_in_effect(state, now)):
+            from bts.season_contract import live_automatic_refusal
+            refusal = live_automatic_refusal(picks_dir, now, state)
+            if refusal is not None:
+                alerts.append(Alert(level="CRITICAL", source=SOURCE, message=refusal))
+
     if state is None:
         if expected:
             alerts.append(Alert(
@@ -59,6 +67,7 @@ def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = Non
                 message=("contest-account streak state expected but missing at "
                          f"{picks_dir / 'account_state'}"),
             ))
+        append_refusal()
         return alerts
 
     if expected:
@@ -179,4 +188,5 @@ def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = Non
                      "with bts set-contest-streak"),
         ))
 
+    append_refusal()
     return alerts

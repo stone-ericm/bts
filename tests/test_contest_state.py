@@ -50,7 +50,7 @@ def test_required_contest_state_missing_raises(tmp_path):
     try:
         load_decision_streak_state(tmp_path, require_contest_state=True, now=_PINNED_2026)
     except ContestStateError as exc:
-        assert "required but missing" in str(exc)
+        assert "season 2026 switch is absent" in str(exc)
     else:
         raise AssertionError("expected required contest state to fail closed")
 

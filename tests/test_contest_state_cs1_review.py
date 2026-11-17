@@ -76,10 +76,15 @@ def _manual(picks_dir: Path, active: int = 7, best: int | None = 12,
     return path
 
 
+def _covered(picks, factory, **extra):
+    path = _auto(picks, **extra)
+    return factory(picks, NOW, json.loads(path.read_text()))
+
+
 @pytest.mark.skipif(os.geteuid() == 0, reason="root bypasses chmod 000")
-def test_chmod000_unreadable_files_across_rows_1_2_5_6_7(tmp_path: Path):
+def test_chmod000_unreadable_files_across_rows_1_2_5_6_7(tmp_path: Path, covered_automatic):
     # Row 1: unreadable pick file before a later miss in sorted order
-    _auto(tmp_path, source_date="2027-03-21")
+    _covered(tmp_path, covered_automatic, source_date="2027-03-21")
     unreadable_pick = tmp_path / "2027-03-22.json"
     unreadable_pick.write_text('{"result": "hit"}', encoding="utf-8")
     unreadable_pick.chmod(0o000)
@@ -113,7 +118,7 @@ def test_chmod000_unreadable_files_across_rows_1_2_5_6_7(tmp_path: Path):
             auto_path.unlink()
 
         # Row 7: unreadable streak.json + missing contest + require_contest_state=True
-        with pytest.raises(ContestStateError, match="required but missing"):
+        with pytest.raises(ContestStateError, match="no automatic observation"):
             load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW)
 
         # Row 6: unreadable streak.json + missing contest + require_contest_state=False
@@ -135,8 +140,8 @@ def test_row3_auto_additional_bounds_rejected_in_both_modes(tmp_path: Path, acti
 
 
 @pytest.mark.parametrize("active,best", [(0, 0), (57, 57), (57, None)])
-def test_row3_auto_exact_boundaries_accepted(tmp_path: Path, active, best):
-    _auto(tmp_path, active=active, best=best)
+def test_row3_auto_exact_boundaries_accepted(tmp_path: Path, active, best, covered_automatic):
+    _covered(tmp_path, covered_automatic, active=active, best=best)
     st = load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW)
     assert st.streak == active
 
@@ -154,8 +159,10 @@ def test_row3_real_unexpired_manual_v2_bounds_remain_accepted(
     """Unlike renaming an auto_v1 payload, this tests a genuine unexpired manual_v2 schema."""
     _auto(tmp_path, active=2, best=5)
     _manual(tmp_path, active=active, best=best, expires_at="2027-03-25T16:00:00Z")
-    st = load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW)
+    st = load_decision_streak_state(tmp_path, require_contest_state=False, now=NOW)
     assert (st.streak, st.best_streak, st.best_status) == (active, best, expected_status)
+    with pytest.raises(ContestStateError, match="legacy"):
+        load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW)
 
 
 def test_corrupt_manual_alone_and_beside_corrupt_auto_raises_manual_domain_error(tmp_path: Path):
@@ -175,10 +182,12 @@ def test_corrupt_manual_alone_and_beside_corrupt_auto_raises_manual_domain_error
     assert str(manual_path) in str(exc_both.value)
 
 
-def test_fetch_writer_out_of_bounds_best_rejected_and_manual_override_recovers(tmp_path: Path):
+def test_fetch_writer_out_of_bounds_best_rejected_and_manual_override_recovers(tmp_path: Path, monkeypatch):
     from click.testing import CliRunner
     from bts.cli import cli
     from bts.contest_fetch import build_observation, validate_fetch, ContestFetchError
+    from tests.test_season_contract_cs4b1 import pin
+    pin(monkeypatch, NOW)
 
     profile = {"activeStreak": 0, "seasonBestStreak": 58}
     with pytest.raises(ContestFetchError, match="57"):
@@ -197,7 +206,7 @@ def test_fetch_writer_out_of_bounds_best_rejected_and_manual_override_recovers(t
 
     res = CliRunner().invoke(cli, [
         "set-contest-streak", "--streak", "0", "--best-streak", "57",
-        "--source-date", "2027-03-24", "--override-expires-at", "2027-03-25T16:00:00Z",
+        "--date", "2027-03-24", "--saver", "not_earned",
         "--picks-dir", str(tmp_path),
     ])
     assert res.exit_code == 0, res.output
@@ -222,8 +231,8 @@ def test_expired_or_legacy_manual_does_not_rescue_invalid_or_undated_auto(tmp_pa
         load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW)
 
 
-def test_row5_optional_diagnostics_flow_cleanly_through_dm_decision_and_subtitle(tmp_path: Path):
-    _auto(tmp_path, active=9, best=15)
+def test_row5_optional_diagnostics_flow_cleanly_through_dm_decision_and_subtitle(tmp_path: Path, covered_automatic):
+    _covered(tmp_path, covered_automatic, active=9, best=15)
     (tmp_path / "streak.json").write_bytes(b"\xff")
     st = load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW)
     assert st.model_streak is None and st.model_saver_available is None

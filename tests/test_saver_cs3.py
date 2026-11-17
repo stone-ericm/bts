@@ -37,6 +37,11 @@ def _contest(picks, streak=7, source="2026-06-18"):
     return path
 
 
+def _cover(picks, factory, now=NOW):
+    path = picks / "account_state/contest_streak.json"
+    factory(picks, now, json.loads(path.read_text()))
+
+
 @pytest.mark.parametrize("state", STATES)
 @pytest.mark.parametrize("streak", [0, 9, 10, 15, 16, 57])
 def test_policy_saver_table(state, streak):
@@ -97,8 +102,10 @@ def test_reserved_saver_changes_the_real_policy_action(tmp_path):
 @pytest.mark.parametrize("flag", ["missing", "stale", "not_earned", "active", "used"])
 @pytest.mark.parametrize("streak", [0, 9, 10, 15, 16])
 @pytest.mark.parametrize("expected", [False, True])
-def test_health_saver_matrix(tmp_path, flag, streak, expected):
+def test_health_saver_matrix(tmp_path, flag, streak, expected, covered_automatic):
     _contest(tmp_path, streak, "2027-06-18")
+    if expected:
+        _cover(tmp_path, covered_automatic)
     if flag == "stale":
         _flag(tmp_path, "active", 2026)
     elif flag != "missing":
@@ -115,8 +122,9 @@ def test_health_saver_matrix(tmp_path, flag, streak, expected):
         assert command in message
 
 
-def test_health_reads_current_season_despite_prior_source_date(tmp_path):
+def test_health_reads_current_season_despite_prior_source_date(tmp_path, covered_automatic):
     _contest(tmp_path, 12)
+    _cover(tmp_path, covered_automatic)
     _flag(tmp_path, "active", 2026)
     alerts = check(tmp_path, expected=True, now=NOW)
     assert [(a.level, a.source) for a in alerts] == [("WARN", "saver_state")]
@@ -125,11 +133,12 @@ def test_health_reads_current_season_despite_prior_source_date(tmp_path):
 
 
 @pytest.mark.parametrize("real_check", [False, True])
-def test_saver_warn_gets_first_occurrence_attention_but_coverage_does_not(tmp_path, real_check):
+def test_saver_warn_gets_first_occurrence_attention_but_coverage_does_not(tmp_path, real_check, covered_automatic):
     from bts.health.alert import Alert
     from bts.health.attention import apply_warn_attention_policy
     if real_check:
         _contest(tmp_path, 12, "2027-06-18")
+        _cover(tmp_path, covered_automatic)
         _flag(tmp_path, "not_earned")
         for day in ["2027-06-19", "2027-06-20"]:
             (tmp_path / f"{day}.json").write_text(json.dumps({"result": "hit"}))
@@ -373,10 +382,11 @@ def _paste(picks, command):
 
 @pytest.mark.parametrize("flag", ["missing", "stale"])
 @pytest.mark.parametrize("streak", [0, 12])
-def test_uninitialized_warning_gives_a_command_for_each_thing_the_operator_can_find(tmp_path, flag, streak):
+def test_uninitialized_warning_gives_a_command_for_each_thing_the_operator_can_find(tmp_path, flag, streak, covered_automatic):
     """The lead's finding in review round 1: the message gave only the command that marks the saver
     USED, and it is sent every day at the start of a season, when the right answer is not_earned."""
     _contest(tmp_path, streak, "2027-06-18")
+    _cover(tmp_path, covered_automatic)
     if flag == "stale":
         _flag(tmp_path, "active", 2026)
     (alert,) = check(tmp_path, expected=True, now=NOW)

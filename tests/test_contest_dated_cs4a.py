@@ -416,7 +416,13 @@ def test_three_day_intermediate_sequence(tmp_path,monkeypatch):
         if streak is not None:
             result=invoke(tmp_path,day=day,streak=streak,best=streak)
             assert result.exit_code==0,result.output
-        state=cs.load_decision_streak_state(tmp_path,now=now,require_contest_state=True)
+        if streak is None:
+            with pytest.raises(cs.ContestStateError,match='absent'):
+                cs.load_decision_streak_state(tmp_path,now=now,require_contest_state=True)
+            # Optional mode keeps the intermediate CS4a acceptance control.
+            state=cs.load_decision_streak_state(tmp_path,now=now,require_contest_state=False)
+        else:
+            state=cs.load_decision_streak_state(tmp_path,now=now,require_contest_state=True)
         assert state.streak==(22 if streak is None else streak)
         assert state.saver_flag_state==('uninitialized' if streak is None else 'not_earned')
         assert state.saver_available==(streak is not None)

@@ -27,14 +27,19 @@ def write_large_scalar(path):
 
 @pytest.mark.parametrize("observation", ["manual", "auto"])
 @pytest.mark.parametrize("required", [False, True])
-def test_row5_large_json_scalar_cannot_block_observation(tmp_path, observation, required, caplog):
+def test_row5_large_json_scalar_cannot_block_observation(tmp_path, observation, required, caplog, covered_automatic):
     account = tmp_path / "account_state"
     account.mkdir()
     payload = {"active_streak": 7, "best_streak": 20, "source_date": "2026-06-18"}
     if observation == "manual":
         payload["override_expires_at"] = "2026-06-18T23:59:59Z"
+        if required:
+            from tests.test_season_contract_cs4b2 import dated
+            payload = dated("2026-06-18", active_streak=7, best_streak=20)
     filename = "contest_streak.manual.json" if observation == "manual" else "contest_streak.json"
     (account / filename).write_text(json.dumps(payload))
+    if observation == "auto" and required:
+        covered_automatic(tmp_path, NOW, payload)
     write_large_scalar(tmp_path / "streak.json")
     state = load_decision_streak_state(tmp_path, require_contest_state=required, now=NOW)
     assert state.streak == 7
@@ -46,7 +51,7 @@ def test_row5_large_json_scalar_cannot_block_observation(tmp_path, observation, 
 @pytest.mark.parametrize("required", [False, True])
 def test_rows6_7_large_json_scalar_has_domain_error(tmp_path, required):
     write_large_scalar(tmp_path / "streak.json")
-    message = "required but missing" if required else "model state is corrupt"
+    message = "switch is absent" if required else "model state is corrupt"
     with pytest.raises(ContestStateError, match=message):
         load_decision_streak_state(tmp_path, require_contest_state=required, now=NOW)
 
@@ -95,8 +100,10 @@ def test_deeply_nested_body_is_isolated_everywhere(tmp_path):
     account = tmp_path / "account_state"
     account.mkdir()
     (account / "contest_streak.manual.json").write_text(json.dumps({
-        "active_streak": 7, "best_streak": 20, "source_date": "2026-06-18",
-        "override_expires_at": "2026-06-18T23:59:59Z"}))
+        "schema_version": "bts_contest_streak_manual_v3", "season": 2026,
+        "effective_date": "2026-06-18", "active_streak": 7, "best_streak": 20,
+        "saver_state": "used", "source": "manual_cli", "recorded_at": NOW.isoformat(),
+        "expires_at": "2026-06-19T03:59:59.999999Z"}))
     (tmp_path / "streak.json").write_bytes(DEEP)
     (tmp_path / "2026-06-18.json").write_bytes(DEEP)
     (tmp_path / "2026-06-17.json").write_text('{"result":"miss"}')
