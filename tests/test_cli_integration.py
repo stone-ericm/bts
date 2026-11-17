@@ -842,13 +842,16 @@ class TestFetchContestStreak:
             "predictions": [{"roundId": 1, "result": "hit"}]})
         monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {1: dt.date(2026, 6, 6)})
         picks = tmp_path / "picks"; picks.mkdir()
+        from tests.test_contest_fetch import _automatic_fetch
+        _automatic_fetch(monkeypatch, picks)
         (picks / "2026-06-05.json").write_text(json.dumps({"result": "hit"}))
         r = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
                                      "--expected-username", "stonehengee"])
         assert r.exit_code == 0, r.output
         data = json.loads((picks / "account_state" / "contest_streak.json").read_text())
         assert data["active_streak"] == 0 and data["best_streak"] == 9
-        assert data["schema_version"] == "bts_contest_streak_auto_v1"
+        assert data["schema_version"] == "bts_contest_streak_auto_v2"
+        assert data["season"] == 2027 and data["activation_id"] == "a" * 32
         assert data["source_date"] == "2026-06-06"
         assert not list((picks / "account_state").glob("*.tmp"))   # atomic, no temp left
 
@@ -883,6 +886,8 @@ class TestFetchContestStreak:
         dm_calls = []
         monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dm_calls.append((h, m)))
         picks = tmp_path / "picks"; picks.mkdir()
+        from tests.test_contest_fetch import _automatic_fetch
+        _automatic_fetch(monkeypatch, picks)
         for d in ("2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05"):
             (picks / f"{d}.json").write_text(json.dumps({"result": "hit"}))
         r = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
@@ -907,6 +912,8 @@ class TestFetchContestStreak:
         dm_calls = []
         monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dm_calls.append((h, m)))
         picks = tmp_path / "picks"; picks.mkdir()
+        from tests.test_contest_fetch import _automatic_fetch
+        _automatic_fetch(monkeypatch, picks)
         (picks / "2026-06-05.json").write_text(json.dumps({"result": "miss"}))  # latest 6/5, gap=1
         r = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
                                      "--dm-recipient", "x.bsky.social"])

@@ -308,6 +308,17 @@ def _mock_fetch(monkeypatch, profile, rounds):
     monkeypatch.setattr(climod, "_fetch_rounds", lambda: rounds)
 
 
+def _automatic_fetch(monkeypatch, picks, year=2027):
+    """Pin the operation year and install an operator-enabled automatic fixture."""
+    import json
+    from tests.test_season_contract_cs4b1 import pin, contract
+    from zoneinfo import ZoneInfo
+    pin(monkeypatch, dt.datetime(year, 7, 15, 12, tzinfo=ZoneInfo("America/New_York")))
+    folder = picks / "account_state"
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "season_contract.json").write_text(json.dumps(contract(season=year)))
+
+
 def test_fetch_cli_persists_current_activestreak_despite_lag(tmp_path, monkeypatch):
     """Incident: activeStreak=8 is current, but the predictions array lags (latest settled
     row = 6/15) while a local pick is resolved through 6/16. The CLI must still WRITE 8."""
@@ -315,6 +326,7 @@ def test_fetch_cli_persists_current_activestreak_despite_lag(tmp_path, monkeypat
     from click.testing import CliRunner
     from bts.cli import cli
     picks = tmp_path / "picks"; (picks / "account_state").mkdir(parents=True)
+    _automatic_fetch(monkeypatch, picks)
     (picks / "2026-06-16.json").write_text(json.dumps({"result": "hit"}))   # local resolved 6/16
     _mock_fetch(monkeypatch,
                 {"activeStreak": 8, "seasonBestStreak": 9,
@@ -334,6 +346,7 @@ def test_fetch_cli_persists_snapshot_when_no_settled_predictions(tmp_path, monke
     from click.testing import CliRunner
     from bts.cli import cli
     picks = tmp_path / "picks"; (picks / "account_state").mkdir(parents=True)
+    _automatic_fetch(monkeypatch, picks)
     _mock_fetch(monkeypatch,
                 {"activeStreak": 8, "seasonBestStreak": 9,
                  "predictions": [{"roundId": 1, "result": None}]},          # nothing settled
@@ -379,23 +392,34 @@ def test_fetch_auto_earn_cold_file_at_10_stays_uninitialized(tmp_path, monkeypat
     (the account could have earned-and-used the saver before we ever observed it)."""
     import json
     from zoneinfo import ZoneInfo
-    year = dt.datetime.now(ZoneInfo("America/New_York")).year
+    year = 2027
     from bts.saver_state import load_saver_state
     picks = tmp_path / "picks"; (picks / "account_state").mkdir(parents=True)
+    _automatic_fetch(monkeypatch, picks, year)
+    import bts.saver_state as saver
+    from unittest.mock import Mock
+    earn = Mock(wraps=saver.maybe_auto_earn_saver)
+    monkeypatch.setattr(saver, "maybe_auto_earn_saver", earn)
     (picks / f"{year}-06-16.json").write_text(json.dumps({"result": "hit"}))
     _mock_fetch(monkeypatch, {"activeStreak": 10, "seasonBestStreak": 10,
                               "predictions": [{"roundId": 1, "result": "hit", "streak": 10}]},
                 {1: dt.date(year, 6, 16)})
     assert _run_fetch(picks).exit_code == 0
+    assert earn.call_count == 1 and earn.call_args.kwargs["season"] == year
     assert load_saver_state(picks, season=year).state == "uninitialized"
 
 
 def test_fetch_auto_earn_below_10_inits_not_earned_then_promotes_at_10(tmp_path, monkeypatch):
     import json
     from zoneinfo import ZoneInfo
-    year = dt.datetime.now(ZoneInfo("America/New_York")).year
+    year = 2027
     from bts.saver_state import load_saver_state
     picks = tmp_path / "picks"; (picks / "account_state").mkdir(parents=True)
+    _automatic_fetch(monkeypatch, picks, year)
+    import bts.saver_state as saver
+    from unittest.mock import Mock
+    earn = Mock(wraps=saver.maybe_auto_earn_saver)
+    monkeypatch.setattr(saver, "maybe_auto_earn_saver", earn)
     (picks / f"{year}-06-16.json").write_text(json.dumps({"result": "hit"}))
     _mock_fetch(monkeypatch, {"activeStreak": 8, "seasonBestStreak": 8,
                               "predictions": [{"roundId": 1, "result": "hit", "streak": 8}]},
@@ -407,6 +431,7 @@ def test_fetch_auto_earn_below_10_inits_not_earned_then_promotes_at_10(tmp_path,
                 {2: dt.date(year, 6, 17)})
     assert _run_fetch(picks).exit_code == 0
     assert load_saver_state(picks, season=year).state == "active"       # sound auto-earn from not_earned
+    assert earn.call_count == 2 and earn.call_args.kwargs["season"] == year
 
 
 def _mock_auth_failure(monkeypatch, exc):

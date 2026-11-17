@@ -49,6 +49,8 @@ class ContestStreakState:
     schema_version: str | None = None
     effective_date: date | None = None
     saver_state: str | None = None
+    season: int | None = None
+    activation_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -186,7 +188,7 @@ def classify_best_streak(contest: "ContestStreakState | None", *, now: datetime,
             or contest.source_date > today_et):
         return best, "untrusted"
     schema = contest.schema_version or ""
-    if schema == _AUTO_SCHEMA and contest.source == _AUTO_SOURCE:
+    if schema in (_AUTO_SCHEMA, "bts_contest_streak_auto_v2") and contest.source == _AUTO_SOURCE:
         return best, "trusted"
     if schema.startswith(_MANUAL_SCHEMA_PREFIX) and (
             contest.override_expires_at is not None and contest.override_expires_at > now):
@@ -253,6 +255,16 @@ def _parse_state_file(path: Path, *, require_dated: bool = False) -> ContestStre
             and _parse_dt(data.get("recorded_at")) is None):
         raise ContestStateError(f"automatic contest observation is undated at {path}")
 
+    season = activation_id = None
+    if path.name == "contest_streak.json" and data.get("schema_version") == "bts_contest_streak_auto_v2":
+        from bts.season_contract import valid_activation_id
+        season = data.get("season")
+        if type(season) is not int:
+            raise ContestStateError(f"automatic contest season invalid in {path}: must be an integer")
+        activation_id = data.get("activation_id")
+        if not valid_activation_id(activation_id):
+            raise ContestStateError(f"automatic contest activation_id invalid in {path}: must be 32 lowercase hexadecimal characters")
+
     return ContestStreakState(
         streak=streak,
         saver_available=saver,
@@ -263,6 +275,8 @@ def _parse_state_file(path: Path, *, require_dated: bool = False) -> ContestStre
         best_streak=best,
         override_expires_at=_parse_dt(data.get("override_expires_at")),
         schema_version=(data.get("schema_version") if isinstance(data.get("schema_version"), str) else None),
+        season=season,
+        activation_id=activation_id,
     )
 
 

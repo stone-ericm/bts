@@ -3,6 +3,7 @@ import json
 from datetime import date, datetime, timezone
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
+from unittest.mock import Mock
 
 import pytest
 from click.testing import CliRunner
@@ -282,9 +283,10 @@ def test_between_fetch_use_cannot_be_resurrected_by_auto_earn(tmp_path):
 def _observe(monkeypatch, picks, command, source, best):
     args = [command, "--picks-dir", str(picks)]
     if command == "fetch-contest-streak":
-        from tests.test_contest_fetch import _mock_fetch
+        from tests.test_contest_fetch import _mock_fetch, _automatic_fetch
+        _automatic_fetch(monkeypatch, picks)
         predictions = [] if source is None else [{"roundId": 1, "result": "hit"}]
-        rounds = {} if source is None else {1: source}
+        rounds = {1: date(2027, 7, 14)} if source is None else {1: source}
         _mock_fetch(monkeypatch, {"activeStreak": 0, "seasonBestStreak": best, "predictions": predictions}, rounds)
         args += ["--expected-username", "stonehengee"]
     else:
@@ -307,18 +309,26 @@ def test_fetch_without_settled_source_never_creates_a_flag(tmp_path, monkeypatch
 @pytest.mark.parametrize("seed_offset", [None, -1, 0])
 @pytest.mark.parametrize("source_offset", [-1, 1])
 def test_other_year_observation_does_not_touch_flag(tmp_path, monkeypatch, command, best, seed_offset, source_offset):
-    year = datetime.now(ZoneInfo("America/New_York")).year
+    from tests.test_season_contract_cs4b1 import pin
+    pin(monkeypatch)
+    year = 2027
+    import bts.saver_state as saver
+    earn = Mock(wraps=saver.maybe_auto_earn_saver)
+    monkeypatch.setattr(saver, "maybe_auto_earn_saver", earn)
     flag = tmp_path / "account_state/saver_state.json"
     if seed_offset is not None:
         _flag(tmp_path, "not_earned", year + seed_offset)
     before = flag.read_bytes() if flag.exists() else None
     _observe(monkeypatch, tmp_path, command, date(year + source_offset, 6, 18), best)
     assert (flag.read_bytes() if flag.exists() else None) == before
+    earn.assert_not_called()
 
 
 @pytest.mark.parametrize("command", ["fetch-contest-streak", "set-contest-streak"])
 def test_current_year_observation_initializes_then_earns(tmp_path, monkeypatch, command):
-    year = datetime.now(ZoneInfo("America/New_York")).year
+    from tests.test_season_contract_cs4b1 import pin
+    pin(monkeypatch)
+    year = 2027
     _observe(monkeypatch, tmp_path, command, date(year, 6, 18), 7)
     assert load_saver_state(tmp_path, season=year).state == "not_earned"
     _observe(monkeypatch, tmp_path, command, date(year, 6, 19), 10)
