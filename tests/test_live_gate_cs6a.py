@@ -173,7 +173,9 @@ def test_schedule_refuses_before_resource_access(tmp_path, monkeypatch):
     load = Mock(wraps=real_loader)
     monkeypatch.setattr(orchestrator, "load_config", load)
     blocked = []
-    for module, name in ((cli, "_today_et"), (scheduler, "run_day"), (scheduler, "load_state"),
+    # Amendment 2 (owner, 2026-11-17): the default date is resolved first in every mode, as on
+    # the base, so the date function is no longer among the things a refusal must not call.
+    for module, name in ((scheduler, "run_day"), (scheduler, "load_state"),
                          (scheduler, "write_heartbeat"), (scheduler, "fetch_schedule"),
                          (orchestrator, "run_cascade")):
         spy = Mock(side_effect=AssertionError(name))
@@ -510,17 +512,19 @@ def test_run_early_returns_without_state_access(tmp_path, pick_path, captured_pi
     assert not (pick_path / f"{DAY}.json").exists()
 
 
-# --- Review round 1 (Codex B1): the omitted --date of a dry run -------------------------
+# --- Review round 1 (Codex B1) and amendment 2: the omitted --date ------------------------
+@pytest.mark.parametrize("dry", [True, False])
 @pytest.mark.parametrize("body", [
-    "[scheduler]\ncontest_state_required = true\n",          # no warning applies
-    '[scheduler]\npick_delivery = "dm"\n',                    # the warning applies
+    "[scheduler]\ncontest_state_required = true\n",          # accepted, no warning
+    '[scheduler]\npick_delivery = "private"\n',               # accepted, optional state
 ])
-def test_dry_run_default_date_is_resolved_before_the_configuration_is_loaded(tmp_path, monkeypatch, body):
-    """A dry run that starts just before midnight ET schedules the day it started on.
+def test_default_date_is_resolved_before_the_configuration_is_loaded(tmp_path, monkeypatch, body, dry):
+    """A launch that starts just before midnight ET schedules the day it started on.
 
-    The base resolved the default date first and loaded the TOML second. Loading
-    first let a run that crossed midnight during the load show the NEXT day (an
-    off day in the reviewer's probe, which then idles).
+    The base resolved the default date first and loaded the TOML second. Loading first
+    let a launch whose load straddled midnight take the NEXT day: for a dry run that
+    showed the wrong day (round 1, B1); for a real run it skipped the old day's late
+    work (round 2; fixed at the owner's request, amendment 2).
     """
     from bts import orchestrator as orch
     path = write_config(tmp_path / "config.toml", body)
@@ -535,22 +539,52 @@ def test_dry_run_default_date_is_resolved_before_the_configuration_is_loaded(tmp
     monkeypatch.setattr(cli, "_today_et", lambda: "2027-07-16" if loaded else "2027-07-15")
     day = Mock()
     monkeypatch.setattr(scheduler, "run_day", day)
-    result = invoke("schedule", path, "--dry-run")
+    result = invoke("schedule", path, *(["--dry-run"] if dry else []))
     assert result.exit_code == 0, result.output
     assert loaded, "the configuration was loaded"
     assert day.call_args.kwargs["date"] == "2027-07-15"
-    assert day.call_args.kwargs["dry_run"] is True
+    assert day.call_args.kwargs["dry_run"] is dry
 
 
-def test_real_run_refusal_still_computes_no_default_date(tmp_path, monkeypatch):
-    """Row 3 is unchanged by the fix above: a refused real launch never asks for the date."""
+def test_dry_run_warning_case_also_keeps_the_start_date(tmp_path, monkeypatch):
+    from bts import orchestrator as orch
     path = write_config(tmp_path / "config.toml", '[scheduler]\npick_delivery = "dm"\n')
-    today = Mock(side_effect=AssertionError("default date must not be computed on a refusal"))
-    monkeypatch.setattr(cli, "_today_et", today)
+    loaded = []
+    real_load = orch.load_config
+    monkeypatch.setattr(orch, "load_config", lambda p: (loaded.append(p), real_load(p))[1])
+    monkeypatch.setattr(cli, "_today_et", lambda: "2027-07-16" if loaded else "2027-07-15")
+    day = Mock()
+    monkeypatch.setattr(scheduler, "run_day", day)
+    result = invoke("schedule", path, "--dry-run")
+    assert result.exit_code == 0 and "WARNING (a real run would refuse to start)" in result.stderr
+    assert day.call_args.kwargs["date"] == "2027-07-15"
+
+
+def test_real_run_refusal_resolves_the_date_first_and_does_nothing_else(tmp_path, monkeypatch):
+    """A refused real launch: the date lookup (a clock read) happens before the load, as on
+    the base; the worker is never called and the exit and message are row 3's."""
+    from bts import orchestrator as orch
+    path = write_config(tmp_path / "config.toml", '[scheduler]\npick_delivery = "dm"\n')
+    order = []
+    real_load = orch.load_config
+    monkeypatch.setattr(orch, "load_config", lambda p: (order.append("load"), real_load(p))[1])
+    monkeypatch.setattr(cli, "_today_et", lambda: (order.append("date"), "2027-07-15")[1])
     day = Mock()
     monkeypatch.setattr(scheduler, "run_day", day)
     result = invoke("schedule", path)
     assert result.exit_code == 2
     assert "bts schedule: refusing to start:" in result.stderr
-    today.assert_not_called()
+    assert order == ["date", "load"]
     day.assert_not_called()
+
+
+def test_explicit_date_never_asks_for_today(tmp_path, monkeypatch):
+    path = write_config(tmp_path / "config.toml", "[scheduler]\ncontest_state_required = true\n")
+    today = Mock(side_effect=AssertionError("an explicit --date needs no default"))
+    monkeypatch.setattr(cli, "_today_et", today)
+    day = Mock()
+    monkeypatch.setattr(scheduler, "run_day", day)
+    result = invoke("schedule", path, "--date", "2027-07-15")
+    assert result.exit_code == 0, result.output
+    assert day.call_args.kwargs["date"] == "2027-07-15"
+    today.assert_not_called()

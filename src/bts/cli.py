@@ -2552,10 +2552,10 @@ def schedule(date: str | None, config_path: str, dry_run: bool):
     from bts.orchestrator import load_config
     from bts.scheduler import run_day
 
-    # A dry run keeps the base's order (date first, then the file): loading first
-    # let a run that crossed midnight ET during the load show the next day. A real
-    # run resolves its default date only after the gate (a refusal computes none).
-    if dry_run and date is None:
+    # Resolve the default date FIRST, before the configuration is loaded, as this
+    # command always did: a launch whose load straddles midnight ET must schedule
+    # the day it started on (the old day's late work), not the next one.
+    if date is None:
         date = _today_et()
 
     config = load_config(Path(config_path))
@@ -2565,9 +2565,6 @@ def schedule(date: str | None, config_path: str, dry_run: bool):
             click.echo(f"bts schedule: refusing to start: {problem}", err=True)
             raise SystemExit(2)
         click.echo(f"bts schedule: WARNING (a real run would refuse to start): {problem}", err=True)
-
-    if date is None:
-        date = _today_et()
 
     run_day(date=date, config=config, dry_run=dry_run)
 
