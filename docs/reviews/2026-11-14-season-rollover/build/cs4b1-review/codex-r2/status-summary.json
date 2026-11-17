@@ -1,0 +1,17 @@
+{
+  "matrix": {
+    "cases_per_revision": 15563,
+    "differences": 0,
+    "unexpected": 0
+  },
+  "edges": {
+    "cases_per_revision": 1108,
+    "differences": 54,
+    "unexpected": 0
+  },
+  "benchmark": {
+    "cases_per_revision": 1,
+    "differences": 0,
+    "unexpected": 0
+  }
+}

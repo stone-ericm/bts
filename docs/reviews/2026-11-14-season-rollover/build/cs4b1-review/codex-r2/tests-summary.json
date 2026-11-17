@@ -1,0 +1,195 @@
+{
+  "alone-2027-00": {
+    "passed": 7
+  },
+  "alone-2027-01": {
+    "passed": 7
+  },
+  "alone-2027-02": {
+    "passed": 7
+  },
+  "alone-2027-03": {
+    "passed": 7
+  },
+  "alone-2027-04": {
+    "passed": 7
+  },
+  "alone-2027-05": {
+    "passed": 7
+  },
+  "alone-2027-06": {
+    "passed": 7
+  },
+  "alone-2027-07": {
+    "passed": 7
+  },
+  "alone-2027-08": {
+    "passed": 7
+  },
+  "alone-2027-09": {
+    "passed": 7
+  },
+  "alone-2027-10": {
+    "passed": 7
+  },
+  "alone-2027-11": {
+    "passed": 7
+  },
+  "alone-2027-12": {
+    "passed": 7
+  },
+  "alone-2027-13": {
+    "passed": 7
+  },
+  "alone-2027-14": {
+    "passed": 7
+  },
+  "alone-2027-15": {
+    "passed": 7
+  },
+  "alone-2027-16": {
+    "passed": 7
+  },
+  "alone-2027-17": {
+    "passed": 7
+  },
+  "alone-2027-18": {
+    "passed": 7
+  },
+  "alone-2027-19": {
+    "passed": 7
+  },
+  "after-author-edge-2027": {
+    "passed": 194
+  },
+  "alone-2028-00": {
+    "passed": 7
+  },
+  "alone-2028-01": {
+    "passed": 7
+  },
+  "alone-2028-02": {
+    "passed": 7
+  },
+  "alone-2028-03": {
+    "passed": 7
+  },
+  "alone-2028-04": {
+    "passed": 7
+  },
+  "alone-2028-05": {
+    "passed": 7
+  },
+  "alone-2028-06": {
+    "passed": 7
+  },
+  "alone-2028-07": {
+    "passed": 7
+  },
+  "alone-2028-08": {
+    "passed": 7
+  },
+  "alone-2028-09": {
+    "passed": 7
+  },
+  "alone-2028-10": {
+    "passed": 7
+  },
+  "alone-2028-11": {
+    "passed": 7
+  },
+  "alone-2028-12": {
+    "passed": 7
+  },
+  "alone-2028-13": {
+    "passed": 7
+  },
+  "alone-2028-14": {
+    "passed": 7
+  },
+  "alone-2028-15": {
+    "passed": 7
+  },
+  "alone-2028-16": {
+    "passed": 7
+  },
+  "alone-2028-17": {
+    "passed": 7
+  },
+  "alone-2028-18": {
+    "passed": 7
+  },
+  "alone-2028-19": {
+    "passed": 7
+  },
+  "after-author-edge-2028": {
+    "passed": 194
+  },
+  "isolated-0": {
+    "passed": 1
+  },
+  "isolated-1": {
+    "passed": 1
+  },
+  "isolated-2": {
+    "passed": 1
+  },
+  "isolated-3": {
+    "passed": 1
+  },
+  "isolated-4": {
+    "passed": 1
+  },
+  "isolated-5": {
+    "passed": 1
+  },
+  "isolated-6": {
+    "passed": 1
+  },
+  "old-seven": {
+    "failed": 3,
+    "passed": 4
+  },
+  "recursion-500": {
+    "passed": 7
+  },
+  "recursion-2000": {
+    "passed": 7
+  },
+  "recursion-20000": {
+    "passed": 7
+  },
+  "mutant-B1": {
+    "failed": 1
+  },
+  "mutant-B2": {
+    "failed": 2
+  },
+  "mutant-M1": {
+    "failed": 1
+  },
+  "mutant-M2": {
+    "failed": 1
+  },
+  "mutant-M6": {
+    "failed": 1
+  },
+  "mutant-clock": {
+    "failed": 1
+  },
+  "empty-control": {
+    "passed": 2
+  },
+  "mutant-dry-persists": {
+    "passed": 1,
+    "failed": 1
+  },
+  "mutant-unswitched-skips-success": {
+    "failed": 1,
+    "passed": 1
+  },
+  "mutant-unswitched-writes-auto": {
+    "failed": 1,
+    "passed": 1
+  }
+}
