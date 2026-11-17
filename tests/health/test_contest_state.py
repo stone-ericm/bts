@@ -13,10 +13,11 @@ def test_no_alert_when_not_expected_and_missing(tmp_path):
 def test_expected_missing_is_critical(tmp_path):
     alerts = check(tmp_path, expected=True, now=NOW)
 
-    assert len(alerts) == 1
+    assert len(alerts) == 2
     assert alerts[0].level == "CRITICAL"
     assert alerts[0].source == SOURCE
     assert "expected but missing" in alerts[0].message
+    assert alerts[1].level == "CRITICAL" and "switch is absent" in alerts[1].message
 
 
 def test_malformed_existing_state_is_critical(tmp_path):
@@ -45,7 +46,7 @@ def test_non_object_existing_state_is_critical(tmp_path):
     assert "expected object" in alerts[0].message
 
 
-def test_valid_auto_state_is_clean_when_expected(tmp_path):
+def test_valid_auto_state_is_clean_when_expected(tmp_path, covered_automatic):
     from bts.saver_state import transition_saver_state
     transition_saver_state(tmp_path, expected_prior="uninitialized", new_state="not_earned",
                            season=2026, source="t")
@@ -58,10 +59,11 @@ def test_valid_auto_state_is_clean_when_expected(tmp_path):
         "source": "mlb_bts_profile", "source_date": "2026-06-06",
     }))
 
+    _cover(tmp_path, covered_automatic, NOW)
     assert check(tmp_path, expected=True, now=NOW) == []
 
 
-def test_gap2_coverage_lag_is_warn(tmp_path):
+def test_gap2_coverage_lag_is_warn(tmp_path, covered_automatic):
     """A >=2 settled-pick gap is a coverage lag (the predictions array trailing the
     live activeStreak counter), NOT reliable staleness under the snapshot/coverage
     split -> WARN, never a (false) CRITICAL DM."""
@@ -77,12 +79,13 @@ def test_gap2_coverage_lag_is_warn(tmp_path):
     for d in ("2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05"):
         (tmp_path / f"{d}.json").write_text(json.dumps({"result": "hit"}))
 
+    _cover(tmp_path, covered_automatic, NOW)
     alerts = check(tmp_path, expected=True, now=NOW)
     assert any(a.level == "WARN" and a.source == SOURCE for a in alerts), alerts
     assert not any(a.level == "CRITICAL" for a in alerts), alerts
 
 
-def test_expected_overnight_lag_is_not_critical(tmp_path):
+def test_expected_overnight_lag_is_not_critical(tmp_path, covered_automatic):
     """End-of-day: our scheduler settled D=2026-06-07, but the contest account's
     source_date still = D-1 (next-day fetch hasn't run). gap==1 is the EXPECTED
     overnight lag, not genuine staleness — must NOT fire a CRITICAL (alert fatigue
@@ -99,12 +102,13 @@ def test_expected_overnight_lag_is_not_critical(tmp_path):
 
     from datetime import datetime, timezone
     overnight = datetime(2026, 6, 8, 6, 0, tzinfo=timezone.utc)  # 02:00 ET
+    _cover(tmp_path, covered_automatic, overnight)
     alerts = check(tmp_path, expected=True, now=overnight)
     assert not any(a.level == "CRITICAL" for a in alerts), alerts
     assert any(a.level == "INFO" and a.source == SOURCE for a in alerts), alerts
 
 
-def test_gap1_past_noon_is_info_not_warn(tmp_path):
+def test_gap1_past_noon_is_info_not_warn(tmp_path, covered_automatic):
     """Phase-1 snapshot/coverage split: source_date is derived from the per-round
     predictions array, which trails the live activeStreak counter by ~one round BY
     DESIGN. So a 1-pick gap past noon ET is the normal coverage lag, not a stuck
@@ -126,6 +130,7 @@ def test_gap1_past_noon_is_info_not_warn(tmp_path):
 
     from datetime import datetime, timezone
     afternoon = datetime(2026, 6, 8, 19, 0, tzinfo=timezone.utc)  # 15:00 ET
+    _cover(tmp_path, covered_automatic, afternoon)
     alerts = check(tmp_path, expected=True, now=afternoon)
     assert not any(a.level == "WARN" for a in alerts), alerts
     assert not any(a.level == "CRITICAL" for a in alerts), alerts
@@ -135,7 +140,7 @@ def test_gap1_past_noon_is_info_not_warn(tmp_path):
     assert "coverage" in infos[0].message.lower()
 
 
-def test_offday_gap_with_one_new_pick_is_not_critical(tmp_path):
+def test_offday_gap_with_one_new_pick_is_not_critical(tmp_path, covered_automatic):
     """All-Star break / league off-days: a multi-CALENDAR-day gap with only ONE
     settled pick newer than source_date is the expected 1-settlement-step lag,
     not staleness. Gap is measured in settled picks, not calendar days, so this
@@ -157,6 +162,7 @@ def test_offday_gap_with_one_new_pick_is_not_critical(tmp_path):
     (tmp_path / "2026-07-17.json").write_text(json.dumps({"result": "hit"}))
 
     from datetime import datetime, timezone
+    _cover(tmp_path, covered_automatic, datetime(2026, 7, 17, 23, 0, tzinfo=timezone.utc))
     alerts = check(tmp_path, expected=True,
                    now=datetime(2026, 7, 17, 23, 0, tzinfo=timezone.utc))
     assert not any(a.level == "CRITICAL" for a in alerts), alerts
@@ -166,7 +172,7 @@ def test_offday_gap_with_one_new_pick_is_not_critical(tmp_path):
     assert not any(a.level == "WARN" for a in alerts), alerts
 
 
-def test_two_day_gap_is_warn_not_critical(tmp_path):
+def test_two_day_gap_is_warn_not_critical(tmp_path, covered_automatic):
     """>= 2 settled picks newer than source_date is a coverage gap (the predictions
     array trailing the activeStreak counter), not reliable staleness under the
     snapshot/coverage split -> WARN, not a CRITICAL DM."""
@@ -182,6 +188,7 @@ def test_two_day_gap_is_warn_not_critical(tmp_path):
     (tmp_path / "2026-06-06.json").write_text(json.dumps({"result": "hit"}))
     (tmp_path / "2026-06-07.json").write_text(json.dumps({"result": "hit"}))
 
+    _cover(tmp_path, covered_automatic, NOW)
     alerts = check(tmp_path, expected=True, now=NOW)
     assert any(a.level == "WARN" and a.source == SOURCE for a in alerts), alerts
     assert not any(a.level == "CRITICAL" for a in alerts), alerts
@@ -241,6 +248,11 @@ def _write_contest(tmp_path, active, best):
         "active_streak": active, "best_streak": best,
         "source": "mlb_bts_profile", "source_date": "2026-06-18",
     }))
+
+
+def _cover(picks, factory, now):
+    path = picks / "account_state/contest_streak.json"
+    factory(picks, now, json.loads(path.read_text()))
 
 
 def test_saver_flag_uninitialized_in_zone_warns(tmp_path):

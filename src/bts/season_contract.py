@@ -1,14 +1,15 @@
-"""Season-switch snapshots and offline inspection; no decision enforcement yet."""
+"""Season-switch snapshots, live authority, and offline inspection."""
 from __future__ import annotations
 
 import json
 import re
+import shlex
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from bts.contest_state import _UNREADABLE
+from bts.contest_state import ContestStreakState, _UNREADABLE
 
 SCHEMA = "bts_season_contract_v1"
 AUTO_SCHEMA = "bts_contest_streak_auto_v2"
@@ -93,6 +94,84 @@ def switch_lines(state: SwitchState) -> list[str]:
     return lines
 
 
+def dated_template(picks_dir: Path, now: datetime) -> str:
+    return (f"bts set-contest-streak --date {now.astimezone(ET).date().isoformat()} "
+            "--streak N --best-streak B --saver S "
+            f"--picks-dir {shlex.quote(str(picks_dir))}")
+
+
+def live_automatic_refusal(
+    picks_dir: Path, now: datetime, selected: ContestStreakState | None,
+) -> str | None:
+    """Decide authority from the selected snapshot and ONE switch snapshot.
+
+    The caller bypasses this function for an in-effect dated observation. No
+    observation is opened here; filename, not its claimed source, identifies it.
+    """
+    state = switch_state(picks_dir, now)
+    year = now.astimezone(ET).year
+    if state.state == "corrupt":
+        kind = 1
+        reason = f"Live decision refused: corrupt season switch, check {state.check}: {state.error}."
+    elif selected is not None and selected.path.name == "contest_streak.manual.json":
+        kind = 2
+        reason = "Live decision refused: the selected legacy manual override is no longer accepted for a live pick."
+    elif state.state in {"absent", "other_season", "revoked"}:
+        kind = 3
+        detail = f" (file season {state.snapshot['season']})" if state.state == "other_season" else ""
+        reason = f"Live decision refused: season {year} switch is {state.state}{detail}."
+    elif selected is None:
+        kind = 4
+        reason = "Live decision refused: there is no automatic observation for this activation."
+    else:
+        kind = 5
+        if selected.schema_version != AUTO_SCHEMA:
+            detail = (f"schema_version is {selected.schema_version!r}, not {AUTO_SCHEMA!r}"
+                      if isinstance(selected.schema_version, str) else
+                      "schema_version is missing, null or not a string; look at status for the exact value")
+        elif selected.season != year:
+            detail = f"automatic observation season is {selected.season}, not {year}"
+        elif selected.activation_id != state.snapshot["activation_id"]:
+            detail = (f"automatic observation activation_id is {selected.activation_id!r}, "
+                      f"not the switch's {state.snapshot['activation_id']!r}")
+        else:
+            return None
+        reason = f"Live decision refused: {detail}."
+
+    directory = f" --picks-dir {shlex.quote(str(picks_dir))}"
+    status = f"`bts season-contract status{directory}`"
+    fetch = f"`bts fetch-contest-streak{directory}`"
+    enable = f"`bts season-contract enable --season {year}{directory}`"
+    lines = [reason,
+             f"Alternative dated path — TEMPLATE: `{dated_template(picks_dir, now)}`. "
+             "Read N, B and S from MLB (active streak, best streak and saver state)."]
+    if kind == 2:
+        lines.append("This dated observation REPLACES the legacy override; enable and the fetch cannot repair this. "
+                     "Automatic use must wait until the winning legacy override is removed or expires.")
+    elif kind == 1:
+        lines.append(
+            f"Alternative automatic path: inspect {status}; deliberately repair or remove the corrupt file, "
+            "or replace it with enable. None of these verifies the endpoints or installs an observation, "
+            "and doing so can reveal another blocker. Stop the scheduler and wait for any fetch before a "
+            "changing enable. For current-season evidence, first repair or remove the corrupt switch to a "
+            f"nonautomatic state, run {fetch} (ledger only while not switched), inspect {status} and compare "
+            f"the readings with MLB; only then run {enable}, then {fetch} again to install an observation "
+            "for this activation. If a legacy manual still wins, replace it with the dated template above.")
+    elif kind == 3:
+        lines.append(
+            "Alternative automatic path: stop the scheduler and wait for any fetch; "
+            f"run {fetch} (while not switched, this records the reading in the ledger only); inspect "
+            f"{status} and compare the readings with MLB; only then run {enable}; then run {fetch} "
+            "again to install an observation for this activation. If a legacy manual still wins, "
+            "replace it with the dated template above.")
+    else:
+        lines.append(f"Alternative automatic path: run {fetch}; the season is already switched, so a "
+                     "switched fetch writes an observation for this season and current activation.")
+    lines.append("One repair can expose another blocker. A non-zero fetch exit does not prove no observation "
+                 "was installed. Status output is not itself a verification of what MLB shows.")
+    return "\n".join(lines)
+
+
 def _present(path: Path) -> bool:
     try:
         path.lstat()
@@ -160,6 +239,16 @@ def inspection_lines(picks: Path, now: datetime, state: SwitchState, *, season: 
                 lines.append(f"saver: unavailable ({reason}); season: {flag.season}; reads uninitialized")
     except _UNREADABLE as exc:
         lines.append(f"saver: unavailable (invalid: {exc}); reads uninitialized for season {today.year}")
+
+    from bts.contest_state import load_decision_streak_state
+    try:
+        live = load_decision_streak_state(picks, require_contest_state=True, now=now)
+        lines.append(f"live decision now: accepted; source={live.source}; streak={live.streak}; "
+                     f"status={live.status}; saver={live.saver_flag_state}")
+    except ContestStateError as exc:
+        lines.append(f"live decision now: refused; {exc}")
+    except Exception as exc:
+        lines.append(f"live decision now: unavailable; {exc}")
 
     path = directory / "contest_ledger.jsonl"
     try:

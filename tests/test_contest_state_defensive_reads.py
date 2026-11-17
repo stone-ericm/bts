@@ -56,17 +56,27 @@ def _manual(picks_dir):
 
     result = CliRunner().invoke(cli, [
         "set-contest-streak", "--streak", "0", "--best-streak", "0",
-        "--source-date", "2027-03-24",
-        "--override-expires-at", "2027-03-25T23:00:00Z",
+        "--date", "2027-03-24", "--saver", "not_earned",
         "--picks-dir", str(picks_dir),
     ])
     assert result.exit_code == 0, result.output
 
 
+def _covered(picks, factory, **extra):
+    path = _auto(picks, **extra)
+    return factory(picks, NOW, json.loads(path.read_text()))
+
+
+@pytest.fixture
+def pinned_clock(monkeypatch):
+    from tests.test_season_contract_cs4b1 import pin
+    pin(monkeypatch, NOW)
+
+
 @pytest.mark.parametrize("contents", CORRUPTIONS, ids=CORRUPTION_IDS)
-def test_corrupt_pick_is_skipped_by_both_scans(tmp_path, contents):
+def test_corrupt_pick_is_skipped_by_both_scans(tmp_path, contents, covered_automatic):
     """Row 1: neither scan loses the other readable pick files."""
-    _auto(tmp_path, source_date="2027-03-22")
+    _covered(tmp_path, covered_automatic, source_date="2027-03-22")
     _corrupt(tmp_path / "2027-03-24.json", contents)
     assert _resolved_pick_dates(tmp_path) == []
     assert not _has_unconfirmed_miss(tmp_path, date(2027, 3, 22))
@@ -79,9 +89,9 @@ def test_corrupt_pick_is_skipped_by_both_scans(tmp_path, contents):
 
 
 @pytest.mark.parametrize("result", [[], {}, ["miss"]], ids=["list", "object", "list-of-miss"])
-def test_pick_with_unhashable_result_is_skipped_by_both_scans(tmp_path, result):
+def test_pick_with_unhashable_result_is_skipped_by_both_scans(tmp_path, result, covered_automatic):
     """Row 1 (review r1 N6): a pick object whose result is not a string is not a settled pick."""
-    _auto(tmp_path, source_date="2027-03-22")
+    _covered(tmp_path, covered_automatic, source_date="2027-03-22")
     (tmp_path / "2027-03-24.json").write_text(json.dumps({"result": result}))
     (tmp_path / "2027-03-23.json").write_text('{"result":"miss"}')
     assert _resolved_pick_dates(tmp_path) == [date(2027, 3, 23)]
@@ -102,7 +112,7 @@ def test_corrupt_contest_file_raises_domain_error(tmp_path, filename, contents):
 
 
 @pytest.mark.parametrize("contents", CORRUPTIONS, ids=CORRUPTION_IDS)
-def test_manual_precedes_corrupt_auto(tmp_path, contents):
+def test_manual_precedes_corrupt_auto(tmp_path, contents, pinned_clock):
     """Row 2 precedence: the non-selected automatic file is never parsed."""
     _corrupt(_auto(tmp_path), contents)
     _manual(tmp_path)
@@ -111,9 +121,9 @@ def test_manual_precedes_corrupt_auto(tmp_path, contents):
 
 
 @pytest.mark.parametrize("streak,best", [(13, 10), (58, 58), (13, 58)])
-def test_u1_bad_best_reachable_after_corruption(tmp_path, streak, best):
+def test_u1_bad_best_reachable_after_corruption(tmp_path, streak, best, covered_automatic):
     """Row 3 / U1: mutate a valid producer artifact AFTER successful loading."""
-    path = _auto(tmp_path)
+    path = _covered(tmp_path, covered_automatic)
     assert load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW).streak == 13
     text = path.read_text()
     path.write_text(text.replace('"active_streak": 13', f'"active_streak": {streak}')
@@ -129,8 +139,10 @@ def test_u1_bad_best_reachable_after_corruption(tmp_path, streak, best):
 def test_manual_bounds_unchanged_in_cs1(tmp_path, streak, best):
     path = _auto(tmp_path, active_streak=streak, best_streak=best)
     path.rename(path.with_name("contest_streak.manual.json"))
-    state = load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW)
+    state = load_decision_streak_state(tmp_path, require_contest_state=False, now=NOW)
     assert (state.streak, state.best_streak, state.best_status) == (streak, best, "untrusted")
+    with pytest.raises(ContestStateError, match="legacy"):
+        load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW)
 
 
 @pytest.mark.parametrize("source_date", [None, "not-a-date"])
@@ -168,18 +180,18 @@ def test_dated_version_one_auto_still_accepted(tmp_path, metadata):
     path.write_text(json.dumps({"schema_version": "bts_contest_streak_auto_v1",
                                 "active_streak": 14, "best_streak": 18, **metadata}))
     optional = load_decision_streak_state(tmp_path, now=NOW)
-    required = load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW)
-    assert required.streak == 14
-    assert required == optional
+    assert optional.streak == 14
+    with pytest.raises(ContestStateError, match="absent"):
+        load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW)
     if metadata.get("source_date") == "not-a-date":
         assert optional.status == "stale"  # preserve the existing primary-date parsing
 
 
 @pytest.mark.parametrize("observation", ["manual", "automatic"])
 @pytest.mark.parametrize("contents", CORRUPTIONS, ids=CORRUPTION_IDS)
-def test_manual_not_universal_recovery(tmp_path, caplog, observation, contents):
+def test_manual_not_universal_recovery(tmp_path, caplog, observation, contents, covered_automatic, pinned_clock):
     """Row 5 / F1: model diagnostics cannot block either valid observation."""
-    _auto(tmp_path)
+    _covered(tmp_path, covered_automatic)
     if observation == "manual":
         _manual(tmp_path)
     path = tmp_path / "streak.json"
@@ -217,7 +229,7 @@ def test_corrupt_model_cannot_be_fallback(tmp_path, contents):
 def test_missing_required_contest_wins_over_corrupt_model(tmp_path, contents):
     """Row 7: the required-contest refusal keeps its established meaning."""
     _corrupt(tmp_path / "streak.json", contents)
-    with pytest.raises(ContestStateError, match="required but missing"):
+    with pytest.raises(ContestStateError, match="switch is absent"):
         load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW)
 
 

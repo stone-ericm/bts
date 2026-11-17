@@ -4,6 +4,28 @@ from pathlib import Path
 
 import pytest
 
+
+@pytest.fixture
+def covered_automatic():
+    """Cover a raw automatic fixture at its explicit operation clock.
+
+    Preserve values, dates and corruptions under test; add only switch metadata.
+    """
+    def cover(picks, now, payload):
+        from zoneinfo import ZoneInfo
+        year = now.astimezone(ZoneInfo("America/New_York")).year
+        identifier = "c" * 32
+        directory = picks / "account_state"
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / "season_contract.json").write_text(json.dumps(dict(
+            schema_version="bts_season_contract_v1", season=year, status="automatic",
+            activation_id=identifier, switched_at=now.isoformat(), revoked_at=None, note=None)))
+        path = directory / "contest_streak.json"
+        path.write_text(json.dumps(payload | dict(schema_version="bts_contest_streak_auto_v2",
+                                                 season=year, activation_id=identifier)))
+        return path
+    return cover
+
 # Make the project root importable so `from scripts.foo import bar` works.
 # (scripts/__init__.py makes scripts/ a package; the root must be on sys.path.)
 _project_root = Path(__file__).resolve().parent.parent

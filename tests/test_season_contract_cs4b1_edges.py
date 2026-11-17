@@ -140,9 +140,16 @@ def test_decision_and_health_never_read_switch(tmp_path, monkeypatch, manual, co
             "expires_at": "2027-07-16T03:59:59.999999Z", "recorded_at": "2027-07-15T16:00:00Z"})
     opener = Path.open
     def opening(p, *a, **kw):
-        assert p.name != "season_contract.json"
+        if not required or manual:
+            assert p.name != "season_contract.json"
         return opener(p, *a, **kw)
     monkeypatch.setattr(Path, "open", opening)
+    if required and not manual:
+        with pytest.raises(cs.ContestStateError, match="corrupt" if corrupt else "schema_version") as exc:
+            cs.load_decision_streak_state(tmp_path, now=NOW, require_contest_state=True)
+        alerts = health.check(tmp_path, now=NOW, expected=True)
+        assert alerts[-1].message == str(exc.value)
+        return
     assert cs.load_decision_streak_state(tmp_path, now=NOW, require_contest_state=required).streak == (3 if manual else 7)
     health.check(tmp_path, now=NOW, expected=required)
 

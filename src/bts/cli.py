@@ -2105,7 +2105,7 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
 
 @cli.group(name="season-contract")
 def season_contract():
-    """Inspect or enable the operator's season contract."""
+    """Inspect, enable or revoke the operator's season contract."""
 
 
 @season_contract.command(name="status")
@@ -2165,6 +2165,89 @@ def season_contract_enable(picks_dir, season, note):
         "Until a matching observation is on disk, use today's dated observation. "
         "A fetch can install the matching observation and then fail at a later step; "
         "a non-zero fetch exit does not prove that none was installed.")
+
+
+@season_contract.command(name="revoke")
+@click.option("--picks-dir", default="data/picks", type=click.Path())
+@click.option("--season", type=int, required=True)
+@click.option("--reason", required=True)
+def season_contract_revoke(picks_dir, season, reason):
+    from datetime import datetime, timezone
+    from bts.season_contract import (
+        ET, SCHEMA, SwitchState, switch_state, switch_lines, dated_template,
+    )
+    from bts.util import atomic_write_text
+    import os
+    import shlex
+    import uuid
+    now = datetime.now(timezone.utc)
+    year = now.astimezone(ET).year
+    if season != year:
+        raise click.UsageError(f"--season must equal the current ET year {year}")
+    if not reason.strip():
+        raise click.UsageError("--reason must be non-empty after stripping whitespace")
+    picks = Path(picks_dir)
+    prior = switch_state(picks, now)
+    carry = prior.snapshot if prior.snapshot is not None and prior.snapshot["season"] == year else None
+    utc = now.astimezone(timezone.utc)
+    data = dict(schema_version=SCHEMA, season=year, status="revoked",
+                activation_id=carry["activation_id"] if carry else uuid.uuid4().hex,
+                switched_at=carry["switched_at"] if carry else None,
+                revoked_at=utc.isoformat().replace("+00:00", "Z"), note=reason)
+    try:
+        atomic_write_text(picks / "account_state/season_contract.json", json.dumps(data, indent=2) + "\n")
+    except OSError as exc:
+        click.echo(f"season {year} was NOT revoked: {exc}; nothing renamed", err=True)
+        raise SystemExit(1)
+
+    stamp = utc.strftime("%Y%m%dT%H%M%S%fZ")
+    def set_aside(filename):
+        source = picks / "account_state" / filename
+        try:
+            source.lstat()
+        except FileNotFoundError:
+            return f"{source}: absent"
+        target = source.with_name(f"{source.stem}.revoked-{stamp}.json")
+        try:
+            target.lstat()
+        except FileNotFoundError:
+            pass
+        else:
+            raise FileExistsError(f"target already exists: {target}")
+        # R31: checked rename, intentionally not an atomic no-replace primitive.
+        os.rename(source, target)
+        return f"{source}: renamed to {target}; KEPT at that path"
+
+    try:
+        manual = set_aside("contest_streak.manual.json")
+    except OSError as exc:
+        click.echo(f"This invocation wrote the revoked switch; manual file was not set aside: {exc}; "
+                   "saver flag was not attempted", err=True)
+        raise SystemExit(1)
+    try:
+        saver = set_aside("saver_state.json")
+    except OSError as exc:
+        click.echo(f"This invocation wrote the revoked switch; manual file outcome: {manual}; "
+                   f"saver flag was not set aside: {exc}", err=True)
+        raise SystemExit(1)
+
+    for line in switch_lines(SwitchState("revoked", data)):
+        click.echo(line)
+    click.echo(manual)
+    click.echo(saver)
+    directory = f" --picks-dir {shlex.quote(str(picks))}"
+    click.echo(
+        "Renamed files are KEPT at the paths above, including the saver's previous state and history "
+        "for you to consult. Future live decisions refuse the automatic observation, subject to the "
+        "loader's existing errors. Today's dated observation, if present, has been set aside: a live "
+        f"pick today needs a NEW dated observation. TEMPLATE: `{dated_template(picks, now)}`; "
+        "read N, B and S from MLB. The saver flag now reads uninitialized unless something else writes "
+        "it. A dated observation supplies the saver for its own day but does not initialise the flag. "
+        f"Saver TEMPLATE: `bts saver-state --init <state read from MLB> --season {year}{directory}`. "
+        "The scheduler should have been stopped and any fetch waited for before revoke and before "
+        "a later enable. A decision or fetch already running may finish on what it read before this "
+        "command. A pick already delivered or locked is not cancelled. "
+        f"Run `bts season-contract status{directory}` now.")
 
 
 @cli.command(name="fetch-contest-streak")

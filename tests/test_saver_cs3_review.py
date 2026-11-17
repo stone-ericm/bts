@@ -166,8 +166,10 @@ def test_health_unreadable_saver_file_warns_and_pasted_init_command_repairs_it(t
             saver_path.chmod(0o600)
 
 
-def test_eod_health_dm_day1_day2_day30_saver_attention_vs_coverage_lag(tmp_path: Path):
+def test_eod_health_dm_day1_day2_day30_saver_attention_vs_coverage_lag(tmp_path: Path, covered_automatic):
     _seed_contest_auto(tmp_path, streak=4, best=9, source_date="2026-09-27")
+    path = tmp_path / "account_state/contest_streak.json"
+    covered_automatic(tmp_path, datetime(2027, 3, 24, 23, 0, tzinfo=ET), json.loads(path.read_text()))
     _seed_saver(tmp_path, "used", season=2026)
     # Two resolved 2027 picks create a >=2 coverage-lag WARN (source='contest_state') alongside saver_state WARN
     (tmp_path / "2027-03-24.json").write_text(json.dumps({"result": "hit"}))
@@ -278,7 +280,7 @@ def test_cli_use_succeeds_when_auto_earn_promotes_not_earned_to_active_mid_comma
     assert res.output.splitlines()[-1] == "saver_state: used (season 2027)"
 
 
-def test_mistaken_use_then_undo_never_earned_behavior_at_streaks_5_10_16(tmp_path: Path):
+def test_mistaken_use_then_undo_never_earned_behavior_at_streaks_5_10_16(tmp_path: Path, covered_automatic):
     _seed_saver(tmp_path, "not_earned", season=2027)
     assert CliRunner().invoke(
         cli, ["saver-state", "--picks-dir", str(tmp_path), "--season", "2027", "--use"],
@@ -291,6 +293,8 @@ def test_mistaken_use_then_undo_never_earned_behavior_at_streaks_5_10_16(tmp_pat
     mdp = _load_mdp()
     for streak, expected_warn_flag in [(5, False), (10, False), (16, True)]:
         _seed_contest_auto(tmp_path, streak=streak, best=streak, source_date="2027-08-23")
+        path = tmp_path / "account_state/contest_streak.json"
+        covered_automatic(tmp_path, datetime(2027, 8, 23, 16, 0, tzinfo=timezone.utc), json.loads(path.read_text()))
         dec = load_decision_streak_state(tmp_path, now=datetime(2027, 8, 23, 16, 0, tzinfo=timezone.utc))
         assert dec.saver_flag_state == "active"
         assert dec.saver_available is True
