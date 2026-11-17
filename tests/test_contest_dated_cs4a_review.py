@@ -301,6 +301,8 @@ def test_all_three_row11_warning_commands_and_fetch_auto_earn_isolation(tmp_path
     # Paste second command (--saver used at streak 12) -> saver spent; then run fetch-contest-streak
     # which promotes saver_state.json to 'active', verifying today's dated decision stays 'used'!
     assert runner.invoke(cli, shlex.split(cmds[1])[1:]).exit_code == 0
+    from tests.test_season_contract_cs4b1 import contract
+    (sdir / "season_contract.json").write_text(json.dumps(contract()), encoding="utf-8")
 
     @dataclass
     class FakeSession:

@@ -2103,6 +2103,70 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
     sys.exit(1)
 
 
+@cli.group(name="season-contract")
+def season_contract():
+    """Inspect or enable the operator's season contract."""
+
+
+@season_contract.command(name="status")
+@click.option("--picks-dir", default="data/picks", type=click.Path())
+@click.option("--season", type=int, default=None)
+def season_contract_status(picks_dir, season):
+    from datetime import datetime, timezone
+    from bts.season_contract import ET, switch_state, inspection_lines
+    now = datetime.now(timezone.utc)
+    inspected = now.astimezone(ET).year if season is None else season
+    picks = Path(picks_dir)
+    state = switch_state(picks, now, season=inspected)
+    for line in inspection_lines(picks, now, state, season=inspected):
+        click.echo(line)
+    if state.state == "corrupt":
+        raise SystemExit(1)
+
+
+@season_contract.command(name="enable")
+@click.option("--picks-dir", default="data/picks", type=click.Path())
+@click.option("--season", type=int, required=True)
+@click.option("--note", default=None)
+def season_contract_enable(picks_dir, season, note):
+    from datetime import datetime, timezone
+    from bts.season_contract import ET, SCHEMA, SwitchState, switch_state, switch_lines
+    from bts.util import atomic_write_text
+    import uuid
+    now = datetime.now(timezone.utc)
+    year = now.astimezone(ET).year
+    if season != year:
+        raise click.UsageError(f"--season must equal the current ET year {year}")
+    picks = Path(picks_dir)
+    state = switch_state(picks, now)
+    if state.state == "automatic":
+        for line in switch_lines(state):
+            click.echo(line)
+        click.echo(f"season {year} is already switched to automatic; unchanged")
+        return
+    data = {
+        "schema_version": SCHEMA, "season": year, "status": "automatic",
+        "activation_id": uuid.uuid4().hex,
+        "switched_at": now.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "revoked_at": (state.snapshot["revoked_at"] if state.snapshot is not None
+                       and state.snapshot["season"] == year else None),
+        "note": note,
+    }
+    try:
+        atomic_write_text(picks / "account_state/season_contract.json", json.dumps(data, indent=2) + "\n")
+    except OSError as exc:
+        click.echo(f"season {year} was NOT switched: {exc}", err=True)
+        raise SystemExit(1)
+    for line in switch_lines(SwitchState("automatic", data)):
+        click.echo(line)
+    click.echo(
+        f"This activation needs a fetch to replace the automatic observation with season {year} "
+        f"and activation_id {data['activation_id']} before live use (enforced by change set 4b-2). "
+        "Until a matching observation is on disk, use today's dated observation. "
+        "A fetch can install the matching observation and then fail at a later step; "
+        "a non-zero fetch exit does not prove that none was installed.")
+
+
 @cli.command(name="fetch-contest-streak")
 @click.option("--picks-dir", default="data/picks", type=click.Path())
 @click.option("--expected-username", default=None,
@@ -2110,11 +2174,11 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
 @click.option("--dm-recipient", default=None, help="Bluesky handle for throttled failure alerts.")
 @click.option("--dry-run", is_flag=True, help="Print would-write without writing.")
 def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
-    """Fetch the real MLB BTS account streak and write contest_streak.json (atomic).
+    """Record the real MLB BTS account streak; refresh automatic state when switched.
 
     Fails safe: on auth/cookie/HTTP/shape/identity failure it NEVER overwrites the
-    prior good observation; it alerts (throttled DM) and exits nonzero. A current
-    activeStreak IS written even when the per-round predictions array lags the counter
+    prior good observation; it alerts (throttled DM) and exits nonzero. When switched,
+    a current activeStreak is written even when per-round predictions lag the counter
     (the snapshot/coverage split); contest_state labels lagged/stale downstream.
     """
     import sys
@@ -2125,8 +2189,12 @@ def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
         TransientAuthError, RateLimitedLoginError,
     )
     from bts.contest_fetch import (
-        fetch_profile, derive_source_date, build_observation, ContestFetchError,
+        fetch_profile, derive_source_date, build_observation, ContestFetchError, RESOLVED,
     )
+    from bts.season_contract import ET, AUTO_SCHEMA, switch_state
+
+    now = datetime.now(timezone.utc)
+    season = now.astimezone(ET).year
 
     picks = Path(picks_dir)
     out_path = picks / "account_state" / "contest_streak.json"
@@ -2179,10 +2247,18 @@ def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
         success = fetch_profile(session.user_id, cookies, session.xsid)
         predictions = success.get("predictions", [])
         rounds = _fetch_rounds()
+        if "predictions" not in success:
+            raise ContestFetchError("profile predictions key is missing")
+        if not isinstance(predictions, list):
+            raise ContestFetchError("profile predictions must be a list")
+        if any(not isinstance(row, dict) for row in predictions):
+            raise ContestFetchError("profile predictions must contain only objects")
+        if not rounds:
+            raise ContestFetchError("rounds mapping must be non-empty")
         source_date = derive_source_date(predictions, rounds)  # may be None when the ledger lags
         observation = build_observation(
             success, source_date, session.user_id, session.username,
-            datetime.now(timezone.utc),
+            now,
         )
     except httpx.HTTPError as exc:
         # Categorize by shape (r2 #6): these DMs must not consume the actionable
@@ -2200,15 +2276,26 @@ def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
     except (AttributeError, TypeError, ValueError, KeyError, ContestFetchError) as exc:
         _fail(f"profile/rounds shape or fetch error: {exc}")
 
-    # write (atomic) or dry-run — a current activeStreak is written even when the
-    # predictions array lags; staleness is labeled by contest_state downstream, not
-    # gated here (the snapshot/coverage split).
+    switch = switch_state(picks, now)
+    if switch.state == "corrupt":
+        _fail(f"season contract corrupt: check {switch.check}: {switch.error}")
+    switched = switch.state == "automatic"
+    if switched:
+        observation.update(schema_version=AUTO_SCHEMA, season=season,
+                           activation_id=switch.snapshot["activation_id"])
+
+    # On the automatic path, counter persistence does not depend on coverage lag;
+    # contest_state labels staleness downstream (the snapshot/coverage split).
     summary = (f"active_streak={observation['active_streak']} "
                f"best_streak={observation['best_streak']} source_date={observation['source_date']}")
     if dry_run:
-        click.echo(f"[dry-run] would write {out_path}: {summary}")
+        if switched:
+            click.echo(f"[dry-run] season {season} automatic; would write {out_path}: {summary}")
+        else:
+            click.echo(f"[dry-run] season {season} not switched to automatic; would record reading in ledger and fetch status: {summary}")
         return
-    _atomic_write_json(out_path, observation)
+    if switched:
+        _atomic_write_json(out_path, observation)
     success_record = {
         "last_success_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "last_error": None,
@@ -2225,22 +2312,41 @@ def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
     _atomic_write_json(status_path, success_record)
     # persist the full per-round MLB ledger (append-only) for analysis + Phase-2 saver inference
     ledger_row = {
-        "recorded_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "recorded_at": now.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
         "active_streak": success["activeStreak"],
         "best_streak": success["seasonBestStreak"],
         "source_date": source_date.isoformat() if source_date is not None else None,
         "predictions": predictions,
+        "season": season,
+        "switched": switched,
+        "activation_id": switch.snapshot["activation_id"] if switched else None,
+        "settled_by_year": {},
+        "settled_unmapped": 0,
+        "unsettled": 0,
     }
+    for row in predictions:
+        if row.get("result") not in RESOLVED:
+            ledger_row["unsettled"] += 1
+            continue
+        round_id = row.get("roundId")
+        mapped = rounds.get(int(round_id)) if round_id is not None else None
+        if mapped is None:
+            ledger_row["settled_unmapped"] += 1
+        else:
+            year = str(mapped.year)
+            ledger_row["settled_by_year"][year] = ledger_row["settled_by_year"].get(year, 0) + 1
+    (picks / "account_state").mkdir(parents=True, exist_ok=True)
     with (picks / "account_state" / "contest_ledger.jsonl").open("a") as _fh:
         _fh.write(json.dumps(ledger_row) + "\n")
+    if not switched:
+        click.echo(f"season {season} is not switched to automatic; reading recorded in the ledger and the fetch status: {summary}")
+        return
     # Streak Saver flag: safe cold-init below 10 + sound auto-earn at 10 from the reliable
     # seasonBestStreak. Never auto-inits `active` from a cold file at >=10 (fail-closed).
     from bts.saver_state import maybe_auto_earn_saver
-    from zoneinfo import ZoneInfo
-    season = datetime.now(ZoneInfo("America/New_York")).year
     if source_date is not None and source_date.year == season:
         maybe_auto_earn_saver(picks, best_streak=observation["best_streak"], season=season)
-    click.echo(f"wrote {out_path}: {summary}")
+    click.echo(f"wrote {out_path} for season {season}: {summary}")
 
 
 @cli.command(name="predict-json")

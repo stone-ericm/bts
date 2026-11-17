@@ -194,6 +194,8 @@ def validate_fetch(success: dict) -> None:
     best_streak = _require_streak_int(success, "seasonBestStreak")
     if best_streak < active_streak:
         raise ContestFetchError("seasonBestStreak must be >= activeStreak")
+    if best_streak > 57:
+        raise ContestFetchError("seasonBestStreak must be <= 57")
 
 
 def _format_recorded_at(recorded_at: datetime) -> str:

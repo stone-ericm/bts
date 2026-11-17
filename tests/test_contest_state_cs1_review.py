@@ -178,13 +178,15 @@ def test_corrupt_manual_alone_and_beside_corrupt_auto_raises_manual_domain_error
 def test_fetch_writer_out_of_bounds_best_rejected_and_manual_override_recovers(tmp_path: Path):
     from click.testing import CliRunner
     from bts.cli import cli
-    from bts.contest_fetch import build_observation, validate_fetch
+    from bts.contest_fetch import build_observation, validate_fetch, ContestFetchError
 
     profile = {"activeStreak": 0, "seasonBestStreak": 58}
-    validate_fetch(profile)  # contest_fetch currently enforces best >= active, not <= 57
-    obs = build_observation(
-        profile, source_date=dt.date(2027, 3, 24), user_id=1, username="u", recorded_at=NOW,
-    )
+    with pytest.raises(ContestFetchError, match="57"):
+        validate_fetch(profile)
+    with pytest.raises(ContestFetchError, match="57"):
+        build_observation(profile, source_date=dt.date(2027, 3, 24), user_id=1, username="u", recorded_at=NOW)
+    obs = {"schema_version": "bts_contest_streak_auto_v1", "active_streak": 0,
+           "best_streak": 58, "source_date": "2027-03-24", "source": "mlb_bts_profile"}
     sd = tmp_path / "account_state"
     sd.mkdir(parents=True, exist_ok=True)
     auto_path = sd / "contest_streak.json"
