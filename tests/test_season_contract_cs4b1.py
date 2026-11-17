@@ -302,6 +302,17 @@ def test_response_validation_and_alerts(tmp_path, monkeypatch, bad, dry):
         assert bts.dm.send_dm.call_count == 1
         assert (tmp_path.parent / "health_state/contest_streak_fetch_status.json").exists()
         assert not (tmp_path / "account_state/contest_ledger.jsonl").exists()
+    else:
+        # A valid empty list (review round 1, Codex note): a dry run persists
+        # nothing; a real not-switched run records status and one ledger line.
+        import bts.dm
+        assert bts.dm.send_dm.call_count == 0
+        status = tmp_path.parent / "health_state/contest_streak_fetch_status.json"
+        ledger = tmp_path / "account_state/contest_ledger.jsonl"
+        assert status.exists() is (not dry)
+        assert ledger.exists() is (not dry)
+        if not dry:
+            assert len(ledger.read_text().splitlines()) == 1
 
 
 @pytest.mark.parametrize("profile,rounds_called,category", [

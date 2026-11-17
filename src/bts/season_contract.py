@@ -152,9 +152,10 @@ def inspection_lines(picks: Path, now: datetime, state: SwitchState, *, season: 
             if flag.state != "uninitialized":
                 lines.append(f"saver: {flag.state}; season: {flag.season}")
             else:
+                # type() not isinstance: a JSON true/false season is invalid, not another season.
                 valid = (isinstance(raw, dict) and isinstance(raw.get("state"), str)
                          and raw["state"] in {"not_earned", "active", "used"}
-                         and isinstance(raw.get("season"), int))
+                         and type(raw.get("season")) is int)
                 reason = "another season" if valid and raw["season"] != today.year else "invalid"
                 lines.append(f"saver: unavailable ({reason}); season: {flag.season}; reads uninitialized")
     except _UNREADABLE as exc:
@@ -165,19 +166,21 @@ def inspection_lines(picks: Path, now: datetime, state: SwitchState, *, season: 
         if not _present(path):
             lines.append("ledger: absent; rows: 0; bad lines: 0")
         else:
+            keys = ["recorded_at", "active_streak", "best_streak", "source_date", "season", "switched",
+                    "activation_id", "settled_by_year", "settled_unmapped", "unsettled"]
             rows, bad = [], 0
             for line in path.read_text(encoding="utf-8").splitlines():
+                # Render inside the per-line guard: a row that decodes but cannot be
+                # rendered (nesting too deep for repr) is a bad line, not an unreadable file.
                 try:
                     row = json.loads(line)
                     if not isinstance(row, dict):
                         raise ValueError("not an object")
-                    rows.append(row)
+                    rows.append("  " + "; ".join(f"{key}={row.get(key, '—')}" for key in keys))
                 except (ValueError, RecursionError):
                     bad += 1
             lines.append(f"ledger: readable; rows: {len(rows)}; bad lines: {bad}")
-            keys = ["recorded_at", "active_streak", "best_streak", "source_date", "season", "switched",
-                    "activation_id", "settled_by_year", "settled_unmapped", "unsettled"]
-            lines.extend("  " + "; ".join(f"{key}={row.get(key, '—')}" for key in keys) for row in rows[-10:])
+            lines.extend(rows[-10:])
     except _UNREADABLE as exc:
         lines.append(f"ledger: unreadable; unavailable: {exc}; counts unavailable")
     return lines
