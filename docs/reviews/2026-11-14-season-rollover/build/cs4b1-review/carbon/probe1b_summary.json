@@ -1,0 +1,24 @@
+{
+  "total_matrix_cases_per_tree": 5400,
+  "total_runs": 10800,
+  "io_violations": [],
+  "unexpected_diffs": [],
+  "buckets": {
+    "row4_6_unswitched_ledger_status_only": 96,
+    "row5_dry_run_valid": 128,
+    "row3_newly_rejected": 720,
+    "row3_explicit_list_msg": 480,
+    "unchanged_early_reject": 1440,
+    "unchanged_prior_crash": 900,
+    "unchanged_identity_guard": 900,
+    "row4_5_corrupt_switch": 704,
+    "row4_6_automatic_write": 32
+  },
+  "empty_dict_predictions": {
+    "base_exit": 0,
+    "branch_exit": 2
+  },
+  "prefix_cases_verified": 35,
+  "pairwise_cases_verified": 12,
+  "clock_cases_verified": 15
+}
