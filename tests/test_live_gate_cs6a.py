@@ -508,3 +508,49 @@ def test_run_early_returns_without_state_access(tmp_path, pick_path, captured_pi
     captured_pick_path.save.assert_not_called()
     captured_pick_path.post.assert_not_called()
     assert not (pick_path / f"{DAY}.json").exists()
+
+
+# --- Review round 1 (Codex B1): the omitted --date of a dry run -------------------------
+@pytest.mark.parametrize("body", [
+    "[scheduler]\ncontest_state_required = true\n",          # no warning applies
+    '[scheduler]\npick_delivery = "dm"\n',                    # the warning applies
+])
+def test_dry_run_default_date_is_resolved_before_the_configuration_is_loaded(tmp_path, monkeypatch, body):
+    """A dry run that starts just before midnight ET schedules the day it started on.
+
+    The base resolved the default date first and loaded the TOML second. Loading
+    first let a run that crossed midnight during the load show the NEXT day (an
+    off day in the reviewer's probe, which then idles).
+    """
+    from bts import orchestrator as orch
+    path = write_config(tmp_path / "config.toml", body)
+    loaded = []
+    real_load = orch.load_config
+
+    def load(p):
+        loaded.append(p)
+        return real_load(p)
+
+    monkeypatch.setattr(orch, "load_config", load)
+    monkeypatch.setattr(cli, "_today_et", lambda: "2027-07-16" if loaded else "2027-07-15")
+    day = Mock()
+    monkeypatch.setattr(scheduler, "run_day", day)
+    result = invoke("schedule", path, "--dry-run")
+    assert result.exit_code == 0, result.output
+    assert loaded, "the configuration was loaded"
+    assert day.call_args.kwargs["date"] == "2027-07-15"
+    assert day.call_args.kwargs["dry_run"] is True
+
+
+def test_real_run_refusal_still_computes_no_default_date(tmp_path, monkeypatch):
+    """Row 3 is unchanged by the fix above: a refused real launch never asks for the date."""
+    path = write_config(tmp_path / "config.toml", '[scheduler]\npick_delivery = "dm"\n')
+    today = Mock(side_effect=AssertionError("default date must not be computed on a refusal"))
+    monkeypatch.setattr(cli, "_today_et", today)
+    day = Mock()
+    monkeypatch.setattr(scheduler, "run_day", day)
+    result = invoke("schedule", path)
+    assert result.exit_code == 2
+    assert "bts schedule: refusing to start:" in result.stderr
+    today.assert_not_called()
+    day.assert_not_called()

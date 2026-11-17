@@ -1763,6 +1763,10 @@ def _contest_fetch_alert(status_path, dm_recipient, msg, cooldown_hours=6,
 def entry_intent(config_path):
     """Print the declared [scheduler].entry_intent when it agrees with the delivery mode; otherwise exit 1.
 
+    Also exits 1 when DM or public delivery, or the intent "enter", is configured without
+    contest state being required (scheduler.contest_state_required or
+    health_checks.contest_state_expected): `bts schedule` refuses to start on that.
+
     cron-setup-hetzner.sh reads stdout to decide whether to install the check-pick-entered line.
     """
     import tomllib
@@ -2547,6 +2551,12 @@ def schedule(date: str | None, config_path: str, dry_run: bool):
     from bts.entry_intent import live_gate_problem
     from bts.orchestrator import load_config
     from bts.scheduler import run_day
+
+    # A dry run keeps the base's order (date first, then the file): loading first
+    # let a run that crossed midnight ET during the load show the next day. A real
+    # run resolves its default date only after the gate (a refusal computes none).
+    if dry_run and date is None:
+        date = _today_et()
 
     config = load_config(Path(config_path))
     problem = live_gate_problem(config)
