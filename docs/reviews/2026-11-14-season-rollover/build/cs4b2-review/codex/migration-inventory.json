@@ -1,0 +1,623 @@
+[
+  {
+    "file": "tests/conftest.py",
+    "functions": [
+      {
+        "name": "covered_automatic",
+        "base_asserts": [],
+        "branch_asserts": [],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "cover",
+        "base_asserts": [],
+        "branch_asserts": [],
+        "removed_asserts": [],
+        "added_asserts": []
+      }
+    ]
+  },
+  {
+    "file": "tests/health/test_contest_state.py",
+    "functions": [
+      {
+        "name": "test_expected_missing_is_critical",
+        "base_asserts": [
+          "len(alerts) == 1",
+          "alerts[0].level == 'CRITICAL'",
+          "alerts[0].source == SOURCE",
+          "'expected but missing' in alerts[0].message"
+        ],
+        "branch_asserts": [
+          "len(alerts) == 2",
+          "alerts[0].level == 'CRITICAL'",
+          "alerts[0].source == SOURCE",
+          "'expected but missing' in alerts[0].message",
+          "alerts[1].level == 'CRITICAL' and 'switch is absent' in alerts[1].message"
+        ],
+        "removed_asserts": [
+          "len(alerts) == 1"
+        ],
+        "added_asserts": [
+          "len(alerts) == 2",
+          "alerts[1].level == 'CRITICAL' and 'switch is absent' in alerts[1].message"
+        ]
+      },
+      {
+        "name": "test_valid_auto_state_is_clean_when_expected",
+        "base_asserts": [
+          "check(tmp_path, expected=True, now=NOW) == []"
+        ],
+        "branch_asserts": [
+          "check(tmp_path, expected=True, now=NOW) == []"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "test_gap2_coverage_lag_is_warn",
+        "base_asserts": [
+          "any((a.level == 'WARN' and a.source == SOURCE for a in alerts))",
+          "not any((a.level == 'CRITICAL' for a in alerts))"
+        ],
+        "branch_asserts": [
+          "any((a.level == 'WARN' and a.source == SOURCE for a in alerts))",
+          "not any((a.level == 'CRITICAL' for a in alerts))"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "test_expected_overnight_lag_is_not_critical",
+        "base_asserts": [
+          "not any((a.level == 'CRITICAL' for a in alerts))",
+          "any((a.level == 'INFO' and a.source == SOURCE for a in alerts))"
+        ],
+        "branch_asserts": [
+          "not any((a.level == 'CRITICAL' for a in alerts))",
+          "any((a.level == 'INFO' and a.source == SOURCE for a in alerts))"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "test_gap1_past_noon_is_info_not_warn",
+        "base_asserts": [
+          "not any((a.level == 'WARN' for a in alerts))",
+          "not any((a.level == 'CRITICAL' for a in alerts))",
+          "infos",
+          "'frozen' not in infos[0].message.lower()",
+          "'coverage' in infos[0].message.lower()"
+        ],
+        "branch_asserts": [
+          "not any((a.level == 'WARN' for a in alerts))",
+          "not any((a.level == 'CRITICAL' for a in alerts))",
+          "infos",
+          "'frozen' not in infos[0].message.lower()",
+          "'coverage' in infos[0].message.lower()"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "test_offday_gap_with_one_new_pick_is_not_critical",
+        "base_asserts": [
+          "not any((a.level == 'CRITICAL' for a in alerts))",
+          "any((a.level == 'INFO' and a.source == SOURCE for a in alerts))",
+          "not any((a.level == 'WARN' for a in alerts))"
+        ],
+        "branch_asserts": [
+          "not any((a.level == 'CRITICAL' for a in alerts))",
+          "any((a.level == 'INFO' and a.source == SOURCE for a in alerts))",
+          "not any((a.level == 'WARN' for a in alerts))"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "test_two_day_gap_is_warn_not_critical",
+        "base_asserts": [
+          "any((a.level == 'WARN' and a.source == SOURCE for a in alerts))",
+          "not any((a.level == 'CRITICAL' for a in alerts))"
+        ],
+        "branch_asserts": [
+          "any((a.level == 'WARN' and a.source == SOURCE for a in alerts))",
+          "not any((a.level == 'CRITICAL' for a in alerts))"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "_cover",
+        "base_asserts": [],
+        "branch_asserts": [],
+        "removed_asserts": [],
+        "added_asserts": []
+      }
+    ]
+  },
+  {
+    "file": "tests/test_contest_dated_cs4a.py",
+    "functions": [
+      {
+        "name": "test_three_day_intermediate_sequence",
+        "base_asserts": [
+          "state.streak == (22 if streak is None else streak)",
+          "state.saver_flag_state == ('uninitialized' if streak is None else 'not_earned')",
+          "state.saver_available == (streak is not None)",
+          "result.exit_code == 0"
+        ],
+        "branch_asserts": [
+          "state.streak == (22 if streak is None else streak)",
+          "state.saver_flag_state == ('uninitialized' if streak is None else 'not_earned')",
+          "state.saver_available == (streak is not None)",
+          "result.exit_code == 0"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      }
+    ]
+  },
+  {
+    "file": "tests/test_contest_state.py",
+    "functions": [
+      {
+        "name": "test_required_contest_state_missing_raises",
+        "base_asserts": [
+          "'required but missing' in str(exc)"
+        ],
+        "branch_asserts": [
+          "'season 2026 switch is absent' in str(exc)"
+        ],
+        "removed_asserts": [
+          "'required but missing' in str(exc)"
+        ],
+        "added_asserts": [
+          "'season 2026 switch is absent' in str(exc)"
+        ]
+      }
+    ]
+  },
+  {
+    "file": "tests/test_contest_state_cs1_review.py",
+    "functions": [
+      {
+        "name": "_covered",
+        "base_asserts": [],
+        "branch_asserts": [],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "test_chmod000_unreadable_files_across_rows_1_2_5_6_7",
+        "base_asserts": [
+          "_resolved_pick_dates(tmp_path) == [dt.date(2027, 3, 24)]",
+          "_has_unconfirmed_miss(tmp_path, dt.date(2027, 3, 21)) is True",
+          "(st.streak, st.status) == (13, 'stale')",
+          "st5.streak == 13",
+          "st5.model_streak is None and st5.model_saver_available is None",
+          "st5.model_state_error is not None and 'PermissionError' in st5.model_state_error"
+        ],
+        "branch_asserts": [
+          "_resolved_pick_dates(tmp_path) == [dt.date(2027, 3, 24)]",
+          "_has_unconfirmed_miss(tmp_path, dt.date(2027, 3, 21)) is True",
+          "(st.streak, st.status) == (13, 'stale')",
+          "st5.streak == 13",
+          "st5.model_streak is None and st5.model_saver_available is None",
+          "st5.model_state_error is not None and 'PermissionError' in st5.model_state_error"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "test_row3_auto_exact_boundaries_accepted",
+        "base_asserts": [
+          "st.streak == active"
+        ],
+        "branch_asserts": [
+          "st.streak == active"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "test_row3_real_unexpired_manual_v2_bounds_remain_accepted",
+        "base_asserts": [
+          "(st.streak, st.best_streak, st.best_status) == (active, best, expected_status)"
+        ],
+        "branch_asserts": [
+          "(st.streak, st.best_streak, st.best_status) == (active, best, expected_status)"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "test_fetch_writer_out_of_bounds_best_rejected_and_manual_override_recovers",
+        "base_asserts": [
+          "res.exit_code == 0",
+          "(recovered.streak, recovered.best_streak, recovered.best_status) == (0, 57, 'trusted')"
+        ],
+        "branch_asserts": [
+          "res.exit_code == 0",
+          "(recovered.streak, recovered.best_streak, recovered.best_status) == (0, 57, 'trusted')"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "test_row5_optional_diagnostics_flow_cleanly_through_dm_decision_and_subtitle",
+        "base_asserts": [
+          "st.model_streak is None and st.model_saver_available is None",
+          "st.model_state_error is not None",
+          "'Streak: 9' in post_text and 'None' not in post_text",
+          "'Streak holds at 9.' in skip_text and 'None' not in skip_text",
+          "_streak_subtitle(st) == 'Contest State'",
+          "rec is not None",
+          "loaded is not None and loaded['streak'] == 9 and (loaded['state_source'] == 'contest')"
+        ],
+        "branch_asserts": [
+          "st.model_streak is None and st.model_saver_available is None",
+          "st.model_state_error is not None",
+          "'Streak: 9' in post_text and 'None' not in post_text",
+          "'Streak holds at 9.' in skip_text and 'None' not in skip_text",
+          "_streak_subtitle(st) == 'Contest State'",
+          "rec is not None",
+          "loaded is not None and loaded['streak'] == 9 and (loaded['state_source'] == 'contest')"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      }
+    ]
+  },
+  {
+    "file": "tests/test_contest_state_decoder_limits.py",
+    "functions": [
+      {
+        "name": "test_row5_large_json_scalar_cannot_block_observation",
+        "base_asserts": [
+          "state.streak == 7",
+          "state.model_streak is state.model_saver_available is None",
+          "'ValueError' in state.model_state_error",
+          "len([r for r in caplog.records if 'model_state_corrupt' in r.message]) == 1"
+        ],
+        "branch_asserts": [
+          "state.streak == 7",
+          "state.model_streak is state.model_saver_available is None",
+          "'ValueError' in state.model_state_error",
+          "len([r for r in caplog.records if 'model_state_corrupt' in r.message]) == 1"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "test_rows6_7_large_json_scalar_has_domain_error",
+        "base_asserts": [],
+        "branch_asserts": [],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "test_deeply_nested_body_is_isolated_everywhere",
+        "base_asserts": [
+          "_resolved_pick_dates(tmp_path) == [date(2026, 6, 17)]",
+          "_has_unconfirmed_miss(tmp_path, date(2026, 6, 16))",
+          "state.streak == 7 and state.model_streak is None and state.model_state_error"
+        ],
+        "branch_asserts": [
+          "_resolved_pick_dates(tmp_path) == [date(2026, 6, 17)]",
+          "_has_unconfirmed_miss(tmp_path, date(2026, 6, 16))",
+          "state.streak == 7 and state.model_streak is None and state.model_state_error"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      }
+    ]
+  },
+  {
+    "file": "tests/test_contest_state_defensive_reads.py",
+    "functions": [
+      {
+        "name": "_manual",
+        "base_asserts": [
+          "result.exit_code == 0"
+        ],
+        "branch_asserts": [
+          "result.exit_code == 0"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "_covered",
+        "base_asserts": [],
+        "branch_asserts": [],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "pinned_clock",
+        "base_asserts": [],
+        "branch_asserts": [],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "test_corrupt_pick_is_skipped_by_both_scans",
+        "base_asserts": [
+          "_resolved_pick_dates(tmp_path) == []",
+          "not _has_unconfirmed_miss(tmp_path, date(2027, 3, 22))",
+          "_resolved_pick_dates(tmp_path) == [date(2027, 3, 23)]",
+          "_has_unconfirmed_miss(tmp_path, date(2027, 3, 22))",
+          "(state.streak, state.status) == (13, 'stale')"
+        ],
+        "branch_asserts": [
+          "_resolved_pick_dates(tmp_path) == []",
+          "not _has_unconfirmed_miss(tmp_path, date(2027, 3, 22))",
+          "_resolved_pick_dates(tmp_path) == [date(2027, 3, 23)]",
+          "_has_unconfirmed_miss(tmp_path, date(2027, 3, 22))",
+          "(state.streak, state.status) == (13, 'stale')"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "test_pick_with_unhashable_result_is_skipped_by_both_scans",
+        "base_asserts": [
+          "_resolved_pick_dates(tmp_path) == [date(2027, 3, 23)]",
+          "_has_unconfirmed_miss(tmp_path, date(2027, 3, 22))",
+          "(state.streak, state.status) == (13, 'stale')"
+        ],
+        "branch_asserts": [
+          "_resolved_pick_dates(tmp_path) == [date(2027, 3, 23)]",
+          "_has_unconfirmed_miss(tmp_path, date(2027, 3, 22))",
+          "(state.streak, state.status) == (13, 'stale')"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "test_manual_precedes_corrupt_auto",
+        "base_asserts": [
+          "load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW).streak == 0"
+        ],
+        "branch_asserts": [
+          "load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW).streak == 0"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "test_u1_bad_best_reachable_after_corruption",
+        "base_asserts": [
+          "load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW).streak == 13",
+          "(stored['active_streak'], stored['best_streak']) == (streak, best)",
+          "all((value in str(exc.value) for value in (str(path), str(streak), str(best))))"
+        ],
+        "branch_asserts": [
+          "load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW).streak == 13",
+          "(stored['active_streak'], stored['best_streak']) == (streak, best)",
+          "all((value in str(exc.value) for value in (str(path), str(streak), str(best))))"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "test_manual_bounds_unchanged_in_cs1",
+        "base_asserts": [
+          "(state.streak, state.best_streak, state.best_status) == (streak, best, 'untrusted')"
+        ],
+        "branch_asserts": [
+          "(state.streak, state.best_streak, state.best_status) == (streak, best, 'untrusted')"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "test_dated_version_one_auto_still_accepted",
+        "base_asserts": [
+          "required.streak == 14",
+          "required == optional",
+          "optional.status == 'stale'"
+        ],
+        "branch_asserts": [
+          "optional.streak == 14",
+          "optional.status == 'stale'"
+        ],
+        "removed_asserts": [
+          "required.streak == 14",
+          "required == optional"
+        ],
+        "added_asserts": [
+          "optional.streak == 14"
+        ]
+      },
+      {
+        "name": "test_manual_not_universal_recovery",
+        "base_asserts": [
+          "state.model_streak is None and state.model_saver_available is None",
+          "str(path) in state.model_state_error",
+          "state == replace(healthy, model_streak=None, model_saver_available=None, model_state_error=state.model_state_error)",
+          "len(warnings) == 1",
+          "'model_state_corrupt' in warnings[0].message",
+          "{p.relative_to(tmp_path): p.read_bytes() for p in tmp_path.rglob('*') if p.is_file()} == before",
+          "path.is_dir()",
+          "path.read_bytes() == contents"
+        ],
+        "branch_asserts": [
+          "state.model_streak is None and state.model_saver_available is None",
+          "str(path) in state.model_state_error",
+          "state == replace(healthy, model_streak=None, model_saver_available=None, model_state_error=state.model_state_error)",
+          "len(warnings) == 1",
+          "'model_state_corrupt' in warnings[0].message",
+          "{p.relative_to(tmp_path): p.read_bytes() for p in tmp_path.rglob('*') if p.is_file()} == before",
+          "path.is_dir()",
+          "path.read_bytes() == contents"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "test_missing_required_contest_wins_over_corrupt_model",
+        "base_asserts": [],
+        "branch_asserts": [],
+        "removed_asserts": [],
+        "added_asserts": []
+      }
+    ]
+  },
+  {
+    "file": "tests/test_saver_cs3.py",
+    "functions": [
+      {
+        "name": "_cover",
+        "base_asserts": [],
+        "branch_asserts": [],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "test_health_saver_matrix",
+        "base_asserts": [
+          "[(a.level, a.source) for a in alerts] == ([('WARN', 'saver_state')] if warn else [])",
+          "'2027' in message and str(streak) in message",
+          "'counting the saver as spent' in message",
+          "command in message"
+        ],
+        "branch_asserts": [
+          "[(a.level, a.source) for a in alerts] == ([('WARN', 'saver_state')] if warn else [])",
+          "'2027' in message and str(streak) in message",
+          "'counting the saver as spent' in message",
+          "command in message"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "test_health_reads_current_season_despite_prior_source_date",
+        "base_asserts": [
+          "[(a.level, a.source) for a in alerts] == [('WARN', 'saver_state')]",
+          "check(tmp_path, expected=True, now=NOW) == []"
+        ],
+        "branch_asserts": [
+          "[(a.level, a.source) for a in alerts] == [('WARN', 'saver_state')]",
+          "check(tmp_path, expected=True, now=NOW) == []"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "test_saver_warn_gets_first_occurrence_attention_but_coverage_does_not",
+        "base_asserts": [
+          "critical == []",
+          "[a.source for a in attention] == ['saver_state']",
+          "'1st observed day' in attention[0].message",
+          "{(a.level, a.source) for a in alerts} == {('WARN', 'contest_state'), ('WARN', 'saver_state')}"
+        ],
+        "branch_asserts": [
+          "critical == []",
+          "[a.source for a in attention] == ['saver_state']",
+          "'1st observed day' in attention[0].message",
+          "{(a.level, a.source) for a in alerts} == {('WARN', 'contest_state'), ('WARN', 'saver_state')}"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "test_uninitialized_warning_gives_a_command_for_each_thing_the_operator_can_find",
+        "base_asserts": [
+          "commands == ['bts saver-state --init not_earned --season 2027', 'bts saver-state --init active --season 2027', 'bts saver-state --init used --season 2027']",
+          "result.exit_code == 0",
+          "load_saver_state(picks, season=2027).state == state"
+        ],
+        "branch_asserts": [
+          "commands == ['bts saver-state --init not_earned --season 2027', 'bts saver-state --init active --season 2027', 'bts saver-state --init used --season 2027']",
+          "result.exit_code == 0",
+          "load_saver_state(picks, season=2027).state == state"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      }
+    ]
+  },
+  {
+    "file": "tests/test_saver_cs3_review.py",
+    "functions": [
+      {
+        "name": "test_eod_health_dm_day1_day2_day30_saver_attention_vs_coverage_lag",
+        "base_asserts": [
+          "len(sent) == 30",
+          "'1st observed day' in sent[0][1] and '[contest_state]' not in sent[0][1]",
+          "'2nd consecutive day' in sent[1][1]",
+          "'30th consecutive day' in sent[29][1]",
+          "{(a.level, a.source) for a in raw} == {('WARN', 'contest_state'), ('WARN', 'saver_state')}",
+          "pol_crit == []",
+          "[a.source for a in warn_attn] == ['saver_state']",
+          "ok1 is True and ok2 is False"
+        ],
+        "branch_asserts": [
+          "len(sent) == 30",
+          "'1st observed day' in sent[0][1] and '[contest_state]' not in sent[0][1]",
+          "'2nd consecutive day' in sent[1][1]",
+          "'30th consecutive day' in sent[29][1]",
+          "{(a.level, a.source) for a in raw} == {('WARN', 'contest_state'), ('WARN', 'saver_state')}",
+          "pol_crit == []",
+          "[a.source for a in warn_attn] == ['saver_state']",
+          "ok1 is True and ok2 is False"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      },
+      {
+        "name": "test_mistaken_use_then_undo_never_earned_behavior_at_streaks_5_10_16",
+        "base_asserts": [
+          "CliRunner().invoke(cli, ['saver-state', '--picks-dir', str(tmp_path), '--season', '2027', '--use']).exit_code == 0",
+          "CliRunner().invoke(cli, ['saver-state', '--picks-dir', str(tmp_path), '--season', '2027', '--undo']).exit_code == 0",
+          "load_saver_state(tmp_path, season=2027).state == 'active'",
+          "dec.saver_flag_state == 'active'",
+          "dec.saver_available is True",
+          "check_contest_health(tmp_path, expected=True, now=datetime(2027, 8, 23, 16, 0, tzinfo=timezone.utc)) == []",
+          "dctx.button == 'mark_used'",
+          "dctx.warning is expected_warn_flag",
+          "resolve_policy_decision(pctx, 16, False).action == 'single'",
+          "resolve_policy_decision(pctx, 16, dec.saver_available).action == 'double'"
+        ],
+        "branch_asserts": [
+          "CliRunner().invoke(cli, ['saver-state', '--picks-dir', str(tmp_path), '--season', '2027', '--use']).exit_code == 0",
+          "CliRunner().invoke(cli, ['saver-state', '--picks-dir', str(tmp_path), '--season', '2027', '--undo']).exit_code == 0",
+          "load_saver_state(tmp_path, season=2027).state == 'active'",
+          "dec.saver_flag_state == 'active'",
+          "dec.saver_available is True",
+          "check_contest_health(tmp_path, expected=True, now=datetime(2027, 8, 23, 16, 0, tzinfo=timezone.utc)) == []",
+          "dctx.button == 'mark_used'",
+          "dctx.warning is expected_warn_flag",
+          "resolve_policy_decision(pctx, 16, False).action == 'single'",
+          "resolve_policy_decision(pctx, 16, dec.saver_available).action == 'double'"
+        ],
+        "removed_asserts": [],
+        "added_asserts": []
+      }
+    ]
+  },
+  {
+    "file": "tests/test_season_contract_cs4b1_edges.py",
+    "functions": [
+      {
+        "name": "test_decision_and_health_never_read_switch",
+        "base_asserts": [
+          "cs.load_decision_streak_state(tmp_path, now=NOW, require_contest_state=required).streak == (3 if manual else 7)",
+          "p.name != 'season_contract.json'"
+        ],
+        "branch_asserts": [
+          "cs.load_decision_streak_state(tmp_path, now=NOW, require_contest_state=required).streak == (3 if manual else 7)",
+          "alerts[-1].message == str(exc.value)",
+          "p.name != 'season_contract.json'"
+        ],
+        "removed_asserts": [],
+        "added_asserts": [
+          "alerts[-1].message == str(exc.value)"
+        ]
+      }
+    ]
+  }
+]
