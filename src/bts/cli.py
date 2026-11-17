@@ -1411,8 +1411,10 @@ def set_contest_streak(
             param_hint="--best-streak",
         )
 
+    now_et = datetime.now(ZoneInfo("America/New_York"))
+    season = now_et.year
     if source_date is None:
-        observed_date = datetime.now(ZoneInfo("America/New_York")).date()
+        observed_date = now_et.date()
     else:
         try:
             observed_date = date.fromisoformat(source_date)
@@ -1457,10 +1459,9 @@ def set_contest_streak(
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n")
     # Streak Saver flag: safe cold-init / sound auto-earn from the (manual) best_streak.
-    from bts.saver_state import maybe_auto_earn_saver, season_for
-    from zoneinfo import ZoneInfo
-    _season = season_for(observed_date, now_year=datetime.now(ZoneInfo("America/New_York")).year)
-    maybe_auto_earn_saver(Path(picks_dir), best_streak=best_streak, season=_season)
+    from bts.saver_state import maybe_auto_earn_saver
+    if observed_date.year == season:
+        maybe_auto_earn_saver(Path(picks_dir), best_streak=best_streak, season=season)
     click.echo(
         f"Wrote {path}: active_streak={streak} source_date={observed_date.isoformat()} "
         f"override_expires_at={state['override_expires_at']}"
@@ -1471,7 +1472,7 @@ def set_contest_streak(
 @click.option("--show", is_flag=True, help="Print the current Streak Saver flag state.")
 @click.option("--init", "init_state", type=click.Choice(["not_earned", "active", "used"]),
               default=None, help="Initialize the season's flag (only when uninitialized; --force to override).")
-@click.option("--use", "mark_used", is_flag=True, help="Mark the saver used (active -> used).")
+@click.option("--use", "mark_used", is_flag=True, help="Mark the saver used (active or not_earned -> used).")
 @click.option("--undo", is_flag=True, help="Undo a mark-used (used -> active).")
 @click.option("--force", is_flag=True, help="With --init, overwrite an already-initialized state.")
 @click.option("--season", type=int, default=None, help="Contest season (default: current ET year).")
@@ -1483,6 +1484,7 @@ def saver_state_cmd(show, init_state, mark_used, undo, force, season, picks_dir)
 
     picks = Path(picks_dir)
     season = season or datetime.now(ZoneInfo("America/New_York")).year
+    error = None
 
     if init_state is not None:
         current = load_saver_state(picks, season=season).state
@@ -1495,20 +1497,48 @@ def saver_state_cmd(show, init_state, mark_used, undo, force, season, picks_dir)
                                    season=season, source="cli", force=True)
             click.echo(f"Forced saver flag: {current} -> {init_state} (season {season})")
         else:
-            raise click.ClickException(
-                f"saver flag already initialized as {current!r}; use --force to override")
+            error = f"saver flag already initialized as {current!r}; use --force to override"
     elif mark_used:
-        ok = transition_saver_state(picks, expected_prior="active", new_state="used",
+        current = load_saver_state(picks, season=season).state
+        prior = "not_earned" if current == "not_earned" else "active"
+        ok = transition_saver_state(picks, expected_prior=prior, new_state="used",
                                     season=season, source="cli")
-        click.echo("Marked saver used." if ok
-                   else f"No-op: saver is {load_saver_state(picks, season=season).state}, not active.")
+        marked_from = prior if ok else None
+        if not ok:
+            # Auto-earn may have advanced the flag between our read and the lock.
+            # Try the other usable prior at most once, through the same locked writer.
+            other = "active" if prior == "not_earned" else "not_earned"
+            if load_saver_state(picks, season=season).state == other:
+                ok = transition_saver_state(picks, expected_prior=other, new_state="used",
+                                            season=season, source="cli")
+                marked_from = other if ok else None
+        current = load_saver_state(picks, season=season).state
+        if ok and marked_from == "not_earned":
+            # --undo would end at `active`, a saver that was never earned; say what really reverts.
+            click.echo("Marked saver used (it was not_earned). To take this back run "
+                       f"`bts saver-state --init not_earned --force --season {season}`.")
+        elif ok:
+            click.echo("Marked saver used.")
+        elif current == "used":
+            click.echo("Saver is already used.")
+        elif current == "uninitialized":
+            error = ("saver is uninitialized; run "
+                     f"`bts saver-state --init used --season {season}`")
+        else:
+            error = f"could not mark saver used: saver is {current}; retry --use"
     elif undo:
         ok = transition_saver_state(picks, expected_prior="used", new_state="active",
                                     season=season, source="cli")
-        click.echo("Undid mark-used (saver active again)." if ok
-                   else f"No-op: saver is {load_saver_state(picks, season=season).state}, not used.")
+        if ok:
+            click.echo("Undid mark-used (saver active again).")
+        else:
+            error = f"cannot undo: saver is {load_saver_state(picks, season=season).state}, not used"
 
+    if error is not None:
+        click.echo(f"Error: {error}", err=True)
     click.echo(f"saver_state: {load_saver_state(picks, season=season).state} (season {season})")
+    if error is not None:
+        raise click.exceptions.Exit(1)
 
 
 def _atomic_write_json(path, obj):
@@ -2099,10 +2129,11 @@ def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
         _fh.write(json.dumps(ledger_row) + "\n")
     # Streak Saver flag: safe cold-init below 10 + sound auto-earn at 10 from the reliable
     # seasonBestStreak. Never auto-inits `active` from a cold file at >=10 (fail-closed).
-    from bts.saver_state import maybe_auto_earn_saver, season_for
+    from bts.saver_state import maybe_auto_earn_saver
     from zoneinfo import ZoneInfo
-    _season = season_for(source_date, now_year=datetime.now(ZoneInfo("America/New_York")).year)
-    maybe_auto_earn_saver(picks, best_streak=observation["best_streak"], season=_season)
+    season = datetime.now(ZoneInfo("America/New_York")).year
+    if source_date is not None and source_date.year == season:
+        maybe_auto_earn_saver(picks, best_streak=observation["best_streak"], season=season)
     click.echo(f"wrote {out_path}: {summary}")
 
 

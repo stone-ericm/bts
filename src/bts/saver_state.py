@@ -28,6 +28,11 @@ class SaverState:
         return self.state == "active"
 
 
+def policy_saver_available(state: SaverState, streak: int) -> bool:
+    """Whether the policy may count on a saver that has not yet been consumed."""
+    return state.state == "active" or (state.state == "not_earned" and streak < 10)
+
+
 def _path(picks_dir: Path) -> Path:
     return picks_dir / "account_state" / "saver_state.json"
 
@@ -70,7 +75,7 @@ def _write_state(picks_dir: Path, *, state: str, season: int, source: str) -> No
 # can't do e.g. active -> not_earned). `force=True` (CLI --force only) bypasses the whitelist.
 _ALLOWED = {
     ("uninitialized", "not_earned"), ("uninitialized", "active"), ("uninitialized", "used"),
-    ("not_earned", "active"), ("active", "used"), ("used", "active"),
+    ("not_earned", "active"), ("not_earned", "used"), ("active", "used"), ("used", "active"),
 }
 
 

@@ -134,23 +134,23 @@ class SaverDashboardContext:
     warning: bool              # active + best_streak > 15 (verify it wasn't already used)
 
 
-def _saver_season(picks_dir, now):
-    from bts.contest_state import load_contest_streak_state
-    from bts.saver_state import season_for
-    contest = load_contest_streak_state(picks_dir, now=now)
-    source_date = contest.source_date if contest is not None else None
-    best_streak = contest.best_streak if contest is not None else None
-    season = season_for(source_date, now_year=now.astimezone(ZoneInfo("America/New_York")).year)
-    return season, best_streak
+def _saver_season(now):
+    return now.astimezone(ZoneInfo("America/New_York")).year
 
 
 def saver_dashboard_context(picks_dir, *, now) -> SaverDashboardContext:
     """State + button/nudge/warning for the dashboard Streak Saver controls."""
     from bts.saver_state import load_saver_state
+    from bts.contest_state import ContestStateError, load_contest_streak_state
     from bts.contest_ledger import parse_latest_ledger, likely_save
-    season, best_streak = _saver_season(picks_dir, now)
+    season = _saver_season(now)
     state = load_saver_state(picks_dir, season=season).state
     button = "mark_used" if state == "active" else ("undo" if state == "used" else None)
+    try:
+        contest = load_contest_streak_state(picks_dir, now=now)
+    except ContestStateError:
+        return SaverDashboardContext(state, button, state, False, False)
+    best_streak = contest.best_streak if contest is not None else None
     nudge = state == "active" and likely_save(
         parse_latest_ledger(picks_dir / "account_state" / "contest_ledger.jsonl"))
     warning = state == "active" and best_streak is not None and best_streak > 15
@@ -177,9 +177,12 @@ def saver_transition_response(picks_dir, *, expected_prior, new_state, same_orig
         append_probe_audit(picks_dir, expected_prior=expected_prior, new_state=new_state,
                            peer=peer_ip, outcome="rejected_non_ui_transition")
         return 409, "only mark-used / undo are available from the dashboard"
-    season, _ = _saver_season(picks_dir, now)
-    ok = transition_saver_state(picks_dir, expected_prior=expected_prior, new_state=new_state,
-                                season=season, source="dashboard", peer=peer_ip)
+    season = _saver_season(now)
+    try:
+        ok = transition_saver_state(picks_dir, expected_prior=expected_prior, new_state=new_state,
+                                    season=season, source="dashboard", peer=peer_ip)
+    except OSError:
+        return 409, "saver flag could not be written"
     return (200, f"saver -> {new_state}") if ok else (409, f"rejected: state is not {expected_prior!r}")
 
 
@@ -197,10 +200,12 @@ def _same_origin(headers, host) -> bool:
         return False
 
 
-def render_saver_section(ctx: SaverDashboardContext) -> str:
+def render_saver_section(ctx: SaverDashboardContext, *, decision_streak: int | None = None) -> str:
     """A compact Streak Saver control: state + (mark-used/undo) button + nudge/warning."""
     label = {"active": "AVAILABLE", "used": "USED", "not_earned": "not yet earned",
              "uninitialized": "unknown (needs init)"}.get(ctx.state, ctx.state)
+    if ctx.state == "not_earned" and decision_streak is not None and decision_streak < 10:
+        label = "reserved (not yet earned)"
     parts = [f'<span class="saver-state saver-{ctx.state}">Streak Saver: {label}</span>']
     if ctx.warning:
         parts.append('<span class="saver-warn">&#9888; streak passed 15 while active &mdash; '
@@ -1095,7 +1100,8 @@ def render_page():
     )
     try:
         saver_section = render_saver_section(
-            saver_dashboard_context(PICKS_DIR, now=datetime.now(timezone.utc)))
+            saver_dashboard_context(PICKS_DIR, now=datetime.now(timezone.utc)),
+            decision_streak=decision_state.streak if decision_state is not None else None)
     except Exception:
         saver_section = ""
 
