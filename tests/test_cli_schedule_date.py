@@ -12,7 +12,7 @@ from unittest.mock import patch
 import bts.cli as cli
 
 
-def test_schedule_defaults_to_eastern_date_not_utc(tmp_path):
+def test_schedule_defaults_to_eastern_date_not_utc(tmp_path, capsys):
     # 2026-04-03 22:30 ET == 2026-04-04 02:30 UTC: UTC date is already tomorrow.
     fixed = _dt(2026, 4, 3, 22, 30, tzinfo=ZoneInfo("America/New_York"))
     captured = {}
@@ -27,4 +27,10 @@ def test_schedule_defaults_to_eastern_date_not_utc(tmp_path):
     assert captured["date"] == "2026-04-03", (
         "schedule defaulted to the UTC date; an evening ET restart would skip "
         "tonight's games"
+    )
+    assert capsys.readouterr().err == (
+        "bts schedule: WARNING (a real run would refuse to start): "
+        "scheduler delivery 'public' requires contest state. Optional reads can use a contest observation "
+        "without the season-coverage check. Set contest_state_required = true under [scheduler] "
+        "and contest_state_expected = true under [health_checks].\n"
     )

@@ -4,8 +4,10 @@ import json
 import pytest
 import sys
 import types
+from datetime import datetime
 from unittest.mock import patch, MagicMock
 from pathlib import Path
+from zoneinfo import ZoneInfo
 from click.testing import CliRunner
 
 import bts.model
@@ -104,6 +106,24 @@ def _current_et_year() -> int:
     from zoneinfo import ZoneInfo as _ZI
     return _dt.now(_ZI("America/New_York")).year
 
+
+@pytest.fixture
+def run_clock(monkeypatch):
+    from bts import contest_state, picks, strategy
+
+    now = datetime(2026, 4, 1, 12, tzinfo=ZoneInfo("America/New_York"))
+
+    class Clock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return now.replace(tzinfo=None) if tz is None else now.astimezone(tz)
+
+    monkeypatch.setattr("datetime.datetime", Clock)
+    for module in (contest_state, picks, strategy):
+        monkeypatch.setattr(module, "datetime", Clock)
+    return now
+
+
 class TestBtsRun:
     @patch("bts.posting.post_to_bluesky")
     @patch("bts.posting.should_post_now", return_value=True)
@@ -115,13 +135,17 @@ class TestBtsRun:
     @patch("bts.model.predict.run_pipeline")
     def test_run_saves_pick_and_posts(
         self, mock_pipeline, mock_statuses, _detailed_statuses,
-        mock_should_post, mock_post, tmp_path,
+        mock_should_post, mock_post, tmp_path, run_clock, covered_automatic,
     ):
         mock_pipeline.return_value = _mock_predictions()
         mock_post.return_value = "at://did:plc:test/post/123"
 
         picks_dir = tmp_path / "picks"
         models_dir = tmp_path / "models"
+        covered_automatic(picks_dir, run_clock, {
+            "active_streak": 0, "source": "mlb_bts_profile",
+            "source_date": "2026-04-01", "recorded_at": run_clock.isoformat(),
+        })
         runner = CliRunner()
         result = runner.invoke(cli, [
             "run", "--date", "2026-04-01",
@@ -192,6 +216,7 @@ class TestBtsRun:
     @patch("bts.strategy._load_mdp", return_value=None)
     def test_run_uses_fresh_contest_streak_for_live_action(
         self, _load_mdp_mock, mock_pipeline, mock_mdp, _detailed_statuses, _should_post, tmp_path,
+        run_clock, covered_automatic,
     ):
         def action(_mdp, _p, streak, _date, saver):
             assert streak == 7
@@ -203,17 +228,13 @@ class TestBtsRun:
         picks_dir = tmp_path / "picks"
         models_dir = tmp_path / "models"
         picks_dir.mkdir()
-        # The command reads the wall clock for the model streak's season, so the fixture carries the
-        # current ET year: the model streak (4) stays a real competitor to the contest streak (7)
-        # in any year (review of change set 2, Carbon's note N1).
-        save_streak(4, picks_dir, saver_available=True, season=_current_et_year())
-        state_dir = picks_dir / "account_state"
-        state_dir.mkdir()
-        (state_dir / "contest_streak.manual.json").write_text(json.dumps({
+        save_streak(4, picks_dir, saver_available=True, season=run_clock.year)
+        covered_automatic(picks_dir, run_clock, {
             "active_streak": 7,
-            "source": "manual_screenshot",
+            "source": "mlb_bts_profile",
             "source_date": "2026-04-01",
-        }))
+            "recorded_at": run_clock.isoformat(),
+        })
 
         result = CliRunner().invoke(cli, [
             "run", "--date", "2026-04-01",

@@ -1100,7 +1100,7 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
     import pandas as pd
     from datetime import datetime, timezone
     from bts.model.predict import run_pipeline, save_blend, load_blend
-    from bts.contest_state import load_decision_streak_state
+    from bts.contest_state import ContestStateError, load_decision_streak_state
     from bts.picks import get_game_statuses_detailed, save_pick
     from bts.posting import format_post, post_to_bluesky, should_post_now
     from bts.strategy import select_pick
@@ -1158,7 +1158,11 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
         return
 
     # Step 2: Apply strategy (streak-aware thresholds)
-    decision_state = load_decision_streak_state(picks_path)
+    try:
+        decision_state = load_decision_streak_state(picks_path, require_contest_state=True)
+    except ContestStateError as exc:
+        click.echo(f"bts run: no pick: {exc}", err=True)
+        raise SystemExit(1) from exc
     try:
         game_statuses_detailed = get_game_statuses_detailed(date)
     except Exception:
@@ -1203,7 +1207,11 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
         click.echo(f"Pick locked: {result.daily.pick.batter_name} ({reason})")
         # Catch-up posting if needed
         if not result.daily.bluesky_posted:
-            decision_state = load_decision_streak_state(picks_path)
+            try:
+                decision_state = load_decision_streak_state(picks_path, require_contest_state=True)
+            except ContestStateError as exc:
+                click.echo(f"bts run: no pick: {exc}", err=True)
+                raise SystemExit(1) from exc
             text = format_post(
                 result.daily.pick.batter_name, result.daily.pick.team,
                 result.daily.pick.pitcher_name, result.daily.pick.p_game_hit, decision_state.streak,
@@ -1244,7 +1252,11 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
     click.echo(f"  Saved to {picks_path / f'{date}.json'}")
 
     # Post to Bluesky if appropriate
-    decision_state = load_decision_streak_state(picks_path)
+    try:
+        decision_state = load_decision_streak_state(picks_path, require_contest_state=True)
+    except ContestStateError as exc:
+        click.echo(f"bts run: no pick: {exc}", err=True)
+        raise SystemExit(1) from exc
     if should_post_now(daily.pick.game_time, daily.bluesky_posted):
         text = format_post(
             daily.pick.batter_name, daily.pick.team, daily.pick.pitcher_name,
@@ -1750,6 +1762,10 @@ def _contest_fetch_alert(status_path, dm_recipient, msg, cooldown_hours=6,
               help="Orchestrator TOML (the box uses ~/.bts-orchestrator.toml)")
 def entry_intent(config_path):
     """Print the declared [scheduler].entry_intent when it agrees with the delivery mode; otherwise exit 1.
+
+    Also exits 1 when DM or public delivery, or the intent "enter", is configured without
+    contest state being required (scheduler.contest_state_required or
+    health_checks.contest_state_expected): `bts schedule` refuses to start on that.
 
     cron-setup-hetzner.sh reads stdout to decide whether to install the check-pick-entered line.
     """
@@ -2505,9 +2521,17 @@ def orchestrate(date: str, config_path: str):
     Cascades through SSH tiers (Mac -> Alienware -> Cloud), applies
     pick strategy, saves pick, posts to Bluesky. DMs on total failure.
     """
-    from bts.orchestrator import orchestrate as _orchestrate
+    from bts.entry_intent import live_gate_problem
+    from bts.orchestrator import load_config, orchestrate as _orchestrate
 
-    success = _orchestrate(Path(config_path), date)
+    path = Path(config_path)
+    config = load_config(path)
+    problem = live_gate_problem(config, delivery_override="public")
+    if problem is not None:
+        click.echo(f"bts orchestrate: refusing to run: {problem}", err=True)
+        raise SystemExit(2)
+
+    success = _orchestrate(path, date, config=config)
     if not success:
         raise SystemExit(1)
 
@@ -2524,13 +2548,24 @@ def schedule(date: str | None, config_path: str, dry_run: bool):
     sleeps between checks, runs predictions when new lineups confirm, and
     posts to Bluesky when lock conditions are met.
     """
+    from bts.entry_intent import live_gate_problem
     from bts.orchestrator import load_config
     from bts.scheduler import run_day
 
+    # Resolve the default date FIRST, before the configuration is loaded, as this
+    # command always did: a launch whose load straddles midnight ET must schedule
+    # the day it started on (the old day's late work), not the next one.
     if date is None:
         date = _today_et()
 
     config = load_config(Path(config_path))
+    problem = live_gate_problem(config)
+    if problem is not None:
+        if not dry_run:
+            click.echo(f"bts schedule: refusing to start: {problem}", err=True)
+            raise SystemExit(2)
+        click.echo(f"bts schedule: WARNING (a real run would refuse to start): {problem}", err=True)
+
     run_day(date=date, config=config, dry_run=dry_run)
 
 

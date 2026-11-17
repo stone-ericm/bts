@@ -21,14 +21,52 @@ EXPECTED_DELIVERY = {"enter": ("dm", "public"), "research": ("private",)}
 class IntentCheck:
     intent: str | None          # the declared intent when it is exactly one of INTENTS, else None
     delivery: str | None        # the scheduler's effective delivery mode, None when the scheduler refuses the config
-    problems: tuple[str, ...]   # empty only when the intent is valid and agrees with the delivery mode
+    problems: tuple[str, ...]   # intent, delivery and, when enabled, live startup problems in order
 
     @property
     def ok(self) -> bool:
         return not self.problems
 
 
-def check_entry_intent(config: dict) -> IntentCheck:
+def live_gate_problem(config: dict, *, delivery_override: str | None = None) -> str | None:
+    """Report unsafe contest-state configuration for a new command invocation."""
+    from bts.scheduler import _contest_state_required, _pick_delivery_mode
+
+    sched = config.get("scheduler", {})
+    if not isinstance(sched, dict):
+        return "[scheduler] is not a table"
+    if not isinstance(config.get("health_checks", {}), dict):
+        return "[health_checks] is not a table"
+    if _contest_state_required(config):
+        return None
+
+    delivery = delivery_override
+    if delivery is None:
+        try:
+            delivery = _pick_delivery_mode(config)
+        except ValueError:
+            delivery = None
+
+    conditions = []
+    if delivery in ("dm", "public"):
+        label = "scheduler delivery" if delivery_override is None else "delivery"
+        conditions.append(f"{label} {delivery!r}")
+    intent = sched.get("entry_intent")
+    if isinstance(intent, str) and intent == "enter":
+        conditions.append("scheduler.entry_intent = 'enter'")
+    if not conditions:
+        return None
+
+    verb = "requires" if len(conditions) == 1 else "require"
+    return (
+        f"{' and '.join(conditions)} {verb} contest state. "
+        "Optional reads can use a contest observation without the season-coverage check. "
+        "Set contest_state_required = true under [scheduler] and "
+        "contest_state_expected = true under [health_checks]."
+    )
+
+
+def check_entry_intent(config: dict, *, include_live_gate: bool = True) -> IntentCheck:
     from bts.scheduler import _pick_delivery_mode
 
     sched = config.get("scheduler", {})
@@ -52,4 +90,8 @@ def check_entry_intent(config: dict) -> IntentCheck:
     if intent is not None and delivery is not None and delivery not in EXPECTED_DELIVERY[intent]:
         problems.append(f"entry_intent {intent!r} expects delivery {' or '.join(EXPECTED_DELIVERY[intent])}, "
                         f"but the scheduler would deliver {delivery!r}")
+    if include_live_gate:
+        problem = live_gate_problem(config)
+        if problem is not None:
+            problems.append(problem)
     return IntentCheck(intent, delivery, tuple(problems))

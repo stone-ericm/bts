@@ -250,8 +250,10 @@ def _caller_control(root, directory):
     assert out["prior_callers_reexecuted"]["orchestrate_initial_refusal"] is False
     assert out["prior_callers_reexecuted"]["scheduler_alerts"]
     assert out["eod_skip_under_injection"]["action"] == "skip"
-    assert out["bts_run_under_required_only_injection"]["exit"] == 0
-    assert out["extra_caller_posts"]
+    run = out["bts_run_under_required_only_injection"]
+    assert run["exit"] == 1, run
+    assert run["output"].splitlines()[-1] == "bts run: no pick: injected NEW automatic refusal"
+    assert out["extra_caller_posts"] == []
     for label in ["in_loop", "final"]:
         case = e.OUT["fallback_" + label]
         assert case["alerts"] and case["calls"] and not case["sends"]
