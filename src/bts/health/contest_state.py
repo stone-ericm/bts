@@ -17,6 +17,7 @@ from bts.contest_state import (
 from bts.health.alert import Alert
 
 SOURCE = "contest_state"
+SAVER_SOURCE = "saver_state"
 
 # Under the Phase-1 snapshot/coverage split, source_date is derived from the
 # per-round predictions array, which trails the live activeStreak counter by ~one
@@ -122,20 +123,27 @@ def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = Non
                          "archive it (auto contest_streak.json is the live source)"),
             ))
 
-    # Streak Saver flag health: in the 10-15 zone the flag drives the saver-aware policy, so an
-    # uninitialized/stale-season flag there silently runs conservative -- WARN to prompt an init.
-    from bts.saver_state import load_saver_state, season_for
-    season = season_for(state.source_date,
-                        now_year=now.astimezone(ZoneInfo("America/New_York")).year)
+    # The flag belongs to the caller's current ET season, even when ledger coverage lags.
+    from bts.saver_state import load_saver_state
+    season = now.astimezone(ZoneInfo("America/New_York")).year
     saver = load_saver_state(picks_dir, season=season)
-    if saver.state == "uninitialized" and 10 <= state.streak <= 15:
+    in_zone = 10 <= state.streak <= 15
+    if saver.state == "uninitialized" and (expected or in_zone):
         detail = (f"stale-season flag, season {saver.season}" if saver.season is not None
                   else "no saver_state.json")
         alerts.append(Alert(
-            level="WARN", source=SOURCE,
-            message=(f"Streak Saver flag uninitialized ({detail}) while streak is {state.streak} "
-                     "(in the 10-15 zone) -- the saver-aware policy is running conservative; "
-                     "run `bts saver-state --init`"),
+            level="WARN", source=SAVER_SOURCE,
+            message=(f"Streak Saver flag uninitialized for season {season} ({detail}) "
+                     f"while streak is {state.streak}; counting the saver as spent. "
+                     "Verify the saver in MLB; for a spent saver run "
+                     f"`bts saver-state --init used --season {season}`"),
+        ))
+    elif saver.state == "not_earned" and in_zone:
+        alerts.append(Alert(
+            level="WARN", source=SAVER_SOURCE,
+            message=(f"Streak Saver flag not_earned for season {season} contradicts streak "
+                     f"{state.streak}; counting the saver as spent. Verify the saver in MLB; "
+                     f"if consumed run `bts saver-state --use --season {season}`"),
         ))
 
     return alerts

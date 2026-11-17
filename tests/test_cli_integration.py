@@ -1383,10 +1383,10 @@ class TestSaverStateCli:
         assert self._run(tmp_path, "--undo").exit_code == 0
         assert "active" in self._run(tmp_path, "--show").output
 
-    def test_use_noop_when_not_active(self, tmp_path):
+    def test_use_marks_not_earned_used(self, tmp_path):
         self._run(tmp_path, "--init", "not_earned")
-        self._run(tmp_path, "--use")     # not active -> no-op
-        assert "not_earned" in self._run(tmp_path, "--show").output
+        assert self._run(tmp_path, "--use").exit_code == 0
+        assert "used" in self._run(tmp_path, "--show").output
 
 
 class TestCheckPickEnteredEscalation:

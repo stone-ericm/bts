@@ -129,6 +129,13 @@ def _saver_state(tmp_path):
 
 def test_do_post_saver_transition_socket_wiring(tmp_path, monkeypatch):
     _setup(tmp_path, "active")
+    # The HTTP handler takes the wall clock; keep it in the fixture's season.
+    import bts.web as web
+    class Clock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return NOW.astimezone(tz) if tz else NOW.replace(tzinfo=None)
+    monkeypatch.setattr(web, "datetime", Clock)
     srv = _serve(tmp_path, monkeypatch)
     try:
         port = srv.server_address[1]

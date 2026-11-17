@@ -16,7 +16,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from bts.saver_state import load_saver_state, season_for
+from bts.saver_state import load_saver_state, policy_saver_available
 
 
 logger = logging.getLogger(__name__)
@@ -71,6 +71,7 @@ class DecisionStreakState:
     best_streak: int | None = None
     best_status: str = "missing"   # "trusted" | "untrusted" | "missing"
     model_state_error: str | None = None
+    saver_flag_state: str | None = None
 
 
 TARGET_STREAK = 57
@@ -355,12 +356,13 @@ def load_decision_streak_state(
             )
         if model_error is not None:
             raise ContestStateError(f"model state is corrupt; cannot use model fallback: {model_error}")
+        saver = load_saver_state(picks_dir, season=now_year)
         return DecisionStreakState(
             streak=model_streak,
             # Model-only fallback still reads the saver from the flag (not streak.json), so the
             # live saver has one authority whether or not a contest observation exists.
-            saver_available=load_saver_state(
-                picks_dir, season=season_for(None, now_year=now_year)).is_available,
+            saver_available=policy_saver_available(saver, model_streak),
+            saver_flag_state=saver.state,
             allow_double=True,
             source="model",
             status="model_only",
@@ -390,8 +392,8 @@ def load_decision_streak_state(
     # 2026-06-18 spec. Read-only here; the flag is written by the fetch-path auto-earn and the
     # CLI/dashboard. `contest.saver_available` is retired from the decision (it is still surfaced
     # as the `contest_saver_available` diagnostic below).
-    contest_saver = load_saver_state(
-        picks_dir, season=season_for(contest.source_date, now_year=now_year)).is_available
+    saver = load_saver_state(picks_dir, season=now_year)
+    contest_saver = policy_saver_available(saver, contest.streak)
     best_streak, best_status = classify_best_streak(contest, now=now_dt, now_year=now_year)
 
     # The decision streak is ALWAYS the contest (real MLB) value. The model is a
@@ -401,6 +403,7 @@ def load_decision_streak_state(
     return DecisionStreakState(
         streak=contest.streak,
         saver_available=contest_saver,
+        saver_flag_state=saver.state,
         allow_double=True,
         source="contest",
         status=status,
