@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import json
+import shlex
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from bts.contest_state import (
     ContestStateError,
+    DATED_MANUAL_SCHEMA,
+    dated_observation_in_effect,
     latest_resolved_pick_date,
     load_contest_streak_state,
     resolved_pick_settlement_gap,
@@ -111,17 +114,40 @@ def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = Non
     manual_path = picks_dir / "account_state" / "contest_streak.manual.json"
     if manual_path.exists():
         try:
-            exp = json.loads(manual_path.read_text()).get("override_expires_at")
+            manual = json.loads(manual_path.read_text())
+            exp = manual.get("override_expires_at")
+            dated = manual.get("schema_version") == DATED_MANUAL_SCHEMA
         except (json.JSONDecodeError, OSError):
             exp = None
+            dated = False
         exp_dt = _parse_dt(exp)
-        if exp_dt is None or exp_dt <= now:
+        if not dated and (exp_dt is None or exp_dt <= now):
             alerts.append(Alert(
                 level="WARN",
                 source=SOURCE,
                 message=(f"legacy/expired manual override present at {manual_path}; "
                          "archive it (auto contest_streak.json is the live source)"),
             ))
+
+    if dated_observation_in_effect(state, now):
+        if state.saver_state == "not_earned" and 10 <= state.streak <= 15:
+            season = state.effective_date.year
+            base = (f"bts set-contest-streak --date {state.effective_date.isoformat()} "
+                    f"--streak {state.streak} --best-streak {state.best_streak}")
+            directory = f" --picks-dir {shlex.quote(str(picks_dir))}"
+            correction = (f"bts set-contest-streak --date {state.effective_date.isoformat()} "
+                          "--streak N --best-streak B --saver not_earned" + directory)
+            alerts.append(Alert(
+                level="WARN", source=SAVER_SOURCE,
+                message=(f"Streak Saver not_earned in dated observation {state.path}, season "
+                         f"{season}, contradicts streak {state.streak}; counting the saver as spent. "
+                         "Check MLB and run ONE correction to the observation. Earned and unused: "
+                         f"`{base} --saver active{directory}`. Already used: "
+                         f"`{base} --saver used{directory}`. Not earned: "
+                         f"`{correction}`, replacing N and B with the active and best streaks MLB "
+                         "shows. Changing the saver flag does not correct this observation."),
+            ))
+        return alerts
 
     # The flag belongs to the caller's current ET season, even when ledger coverage lags.
     from bts.saver_state import load_saver_state

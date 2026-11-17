@@ -1365,7 +1365,80 @@ def preview(date: str | None, data_dir: str, picks_dir: str, models_dir: str):
     click.echo(f"[preview] Saved to {picks_path / f'{date}.json'} (PROJECTED — scheduler will re-evaluate)")
 
 
+def _write_dated_contest_observation(picks_dir, *, effective_date, streak, best_streak,
+                                    saver, reason, now):
+    """Append request evidence, then replace the observation; no multi-file transaction."""
+    from datetime import datetime, time, timezone
+    from zoneinfo import ZoneInfo
+    from bts.contest_state import (
+        ContestStateError, DATED_MANUAL_SCHEMA, _UNREADABLE,
+        dated_observation_in_effect, validate_dated_observation,
+    )
+    from bts.util import atomic_write_text
+
+    path = Path(picks_dir) / "account_state" / "contest_streak.manual.json"
+    recorded_at = now.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+    requested = {
+        "schema_version": DATED_MANUAL_SCHEMA,
+        "effective_date": effective_date.isoformat(),
+        "season": effective_date.year,
+        "expires_at": datetime.combine(
+            effective_date, time.max, ZoneInfo("America/New_York")).isoformat(),
+        "active_streak": streak,
+        "best_streak": best_streak,
+        "saver_state": saver,
+        "recorded_at": recorded_at,
+        "source": "manual_cli",
+    }
+    if reason is not None:
+        requested["reason"] = reason
+
+    identity_keys = ("effective_date", "active_streak", "best_streak", "saver_state", "reason")
+    observation = requested
+    state = validate_dated_observation(requested, path)
+    unchanged = False
+    try:
+        snapshot = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(snapshot, dict) and snapshot.get("schema_version") == DATED_MANUAL_SCHEMA:
+            snapshot_state = validate_dated_observation(snapshot, path)
+            if tuple(snapshot.get(k) for k in identity_keys) == tuple(requested.get(k) for k in identity_keys):
+                observation, state, unchanged = snapshot, snapshot_state, True
+    except (ContestStateError, *_UNREADABLE):
+        # Unreadable, malformed and legacy contents are corrections, not no-ops.
+        pass
+
+    if not unchanged:
+        request_path = path.parent / "contest_manual_requests.jsonl"
+        try:
+            request_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(request_path, "a", encoding="utf-8") as log:
+                log.write(json.dumps(dict(requested, requested_at=recorded_at), sort_keys=True) + "\n")
+                log.flush()
+        except OSError as exc:
+            raise click.ClickException(
+                f"Observation was not written; request append may be partial: {exc}") from exc
+        try:
+            atomic_write_text(path, json.dumps(requested, indent=2, sort_keys=True) + "\n")
+        except OSError as exc:
+            raise click.ClickException(
+                f"Requested observation was NOT saved; its request was appended: {exc}") from exc
+
+    # Report our installed observation, or our matching read snapshot. Another
+    # writer may already have replaced the path; output deliberately does not reread it.
+    click.echo(
+        f"Observation {'unchanged' if unchanged else 'written'} at {path}: "
+        f"date={observation['effective_date']} streak={state.streak} best={state.best_streak} "
+        f"saver={state.saver_state} reason={observation.get('reason')!r}")
+    effect = "in effect today" if dated_observation_in_effect(state, now) else "not in effect today"
+    click.echo(f"contest_streak: {state.streak} (best {state.best_streak}, saver {state.saver_state}) "
+               f"for {state.effective_date.isoformat()}, {effect}")
+
+
 @cli.command(name="set-contest-streak")
+@click.option("--date", "effective_date", type=click.DateTime(formats=["%Y-%m-%d"]),
+              help="Contest date (today ET); requires --best-streak and --saver.")
+@click.option("--saver", type=click.Choice(["not_earned", "active", "used"]),
+              help="Saver recorded in the dated observation.")
 @click.option("--streak", required=True, type=int, help="Actual active BTS account streak.")
 @click.option("--best-streak", type=int, default=None, help="Actual season-best streak.")
 @click.option(
@@ -1382,7 +1455,11 @@ def preview(date: str | None, data_dir: str, picks_dir: str, models_dir: str):
               help="Explicit override expiry (ISO-8601); overrides --ttl-hours.")
 @click.option("--reason", default=None, help="Why this emergency override is set (e.g. 'API auth down').")
 @click.option("--picks-dir", default="data/picks", type=click.Path())
+@click.pass_context
 def set_contest_streak(
+    ctx,
+    effective_date,
+    saver,
     streak: int,
     best_streak: int | None,
     saver_available: bool | None,
@@ -1394,14 +1471,43 @@ def set_contest_streak(
     reason: str | None,
     picks_dir: str,
 ):
-    """Write an EXPIRING manual contest-streak override.
+    """Supply today's dated observation, or a legacy EXPIRING override.
 
-    Emergency use only — automated `fetch-contest-streak` is the default source.
-    The override beats auto only until it expires (default 24h), so a forgotten
-    manual file can never silently freeze live picks again.
+    With --date, supply the streak, best and saver for today ET. Without --date,
+    the legacy emergency override beats auto only until it expires (default 24h).
     """
     from datetime import date, datetime, timedelta, timezone
     from zoneinfo import ZoneInfo
+
+    if effective_date is None and saver is not None:
+        raise click.BadParameter("requires --date", param_hint="--saver")
+    if effective_date is not None:
+        if best_streak is None:
+            raise click.BadParameter("required with --date", param_hint="--best-streak")
+        if saver is None:
+            raise click.BadParameter("required with --date", param_hint="--saver")
+        for name in ("source_date", "source", "username", "ttl_hours",
+                     "override_expires_at", "saver_available"):
+            if ctx.get_parameter_source(name) == click.core.ParameterSource.COMMANDLINE:
+                option = ("--saver-available/--saver-unavailable" if name == "saver_available"
+                          else "--" + name.replace("_", "-"))
+                raise click.BadParameter("cannot be used with --date", param_hint=option)
+        now = datetime.now(timezone.utc)
+        today = now.astimezone(ZoneInfo("America/New_York")).date()
+        observed_date = effective_date.date()
+        if observed_date != today:
+            raise click.BadParameter(f"must be today ({today.isoformat()})", param_hint="--date")
+        if streak < 0:
+            raise click.BadParameter("streak must be non-negative", param_hint="--streak")
+        if best_streak < streak:
+            raise click.BadParameter("best streak must be at least the active streak",
+                                     param_hint="--best-streak")
+        if best_streak > 57:
+            raise click.BadParameter("best streak must be at most 57", param_hint="--best-streak")
+        _write_dated_contest_observation(
+            picks_dir, effective_date=observed_date, streak=streak, best_streak=best_streak,
+            saver=saver, reason=reason, now=now)
+        return
 
     if streak < 0:
         raise click.BadParameter("streak must be non-negative", param_hint="--streak")
