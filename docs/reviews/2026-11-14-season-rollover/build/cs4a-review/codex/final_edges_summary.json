@@ -1,0 +1,24 @@
+{
+  "midnight": {
+    "start": "2027-12-31 23:59:59.900000-05:00",
+    "finish": "2028-01-01 00:00:00.100000-05:00",
+    "print_wall_times": [
+      "2028-01-01 00:00:00.100000-05:00",
+      "2028-01-01 00:00:00.100000-05:00"
+    ],
+    "clock_reads": 1,
+    "output": "Observation written at /Users/eric/projects/bts-work/cs4a-rev-codex/.codex-review/cs4a-review/midnight_files/account_state/contest_streak.manual.json: date=2027-12-31 streak=12 best=14 saver=used reason=None\ncontest_streak: 12 (best 14, saver used) for 2027-12-31, in effect today\n",
+    "observation": {
+      "active_streak": 12,
+      "best_streak": 14,
+      "effective_date": "2027-12-31",
+      "expires_at": "2027-12-31T23:59:59.999999-05:00",
+      "recorded_at": "2028-01-01T04:59:59.900000Z",
+      "saver_state": "used",
+      "schema_version": "bts_contest_streak_manual_v3",
+      "season": 2027,
+      "source": "manual_cli"
+    }
+  },
+  "check1_pairs": 36
+}

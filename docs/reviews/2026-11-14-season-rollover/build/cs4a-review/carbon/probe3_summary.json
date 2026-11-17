@@ -1,0 +1,82 @@
+{
+  "cli_dated": {
+    "combos_tested": 48,
+    "rejections_tested": 24,
+    "failures": [
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmplmos035n.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmp_ecfo956.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmp9emr_oug.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpilf43d1c.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmptuvhdv14.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmps2d8nogw.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpe6pkm3qe.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpd_idzzzy.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpt4p50zof.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmprulhys_0.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpy3yhgoah.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpigl9i7eh.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpnm8o19r3.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpbhxilsbk.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmprmtk04ed.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmp3qxd3043.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpr3rkk3ns.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpb19t_swu.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpu4gsj432.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpnvoeexbl.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpawu0t2zr.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpmwjv73i_.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmp2vtymlb4.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmp6u4pffol.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmp23kc9qrc.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpknkq1elh.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpdk20pn6z.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpqr2ct1fy.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmppgvfhg8i.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpue4g71q0.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpsk5hxt2s.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmptjff2rjn.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpfvrz9if4.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpt0q0rbh4.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmp4f3bg4k4.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpfbh6ag9r.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpsbp9pika.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpc44pxbvy.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmptt2o5str.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpie809l6y.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmps09wg3_d.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmp5uho9qxf.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmp6oet8340.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmp6nczd5j1.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmp9_977he9.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmp9firx0ir.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmpi8iukzd4.tmp', 'None')]",
+      "Wrong syscall order: [('open', 'contest_streak.manual.json', 'r'), ('mkdir', 'account_state', ''), ('open', 'contest_manual_requests.jsonl', 'a'), ('mkdir', 'account_state', ''), ('open', 'tmp0r17ll02.tmp', 'None')]"
+    ]
+  },
+  "cli_legacy_vs_base": {
+    "invocations_compared": 10,
+    "differences": []
+  },
+  "clocks_and_midnight": {
+    "boundary_checks": 32,
+    "clock_read_counts": {
+      "load_contest_streak_state": 1,
+      "load_decision_streak_state": 1,
+      "health_check": 1,
+      "dated_cli_command": 1
+    },
+    "midnight_cli_written": {
+      "active_streak": 4,
+      "best_streak": 9,
+      "effective_date": "2027-12-31",
+      "expires_at": "2027-12-31T23:59:59.999999-05:00",
+      "recorded_at": "2028-01-01T04:59:59.900000Z",
+      "saver_state": "active",
+      "schema_version": "bts_contest_streak_manual_v3",
+      "season": 2027,
+      "source": "manual_cli"
+    },
+    "midnight_cli_output": "Observation written at <CMD_DIR>/account_state/contest_streak.manual.json: date=2027-12-31 streak=4 best=9 saver=active reason=None\ncontest_streak: 4 (best 9, saver active) for 2027-12-31, in effect today\n",
+    "failures": []
+  }
+}
