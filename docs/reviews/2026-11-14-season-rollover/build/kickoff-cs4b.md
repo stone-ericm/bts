@@ -1,6 +1,6 @@
 # Kickoff: change set 4b of the season-boundary build (the season switch)
 
-**DRAFT 2 by the lead, 2026-11-17, revised with what the two checks of the 4a contract taught (a scoped clock rule, ordered validity checks, a stated outcome for every failed write, one function per decision). Not to be built from until its own contract check has passed.**
+**SUPERSEDED 2026-11-17 (ruling R30). Its contract check said NOT YET (`cs4b-check/contract-check.md`). Do not build from this file: the work is now `kickoff-cs4b1.md` and a later `kickoff-cs4b2.md`. Kept as the record of what was checked.**
 
 Tier A (pick-path behaviour): tests first and RED, then the change, then the gate. A fresh adversarial review follows your handover; write for a reader who assumes you are wrong.
 
