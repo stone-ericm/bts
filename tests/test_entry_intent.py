@@ -28,9 +28,9 @@ ENTRY_CMD = "bts check-pick-entered"
     ({"entry_intent": "research", "pick_delivery": "private"}, "research", "private"),
     ({"entry_intent": "research", "private_mode": True}, "research", "private"),
     ({"entry_intent": "research", "posting_mode": "local"}, "research", "private"),
-    ({"entry_intent": "enter", "pick_delivery": "dm"}, "enter", "dm"),
-    ({"entry_intent": "enter", "pick_delivery": "bluesky"}, "enter", "public"),
-    ({"entry_intent": "enter"}, "enter", "public"),        # the scheduler's own default when no delivery key is set
+    ({"entry_intent": "enter", "pick_delivery": "dm", "contest_state_required": True}, "enter", "dm"),
+    ({"entry_intent": "enter", "pick_delivery": "bluesky", "contest_state_required": True}, "enter", "public"),
+    ({"entry_intent": "enter", "contest_state_required": True}, "enter", "public"),
 ])
 def test_agreeing_intent_and_delivery(sched, intent, delivery):
     got = check_entry_intent({"scheduler": sched})
@@ -161,7 +161,7 @@ def test_enter_install_adds_only_the_entry_cron(box):
     box.config.write_text('[scheduler]\nentry_intent = "research"\npick_delivery = "private"\n')
     assert box.run("install").returncode == 0
     research = box.lines()
-    box.config.write_text('[scheduler]\nentry_intent = "enter"\npick_delivery = "dm"\n')
+    box.config.write_text('[scheduler]\nentry_intent = "enter"\npick_delivery = "dm"\ncontest_state_required = true\n')
     res = box.run("install")
     assert res.returncode == 0, res.stderr
     enter = box.lines()
@@ -214,6 +214,55 @@ def test_show_refuses_without_a_valid_intent(box):
     box.config.write_text('[scheduler]\npick_delivery = "private"\n')
     res = box.run("show")
     assert res.returncode != 0 and "Would install" not in res.stdout
+
+
+LIVE_DM = '[scheduler]\nentry_intent = "enter"\npick_delivery = "dm"\n'
+LIVE_DM_PROBLEM = (
+    "entry-intent: scheduler delivery 'dm' and scheduler.entry_intent = 'enter' require contest state. "
+    "Optional reads can use a contest observation without the season-coverage check. "
+    "Set contest_state_required = true under [scheduler] and contest_state_expected = true under [health_checks]."
+)
+
+
+@pytest.mark.parametrize("action", ["show", "install"])
+def test_live_cron_refusal_precedes_generic_error_and_never_accesses_crontab(box, action):
+    before = b"0 9 * * * echo not-bts\n*/15 10-23 * * * uv run bts check-pick-entered # BTS-HETZNER\n"
+    box.cron.write_bytes(before)
+    box.config.write_text(LIVE_DM)
+    result = box.run(action)
+    assert (result.returncode, result.stdout, result.stderr) == (
+        1, "",
+        f"{LIVE_DM_PROBLEM}\n"
+        f"ERROR: refusing to {action}: no valid [scheduler].entry_intent in {box.config} (see entry-intent above)\n",
+    )
+    assert not Path(f"{box.cron}.calls").exists()
+    assert box.cron.read_bytes() == before
+
+
+def test_removing_cron_still_works_with_live_gate_problem(box):
+    box.cron.write_text(f"0 9 * * * echo not-bts\n*/15 10-23 * * * uv run {ENTRY_CMD} # BTS-HETZNER\n")
+    box.config.write_text(LIVE_DM)
+    result = box.run("remove")
+    assert (result.returncode, result.stdout, result.stderr) == (0, "Removed BTS Hetzner cron jobs.\n", "")
+    assert box.cron.read_bytes() == b"0 9 * * * echo not-bts\n"
+
+
+def test_live_cron_with_required_state_preserves_show_and_install(box):
+    before = "0 9 * * * echo not-bts"
+    box.cron.write_text(before + "\n")
+    box.config.write_text(LIVE_DM + "[health_checks]\ncontest_state_expected = true\n")
+    shown = box.run("show")
+    assert (shown.returncode, shown.stderr) == (0, "")
+    header, proposed = shown.stdout.split("Would install:\n")
+    assert header == (
+        "Current BTS-HETZNER cron entries:\n(none)\n\nEntry intent: enter (check-pick-entered installed)\n"
+    )
+    assert box.lines() == [before]
+    installed = box.run("install")
+    assert (installed.returncode, installed.stdout, installed.stderr) == (
+        0, "Installed BTS Hetzner cron jobs (entry_intent = enter). Verify with: crontab -l\n", "",
+    )
+    assert box.lines() == [before, *proposed.splitlines()]
 
 
 def test_remove_needs_no_config(box):
@@ -292,6 +341,9 @@ def test_the_day_outcome_check_is_installed_under_either_intent(box, intent, del
     """The end-of-day check (bts.day_outcome) runs every day whatever the intent: at 08:30
     for yesterday, after late doubleheader re-checks have finished."""
     box.config.write_text(f'[scheduler]\nentry_intent = "{intent}"\npick_delivery = "{delivery}"\n')
+    if intent == "enter":
+        with box.config.open("a") as config:
+            config.write("contest_state_required = true\n")
     assert box.run("install").returncode == 0
     lines = [ln for ln in box.lines() if "bts day-outcome" in ln]
     assert [" ".join(ln.split()[:5]) for ln in lines] == ["30 8 * * *"]

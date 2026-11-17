@@ -154,7 +154,7 @@ def gather(date: str, picks_dir, config: dict, *, expected_username: str | None,
     except Exception:
         games = None
     decision, raw = load_decision_bytes(date, picks_dir)
-    intent = check_entry_intent(config)
+    intent = check_entry_intent(config, include_live_gate=False)
     return classify_day(date=date, games=games, void_games=void_games,
                         decision=decision, decision_sha256=entry_receipt._sha(raw),
                         receipts=entry_receipt.discover(picks_dir, date),

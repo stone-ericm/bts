@@ -317,7 +317,7 @@ def run_and_pick(
     return predictions, sel, tier_name
 
 
-def orchestrate(config_path: Path, date: str) -> bool:
+def orchestrate(config_path: Path, date: str, *, config: dict | None = None) -> bool:
     """Run the full orchestration: cascade -> strategy -> save -> post.
 
     Returns True if a pick was made, False otherwise.
@@ -327,7 +327,8 @@ def orchestrate(config_path: Path, date: str) -> bool:
     from bts.picks import save_pick
     from bts.posting import format_post, format_skip_post, post_to_bluesky, should_post_now
 
-    config = load_config(config_path)
+    if config is None:
+        config = load_config(config_path)
     picks_dir = Path(config["orchestrator"]["picks_dir"])
     dm_recipient = config["bluesky"]["dm_recipient"]
 
