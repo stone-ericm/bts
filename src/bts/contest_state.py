@@ -12,11 +12,11 @@ import json
 import logging
 import re
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime, time, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from bts.saver_state import load_saver_state, policy_saver_available
+from bts.saver_state import SaverState, load_saver_state, policy_saver_available
 
 
 logger = logging.getLogger(__name__)
@@ -47,6 +47,8 @@ class ContestStreakState:
     best_streak: int | None = None
     override_expires_at: datetime | None = None
     schema_version: str | None = None
+    effective_date: date | None = None
+    saver_state: str | None = None
 
 
 @dataclass(frozen=True)
@@ -78,6 +80,82 @@ TARGET_STREAK = 57
 _AUTO_SCHEMA = "bts_contest_streak_auto_v1"
 _AUTO_SOURCE = "mlb_bts_profile"
 _MANUAL_SCHEMA_PREFIX = "bts_contest_streak_manual"
+DATED_MANUAL_SCHEMA = "bts_contest_streak_manual_v3"
+
+
+def dated_observation_in_effect(state: ContestStreakState, now: datetime) -> bool:
+    """A dated observation applies only to the caller's current contest date.
+
+    No elapsed/expired state is remembered: stepping the clock back restores it.
+    """
+    return (state.effective_date is not None
+            and state.effective_date == now.astimezone(ZoneInfo("America/New_York")).date())
+
+
+def validate_dated_observation(data: object, path: Path) -> ContestStreakState:
+    """Validate v3 contents in contract order, independently of today's date.
+
+    Both the file reader and the command's raw-snapshot comparison use this
+    validator. Other schemas retain the legacy parser and its timestamp grammar.
+    """
+    def invalid(number: int, field: str, requirement: str) -> None:
+        raise ContestStateError(
+            f"dated contest observation invalid at {path}: check {number}, "
+            f"{field}: {requirement}")
+
+    if not isinstance(data, dict):
+        invalid(1, "file", "expected a JSON object")
+
+    raw_date = data.get("effective_date")
+    if not isinstance(raw_date, str):
+        invalid(2, "effective_date", "must be a padded YYYY-MM-DD string")
+    try:
+        effective_date = date.fromisoformat(raw_date)
+    except ValueError:
+        invalid(2, "effective_date", "must be a padded YYYY-MM-DD string")
+    if raw_date != effective_date.isoformat():
+        invalid(2, "effective_date", "must be a padded YYYY-MM-DD string")
+
+    season = data.get("season")
+    if type(season) is not int or season != effective_date.year:
+        invalid(3, "season", "must be an integer equal to effective_date's year")
+
+    def timestamp(field: str, number: int) -> datetime:
+        raw = data.get(field)
+        if not isinstance(raw, str):
+            invalid(number, field, "must be a timezone-aware ISO timestamp")
+        try:
+            parsed = datetime.fromisoformat(raw[:-1] + "+00:00" if raw.endswith("Z") else raw)
+        except ValueError:
+            invalid(number, field, "must be a timezone-aware ISO timestamp")
+        if parsed.tzinfo is None:
+            invalid(number, field, "must be a timezone-aware ISO timestamp")
+        return parsed
+
+    expires_at = timestamp("expires_at", 4)
+    end_of_day = datetime.combine(effective_date, time.max, ZoneInfo("America/New_York"))
+    if expires_at != end_of_day:
+        invalid(4, "expires_at", "must equal the last microsecond of effective_date in America/New_York")
+    active = data.get("active_streak")
+    if type(active) is not int or not 0 <= active <= TARGET_STREAK:
+        invalid(5, "active_streak", "must be an integer from 0 to 57")
+    best = data.get("best_streak")
+    if type(best) is not int or not active <= best <= TARGET_STREAK:
+        invalid(6, "best_streak", "must be an integer from active_streak to 57")
+    saver = data.get("saver_state")
+    if not isinstance(saver, str) or saver not in {"not_earned", "active", "used"}:
+        invalid(7, "saver_state", "must be not_earned, active or used")
+    timestamp("recorded_at", 8)
+    if not isinstance(data.get("source"), str):
+        invalid(9, "source", "must be a string")
+    if "reason" in data and not isinstance(data["reason"], str):
+        invalid(10, "reason", "must be a string when present")
+    return ContestStreakState(
+        streak=active, best_streak=best, saver_available=None, source=data["source"],
+        source_date=effective_date, recorded_at=data["recorded_at"], path=path,
+        override_expires_at=expires_at, schema_version=DATED_MANUAL_SCHEMA,
+        effective_date=effective_date, saver_state=saver,
+    )
 
 
 def classify_best_streak(contest: "ContestStreakState | None", *, now: datetime,
@@ -88,8 +166,9 @@ def classify_best_streak(contest: "ContestStreakState | None", *, now: datetime,
     best >= active, a hand-written manual file may not; >57 is impossible without
     having won, so it is a typo); the observation carries a source_date in the
     CURRENT season and not in the future (ET); and its CONTENTS prove provenance —
-    the auto schema + the profile source, or a manual schema whose override is
-    unexpired (an explicit operator statement). Provenance is never inferred from
+    the auto schema + the profile source, a dated manual observation in effect,
+    or a legacy manual schema whose override is unexpired (an explicit operator
+    statement). Provenance is never inferred from
     the filename (Codex r3: copied/symlinked files are trust-elevating boundaries
     otherwise). (Codex r2 P0: ``max(streak, best)`` is an algebraic clamp, not a
     trust boundary — an inflated best would otherwise stop the account for the
@@ -100,6 +179,8 @@ def classify_best_streak(contest: "ContestStreakState | None", *, now: datetime,
     best = int(contest.best_streak)
     if best < 0 or best < contest.streak or best > TARGET_STREAK:
         return best, "untrusted"
+    if dated_observation_in_effect(contest, now):
+        return best, "trusted"
     today_et = now.astimezone(ZoneInfo("America/New_York")).date()
     if (contest.source_date is None or contest.source_date.year != now_year
             or contest.source_date > today_et):
@@ -145,6 +226,8 @@ def _parse_state_file(path: Path, *, require_dated: bool = False) -> ContestStre
         raise ContestStateError(f"contest streak state malformed at {path}: {exc}") from exc
     if not isinstance(data, dict):
         raise ContestStateError(f"contest streak state malformed at {path}: expected object")
+    if path.name == "contest_streak.manual.json" and data.get("schema_version") == DATED_MANUAL_SCHEMA:
+        return validate_dated_observation(data, path)
     streak = data.get("active_streak", data.get("streak"))
     if type(streak) is not int or streak < 0:        # type() not isinstance: reject bool
         raise ContestStateError(f"contest streak invalid in {path}: {streak!r}")
@@ -191,7 +274,8 @@ def load_contest_streak_state(
 ) -> ContestStreakState | None:
     """Select the active contest-streak observation.
 
-    Precedence: an UNEXPIRED manual override wins; else the auto observation
+    A dated manual observation wins on its effective date and is ignored on all
+    other dates. For legacy files, an UNEXPIRED manual override wins; else the auto observation
     (``contest_streak.json``); else a legacy/expired manual file is used as a
     fallback so production keeps working until the first auto-fetch (health alerts
     on that case). Returns None when no observation exists.
@@ -205,6 +289,11 @@ def load_contest_streak_state(
     auto_path = state_dir / "contest_streak.json"
 
     manual = _parse_state_file(manual_path) if manual_path.exists() else None
+    if manual is not None and manual.effective_date is not None:
+        if dated_observation_in_effect(manual, now):
+            return manual
+        # A dated observation for another day is absent, including as a fallback.
+        manual = None
     # An unexpired manual override wins; return it BEFORE parsing the auto file so
     # a corrupt auto file can't block the emergency override (audit D2). A corrupt
     # manual file still raises (surfaced as CRITICAL), as does a corrupt auto file
@@ -347,7 +436,7 @@ def load_decision_streak_state(
     now_year = now_dt.astimezone(ZoneInfo("America/New_York")).year
     model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir, now_year)
     contest = load_contest_streak_state(
-        picks_dir, now=now, require_dated_auto=require_contest_state)
+        picks_dir, now=now_dt, require_dated_auto=require_contest_state)
     if contest is None:
         if require_contest_state:
             paths = ", ".join(str(path) for path in _contest_state_paths(picks_dir))
@@ -377,7 +466,8 @@ def load_decision_streak_state(
             message="no contest-account streak state found",
         )
 
-    if contest_state_is_fresh(contest, picks_dir):
+    dated_in_effect = dated_observation_in_effect(contest, now_dt)
+    if dated_in_effect or contest_state_is_fresh(contest, picks_dir):
         status = "fresh"
         message = f"using fresh contest streak from {contest.source}"
     elif contest.source_date is None:
@@ -392,13 +482,15 @@ def load_decision_streak_state(
             status = "lagged"
             message = "contest streak lagged by expected overnight settlement; using last confirmed value"
 
-    # Live saver: the SOLE authority is saver_state.json (the manual Streak Saver flag) --
+    # On a dated observation's day its recorded saver is the authority. Otherwise
+    # the live saver comes from saver_state.json (the manual Streak Saver flag) --
     # replaces the unsound infer_saver/best_streak inference (the streak-preserving save can
     # vanish from the windowed ledger, so available-vs-used is not observable from it). See the
     # 2026-06-18 spec. Read-only here; the flag is written by the fetch-path auto-earn and the
     # CLI/dashboard. `contest.saver_available` is retired from the decision (it is still surfaced
     # as the `contest_saver_available` diagnostic below).
-    saver = load_saver_state(picks_dir, season=now_year)
+    saver = (SaverState(state=contest.saver_state, season=contest.effective_date.year)
+             if dated_in_effect else load_saver_state(picks_dir, season=now_year))
     contest_saver = policy_saver_available(saver, contest.streak)
     best_streak, best_status = classify_best_streak(contest, now=now_dt, now_year=now_year)
 
