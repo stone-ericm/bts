@@ -356,6 +356,12 @@ def load_decision_streak_state(
             )
         if model_error is not None:
             raise ContestStateError(f"model state is corrupt; cannot use model fallback: {model_error}")
+        # Here the model streak IS the decision streak, and the policy saver compares it with 10.
+        # A readable streak.json can hold any JSON value in that field; only a count is usable.
+        if type(model_streak) is not int or model_streak < 0:
+            raise ContestStateError(
+                "model state is corrupt; cannot use model fallback: "
+                f"{picks_dir / 'streak.json'}: streak is not a non-negative integer")
         saver = load_saver_state(picks_dir, season=now_year)
         return DecisionStreakState(
             streak=model_streak,

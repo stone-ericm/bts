@@ -332,3 +332,85 @@ def test_manual_omitted_source_is_today_not_null(tmp_path, monkeypatch):
     assert load_saver_state(tmp_path, season=year).state == "not_earned"
     source = json.loads((tmp_path / "account_state/contest_streak.manual.json").read_text())["source_date"]
     assert date.fromisoformat(source).year == year
+
+
+# --- added by the lead after review round 1 ---
+
+@pytest.mark.parametrize("value", [None, "7", [], {}, True, -1, 7.0], ids=["null", "str", "list", "object", "bool", "negative", "float"])
+@pytest.mark.parametrize("flag", ["uninitialized", "not_earned", "active", "used"])
+def test_model_only_branch_refuses_a_model_streak_that_is_not_a_count(tmp_path, value, flag):
+    """Codex r1 B1: with no contest observation the decision streak IS the model streak, and the
+    policy saver compares it with 10. A readable streak.json whose streak is not a non-negative
+    int is corrupt model state: a ContestStateError, never a TypeError and never an invented 0."""
+    from bts.contest_state import ContestStateError
+    _flag(tmp_path, flag)
+    (tmp_path / "streak.json").write_text(json.dumps({"season": 2027, "streak": value}))
+    with pytest.raises(ContestStateError, match="model state is corrupt"):
+        load_decision_streak_state(tmp_path, now=NOW)
+    # A contest observation does not depend on the model file (change set 1): unchanged.
+    _contest(tmp_path, 7, "2027-07-14")
+    state = load_decision_streak_state(tmp_path, now=NOW)
+    assert (state.source, state.streak) == ("contest", 7)
+
+
+def _commands(message):
+    return [part for part in message.split("`")[1::2] if part.startswith("bts saver-state")]
+
+
+def _paste(picks, command):
+    return CliRunner().invoke(cli, [*command.split()[1:], "--picks-dir", str(picks)])
+
+
+@pytest.mark.parametrize("flag", ["missing", "stale"])
+@pytest.mark.parametrize("streak", [0, 12])
+def test_uninitialized_warning_gives_a_command_for_each_thing_the_operator_can_find(tmp_path, flag, streak):
+    """The lead's finding in review round 1: the message gave only the command that marks the saver
+    USED, and it is sent every day at the start of a season, when the right answer is not_earned."""
+    _contest(tmp_path, streak, "2027-06-18")
+    if flag == "stale":
+        _flag(tmp_path, "active", 2026)
+    (alert,) = check(tmp_path, expected=True, now=NOW)
+    commands = _commands(alert.message)
+    assert commands == ["bts saver-state --init not_earned --season 2027",
+                        "bts saver-state --init active --season 2027",
+                        "bts saver-state --init used --season 2027"]
+    for command, state in zip(commands, ["not_earned", "active", "used"]):
+        picks = tmp_path / state
+        _contest(picks, streak, "2027-06-18")
+        if flag == "stale":
+            _flag(picks, "active", 2026)
+        result = _paste(picks, command)
+        assert result.exit_code == 0, result.output
+        assert load_saver_state(picks, season=2027).state == state
+
+
+def test_not_earned_in_zone_warning_gives_both_commands(tmp_path):
+    _contest(tmp_path, 12, "2027-06-18")
+    _flag(tmp_path, "not_earned")
+    (alert,) = check(tmp_path, expected=False, now=NOW)
+    commands = _commands(alert.message)
+    assert commands == ["bts saver-state --init active --force --season 2027",
+                        "bts saver-state --use --season 2027"]
+    for command, state in zip(commands, ["active", "used"]):
+        picks = tmp_path / state
+        _flag(picks, "not_earned")
+        result = _paste(picks, command)
+        assert result.exit_code == 0, result.output
+        assert load_saver_state(picks, season=2027).state == state
+
+
+def test_use_from_not_earned_says_how_to_take_it_back(tmp_path):
+    """Codex r1 note: --undo after a mistaken --use ends at `active`, a saver that was never earned.
+    The command that really takes it back is printed when --use succeeds from not_earned."""
+    _flag(tmp_path, "not_earned")
+    result = CliRunner().invoke(cli, ["saver-state", "--picks-dir", str(tmp_path), "--season", "2027", "--use"])
+    assert result.exit_code == 0, result.output
+    revert = "bts saver-state --init not_earned --force --season 2027"
+    assert revert in result.output
+    assert result.output.splitlines()[-1] == "saver_state: used (season 2027)"
+    assert _paste(tmp_path, revert).exit_code == 0
+    assert load_saver_state(tmp_path, season=2027).state == "not_earned"
+    # From active there is nothing to explain: --undo is the exact inverse.
+    _flag(tmp_path / "b", "active")
+    result = CliRunner().invoke(cli, ["saver-state", "--picks-dir", str(tmp_path / "b"), "--season", "2027", "--use"])
+    assert "--init not_earned" not in result.output

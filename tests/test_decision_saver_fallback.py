@@ -17,7 +17,7 @@ def _fresh_contest(picks_dir, best_streak=10):
 
 
 def test_active_flag_makes_saver_available(tmp_path):
-    save_streak(10, tmp_path, saver_available=False)   # model saver is irrelevant now
+    save_streak(10, tmp_path, saver_available=False, season=2026)   # model saver is irrelevant now
     _fresh_contest(tmp_path)
     transition_saver_state(tmp_path, expected_prior="uninitialized", new_state="active",
                            season=2026, source="t")
@@ -25,7 +25,7 @@ def test_active_flag_makes_saver_available(tmp_path):
 
 
 def test_used_or_uninitialized_flag_means_unavailable(tmp_path):
-    save_streak(10, tmp_path, saver_available=True)
+    save_streak(10, tmp_path, saver_available=True, season=2026)
     _fresh_contest(tmp_path)
     # no saver_state.json -> uninitialized -> unavailable
     assert load_decision_streak_state(tmp_path, now=NOW).saver_available is False
@@ -36,7 +36,7 @@ def test_used_or_uninitialized_flag_means_unavailable(tmp_path):
 
 def test_model_only_fallback_reads_saver_state_not_streak_json(tmp_path):
     # no contest observation at all -> model-only path; the saver still comes from saver_state.json
-    save_streak(10, tmp_path, saver_available=True)    # streak.json says saver True...
+    save_streak(10, tmp_path, saver_available=True, season=2026)    # streak.json says saver True...
     transition_saver_state(tmp_path, expected_prior="uninitialized", new_state="used",
                            season=2026, source="t")     # ...but the flag says used
     assert load_decision_streak_state(tmp_path, now=NOW).saver_available is False

@@ -135,15 +135,19 @@ def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = Non
             level="WARN", source=SAVER_SOURCE,
             message=(f"Streak Saver flag uninitialized for season {season} ({detail}) "
                      f"while streak is {state.streak}; counting the saver as spent. "
-                     "Verify the saver in MLB; for a spent saver run "
+                     "Check the saver in MLB and run ONE of these. Not earned yet this season: "
+                     f"`bts saver-state --init not_earned --season {season}`. Earned and unused: "
+                     f"`bts saver-state --init active --season {season}`. Already used: "
                      f"`bts saver-state --init used --season {season}`"),
         ))
     elif saver.state == "not_earned" and in_zone:
         alerts.append(Alert(
             level="WARN", source=SAVER_SOURCE,
             message=(f"Streak Saver flag not_earned for season {season} contradicts streak "
-                     f"{state.streak}; counting the saver as spent. Verify the saver in MLB; "
-                     f"if consumed run `bts saver-state --use --season {season}`"),
+                     f"{state.streak}; counting the saver as spent. Check the saver in MLB and "
+                     "run ONE of these. Earned and unused: "
+                     f"`bts saver-state --init active --force --season {season}`. Already used: "
+                     f"`bts saver-state --use --season {season}`"),
         ))
 
     return alerts

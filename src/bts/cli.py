@@ -1503,6 +1503,7 @@ def saver_state_cmd(show, init_state, mark_used, undo, force, season, picks_dir)
         prior = "not_earned" if current == "not_earned" else "active"
         ok = transition_saver_state(picks, expected_prior=prior, new_state="used",
                                     season=season, source="cli")
+        marked_from = prior if ok else None
         if not ok:
             # Auto-earn may have advanced the flag between our read and the lock.
             # Try the other usable prior at most once, through the same locked writer.
@@ -1510,8 +1511,13 @@ def saver_state_cmd(show, init_state, mark_used, undo, force, season, picks_dir)
             if load_saver_state(picks, season=season).state == other:
                 ok = transition_saver_state(picks, expected_prior=other, new_state="used",
                                             season=season, source="cli")
+                marked_from = other if ok else None
         current = load_saver_state(picks, season=season).state
-        if ok:
+        if ok and marked_from == "not_earned":
+            # --undo would end at `active`, a saver that was never earned; say what really reverts.
+            click.echo("Marked saver used (it was not_earned). To take this back run "
+                       f"`bts saver-state --init not_earned --force --season {season}`.")
+        elif ok:
             click.echo("Marked saver used.")
         elif current == "used":
             click.echo("Saver is already used.")
