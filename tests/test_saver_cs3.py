@@ -414,3 +414,27 @@ def test_use_from_not_earned_says_how_to_take_it_back(tmp_path):
     _flag(tmp_path / "b", "active")
     result = CliRunner().invoke(cli, ["saver-state", "--picks-dir", str(tmp_path / "b"), "--season", "2027", "--use"])
     assert "--init not_earned" not in result.output
+
+
+def test_not_earned_warning_covers_a_stale_contest_streak_at_season_start(tmp_path):
+    """Codex r2 N1: on 2027-03-24 the contest file can still hold September's streak 12. After the
+    operator correctly runs --init not_earned the warning must not offer only "earned" or "used":
+    MLB shows streak 0 and an unearned saver, and the thing to fix is the contest streak."""
+    opening = datetime(2027, 3, 24, 20, tzinfo=timezone.utc)
+    _contest(tmp_path, 12, "2026-09-28")
+    _flag(tmp_path, "used", 2026)
+    (first,) = [a for a in check(tmp_path, expected=True, now=opening) if a.source == "saver_state"]
+    assert _paste(tmp_path, _commands(first.message)[0]).exit_code == 0
+    assert load_saver_state(tmp_path, season=2027).state == "not_earned"
+    (second,) = [a for a in check(tmp_path, expected=True, now=opening) if a.source == "saver_state"]
+    message = second.message
+    assert "not earned yet" in message and "stale" in message
+    assert "leave the flag" in message and "bts set-contest-streak" in message
+    # The flag commands are unchanged, and still exactly two.
+    assert _commands(message) == ["bts saver-state --init active --force --season 2027",
+                                  "bts saver-state --use --season 2027"]
+    # Following the third case silences the warning without touching the flag.
+    result = CliRunner().invoke(cli, ["set-contest-streak", "--picks-dir", str(tmp_path), "--streak", "0",
+                                      "--best-streak", "0", "--source-date", "2027-03-24"])
+    assert result.exit_code == 0, result.output
+    assert load_saver_state(tmp_path, season=2027).state == "not_earned"

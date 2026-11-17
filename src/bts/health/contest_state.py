@@ -147,7 +147,10 @@ def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = Non
                      f"{state.streak}; counting the saver as spent. Check the saver in MLB and "
                      "run ONE of these. Earned and unused: "
                      f"`bts saver-state --init active --force --season {season}`. Already used: "
-                     f"`bts saver-state --use --season {season}`"),
+                     f"`bts saver-state --use --season {season}`. If MLB shows the saver not earned "
+                     f"yet, streak {state.streak} is a stale contest reading (dated "
+                     f"{state.source_date}): leave the flag as it is and correct the contest streak "
+                     "with bts set-contest-streak"),
         ))
 
     return alerts
