@@ -174,7 +174,14 @@ def test_optional_and_dated_bypass_corrupt_switch(tmp_path, monkeypatch, require
         put(tmp_path, "contest_streak.manual.json", dated())
     spy = Mock(side_effect=AssertionError("switch must not be read"))
     if required and not today:
-        return  # the matrix asserts this required non-dated refusal and its read
+        # Review round 1 (Codex note): this cell used to return without asserting
+        # anything. A required, non-dated read consults the switch and is refused
+        # for the corrupt switch (reason 1), in the decision and in the health check.
+        with pytest.raises(cs.ContestStateError, match="check 1"):
+            cs.load_decision_streak_state(tmp_path, now=NOW, require_contest_state=True)
+        alerts = health.check(tmp_path, now=NOW, expected=True)
+        assert alerts and alerts[-1].level == "CRITICAL" and "check 1" in alerts[-1].message
+        return
     monkeypatch.setattr(sc, "switch_state", spy)
     assert cs.load_decision_streak_state(tmp_path, now=NOW, require_contest_state=required).streak == 12
     health.check(tmp_path, now=NOW, expected=required)
