@@ -1,4 +1,4 @@
-# Change set 5b of the season-boundary build: choosing again after a late or corrected observation (draft 1)
+# Change set 5b of the season-boundary build: choosing again after a late or corrected observation (draft 1: NOT TO BE BUILT; its check returned NOT YET on 2026-11-18, see `cs5b-check/contract-check.md`; the design question is with Eric)
 
 **Tier A** (the operator's instructions on the pick path; no selection or delivery code changes). Base: `main` at the commit named in the author's brief (it contains change sets 4a to 6a and 5a). One commit on branch `sb-cs5b`.
 
