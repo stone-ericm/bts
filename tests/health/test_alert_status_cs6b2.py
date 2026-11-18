@@ -91,14 +91,16 @@ def test_status_shapes(kind, mode, status_path, transport, monkeypatch, request)
         status_path.symlink_to(target.name)
 
     if kind == "green_permission":
-        real_open = Path.open
+        # Round-1 fix: the dispatcher opens the status file with os.open (non-blocking,
+        # type checked on the descriptor), so the denial is injected there.
+        real_os_open = os.open
 
-        def denied_read(path, mode="r", *args, **kwargs):
-            if path == status_path and mode.startswith("r"):
+        def denied_read(path, flags, *args, **kwargs):
+            if Path(path) == status_path and not flags & (os.O_WRONLY | os.O_RDWR):
                 raise PermissionError("injected status read denial")
-            return real_open(path, mode, *args, **kwargs)
+            return real_os_open(path, flags, *args, **kwargs)
 
-        monkeypatch.setattr(Path, "open", denied_read)
+        monkeypatch.setattr(os, "open", denied_read)
     if kind == "nested":
         old_limit = sys.getrecursionlimit()
         sys.setrecursionlimit(2000)
@@ -127,15 +129,9 @@ def test_status_shapes(kind, mode, status_path, transport, monkeypatch, request)
         assert status_path.readlink() == Path(status_path.name)
     elif mode != "empty":
         with monkeypatch.context() as read:
-            if kind == "green_permission":
-                read.setattr(Path, "open", real_open)
             assert saved(status_path)["status"] == ("sent" if attempted else "skipped_no_recipient")
     elif kind in content:
-        if kind == "green_permission":
-            with real_open(status_path, "rb") as file:
-                assert file.read() == content[kind]
-        else:
-            assert status_path.read_bytes() == content[kind]
+        assert status_path.read_bytes() == content[kind]
     elif kind == "green_regular_symlink":
         assert target.read_text() == "{}"
     else:
@@ -204,7 +200,8 @@ def test_dedup_after_corruption(persistent, status_path, transport, caplog):
 @pytest.fixture(scope="module")
 def base_alert():
     source = "src/bts/health/alert.py"
-    archive = subprocess.check_output(["git", "archive", "59efa825", source])
+    archive = subprocess.check_output(["git", "archive", "59efa825", source],
+                                      cwd=Path(__file__).resolve().parents[2])
     with tarfile.open(fileobj=io.BytesIO(archive)) as base:
         code = compile(base.extractfile(source).read(), source, "exec")
     module = ModuleType("_cs6b2_base_alert")
@@ -265,15 +262,15 @@ def test_green_writer_parity(base_alert, prior, mode, tmp_path, monkeypatch):
 def test_one_status_snapshot(tmp_path, transport, monkeypatch):
     path = tmp_path / "status.json"
     path.write_text("{}")
-    original = Path.open
+    original = os.open
     reads = []
 
-    def count_reads(self, mode="r", *args, **kwargs):
-        if self == path and mode == "r":
-            reads.append(self)
-        return original(self, mode, *args, **kwargs)
+    def count_reads(target, flags, *args, **kwargs):
+        if Path(target) == path and not flags & (os.O_WRONLY | os.O_RDWR):
+            reads.append(Path(target))
+        return original(target, flags, *args, **kwargs)
 
-    monkeypatch.setattr(Path, "open", count_reads)
+    monkeypatch.setattr(os, "open", count_reads)
     assert dispatch(path, [CRITICAL]) is True
     assert reads == [path]
     transport.assert_called_once()

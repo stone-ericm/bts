@@ -13,6 +13,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
 import stat
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
@@ -84,13 +85,45 @@ def _write_health_dm_delivery_status(
     try:
         path = Path(status_path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+        _write_regular_file_text(path, json.dumps(payload, indent=2, sort_keys=True) + "\n")
     except Exception as exc:
         log.warning(
             "could not write health DM delivery status at %s: %s",
             status_path,
             exc,
         )
+
+
+def _write_regular_file_text(path: Path, text: str) -> None:
+    """``path.write_text(text)`` that cannot block on, or write into, a special file.
+
+    The open is non-blocking and the type is checked on the OPENED descriptor, before
+    anything is truncated, so a FIFO put at the path after any earlier check (cs6b2
+    review, finding 2) raises ``OSError`` here instead of waiting for a reader after
+    the DM has already gone out. Creation mode, symlink following and the text
+    encoding are those of ``write_text``.
+    """
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_NONBLOCK, 0o666)
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise OSError("not a regular file")
+        os.ftruncate(fd, 0)
+        with open(fd, "w", closefd=False) as handle:
+            handle.write(text)
+    finally:
+        os.close(fd)
+
+
+def _read_regular_file_text(path: Path) -> str:
+    """``path.read_text()`` that cannot block on a special file (review finding 1)."""
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise OSError("not a regular file")
+        with open(fd, "r", closefd=False) as handle:
+            return handle.read()
+    finally:
+        os.close(fd)
 
 
 def _persist_health_dm_delivery_status(status_path: Path | str | None, **payload) -> None:
@@ -173,7 +206,7 @@ def _read_health_dm_delivery_status(status_path: Path | str | None) -> dict | No
         path = Path(status_path)
         if not stat.S_ISREG(path.stat().st_mode):
             return None
-        data = json.loads(path.read_text())
+        data = json.loads(_read_regular_file_text(path))
     except (OSError, ValueError, RecursionError):
         return None
     return data if isinstance(data, dict) else None
