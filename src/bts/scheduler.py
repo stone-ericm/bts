@@ -60,10 +60,12 @@ def _alert_contest_state_failure(config: dict, error: Exception) -> None:
     )
 
 
-def _report_stale_reading_warning_failure(error: Exception) -> None:
+def _report_stale_reading_warning_failure(error: BaseException) -> None:
+    # BaseException throughout the stale-reading work (cs4c review B1): an interrupt
+    # raised inside it must not stop the pick's send or the return after it.
     try:
         print(f"  Stale-reading warning failed: {ascii(str(error))[:200]}", file=sys.stderr)
-    except Exception:
+    except BaseException:
         pass
 
 
@@ -89,7 +91,7 @@ def _warn_stale_contest_reading(record: dict | None, config: dict, picks_dir: Pa
         )
         try:
             print(f"  STALE CONTEST READING — {message}", file=sys.stderr)
-        except Exception as error:
+        except BaseException as error:
             _report_stale_reading_warning_failure(error)
         dm_recipient = config.get("bluesky", {}).get("dm_recipient")
         if dm_recipient:
@@ -105,7 +107,7 @@ def _warn_stale_contest_reading(record: dict | None, config: dict, picks_dir: Pa
                 status_path=status_path,
                 now_et_date=warning_day,
             )
-    except Exception as error:
+    except BaseException as error:
         _report_stale_reading_warning_failure(error)
 
 
@@ -1175,7 +1177,7 @@ def _deliver_and_lock_pick(
         if required:
             try:
                 daily.automatic_reading = automatic_reading_record(decision_state, attempt_time)
-            except Exception as error:
+            except BaseException as error:
                 daily.automatic_reading = None
                 _report_stale_reading_warning_failure(error)
 
@@ -1213,7 +1215,8 @@ def _deliver_and_lock_pick(
             save_pick(daily, picks_dir)
             print(f"  Pick DM failed: {e}", file=sys.stderr)
             return False
-        if required:
+        # The warning says "delivered": only with the transport's identifier in hand (B2).
+        if required and isinstance(msg_id, str) and msg_id:
             _warn_stale_contest_reading(daily.automatic_reading, config, picks_dir)
         return True
 
@@ -1243,7 +1246,7 @@ def _deliver_and_lock_pick(
         save_pick(daily, picks_dir)
         print(f"  Bluesky post failed: {e}", file=sys.stderr)
         return False
-    if required:
+    if required and isinstance(uri, str) and uri:
         _warn_stale_contest_reading(daily.automatic_reading, config, picks_dir)
     return True
 
