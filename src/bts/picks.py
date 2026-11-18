@@ -20,7 +20,7 @@ _ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 from bts.util import atomic_write_text, retry_urlopen
 from bts.data.schema import HIT_EVENTS, PA_ENDING_EVENTS  # pandas-free constants
-from bts.contest_state import DecisionStreakState, TARGET_STREAK
+from bts.contest_state import DecisionStreakState, TARGET_STREAK, valid_automatic_reading
 from bts.saver_state import SaverState, policy_saver_available
 
 API_BASE = "https://statsapi.mlb.com"
@@ -248,6 +248,7 @@ class DailyPick:
     # recovery) still records objective / best / tail sha in decision.json.
     policy_decision: dict | None = None
     chosen_on: dict | None = None
+    automatic_reading: dict | None = None
 
 
 _CHOSEN_ON_SCHEMA = "bts_pick_chosen_on_v1"
@@ -549,6 +550,7 @@ def load_shadow_pick(date: str, picks_dir: Path) -> DailyPick | None:
         feature_env_hash=data.get("feature_env_hash"),
         shadow_model_version=data.get("shadow_model_version"),
         chosen_on=_valid_chosen_on(data.get("chosen_on")),
+        automatic_reading=valid_automatic_reading(data.get("automatic_reading")),
     )
 
 
@@ -606,6 +608,7 @@ def parse_daily_pick(text: str) -> DailyPick:
         feature_env=data.get("feature_env"),
         feature_env_hash=data.get("feature_env_hash"),
         chosen_on=_valid_chosen_on(data.get("chosen_on")),
+        automatic_reading=valid_automatic_reading(data.get("automatic_reading")),
     )
 
 

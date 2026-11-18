@@ -147,7 +147,7 @@ def test_real_decision_state_identity_and_builder(tmp_path, kind):
 def test_round_trip_and_exact_prior_encoding(tmp_path, kind):
     daily = daily_pick()
     original = json.dumps({key: val for key, val in asdict(daily).items()
-                           if key != "chosen_on"}, indent=2)
+                           if key not in {"chosen_on", "automatic_reading"}}, indent=2)
     chosen = record(kind)
     if kind in {"model", "legacy_manual"}:
         chosen["streak"] = 58
@@ -155,10 +155,12 @@ def test_round_trip_and_exact_prior_encoding(tmp_path, kind):
     path = picks.save_pick(daily, tmp_path)
     raw = path.read_bytes()
     parsed = json.loads(raw)
-    assert list(parsed)[-1] == "chosen_on"
+    assert list(parsed)[-2:] == ["chosen_on", "automatic_reading"]
     assert parsed.pop("chosen_on") == chosen
+    assert parsed.pop("automatic_reading") is None
     assert json.dumps(parsed, indent=2) == original
-    assert raw == (original[:-2] + ",\n" + json.dumps({"chosen_on": chosen}, indent=2)[2:]).encode()
+    trailing = json.dumps({"chosen_on": chosen, "automatic_reading": None}, indent=2)
+    assert raw == (original[:-2] + ",\n" + trailing[2:]).encode()
     assert picks.load_pick(DAY, tmp_path).chosen_on == chosen
     loaded, held = picks.load_pick_bytes(DAY, tmp_path)
     assert held == raw and loaded.chosen_on == chosen
@@ -189,7 +191,8 @@ def test_legacy_read_rewrite_and_projection(tmp_path):
     from scripts import live_forward_provenance_inventory as inventory
 
     daily = daily_pick()
-    old = {key: value for key, value in asdict(daily).items() if key != "chosen_on"}
+    old = {key: value for key, value in asdict(daily).items()
+           if key not in {"chosen_on", "automatic_reading"}}
     path = tmp_path / f"{DAY}.json"
     path.write_text(json.dumps(old, indent=2))
     loaded, raw = picks.load_pick_bytes(DAY, tmp_path)
@@ -198,11 +201,15 @@ def test_legacy_read_rewrite_and_projection(tmp_path):
     new = json.loads(path.read_bytes())
     for snapshot in (capture.decision_snapshot, inventory._decision_snapshot):
         assert snapshot(old) == snapshot(dict(old, chosen_on=None))
+        assert snapshot(old) == snapshot(dict(old, automatic_reading=None))
+        assert snapshot(old) == snapshot(new)
         assert snapshot(old) != snapshot(dict(old, chosen_on=record()))
         assert snapshot(dict(old, chosen_on=record())) != snapshot(
             dict(old, chosen_on=record(required=False)))
     assert path.read_bytes() != raw
-    assert new.pop("chosen_on") is None and new == old
+    assert list(new)[-2:] == ["chosen_on", "automatic_reading"]
+    assert new.pop("chosen_on") is None and new.pop("automatic_reading") is None
+    assert new == old
 
 
 def matcher_cases():

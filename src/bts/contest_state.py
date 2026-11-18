@@ -10,9 +10,10 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import re
 from dataclasses import dataclass
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -78,13 +79,95 @@ class DecisionStreakState:
     saver_flag_state: str | None = None
     observation_kind: str = "model"
     dated_identity: dict | None = None
+    contest_recorded_at: str | None = None
 
 
 TARGET_STREAK = 57
+AUTOMATIC_READING_STALE_HOURS = 14
+_AUTOMATIC_READING_SCHEMA = "bts_pick_automatic_reading_v1"
+_AUTOMATIC_READING_KEYS = ("schema", "recorded_at", "age_hours", "stale", "reason")
+_PRINTABLE_READING_TIME = re.compile(r"[ -~]{0,128}")
 _AUTO_SCHEMA = "bts_contest_streak_auto_v1"
 _AUTO_SOURCE = "mlb_bts_profile"
 _MANUAL_SCHEMA_PREFIX = "bts_contest_streak_manual"
 DATED_MANUAL_SCHEMA = "bts_contest_streak_manual_v3"
+
+
+def _bounded_reading_time(value: object) -> str | None:
+    if isinstance(value, str) and _PRINTABLE_READING_TIME.fullmatch(value):
+        return value
+    return None
+
+
+def _reading_time_utc(value: str | None) -> datetime | None:
+    if value is None:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+        if parsed.utcoffset() is not None:
+            return parsed.astimezone(timezone.utc)
+    except (ValueError, OverflowError):
+        pass
+    return None
+
+
+def automatic_reading_record(s: DecisionStreakState, now: datetime) -> dict | None:
+    """Describe the age of the accepted automatic reading at a supplied instant."""
+    if s.observation_kind != "automatic":
+        return None
+    recorded_at = _bounded_reading_time(s.contest_recorded_at)
+    recorded_utc = _reading_time_utc(recorded_at)
+    age_hours = None
+    reason = "unreadable"
+    if recorded_utc is not None:
+        elapsed = now.astimezone(timezone.utc) - recorded_utc
+        reason = None
+        if elapsed < timedelta(minutes=-5):
+            reason = "future"
+        elif elapsed > timedelta(hours=AUTOMATIC_READING_STALE_HOURS):
+            reason = "old"
+        age_hours = round(elapsed.total_seconds() / 3600, 2)
+    return {
+        "schema": _AUTOMATIC_READING_SCHEMA,
+        "recorded_at": recorded_at,
+        "age_hours": age_hours,
+        "stale": reason is not None,
+        "reason": reason,
+    }
+
+
+def valid_automatic_reading(value: object) -> dict | None:
+    """Validate a decoded pick reading and return it in canonical field order."""
+    if not isinstance(value, dict) or value.keys() != set(_AUTOMATIC_READING_KEYS):
+        return None
+    if value["schema"] != _AUTOMATIC_READING_SCHEMA:
+        return None
+    recorded_at = value["recorded_at"]
+    if recorded_at is not None and _bounded_reading_time(recorded_at) is None:
+        return None
+    stale, reason = value["stale"], value["reason"]
+    if type(stale) is not bool or stale != (reason is not None):
+        return None
+    if reason is not None and (type(reason) is not str or reason not in ("old", "future", "unreadable")):
+        return None
+    age = value["age_hours"]
+    usable = _reading_time_utc(recorded_at) is not None
+    if reason == "unreadable":
+        if usable or age is not None:
+            return None
+    else:
+        if (not usable or type(age) is not float or not math.isfinite(age)
+                or abs(age) > 87_660_000 or round(age, 2) != age):
+            return None
+        # A rounded value exactly on either display boundary can describe
+        # an instant on either side of the actual elapsed-time threshold.
+        if reason == "old" and age < AUTOMATIC_READING_STALE_HOURS:
+            return None
+        if reason == "future" and age > -0.08:
+            return None
+        if reason is None and not -0.08 <= age <= AUTOMATIC_READING_STALE_HOURS:
+            return None
+    return {key: value[key] for key in _AUTOMATIC_READING_KEYS}
 
 
 def dated_observation_in_effect(state: ContestStreakState, now: datetime) -> bool:
@@ -546,4 +629,5 @@ def load_decision_streak_state(
             "best_streak": contest.best_streak,
             "saver_state": contest.saver_state,
         } if dated_in_effect else None,
+        contest_recorded_at=contest.recorded_at,
     )

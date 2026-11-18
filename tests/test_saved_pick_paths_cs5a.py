@@ -587,7 +587,7 @@ def test_marker_archive_and_grading_saves_preserve_chosen_on(world, monkeypatch,
     assert graded.result == "hit" and graded.chosen_on == record()
     archive = scheduler._defer_pick_at_fallback(directory, DAY, graded, reason="fixture")
     archived = json.loads(archive.read_text())
-    assert list(archived)[-2:] == ["chosen_on", "deferred_fallback"]
+    assert list(archived)[-3:] == ["chosen_on", "automatic_reading", "deferred_fallback"]
     assert archived["chosen_on"] == record()
 
 

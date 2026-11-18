@@ -69,7 +69,7 @@ def _decision_snapshot(pick: dict[str, Any]) -> dict[str, Any]:
         key: value
         for key, value in pick.items()
         if key not in {"result", "slot_results"}
-        and (key != "chosen_on" or value is not None)
+        and (key not in {"chosen_on", "automatic_reading"} or value is not None)
     }
 
 
