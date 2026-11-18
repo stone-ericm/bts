@@ -54,6 +54,8 @@ DATA_BUILD_SEASON='$(date +\%Y)'
 
 # install/show only: the declared entry intent, or refuse (exit 1, crontab untouched).
 ENTRY_CRON_LINE=""
+# Keep all four ledger fetches under either intent. Only enter sends fetch failure DMs.
+FETCH_RECIPIENT=""
 case "$ACTION" in
     install|show)
         if ! ENTRY_INTENT="$(cd "$BTS_DIR" && "$UV_BIN" run bts entry-intent --config "$ORCH_CONFIG")"; then
@@ -61,7 +63,8 @@ case "$ACTION" in
             exit 1
         fi
         case "$ENTRY_INTENT" in
-            enter) ENTRY_CRON_LINE="
+            enter) FETCH_RECIPIENT=" --dm-recipient stonehengee.bsky.social"
+                ENTRY_CRON_LINE="
 */15 10-23 * * * $PREFIX $UV_BIN run bts check-pick-entered --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $LOG_DIR/cron.log 2>&1 $MARKER" ;;
             research) ;;
             *)
@@ -86,10 +89,10 @@ CRON_LINES="$MARKER
 0 1 * * * $PREFIX /usr/bin/flock -n /home/bts/.check-results.lock $UV_BIN run bts check-results --date $YESTERDAY --wait-deadline-et 06:00 >> $LOG_DIR/cron.log 2>&1 $MARKER
 0 2 * * * $PREFIX $UV_BIN run bts reconcile >> $LOG_DIR/cron.log 2>&1 $MARKER
 40 7 * * * $PREFIX $UV_BIN run bts reconcile >> $LOG_DIR/cron.log 2>&1 $MARKER
-10 1 * * * $PREFIX $UV_BIN run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $LOG_DIR/cron.log 2>&1 $MARKER
-10 2 * * * $PREFIX $UV_BIN run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $LOG_DIR/cron.log 2>&1 $MARKER
-30 10 * * * $PREFIX $UV_BIN run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $LOG_DIR/cron.log 2>&1 $MARKER
-30 13 * * * $PREFIX $UV_BIN run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $LOG_DIR/cron.log 2>&1 $MARKER
+10 1 * * * $PREFIX $UV_BIN run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee${FETCH_RECIPIENT} >> $LOG_DIR/cron.log 2>&1 $MARKER
+10 2 * * * $PREFIX $UV_BIN run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee${FETCH_RECIPIENT} >> $LOG_DIR/cron.log 2>&1 $MARKER
+30 10 * * * $PREFIX $UV_BIN run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee${FETCH_RECIPIENT} >> $LOG_DIR/cron.log 2>&1 $MARKER
+30 13 * * * $PREFIX $UV_BIN run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee${FETCH_RECIPIENT} >> $LOG_DIR/cron.log 2>&1 $MARKER
 30 23 * * * $PREFIX $UV_BIN run bts skip-policy-shadow-update >> $LOG_DIR/cron.log 2>&1 $MARKER
 30 8 * * * $PREFIX $UV_BIN run bts day-outcome --date $YESTERDAY --config $ORCH_CONFIG --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $LOG_DIR/cron.log 2>&1 $MARKER
 45 7 * * * $PREFIX $UV_BIN run bts park-drag-refresh >> $LOG_DIR/park_drag.log 2>&1 $MARKER

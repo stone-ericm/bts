@@ -157,7 +157,7 @@ def test_research_install_leaves_out_the_entry_cron(box):
     assert any("bts check-results" in ln for ln in lines) and any("bts reconcile" in ln for ln in lines)
 
 
-def test_enter_install_adds_only_the_entry_cron(box):
+def test_enter_install_adds_entry_cron_and_fetch_recipient(box):
     box.config.write_text('[scheduler]\nentry_intent = "research"\npick_delivery = "private"\n')
     assert box.run("install").returncode == 0
     research = box.lines()
@@ -167,7 +167,16 @@ def test_enter_install_adds_only_the_entry_cron(box):
     enter = box.lines()
     entry = [ln for ln in enter if ENTRY_CMD in ln]
     assert len(entry) == 1 and entry[0].startswith("*/15 10-23 * * * ")
-    assert [ln for ln in enter if ENTRY_CMD not in ln] == research
+    fetch_cmd = "bts fetch-contest-streak"
+    recipient = " --dm-recipient stonehengee.bsky.social"
+    fetch = [ln for ln in enter if fetch_cmd in ln]
+    assert [ln.split()[:5] for ln in fetch] == [
+        "10 1 * * *".split(), "10 2 * * *".split(),
+        "30 10 * * *".split(), "30 13 * * *".split(),
+    ]
+    assert all(recipient in ln for ln in fetch)
+    assert [ln.replace(recipient, "") if fetch_cmd in ln else ln
+            for ln in enter if ENTRY_CMD not in ln] == research
 
 
 def test_research_install_removes_an_existing_entry_line_and_keeps_foreign_lines(box):
