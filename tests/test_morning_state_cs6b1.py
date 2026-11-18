@@ -61,6 +61,9 @@ def morning(world, monkeypatch):
     monkeypatch.setattr(cli, "datetime", contest_state.datetime)
     monkeypatch.setattr(scheduler, "datetime", contest_state.datetime)
     monkeypatch.setattr(scheduler, "time", Mock(monotonic=lambda: 0))
+    # Leave the policy cache as it was found (reviews, rounds 1 and 2): a test that
+    # loads the shipped policy must not decide what a later test's first use sees.
+    monkeypatch.setattr(strategy, "_mdp_cache", strategy._mdp_cache)
     frame, tier = orchestrator.run_cascade.return_value
     predictions = frame.assign(p_game_hit=[0.99, 0.81]), tier
     orchestrator.run_cascade.return_value = (None, None)
