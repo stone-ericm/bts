@@ -60,6 +60,57 @@ def _alert_contest_state_failure(config: dict, error: Exception) -> None:
     )
 
 
+def _report_stale_reading_warning_failure(error: BaseException) -> None:
+    # BaseException throughout the stale-reading work (cs4c review B1): an interrupt
+    # raised inside it must not stop the pick's send or the return after it.
+    try:
+        print(f"  Stale-reading warning failed: {ascii(str(error))[:200]}", file=sys.stderr)
+    except BaseException:
+        pass
+
+
+def _warn_stale_contest_reading(record: dict | None, config: dict, picks_dir: Path) -> None:
+    """Report a confirmed delivery's stale reading independently of the pick send."""
+    try:
+        if record is None or not record["stale"]:
+            return
+        warning_day = _now_et().date()
+        if record["reason"] == "old":
+            detail = (f"last accepted fetch {record['recorded_at']}, "
+                      f"about {record['age_hours']:.2f} hours ago")
+        elif record["reason"] == "future":
+            detail = f"its recorded_at {record['recorded_at']} is in the future"
+        else:
+            detail = "it has no usable recorded_at"
+        message = (
+            f"The pick was delivered using an automatic contest reading flagged stale ({detail}). "
+            "Check MLB. If the streak or saver differs, use bts set-contest-streak "
+            f"--date {warning_day.isoformat()} --streak N --best-streak B --saver S with the "
+            "scheduler's picks directory and the values shown in MLB. "
+            "Use the current ET date when you run it. Check the latest fetch status."
+        )
+        try:
+            print(f"  STALE CONTEST READING — {message}", file=sys.stderr)
+        except BaseException as error:
+            _report_stale_reading_warning_failure(error)
+        dm_recipient = config.get("bluesky", {}).get("dm_recipient")
+        if dm_recipient:
+            from bts.health.alert import Alert, dispatch_dm_for_health_alerts
+
+            status_path = picks_dir.parent / "health_state" / "contest_stale_reading_dm_delivery_status.json"
+            dispatch_dm_for_health_alerts(
+                [],
+                dm_recipient,
+                warn_attention=[Alert(
+                    "WARN", "contest_state", message, incident_key="contest_state:stale_reading",
+                )],
+                status_path=status_path,
+                now_et_date=warning_day,
+            )
+    except BaseException as error:
+        _report_stale_reading_warning_failure(error)
+
+
 def _alert_missed_pick(config: dict, daily, mins_to_game: float) -> None:
     """E3: DM the operator that no pick was delivered as first pitch nears."""
     from bts.health.alert import Alert, dispatch_dm_for_health_alerts
@@ -1002,7 +1053,9 @@ def _deliver_and_lock_pick(
     when present its source/candidate metadata are recorded, else they fall back
     to the DailyPick.
     """
-    from bts.contest_state import ContestStateError, load_decision_streak_state
+    from bts.contest_state import (
+        ContestStateError, automatic_reading_record, load_decision_streak_state,
+    )
     from bts.picks import pick_was_delivered, save_pick, saved_pick_refusal
 
     mode = _pick_delivery_mode(config)
@@ -1120,6 +1173,14 @@ def _deliver_and_lock_pick(
             return False
     text = _format_pick_delivery_text(daily, decision_state.streak)
 
+    def _stamp_reading(attempt_time: datetime) -> None:
+        if required:
+            try:
+                daily.automatic_reading = automatic_reading_record(decision_state, attempt_time)
+            except BaseException as error:
+                daily.automatic_reading = None
+                _report_stale_reading_warning_failure(error)
+
     if mode == "dm":
         recipient = config.get("bluesky", {}).get("dm_recipient")
         if not recipient:
@@ -1132,6 +1193,7 @@ def _deliver_and_lock_pick(
         if now >= cutoff:
             _refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)
             return False
+        _stamp_reading(now)
         daily.delivery_attempted = True  # persist BEFORE the network call (E2 idempotency)
         save_pick(daily, picks_dir)
         try:
@@ -1148,18 +1210,22 @@ def _deliver_and_lock_pick(
             _trigger_live_forward_capture_on_lock(config, date)
             _record_commit("delivered")
             print(f"  LOCKED ({label}) — Pick DM sent: {msg_id}", file=sys.stderr)
-            return True
         except Exception as e:
             daily.delivery_attempted = False  # known failure → clear so a later cycle retries
             save_pick(daily, picks_dir)
             print(f"  Pick DM failed: {e}", file=sys.stderr)
             return False
+        # The warning says "delivered": only with the transport's identifier in hand (B2).
+        if required and isinstance(msg_id, str) and msg_id:
+            _warn_stale_contest_reading(daily.automatic_reading, config, picks_dir)
+        return True
 
     # Last-responsible-moment re-check (Codex r2 F1) — see the DM branch.
     now = _now_et()
     if now >= cutoff:
         _refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)
         return False
+    _stamp_reading(now)
     daily.delivery_attempted = True  # persist BEFORE the network call (E2 idempotency)
     save_pick(daily, picks_dir)
     try:
@@ -1175,12 +1241,14 @@ def _deliver_and_lock_pick(
         _trigger_live_forward_capture_on_lock(config, date)
         _record_commit("delivered")
         print(f"  LOCKED ({label}) — Posted to Bluesky: {uri}", file=sys.stderr)
-        return True
     except Exception as e:
         daily.delivery_attempted = False  # known failure → clear so a later cycle retries
         save_pick(daily, picks_dir)
         print(f"  Bluesky post failed: {e}", file=sys.stderr)
         return False
+    if required and isinstance(uri, str) and uri:
+        _warn_stale_contest_reading(daily.automatic_reading, config, picks_dir)
+    return True
 
 
 def count_new_confirmations(

@@ -188,6 +188,7 @@ def production_pick_snapshot_json(manifest: dict[str, Any]) -> dict[str, Any] | 
 
 
 BENIGN_NULL_DECISION_FIELDS = {
+    "automatic_reading",
     "chosen_on",
     "feature_env_schema_version",
     "feature_env",
