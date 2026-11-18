@@ -272,9 +272,14 @@ def test_closed_stderr_and_base_exception_after_commit_preserve_delivery(tmp_pat
     monkeypatch.setattr(alert, "dispatch_dm_for_health_alerts", Mock(side_effect=KeyboardInterrupt("int")))
     # Round-1 fix (Codex B1): the interrupt no longer escapes the warning work;
     # the delivery returns as it would have without the warning.
-    assert scheduler._deliver_and_lock_pick(
-        d2, cfg2, pdir2, st2, DAY, "kbi", selection=_fresh_selection(d2),
-    ) is True
+    escaped = None
+    try:  # an escaping interrupt must fail this test, not end the session (round-2 note)
+        returned = scheduler._deliver_and_lock_pick(
+            d2, cfg2, pdir2, st2, DAY, "kbi", selection=_fresh_selection(d2),
+        )
+    except BaseException as caught:
+        escaped = caught
+    assert escaped is None and returned is True
     saved2 = picks.load_pick(DAY, pdir2)
     assert picks.pick_was_delivered(saved2) and saved2.automatic_reading["stale"] is True
     assert scheduler.load_state(DAY, pdir2).pick_locked is True

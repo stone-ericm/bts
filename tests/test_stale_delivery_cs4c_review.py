@@ -76,7 +76,8 @@ def test_base_exceptions_in_the_stale_work_cannot_affect_the_pick(
 
 
 @pytest.mark.parametrize("mode", ["dm", "public"])
-@pytest.mark.parametrize("identifier", [None, "", 0])
+# 19 and True: a truthy value that is not a str is no confirmation either (round-2 note).
+@pytest.mark.parametrize("identifier", [None, "", 0, 19, True])
 def test_no_warning_without_a_confirmation_identifier(world, capsys, mode, identifier):
     """The base's outcome is kept (return, markers, lock, decision); only the warning is withheld."""
     config, directory, _, _ = world
