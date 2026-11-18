@@ -192,10 +192,12 @@ def test_no_descriptor_is_left_open(tmp_path, monkeypatch, transport, bounded, k
             with monkeypatch.context() as patch:
                 seen = swap_to_fifo_after_stat(patch, path, 1 if kind == "fifo_read" else 2,
                                                with_reader=(kind == "fifo_write"))
-                dispatch(path, [CRITICAL])
-                reader = seen["reader"]
-            if reader is not None:
-                os.close(reader)
+                try:
+                    dispatch(path, [CRITICAL])
+                finally:
+                    reader = seen["reader"]
+                    if reader is not None:
+                        os.close(reader)
         else:
             dispatch(path, [CRITICAL])
             if kind == "missing":
