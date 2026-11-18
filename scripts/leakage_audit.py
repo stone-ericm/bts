@@ -2,7 +2,47 @@
 import pandas as pd
 import numpy as np
 import warnings
+from unittest.mock import patch
 warnings.filterwarnings("ignore")
+
+
+def audit_bullpen_availability():
+    from bts.features import compute, park_drag
+
+    prior_hits = [1] * 4 + [0] * 6
+    starter_only = pd.DataFrame(
+        dict(pa_id=i, date=date, game_pk=100 + i, batter_id=11,
+             pitcher_id=22 if i < len(prior_hits) else 21,
+             is_hit=hit, is_home=True, venue_id=31, pitch_hand="R",
+             final_count_balls=0, final_count_strikes=0, launch_speed=91.,
+             launch_angle=10., pitch_calls=["X"], pitch_types=["FF"],
+             pitch_speeds=[93.], pitch_spin_rates=[2300.], pitch_extensions=[6.],
+             pitch_break_vertical=[15.], pitch_break_horizontal=[5.],
+             pitch_px=[0.], pitch_pz=[2.5], sz_top=3.5, sz_bottom=1.5)
+        for i, (date, hit) in enumerate(zip(
+            pd.date_range("2025-04-01", periods=11), [*prior_hits, 0], strict=True
+        ))
+    )
+    target = starter_only["date"].max()
+    relief_only = starter_only.copy()
+    relief_only.loc[relief_only["date"].eq(target), ["pitcher_id", "is_hit"]] = [22, 1]
+    lookup = {game: {"away": 21, "away_tid": 51} for game in starter_only["game_pk"]}
+    expected = sum(prior_hits) / len(prior_hits)
+    matches = True
+    with (
+        patch.object(compute, "_build_probable_pitcher_lookup", return_value=lookup),
+        patch.object(park_drag, "get_table", return_value=None),
+    ):
+        for label, frame in (("all starter", starter_only), ("all relief", relief_only)):
+            result = compute.compute_all_features(frame)
+            values = result.loc[result["date"].eq(target), "opp_bullpen_hr_30g"].to_numpy()
+            match = len(values) == 1 and np.isfinite(values).all() and np.allclose(
+                values, expected, atol=1e-12, rtol=0
+            )
+            print(f"  {label}: {values} vs {expected} → {'PASS' if match else 'FAIL'}")
+            matches &= match
+    return matches
+
 
 dfs = []
 for year in [2023, 2024, 2025]:
@@ -130,3 +170,7 @@ if common_batters:
 print("\n" + "=" * 60)
 print("FINAL LEAKAGE SUMMARY")
 print("=" * 60)
+
+print("\n--- AUDIT 5: Bullpen same-day availability ---")
+if not audit_bullpen_availability():
+    raise SystemExit(1)
