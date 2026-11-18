@@ -2,7 +2,7 @@
 
 You are a fresh reviewer; you have seen none of the earlier work. **Assume it is wrong.** One round. Tier B: **nothing here may alter which pick is chosen, delivered or scored**; no change may hide a real alarm; no change may let incomplete capture evidence verify.
 
-This checkout is an isolated copy at the commit under review (`HEADSHA`), against the base `3d49308d` on `main`. History: a batch review of `153ff8c2` (BLOCK, `.codex-review/confirm2-1118/batch-report.md`), then fixes, then a confirmation review of `8cac32ea` (BLOCK on three findings, `confirm-report.md`). In response the lead did two things, in the last two commits (`git diff 8cac32ea HEAD`):
+This checkout is an isolated copy at the commit under review (`ec136bf0`), against the base `3d49308d` on `main`. History: a batch review of `153ff8c2` (BLOCK, `.codex-review/confirm2-1118/batch-report.md`), then fixes, then a confirmation review of `8cac32ea` (BLOCK on three findings, `confirm-report.md`). In response the lead did two things, in the last two commits (`git diff 8cac32ea HEAD`):
 - **Withdrew** the two alarm exceptions the reviews kept finding holes in (ruling R39): the contest-state health check (F4) and the park-drag freshness check (the alarm half of F5), with `strategy.SEASON_OPENER_DATES`, are back at their base form.
 - **Fixed** the capture finding (F7): the effective count is `min(top_n, scored prediction rows)` per variant, taken from the prediction frames BEFORE conversion, and a profile whose length differs raises at export.
 
@@ -18,7 +18,7 @@ Change no tracked file. Probes, logs and the report go in `.codex-review/confirm
 A defect that can change a pick, a delivery or a score, or that hides a real alarm, or that lets incomplete capture evidence verify where the base would have rejected it, is a BLOCK. A test gap, a limit shared with the base, or an incompleteness inside a stated bound is a NOTE.
 
 ## Running things
-`.venv/bin/python` is synced. Every pytest invocation goes through `~/bts-runs/yield_run.sh .codex-review/confirm2-1118/<name>.log <command…>`, one at a time (a `nice` warning is not an exit); small probe scripts may run directly. One script and one wrapper invocation per family; create files with your edit tool, never a shell heredoc; do not edit a script after asking to run it; keep the source of anything you compile beside it. No pattern kills. Do not run the whole fast suite: the gate did at this commit (GATECOUNTS).
+`.venv/bin/python` is synced. Every pytest invocation goes through `~/bts-runs/yield_run.sh .codex-review/confirm2-1118/<name>.log <command…>`, one at a time (a `nice` warning is not an exit); small probe scripts may run directly. One script and one wrapper invocation per family; create files with your edit tool, never a shell heredoc; do not edit a script after asking to run it; keep the source of anything you compile beside it. No pattern kills. Do not run the whole fast suite: the gate did at this commit (9221 passed; the 53 known environment failures only).
 
 ## Deliverable
 `.codex-review/confirm2-1118/report.md`, under 90 lines: `Verdict` (SIGN, SIGN WITH EDITS, or BLOCK), `Blocking findings`, `Notes`, `The withdrawal`, `F7`, `The rest and the pick path`, `Tests`, `What I ran`. A BLOCK names a concrete input or state, the wrong production outcome, the file and line, the smallest fix, and how you demonstrated it. When the file is complete, print `CONFIRM2-<first 8 hex characters of the sha256 of report.md>` on its own line and then `DONE`.
