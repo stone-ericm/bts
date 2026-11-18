@@ -6,6 +6,18 @@ import pytest
 
 
 @pytest.fixture
+def stamp_saved_pick():
+    """Stamp a saved pick using a required snapshot captured by its test."""
+    from bts.picks import chosen_on_record
+
+    def stamp(daily, required_state):
+        daily.chosen_on = chosen_on_record(required_state, required=True)
+        return daily
+
+    return stamp
+
+
+@pytest.fixture
 def covered_automatic():
     """Cover a raw automatic fixture at its explicit operation clock.
 

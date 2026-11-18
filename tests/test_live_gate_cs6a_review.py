@@ -419,9 +419,15 @@ def test_bts_run_locked_already_posted_and_dated_corrupt_switch_and_read3_outsid
     monkeypatch.setattr(contest_state, "load_decision_streak_state", unlink_on_second)
     monkeypatch.setattr("bts.posting.should_post_now", lambda *_a: False)
     fresh = picks.DailyPick(date=DAY, run_time=NOW.isoformat(), pick=primary, double_down=None, runner_up=None)
+    fresh_decision = strategy.PolicyDecision(
+        action="single", policy_action="single", source="mdp", objective="reach57",
+        streak=7, days_effective=73, best_supplied=None, best_status="missing",
+        effective_best=None, tail_sha256=None, degraded_reason=None, reason=None, pick_bar=None,
+    )
     monkeypatch.setattr(
         strategy, "select_pick",
-        lambda *_a, **_k: SimpleNamespace(pick_result=strategy.PickResult(daily=fresh, locked=False), decision=None),
+        lambda *_a, **_k: SimpleNamespace(
+            pick_result=strategy.PickResult(daily=fresh, locked=False), decision=fresh_decision),
     )
     r2 = CliRunner().invoke(cli.cli, ["run", "--date", DAY, "--picks-dir", str(pdir2), "--models-dir", str(tmp_path / "m2")])
     assert r2.exit_code == 1

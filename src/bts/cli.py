@@ -1101,7 +1101,7 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
     from datetime import datetime, timezone
     from bts.model.predict import run_pipeline, save_blend, load_blend
     from bts.contest_state import ContestStateError, load_decision_streak_state
-    from bts.picks import get_game_statuses_detailed, save_pick
+    from bts.picks import chosen_on_record, get_game_statuses_detailed, save_pick, saved_pick_refusal
     from bts.posting import format_post, post_to_bluesky, should_post_now
     from bts.strategy import select_pick
 
@@ -1212,6 +1212,11 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
             except ContestStateError as exc:
                 click.echo(f"bts run: no pick: {exc}", err=True)
                 raise SystemExit(1) from exc
+            if sel.decision is None:
+                refusal = saved_pick_refusal(result.daily, decision_state)
+                if refusal is not None:
+                    click.echo(f"bts run: no pick: {refusal}", err=True)
+                    raise SystemExit(1)
             text = format_post(
                 result.daily.pick.batter_name, result.daily.pick.team,
                 result.daily.pick.pitcher_name, result.daily.pick.p_game_hit, decision_state.streak,
@@ -1232,6 +1237,8 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
 
     # New or updated pick — attach provenance v1 fields per Codex #168.
     daily = result.daily
+    if sel.decision is not None:
+        daily.chosen_on = chosen_on_record(decision_state, required=True)
     from bts.picks import attach_provenance
     from bts.simulate.mdp import DEFAULT_POLICY_PATH
     from bts.simulate.tail_policy import DEFAULT_TAIL_POLICY_PATH
@@ -1258,6 +1265,11 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
         click.echo(f"bts run: no pick: {exc}", err=True)
         raise SystemExit(1) from exc
     if should_post_now(daily.pick.game_time, daily.bluesky_posted):
+        if sel.decision is None:
+            refusal = saved_pick_refusal(daily, decision_state)
+            if refusal is not None:
+                click.echo(f"bts run: no pick: {refusal}", err=True)
+                raise SystemExit(1)
         text = format_post(
             daily.pick.batter_name, daily.pick.team, daily.pick.pitcher_name,
             daily.pick.p_game_hit, decision_state.streak,
@@ -1295,7 +1307,7 @@ def preview(date: str | None, data_dir: str, picks_dir: str, models_dir: str):
     """
     from bts.contest_state import load_decision_streak_state
     from bts.model.predict import run_pipeline, load_blend
-    from bts.picks import get_game_statuses_detailed, save_pick, load_pick
+    from bts.picks import chosen_on_record, get_game_statuses_detailed, save_pick, load_pick
     from bts.strategy import select_pick
 
     if date is None:
@@ -1357,6 +1369,8 @@ def preview(date: str | None, data_dir: str, picks_dir: str, models_dir: str):
         return
 
     daily = result.daily
+    if sel.decision is not None:
+        daily.chosen_on = chosen_on_record(decision_state, required=False)
     # Preview path also gets provenance v1 fields per Codex #168.
     from bts.picks import attach_provenance
     from bts.simulate.mdp import DEFAULT_POLICY_PATH

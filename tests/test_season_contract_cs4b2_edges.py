@@ -156,7 +156,7 @@ def daily():
 
 
 @pytest.mark.parametrize("mode", ["refused", "after_read", "delivered", "private", "crash"])
-def test_delivery_snapshot_and_guards(tmp_path, monkeypatch, mode):
+def test_delivery_snapshot_and_guards(tmp_path, monkeypatch, mode, stamp_saved_pick):
     import bts.scheduler as sch
     from bts.picks import save_pick
     config = dict(orchestrator=dict(picks_dir=str(tmp_path)),
@@ -179,6 +179,9 @@ def test_delivery_snapshot_and_guards(tmp_path, monkeypatch, mode):
     put(tmp_path, "contest_streak.json", automatic())
     put(tmp_path, "season_contract.json", contract())
     original = cs.load_decision_streak_state
+    if mode == "after_read":
+        stamp_saved_pick(d, original(tmp_path, now=NOW, require_contest_state=True))
+
     def reading(*a, **kw):
         reads.append(kw)
         if mode != "after_read":

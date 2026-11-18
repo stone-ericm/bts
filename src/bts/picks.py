@@ -20,6 +20,8 @@ _ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 from bts.util import atomic_write_text, retry_urlopen
 from bts.data.schema import HIT_EVENTS, PA_ENDING_EVENTS  # pandas-free constants
+from bts.contest_state import DecisionStreakState, TARGET_STREAK
+from bts.saver_state import SaverState, policy_saver_available
 
 API_BASE = "https://statsapi.mlb.com"
 log = logging.getLogger(__name__)
@@ -245,6 +247,98 @@ class DailyPick:
     # commit written from the cached pick alone (fallback safety net, restart
     # recovery) still records objective / best / tail sha in decision.json.
     policy_decision: dict | None = None
+    chosen_on: dict | None = None
+
+
+_CHOSEN_ON_SCHEMA = "bts_pick_chosen_on_v1"
+_CHOSEN_ON_KEYS = {"schema", "required", "kind", "streak", "saver_available", "dated"}
+_DATED_IDENTITY_KEYS = {"effective_date", "active_streak", "best_streak", "saver_state"}
+
+
+def _valid_chosen_on(value: object) -> dict | None:
+    """Return a valid decoded record unchanged, or treat it as absent."""
+    if type(value) is not dict or value.keys() != _CHOSEN_ON_KEYS:
+        return None
+    schema, kind, streak = value["schema"], value["kind"], value["streak"]
+    if (
+        type(schema) is not str or schema != _CHOSEN_ON_SCHEMA
+        or type(kind) is not str or kind not in {"dated", "automatic", "legacy_manual", "model"}
+        or type(streak) is not int or streak < 0
+        or type(value["required"]) is not bool
+        or type(value["saver_available"]) is not bool
+    ):
+        return None
+    if kind in {"dated", "automatic"} and streak > TARGET_STREAK:
+        return None
+    dated = value["dated"]
+    if kind != "dated":
+        return value if dated is None else None
+    if type(dated) is not dict or dated.keys() != _DATED_IDENTITY_KEYS:
+        return None
+    effective, active, best, saver = (
+        dated["effective_date"], dated["active_streak"], dated["best_streak"], dated["saver_state"]
+    )
+    if (
+        type(effective) is not str
+        or type(active) is not int or type(best) is not int
+        or active != streak or not 0 <= active <= best <= TARGET_STREAK
+        or type(saver) is not str or saver not in {"not_earned", "active", "used"}
+    ):
+        return None
+    try:
+        effective_date = date_type.fromisoformat(effective)
+    except ValueError:
+        return None
+    if effective != effective_date.isoformat():
+        return None
+    policy_saver = policy_saver_available(SaverState(state=saver, season=effective_date.year), streak)
+    return value if value["saver_available"] == policy_saver else None
+
+
+def chosen_on_record(decision_state: DecisionStreakState, *, required: bool) -> dict:
+    """Capture the observation and policy inputs that produced a fresh pick."""
+    if type(required) is not bool:
+        raise TypeError("required must be a bool")
+    dated = decision_state.dated_identity
+    return {
+        "schema": _CHOSEN_ON_SCHEMA,
+        "required": required,
+        "kind": decision_state.observation_kind,
+        "streak": decision_state.streak,
+        "saver_available": decision_state.saver_available,
+        "dated": dated.copy() if dated is not None else None,
+    }
+
+
+def _describe_observation(kind: str, dated: dict | None) -> str:
+    if kind != "dated" or dated is None:
+        return kind
+    return (
+        f"dated (effective date {dated['effective_date']}, active streak {dated['active_streak']}, "
+        f"best streak {dated['best_streak']}, saver {dated['saver_state']})"
+    )
+
+
+def saved_pick_refusal(daily: DailyPick, decision_state: DecisionStreakState) -> str | None:
+    """Check a saved pick against the live snapshot returned to the caller."""
+    record = _valid_chosen_on(daily.chosen_on)
+    live_kind = decision_state.observation_kind
+    live_dated = decision_state.dated_identity
+    if record is None:
+        chosen = "there is no valid record of what it was chosen on"
+    elif not record["required"]:
+        chosen = "it was chosen without the live check (for example by the preview)"
+    else:
+        if record["kind"] == live_kind and (
+            live_kind == "automatic" or (live_kind == "dated" and record["dated"] == live_dated)
+        ):
+            return None
+        chosen = f"it was chosen on {_describe_observation(record['kind'], record['dated'])}"
+    return (
+        f"Saved pick for {daily.date} was not delivered because {chosen}. "
+        f"The live state is {_describe_observation(live_kind, live_dated)}. "
+        "A later scheduled check or fallback refresh may choose a replacement, if one remains."
+    )
 
 
 @dataclass(frozen=True)
@@ -454,6 +548,7 @@ def load_shadow_pick(date: str, picks_dir: Path) -> DailyPick | None:
         feature_env=data.get("feature_env"),
         feature_env_hash=data.get("feature_env_hash"),
         shadow_model_version=data.get("shadow_model_version"),
+        chosen_on=_valid_chosen_on(data.get("chosen_on")),
     )
 
 
@@ -510,6 +605,7 @@ def parse_daily_pick(text: str) -> DailyPick:
         feature_env_schema_version=data.get("feature_env_schema_version"),
         feature_env=data.get("feature_env"),
         feature_env_hash=data.get("feature_env_hash"),
+        chosen_on=_valid_chosen_on(data.get("chosen_on")),
     )
 
 

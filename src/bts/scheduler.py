@@ -61,16 +61,20 @@ def _alert_contest_state_failure(config: dict, error: Exception) -> None:
 
 
 def _alert_missed_pick(config: dict, daily, mins_to_game: float) -> None:
-    """E3: DM the operator that no pick was delivered as first pitch nears, so
-    they can post manually (the EOD post_failure DM is hours too late)."""
+    """E3: DM the operator that no pick was delivered as first pitch nears."""
     from bts.health.alert import Alert, dispatch_dm_for_health_alerts
 
     dm_recipient = config.get("bluesky", {}).get("dm_recipient")
     picks_dir = Path(config["orchestrator"]["picks_dir"])
     status_path = picks_dir.parent / "health_state" / "health_dm_delivery_status.json"
-    name = daily.pick.batter_name if daily and getattr(daily, "pick", None) else "?"
-    msg = (f"NO PICK DELIVERED with ~{mins_to_game:.0f} min to first pitch "
-           f"(top pick: {name}). Deliver manually if you want to keep the streak alive.")
+    if _contest_state_required(config):
+        timing = (f"~{mins_to_game:.0f} min to first pitch"
+                  if mins_to_game >= 0 else "first pitch has passed")
+        msg = f"NO PICK DELIVERED. {timing}. See `bts season-contract status`."
+    else:
+        name = daily.pick.batter_name if daily and getattr(daily, "pick", None) else "?"
+        msg = (f"NO PICK DELIVERED with ~{mins_to_game:.0f} min to first pitch "
+               f"(top pick: {name}). Deliver manually if you want to keep the streak alive.")
     dispatch_dm_for_health_alerts(
         [Alert("CRITICAL", "missed_pick", msg)],
         dm_recipient,
@@ -999,7 +1003,7 @@ def _deliver_and_lock_pick(
     to the DailyPick.
     """
     from bts.contest_state import ContestStateError, load_decision_streak_state
-    from bts.picks import pick_was_delivered, save_pick
+    from bts.picks import pick_was_delivered, save_pick, saved_pick_refusal
 
     mode = _pick_delivery_mode(config)
 
@@ -1094,15 +1098,26 @@ def _deliver_and_lock_pick(
         _record_commit("private_locked")
         return True
 
+    required = _contest_state_required(config)
     try:
-        decision_state = load_decision_streak_state(
-            picks_dir,
-            require_contest_state=_contest_state_required(config),
-        )
+        decision_state = load_decision_streak_state(picks_dir, require_contest_state=required)
     except ContestStateError as e:
         print(f"  CONTEST STATE ERROR — pick delivery blocked: {e}", file=sys.stderr)
         _alert_contest_state_failure(config, e)
         return False
+    if required:
+        fresh_choice = (
+            selection is not None and selection.decision is not None
+            and selection.pick_result is not None and selection.pick_result.daily is daily
+        )
+        refusal = None if fresh_choice else saved_pick_refusal(daily, decision_state)
+        if refusal is not None:
+            print(f"CONTEST STATE ERROR — pick delivery blocked: {refusal}", file=sys.stderr)
+            try:
+                _alert_contest_state_failure(config, ContestStateError(refusal))
+            except Exception as alert_error:
+                print(f"  Contest-state alert failed: {alert_error}", file=sys.stderr)
+            return False
     text = _format_pick_delivery_text(daily, decision_state.streak)
 
     if mode == "dm":
