@@ -478,17 +478,27 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
         ).reset_index().sort_values(["_pitcher_team_id", "date"])
         daily_bullpen["bp_hr"] = daily_bullpen["bp_hits"] / daily_bullpen["bp_pas"]
 
-        # Rolling 30-day average per team (shift by 1 for leakage prevention)
-        daily_bullpen["opp_bullpen_hr_30g"] = (
-            daily_bullpen.groupby("_pitcher_team_id")["bp_hr"]
-            .transform(lambda x: x.shift(1).rolling(30, min_periods=10).mean())
-        )
-
-        # Merge back: each PA gets the opposing team's bullpen quality
-        bp_merge = daily_bullpen[["_pitcher_team_id", "date", "opp_bullpen_hr_30g"]].drop_duplicates(
-            subset=["_pitcher_team_id", "date"]
-        )
-        df = df.merge(bp_merge, on=["_pitcher_team_id", "date"], how="left")
+        team = "_pitcher_team_id"
+        keys = [team, "date"]
+        feature = "opp_bullpen_hr_30g"
+        if daily_bullpen.empty:
+            df[feature] = np.nan
+        else:
+            daily_bullpen[feature] = daily_bullpen.groupby(team)["bp_hr"].transform(
+                lambda x: x.rolling(30, min_periods=10).mean()
+            )
+            # Attach the latest strictly earlier bucket, even when its mean is NaN.
+            # The as-of join needs global date order and matching team key dtypes.
+            match_team = "_bullpen_asof_team"
+            known = df[keys].dropna().drop_duplicates().sort_values("date", kind="stable")
+            history = daily_bullpen[keys + [feature]].sort_values("date", kind="stable")
+            known[match_team] = known[team].astype(object)
+            history[match_team] = history.pop(team).astype(object)
+            prior = pd.merge_asof(
+                known, history, on="date", by=match_team, direction="backward",
+                allow_exact_matches=False,
+            ).drop(columns=match_team)
+            df = df.merge(prior, on=keys, how="left", validate="m:1")
 
         df.rename(columns={"_pitcher_team_id": "opp_pitching_team_id"}, inplace=True)
         df.drop(columns=["_probable_pid", "_is_reliever_pa"], inplace=True)
