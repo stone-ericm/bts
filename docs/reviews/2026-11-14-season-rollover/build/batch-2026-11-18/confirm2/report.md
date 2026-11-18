@@ -1,0 +1,45 @@
+# Verdict
+
+**BLOCK** `ec136bf0` against `3d49308d`. The F4/F5 health-check withdrawal and the F7 conversion-loss fix work. A rewritten official capture can still verify, and the park-drag producer can suppress a real refresh warning.
+
+## Blocking findings
+
+1. **F7 accepts a shortened full slate on recheck.** I exported ten genuinely scored rows per variant, verified through the real wrapper, then removed the final row from both Parquets and set both manifest `row_counts` and `effective_top_n` to nine. The requested `top_n`, the wrapper's `--expected-top-n` and the locked pick snapshot all stayed at their original values. HEAD returned `existing_verified` with no capture alarm. Base returned `failed_verify_existing` with `CRITICAL`. Keep the configured row floor unless an independently recorded export-time scored count authorizes the lower count. The verifier currently takes the reduction from the same mutable manifest it checks. [Verifier](../../src/bts/experiment/artifacts.py#L1375), [wrapper](../../scripts/live_forward_capture_once.py#L321), [HEAD](probe-capture-v_b1f39v/head/summary.json#L169), [base](probe-capture-v_b1f39v/base/summary.json#L194).
+2. **An empty midseason park-drag refresh can clear the failure warning.** On July 15, 2027, both producer stores had headers only, Savant returned a valid header-only response for March 1 through July 14, and the existing export and manifest still looked fresh, with source through July 14. The real producer wrote `ok=true` and zero rows, left the previous export and manifest in place, and the real health check returned no alerts. Base wrote `ok=false` and emitted `WARN` for the last-run failure. Raise `ProducerError` when both stores are empty and an existing export or manifest would be carried forward. A clean seed with no export already produces a missing-artifact warning. [Producer](../../src/bts/features/park_drag_producer.py#L349), [health check](../../src/bts/health/park_drag_freshness.py#L56), [HEAD](probe-producer-d01elu1i/head/summary.json), [base](probe-producer-d01elu1i/base/summary.json).
+
+## Notes
+
+- A full rewrite can also fool base if the caller supplies no expected cap and the manifest's requested `top_n` is rewritten to nine along with the row counts. Both accepted that input and both rejected it with an explicit expected ten. The official wrapper supplies ten, so this shared limit does not cover finding 1. [Capture probe](capture_probe.py).
+- A malformed legacy manifest with a JSON array in `run_kind` and no `effective_top_n` returns failed checks on base and raises `TypeError` on HEAD. It fails closed. Check for the count key first and use tuple membership for the run kinds to preserve structured failure. [Verifier](../../src/bts/experiment/artifacts.py#L1378), [compatibility log](compatibility.log).
+- The P-03 run used a two-day frozen fixture with local raw feeds. The pick replay used the local policy fallback and captured model and outcome responses.
+
+## The withdrawal
+
+- The specified eight-path diff against `3d49308d` is empty. No references to `SEASON_OPENER_DATES`, `season_opener_date` or `OPENING_NIGHT_2027` remain in `src`, `scripts` or `tests`. [Structural checks](compatibility.log).
+- The real contest check matched base byte for byte with only the July 15 local settlement and fresh automatic state with a null `source_date`. The coverage alarm was `CRITICAL` on July 15 and just after midnight July 16 ET, when `8cac32ea` gave `INFO`. The July 17 control was critical on all three. [Contest replay](contest.log).
+- The real freshness check matched base byte for byte. The September 22, 2026 table was critical on September 28 and March 26, 2027. The September 23, 2028 table was critical on March 26, 2029 with no configured 2028 close. `8cac32ea` was quiet on both March dates under the corresponding opener fixtures. [Park replay](park.log).
+
+## F7
+
+- With ten scored predictions per variant and a conversion dropping the final row from both, `8cac32ea` exported two nine-row files and verified. Base exported and then failed verification. HEAD raised before writing either Parquet or the manifest, leaving only an empty export directory on the direct call. Dropping from either variant alone also raised. [Capture replay](capture.log).
+- On HEAD the wrapper returned 1 and wrote only `capture_status.json` with `failed_export`. Health was `CRITICAL`. The next tick returned `failed_partial_artifact_dir` without exporting and kept the alarm. A zero-scored export failed identically through the wrapper on base and HEAD. Direct exports with zero scores or no `p_game_hit` raised on both. [HEAD output](probe-capture-v_b1f39v/head/summary.json), [base output](probe-capture-v_b1f39v/base/summary.json).
+- Genuine 9/9 with `top_n=10` exported and verified, including twelve prediction rows with three null scores per variant. A cap of five against nine scored rows wrote five per side and verified on both revisions. The 9/8 pair exported with effective nine, failed on the eight-row variant and alarmed. Base rejected the pair as well. The resolved nine-row copy preserved its effective count and verified. [HEAD cases](probe-capture-v_b1f39v/head/summary.json#L60).
+- With an intact manifest, readable truncation failed row-count and per-date checks, and corrupt Parquet failed readability. Lowering only `effective_top_n` still failed the original row counts. Legacy ten-row captures without the field passed on both and legacy nine-row captures failed on both. The joint rewrite in finding 1 is a concrete acceptance beyond a genuinely thin slate. [Verifier cases](probe-capture-v_b1f39v/head/summary.json#L125).
+
+## The rest and the pick path
+
+- The `8cac32ea..HEAD` stat touches only the eight paths in the withdrawal and F7 commits. The full base diff passed `git diff --check`. [Structural checks](compatibility.log).
+- F6's real cron `show` matched base in enter mode. Research kept all four fetches and dropped their recipients. Captured fetch failures still returned 2 with stderr and health-state evidence. F8's default replay counted March 24, 2027 and preserved the aged September 27, 2026 warning in stdout and JSON. The explicit 2026 view matched the base's 2026 fixture. [Cron](cron.log), [shadow](shadow.log).
+- The empty-store producer control fetched 30 pitches on the first game and advanced source coverage to March 24, 2027. The P-03 closeout under a 2027 clock matched base byte for byte in stdout and JSON, with two evaluable 2026 days and zero API calls. [Producer](producer.log), [closeout](p03.log).
+- Real July 15, 2027 `run_day` chose Kwan/Soto, sent one pick DM, scored a hit and sent the end-of-day health DM. Pick JSON, decision JSON, streak JSON and captured sends matched base byte for byte. Neither run made a public post or reply. [Replay](pick.log), [captured sends](probe-pick-_ais3og0/head/sends.json).
+
+## Tests
+
+- The two new F7 test functions gave **3 failed, 1 passed** on `8cac32ea` and **4 passed** on HEAD. All three conversion-loss parameters were red. The null-score count test already passed on `8cac32ea` because its converted profiles also excluded the null rows. [Red and green](mutations.log).
+- The artifact tests caught removal of the length check, deriving the count from converted profiles, counting all prediction rows and dropping the cap. The `min`-across-variants mutant survived. The real 9/8 probe checks the recorded maximum of nine and rejects the pair. The bool-only, negative-only and unrestricted-run-kind mutants also survived. Direct HEAD probes failed `live_effective_top_n` for `true` and `-1` on live artifacts, and ignored an invalid injected count on a historical artifact. [Mutation results](mutations.json), [direct probes](probe-capture-v_b1f39v/head/summary.json#L217).
+- All eight changed test files ran together with `test_lightgbm_optional.py` and `test_web_saver.py`, once under each ET process clock. April 3, 2027 and April 3, 2028 each finished with **279 passed, 1 skipped**. The skip is the absent park-drag reference dataset. The first sandbox run failed only on the HTTP server's loopback bind. The rerun used a loopback-only sandbox. [Initial run](focused.log), [passing runs](focused-loopback.log).
+
+## What I ran
+
+- Archived `3d49308d` and `8cac32ea` with `git archive <revision> src scripts`. Ran the eight offline probe families and the structural and legacy checks. The cron and pick fixtures reuse the earlier review's local harness. [Runner](review_runner.py), [probes](revision_probes.py), [compatibility](compatibility.py).
+- Ran sequential pytest processes through `~/bts-runs/yield_run.sh` for focused compatibility, red/green and mutations. The clock interposer source sits beside its compiled library. Captured DM, posting, schedule and prediction transports, blocked DNS and outward connects, and answered the HTTP server's loopback lookup locally. All review writes were under this directory. [Focused runner](focused.py), [clock](review_clock.c), [socket guard](sitecustomize.py), [loopback profile](loopback.sb), [mutation runner](mutations.py).
