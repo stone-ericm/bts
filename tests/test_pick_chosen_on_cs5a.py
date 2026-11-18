@@ -104,6 +104,13 @@ def invalid_records():
         yield f"omit {'.'.join(path)}", src
     yield "non-dated with identity", dict(record(), kind="automatic")
     yield "automatic at 58", dict(record("automatic"), streak=58)
+    # Round-1 review (Codex): a Boolean outer streak with nothing else wrong.
+    # ``False == 0`` and ``True == 1``, so only an exact-int check rejects these.
+    yield "automatic with Boolean streak", dict(record("automatic"), streak=False)
+    boolean_dated = record()
+    boolean_dated["streak"] = True
+    boolean_dated["dated"]["active_streak"] = 1
+    yield "dated with Boolean outer streak", boolean_dated
 
 
 @pytest.mark.parametrize("kind", KINDS)
