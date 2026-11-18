@@ -119,3 +119,85 @@ def test_regular_and_dangling_writes_are_as_before(tmp_path, transport):
     missing_parent = tmp_path / "a" / "b" / "status.json"
     assert dispatch(missing_parent, [CRITICAL]) is True
     assert json.loads(missing_parent.read_bytes())["status"] == "sent"
+
+
+# --- Round 2: the four breakages of the new open path that survived the tests above ---
+
+def open_descriptors():
+    return len(os.listdir("/dev/fd"))
+
+
+def test_bytes_waiting_in_a_fifo_are_never_read_as_a_status(tmp_path, monkeypatch, transport, bounded):
+    """The type is checked on the opened descriptor BEFORE anything is read: a FIFO
+    holding a 'sent' status that would cover the alert must not suppress the DM."""
+    path = tmp_path / "health_dm_delivery_status.json"
+    path.write_text("{}")
+    real_stat = Path.stat
+    fifo = tmp_path / "prepared.fifo"
+    os.mkfifo(fifo)
+    keep = os.open(fifo, os.O_RDONLY | os.O_NONBLOCK)
+    writer = os.open(fifo, os.O_WRONLY | os.O_NONBLOCK)
+    os.write(writer, json.dumps({
+        "status": "sent", "sent_day": DAY.isoformat(), "sent_sources": ["CRITICAL:probe"],
+    }).encode())
+    done = []
+
+    def stat_then_swap(self, *args, **kwargs):
+        result = real_stat(self, *args, **kwargs)
+        if self == path and not done:
+            done.append(True)
+            os.replace(fifo, path)
+        return result
+
+    monkeypatch.setattr(Path, "stat", stat_then_swap)
+    try:
+        assert dispatch(path, [CRITICAL]) is True
+    finally:
+        os.close(writer)
+        os.close(keep)
+    assert done and transport.call_count == 1
+
+
+def test_nothing_is_truncated_before_the_type_is_known(tmp_path, monkeypatch, transport, bounded):
+    path = tmp_path / "health_dm_delivery_status.json"
+    path.write_text("{}")
+    seen = swap_to_fifo_after_stat(monkeypatch, path, 2, with_reader=True)
+    truncations = []
+    real_ftruncate = os.ftruncate
+    monkeypatch.setattr(os, "ftruncate", lambda fd, size: (truncations.append(fd), real_ftruncate(fd, size))[1])
+    try:
+        assert dispatch(path, [CRITICAL]) is True
+    finally:
+        if seen["reader"] is not None:
+            os.close(seen["reader"])
+    assert truncations == []
+
+
+@pytest.mark.parametrize("kind", ["regular", "fifo_read", "fifo_write", "directory", "missing"])
+def test_no_descriptor_is_left_open(tmp_path, monkeypatch, transport, bounded, kind):
+    path = tmp_path / "health_dm_delivery_status.json"
+    reader = None
+    if kind == "regular":
+        path.write_text("{}")
+    elif kind == "directory":
+        path.mkdir()
+    elif kind in ("fifo_read", "fifo_write"):
+        path.write_text("{}")
+    before = open_descriptors()
+    for _ in range(40):
+        if kind in ("fifo_read", "fifo_write"):
+            # A fresh swap each time: the path is a regular file at the check and a FIFO at the open.
+            path.unlink()
+            path.write_text("{}")
+            with monkeypatch.context() as patch:
+                seen = swap_to_fifo_after_stat(patch, path, 1 if kind == "fifo_read" else 2,
+                                               with_reader=(kind == "fifo_write"))
+                dispatch(path, [CRITICAL])
+                reader = seen["reader"]
+            if reader is not None:
+                os.close(reader)
+        else:
+            dispatch(path, [CRITICAL])
+            if kind == "missing":
+                path.unlink()
+    assert open_descriptors() == before
