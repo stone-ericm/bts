@@ -263,7 +263,7 @@ def run_and_pick(
     """
     from bts import progress
     from bts.contest_state import load_decision_streak_state
-    from bts.picks import get_game_statuses_detailed
+    from bts.picks import chosen_on_record, get_game_statuses_detailed
     from bts.strategy import select_pick
 
     picks_dir = Path(config["orchestrator"]["picks_dir"])
@@ -280,9 +280,10 @@ def run_and_pick(
     save_slate(predictions, date, picks_dir, tier_name)
 
     progress.mark("loading_decision_state")
+    required = _contest_state_required(config)
     decision_state = load_decision_streak_state(
         picks_dir,
-        require_contest_state=_contest_state_required(config),
+        require_contest_state=required,
     )
     try:
         game_statuses_detailed = get_game_statuses_detailed(date)
@@ -303,6 +304,8 @@ def run_and_pick(
         best_streak=getattr(decision_state, "best_streak", None),
         best_status=getattr(decision_state, "best_status", None),
     )
+    if sel.decision is not None and sel.pick_result is not None and sel.pick_result.daily is not None:
+        sel.pick_result.daily.chosen_on = chosen_on_record(decision_state, required=required)
     # bts_daily_decision_v2 provenance: record WHICH state stream fed this
     # selection so decision records are exact by construction (the 8/09
     # boundary census found 31/44 v1 records state-null).
@@ -324,7 +327,7 @@ def orchestrate(config_path: Path, date: str, *, config: dict | None = None) -> 
     """
     from bts.dm import send_dm
     from bts.contest_state import ContestStateError, load_decision_streak_state
-    from bts.picks import save_pick
+    from bts.picks import save_pick, saved_pick_refusal
     from bts.posting import format_post, format_skip_post, post_to_bluesky, should_post_now
 
     if config is None:
@@ -384,10 +387,16 @@ def orchestrate(config_path: Path, date: str, *, config: dict | None = None) -> 
         print(f"Pick locked: {result.daily.pick.batter_name}", file=sys.stderr)
         # Catch-up posting
         if not result.daily.bluesky_posted:
+            required = _contest_state_required(config)
             decision_state = load_decision_streak_state(
                 picks_dir,
-                require_contest_state=_contest_state_required(config),
+                require_contest_state=required,
             )
+            if required and sel.decision is None:
+                refusal = saved_pick_refusal(result.daily, decision_state)
+                if refusal is not None:
+                    print(f"bts orchestrate: no pick: {refusal}", file=sys.stderr)
+                    return False
             text = format_post(
                 result.daily.pick.batter_name, result.daily.pick.team,
                 result.daily.pick.pitcher_name, result.daily.pick.p_game_hit,
@@ -427,11 +436,17 @@ def orchestrate(config_path: Path, date: str, *, config: dict | None = None) -> 
     )
 
     # Post to Bluesky
+    required = _contest_state_required(config)
     decision_state = load_decision_streak_state(
         picks_dir,
-        require_contest_state=_contest_state_required(config),
+        require_contest_state=required,
     )
     if should_post_now(daily.pick.game_time, daily.bluesky_posted):
+        if required and sel.decision is None:
+            refusal = saved_pick_refusal(daily, decision_state)
+            if refusal is not None:
+                print(f"bts orchestrate: no pick: {refusal}", file=sys.stderr)
+                return False
         text = format_post(
             daily.pick.batter_name, daily.pick.team,
             daily.pick.pitcher_name, daily.pick.p_game_hit, decision_state.streak,

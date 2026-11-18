@@ -76,6 +76,8 @@ class DecisionStreakState:
     best_status: str = "missing"   # "trusted" | "untrusted" | "missing"
     model_state_error: str | None = None
     saver_flag_state: str | None = None
+    observation_kind: str = "model"
+    dated_identity: dict | None = None
 
 
 TARGET_STREAK = 57
@@ -534,4 +536,14 @@ def load_decision_streak_state(
         best_streak=best_streak,
         best_status=best_status,
         model_state_error=model_error,
+        observation_kind=(
+            "dated" if dated_in_effect else
+            "automatic" if contest.path.name == _CONTEST_STATE_NAMES[1] else "legacy_manual"
+        ),
+        dated_identity={
+            "effective_date": contest.effective_date.isoformat(),
+            "active_streak": contest.streak,
+            "best_streak": contest.best_streak,
+            "saver_state": contest.saver_state,
+        } if dated_in_effect else None,
     )

@@ -345,10 +345,17 @@ def captured_pick_path(monkeypatch):
     return SimpleNamespace(frame=frame, predict=predict_spy, schedule=schedule, post=post, save=save, dm=dm)
 
 
-def set_selection(monkeypatch, path):
+def set_selection(monkeypatch, path, *, fresh=False):
     daily = _sample_daily(date=DAY, run_time=NOW.isoformat(), double_down=_sample_pick(batter_name="Second"))
     result = None if path == "skip" else strategy.PickResult(daily=daily, locked=path == "locked")
-    select = Mock(return_value=SimpleNamespace(pick_result=result, decision=None))
+    decision = None
+    if fresh:
+        decision = strategy.PolicyDecision(
+            action="double", policy_action="double", source="mdp", objective="reach57",
+            streak=7, days_effective=73, best_supplied=None, best_status="missing",
+            effective_best=None, tail_sha256=None, degraded_reason=None, reason=None, pick_bar=None,
+        )
+    select = Mock(return_value=SimpleNamespace(pick_result=result, decision=decision))
     monkeypatch.setattr(strategy, "select_pick", select)
     return select
 
@@ -399,7 +406,7 @@ def test_orchestrate_accepted_cli_loads_once_through_real_core(
                         f'tiers = []\n[orchestrator]\npicks_dir = "{pick_path}"\n'
                         '[bluesky]\ndm_recipient = "unused"\n'
                         '[health_checks]\ncontest_state_expected = true\n')
-    select = set_selection(monkeypatch, "new")
+    select = set_selection(monkeypatch, "new", fresh=True)
     load = Mock(wraps=orchestrator.load_config)
     monkeypatch.setattr(orchestrator, "load_config", load)
     monkeypatch.setattr(orchestrator, "run_cascade", lambda *_: (captured_pick_path.frame, "fixture"))
@@ -424,7 +431,7 @@ def run_pick(tmp_path, pick_path, *args):
 def test_run_required_reads_with_real_refusal(
     tmp_path, pick_path, captured_pick_path, covered_automatic, monkeypatch, path, refuse_at,
 ):
-    select = set_selection(monkeypatch, path)
+    select = set_selection(monkeypatch, path, fresh=path == "new" and refuse_at == 2)
     loader = contest_state.load_decision_streak_state
     with pytest.raises(contest_state.ContestStateError, match="season 2027 switch is absent") as direct:
         loader(pick_path, require_contest_state=True)
@@ -488,7 +495,7 @@ def test_run_accepts_dated_and_covered_observations(
             "active_streak": 7, "source": "mlb_bts_profile",
             "source_date": DAY, "recorded_at": NOW.isoformat(),
         })
-    select = set_selection(monkeypatch, "new")
+    select = set_selection(monkeypatch, "new", fresh=True)
     result = run_pick(tmp_path, pick_path)
     assert (result.exit_code, result.stderr) == (0, "")
     assert select.call_args.kwargs["streak"] == 7
