@@ -26,6 +26,7 @@ from bts.strategy import select_pick
 
 ET = ZoneInfo("America/New_York")
 UTC = ZoneInfo("UTC")
+MORNING_CHECK_MIN_LEAD_MIN = 10
 
 
 def _optional_health_path(value) -> Path | None:
@@ -109,6 +110,95 @@ def _warn_stale_contest_reading(record: dict | None, config: dict, picks_dir: Pa
             )
     except BaseException as error:
         _report_stale_reading_warning_failure(error)
+
+
+def _report_morning_check_failure(error: BaseException) -> None:
+    try:
+        print(f"  Morning state check failed: {ascii(str(error))[:200]}", file=sys.stderr)
+    except BaseException:
+        pass
+
+
+def _print_morning_check(message: str) -> None:
+    try:
+        print(message, file=sys.stderr)
+    except BaseException as error:
+        _report_morning_check_failure(error)
+
+
+def _morning_state_check(
+    config: dict, picks_dir: Path, date: str, now: datetime, first_check_et: datetime,
+) -> None:
+    """Report the startup snapshot before any live lineup decision."""
+    from bts.contest_state import ContestStateError, automatic_reading_record, load_decision_streak_state
+    from bts.daily_decision import is_scoreable_commit
+    from bts.health.alert import Alert, dispatch_dm_for_health_alerts
+    from bts.picks import load_pick, pick_was_delivered
+
+    if date != now.date().isoformat():
+        return
+    try:
+        # With no pick argument, only the decision record can establish a commit.
+        if is_scoreable_commit(date, picks_dir, None):
+            return
+    except (OSError, ValueError):
+        pass
+    try:
+        daily = load_pick(date, picks_dir)
+    except (OSError, ValueError, TypeError, KeyError, AttributeError):
+        daily = None
+    if daily is not None and (pick_was_delivered(daily) or daily.delivery_attempted):
+        return
+
+    health_dir = picks_dir.parent / "health_state"
+    recipient = config.get("bluesky", {}).get("dm_recipient")
+    try:
+        state = load_decision_streak_state(picks_dir, require_contest_state=True, now=now)
+    except ContestStateError as error:
+        _print_morning_check(f"  MORNING STATE CHECK — no pick can be made yet: {ascii(str(error))[:800]}")
+        if recipient:
+            message = (
+                f"Morning check for {date}: no usable contest state was found at startup. "
+                "Check MLB and run bts season-contract status with the scheduler's picks directory. "
+                "If state still needs correction, follow today's dated-observation instructions while "
+                f"a lineup check remains. First planned lineup check at {first_check_et:%H:%M} ET."
+            )
+            dispatch_dm_for_health_alerts(
+                [Alert("CRITICAL", "contest_state", message, incident_key="contest_state:morning")],
+                recipient,
+                status_path=health_dir / "contest_morning_check_dm_delivery_status.json",
+                now_et_date=now.date(),
+            )
+        return
+
+    record = automatic_reading_record(state, now)
+    if record is None or not record["stale"]:
+        _print_morning_check(
+            f"  Morning state check: {state.observation_kind} contest state accepted (streak {state.streak})."
+        )
+        return
+    if record["reason"] == "old":
+        detail = (f"last accepted fetch {record['recorded_at']}, "
+                  f"about {record['age_hours']:.2f} hours ago")
+    elif record["reason"] == "future":
+        detail = f"its recorded_at {record['recorded_at']} is in the future"
+    else:
+        detail = "it has no usable recorded_at"
+    _print_morning_check(f"  MORNING STATE CHECK — stale contest reading: {detail}")
+    if recipient:
+        message = (
+            f"Morning check for {date}: the automatic contest reading was stale at startup ({detail}). "
+            "This reading is eligible if it remains in use. Check MLB. If state still differs, "
+            f"use bts set-contest-streak --date {date} --streak N --best-streak B --saver S with "
+            "the scheduler's picks directory and the values shown in MLB. Check the latest fetch status."
+        )
+        dispatch_dm_for_health_alerts(
+            [],
+            recipient,
+            warn_attention=[Alert("WARN", "contest_state", message, incident_key="contest_state:stale_reading")],
+            status_path=health_dir / "contest_stale_reading_dm_delivery_status.json",
+            now_et_date=now.date(),
+        )
 
 
 def _alert_missed_pick(config: dict, daily, mins_to_game: float) -> None:
@@ -2837,6 +2927,22 @@ def run_day(
     # MDP skip and end-of-day (#3 / GH #144).
     carry_forward_skip_state(state, previous_state)
     save_state(state, picks_dir)
+
+    try:
+        if (delivery_mode in {"dm", "public"} and _contest_state_required(config)
+                and (previous_state is None or not previous_state.pick_locked)):
+            now = _now_et()
+            first_check_et = min((run["time_et"] for run in runs), default=None)
+            if first_check_et is None:
+                _print_morning_check("  Morning state check skipped: no lineup check is planned.")
+            elif first_check_et - now < timedelta(minutes=MORNING_CHECK_MIN_LEAD_MIN):
+                _print_morning_check(
+                    "  Morning state check skipped: first lineup check is due within 10 minutes."
+                )
+            else:
+                _morning_state_check(config, picks_dir, date, now, first_check_et)
+    except BaseException as error:
+        _report_morning_check_failure(error)
 
     # 4. Main loop — sleep until each check time, then run
     coalesced: set[int] = set()   # run indexes covered by a fallback refresh (2026-08-30)
