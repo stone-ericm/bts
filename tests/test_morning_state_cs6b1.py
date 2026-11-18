@@ -388,6 +388,17 @@ def test_startup_fault_reaches_real_first_check(morning, monkeypatch, capsys, ca
         return None, None
 
     orchestrator.run_cascade.side_effect = predict
+    if exception is not RuntimeError:
+        # Round-1 fix (Codex B1): an interrupt is not the morning work's to swallow.
+        # It leaves run_day, as it would while the base waits for its first check.
+        # (At the reviewed commit these six cases asserted containment.)
+        escaped = None
+        try:
+            scheduler.run_day(DAY, config)
+        except BaseException as caught:
+            escaped = caught
+        assert escaped is error and events == [("fault", START)]
+        return
     run_without_escape(config)
     assert events[:2] == [("fault", START), ("prediction", FIRST)]
     err = capsys.readouterr().err

@@ -112,17 +112,21 @@ def _warn_stale_contest_reading(record: dict | None, config: dict, picks_dir: Pa
         _report_stale_reading_warning_failure(error)
 
 
-def _report_morning_check_failure(error: BaseException) -> None:
+def _report_morning_check_failure(error: Exception) -> None:
+    # Exception, not BaseException, throughout the morning work (cs6b1 review B1):
+    # nothing durable is in flight here, so an interrupt (the operator's SIGINT,
+    # a SystemExit) must leave run_day exactly as it would while the base waits
+    # for its first check.
     try:
         print(f"  Morning state check failed: {ascii(str(error))[:200]}", file=sys.stderr)
-    except BaseException:
+    except Exception:
         pass
 
 
 def _print_morning_check(message: str) -> None:
     try:
         print(message, file=sys.stderr)
-    except BaseException as error:
+    except Exception as error:
         _report_morning_check_failure(error)
 
 
@@ -141,21 +145,26 @@ def _morning_state_check(
         # With no pick argument, only the decision record can establish a commit.
         if is_scoreable_commit(date, picks_dir, None):
             return
-    except (OSError, ValueError):
+    except Exception:  # a malformed record is "nothing found" (review B2)
         pass
     try:
         daily = load_pick(date, picks_dir)
-    except (OSError, ValueError, TypeError, KeyError, AttributeError):
+    except Exception:
         daily = None
     if daily is not None and (pick_was_delivered(daily) or daily.delivery_attempted):
         return
 
     health_dir = picks_dir.parent / "health_state"
     recipient = config.get("bluesky", {}).get("dm_recipient")
+    # The refusal is carried out of the handler as bounded text, so a failed send
+    # cannot log it again as the exception context of the transport error (review B3).
+    refused = None
     try:
         state = load_decision_streak_state(picks_dir, require_contest_state=True, now=now)
     except ContestStateError as error:
-        _print_morning_check(f"  MORNING STATE CHECK — no pick can be made yet: {ascii(str(error))[:800]}")
+        refused = ascii(str(error))[:800]
+    if refused is not None:
+        _print_morning_check(f"  MORNING STATE CHECK — no pick can be made yet: {refused}")
         if recipient:
             message = (
                 f"Morning check for {date}: no usable contest state was found at startup. "
@@ -2941,7 +2950,7 @@ def run_day(
                 )
             else:
                 _morning_state_check(config, picks_dir, date, now, first_check_et)
-    except BaseException as error:
+    except Exception as error:
         _report_morning_check_failure(error)
 
     # 4. Main loop — sleep until each check time, then run
