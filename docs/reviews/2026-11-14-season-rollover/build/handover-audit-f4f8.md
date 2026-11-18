@@ -48,3 +48,43 @@ Branch `sb-audit-f4f8`, based on `3d49308d`. Five original local Tier B commits 
 - Follow-up tests before the edits: 5 expected failures, 13 passing controls, 697 deselected. After the edits, the same focused script ran unsandboxed under each of the 2026, 2027 and 2028 clocks. Each run passed 1,027 tests with 1 skip, including the web saver and optional LightGBM checks in the same process.
 - The follow-up unsandboxed fast suite ran by itself on committed HEAD `153ff8c2`. Pytest exited 1 with 9,229 passed, 37 failed, 16 errors, 23 skipped, 6 deselected and 1 xfailed in 26m17s. The 53 unique failed/error IDs exactly matched `~/bts-runs/gate-failed.txt`. The diff was empty and the comparison exited 0.
 - Logs, scripts and fixture probes: `.codex-review/audit-f4f8/`.
+
+## Fixes after the batch review
+
+Five local commits follow `153ff8c2`. The limits below supersede the earlier F4, F5, F7 and F8 descriptions where the batch review changed them. F6 needed no fix. The committed changes cover health, evidence capture and reporting. No push, external network, production box or contest account was used.
+
+### F4 · Contest coverage
+
+- `9619563e` · `src/bts/health/contest_state.py:73–98` and `tests/test_contest_dated_cs4a.py:125–170`.
+- A missing source date can be informational only for a selected automatic reading from the current ET year, at most 36 hours old, with one or two current-year root-level settlements and no future settlement. The earliest current-year settlement must be today or yesterday ET. The current count and calendar bounds both apply.
+- RED on `153ff8c2` and GREEN on the fix for a July check with only the January test pick or only Opening Night, both with and without a fresh July settlement. Controls cover a legacy manual file, earlier-year history, no eligible settlement, future and third settlements, and ignored unresolved and shadow records. Existing moved-opener, 2028 and dated observation controls passed.
+
+### F5 · Park drag
+
+- `a3ce1aac` · `src/bts/health/park_drag_freshness.py:75–103`, `tests/health/test_park_drag_freshness.py:46–82` and `tests/test_park_drag_producer.py:203–220`.
+- The configured opener can replace the start of the lag calculation only for a source from the immediately preceding season dated on or within the configured critical threshold before that season's end. Other tables use the original calendar gap. With the default thresholds and the configured March 24 opener, valid carryover is quiet through March 26, warns March 27 and becomes critical March 30.
+- RED on `153ff8c2` and GREEN on the fix for the June 15 outage, a two-season-old table and a closing gap above an overridden threshold. A source exactly at the threshold passes. The moved-opener fixture now uses September 22, six days before the 2026 close. The both-empty producer control was green before and after, with a successful zero-row status and no export or manifest. The producer implementation was untouched.
+
+### F7 · Live-forward capture
+
+- `043dbd02` · `scripts/live_forward_capture_once.py:379–475,536–670`, `src/bts/health/analytics_artifacts_missing.py:22–27,302–313`, `tests/scripts/test_live_forward_capture_once.py:157–187,215–305` and `tests/experiment/test_artifacts.py:413–493,608–673`.
+- Same-pick verification failures keep the existing capture and raise the capture-health alarm. A later tick can recheck those files. Restored both the wrapper and the health status set byte for byte to `3d49308d`, including the original separately authorized snapshot-drift behavior. The live manifest still records the effective scored count and the verifier uses it for both variants. Legacy files still use the requested count.
+- RED on `153ff8c2` and GREEN on the fix for the outcome-arrival probes at exporter entry and swap, and for a formerly verified capture with an unreadable profile and an intervening pick change. The regression asserts one export, frozen evidence and a health alarm for failed verification. The nine-batter Opening Night fixture passes initial verification and a later tick against the frozen capture. The effective-count controls already passed on `153ff8c2` and cover non-integer, zero, over-cap, variant disagreement and propagation to a verified resolved copy.
+
+### F8 · Aged shadow contradictions
+
+- `1446cda8` · `src/bts/skip_policy_shadow.py:417–438`, `src/bts/cli.py:3142–3154` (existing warning output), `tests/test_skip_policy_shadow.py:534–570` and `tests/test_shadow_eval.py:420–463`.
+- Season selection applies to the statistical sample. The status JSON and default nightly command report aged contradictions from every season, using the original warning logic.
+- RED on `153ff8c2` and GREEN on the fix for a September 27, 2026 decision rewritten to a single and checked in March 2027, both in the default run and with an explicit 2027 season. Date assertions cover `skip-policy-shadow-update --date`, explicit season precedence, `check-results --date`, and the status builder's ET-year default and historical override.
+
+### P-03 · Frozen snapshot
+
+- `8cac32ea` · `scripts/audit/p03_context_shadow_closeout.py:36–60` and `tests/test_p03_context_shadow_closeout.py:7–37`.
+- The closeout requests the frozen 2026 season when reading recorded status. The script fixture ran with a March 2027 clock and locally cached feeds. It was RED with an empty recorded sample on `153ff8c2` and GREEN with the expected September coverage, evaluable pair and discordant date.
+
+### Verification after the review
+
+- Replayed the regression tests against archived `153ff8c2` source and scripts. Logs are `fixes-final-red.log`, `fixes-scripts-red.log` and `fixes-capture-races-red.log`. The worktree run before production edits is in `fixes-red.log`.
+- The final focused wrapper runs, each in one process with all changed test files, `tests/test_lightgbm_optional.py` and `tests/test_web_saver.py`, finished with 1,054 passed and one skip under each of the 2026, 2027 and 2028 ET clocks. The skipped park producer oracle requires the absent external analysis fixture. Logs are `fixes-focused-{2026,2027,2028}.log`.
+- `git diff --check 153ff8c2 HEAD` passed. The F7 wrapper and health status diffs against `3d49308d` were empty. No new baseline fast suite was run.
+- The final fast suite ran alone on committed HEAD `8cac32ea`. Pytest exited 1 after 25m25s with 9,251 passed, 37 failed, 16 errors, 23 skipped, six deselected and one xfailed. The 53 unique failed and errored IDs exactly matched `~/bts-runs/gate-failed.txt`. The comparison exited 0 and `fixes-fast-failed.diff` is empty. The suite log is `fixes-fast.log`.
