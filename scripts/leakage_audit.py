@@ -24,6 +24,10 @@ def audit_bullpen_availability():
         ))
     )
     target = starter_only["date"].max()
+    # Two plate appearances on the target date (review note): a defect confined to
+    # dates with more than one PA must not pass the canary.
+    second = starter_only[starter_only["date"].eq(target)].assign(pa_id=len(starter_only))
+    starter_only = pd.concat([starter_only, second], ignore_index=True)
     relief_only = starter_only.copy()
     relief_only.loc[relief_only["date"].eq(target), ["pitcher_id", "is_hit"]] = [22, 1]
     lookup = {game: {"away": 21, "away_tid": 51} for game in starter_only["game_pk"]}
@@ -36,7 +40,7 @@ def audit_bullpen_availability():
         for label, frame in (("all starter", starter_only), ("all relief", relief_only)):
             result = compute.compute_all_features(frame)
             values = result.loc[result["date"].eq(target), "opp_bullpen_hr_30g"].to_numpy()
-            match = len(values) == 1 and np.isfinite(values).all() and np.allclose(
+            match = len(values) == 2 and np.isfinite(values).all() and np.allclose(
                 values, expected, atol=1e-12, rtol=0
             )
             print(f"  {label}: {values} vs {expected} → {'PASS' if match else 'FAIL'}")

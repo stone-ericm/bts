@@ -55,6 +55,10 @@ def test_bullpen_availability_does_not_depend_on_same_day_reliever():
         before.loc[[10], "opp_bullpen_hr_30g"],
         after.loc[[10], "opp_bullpen_hr_30g"],
     )
+    # Review note: equal is not enough (two missing values are equal). The ten
+    # prior reliever dates alternate out and hit, so the value is exactly 0.5.
+    assert before.loc[10, "opp_bullpen_hr_30g"] == 0.5
+    assert after.loc[10, "opp_bullpen_hr_30g"] == 0.5
 
 FEATURE = "opp_bullpen_hr_30g"
 
