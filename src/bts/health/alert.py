@@ -13,6 +13,8 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
+import stat
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -83,13 +85,64 @@ def _write_health_dm_delivery_status(
     try:
         path = Path(status_path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+        _write_regular_file_text(path, json.dumps(payload, indent=2, sort_keys=True) + "\n")
     except Exception as exc:
         log.warning(
             "could not write health DM delivery status at %s: %s",
             status_path,
             exc,
         )
+
+
+def _write_regular_file_text(path: Path, text: str) -> None:
+    """``path.write_text(text)`` that cannot block on, or write into, a special file.
+
+    The open is non-blocking and the type is checked on the OPENED descriptor, before
+    anything is truncated, so a FIFO put at the path after any earlier check (cs6b2
+    review, finding 2) raises ``OSError`` here instead of waiting for a reader after
+    the DM has already gone out. Creation mode, symlink following and the text
+    encoding are those of ``write_text``.
+    """
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_NONBLOCK, 0o666)
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise OSError("not a regular file")
+        os.ftruncate(fd, 0)
+        with open(fd, "w", closefd=False) as handle:
+            handle.write(text)
+    finally:
+        os.close(fd)
+
+
+def _read_regular_file_text(path: Path) -> str:
+    """``path.read_text()`` that cannot block on a special file (review finding 1)."""
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise OSError("not a regular file")
+        with open(fd, "r", closefd=False) as handle:
+            return handle.read()
+    finally:
+        os.close(fd)
+
+
+def _persist_health_dm_delivery_status(status_path: Path | str | None, **payload) -> None:
+    # Keep special files out of the writer as well as the reader. In particular,
+    # opening a FIFO for writing waits for a reader, even after a successful DM.
+    if status_path is not None:
+        try:
+            mode = Path(status_path).stat().st_mode
+        except (OSError, ValueError):
+            # The existing writer handles absent paths and reports write errors.
+            pass
+        else:
+            if not stat.S_ISREG(mode):
+                log.warning(
+                    "could not write health DM delivery status at %s: not a regular file",
+                    status_path,
+                )
+                return
+    _write_health_dm_delivery_status(status_path, **payload)
 
 
 def dispatch_dm_for_critical(alerts: list[Alert], dm_recipient: str | None) -> bool:
@@ -146,19 +199,28 @@ def format_health_dm_body(
     return "\n".join(lines)
 
 
-def _resurface_note(status_path: Path | str | None) -> str | None:
+def _read_health_dm_delivery_status(status_path: Path | str | None) -> dict | None:
+    if status_path is None:
+        return None
+    try:
+        path = Path(status_path)
+        if not stat.S_ISREG(path.stat().st_mode):
+            return None
+        data = json.loads(_read_regular_file_text(path))
+    except (OSError, ValueError, RecursionError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _resurface_note(data: dict | None) -> str | None:
     """H6: if the PREVIOUS health DM failed to send, return a note to prepend so
     the missed alerts resurface on the next DM. Day-keyed one-shot CRITICALs
     (e.g. pick_delivery for day D) are otherwise lost on a transient Bluesky
     outage during that EOD run."""
-    if status_path is None:
+    if data is None:
         return None
-    try:
-        data = json.loads(Path(status_path).read_text())
-    except (FileNotFoundError, ValueError, OSError):
-        return None
-    n = data.get("critical_count", 0)
-    if data.get("status") == "failed" and n > 0:
+    n = data.get("critical_count")
+    if data.get("status") == "failed" and type(n) is int and n > 0:
         return (f"⚠️ Previous health alert DM FAILED to send "
                 f"({n} CRITICAL) — it may have been missed.")
     return None
@@ -189,7 +251,8 @@ def dispatch_dm_for_health_alerts(
     warn_attention = warn_attention or []
     critical = [a for a in alerts if a.level == "CRITICAL"]
     body = format_health_dm_body(critical, warn_attention)
-    resurface = _resurface_note(status_path)  # H6: resurface a prior failed DM
+    prior = _read_health_dm_delivery_status(status_path)
+    resurface = _resurface_note(prior)  # H6: resurface a prior failed DM
     if resurface:
         body = resurface + ("\n\n" + body if body else "")
     if body is None:
@@ -201,26 +264,19 @@ def dispatch_dm_for_health_alerts(
         | {f"WARN_ATTENTION:{a.incident_key or a.source}" for a in warn_attention}
     )
     prior_sent_sources: list[str] = []
-    if status_path is not None and resurface is None:
-        try:
-            prior = json.loads(Path(status_path).read_text())
-        except (FileNotFoundError, ValueError, OSError):
-            prior = None
-        if (
-            prior
-            and prior.get("status") == "sent"
-            and prior.get("sent_day") == now_day
-        ):
-            prior_sent_sources = list(prior.get("sent_sources") or [])
-            if alert_key and set(alert_key) <= set(prior_sent_sources):
-                log.info(
-                    "health DM suppressed: %s already covered by today's DM (day=%s)",
-                    alert_key, now_day,
-                )
-                return False
+    if prior is not None and prior.get("status") == "sent" and prior.get("sent_day") == now_day:
+        sources = prior.get("sent_sources")
+        if isinstance(sources, list):
+            prior_sent_sources = [source for source in sources if isinstance(source, str)]
+        if alert_key and set(alert_key) <= set(prior_sent_sources):
+            log.info(
+                "health DM suppressed: %s already covered by today's DM (day=%s)",
+                alert_key, now_day,
+            )
+            return False
 
     if not dm_recipient:
-        _write_health_dm_delivery_status(
+        _persist_health_dm_delivery_status(
             status_path,
             status="skipped_no_recipient",
             dm_recipient=dm_recipient,
@@ -233,7 +289,7 @@ def dispatch_dm_for_health_alerts(
         return False
     try:
         send_dm(dm_recipient, body)
-        _write_health_dm_delivery_status(
+        _persist_health_dm_delivery_status(
             status_path,
             status="sent",
             dm_recipient=dm_recipient,
@@ -251,7 +307,7 @@ def dispatch_dm_for_health_alerts(
         )
         return True
     except Exception as e:
-        _write_health_dm_delivery_status(
+        _persist_health_dm_delivery_status(
             status_path,
             status="failed",
             dm_recipient=dm_recipient,

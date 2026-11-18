@@ -450,10 +450,12 @@ def test_refusal_survives_non_object_health_status(world, capsys):
     raw = path.read_bytes()
     state = scheduler_state()
     assert scheduler._deliver_and_lock_pick(daily, config, directory, state, DAY, "fallback") is False
-    assert "Contest-state alert failed" in capsys.readouterr().err
-    assert status.read_text() == "[]" and path.read_bytes() == raw
+    assert "Contest-state alert failed" not in capsys.readouterr().err
+    assert json.loads(status.read_text())["status"] == "sent"
+    assert path.read_bytes() == raw
     assert not state.pick_locked and load_decision(DAY, directory) is None
-    assert not dm.send_dm.called and not alert.send_dm.called
+    assert not dm.send_dm.called
+    alert.send_dm.assert_called_once()
 
 
 @pytest.mark.parametrize("recorded", [True, False])
