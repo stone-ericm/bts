@@ -1,0 +1,294 @@
+/Users/runner/work/crossbow/crossbow/arrow/cpp/src/arrow/util/cpu_info.cc:239: IOError: sysctlbyname failed for 'hw.l1dcachesize'. Detail: [errno 1] Operation not permitted
+/Users/runner/work/crossbow/crossbow/arrow/cpp/src/arrow/util/cpu_info.cc:239: IOError: sysctlbyname failed for 'hw.l2cachesize'. Detail: [errno 1] Operation not permitted
+/Users/runner/work/crossbow/crossbow/arrow/cpp/src/arrow/util/cpu_info.cc:239: IOError: sysctlbyname failed for 'hw.l3cachesize'. Detail: [errno 1] Operation not permitted
+/Users/runner/work/crossbow/crossbow/arrow/cpp/src/arrow/util/cpu_info.cc:239: IOError: sysctlbyname failed for 'hw.optional.neon'. Detail: [errno 1] Operation not permitted
+{
+  "thin": [
+    {
+      "rc": 1,
+      "status": "failed_verify",
+      "alerts": [
+        "CRITICAL"
+      ],
+      "failed_checks": [
+        "production_2027-03-24_top_n_rows_per_date",
+        "candidate_2027-03-24_top_n_rows_per_date"
+      ],
+      "cli_calls": [
+        "export-live-candidate-artifacts",
+        "verify-candidate-artifacts"
+      ]
+    },
+    {
+      "rc": 1,
+      "status": "failed_verify_existing",
+      "alerts": [
+        "CRITICAL"
+      ],
+      "failed_checks": [
+        "production_2027-03-24_top_n_rows_per_date",
+        "candidate_2027-03-24_top_n_rows_per_date"
+      ],
+      "cli_calls": [
+        "verify-candidate-artifacts"
+      ]
+    },
+    {
+      "rc": 1,
+      "status": "failed_verify_existing",
+      "alerts": [
+        "CRITICAL"
+      ],
+      "failed_checks": [
+        "production_2027-03-24_top_n_rows_per_date",
+        "candidate_2027-03-24_top_n_rows_per_date"
+      ],
+      "cli_calls": [
+        "verify-candidate-artifacts"
+      ]
+    }
+  ],
+  "thin_actual_rows": {
+    "production": 9,
+    "candidate": 9
+  },
+  "resolve": [
+    {
+      "rc": 1,
+      "status": "failed_verify",
+      "failed_checks": [
+        "production_2027-03-24_top_n_rows_per_date",
+        "candidate_2027-03-24_top_n_rows_per_date"
+      ],
+      "rows": {
+        "production": 9,
+        "candidate": 9
+      }
+    },
+    {
+      "rc": 1,
+      "status": "failed_verify_existing",
+      "failed_checks": [
+        "production_2027-03-24_top_n_rows_per_date",
+        "candidate_2027-03-24_top_n_rows_per_date"
+      ],
+      "rows": {
+        "production": 9,
+        "candidate": 9
+      }
+    }
+  ],
+  "base_consumers": {
+    "at_lock_ranked_surface_joinable": true,
+    "official_fresh_target_ready": false,
+    "resolved_outcome_joinable": true,
+    "surface": {
+      "research": 9,
+      "official": "no eligible live-forward profile rows found; require_official_ready=True"
+    }
+  },
+  "consumers_with_pass_signals": {
+    "at_lock_ranked_surface_joinable": true,
+    "official_fresh_target_ready": true,
+    "resolved_outcome_joinable": true,
+    "surface": {
+      "research": 9,
+      "official": 9
+    }
+  },
+  "post_outcome_overwrite": {
+    "rc": 1,
+    "status": "failed_export_post_outcomes",
+    "alerts": [
+      "CRITICAL"
+    ],
+    "failed_checks": [
+      "production_2027-03-24_top_n_rows_per_date",
+      "candidate_2027-03-24_top_n_rows_per_date"
+    ],
+    "cli_calls": []
+  },
+  "late_wrapper": {
+    "rc": 1,
+    "status": "failed_export_post_outcomes",
+    "alerts": [
+      "CRITICAL"
+    ],
+    "failed_checks": [],
+    "cli_calls": []
+  },
+  "late_direct_export": {
+    "rc": 0,
+    "rows": {
+      "production": 9,
+      "candidate": 9
+    },
+    "wrapper_recheck": {
+      "rc": 1,
+      "status": "failed_verify_existing",
+      "alerts": [
+        "CRITICAL"
+      ],
+      "failed_checks": [
+        "production_2027-03-24_top_n_rows_per_date",
+        "candidate_2027-03-24_top_n_rows_per_date"
+      ],
+      "cli_calls": [
+        "verify-candidate-artifacts"
+      ]
+    }
+  },
+  "recapture": [
+    {
+      "rc": 1,
+      "status": "failed_verify",
+      "alerts": [
+        "CRITICAL"
+      ],
+      "failed_checks": [
+        "production_2027-03-24_top_n_rows_per_date",
+        "candidate_2027-03-24_top_n_rows_per_date"
+      ],
+      "cli_calls": [
+        "export-live-candidate-artifacts",
+        "verify-candidate-artifacts"
+      ]
+    },
+    {
+      "rc": 1,
+      "status": "failed_recapture_verify",
+      "alerts": [
+        "CRITICAL"
+      ],
+      "failed_checks": [
+        "production_2027-03-24_top_n_rows_per_date",
+        "candidate_2027-03-24_top_n_rows_per_date"
+      ],
+      "cli_calls": [
+        "export-live-candidate-artifacts",
+        "verify-candidate-artifacts"
+      ]
+    },
+    {
+      "rc": 1,
+      "status": "failed_recapture_post_outcomes",
+      "alerts": [
+        "CRITICAL"
+      ],
+      "failed_checks": [
+        "production_2027-03-24_top_n_rows_per_date",
+        "candidate_2027-03-24_top_n_rows_per_date"
+      ],
+      "cli_calls": []
+    }
+  ],
+  "nine_rows_eight_batters": {
+    "rc": 1,
+    "status": "failed_verify",
+    "alerts": [
+      "CRITICAL"
+    ],
+    "failed_checks": [
+      "production_2027-03-24_top_n_rows_per_date",
+      "candidate_2027-03-24_top_n_rows_per_date"
+    ],
+    "cli_calls": [
+      "export-live-candidate-artifacts",
+      "verify-candidate-artifacts"
+    ]
+  },
+  "twelve_rows_nine_scores": {
+    "rc": 1,
+    "status": "failed_verify",
+    "alerts": [
+      "CRITICAL"
+    ],
+    "failed_checks": [
+      "production_2027-03-24_top_n_rows_per_date",
+      "candidate_2027-03-24_top_n_rows_per_date"
+    ],
+    "cli_calls": [
+      "export-live-candidate-artifacts",
+      "verify-candidate-artifacts"
+    ]
+  },
+  "full": [
+    {
+      "rc": 0,
+      "status": "exported_verified",
+      "alerts": [],
+      "failed_checks": [],
+      "cli_calls": [
+        "export-live-candidate-artifacts",
+        "verify-candidate-artifacts"
+      ]
+    },
+    {
+      "rc": 1,
+      "status": "failed_verify_existing",
+      "alerts": [
+        "CRITICAL"
+      ],
+      "failed_checks": [
+        "production_2027-03-24_row_count",
+        "production_2027-03-24_top_n_rows_per_date",
+        "candidate_2027-03-24_row_count",
+        "candidate_2027-03-24_top_n_rows_per_date"
+      ],
+      "cli_calls": [
+        "verify-candidate-artifacts"
+      ]
+    },
+    {
+      "rc": 1,
+      "status": "failed_verify_existing",
+      "alerts": [
+        "CRITICAL"
+      ],
+      "failed_checks": [
+        "production_2027-03-24_top_n_rows_per_date",
+        "candidate_2027-03-24_top_n_rows_per_date"
+      ],
+      "cli_calls": [
+        "verify-candidate-artifacts"
+      ]
+    }
+  ],
+  "bad_run_kind": {
+    "rc": 1,
+    "status": "failed_verify_existing",
+    "alerts": [
+      "CRITICAL"
+    ],
+    "failed_checks": [
+      "expected_run_kind",
+      "live_run_kind",
+      "production_2027-03-24_run_kind_column",
+      "production_2027-03-24_top_n_rows_per_date",
+      "candidate_2027-03-24_run_kind_column",
+      "candidate_2027-03-24_top_n_rows_per_date"
+    ],
+    "cli_calls": [
+      "verify-candidate-artifacts"
+    ]
+  },
+  "unequal_scores": {
+    "rc": 1,
+    "status": "failed_verify",
+    "alerts": [
+      "CRITICAL"
+    ],
+    "failed_checks": [
+      "production_2027-03-24_top_n_rows_per_date",
+      "candidate_2027-03-24_top_n_rows_per_date"
+    ],
+    "cli_calls": [
+      "export-live-candidate-artifacts",
+      "verify-candidate-artifacts"
+    ],
+    "rows": {
+      "production": 9,
+      "candidate": 8
+    }
+  }
+}
