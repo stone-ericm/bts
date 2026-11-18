@@ -574,6 +574,68 @@ def test_profile_429_categorized_rate_limited(tmp_path, monkeypatch):
     assert "capture_bts_cookies" not in res.output
 
 
+@pytest.mark.parametrize("failure,category", [
+    ("cookie", "actionable"), ("transient_auth", "transient"),
+    ("limited_auth", "rate_limited"), ("auth_network", "transient"),
+    ("identity", "actionable"), ("prior_identity", "actionable"),
+    ("profile_429", "rate_limited"), ("profile_503", "transient"),
+    ("profile_403", "actionable"), ("profile_network", "transient"),
+    ("shape", "actionable"), ("switch", "actionable"),
+])
+def test_green_control_fetch_failure_without_recipient(tmp_path, monkeypatch, failure, category):
+    import json
+    from unittest.mock import Mock
+    import httpx
+    from click.testing import CliRunner
+    import bts.cli as cli_module
+    import bts.contest_fetch as cf
+    import bts.dm
+    from bts.leaderboard import auth
+
+    send = Mock()
+    monkeypatch.setattr(bts.dm, "send_dm", send)
+    picks = tmp_path / "picks"
+    account = picks / "account_state"
+    account.mkdir(parents=True)
+    _mock_auth_success(monkeypatch)
+    monkeypatch.setattr(cli_module, "_fetch_rounds", lambda: {1: dt.date(2027, 3, 24)})
+    monkeypatch.setattr(cf, "fetch_profile", lambda *_: {
+        "activeStreak": 0, "seasonBestStreak": 0, "predictions": [],
+    })
+    auth_errors = {
+        "cookie": auth.AuthError("expired"),
+        "transient_auth": auth.TransientAuthError("outage"),
+        "limited_auth": auth.RateLimitedLoginError("429"),
+        "auth_network": httpx.ConnectError("offline"),
+    }
+    expected = "other" if failure == "identity" else "stonehengee"
+    if failure in auth_errors:
+        _mock_auth_failure(monkeypatch, auth_errors[failure])
+    elif failure == "prior_identity":
+        (account / "contest_streak.json").write_text('{"username":"other"}')
+    elif failure == "switch":
+        (account / "season_contract.json").write_text("{}")
+    elif failure == "shape":
+        monkeypatch.setattr(cf, "fetch_profile", Mock(return_value={}))
+    elif failure.startswith("profile_"):
+        code = failure.removeprefix("profile_")
+        request = httpx.Request("GET", "https://example.invalid")
+        error = (httpx.ConnectError("offline") if code == "network" else
+                 httpx.HTTPStatusError(code, request=request,
+                                       response=httpx.Response(int(code), request=request)))
+        monkeypatch.setattr(cf, "fetch_profile", Mock(side_effect=error))
+
+    result = CliRunner().invoke(cli_module.cli, [
+        "fetch-contest-streak", "--picks-dir", str(picks), "--expected-username", expected,
+    ])
+    assert result.exit_code == 2, (result.output, result.exception)
+    status = json.loads((tmp_path / "health_state/contest_streak_fetch_status.json").read_text())
+    assert status["last_error_category"] == category
+    assert status["last_error"] in result.output
+    assert status["last_alert_at"] is None
+    send.assert_not_called()
+
+
 def test_legacy_cooldown_stamp_suppresses_every_category(tmp_path, monkeypatch):
     """A pre-upgrade record has one global last_alert_at: keep pure legacy
     semantics — nothing re-DMs inside the old window in ANY category — until
