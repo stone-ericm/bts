@@ -391,12 +391,18 @@ def test_row7_reconcile_summary_uses_replay_et_clock(tmp_path, monkeypatch, corr
     real_receipt = ReconcileReceipt
     monkeypatch.setattr("bts.reconcile_receipt.ReconcileReceipt",
                         lambda **kw: real_receipt(clock=lambda: fixed, lookback_days=kw["lookback_days"]))
-    monkeypatch.setattr(p, "reconcile_results", lambda *a, **k: corrections)
+    def blocked_reconcile(*args, receipt, **kwargs):
+        receipt.replayed(None, blocked_date="2027-12-30", reason="no final result on the pick")
+        return corrections
+
+    monkeypatch.setattr(p, "reconcile_results", blocked_reconcile)
     with patch.object(p, "load_streak", wraps=p.load_streak) as load:
         result = CliRunner().invoke(c.cli, ["reconcile", "--picks-dir", str(tmp_path)])
     assert result.exit_code == 0, result.output
     load.assert_called_once_with(tmp_path, season=2027)
-    assert ("Streak: 0" if not corrections else "Streak recalculated: 0") in result.output
+    # C3v reports a retained streak when the season replay is unavailable.
+    assert ("No scoring changes detected. Streak retained: 0" if not corrections
+            else "Streak retained: 0") in result.output
 
 
 @pytest.mark.parametrize("day,season", DATE_CASES)

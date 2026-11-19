@@ -174,8 +174,8 @@ class ReconcileReceipt:
 
     # ---- the run --------------------------------------------------------------------------------------------------
     @_guarded
-    def replayed(self, replay) -> None:
-        self.replay = ({"state": "unavailable"} if replay is None
+    def replayed(self, replay, **detail) -> None:
+        self.replay = ({"state": "unavailable", **detail} if replay is None
                        else {"state": "saved", "streak": replay[0], "saver_available": replay[1]})
 
     @_guarded

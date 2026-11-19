@@ -826,10 +826,16 @@ def _apply_streak_day(streak: int, saver: bool, is_hit: bool, increment: int) ->
 def _replay_season_streak(
     picks_dir: Path, season: int, today_iso: str
 ) -> tuple[int, bool] | None:
+    return _replay_season_streak_detail(picks_dir, season, today_iso)[0]
+
+
+def _replay_season_streak_detail(
+    picks_dir: Path, season: int, today_iso: str
+) -> tuple[tuple[int, bool] | None, tuple[str, str] | None]:
     """Forward-replay the model streak + saver over the season's resolved picks.
 
-    Returns ``(streak, saver_available)``, or ``None`` if the history is
-    incomplete or unreadable. A backward suffix can't safely reconstruct saver
+    Returns the replay and the first blocker as ``(date, reason)``, with
+    ``None`` for whichever is absent. A backward suffix can't safely reconstruct saver
     forgiveness (it depends on the forward streak at the miss and whether the
     saver was already used), so forward replay is the sound approach — and on any
     unresolved/corrupt past pick we fail closed (return None) and let the caller
@@ -842,7 +848,7 @@ def _replay_season_streak(
         try:
             data = json.loads(f.read_text())
         except Exception:
-            return None
+            return None, (f.stem, "pick file unreadable or not valid JSON")
         r = data.get("result")
         if f.stem == today_iso and r not in ("hit", "miss", "void"):
             if today_iso in load_applied_dates(picks_dir):
@@ -851,7 +857,7 @@ def _replay_season_streak(
                 # today would save the streak WITHOUT that result while keeping the marker that stops
                 # the scorer's retry from re-applying it: the result would be lost (review pp1 B1).
                 # Fail closed: keep the live-tracked streak until the scorer finishes.
-                return None
+                return None, (f.stem, "today's result is applied to streak.json but not yet saved on the pick")
             continue  # today's pick, not yet resolved: an unplayed preview or a game in progress
         # Today's pick IS replayed once it carries a terminal result: that result was already applied to
         # streak.json when it was written, so leaving it out rolled the streak back (and restored a saver
@@ -859,17 +865,17 @@ def _replay_season_streak(
         if r == "void":
             continue
         if r not in ("hit", "miss"):
-            return None  # unresolved past pick -> history not reconstructible
+            return None, (f.stem, "no final result on the pick")
         if r == "hit":
             daily = load_pick(f.stem, picks_dir)
             if daily is None:
-                return None
+                return None, (f.stem, "hit pick could not be loaded")
             streak, saver = _apply_streak_day(
                 streak, saver, True, streak_increment_for_resolved_hit(daily)
             )
         else:
             streak, saver = _apply_streak_day(streak, saver, False, 0)
-    return streak, saver
+    return (streak, saver), None
 
 
 def is_resume_date_game(game: dict, date) -> bool:
@@ -1507,11 +1513,15 @@ def reconcile_results(
         # Replay boundary from a fresh reading under the lock (a run that waits past
         # midnight must include the day that just ended), not the start-time `today`.
         replay_day = now_et().date()
-        replay = _replay_season_streak(picks_dir, replay_day.year, replay_day.isoformat())
+        replay, blocker = _replay_season_streak_detail(picks_dir, replay_day.year, replay_day.isoformat())
         if replay is not None:
             streak, saver = replay
             save_streak(streak, picks_dir, saver_available=saver, season=replay_day.year)
-        rec.replayed(replay)
+        if blocker is None:
+            rec.replayed(replay)
+        else:
+            blocked_date, reason = blocker
+            rec.replayed(replay, blocked_date=blocked_date, reason=reason)
 
     return corrections
 
