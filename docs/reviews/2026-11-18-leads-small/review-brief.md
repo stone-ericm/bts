@@ -18,7 +18,7 @@ A finding about test code or evidence tooling is a NOTE, never a BLOCK, unless i
 
 ## Running things
 - Python is `.venv/bin/python` in this copy (synced, with the model extra).
-- This machine is shared. Run every pytest invocation through the wrapper: `~/bts-runs/yield_run.sh .codex-review/leads-review/<name>.log <command…>`, one at a time (a `nice` warning is not an exit: wait). Small probe scripts may run directly. Do not run the whole fast suite: the gate did at this commit (GATECOUNTS).
+- This machine is shared. Run every pytest invocation through the wrapper: `~/bts-runs/yield_run.sh .codex-review/leads-review/<name>.log <command…>`, one at a time (a `nice` warning is not an exit: wait). Small probe scripts may run directly. Do not run the whole fast suite: the gate did at this commit (9,233 passed; the 53 known environment failures only).
 - One script per family of checks; create files with your edit tool, never a shell heredoc; do not edit a script after asking to run it. Never use a pattern kill.
 
 ## Deliverable
