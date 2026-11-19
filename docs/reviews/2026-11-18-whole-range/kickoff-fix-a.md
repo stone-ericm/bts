@@ -30,3 +30,6 @@ Each of A1 to A5 RED on the base and GREEN after, plus the slices' reproductions
 
 ## Amendment 1 (2026-11-18 23:12, after the author stopped on a conflict)
 Any existing test that asserts a fresh, same-cycle choice is sent or posted after the DATED observation changed between the selection read and the final read asserts the behaviour A2 removes (found: `tests/test_saved_pick_paths_cs5a.py::test_fresh_choices_stamp_the_selection_read[dated-run]`). Such a test is updated to assert the refusal and keeps its assertion that the saved stamp reflects the first read, with a one-line comment naming this contract. Automatic-to-automatic cases are not covered and must still deliver. Every existing test changed is listed in the handover with its assertion before and after.
+
+## Amendment 2 (2026-11-18 23:21)
+Fixture-only: an existing test elsewhere in the suite whose synthetic FRESH pick carries no valid `chosen_on` stamp (found by the gate: `tests/test_alert_status_cs6b2_carbon.py` and the 4c review module) gets a valid stamp of the kind its state read would have produced, with every assertion preserved. Any failure with another cause stops the author. Every fixture changed is listed in the handover.
