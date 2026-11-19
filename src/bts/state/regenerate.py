@@ -37,7 +37,7 @@ class ParsedPost:
     streak_at_time: Optional[int] = None
     # For result reply posts
     is_result: bool = False
-    result: Optional[str] = None  # "hit" | "miss" | "skip"
+    result: Optional[str] = None  # "hit" | "miss" | "void" | "skip"
     streak_after: Optional[int] = None
 
 
@@ -207,11 +207,14 @@ def parse_pick_from_post(text: str) -> Optional[ParsedPost]:
 # Regex for result replies. Based on real format_result_reply() output:
 #   hit:  "\u2705 Streak: N"
 #   miss: "\u274c Streak reset to 0"
+#   void: "Void. Streak: N"
 # Use the emoji prefix to detect and the rest to extract details.
 _HIT_EMOJI = "\u2705"   # white check mark
 _MISS_EMOJI = "\u274c"  # cross mark
 _STREAK_NUM_RE = re.compile(r"Streak[:\s]+(\d+)", re.IGNORECASE)
 _STREAK_RESET_RE = re.compile(r"reset to (\d+)", re.IGNORECASE)
+# The scorer's void reply, exactly as format_result_reply() writes it.
+_VOID_RE = re.compile(r"Void\. Streak: (\d+)")
 
 
 def parse_result_from_reply(text: str) -> ParsedPost:
@@ -222,6 +225,13 @@ def parse_result_from_reply(text: str) -> ParsedPost:
     """
     is_hit = _HIT_EMOJI in text
     is_miss = _MISS_EMOJI in text
+    void = _VOID_RE.fullmatch(text.strip())
+    if void and not (is_hit or is_miss):
+        # A void is a Pass: the streak the reply reports is the unchanged one.
+        return ParsedPost(
+            uri="", created_at="", text=text, is_reply=True,
+            is_result=True, result="void", streak_after=int(void.group(1)),
+        )
     if not (is_hit or is_miss):
         return ParsedPost(uri="", created_at="", text=text, is_reply=True, is_result=False)
 

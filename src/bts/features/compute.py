@@ -11,6 +11,7 @@ dates strictly before D. This is enforced by:
 
 import json
 import os
+import sys
 
 import numpy as np
 import pandas as pd
@@ -58,8 +59,15 @@ def _build_probable_pitcher_lookup(raw_dir: str = "data/raw") -> dict:
         try:
             cached = json.loads(_probable_pitcher_cache_path.read_text())
             lookup = {int(k): v for k, v in cached.items()}
-        except Exception:
-            pass
+        except Exception as e:
+            # Rebuilt below from whatever raw feeds are present; entries for
+            # games whose feeds are not on this machine are lost, so say so.
+            lookup = {}
+            print(
+                f"WARNING: unreadable probable-pitcher cache {_probable_pitcher_cache_path} "
+                f"({type(e).__name__}); rebuilding it from raw feeds",
+                file=sys.stderr,
+            )
 
     raw = Path(raw_dir)
     if not raw.exists():
@@ -92,11 +100,18 @@ def _build_probable_pitcher_lookup(raw_dir: str = "data/raw") -> dict:
                 continue
 
     # Save updated cache
+    # Write a sibling temp file and rename it over the cache: an interrupted
+    # write must never leave a truncated cache (it would read as empty).
     if new_count > 0:
         _probable_pitcher_cache_path.parent.mkdir(parents=True, exist_ok=True)
-        _probable_pitcher_cache_path.write_text(
-            json.dumps({str(k): v for k, v in lookup.items()})
+        tmp = _probable_pitcher_cache_path.with_name(
+            f".{_probable_pitcher_cache_path.name}.{os.getpid()}.tmp"
         )
+        try:
+            tmp.write_text(json.dumps({str(k): v for k, v in lookup.items()}))
+            os.replace(tmp, _probable_pitcher_cache_path)
+        finally:
+            tmp.unlink(missing_ok=True)
 
     return lookup
 
