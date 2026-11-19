@@ -305,6 +305,7 @@ def test_mistaken_use_then_undo_never_earned_behavior_at_streaks_5_10_16(tmp_pat
         assert dctx.button == "mark_used"
         assert dctx.warning is expected_warn_flag
         if streak == 16:
-            pctx = DecisionContext(0.82, 0.82, True, "2027-08-23", True, mdp, best_streak=16, best_status="trusted")
+            # Whole-range fix set A contract A1 preserves this fixture's policy day count.
+            pctx = DecisionContext(0.82, 0.82, True, "2027-08-24", True, mdp, best_streak=16, best_status="trusted")
             assert resolve_policy_decision(pctx, 16, False).action == "single"
             assert resolve_policy_decision(pctx, 16, dec.saver_available).action == "double"

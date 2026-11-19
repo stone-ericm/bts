@@ -43,7 +43,11 @@ def _make_pick() -> picks.DailyPick:
     return picks.DailyPick(DAY, NOW.isoformat(), p1, None, None)
 
 
-def _fresh_selection(daily: picks.DailyPick) -> strategy.SelectionResult:
+def _fresh_selection(daily: picks.DailyPick, picks_dir: Path) -> strategy.SelectionResult:
+    chosen = contest_state.load_decision_streak_state(
+        picks_dir, now=NOW, require_contest_state=True,
+    )
+    daily.chosen_on = picks.chosen_on_record(chosen, required=True)
     pol = strategy.PolicyDecision(
         "single", "single", "heuristic", "reach57", 12, 80, None, "missing",
         None, None, None, None, None,
@@ -154,7 +158,7 @@ def test_warning_passes_explicit_now_et_date_independent_of_alert_clock(tmp_path
         }
         st = scheduler.SchedulerState(DAY, NOW.isoformat(), [], [], [], False, None, None, None)
         assert scheduler._deliver_and_lock_pick(
-            daily, cfg, pdir, st, DAY, "dedup", selection=_fresh_selection(daily),
+            daily, cfg, pdir, st, DAY, "dedup", selection=_fresh_selection(daily, pdir),
         ) is True
 
     assert posting.post_to_bluesky.call_count == 2
@@ -193,7 +197,7 @@ def test_send_returning_no_id_and_reentry(tmp_path, monkeypatch, mode, empty_id)
 
     st = scheduler.SchedulerState(DAY, NOW.isoformat(), [], [], [], False, None, None, None)
     assert scheduler._deliver_and_lock_pick(
-        daily, cfg, pdir, st, DAY, "first", selection=_fresh_selection(daily),
+        daily, cfg, pdir, st, DAY, "first", selection=_fresh_selection(daily, pdir),
     ) is True
     saved = picks.load_pick(DAY, pdir)
     assert saved.automatic_reading is not None and saved.automatic_reading["stale"] is True
@@ -253,7 +257,7 @@ def test_closed_stderr_and_base_exception_after_commit_preserve_delivery(tmp_pat
     with monkeypatch.context() as mp:
         mp.setattr(sys, "stderr", stream)
         assert scheduler._deliver_and_lock_pick(
-            d1, cfg1, pdir1, st1, DAY, "closed", selection=_fresh_selection(d1),
+            d1, cfg1, pdir1, st1, DAY, "closed", selection=_fresh_selection(d1, pdir1),
         ) is True
     assert stream.closed and warn_dm.call_count == 1
     assert picks.pick_was_delivered(picks.load_pick(DAY, pdir1))
@@ -275,7 +279,7 @@ def test_closed_stderr_and_base_exception_after_commit_preserve_delivery(tmp_pat
     escaped = None
     try:  # an escaping interrupt must fail this test, not end the session (round-2 note)
         returned = scheduler._deliver_and_lock_pick(
-            d2, cfg2, pdir2, st2, DAY, "kbi", selection=_fresh_selection(d2),
+            d2, cfg2, pdir2, st2, DAY, "kbi", selection=_fresh_selection(d2, pdir2),
         )
     except BaseException as caught:
         escaped = caught

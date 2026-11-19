@@ -59,7 +59,7 @@ def test_base_exceptions_in_the_stale_work_cannot_affect_the_pick(
     daily = daily_pick()
     escaped = None
     try:
-        result = send(daily, world, fresh(daily))
+        result = send(daily, world, fresh(daily, world))
     except BaseException as caught:  # an escaping interrupt would otherwise end the test session
         escaped = caught
     assert escaped is None, f"the stale-reading work let {escaped!r} escape the delivery"
@@ -85,7 +85,7 @@ def test_no_warning_without_a_confirmation_identifier(world, capsys, mode, ident
     seed_automatic(directory)
     pick_transport(mode).return_value = identifier
     daily = daily_pick()
-    assert send(daily, world, fresh(daily)) is True
+    assert send(daily, world, fresh(daily, world)) is True
     assert pick_transport(mode).call_count == 1
     assert scheduler.load_state(DAY, directory).pick_locked
     assert picks.load_pick(DAY, directory).automatic_reading == OLD
@@ -106,7 +106,7 @@ def test_warning_day_is_passed_to_the_dispatcher_explicitly(world, monkeypatch):
         return real(*args, **kwargs)
     monkeypatch.setattr(alert, "dispatch_dm_for_health_alerts", spy)
     daily = daily_pick()
-    assert send(daily, world, fresh(daily))
+    assert send(daily, world, fresh(daily, world))
     assert seen == [NOW.date()]
 
 

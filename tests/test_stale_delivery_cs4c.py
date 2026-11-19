@@ -46,7 +46,11 @@ def stamp(daily, directory, stamp_saved_pick, now=NOW):
     ))
 
 
-def fresh(daily):
+def fresh(daily, world):
+    _, directory, now, _ = world
+    daily.chosen_on = picks.chosen_on_record(contest_state.load_decision_streak_state(
+        directory, now=now[0], require_contest_state=True,
+    ), required=True)
     policy = strategy.PolicyDecision(
         "single", "single", "heuristic", "reach57", 7, 80, None, "missing",
         None, None, None, None, None,
@@ -113,7 +117,7 @@ def test_attempt_snapshot_and_confirmed_warning(world, stamp_saved_pick, capsys,
 
     pick_transport(mode).side_effect = capture
     alert.send_dm.side_effect = capture_warning
-    assert send(daily, world, None if saved else fresh(daily))
+    assert send(daily, world, None if saved else fresh(daily, world))
     assert attempts == [expected]
     final = picks.load_pick(DAY, directory)
     assert final.automatic_reading == expected and final.delivery_attempted
@@ -147,7 +151,7 @@ def test_final_cutoff_is_a_no_compute_control(world, monkeypatch, capsys, mode):
     monkeypatch.setattr(scheduler, "_now_et", lambda: next(times, cutoff))
     spy = Mock(side_effect=AssertionError("cutoff path computed a record"))
     monkeypatch.setattr(contest_state, "automatic_reading_record", spy, raising=False)
-    assert not send(daily, world, fresh(daily))
+    assert not send(daily, world, fresh(daily, world))
     spy.assert_not_called()
     pick_transport(mode).assert_not_called()
     assert "LATE DELIVERY REFUSED" in alert.send_dm.call_args.args[1]
@@ -171,13 +175,13 @@ def test_missing_recipient_amendment(world, monkeypatch, capsys, mode):
     if mode == "dm":
         compute = Mock()
         monkeypatch.setattr(contest_state, "automatic_reading_record", compute, raising=False)
-        assert not send(daily, world, fresh(daily))
+        assert not send(daily, world, fresh(daily, world))
         compute.assert_not_called()
         dm.send_dm.assert_not_called()
         assert path.read_bytes() == raw
         assert PREFIX not in capsys.readouterr().err
     else:
-        assert send(daily, world, fresh(daily))
+        assert send(daily, world, fresh(daily, world))
         posting.post_to_bluesky.assert_called_once()
         assert getattr(picks.load_pick(DAY, directory), "automatic_reading", None) == OLD
         assert PREFIX + message() in capsys.readouterr().err
@@ -320,7 +324,7 @@ def test_other_stale_warning_copy(world, capsys, recorded, detail):
     _, directory, _, _ = world
     seed_automatic(directory, recorded)
     daily = daily_pick()
-    assert send(daily, world, fresh(daily))
+    assert send(daily, world, fresh(daily, world))
     alert.send_dm.assert_called_once_with("offline.test", envelope(detail=detail))
     assert PREFIX + message(detail=detail) in capsys.readouterr().err
 
@@ -351,7 +355,7 @@ def test_warning_failures_cannot_affect_pick(world, monkeypatch, capsys, failure
     else:
         alert.send_dm.side_effect = error
     daily = daily_pick()
-    assert send(daily, world, fresh(daily))
+    assert send(daily, world, fresh(daily, world))
     final = picks.load_pick(DAY, directory)
     assert final.delivery_attempted and picks.pick_was_delivered(final)
     assert scheduler.load_state(DAY, directory).pick_locked
@@ -418,7 +422,7 @@ def independently_deliver(world, *, missing_recipient=False):
     daily.pick.game_time = (now[0] + timedelta(hours=2)).isoformat()
     recorded = (now[0] - timedelta(hours=20)).isoformat()
     seed_automatic(directory, recorded, now[0])
-    assert send(daily, world, fresh(daily))
+    assert send(daily, world, fresh(daily, world))
     return f"last accepted fetch {recorded}, about 20.00 hours ago"
 
 

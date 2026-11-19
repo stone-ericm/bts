@@ -89,7 +89,8 @@ def test_reserved_saver_changes_the_real_policy_action(tmp_path):
     _flag(tmp_path, "not_earned")
     state = load_decision_streak_state(tmp_path, now=NOW)
     table, boundaries, length = load_policy("data/models/mdp_policy.npz")
-    ctx = DecisionContext(.80, .80, True, "2027-08-29", True, {
+    # Whole-range fix set A contract A1 preserves this fixture's policy day count.
+    ctx = DecisionContext(.80, .80, True, "2027-08-30", True, {
         "policy_table": table, "boundaries": boundaries, "season_length": length,
     })
     old = resolve_policy_decision(ctx, state.streak, load_saver_state(tmp_path, season=2027).is_available)
