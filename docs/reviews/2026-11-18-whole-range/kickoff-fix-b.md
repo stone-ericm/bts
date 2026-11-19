@@ -24,3 +24,6 @@ Each of B1 to B5 RED on the base and GREEN after. B1: a test that scans every st
 
 ## Handover
 `HANDOVER-WR-B.md` in the worktree root (not committed): the commit; files and lines; per row what changed, the before and after text of every message, and which test was RED on the base; the hostile-input rows; what you ran with counts; anything you could not match (if a row cannot be met as written, STOP and say so). Then print `WRB-<first 8 hex characters of the sha256 of HANDOVER-WR-B.md>` on its own line and `DONE`.
+
+## Amendment 1 (2026-11-19 00:16)
+The first gate on `2318ac1b` had two failures beyond the known list, both existing expectations that B5 changes on purpose: `tests/test_cli_integration.py::TestFetchContestStreak::test_auth_failure_dm_throttled` (its DM stub returned nothing; a cooldown stamp now needs an acknowledged send, so the stub returns an id) and `tests/test_season_contract_cs4b2.py::test_restore_reenable_fetch_sequence[after]` (a status file that cannot be replaced now exits 2 with a diagnostic instead of an uncaught error's exit 1). Both are updated, listed in the handover with the assertion before and after, and one more unsandboxed gate run is allowed on the amended commit.
