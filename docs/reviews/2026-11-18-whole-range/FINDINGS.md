@@ -47,3 +47,19 @@ Unreproduced by the lead so far (policy: reproduce every Gemini finding before a
 
 ## Ruling R47 (2026-11-19 02:15, after the fix set C contract check)
 The check (`contract-check-c/`) reproduced every finding, Carbon's included, and returned BUILD WITH THESE EDITS. **Fix set C is split into three change sets, one piece each:** C3 (the season replay: W14/W23) is built now from the check's replacement text; C1 (the after-midnight health read, W20) and C2 (the unknown-outcome alert after a restart, W22) follow after fix set B lands, each from a trimmed contract (the check's full texts add retained-evidence provenance to C1 and a second-chance send to C2: the lead will take the smallest version of each that removes the false page and the silent day, and ledger the rest). **W24 is closed, not built:** a distinct key for the saved-pick refusal double-paged for one correction episode in the check's probe. Cost if wrong: until C1 lands, a late game during the dated-observation days gives a false CRITICAL with an unsafe template (checklist B8a will say to ignore a contest-state alert that arrives between midnight and the morning wake on those days); until C2 lands, a crash mid-send is silent until the entry watchdog or 08:30.
+
+## Ruling R48 (2026-11-19 04:35): fix set C3 is STOPPED after three BLOCKs; W14/W23 stays open
+`STOP-C3.md` has the record and the obligations. Two skip rules each let the replay run around a pick that had been entered and save a wrong model streak where the base refused to replay: the files on disk cannot prove a pick was not entered. `fix/wr-c3` is not merged. What may be built instead is visibility only (`bts reconcile` names the blocking date; nothing is skipped; the operator archives a never-entered pick file by hand). Cost: a refused preview left on disk still disables the nightly rebuild of the MODEL streak until someone removes it, and until the visibility change lands `bts reconcile` does not say so. The contest streak, which decides picks in a live configuration, does not depend on this replay.
+
+## State of the whole-range findings at 2026-11-19 04:35
+| Finding | State |
+|---|---|
+| W1 day count, W2 same-cycle pick check, W5 schedule parser | **Merged** (fix set A, `082b8506`) |
+| W6 saver warning, W7 unconfirmed-delivery wording, W8 day-outcome names, W9 status line, W10 fetch status file, W19 checklist | **Merged** (fix set B, `a1bf1612`); full gate on the merged tree green (9,444 passed) |
+| W14 / W23 season replay | **Stopped** (R48); visibility-only change to be built fresh |
+| W20 after-midnight health read; W22 unknown-outcome alert after a restart | Contract check done (`contract-check-c/`), not built: each its own change set, trimmed scope (R47) |
+| W3 lost lock decision; W4 stranded saved pick | Contract check done (`contract-check-a/`), not built: each its own change set (R45) |
+| W11 duplicate DM after a lost response | Left on purpose; note that W14's analysis shows the same window (the cleared attempt marker) is what makes an entered pick invisible afterwards |
+| W12, W13 rollback; W15 cache entry; W16 late entry check; W17 canary | For Eric |
+| W18 New Year grading order; W24 shared refusal key | Not built |
+| Re-run of the four slice harnesses on the final head | Not done |
