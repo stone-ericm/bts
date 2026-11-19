@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-c3v-r2-codex/.codex-review/wr-c3v-r2/equivalence_probe.py", line 149, in <module>
+    main()
+  File "/Users/eric/projects/bts-work/wr-c3v-r2-codex/.codex-review/wr-c3v-r2/equivalence_probe.py", line 139, in main
+    result = probes["run_adversarial_hunt"](pair)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c3v-r2-codex/.codex-review/wr-c3v-r2/round1/carbon/probe_item1_equivalence.py", line 714, in run_adversarial_hunt
+    from tests.test_wr_c3v_corpus import dump, pick_data
+ModuleNotFoundError: No module named 'tests'

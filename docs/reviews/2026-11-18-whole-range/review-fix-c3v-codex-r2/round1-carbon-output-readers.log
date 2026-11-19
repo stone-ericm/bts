@@ -1,0 +1,2 @@
+{"four_reasons_verified": true, "pairwise_walk_order_cases": 15, "same_file_precedence_verified": true, "completed_and_failed_publish_verified": true, "fault_injected_replayed_hook": {"exit_code": 0, "stdout_tail": "Streak recalculated: 7", "stderr": "", "receipt_replay": {"state": "not_reached"}, "degraded": [{"day": 7, "error": "RuntimeError", "hook": "replayed", "slot": null}]}}
+{"checklist_quote_matches_exact_stderr": true, "move_rebuilds_streak_both_absent_and_existing_dir": true, "all_src_readers_ignore_set_aside_even_when_poisoned": true}

@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-c3v-r2-codex/.codex-review/wr-c3v-r2/rendering_probe.py", line 189, in <module>
+    main()
+  File "/Users/eric/projects/bts-work/wr-c3v-r2-codex/.codex-review/wr-c3v-r2/rendering_probe.py", line 183, in main
+    result = {"filenames": filenames(scratch), "reasons": reasons(scratch),
+                           ^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c3v-r2-codex/.codex-review/wr-c3v-r2/rendering_probe.py", line 107, in filenames
+    fd = os.open(raw, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 1] Operation not permitted: b'/Users/eric/projects/bts-work/wr-c3v-r2-codex/.codex-review/wr-c3v-r2/tmpmp1z9u31/invalid_filename_bytes/picks/2027-04-16\xff.json'

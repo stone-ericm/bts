@@ -1,0 +1,245 @@
+{
+  "filenames": {
+    "plain": {
+      "stderr": "Season replay unavailable for 2027-04-16 (no final result on the pick); streak retained, not recalculated.\n",
+      "replay": {
+        "blocked_date": "2027-04-16",
+        "reason": "no final result on the pick",
+        "state": "unavailable"
+      }
+    },
+    "lf": {
+      "stderr": "Season replay unavailable for 2027-04-16\\n (no final result on the pick); streak retained, not recalculated.\n",
+      "replay": {
+        "blocked_date": "2027-04-16\n",
+        "reason": "no final result on the pick",
+        "state": "unavailable"
+      }
+    },
+    "arabic_digit": {
+      "stderr": "Season replay unavailable for 2027-04-1\\u0666 (no final result on the pick); streak retained, not recalculated.\n",
+      "replay": {
+        "blocked_date": "2027-04-1\u0666",
+        "reason": "no final result on the pick",
+        "state": "unavailable"
+      }
+    },
+    "arabic_digit_lf": {
+      "stderr": "Season replay unavailable for 2027-04-1\\u0666\\n (no final result on the pick); streak retained, not recalculated.\n",
+      "replay": {
+        "blocked_date": "2027-04-1\u0666\n",
+        "reason": "no final result on the pick",
+        "state": "unavailable"
+      }
+    },
+    "supplementary_digit": {
+      "stderr": "Season replay unavailable for 2027-04-1\\U0001d7e8 (no final result on the pick); streak retained, not recalculated.\n",
+      "replay": {
+        "blocked_date": "2027-04-1\ud835\udfe8",
+        "reason": "no final result on the pick",
+        "state": "unavailable"
+      }
+    },
+    "mixed_nd": {
+      "stderr": "Season replay unavailable for 2027-03-\\u0660\\u096c (no final result on the pick); streak retained, not recalculated.\n",
+      "replay": {
+        "blocked_date": "2027-03-\u0660\u096c",
+        "reason": "no final result on the pick",
+        "state": "unavailable"
+      }
+    },
+    "impossible_date": {
+      "stderr": "Season replay unavailable for 2027-02-99 (no final result on the pick); streak retained, not recalculated.\n",
+      "replay": {
+        "blocked_date": "2027-02-99",
+        "reason": "no final result on the pick",
+        "state": "unavailable"
+      }
+    },
+    "arabic_month_sorts_after_today": {
+      "stderr": "",
+      "replay": {
+        "saver_available": true,
+        "state": "saved",
+        "streak": 0
+      }
+    },
+    "carriage_return": {
+      "stderr": "",
+      "replay": {
+        "saver_available": true,
+        "state": "saved",
+        "streak": 0
+      }
+    },
+    "crlf": {
+      "stderr": "",
+      "replay": {
+        "saver_available": true,
+        "state": "saved",
+        "streak": 0
+      }
+    },
+    "repeated_lf": {
+      "stderr": "",
+      "replay": {
+        "saver_available": true,
+        "state": "saved",
+        "streak": 0
+      }
+    },
+    "middle_lf": {
+      "stderr": "",
+      "replay": {
+        "saver_available": true,
+        "state": "saved",
+        "streak": 0
+      }
+    },
+    "tab": {
+      "stderr": "",
+      "replay": {
+        "saver_available": true,
+        "state": "saved",
+        "streak": 0
+      }
+    },
+    "bell": {
+      "stderr": "",
+      "replay": {
+        "saver_available": true,
+        "state": "saved",
+        "streak": 0
+      }
+    },
+    "escape": {
+      "stderr": "",
+      "replay": {
+        "saver_available": true,
+        "state": "saved",
+        "streak": 0
+      }
+    },
+    "us": {
+      "stderr": "",
+      "replay": {
+        "saver_available": true,
+        "state": "saved",
+        "streak": 0
+      }
+    },
+    "delete": {
+      "stderr": "",
+      "replay": {
+        "saver_available": true,
+        "state": "saved",
+        "streak": 0
+      }
+    },
+    "nel": {
+      "stderr": "",
+      "replay": {
+        "saver_available": true,
+        "state": "saved",
+        "streak": 0
+      }
+    },
+    "line_separator": {
+      "stderr": "",
+      "replay": {
+        "saver_available": true,
+        "state": "saved",
+        "streak": 0
+      }
+    },
+    "paragraph_separator": {
+      "stderr": "",
+      "replay": {
+        "saver_available": true,
+        "state": "saved",
+        "streak": 0
+      }
+    },
+    "nondecimal_number": {
+      "stderr": "",
+      "replay": {
+        "saver_available": true,
+        "state": "saved",
+        "streak": 0
+      }
+    },
+    "backslash": {
+      "stderr": "",
+      "replay": {
+        "saver_available": true,
+        "state": "saved",
+        "streak": 0
+      }
+    },
+    "invalid_filename_bytes": {
+      "creation_refused": [
+        92,
+        "Illegal byte sequence"
+      ]
+    }
+  },
+  "reasons": {
+    "invalid": {
+      "stderr": "Season replay unavailable for 2027-04-16 (pick file unreadable or not valid JSON); streak retained, not recalculated.\n",
+      "replay": {
+        "blocked_date": "2027-04-16",
+        "reason": "pick file unreadable or not valid JSON",
+        "state": "unavailable"
+      }
+    },
+    "invalid-lf": {
+      "stderr": "Season replay unavailable for 2027-04-16\\n (pick file unreadable or not valid JSON); streak retained, not recalculated.\n",
+      "replay": {
+        "blocked_date": "2027-04-16\n",
+        "reason": "pick file unreadable or not valid JSON",
+        "state": "unavailable"
+      }
+    },
+    "applied": {
+      "stderr": "Season replay unavailable for 2027-04-20 (today's result is applied to streak.json but not yet saved on the pick); streak retained, not recalculated.\n",
+      "replay": {
+        "blocked_date": "2027-04-20",
+        "reason": "today's result is applied to streak.json but not yet saved on the pick",
+        "state": "unavailable"
+      }
+    },
+    "pending": {
+      "stderr": "Season replay unavailable for 2027-04-16 (no final result on the pick); streak retained, not recalculated.\n",
+      "replay": {
+        "blocked_date": "2027-04-16",
+        "reason": "no final result on the pick",
+        "state": "unavailable"
+      }
+    },
+    "lost": {
+      "stderr": "Season replay unavailable for 2027-04-16 (hit pick could not be loaded); streak retained, not recalculated.\n",
+      "replay": {
+        "blocked_date": "2027-04-16",
+        "reason": "hit pick could not be loaded",
+        "state": "unavailable"
+      }
+    },
+    "lost-lf": {
+      "stderr": "Season replay unavailable for 2027-04-16\\n (hit pick could not be loaded); streak retained, not recalculated.\n",
+      "replay": {
+        "blocked_date": "2027-04-16\n",
+        "reason": "hit pick could not be loaded",
+        "state": "unavailable"
+      }
+    }
+  },
+  "injected_fields": {
+    "stderr": "Season replay unavailable for 2027-04-16\\n\\r\\x0b\\x0c\\x00\\x1b\\x7f\\x85\\u2028\\u2029\\\\\\udcff (no final result on the pick\\n\\r\\x0b\\x0c\\x00\\x1b\\x7f\\x85\\u2028\\u2029\\\\\\udcff); streak retained, not recalculated.\n",
+    "replay": {
+      "blocked_date": "2027-04-16\n\r\u000b\f\u0000\u001b\u007f\u0085\u2028\u2029\\\udcff",
+      "reason": "no final result on the pick\n\r\u000b\f\u0000\u001b\u007f\u0085\u2028\u2029\\\udcff",
+      "state": "unavailable"
+    }
+  },
+  "clock": "2027-04-20T02:00:00-04:00"
+}

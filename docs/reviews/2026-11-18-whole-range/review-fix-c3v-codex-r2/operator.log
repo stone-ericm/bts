@@ -1,0 +1,60 @@
+  [PRIVATE] LOCKED (probe) — Synthetic batter (PIT) 80.0% — NOT delivered
+  [PRIVATE] LOCKED (probe) — Synthetic batter (PIT) 80.0% — NOT delivered
+{
+  "single": {
+    "warnings": [
+      "Season replay unavailable for 2027-04-18 (no final result on the pick); streak retained, not recalculated.",
+      "Season replay unavailable for 2027-04-18 (no final result on the pick); streak retained, not recalculated."
+    ],
+    "streak_after": 9,
+    "archive_opens": 0
+  },
+  "two": {
+    "warnings": [
+      "Season replay unavailable for 2027-04-18 (no final result on the pick); streak retained, not recalculated.",
+      "Season replay unavailable for 2027-04-18 (no final result on the pick); streak retained, not recalculated.",
+      "Season replay unavailable for 2027-04-19 (no final result on the pick); streak retained, not recalculated."
+    ],
+    "streak_after": 9,
+    "archive_opens": 0
+  },
+  "locked": {
+    "true": {
+      "mlb_entered": false,
+      "private_lock": true,
+      "observed_scoreable": true,
+      "warning": "Season replay unavailable for 2027-04-18 (no final result on the pick); streak retained, not recalculated.",
+      "safe_action": "leave the pick in place"
+    },
+    "false": {
+      "mlb_entered": false,
+      "private_lock": true,
+      "observed_scoreable": false,
+      "warning": "Season replay unavailable for 2027-04-18 (no final result on the pick); streak retained, not recalculated.",
+      "safe_action": "leave the pick in place",
+      "streak_after_kept_pick_is_resolved_as_hit": 10,
+      "streak_after_moving_committed_pick": 9
+    },
+    "missing": {
+      "mlb_entered": false,
+      "private_lock": true,
+      "observed_scoreable": "missing",
+      "warning": "Season replay unavailable for 2027-04-18 (no final result on the pick); streak retained, not recalculated.",
+      "safe_action": "leave the pick in place",
+      "streak_after_kept_pick_is_resolved_as_hit": 10,
+      "streak_after_moving_committed_pick": 9
+    },
+    "unreadable": {
+      "mlb_entered": false,
+      "private_lock": true,
+      "observed_scoreable": "unreadable",
+      "warning": "Season replay unavailable for 2027-04-18 (no final result on the pick); streak retained, not recalculated.",
+      "safe_action": "leave the pick in place"
+    }
+  },
+  "escaped_filename": {
+    "warnings": "Season replay unavailable for 2027-04-18\\n (no final result on the pick); streak retained, not recalculated.\n",
+    "literal_display_move_exit": 1,
+    "true_filename_move_exit": 0
+  }
+}
