@@ -1,0 +1,1 @@
+Round-1 Codex review of C3v at cb3bc37c (BLOCK, one finding). corpus_probe and hostile_probe evidence JSON (2.9 MB) left out of the repository; they regenerate from the probes and remain in ~/projects/bts-work/wr-c3v-rev-codex/.codex-review/wr-c3v-review/.
