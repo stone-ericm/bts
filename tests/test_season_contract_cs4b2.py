@@ -477,7 +477,7 @@ def test_restore_reenable_fetch_sequence(tmp_path, monkeypatch, failure):
         return writer(path, value)
     monkeypatch.setattr(cli, "_atomic_write_json", writing)
     result = fetch(tmp_path)
-    assert result.exit_code == (0 if failure is None else 1)
+    assert result.exit_code == {None: 0, "before": 1, "after": 2}[failure]
     if failure == "before":
         with pytest.raises(cs.ContestStateError, match="activation_id"):
             live(tmp_path, tomorrow)

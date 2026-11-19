@@ -1716,6 +1716,40 @@ def _fetch_bts_to_mlb(client=None):
     return out
 
 
+def _read_contest_fetch_status(path):
+    from bts.contest_state import _UNREADABLE, _reading_time_utc
+    from bts.util import read_regular_file_text
+
+    try:
+        status = json.loads(read_regular_file_text(path))
+    except _UNREADABLE:
+        return {}
+    if not isinstance(status, dict):
+        return {}
+
+    def usable(stamp):
+        return isinstance(stamp, str) and _reading_time_utc(stamp) is not None
+
+    if not usable(status.get("last_alert_at")):
+        status.pop("last_alert_at", None)
+    by_category = status.get("last_alert_at_by_category")
+    if isinstance(by_category, dict):
+        status["last_alert_at_by_category"] = {
+            category: stamp for category, stamp in by_category.items() if usable(stamp)
+        }
+    else:
+        status.pop("last_alert_at_by_category", None)
+    return status
+
+
+def _write_contest_fetch_status(path, record):
+    try:
+        _atomic_write_json(path, record)
+    except OSError as exc:
+        click.echo(f"fetch-contest-streak: cannot replace {path}: {exc}", err=True)
+        raise SystemExit(2)
+
+
 def _contest_fetch_alert(status_path, dm_recipient, msg, cooldown_hours=6,
                          category="actionable"):
     """DM on failure, throttled via status_path — >=cooldown_hours between DMs
@@ -1724,12 +1758,7 @@ def _contest_fetch_alert(status_path, dm_recipient, msg, cooldown_hours=6,
     Returns whether sent."""
     from datetime import datetime, timezone, timedelta
     now = datetime.now(timezone.utc)
-    prior = {}
-    if status_path.exists():
-        try:
-            prior = json.loads(status_path.read_text())
-        except (json.JSONDecodeError, OSError):
-            prior = {}
+    prior = _read_contest_fetch_status(status_path)
     by_cat = prior.get("last_alert_at_by_category")
     if not isinstance(by_cat, dict):
         # Legacy single-stamp record: apply it to EVERY category — pure legacy
@@ -1740,19 +1769,15 @@ def _contest_fetch_alert(status_path, dm_recipient, msg, cooldown_hours=6,
         by_cat = ({c: legacy for c in ("transient", "rate_limited", "actionable")}
                   if legacy else {})
     last_alert = by_cat.get(category)
-    should_alert = True
-    if last_alert:
-        try:
-            last_dt = datetime.fromisoformat(last_alert.replace("Z", "+00:00"))
-            should_alert = (now - last_dt) >= timedelta(hours=cooldown_hours)
-        except ValueError:
-            should_alert = True
+    should_alert = (last_alert is None or
+                    now - datetime.fromisoformat(last_alert) >= timedelta(hours=cooldown_hours))
     sent = False
     if should_alert and dm_recipient:
         try:
             from bts.dm import send_dm
-            send_dm(dm_recipient, f"BTS fetch-contest-streak failed: {msg}")
-            sent = True
+            sent = bool(send_dm(dm_recipient, f"BTS fetch-contest-streak failed: {msg}"))
+            if not sent:
+                click.echo("(DM delivery was not confirmed)", err=True)
         except Exception as exc:
             click.echo(f"(DM failed: {exc})", err=True)
     now_iso = now.isoformat().replace("+00:00", "Z")
@@ -1767,7 +1792,7 @@ def _contest_fetch_alert(status_path, dm_recipient, msg, cooldown_hours=6,
     # Legacy field kept for older readers: newest stamp across categories.
     stamps = [v for v in by_cat.values() if isinstance(v, str)]
     record["last_alert_at"] = max(stamps) if stamps else None
-    _atomic_write_json(status_path, record)
+    _write_contest_fetch_status(status_path, record)
     return sent
 
 
@@ -2093,7 +2118,16 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
                    f"re-verifying each run until cutoff")
         sys.exit(1)
 
-    if tier == "initial":
+    if (decision is not None and decision.get("date") == today
+            and decision.get("delivery_status") == "locked_unconfirmed"):
+        from shlex import quote
+
+        entry = "No entry found in MLB" if reason == "no_pick" else "The MLB entry differs"
+        msg = (f"⚠️ Delivery of this pick was NOT confirmed. {names} is the pick the scheduler "
+               f"tried to send. {entry}. First pitch {first_pitch.strftime('%-I:%M %p ET')} "
+               f"({minutes_to_cutoff:.0f} min to submit). Check your DMs and MLB entry before "
+               f"entering anything, and run `bts season-contract status --picks-dir {quote(str(picks))}`.")
+    elif tier == "initial":
         lead = ("BTS pick NOT entered" if reason == "no_pick"
                 else "BTS entry does NOT match the recommended pick")
         msg = (f"\u26a0\ufe0f {lead} in MLB app: {names} — first pitch "
@@ -2144,10 +2178,11 @@ def season_contract():
 def season_contract_status(picks_dir, season):
     from datetime import datetime, timezone
     from bts.season_contract import ET, switch_state, inspection_lines
+    from bts.util import read_regular_file_text
     now = datetime.now(timezone.utc)
     inspected = now.astimezone(ET).year if season is None else season
     picks = Path(picks_dir)
-    state = switch_state(picks, now, season=inspected)
+    state = switch_state(picks, now, season=inspected, read_text=read_regular_file_text)
     for line in inspection_lines(picks, now, state, season=inspected):
         click.echo(line)
     if state.state == "corrupt":
@@ -2415,14 +2450,11 @@ def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
     }
     # DM cooldown stamps survive a success: a flap that recovers and re-breaks
     # inside the window must stay throttled (Codex r2 #7).
-    try:
-        _prior_status = json.loads(status_path.read_text())
-    except (OSError, json.JSONDecodeError):
-        _prior_status = {}
+    _prior_status = _read_contest_fetch_status(status_path)
     for _k in ("last_alert_at_by_category", "last_alert_at"):
         if _prior_status.get(_k) is not None:
             success_record[_k] = _prior_status[_k]
-    _atomic_write_json(status_path, success_record)
+    _write_contest_fetch_status(status_path, success_record)
     # persist the full per-round MLB ledger (append-only) for analysis + Phase-2 saver inference
     ledger_row = {
         "recorded_at": now.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),

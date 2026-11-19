@@ -1,11 +1,29 @@
 """Shared utilities for BTS automation."""
 
+import io
 import os
+import stat
 import tempfile
 import time
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+
+
+def read_regular_file_text(path: Path) -> str:
+    """Read UTF-8 from a regular file without waiting on a special file."""
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise OSError(f"{path}: not a regular file")
+        with io.open(fd, "r", encoding="utf-8", closefd=False) as handle:
+            return handle.read()
+    finally:
+        os.close(fd)
+
+
+def read_utf8(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
 
 
 def atomic_write_text(path, text: str) -> None:

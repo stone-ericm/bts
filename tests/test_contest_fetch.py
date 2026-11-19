@@ -503,7 +503,7 @@ def test_transient_alert_does_not_suppress_later_actionable_alert(tmp_path, monk
     from bts.cli import cli
     from bts.leaderboard.auth import AuthError, TransientAuthError
     sent = []
-    monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: sent.append(m))
+    monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: sent.append(m) or "sent-id")
     picks = tmp_path / "picks"; (picks / "account_state").mkdir(parents=True)
     args = ["fetch-contest-streak", "--picks-dir", str(picks),
             "--expected-username", "stonehengee", "--dm-recipient", "x.bsky.social"]
@@ -671,7 +671,7 @@ def test_cooldown_stamps_survive_a_successful_run(tmp_path, monkeypatch):
     from bts.cli import cli
     from bts.leaderboard.auth import TransientAuthError
     sent = []
-    monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: sent.append(m))
+    monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: sent.append(m) or "sent-id")
     picks = tmp_path / "picks"; (picks / "account_state").mkdir(parents=True)
     args = ["fetch-contest-streak", "--picks-dir", str(picks),
             "--expected-username", "stonehengee", "--dm-recipient", "x.bsky.social"]

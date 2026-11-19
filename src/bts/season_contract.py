@@ -4,12 +4,13 @@ from __future__ import annotations
 import json
 import re
 import shlex
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from bts.contest_state import ContestStreakState, _UNREADABLE
+from bts.util import read_regular_file_text, read_utf8
 
 SCHEMA = "bts_season_contract_v1"
 AUTO_SCHEMA = "bts_contest_streak_auto_v2"
@@ -65,7 +66,8 @@ def validate_contract(data: object) -> dict:
     return data
 
 
-def switch_state(picks_dir: Path, now: datetime, *, season: int | None = None) -> SwitchState:
+def switch_state(picks_dir: Path, now: datetime, *, season: int | None = None,
+                 read_text=read_utf8) -> SwitchState:
     """Read and validate one snapshot. Only lstat FileNotFoundError is absent."""
     path = Path(picks_dir) / "account_state/season_contract.json"
     try:
@@ -75,7 +77,7 @@ def switch_state(picks_dir: Path, now: datetime, *, season: int | None = None) -
     except _UNREADABLE as exc:
         return SwitchState("corrupt", check=1, error=f"{path}: {exc}")
     try:
-        data = validate_contract(json.loads(path.read_text(encoding="utf-8")))
+        data = validate_contract(json.loads(read_text(path)))
     except InvalidContract as exc:
         return SwitchState("corrupt", check=exc.check, error=f"{path}: {exc}")
     except _UNREADABLE as exc:
@@ -102,13 +104,14 @@ def dated_template(picks_dir: Path, now: datetime) -> str:
 
 def live_automatic_refusal(
     picks_dir: Path, now: datetime, selected: ContestStreakState | None,
+    *, switch: SwitchState | None = None,
 ) -> str | None:
     """Decide authority from the selected snapshot and ONE switch snapshot.
 
     The caller bypasses this function for an in-effect dated observation. No
     observation is opened here; filename, not its claimed source, identifies it.
     """
-    state = switch_state(picks_dir, now)
+    state = switch_state(picks_dir, now) if switch is None else switch
     year = now.astimezone(ET).year
     if state.state == "corrupt":
         kind = 1
@@ -194,7 +197,7 @@ def inspection_lines(picks: Path, now: datetime, state: SwitchState, *, season: 
             if not _present(path):
                 lines.append(f"{label}: absent")
                 continue
-            parsed = _parse_state_file(path, require_dated=False)
+            parsed = _parse_state_file(path, read_text=read_regular_file_text)
             if label == "manual":
                 if parsed.effective_date is None:
                     lines.append(f"manual: legacy streak={parsed.streak} expiry={parsed.override_expires_at}")
@@ -203,7 +206,7 @@ def inspection_lines(picks: Path, now: datetime, state: SwitchState, *, season: 
                                  f"best={parsed.best_streak} saver={parsed.saver_state} "
                                  f"in effect={dated_observation_in_effect(parsed, now)}")
             else:
-                raw = json.loads(path.read_text(encoding="utf-8"))
+                raw = json.loads(read_regular_file_text(path))
                 schema = ("missing" if "schema_version" not in raw else
                           "null" if raw["schema_version"] is None else repr(raw["schema_version"]))
                 if raw.get("schema_version") not in ("bts_contest_streak_auto_v1", AUTO_SCHEMA, None):
@@ -226,8 +229,8 @@ def inspection_lines(picks: Path, now: datetime, state: SwitchState, *, season: 
         else:
             # Decode first so all _UNREADABLE failures get a diagnostic, even those
             # the existing fail-closed saver loader deliberately does not catch.
-            raw = json.loads(path.read_text(encoding="utf-8"))
-            flag = load_saver_state(picks, season=today.year)
+            raw = json.loads(read_regular_file_text(path))
+            flag = load_saver_state(picks, season=today.year, read_text=read_regular_file_text)
             if flag.state != "uninitialized":
                 lines.append(f"saver: {flag.state}; season: {flag.season}")
             else:
@@ -240,15 +243,39 @@ def inspection_lines(picks: Path, now: datetime, state: SwitchState, *, season: 
     except _UNREADABLE as exc:
         lines.append(f"saver: unavailable (invalid: {exc}); reads uninitialized for season {today.year}")
 
-    from bts.contest_state import load_decision_streak_state
-    try:
-        live = load_decision_streak_state(picks, require_contest_state=True, now=now)
+    from bts.contest_state import automatic_reading_record, load_decision_streak_state
+
+    live_switch = state
+    if state.snapshot is not None:
+        live_switch = replace(state, state=(state.snapshot["status"] if state.snapshot["season"] == today.year
+                                            else "other_season"))
+
+    def verdict(*, omit_selected_dated=False):
+        try:
+            return load_decision_streak_state(
+                picks, require_contest_state=True, now=now, read_text=read_regular_file_text,
+                switch=live_switch, omit_selected_dated=omit_selected_dated,
+            ), None, None
+        except ContestStateError as exc:
+            return None, "refused", str(exc)
+        except Exception as exc:
+            return None, "unavailable", str(exc) or type(exc).__name__
+
+    live, disposition, detail = verdict()
+    dated = live is not None and live.observation_kind == "dated"
+    if live is not None:
         lines.append(f"live decision now: accepted; source={live.source}; streak={live.streak}; "
                      f"status={live.status}; saver={live.saver_flag_state}")
-    except ContestStateError as exc:
-        lines.append(f"live decision now: refused; {exc}")
-    except Exception as exc:
-        lines.append(f"live decision now: unavailable; {exc}")
+    else:
+        lines.append(f"live decision now: {disposition}; {detail}")
+
+    automatic, _, refusal = verdict(omit_selected_dated=True) if dated else (live, disposition, detail)
+    if automatic is not None:
+        reading = automatic_reading_record(automatic, now)
+        recorded = reading["recorded_at"] if reading and reading["reason"] != "unreadable" else "unavailable"
+        lines.append(f"automatic path alone: accepted (streak {automatic.streak}, recorded {recorded})")
+    else:
+        lines.append(f"automatic path alone: refused: {refusal.splitlines()[0]}")
 
     path = directory / "contest_ledger.jsonl"
     try:
@@ -258,7 +285,7 @@ def inspection_lines(picks: Path, now: datetime, state: SwitchState, *, season: 
             keys = ["recorded_at", "active_streak", "best_streak", "source_date", "season", "switched",
                     "activation_id", "settled_by_year", "settled_unmapped", "unsettled"]
             rows, bad = [], 0
-            for line in path.read_text(encoding="utf-8").splitlines():
+            for line in read_regular_file_text(path).splitlines():
                 # Render inside the per-line guard: a row that decodes but cannot be
                 # rendered (nesting too deep for repr) is a bad line, not an unreadable file.
                 try:
@@ -272,4 +299,7 @@ def inspection_lines(picks: Path, now: datetime, state: SwitchState, *, season: 
             lines.extend(rows[-10:])
     except _UNREADABLE as exc:
         lines.append(f"ledger: unreadable; unavailable: {exc}; counts unavailable")
+    if dated and automatic is None:
+        lines.append("Today's dated observation expires at midnight ET. Tomorrow's live pick, if games "
+                     "are scheduled, requires a usable automatic reading or a new dated observation.")
     return lines
