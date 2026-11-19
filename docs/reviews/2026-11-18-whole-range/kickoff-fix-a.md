@@ -33,3 +33,6 @@ Any existing test that asserts a fresh, same-cycle choice is sent or posted afte
 
 ## Amendment 2 (2026-11-18 23:21)
 Fixture-only: an existing test elsewhere in the suite whose synthetic FRESH pick carries no valid `chosen_on` stamp (found by the gate: `tests/test_alert_status_cs6b2_carbon.py` and the 4c review module) gets a valid stamp of the kind its state read would have produced, with every assertion preserved. Any failure with another cause stops the author. Every fixture changed is listed in the handover.
+
+## Amendment 3 (2026-11-18 23:48)
+The first gate on `c196ca5a` had 53 failures beyond the known list: 51 unstamped synthetic fresh picks (amendment 2) and two saver tests that pin a shipped-policy action at a 2027 date (`tests/test_saver_cs3.py`, 08-29, streak 3 at .80; `tests/test_saver_cs3_review.py`, 08-23, streak 16 at .82). A1 moved every 2027 date's day count by one, so those states moved. In each, ONLY the `DecisionContext` date moves forward one day (08-30; 08-24), so the policy sees the same days-remaining as when the test was written; every assertion is kept; a one-line comment names this contract.
