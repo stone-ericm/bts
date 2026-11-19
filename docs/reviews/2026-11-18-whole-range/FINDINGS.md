@@ -29,3 +29,18 @@ Fix sets A and B are built as two tier A change sets, each from its own contract
 
 ## Ruling R45 (2026-11-18, after the contract checks)
 Both contract checks returned BUILD WITH THESE EDITS (`contract-check-a/`, `contract-check-b/`); their replacement texts are the contracts (version 2). **W3 and W4 leave fix set A and become their own change sets**, one piece each, from their replacement texts: the check showed that returning the lock decision alone lets a replaced pick file be sent under another pick's commit, and that the stranded-pick fix has to reschedule the missed-pick alert too. Fix set A is W1, W2 and W5. The contract check also established that the day-count fix changes one shipped-policy action (a double becomes a skip on 09-25 at streak 55 with the saver unavailable and a top probability of .60): accepted, since it is the policy as solved at the right day count. Cost if wrong: W3 and W4 stay open until their change sets land (both need a prediction pass to overrun or fail on a day with a saved pick).
+
+## Carbon's read of slice 1 (2026-11-19 00:06; `slice-1-carbon/`): DEPLOYABLE AFTER THESE FIXES
+Unreproduced by the lead so far (policy: reproduce every Gemini finding before acting); each goes through a contract check that reproduces it first.
+
+| # | Finding | Relation to the table above | Decision |
+|---|---|---|---|
+| W20 | **The end-of-day health run after midnight judges the contest state at the wall clock, not at the processed day** (`health/runner.py` calls `contest_state.check` without `now`). On a dated-observation day whose last game ends after 00:00 ET, yesterday's observation has expired, the check falls back to whatever automatic file is on disk and sends a false `CRITICAL` with a template for the NEW day, before MLB has settled the night's pick; following it locks in a pre-settlement streak for the next day | New. Bites only while the season runs on dated observations (the first days), on any late game | **Fix set C** |
+| W21 | The saver warning's bare command | Same as W6 | In fix set B |
+| W22 | **After a restart between the attempt marker and the send, no `DELIVERY OUTCOME UNKNOWN` alert is sent:** the restart locks `locked_unconfirmed` through the classification path, which never reaches the code that pages; the unsent pick is then scored | Extends W7 (Codex saw the entry watchdog nag; Carbon shows a day with no DM at all when the entry check cannot run) | **Fix set C** |
+| W23 | A non-scoreable pick file (a refused 03:00 preview, a skip day) makes `_replay_season_streak` return nothing for the rest of the season | Same as W14, found independently, with a two-line fix | **Fix set C** (moved from "for Eric": two reviewers, and the replay is the documented way to rebuild `streak.json`) |
+| W24 | The check-time refusal and the 5a saved-pick refusal share one alert key, so the second is deduplicated on the same day | Known (shared `contest_state` source) | Note for fix set C's contract check: say whether a distinct key is safe |
+| — | The missing `lock_decision` | Same as W3 | Its own change set (R45) |
+| — | `bts orchestrate` raises an uncaught `ContestStateError` if its later reads straddle midnight | Note | Not fixed (the box runs `bts schedule`) |
+
+**Ruling R46:** fix set C is W20, W22 and W23, built after A and B land, from a checked contract that first reproduces each. W3 and W4 follow as their own change sets. The slices' harnesses, Carbon's included, are re-run on the head that has A, B and C.
