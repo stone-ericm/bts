@@ -95,3 +95,17 @@ def test_interrupted_read_and_restart_refetch_original_slate(review_world, failu
         scheduler.run_day(day, world.config)
         assert requests == [[day], [day], ["2028-01-01"]]
         assert not world.sends("dm")
+
+
+@pytest.mark.parametrize("token", ["NaN", "Infinity", "-Infinity"])
+def test_non_json_constant_is_not_a_clean_off_day(monkeypatch, token):
+    # Round-1 review (BLOCK): {"dates":[],"totalGames":NaN} was read as a clean off-day.
+    body = ('{"dates":[],"totalGames":%s}' % token).encode()
+    monkeypatch.setattr(scheduler, "retry_urlopen", lambda *a, **k: BytesIO(body))
+    with pytest.raises(ValueError, match=r"Invalid MLB schedule JSON: non-JSON constant " + token.replace("-", r"\-")):
+        scheduler.fetch_schedule("2027-07-15")
+
+
+def test_plain_empty_dates_is_still_a_clean_off_day(monkeypatch):
+    monkeypatch.setattr(scheduler, "retry_urlopen", lambda *a, **k: BytesIO(b'{"dates":[],"totalGames":0}'))
+    assert scheduler.fetch_schedule("2027-07-15") == []

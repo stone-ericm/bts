@@ -287,8 +287,12 @@ def fetch_schedule(date: str) -> list[dict]:
         f"{API_BASE}/api/v1/schedule?sportId=1&date={date}&hydrate=probablePitcher",
         timeout=15,
     ).read()
+    def _reject_constant(token: str):
+        # NaN and Infinity are not JSON; a body carrying one is not a schedule.
+        raise ValueError(f"non-JSON constant {token}")
+
     try:
-        response = json.loads(body)
+        response = json.loads(body, parse_constant=_reject_constant)
     except (ValueError, RecursionError) as exc:
         raise ValueError(f"Invalid MLB schedule JSON: {exc}") from exc
     if not isinstance(response, dict):
