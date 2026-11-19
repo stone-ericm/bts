@@ -2951,15 +2951,29 @@ def reconcile(picks_dir: str, lookback: int):
     def now_et():
         return receipt.clock().astimezone(et)
 
+    replay = receipt.replay
+    blocked = replay["state"] == "unavailable" and "blocked_date" in replay
+    if blocked:
+        # The replay accepts some noncanonical stems. Keep receipt values verbatim.
+        blocked_date = replay["blocked_date"].encode("unicode_escape").decode("ascii")
+        reason = replay["reason"].encode("unicode_escape").decode("ascii")
+        click.echo(
+            f"Season replay unavailable for {blocked_date} ({reason}); "
+            "streak retained, not recalculated.",
+            err=True,
+        )
+
     if not corrections:
         streak = load_streak(picks_path, season=now_et().year)
-        click.echo(f"No scoring changes detected. Streak: {streak}")
+        label = "Streak retained" if blocked else "Streak"
+        click.echo(f"No scoring changes detected. {label}: {streak}")
     else:
         streak = load_streak(picks_path, season=now_et().year)
         click.echo(f"CORRECTIONS FOUND ({len(corrections)}):")
         for c in corrections:
             click.echo(f"  {c['date']}: {c['batter']} — {c['old_result']} -> {c['new_result']}")
-        click.echo(f"Streak recalculated: {streak}")
+        label = "Streak retained" if blocked else "Streak recalculated"
+        click.echo(f"{label}: {streak}")
 
 
 @cli.command("park-drag-refresh")

@@ -63,3 +63,8 @@ The check (`contract-check-c/`) reproduced every finding, Carbon's included, and
 | W12, W13 rollback; W15 cache entry; W16 late entry check; W17 canary | For Eric |
 | W18 New Year grading order; W24 shared refusal key | Not built |
 | Re-run of the four slice harnesses on the final head | Not done |
+
+## Ruling R49 (2026-11-19 06:55): the reconcile visibility change lands; the operator step that was blocked is removed, not rewritten
+Change set C3v (`STOP-C3V.md`; fresh session `bts-wr-fresh`) had two rounds. Its CODE held in both: the replay's result and the bytes of `streak.json` are identical to `main` over the 630-history corpus, 18 entered-pick and writer sequences and several hundred hostile states per reviewer, with every mutant killed; Carbon signed both rounds. Codex's two BLOCKs were a newline in a file name splitting the message (fixed in round 2) and, in round 2, the CHECKLIST step, which told the operator to move a blocking pick file aside after checking MLB and the decision record: a private-mode pick interrupted between its lock and its decision record passes both checks and was committed. The lead lands the code and replaces that step with one that moves nothing (`docs/ops/2027-season-start.md` row B8b item 2: leave every file in place and report the message). No third review round: the blocked text is deleted, the code is unchanged from the commit both reviewers examined, and the gate was green there (10,111 passed). Cost if wrong: none for a pick; a blocked model-streak replay now stays blocked until a person who knows the writer windows resolves that day, which is the base's behaviour made visible.
+
+W14/W23 state: **visibility merged; no automatic skip (R48 stands).**
