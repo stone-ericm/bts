@@ -32,3 +32,6 @@ Each of C1 to C3 RED on the base and GREEN after, with the named reproductions a
 
 ## Amendment 1 (2026-11-19 02:16, the author asked before changing anything)
 `tests/test_streak_replay.py::test_replay_fail_closed_on_unresolved_past_day` has a fixture holding only a date and a result. It is replanted as a valid delivered pending pick, so it keeps demonstrating what its name says (an unresolved COMMITTED past day blocks the replay), with its assertion kept and a one-line comment naming this contract; the old minimal fixture is covered in the new test file as the malformed-pick case. The same applies to any other existing test whose fixture is an unresolved past pick with no commit evidence and whose intent is "unresolved history blocks": each is listed in the handover with its fixture before and after. A test with another intent stops the author.
+
+## Amendment 2 (2026-11-19 02:18)
+An existing test that pins the CLI's wording for a blocked replay (`Streak recalculated: N` where the replay did not run; found: `tests/test_streak_season_cs2.py::test_row7_reconcile_summary_uses_replay_et_clock[corrections1]`) is updated to the retained-streak wording, with its mock recording the blocked replay and every other assertion kept. Further cases of exactly the kinds in amendments 1 and 2 need no new ruling; each is listed in the handover with before and after.
