@@ -29,3 +29,6 @@ Each of C1 to C3 RED on the base and GREEN after, with the named reproductions a
 
 ## Handover
 `HANDOVER-WR-C.md` in the worktree root (not committed): the commit; files and lines; per row what changed and which test was RED on the base; the hostile-input rows; what you ran with counts; anything you could not match (if a row cannot be met as written, STOP and say so). Then print `WRC-<first 8 hex characters of the sha256 of HANDOVER-WR-C.md>` on its own line and `DONE`.
+
+## Amendment 1 (2026-11-19 02:16, the author asked before changing anything)
+`tests/test_streak_replay.py::test_replay_fail_closed_on_unresolved_past_day` has a fixture holding only a date and a result. It is replanted as a valid delivered pending pick, so it keeps demonstrating what its name says (an unresolved COMMITTED past day blocks the replay), with its assertion kept and a one-line comment naming this contract; the old minimal fixture is covered in the new test file as the malformed-pick case. The same applies to any other existing test whose fixture is an unresolved past pick with no commit evidence and whose intent is "unresolved history blocks": each is listed in the handover with its fixture before and after. A test with another intent stops the author.
