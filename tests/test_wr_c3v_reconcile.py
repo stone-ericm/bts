@@ -188,6 +188,42 @@ def test_completed_replay_is_byte_identical(tmp_path, monkeypatch, base_modules)
     assert target.read_bytes() != before
 
 
+@pytest.mark.parametrize(("suffix", "rendered_suffix"), [("", ""), ("\n", r"\n")], ids=["canonical", "lf"])
+def test_blocker_filename_renders_as_one_line(tmp_path, monkeypatch, base_modules, suffix, rendered_suffix):
+    from tests.test_wr_c3v_corpus import seed_streak
+
+    root = tmp_path / "current" / "picks"
+    target = seed_streak(root, streak=9)
+    before = target.read_bytes()
+    date = PAST + suffix
+    (root / f"{date}.json").write_text("{}")
+    result, fold = compare_reconcile(root, monkeypatch, base_modules, lookback=8)
+    assert fold is None
+    assert result.exit_code == 0, result.output
+    assert result.stderr == warning(PAST + rendered_suffix, PENDING)
+    assert result.stdout == (
+        "Reconciling last 8 days of picks...\nNo scoring changes detected. Streak retained: 9\n"
+    )
+    assert only_receipt(root)["replay"] == {"state": "unavailable", "blocked_date": date, "reason": PENDING}
+    assert target.read_bytes() == before
+
+
+def test_blocker_escapes_control_and_unicode_in_both_fields(tmp_path, monkeypatch):
+    date = PAST + "\r\N{ARABIC-INDIC DIGIT SIX}\x7f"
+    reason = "synthetic\nreason\x1b\N{LINE SEPARATOR}"
+
+    def blocked(*args, receipt, **kwargs):
+        receipt.replayed(None, blocked_date=date, reason=reason)
+        return []
+
+    monkeypatch.setattr(picks, "reconcile_results", blocked)
+    root = tmp_path / "picks"
+    result = invoke(root, monkeypatch)
+    assert result.exit_code == 0, result.output
+    assert result.stderr == warning(PAST + r"\r\u0666\x7f", r"synthetic\nreason\x1b\u2028")
+    assert only_receipt(root)["replay"] == {"state": "unavailable", "blocked_date": date, "reason": reason}
+
+
 def test_directory_at_pick_path_has_base_read_failure(tmp_path, monkeypatch, base_modules):
     from tests.test_wr_c3v_corpus import seed_streak
 
@@ -291,6 +327,8 @@ def test_rerun_reports_pending_preview_until_operator_sets_it_aside(tmp_path, mo
     before = target.read_bytes()
     preview = next(case for case in cases() if case.name == "refused_preview")
     path = dump(root / f"{PAST}.json", preview.transform(PAST, root))
+    next_day = "2027-04-17"
+    next_path = dump(root / f"{next_day}.json", preview.transform(next_day, root))
     dump(root / f"{TODAY}.json", pick_data(TODAY, "hit"))
     for _ in range(2):
         result = invoke(root, monkeypatch)
@@ -300,6 +338,14 @@ def test_rerun_reports_pending_preview_until_operator_sets_it_aside(tmp_path, mo
     aside = root / PAST / "set_aside_never_entered.json"
     aside.parent.mkdir()
     path.rename(aside)
+    result = invoke(root, monkeypatch)
+    assert result.exit_code == 0, result.output
+    assert result.stderr == warning(next_day, PENDING)
+    assert target.read_bytes() == before
+
+    next_aside = root / next_day / aside.name
+    next_aside.parent.mkdir()
+    next_path.rename(next_aside)
     result = invoke(root, monkeypatch)
     assert result.exit_code == 0, result.output
     assert result.stderr == ""

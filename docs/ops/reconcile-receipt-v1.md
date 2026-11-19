@@ -29,7 +29,7 @@
 | `outcome`, `error` | `completed`, `raised` (with the exception type) or `incomplete` |
 | `days[]` | one entry per target date, newest first |
 | `corrections` | the run's corrections list (the CLI output), or null |
-| `replay` | `saved` (`streak`, `saver_available`), `unavailable` (the replay refused incomplete history; the streak file was kept) or `not_reached` |
+| `replay` | `saved` (`streak`, `saver_available`), `unavailable` (the replay refused incomplete history and kept the streak file), or `not_reached`. An `unavailable` replay can include `blocked_date` (the raw date stem of the first blocking pick) and `reason` (why that pick blocked replay). |
 | `degraded` | recording hooks that failed: `{hook, error, day, slot}`, indexes into `days` and their `slots`. A write hook is attributed by its own date (r3 D6) |
 
 **Each `days[]` entry:**
