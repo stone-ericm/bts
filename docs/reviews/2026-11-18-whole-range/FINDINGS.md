@@ -1,0 +1,28 @@
+# Whole-range review of `review-candidate-2026-11-18` (`d1919004`): findings and what each gets
+
+Three fresh Codex reviewers (highest effort, memories off, earlier review records removed from their copies), one slice each; reports and probes in `slice-1-codex/`, `slice-2-codex/`, `slice-3-codex/`. All three: **DEPLOYABLE AFTER THESE FIXES**. Carbon's read of slice 1 is added when it reports. Lead's ruling R44 below.
+
+| # | Finding (slice) | In the range? | Decision |
+|---|---|---|---|
+| W1 | **The policy counts one day too few all 2027 season and zero on the last day** (2): `SEASON_END_DATES[2027]` is the last game day (09-26) where 2026's value was the day AFTER it (09-28 for a 09-27 finale); `_days_remaining` subtracts exclusively. Streak 56 on the last day skips; 09-20 at 43 skips. The lead's own bug of 2026-11-13 | Yes | **Fix set A** |
+| W2 | **A pick chosen this cycle is sent after the dated observation changed between selection and the delivery read** (1 and 3, independently): scheduler, `bts run`, `bts orchestrate`; message shows the new streak, action is from the old one | Yes (5a exempts the same-cycle choice) | **Fix set A** |
+| W3 | **`run_single_check` computes `lock_decision` and does not return it**, so the in-loop fallback starts a second cascade instead of reusing an overrun check's pick and can miss the cutoff (3) | Older, reachable | **Fix set A** |
+| W4 | **A still-eligible saved pick is stranded when a check returns nothing and the next check is after the fallback deadline** (3): no fallback, no pick, no missed-pick DM, no decision | Older, reachable | **Fix set A** |
+| W5 | **A malformed schedule body is read as "no games"** by the scheduler and by `bts day-outcome` (3): silent off-day | Partly (day-outcome is new) | **Fix set A** |
+| W6 | The saver warning tells the operator to use `bts set-contest-streak` without the dated form; that installs a legacy override the live path refuses (1) | Yes | **Fix set B** |
+| W7 | After a crash mid-send and a correction, the entry watchdog names the unconfirmed, obsolete pick and says "Fix it now!" (1) | Partly | **Fix set B**: on an unconfirmed delivery the message says to verify the DM and MLB first |
+| W8 | `bts day-outcome` prints "A + B" for a single (the decision record keeps the runner-up in `double_down`) (2) | Yes | **Fix set B** (render only; the record's shape is not changed) |
+| W9 | `bts season-contract status` says "live decision now: accepted" from a dated observation while the automatic reading behind it is unusable (1, owner question) | Yes | **Fix set B**: status shows automatic readiness separately (lead's recommendation; Eric can overrule). Checklist B8a reworded |
+| W10 | `contest_streak_fetch_status.json` holding `[]` makes a successful fetch raise after writing the reading (3, note) | Older | **Fix set B** (non-object reads as missing, as the health status files do) |
+| W11 | A lost DM response leads to the same pick being DM'd twice (1) | Older | **Not fixed.** A duplicate identical DM is the safer side of the alternative (not resending a pick that may not have arrived) |
+| W12 | **The automatic rollback target (`619abda7`) cannot serve 2027** and damages state the new code then refuses (2) | Yes, by construction | **For Eric** (deploy workflow and checklist): no automatic rollback on a live 2027 box; stop outward sending and page |
+| W13 | **`deploy.yml`: a failed sync or first restart exits before the rollback branch** (2) | Older | **For Eric** with W12 |
+| W14 | A refused preview left on disk as an unresolved pick makes the 02:00 season replay unavailable indefinitely (3, owner question) | Partly | **For Eric**; lead's recommendation: the replay excludes a pick that is provably uncommitted, and `reconcile` prints a warning when the replay is unavailable |
+| W15 | A valid-JSON probable-pitcher cache with a non-object entry raises in every feature run (3 and both cache reviewers) | Older | **For Eric**; lead's recommendation: drop invalid entries on read with the same warning |
+| W16 | The entry checker can miss a pick sent in the last minutes before first pitch (2, owner question) | Older | **For Eric** |
+| W17 | The deploy canary passes on a box that starts, pages and idles with no usable contest state (2, owner question) | Yes | **For Eric** |
+| W18 | New Year: grading that finishes after the 02:00 reconcile overwrites the new-season streak file (3) | Yes | Not fixed: no contest game is played on December 31 |
+| W19 | Checklist B8a tells the operator to initialize the saver flag after the first automatic fetch, which has already done it (the command then exits 1) (1) | Docs | Reword B8a with fix set B |
+
+## Ruling R44
+Fix sets A and B are built as two tier A change sets, each from its own contract (checked first, with the standing hostile-input rows), each reviewed by fresh Codex and Carbon reviewers; the slices' probes are adopted as regression tests (slice 1's three-day rehearsal first). W12 to W17 go to Eric in plain language before anything in the deploy workflow or those behaviours changes. The candidate tag moves only when A and B have landed; a confirmation pass then re-runs the three slices' harnesses on the new head. Cost if wrong: W11 and W18 are left on purpose; if a duplicate DM or a December 31 game ever matters, they are documented here.
