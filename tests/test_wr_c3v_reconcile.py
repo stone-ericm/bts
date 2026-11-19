@@ -112,7 +112,7 @@ def compare_reconcile(root, monkeypatch, base_modules, *, clock=lambda: RUN, loo
                       result_feed=None):
     old_picks, old_receipt, old_cli = base_modules
     old_root = root.parent.parent / "base" / "picks"
-    shutil.copytree(root, old_root)
+    shutil.copytree(root, old_root, symlinks=True)
     today = clock().astimezone(ET).date()
     with monkeypatch.context() as scoped:
         for module in (old_picks, picks):
