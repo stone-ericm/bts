@@ -20,13 +20,15 @@ def test_2026_dates_are_unchanged():
 
 
 def test_2027_opening_night_has_a_full_season_ahead():
-    assert season_end_date("2027-03-24") == "2027-09-26"
-    assert _days_remaining("2027-03-24") == 186
+    # Whole-range fix set A contract A1 uses the exclusive season boundary.
+    assert season_end_date("2027-03-24") == "2027-09-27"
+    assert _days_remaining("2027-03-24") == 187
 
 
 def test_2027_last_day_and_after():
-    assert _days_remaining("2027-09-25") == 1
-    assert _days_remaining("2027-09-26") == 0
+    # Whole-range fix set A contract A1 counts the playing finale.
+    assert _days_remaining("2027-09-26") == 1
+    assert _days_remaining("2027-09-27") == 0
     assert _days_remaining("2027-10-05") == 0
 
 

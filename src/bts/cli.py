@@ -1212,11 +1212,10 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
             except ContestStateError as exc:
                 click.echo(f"bts run: no pick: {exc}", err=True)
                 raise SystemExit(1) from exc
-            if sel.decision is None:
-                refusal = saved_pick_refusal(result.daily, decision_state)
-                if refusal is not None:
-                    click.echo(f"bts run: no pick: {refusal}", err=True)
-                    raise SystemExit(1)
+            refusal = saved_pick_refusal(result.daily, decision_state)
+            if refusal is not None:
+                click.echo(f"bts run: no pick: {refusal}", err=True)
+                raise SystemExit(1)
             text = format_post(
                 result.daily.pick.batter_name, result.daily.pick.team,
                 result.daily.pick.pitcher_name, result.daily.pick.p_game_hit, decision_state.streak,
@@ -1265,11 +1264,10 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
         click.echo(f"bts run: no pick: {exc}", err=True)
         raise SystemExit(1) from exc
     if should_post_now(daily.pick.game_time, daily.bluesky_posted):
-        if sel.decision is None:
-            refusal = saved_pick_refusal(daily, decision_state)
-            if refusal is not None:
-                click.echo(f"bts run: no pick: {refusal}", err=True)
-                raise SystemExit(1)
+        refusal = saved_pick_refusal(daily, decision_state)
+        if refusal is not None:
+            click.echo(f"bts run: no pick: {refusal}", err=True)
+            raise SystemExit(1)
         text = format_post(
             daily.pick.batter_name, daily.pick.team, daily.pick.pitcher_name,
             daily.pick.p_game_hit, decision_state.streak,

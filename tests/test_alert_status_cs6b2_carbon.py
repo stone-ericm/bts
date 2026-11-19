@@ -312,6 +312,10 @@ def test_lane_callers_recover_corrupt_and_nested_status(
             "note": None,
         }))
         daily = daily_pick()
+        chosen = contest_state.load_decision_streak_state(
+            directory, now=now[0], require_contest_state=True,
+        )
+        daily.chosen_on = picks.chosen_on_record(chosen, required=True)
         picks.save_pick(daily, directory)
         policy = strategy.PolicyDecision(
             "single", "single", "heuristic", "reach57", 7, 80, None, "missing",

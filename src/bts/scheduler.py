@@ -282,14 +282,37 @@ def _maybe_alert_missed_pick(
 
 
 def fetch_schedule(date: str) -> list[dict]:
-    """Fetch today's MLB schedule. Returns list of game dicts."""
-    resp = json.loads(retry_urlopen(
+    """Fetch the regular-season slate, raising if the schedule body is malformed."""
+    body = retry_urlopen(
         f"{API_BASE}/api/v1/schedule?sportId=1&date={date}&hydrate=probablePitcher",
         timeout=15,
-    ).read())
+    ).read()
+    def _reject_constant(token: str):
+        # NaN and Infinity are not JSON; a body carrying one is not a schedule.
+        raise ValueError(f"non-JSON constant {token}")
+
+    try:
+        response = json.loads(body, parse_constant=_reject_constant)
+    except (ValueError, RecursionError) as exc:
+        raise ValueError(f"Invalid MLB schedule JSON: {exc}") from exc
+    if not isinstance(response, dict):
+        raise ValueError("MLB schedule must be a JSON object")
+    dates = response.get("dates")
+    if not isinstance(dates, list):
+        raise ValueError("MLB schedule dates must be a list")
+
     games = []
-    for d in resp.get("dates", []):
-        games.extend(d.get("games", []))
+    for date_index, entry in enumerate(dates):
+        location = f"dates[{date_index}]"
+        if not isinstance(entry, dict):
+            raise ValueError(f"MLB schedule {location} must be an object")
+        day_games = entry.get("games")
+        if not isinstance(day_games, list):
+            raise ValueError(f"MLB schedule {location}.games must be a list")
+        for game_index, game in enumerate(day_games):
+            if not isinstance(game, dict):
+                raise ValueError(f"MLB schedule {location}.games[{game_index}] must be an object")
+        games.extend(day_games)
     # Regular season only — see is_regular_season_game (shared with the
     # prediction slate fetch in model/predict.py, which pulls the schedule
     # independently; both paths must agree on what is pickable).
@@ -1258,11 +1281,7 @@ def _deliver_and_lock_pick(
         _alert_contest_state_failure(config, e)
         return False
     if required:
-        fresh_choice = (
-            selection is not None and selection.decision is not None
-            and selection.pick_result is not None and selection.pick_result.daily is daily
-        )
-        refusal = None if fresh_choice else saved_pick_refusal(daily, decision_state)
+        refusal = saved_pick_refusal(daily, decision_state)
         if refusal is not None:
             print(f"CONTEST STATE ERROR — pick delivery blocked: {refusal}", file=sys.stderr)
             try:

@@ -177,7 +177,7 @@ def test_uncovered_preview_double_is_refused_then_replaced(world, tmp_path, caps
 
 
 @pytest.mark.parametrize("mode", ["dm", "public"])
-@pytest.mark.parametrize("selection_kind", ["fresh", "reused", "reloaded", "skip", "none"])
+@pytest.mark.parametrize("selection_kind", ["fresh", "matching", "reused", "reloaded", "skip", "none"])
 def test_scheduler_uses_same_cycle_object_and_policy_decision(
     world, monkeypatch, capsys, mode, selection_kind,
 ):
@@ -187,7 +187,9 @@ def test_scheduler_uses_same_cycle_object_and_policy_decision(
     _, selection, _ = orchestrator.run_and_pick(config, DAY)
     daily = selection.pick_result.daily
     path = picks.save_pick(daily, directory)
-    set_dated(directory, best=10)
+    # Whole-range fix set A contract A2 compares fresh picks against the final observation.
+    if selection_kind != "matching":
+        set_dated(directory, best=10)
     if selection_kind == "reloaded":
         daily = picks.load_pick(DAY, directory)
     elif selection_kind == "reused":
@@ -205,7 +207,7 @@ def test_scheduler_uses_same_cycle_object_and_policy_decision(
     monkeypatch.setattr(scheduler, "_format_pick_delivery_text", formatter)
     result = scheduler._deliver_and_lock_pick(
         daily, config, directory, state, DAY, "lineup", selection=selection)
-    fresh = selection_kind == "fresh"
+    fresh = selection_kind == "matching"
     assert result is fresh
     assert state.pick_locked is fresh and formatter.called is fresh
     persisted = picks.load_pick(DAY, directory)
@@ -343,12 +345,18 @@ def test_fresh_choices_stamp_the_selection_read(world, tmp_path, monkeypatch, co
         derived = asdict(selection.pick_result.daily).get("chosen_on")
     else:
         result = invoke(command, config, tmp_path)
-        assert result.exit_code == 0
+        # Whole-range fix set A contract A2 refuses a changed dated observation.
+        refused = command == "run" and kind == "dated"
+        assert result.exit_code == int(refused)
         derived = asdict(picks.load_pick(DAY, directory)).get("chosen_on")
     assert derived == record(kind, required=command != "preview")
     if command == "run":
         assert len(invoked) == 2
-        assert "Streak: 8" in posting.post_to_bluesky.call_args.args[0]
+        if refused:
+            posting.post_to_bluesky.assert_not_called()
+            assert "bts run: no pick:" in result.stderr
+        else:
+            assert "Streak: 8" in posting.post_to_bluesky.call_args.args[0]
 
 
 @pytest.mark.parametrize("required_via", ["scheduler", "health_checks", None])

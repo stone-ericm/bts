@@ -392,7 +392,7 @@ def orchestrate(config_path: Path, date: str, *, config: dict | None = None) -> 
                 picks_dir,
                 require_contest_state=required,
             )
-            if required and sel.decision is None:
+            if required:
                 refusal = saved_pick_refusal(result.daily, decision_state)
                 if refusal is not None:
                     print(f"bts orchestrate: no pick: {refusal}", file=sys.stderr)
@@ -442,7 +442,7 @@ def orchestrate(config_path: Path, date: str, *, config: dict | None = None) -> 
         require_contest_state=required,
     )
     if should_post_now(daily.pick.game_time, daily.bluesky_posted):
-        if required and sel.decision is None:
+        if required:
             refusal = saved_pick_refusal(daily, decision_state)
             if refusal is not None:
                 print(f"bts orchestrate: no pick: {refusal}", file=sys.stderr)
