@@ -176,6 +176,8 @@ def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = Non
                      f"`bts saver-state --init used --season {season}`"),
         ))
     elif saver.state == "not_earned" and in_zone:
+        from bts.season_contract import dated_template
+
         alerts.append(Alert(
             level="WARN", source=SAVER_SOURCE,
             message=(f"Streak Saver flag not_earned for season {season} contradicts streak "
@@ -185,7 +187,8 @@ def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = Non
                      f"`bts saver-state --use --season {season}`. If MLB shows the saver not earned "
                      f"yet, streak {state.streak} is a stale contest reading (dated "
                      f"{state.source_date}): leave the flag as it is and correct the contest streak "
-                     "with bts set-contest-streak"),
+                     f"with `{dated_template(picks_dir, now)}`. Replace N, B and S with MLB's "
+                     "active streak, best streak and saver state (one of not_earned, active or used)."),
         ))
 
     append_refusal()

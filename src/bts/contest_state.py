@@ -370,6 +370,7 @@ def load_contest_streak_state(
     *,
     now: datetime | None = None,
     require_dated_auto: bool = False,
+    omit_selected_dated: bool = False,
 ) -> ContestStreakState | None:
     """Select the active contest-streak observation.
 
@@ -381,13 +382,17 @@ def load_contest_streak_state(
 
     Required decision reads set require_dated_auto; other callers keep legacy
     acceptance of undated automatic files during the CS1 sequencing step.
+
+    Status sets omit_selected_dated only after selecting today's dated snapshot.
+    This lets it evaluate the automatic fallback without reopening that record.
     """
     now = now or datetime.now(timezone.utc)
     state_dir = picks_dir / "account_state"
     manual_path = state_dir / "contest_streak.manual.json"
     auto_path = state_dir / "contest_streak.json"
 
-    manual = _parse_state_file(manual_path) if manual_path.exists() else None
+    manual = (_parse_state_file(manual_path)
+              if not omit_selected_dated and manual_path.exists() else None)
     if manual is not None and manual.effective_date is not None:
         if dated_observation_in_effect(manual, now):
             return manual
@@ -522,6 +527,8 @@ def load_decision_streak_state(
     *,
     require_contest_state: bool = False,
     now: datetime | None = None,
+    switch=None,
+    omit_selected_dated: bool = False,
 ) -> DecisionStreakState:
     """Return the streak/saver state for live user-facing recommendations.
 
@@ -535,11 +542,12 @@ def load_decision_streak_state(
     now_year = now_dt.astimezone(ZoneInfo("America/New_York")).year
     model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir, now_year)
     contest = load_contest_streak_state(
-        picks_dir, now=now_dt, require_dated_auto=require_contest_state)
+        picks_dir, now=now_dt, require_dated_auto=require_contest_state,
+        omit_selected_dated=omit_selected_dated)
     if require_contest_state and not (
             contest is not None and dated_observation_in_effect(contest, now_dt)):
         from bts.season_contract import live_automatic_refusal
-        refusal = live_automatic_refusal(picks_dir, now_dt, contest)
+        refusal = live_automatic_refusal(picks_dir, now_dt, contest, switch=switch)
         if refusal is not None:
             raise ContestStateError(refusal)
     if contest is None:

@@ -50,8 +50,8 @@ def test_persistence_prefixes(tmp_path, monkeypatch, state, stage):
     r = fetch(tmp_path)
     automatic = state == "automatic"
     relevant = state == "corrupt" or stage in {"status", "ledger"} or automatic
-    assert r.exit_code == (1 if relevant and (state != "corrupt" or stage == "status") else
-                           2 if state == "corrupt" else 0), r.output
+    assert r.exit_code == (2 if state == "corrupt" or stage == "status" else
+                           1 if relevant else 0), r.output
     expected = (["observation"] if automatic else []) + ["status"]
     if state != "corrupt":
         expected += ["ledger"] + (["saver"] if automatic else [])
@@ -275,7 +275,7 @@ def test_enable_message_beside_fetch_failure_before_or_after_install(tmp_path, m
         return writer(path, value)
     monkeypatch.setattr(cli, "_atomic_write_json", write)
     r = fetch(tmp_path)
-    assert r.exit_code == 1
+    assert r.exit_code == (1 if stage == "observation" else 2)
     if stage == "observation":
         assert auto.read_bytes() == before
     else:

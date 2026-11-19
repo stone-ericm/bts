@@ -950,7 +950,7 @@ class TestFetchContestStreak:
             raise auth.AuthError("cookies expired")
         monkeypatch.setattr(auth, "load_session_cookies", _raise)
         dm_calls = []
-        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dm_calls.append(m))
+        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dm_calls.append(m) or "sent-id")
         picks = tmp_path / "picks"; picks.mkdir()
         args = ["fetch-contest-streak", "--picks-dir", str(picks), "--dm-recipient", "x.bsky.social"]
         assert CliRunner().invoke(cli, args).exit_code != 0

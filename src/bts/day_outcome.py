@@ -44,8 +44,13 @@ class DayOutcome:
 
 
 def _pick_text(decision: dict) -> str | None:
-    names = [(decision.get(k) or {}).get("batter_name") for k in ("primary", "double_down")]
-    names = [n for n in names if n]
+    legs = ("primary", "double_down") if decision.get("action") == "double" else ("primary",)
+    names = []
+    for key in legs:
+        summary = decision.get(key)
+        name = summary.get("batter_name") if isinstance(summary, dict) else None
+        if isinstance(name, str) and name.strip():
+            names.append(name)
     return " + ".join(names) if names else None
 
 

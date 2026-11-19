@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import re
 import shlex
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -102,13 +102,14 @@ def dated_template(picks_dir: Path, now: datetime) -> str:
 
 def live_automatic_refusal(
     picks_dir: Path, now: datetime, selected: ContestStreakState | None,
+    *, switch: SwitchState | None = None,
 ) -> str | None:
     """Decide authority from the selected snapshot and ONE switch snapshot.
 
     The caller bypasses this function for an in-effect dated observation. No
     observation is opened here; filename, not its claimed source, identifies it.
     """
-    state = switch_state(picks_dir, now)
+    state = switch_state(picks_dir, now) if switch is None else switch
     year = now.astimezone(ET).year
     if state.state == "corrupt":
         kind = 1
@@ -240,15 +241,39 @@ def inspection_lines(picks: Path, now: datetime, state: SwitchState, *, season: 
     except _UNREADABLE as exc:
         lines.append(f"saver: unavailable (invalid: {exc}); reads uninitialized for season {today.year}")
 
-    from bts.contest_state import load_decision_streak_state
-    try:
-        live = load_decision_streak_state(picks, require_contest_state=True, now=now)
+    from bts.contest_state import automatic_reading_record, load_decision_streak_state
+
+    live_switch = state
+    if state.snapshot is not None:
+        live_switch = replace(state, state=(state.snapshot["status"] if state.snapshot["season"] == today.year
+                                            else "other_season"))
+
+    def verdict(*, omit_selected_dated=False):
+        try:
+            return load_decision_streak_state(
+                picks, require_contest_state=True, now=now,
+                switch=live_switch, omit_selected_dated=omit_selected_dated,
+            ), None, None
+        except ContestStateError as exc:
+            return None, "refused", str(exc)
+        except Exception as exc:
+            return None, "unavailable", str(exc) or type(exc).__name__
+
+    live, disposition, detail = verdict()
+    dated = live is not None and live.observation_kind == "dated"
+    if live is not None:
         lines.append(f"live decision now: accepted; source={live.source}; streak={live.streak}; "
                      f"status={live.status}; saver={live.saver_flag_state}")
-    except ContestStateError as exc:
-        lines.append(f"live decision now: refused; {exc}")
-    except Exception as exc:
-        lines.append(f"live decision now: unavailable; {exc}")
+    else:
+        lines.append(f"live decision now: {disposition}; {detail}")
+
+    automatic, _, refusal = verdict(omit_selected_dated=True) if dated else (live, disposition, detail)
+    if automatic is not None:
+        reading = automatic_reading_record(automatic, now)
+        recorded = reading["recorded_at"] if reading and reading["reason"] != "unreadable" else "unavailable"
+        lines.append(f"automatic path alone: accepted (streak {automatic.streak}, recorded {recorded})")
+    else:
+        lines.append(f"automatic path alone: refused: {refusal.splitlines()[0]}")
 
     path = directory / "contest_ledger.jsonl"
     try:
@@ -272,4 +297,7 @@ def inspection_lines(picks: Path, now: datetime, state: SwitchState, *, season: 
             lines.extend(rows[-10:])
     except _UNREADABLE as exc:
         lines.append(f"ledger: unreadable; unavailable: {exc}; counts unavailable")
+    if dated and automatic is None:
+        lines.append("Today's dated observation expires at midnight ET. Tomorrow's live pick, if games "
+                     "are scheduled, requires a usable automatic reading or a new dated observation.")
     return lines
