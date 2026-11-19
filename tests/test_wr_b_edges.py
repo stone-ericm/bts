@@ -236,6 +236,27 @@ def test_status_automatic_verdict_opens_same_state_paths_as_live(tmp_path, monke
         contest_state.load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW)
 
 
+def test_status_automatic_verdict_evaluates_the_saver_read(tmp_path):
+    # Round-2 review (SIGN WITH EDITS): a status decision that skipped the saver read passed every
+    # other test. With a saver flag the live loader cannot read (an over-long integer), today's dated
+    # observation is accepted and the automatic path alone must be refused, as the live read is.
+    put(tmp_path, "season_contract.json", contract())
+    put(tmp_path, "contest_streak.json", automatic())
+    manual = put(tmp_path, "contest_streak.manual.json", dated())
+    saver = tmp_path / "account_state" / "saver_state.json"
+    saver.write_bytes(b'{"season":' + b"9" * 5000 + b',"state":"used"}')
+    before = files(tmp_path)
+    status = run(tmp_path, "season-contract", "status")
+    assert status.exit_code == 0, status.output
+    assert "live decision now: accepted" in status.output
+    verdict, = [line for line in status.output.splitlines() if line.startswith("automatic path alone:")]
+    assert verdict.startswith("automatic path alone: refused: "), verdict
+    assert files(tmp_path) == before
+    manual.unlink()
+    with pytest.raises(ValueError, match="Exceeds the limit"):
+        contest_state.load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW)
+
+
 def test_decision_and_saver_loader_signatures():
     decision = signature(contest_state.load_decision_streak_state)
     saver = signature(saver_state.load_saver_state)
