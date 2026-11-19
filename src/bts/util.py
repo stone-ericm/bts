@@ -22,10 +22,6 @@ def read_regular_file_text(path: Path) -> str:
         os.close(fd)
 
 
-def read_utf8(path: Path) -> str:
-    return path.read_text(encoding="utf-8")
-
-
 def atomic_write_text(path, text: str) -> None:
     """Write ``text`` to ``path`` atomically.
 

@@ -7,6 +7,7 @@ import shlex
 import signal
 from contextlib import contextmanager
 from datetime import timedelta
+from inspect import Parameter, signature
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -15,7 +16,7 @@ import pytest
 from click.testing import CliRunner
 
 import bts.cli as cli
-from bts import contest_fetch, saver_state, season_contract
+from bts import contest_fetch, contest_state, saver_state, season_contract
 from bts.health import alert
 from bts.health import contest_state as health
 from bts.leaderboard import auth
@@ -138,26 +139,114 @@ def test_status_keeps_authority_refusals(tmp_path, filename, data, reason):
     assert "expires at midnight ET" not in result.output and files(tmp_path) == before
 
 
-@pytest.mark.parametrize(("name", "accepted"), [
-    ("season_contract.json", False), ("contest_streak.json", False),
-    ("contest_streak.manual.json", False), ("saver_state.json", True),
-    ("contest_ledger.jsonl", True), ("2027-07-15.json", True), ("streak.json", True),
+@pytest.mark.parametrize("case", [
+    "accepted", "masked-accepted", "v1", "masked-v1", "missing-auto", "expired",
+    "legacy", "corrupt-manual", "corrupt-auto", "corrupt-switch", "wrong-id", "old",
+    "future", "missing-stamp", "naive-stamp", "incomplete-fetch", "settlement-gap",
+    "december", "january",
 ])
-def test_status_never_blocks_on_special_files(tmp_path, name, accepted):
+def test_status_automatic_verdict_matches_live_without_selected_dated(tmp_path, monkeypatch, case):
+    now = NOW
+    auto = automatic()
+    switch = contract()
+    manual = None
+    if case in {"masked-accepted", "masked-v1", "missing-auto", "corrupt-auto",
+                "corrupt-switch", "wrong-id", "incomplete-fetch"}:
+        manual = dated()
+    if case in {"v1", "masked-v1"}:
+        auto = automatic(schema_version="bts_contest_streak_auto_v1")
+    if case == "expired":
+        manual = dated("2027-07-14")
+    if case == "legacy":
+        manual = {"active_streak": 3, "override_expires_at": (NOW + timedelta(days=2)).isoformat()}
+    if case == "corrupt-switch":
+        switch = []
+    if case == "wrong-id":
+        auto = automatic(activation_id="b" * 32)
+    if case in {"old", "future", "missing-stamp", "naive-stamp"}:
+        auto = automatic(recorded_at={
+            "old": (NOW - timedelta(hours=13)).isoformat(),
+            "future": (NOW + timedelta(hours=2)).isoformat(),
+            "missing-stamp": None,
+            "naive-stamp": "2027-07-15T11:30:00",
+        }[case])
+    if case == "incomplete-fetch":
+        # The observation was installed, but the later ledger and saver steps did not run.
+        auto = automatic(active_streak=7)
+    if case == "settlement-gap":
+        for offset, outcome in ((0, "hit"), (1, "miss")):
+            day = (NOW.date() + timedelta(days=offset)).isoformat()
+            (tmp_path / f"{day}.json").write_text(json.dumps({"result": outcome}))
+    if case in {"december", "january"}:
+        now = REAL_DATETIME(2027, 12, 31, 23, 59, 59, tzinfo=ET)
+        auto = automatic(recorded_at=now.isoformat())
+        manual = dated("2027-12-31")
+        if case == "january":
+            now += timedelta(seconds=2)
+    pin(monkeypatch, now)
+    switch_path = put(tmp_path, "season_contract.json", switch)
+    if case == "corrupt-switch":
+        switch_path.write_bytes(b"\xff")
+    if case != "missing-auto":
+        put(tmp_path, "contest_streak.json", [] if case == "corrupt-auto" else auto)
+    if manual is not None or case == "corrupt-manual":
+        manual_path = put(tmp_path, "contest_streak.manual.json", manual)
+        if case == "corrupt-manual":
+            manual_path.write_text("{")
+    before = files(tmp_path)
+    args = ("--season", str(now.year - 1)) if case in {"december", "january"} else ()
+    result = run(tmp_path, "season-contract", "status", *args)
+    assert result.exit_code == int(case == "corrupt-switch"), result.output
+    actual, = [line for line in result.output.splitlines() if line.startswith("automatic path alone:")]
+    assert files(tmp_path) == before
+    if manual is not None and manual.get("effective_date") == now.date().isoformat():
+        manual_path.unlink()
+    try:
+        state = contest_state.load_decision_streak_state(tmp_path, require_contest_state=True, now=now)
+    except contest_state.ContestStateError as exc:
+        assert actual == f"automatic path alone: refused: {str(exc).splitlines()[0]}"
+    else:
+        reading = contest_state.automatic_reading_record(state, now)
+        stamp = reading["recorded_at"] if reading and reading["reason"] != "unreadable" else "unavailable"
+        assert actual == f"automatic path alone: accepted (streak {state.streak}, recorded {stamp})"
+
+
+@pytest.mark.parametrize("relative", ["account_state/saver_state.json", "streak.json", "2027-07-15.json"])
+def test_status_automatic_verdict_opens_same_state_paths_as_live(tmp_path, monkeypatch, relative):
     put(tmp_path, "season_contract.json", contract())
     put(tmp_path, "contest_streak.json", automatic())
-    base = tmp_path if name in {"streak.json", "2027-07-15.json"} else tmp_path / "account_state"
-    path = base / name
-    path.unlink(missing_ok=True)
-    os.mkfifo(path)
+    manual = put(tmp_path, "contest_streak.manual.json", dated())
+    target = tmp_path / relative
+    target.write_text("{}")
+    read = Path.read_text
+
+    def stop_at_target(path, *args, **kwargs):
+        if path == target:
+            raise SystemExit("state read interrupted")
+        return read(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", stop_at_target)
     before = files(tmp_path)
-    with deadline():
-        result = run(tmp_path, "season-contract", "status")
-    assert result.exit_code == int(name == "season_contract.json"), result.output
-    assert ("automatic path alone: accepted" in result.output) == accepted
-    if not accepted or name in {"saver_state.json", "contest_ledger.jsonl"}:
-        assert "not a regular file" in result.output
+    status = run(tmp_path, "season-contract", "status")
+    assert status.exit_code == 1 and "state read interrupted" in status.output
+    assert "automatic path alone: accepted" not in status.output
     assert files(tmp_path) == before
+    manual.unlink()
+    with pytest.raises(SystemExit, match="state read interrupted"):
+        contest_state.load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW)
+
+
+def test_decision_and_saver_loader_signatures():
+    decision = signature(contest_state.load_decision_streak_state)
+    saver = signature(saver_state.load_saver_state)
+    base = [p for name, p in decision.parameters.items() if name not in {"omit_selected_dated", "switch"}]
+    assert str(decision.replace(parameters=base)) == (
+        "(picks_dir: 'Path', *, require_contest_state: 'bool' = False, "
+        "now: 'datetime | None' = None) -> 'DecisionStreakState'"
+    )
+    assert decision.parameters["omit_selected_dated"].kind is Parameter.KEYWORD_ONLY
+    assert decision.parameters["omit_selected_dated"].default is False
+    assert str(saver) == "(picks_dir: 'Path', *, season: 'int') -> 'SaverState'"
 
 
 @pytest.mark.parametrize("recorded", [None, "", "2027-12-31T12:00:00", "2027-10-01T12:00:00Z",
@@ -168,23 +257,23 @@ def test_status_uses_one_et_snapshot_across_new_year(tmp_path, monkeypatch, reco
     put(tmp_path, "season_contract.json", contract())
     put(tmp_path, "contest_streak.json", automatic(recorded_at=recorded))
     put(tmp_path, "contest_streak.manual.json", dated("2027-12-31"))
-    original = season_contract.read_regular_file_text
+    original = Path.read_text
     calls = []
 
-    def cross(path):
+    def cross(path, *args, **kwargs):
         calls.append(path.name)
         pin(monkeypatch, next_year)
-        return original(path)
+        return original(path, *args, **kwargs)
 
     pin(monkeypatch, entry)
-    monkeypatch.setattr(season_contract, "read_regular_file_text", cross)
+    monkeypatch.setattr(Path, "read_text", cross)
     before = files(tmp_path)
     result = run(tmp_path, "season-contract", "status", "--season", "2026")
     assert "inspected season: 2026" in result.output and "in effect=True" in result.output
     expected = recorded if recorded and recorded.endswith("Z") else "unavailable"
     assert f"automatic path alone: accepted (streak 12, recorded {expected})" in result.output
     assert calls.count("contest_streak.manual.json") == 2  # inspection and live selection only
-    assert calls.count("season_contract.json") == 0  # captured before diagnostics
+    assert calls.count("season_contract.json") == 1  # shared switch snapshot
     result = run(tmp_path, "season-contract", "status", "--season", "2027")
     assert "in effect=False" in result.output and "switch: automatic" in result.output
     assert "automatic path alone: refused: Live decision refused: season 2028 switch is other_season" in result.output
@@ -201,15 +290,15 @@ def test_status_restart_after_interrupted_read(tmp_path, monkeypatch, interrupt,
     put(tmp_path, "saver_state.json", {})
     put(tmp_path, "contest_ledger.jsonl", {})
     before = files(tmp_path)
-    original = season_contract.read_regular_file_text
+    original = Path.read_text
 
-    def interrupted(path):
+    def interrupted(path, *args, **kwargs):
         if path.name == section:
             raise interrupt(4)
-        return original(path)
+        return original(path, *args, **kwargs)
 
     with monkeypatch.context() as patch:
-        patch.setattr(season_contract, "read_regular_file_text", interrupted)
+        patch.setattr(Path, "read_text", interrupted)
         result = run(tmp_path, "season-contract", "status")
         assert result.exit_code and "automatic path alone:" not in result.output
     assert files(tmp_path) == before
@@ -302,6 +391,34 @@ def test_fetch_unconfirmed_dm_does_not_start_cooldown(tmp_path, monkeypatch):
     assert fetch(tmp_path).exit_code == 2
     assert set(json.loads(status.read_text())["last_alert_at_by_category"]) == {"actionable"}
     assert fetch(tmp_path).exit_code == 2 and send_dm.call_count == 2
+
+
+@pytest.mark.parametrize("layout", ["legacy", "category"])
+@pytest.mark.parametrize("stamp", ["9999-12-31T23:59:59-01:00", "2027-07-15Z15:00:00Z"])
+def test_fetch_preserves_aware_cooldown_across_success(tmp_path, monkeypatch, layout, stamp):
+    from bts.dm import send_dm
+
+    put(tmp_path, "season_contract.json", contract())
+    status = tmp_path.parent / "health_state/contest_streak_fetch_status.json"
+    status.parent.mkdir()
+    prior = ({"last_alert_at": stamp} if layout == "legacy"
+             else {"last_alert_at_by_category": {"actionable": stamp}})
+    status.write_text(json.dumps(prior))
+
+    def check_cooldown():
+        with monkeypatch.context() as patch:
+            patch.setattr(auth, "fetch_login_session", Mock(side_effect=auth.AuthError("offline")))
+            assert fetch(tmp_path).exit_code == 2
+        send_dm.assert_not_called()
+        saved = json.loads(status.read_text())
+        assert saved["last_alert_at_by_category"]["actionable"] == stamp
+
+    assert fetch(tmp_path).exit_code == 0
+    saved = json.loads(status.read_text())
+    assert {key: saved[key] for key in prior} == prior
+    check_cooldown()
+    assert fetch(tmp_path).exit_code == 0
+    check_cooldown()
 
 
 @pytest.mark.parametrize(("error", "category"), [

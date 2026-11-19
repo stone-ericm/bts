@@ -1717,7 +1717,8 @@ def _fetch_bts_to_mlb(client=None):
 
 
 def _read_contest_fetch_status(path):
-    from bts.contest_state import _UNREADABLE, _reading_time_utc
+    from datetime import datetime
+    from bts.contest_state import _UNREADABLE
     from bts.util import read_regular_file_text
 
     try:
@@ -1728,7 +1729,14 @@ def _read_contest_fetch_status(path):
         return {}
 
     def usable(stamp):
-        return isinstance(stamp, str) and _reading_time_utc(stamp) is not None
+        if not isinstance(stamp, str):
+            return False
+        try:
+            # Match the cooldown comparison. UTC conversion can overflow for an
+            # aware timestamp near the ends of datetime's representable range.
+            return datetime.fromisoformat(stamp).utcoffset() is not None
+        except ValueError:
+            return False
 
     if not usable(status.get("last_alert_at")):
         status.pop("last_alert_at", None)
@@ -2178,11 +2186,10 @@ def season_contract():
 def season_contract_status(picks_dir, season):
     from datetime import datetime, timezone
     from bts.season_contract import ET, switch_state, inspection_lines
-    from bts.util import read_regular_file_text
     now = datetime.now(timezone.utc)
     inspected = now.astimezone(ET).year if season is None else season
     picks = Path(picks_dir)
-    state = switch_state(picks, now, season=inspected, read_text=read_regular_file_text)
+    state = switch_state(picks, now, season=inspected)
     for line in inspection_lines(picks, now, state, season=inspected):
         click.echo(line)
     if state.state == "corrupt":

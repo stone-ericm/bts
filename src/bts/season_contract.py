@@ -10,7 +10,6 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from bts.contest_state import ContestStreakState, _UNREADABLE
-from bts.util import read_regular_file_text, read_utf8
 
 SCHEMA = "bts_season_contract_v1"
 AUTO_SCHEMA = "bts_contest_streak_auto_v2"
@@ -66,8 +65,7 @@ def validate_contract(data: object) -> dict:
     return data
 
 
-def switch_state(picks_dir: Path, now: datetime, *, season: int | None = None,
-                 read_text=read_utf8) -> SwitchState:
+def switch_state(picks_dir: Path, now: datetime, *, season: int | None = None) -> SwitchState:
     """Read and validate one snapshot. Only lstat FileNotFoundError is absent."""
     path = Path(picks_dir) / "account_state/season_contract.json"
     try:
@@ -77,7 +75,7 @@ def switch_state(picks_dir: Path, now: datetime, *, season: int | None = None,
     except _UNREADABLE as exc:
         return SwitchState("corrupt", check=1, error=f"{path}: {exc}")
     try:
-        data = validate_contract(json.loads(read_text(path)))
+        data = validate_contract(json.loads(path.read_text(encoding="utf-8")))
     except InvalidContract as exc:
         return SwitchState("corrupt", check=exc.check, error=f"{path}: {exc}")
     except _UNREADABLE as exc:
@@ -197,7 +195,7 @@ def inspection_lines(picks: Path, now: datetime, state: SwitchState, *, season: 
             if not _present(path):
                 lines.append(f"{label}: absent")
                 continue
-            parsed = _parse_state_file(path, read_text=read_regular_file_text)
+            parsed = _parse_state_file(path, require_dated=False)
             if label == "manual":
                 if parsed.effective_date is None:
                     lines.append(f"manual: legacy streak={parsed.streak} expiry={parsed.override_expires_at}")
@@ -206,7 +204,7 @@ def inspection_lines(picks: Path, now: datetime, state: SwitchState, *, season: 
                                  f"best={parsed.best_streak} saver={parsed.saver_state} "
                                  f"in effect={dated_observation_in_effect(parsed, now)}")
             else:
-                raw = json.loads(read_regular_file_text(path))
+                raw = json.loads(path.read_text(encoding="utf-8"))
                 schema = ("missing" if "schema_version" not in raw else
                           "null" if raw["schema_version"] is None else repr(raw["schema_version"]))
                 if raw.get("schema_version") not in ("bts_contest_streak_auto_v1", AUTO_SCHEMA, None):
@@ -229,8 +227,8 @@ def inspection_lines(picks: Path, now: datetime, state: SwitchState, *, season: 
         else:
             # Decode first so all _UNREADABLE failures get a diagnostic, even those
             # the existing fail-closed saver loader deliberately does not catch.
-            raw = json.loads(read_regular_file_text(path))
-            flag = load_saver_state(picks, season=today.year, read_text=read_regular_file_text)
+            raw = json.loads(path.read_text(encoding="utf-8"))
+            flag = load_saver_state(picks, season=today.year)
             if flag.state != "uninitialized":
                 lines.append(f"saver: {flag.state}; season: {flag.season}")
             else:
@@ -253,7 +251,7 @@ def inspection_lines(picks: Path, now: datetime, state: SwitchState, *, season: 
     def verdict(*, omit_selected_dated=False):
         try:
             return load_decision_streak_state(
-                picks, require_contest_state=True, now=now, read_text=read_regular_file_text,
+                picks, require_contest_state=True, now=now,
                 switch=live_switch, omit_selected_dated=omit_selected_dated,
             ), None, None
         except ContestStateError as exc:
@@ -285,7 +283,7 @@ def inspection_lines(picks: Path, now: datetime, state: SwitchState, *, season: 
             keys = ["recorded_at", "active_streak", "best_streak", "source_date", "season", "switched",
                     "activation_id", "settled_by_year", "settled_unmapped", "unsettled"]
             rows, bad = [], 0
-            for line in read_regular_file_text(path).splitlines():
+            for line in path.read_text(encoding="utf-8").splitlines():
                 # Render inside the per-line guard: a row that decodes but cannot be
                 # rendered (nesting too deep for repr) is a bad line, not an unreadable file.
                 try:

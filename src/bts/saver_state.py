@@ -42,7 +42,7 @@ def season_for(source_date: date | None, *, now_year: int) -> int:
     return source_date.year if source_date is not None else now_year
 
 
-def load_saver_state(picks_dir: Path, *, season: int, read_text=None) -> SaverState:
+def load_saver_state(picks_dir: Path, *, season: int) -> SaverState:
     """Read the saver flag for `season`. Returns state='uninitialized' (fail-closed, DISTINCT
     from not_earned) when the file is missing, invalid, or for another season. A stale-season
     file preserves its `season` so health can distinguish stale from missing."""
@@ -50,7 +50,7 @@ def load_saver_state(picks_dir: Path, *, season: int, read_text=None) -> SaverSt
     if not path.exists():
         return SaverState("uninitialized", None)
     try:
-        d = json.loads(path.read_text() if read_text is None else read_text(path))
+        d = json.loads(path.read_text())
     except (json.JSONDecodeError, OSError, UnicodeDecodeError):
         return SaverState("uninitialized", None)
     if not isinstance(d, dict):           # a JSON scalar/list ([], 123, "active") -> fail-closed

@@ -18,7 +18,6 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from bts.saver_state import SaverState, load_saver_state, policy_saver_available
-from bts.util import read_utf8
 
 
 logger = logging.getLogger(__name__)
@@ -306,12 +305,10 @@ def _contest_state_paths(picks_dir: Path) -> list[Path]:
     return [state_dir / name for name in _CONTEST_STATE_NAMES]
 
 
-def _parse_state_file(
-    path: Path, *, require_dated: bool = False, read_text=read_utf8,
-) -> ContestStreakState:
+def _parse_state_file(path: Path, *, require_dated: bool = False) -> ContestStreakState:
     """Parse one contest-streak observation file. Raises ContestStateError if malformed."""
     try:
-        data = json.loads(read_text(path))
+        data = json.loads(path.read_text(encoding="utf-8"))
     except _UNREADABLE as exc:
         raise ContestStateError(f"contest streak state malformed at {path}: {exc}") from exc
     if not isinstance(data, dict):
@@ -373,7 +370,6 @@ def load_contest_streak_state(
     *,
     now: datetime | None = None,
     require_dated_auto: bool = False,
-    read_text=read_utf8,
     omit_selected_dated: bool = False,
 ) -> ContestStreakState | None:
     """Select the active contest-streak observation.
@@ -395,7 +391,7 @@ def load_contest_streak_state(
     manual_path = state_dir / "contest_streak.manual.json"
     auto_path = state_dir / "contest_streak.json"
 
-    manual = (_parse_state_file(manual_path, read_text=read_text)
+    manual = (_parse_state_file(manual_path)
               if not omit_selected_dated and manual_path.exists() else None)
     if manual is not None and manual.effective_date is not None:
         if dated_observation_in_effect(manual, now):
@@ -410,14 +406,14 @@ def load_contest_streak_state(
             and manual.override_expires_at > now):
         return manual
 
-    auto = (_parse_state_file(auto_path, require_dated=require_dated_auto, read_text=read_text)
+    auto = (_parse_state_file(auto_path, require_dated=require_dated_auto)
             if auto_path.exists() else None)
     if auto is not None:
         return auto
     return manual
 
 
-def _resolved_pick_dates(picks_dir: Path, *, read_text=read_utf8) -> list[date]:
+def _resolved_pick_dates(picks_dir: Path) -> list[date]:
     """All root-level production pick dates with a settled result."""
     dates: list[date] = []
     for path in picks_dir.glob("*.json"):
@@ -428,7 +424,7 @@ def _resolved_pick_dates(picks_dir: Path, *, read_text=read_utf8) -> list[date]:
         except ValueError:        # ISO-shaped but invalid (e.g. 2026-99-99)
             continue
         try:
-            body = json.loads(read_text(path))
+            body = json.loads(path.read_text(encoding="utf-8"))
         except _UNREADABLE:
             continue
         if not isinstance(body, dict):
@@ -440,12 +436,12 @@ def _resolved_pick_dates(picks_dir: Path, *, read_text=read_utf8) -> list[date]:
     return dates
 
 
-def latest_resolved_pick_date(picks_dir: Path, *, read_text=read_utf8) -> date | None:
+def latest_resolved_pick_date(picks_dir: Path) -> date | None:
     """Return the latest root-level production pick date with a settled result."""
-    return max(_resolved_pick_dates(picks_dir, read_text=read_text), default=None)
+    return max(_resolved_pick_dates(picks_dir), default=None)
 
 
-def resolved_pick_settlement_gap(picks_dir: Path, source_date: date, *, read_text=read_utf8) -> int:
+def resolved_pick_settlement_gap(picks_dir: Path, source_date: date) -> int:
     """Number of settled production picks dated strictly after ``source_date``.
 
     This is the contest's settlement lag measured in *picks*, not calendar days:
@@ -454,10 +450,10 @@ def resolved_pick_settlement_gap(picks_dir: Path, source_date: date, *, read_tex
     the contest does); >= 2 == genuine staleness (the week-long-freeze incident
     class, where picks resolve daily while source_date is frozen).
     """
-    return sum(1 for d in _resolved_pick_dates(picks_dir, read_text=read_text) if d > source_date)
+    return sum(1 for d in _resolved_pick_dates(picks_dir) if d > source_date)
 
 
-def _has_unconfirmed_miss(picks_dir: Path, source_date: date, *, read_text=read_utf8) -> bool:
+def _has_unconfirmed_miss(picks_dir: Path, source_date: date) -> bool:
     """True if a settled local pick dated strictly after ``source_date`` is a MISS.
 
     The bot resolves a pick locally before the contest posts it; a local miss the
@@ -474,7 +470,7 @@ def _has_unconfirmed_miss(picks_dir: Path, source_date: date, *, read_text=read_
         if pick_date <= source_date:
             continue
         try:
-            body = json.loads(read_text(path))
+            body = json.loads(path.read_text(encoding="utf-8"))
         except _UNREADABLE:
             continue
         if not isinstance(body, dict):
@@ -487,8 +483,6 @@ def _has_unconfirmed_miss(picks_dir: Path, source_date: date, *, read_text=read_
 def contest_state_is_fresh(
     contest: ContestStreakState,
     picks_dir: Path,
-    *,
-    read_text=read_utf8,
 ) -> bool:
     """Return whether contest state was observed after the last settled pick.
 
@@ -499,15 +493,13 @@ def contest_state_is_fresh(
     """
     if contest.source_date is None:
         return False
-    latest = latest_resolved_pick_date(picks_dir, read_text=read_text)
+    latest = latest_resolved_pick_date(picks_dir)
     if latest is None:
         return True
     return contest.source_date >= latest
 
 
-def _load_model_diagnostics(
-    picks_dir: Path, now_year: int, *, read_text=read_utf8,
-) -> tuple[int | None, bool | None, str | None]:
+def _load_model_diagnostics(picks_dir: Path, now_year: int) -> tuple[int | None, bool | None, str | None]:
     """Read one model snapshot without changing the scorer loaders' behavior.
 
     Missing files and unmatched seasons return fresh model diagnostics. A
@@ -518,7 +510,7 @@ def _load_model_diagnostics(
     try:
         if not path.exists():
             return 0, True, None
-        data = json.loads(read_text(path))
+        data = json.loads(path.read_text(encoding="utf-8"))
         if not isinstance(data, dict):
             raise TypeError("expected object")
         if type(data.get("season")) is not int or data["season"] != now_year:
@@ -535,7 +527,6 @@ def load_decision_streak_state(
     *,
     require_contest_state: bool = False,
     now: datetime | None = None,
-    read_text=read_utf8,
     switch=None,
     omit_selected_dated: bool = False,
 ) -> DecisionStreakState:
@@ -549,10 +540,10 @@ def load_decision_streak_state(
     """
     now_dt = now or datetime.now(timezone.utc)
     now_year = now_dt.astimezone(ZoneInfo("America/New_York")).year
-    model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir, now_year, read_text=read_text)
+    model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir, now_year)
     contest = load_contest_streak_state(
         picks_dir, now=now_dt, require_dated_auto=require_contest_state,
-        read_text=read_text, omit_selected_dated=omit_selected_dated)
+        omit_selected_dated=omit_selected_dated)
     if require_contest_state and not (
             contest is not None and dated_observation_in_effect(contest, now_dt)):
         from bts.season_contract import live_automatic_refusal
@@ -589,15 +580,15 @@ def load_decision_streak_state(
         )
 
     dated_in_effect = dated_observation_in_effect(contest, now_dt)
-    if dated_in_effect or contest_state_is_fresh(contest, picks_dir, read_text=read_text):
+    if dated_in_effect or contest_state_is_fresh(contest, picks_dir):
         status = "fresh"
         message = f"using fresh contest streak from {contest.source}"
     elif contest.source_date is None:
         status = "stale"
         message = "contest streak has no source_date; treating as last-confirmed (stale)"
     else:
-        gap = resolved_pick_settlement_gap(picks_dir, contest.source_date, read_text=read_text)
-        if gap >= 2 or _has_unconfirmed_miss(picks_dir, contest.source_date, read_text=read_text):
+        gap = resolved_pick_settlement_gap(picks_dir, contest.source_date)
+        if gap >= 2 or _has_unconfirmed_miss(picks_dir, contest.source_date):
             status = "stale"
             message = "contest streak stale; using last confirmed value (current may be lower)"
         else:
@@ -612,8 +603,7 @@ def load_decision_streak_state(
     # CLI/dashboard. `contest.saver_available` is retired from the decision (it is still surfaced
     # as the `contest_saver_available` diagnostic below).
     saver = (SaverState(state=contest.saver_state, season=contest.effective_date.year)
-             if dated_in_effect else load_saver_state(
-                 picks_dir, season=now_year, read_text=None if read_text is read_utf8 else read_text))
+             if dated_in_effect else load_saver_state(picks_dir, season=now_year))
     contest_saver = policy_saver_available(saver, contest.streak)
     best_streak, best_status = classify_best_streak(contest, now=now_dt, now_year=now_year)
 

@@ -221,14 +221,13 @@ def test_status_complete_valid_snapshot_and_identifier_comparison(tmp_path, monk
         revoked_at="2027-07-14T16:00:00Z"))
     put(tmp_path, "contest_streak.json", {"schema_version": "bts_contest_streak_auto_v2",
         "active_streak": 7, "best_streak": 9, "season": 2027, "activation_id": ID})
-    import os
-    original = os.open
+    original = Path.read_text
     reads = []
     def reading(p, *a, **kw):
-        if isinstance(p, Path) and p.name == "season_contract.json":
+        if p.name == "season_contract.json":
             reads.append(p)
         return original(p, *a, **kw)
-    monkeypatch.setattr(os, "open", reading)
+    monkeypatch.setattr(Path, "read_text", reading)
     r = run(tmp_path, "season-contract", "status")
     assert r.exit_code == 0, r.output
     assert len(reads) == 1
