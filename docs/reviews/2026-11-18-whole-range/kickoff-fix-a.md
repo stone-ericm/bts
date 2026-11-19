@@ -27,3 +27,6 @@ Each of A1 to A5 RED on the base and GREEN after, plus the slices' reproductions
 
 ## Handover
 `HANDOVER-WR-A.md` in the worktree root (not committed): the commit; files and lines; per row what changed and which test was RED on the base; the hostile-input rows; for A5 the caller table; what you ran with counts; anything you could not match or think is wrong (if a row cannot be met as written, STOP and say so instead of choosing). Then print `WRA-<first 8 hex characters of the sha256 of HANDOVER-WR-A.md>` on its own line and `DONE`.
+
+## Amendment 1 (2026-11-18 23:12, after the author stopped on a conflict)
+Any existing test that asserts a fresh, same-cycle choice is sent or posted after the DATED observation changed between the selection read and the final read asserts the behaviour A2 removes (found: `tests/test_saved_pick_paths_cs5a.py::test_fresh_choices_stamp_the_selection_read[dated-run]`). Such a test is updated to assert the refusal and keeps its assertion that the saved stamp reflects the first read, with a one-line comment naming this contract. Automatic-to-automatic cases are not covered and must still deliver. Every existing test changed is listed in the handover with its assertion before and after.
