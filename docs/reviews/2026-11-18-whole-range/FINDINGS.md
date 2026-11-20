@@ -87,3 +87,9 @@ Change set C2 (`STOP-C2.md`; `bts-wr-fresh`) held in two rounds on everything ex
 ## Eric, 2026-11-20 12:35
 - Deploy workflow (W12, W13): **A**, the durable on-box hold (the scheduler unit refuses to start and the four state-writing cron lines skip while the hold file exists; only a successful deploy releases it). To be built as its own change set from the design in `kickoff-fix-deploy.md` "Status".
 - W3 and W4 (the scheduler timing fixes): **build after the bullpen backtests finish** (expected about 2026-11-21 09:30 ET).
+
+## Eric, 2026-11-20 12:50
+- Late-phase policy bins (P1): he asked "fix it and then fold it in?"; the lead's answer is that no separate exact fix exists for the shipped policy (its profiles are lost), so it is folded into the longest-streak policy work, with two requirements recorded for that work: the artifact stores the cutpoints each phase was solved on (or one set for both), and a test proves the bin a day is trained in is the bin serving looks up.
+- W15 (a bad entry in the probable-pitcher cache): **drop bad entries on read, with a warning the system or he can react to** (so: not only a stderr line; a health alert).
+- W16 (the entry check near first pitch): **accept**; not built.
+- W17 (the deploy canary): **make it also ask whether the box can pick**, as part of the deploy-workflow change (choice A).
