@@ -7,6 +7,6 @@ Type=oneshot
 WorkingDirectory=%h/projects/bts
 Environment="PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin"
 Environment="UV_CACHE_DIR=/tmp/uv-cache"
-ExecStart=%h/.local/bin/uv run bts data collect-lineup-times
+ExecStart=%h/.local/bin/uv run --no-sync bts data collect-lineup-times
 StandardOutput=journal
 StandardError=journal

@@ -123,6 +123,11 @@ def box(tmp_path):
          f'shift 2\nexec "{sys.executable}" -c "from bts.cli import cli; cli()" "$@"\n')
     shims = tmp_path / "shims"
     shims.mkdir()
+    guard = shims / "bts-deploy-hold"
+    _exe(guard, '#!/bin/sh\n[ "$1" = version ] || exit 98\nprintf "bts-deploy-hold 1\\n"\n')
+    (shims / "writers.lock").touch()
+    (shims / "transaction.lock").touch()
+    (shims / "state.lock").touch()
     crontab = tmp_path / "crontab.txt"
     _exe(shims / "crontab",
          f'#!/bin/sh\nf="{crontab}"\necho "$1" >> "$f.calls"\ncase "$1" in\n'
@@ -130,11 +135,13 @@ def box(tmp_path):
          '      [ -f "$f" ] && cat "$f" || { echo "no crontab for user" >&2; exit 1; } ;;\n'
          '  -) cat > "$f.new" && mv "$f.new" "$f" ;;\n  *) exit 98 ;;\nesac\n')   # read all stdin first, like crontab
     env = {"HOME": str(home), "PATH": f"{shims}:/usr/bin:/bin",
-           "HEALTHCHECKS_PING_URL": "https://hc-ping.invalid/test-only"}
+           "HEALTHCHECKS_PING_URL": "https://hc-ping.invalid/test-only",
+           "BTS_DEPLOY_HOLD_BIN": str(guard), "BTS_TEST_DEPLOY_GUARD_DIR": str(shims)}
 
     class Box:
         config = home / ".bts-orchestrator.toml"
         cron = crontab
+        guard_bin = guard
 
         def run(self, action):
             return subprocess.run(["bash", str(SCRIPT), action], env=env, capture_output=True, text=True, timeout=120)
@@ -146,6 +153,34 @@ def box(tmp_path):
 
 def _bts_lines(lines):
     return [ln for ln in lines if "# BTS-HETZNER" in ln]
+
+
+def test_guarded_cron_install_fences_all_eight_writer_entries(box):
+    box.config.write_text('[scheduler]\nentry_intent = "research"\npick_delivery = "private"\n')
+    result = box.run("install")
+    assert result.returncode == 0, result.stderr
+    writers = [line for line in box.lines() if any(
+        f"bts {command}" in line
+        for command in ("check-results", "reconcile", "fetch-contest-streak", "preview")
+    )]
+    assert len(writers) == 8
+    assert all(f"{box.guard_bin} run " in line and " -- /bin/sh -c " in line for line in writers)
+    assert all(" run --no-sync " not in line for line in writers)
+    monitors = [line for line in box.lines() if "scripts/check_heartbeat.py " in line]
+    assert len(monitors) == 1 and "/usr/bin/python3 scripts/check_heartbeat.py " in monitors[0]
+    for line in box.lines():
+        if line not in writers and "/uv run " in line:
+            assert "/uv run --no-sync " in line
+
+
+def test_guard_version_failure_cannot_replace_crontab(box):
+    box.config.write_text('[scheduler]\nentry_intent = "research"\npick_delivery = "private"\n')
+    box.cron.write_text("0 9 * * * echo preserve\n")
+    _exe(box.guard_bin, '#!/bin/sh\nprintf "bts-deploy-hold 1\\n"\nexit 1\n')
+    result = box.run("install")
+    assert result.returncode == 1
+    assert "install-deploy-guard-hetzner.sh" in result.stderr
+    assert box.cron.read_text() == "0 9 * * * echo preserve\n"
 
 
 def test_research_install_leaves_out_the_entry_cron(box):

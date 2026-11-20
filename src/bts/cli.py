@@ -2620,6 +2620,59 @@ def schedule(date: str | None, config_path: str, dry_run: bool):
     run_day(date=date, config=config, dry_run=dry_run)
 
 
+@cli.command(name="deploy-canary")
+@click.option("--config", "config_path", required=True, type=click.Path(path_type=Path))
+def deploy_canary(config_path: Path):
+    """Check scheduler readiness without starting the scheduler."""
+    from importlib import import_module
+
+    now = _now_et()
+
+    def report(classification, *, ok=False):
+        click.echo(f"deploy canary {now.isoformat()}: {classification}")
+        if not ok:
+            raise click.exceptions.Exit(1)
+
+    try:
+        from bts import contest_state
+        from bts.entry_intent import check_entry_intent
+        from bts.orchestrator import load_config
+        import_module("bts.scheduler")
+        import_module("bts.model.predict")
+    except Exception:
+        report("runtime unavailable")
+
+    try:
+        config = load_config(config_path)
+        picks = Path(config["orchestrator"]["picks_dir"])
+        intent = check_entry_intent(config)
+        if not picks.is_dir() or not intent.ok:
+            report("configuration refused")
+    except (OSError, KeyError, TypeError, ValueError):
+        report("configuration refused")
+
+    if intent.intent == "research":
+        report("research; contest state skipped", ok=True)
+        return
+    try:
+        import_module("bts.dm" if intent.delivery == "dm" else "bts.posting")
+    except Exception:
+        report("runtime unavailable")
+    try:
+        state = contest_state.load_decision_streak_state(
+            picks, require_contest_state=True, now=now,
+        )
+    except contest_state.ContestStateError:
+        report("contest state refused")
+    except Exception:
+        report("contest state unreadable")
+
+    kind = state.observation_kind
+    if kind not in {"dated", "automatic", "legacy_manual"} or type(state.streak) is not int:
+        report("contest state refused")
+    report(f"live contest state accepted ({kind}, streak {state.streak})", ok=True)
+
+
 @cli.command(name="check-results")
 @click.option("--date", required=True, help="Date to check results for (YYYY-MM-DD)")
 @click.option("--picks-dir", default="data/picks", type=click.Path(), help="Picks directory")

@@ -127,7 +127,18 @@ def _saver_state(tmp_path):
     return saver_dashboard_context(tmp_path, now=NOW).state
 
 
+def _deploy_guard(tmp_path, monkeypatch):
+    guard = tmp_path / "deploy-guard"
+    guard.mkdir()
+    (guard / "writers.lock").touch()
+    (guard / "transaction.lock").touch()
+    (guard / "state.lock").touch()
+    monkeypatch.setenv("BTS_TEST_DEPLOY_GUARD_DIR", str(guard))
+    return guard
+
+
 def test_do_post_saver_transition_socket_wiring(tmp_path, monkeypatch):
+    _deploy_guard(tmp_path, monkeypatch)
     _setup(tmp_path, "active")
     # The HTTP handler takes the wall clock; keep it in the fixture's season.
     import bts.web as web
@@ -163,6 +174,48 @@ def test_do_post_saver_transition_socket_wiring(tmp_path, monkeypatch):
     finally:
         srv.shutdown()
         srv.server_close()
+
+
+def test_do_post_saver_refuses_held_or_unavailable_guard(tmp_path, monkeypatch):
+    from io import BytesIO
+
+    import bts.web as web
+
+    class Clock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return NOW.astimezone(tz) if tz else NOW.replace(tzinfo=None)
+
+    monkeypatch.setattr(web, "datetime", Clock)
+    _setup(tmp_path, "active")
+    guard = _deploy_guard(tmp_path, monkeypatch)
+    hold = guard / "hold"
+    hold.write_text("unreadable hold still closes the gate")
+    monkeypatch.setattr(web, "PICKS_DIR", tmp_path)
+
+    def post():
+        request = object.__new__(web.Handler)
+        form = b"expected_prior=active&new_state=used"
+        request.rfile = BytesIO(form)
+        request.wfile = BytesIO()
+        request.path = "/saver/transition"
+        request.headers = {"Content-Length": str(len(form)), "Host": "localhost"}
+        request.client_address = ("127.0.0.1", 0)
+        codes = []
+        request.send_response = codes.append
+        request.send_header = lambda *args: None
+        request.end_headers = lambda: None
+        request.do_POST()
+        return codes, request.wfile.getvalue()
+
+    refusal = ([409], b"deploy hold present: saver changes are refused")
+    assert post() == refusal
+    assert _saver_state(tmp_path) == "active"
+
+    hold.unlink()
+    (guard / "writers.lock").unlink()
+    assert post() == refusal
+    assert _saver_state(tmp_path) == "active"
 
 
 def test_dashboard_transition_records_peer_ip(tmp_path):

@@ -8,7 +8,7 @@ WorkingDirectory=/home/bts/projects/bts
 Environment=UV_CACHE_DIR=/tmp/uv-cache
 Environment=PATH=/home/bts/.local/bin:/usr/local/bin:/usr/bin:/bin
 EnvironmentFile=/home/bts/projects/bts/.env
-ExecStart=/home/bts/.local/bin/uv run python3 -m bts.web
+ExecStart=/home/bts/.local/bin/uv run --no-sync python3 -m bts.web
 Restart=on-failure
 SuccessExitStatus=143
 RestartSec=10

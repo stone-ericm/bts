@@ -1811,25 +1811,66 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(render_page().encode())
 
     def do_POST(self):
+        import fcntl
+        import os
+        import stat
         from urllib.parse import urlparse, parse_qs
         try:
             length = max(0, int(self.headers.get("Content-Length", 0)))   # clamp -1 (else read-to-EOF)
         except (TypeError, ValueError):
             length = 0
-        raw = self.rfile.read(length)   # always drain — closing with an unread body
+        if length > 8192:
+            self.send_error(413)
+            return
+        connection = getattr(self, "connection", None)
+        if connection is not None:
+            connection.settimeout(5)
+        try:
+            raw = self.rfile.read(length)
+        except TimeoutError:
+            self.send_error(408)
+            return
         if urlparse(self.path).path != "/saver/transition":   # sends TCP RST, not the response
             self.send_response(404)
             self.end_headers()
             return
         form = parse_qs(raw.decode("utf-8", errors="replace"))
-        code, msg = saver_transition_response(
-            PICKS_DIR,
-            expected_prior=form.get("expected_prior", [""])[0],
-            new_state=form.get("new_state", [""])[0],
-            same_origin=_same_origin(self.headers, self.headers.get("Host")),
-            now=datetime.now(timezone.utc),
-            peer_ip=self.client_address[0],
-        )
+        test_root = os.environ.get("BTS_TEST_DEPLOY_GUARD_DIR")
+        root = test_root or "/var/lib/bts-deploy"
+        expected_uid = os.getuid() if test_root else 0
+        flags = os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW
+        code, msg = 409, "deploy hold present: saver changes are refused"
+        from contextlib import ExitStack
+        with ExitStack() as admission:
+            try:
+                directory = os.open(root, flags | os.O_DIRECTORY)
+                admission.callback(os.close, directory)
+                root_info = os.fstat(directory)
+                if root_info.st_uid != expected_uid or root_info.st_mode & 0o022:
+                    raise PermissionError("invalid deploy guard directory")
+                writer = os.open("writers.lock", flags, dir_fd=directory)
+                admission.callback(os.close, writer)
+                info = os.fstat(writer)
+                if not stat.S_ISREG(info.st_mode) or info.st_uid != expected_uid or info.st_mode & 0o022:
+                    raise PermissionError("invalid deploy writer lock")
+                fcntl.flock(writer, fcntl.LOCK_SH | fcntl.LOCK_NB)
+                try:
+                    os.stat("hold", dir_fd=directory, follow_symlinks=False)
+                except FileNotFoundError:
+                    clear = True
+                else:
+                    clear = False
+            except OSError:
+                clear = False
+            if clear:
+                code, msg = saver_transition_response(
+                    PICKS_DIR,
+                    expected_prior=form.get("expected_prior", [""])[0],
+                    new_state=form.get("new_state", [""])[0],
+                    same_origin=_same_origin(self.headers, self.headers.get("Host")),
+                    now=datetime.now(timezone.utc),
+                    peer_ip=self.client_address[0],
+                )
         if code == 200:        # PRG: redirect back to the dashboard
             self.send_response(303)
             self.send_header("Location", "/")

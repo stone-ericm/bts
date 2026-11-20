@@ -48,5 +48,12 @@ jobs:
       - name: Install dependencies (locked, incl. model extra)
         run: uv sync --locked --extra model
 
+      - name: Install and resolve system Python 3.11
+        run: |
+          uv python install 3.11
+          python311="$(uv python find 3.11)"
+          "$python311" -c 'import sys; assert sys.version_info[:2] == (3, 11)'
+          printf 'BTS_TEST_PYTHON311=%s\nBTS_REQUIRE_TEST_PYTHON311=1\n' "$python311" >> "$GITHUB_ENV"
+
       - name: Run test suite (excluding slow walk-forward tests)
         run: uv run pytest -m "not slow"

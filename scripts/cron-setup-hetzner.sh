@@ -41,6 +41,8 @@ HC_PING_URL="${HEALTHCHECKS_PING_URL:?set HEALTHCHECKS_PING_URL (e.g. in .env, t
 MARKER="# BTS-HETZNER"
 ORCH_CONFIG="$HOME/.bts-orchestrator.toml"
 ACTION="${1:-show}"
+GUARD="${BTS_DEPLOY_HOLD_BIN:-/usr/local/bin/bts-deploy-hold}"
+GUARD_DIR="${BTS_TEST_DEPLOY_GUARD_DIR:-/var/lib/bts-deploy}"
 
 # Common prefix: cd, load .env via dot (POSIX), guard exports
 PREFIX="cd $BTS_DIR && set -a && . ./.env && set +a &&"
@@ -105,6 +107,33 @@ CRON_LINES="$MARKER
 50 4 * * * $PREFIX $UV_BIN run bts backup run --set archive >> $LOG_DIR/backup.log 2>&1 $MARKER
 35 5 * * 0 $PREFIX $UV_BIN run bts backup prune >> $LOG_DIR/backup.log 2>&1 $MARKER"
 
+render_cron() {
+    local line schedule command job quoted
+    local uv_command="$UV_BIN run" uv_no_sync="$UV_BIN run --no-sync"
+    local heartbeat_command="$UV_BIN run python scripts/check_heartbeat.py --heartbeat-path data/.heartbeat"
+    local heartbeat_guarded="/usr/bin/python3 scripts/check_heartbeat.py --heartbeat-path data/.heartbeat --deploy-hold /var/lib/bts-deploy/hold"
+    while IFS= read -r line; do
+        case "$line" in
+            *"bts check-results "*) job=check-results ;;
+            *"bts reconcile "*) job=reconcile ;;
+            *"bts fetch-contest-streak "*) job=fetch-contest-streak ;;
+            *"bts preview "*) job=nightly-preview ;;
+            *"scripts/check_heartbeat.py "*)
+                printf '%s\n' "${line/$heartbeat_command/$heartbeat_guarded}"
+                continue ;;
+            *) printf '%s\n' "${line/$uv_command/$uv_no_sync}"; continue ;;
+        esac
+        command="${line#* cd }"
+        schedule="${line%" cd $command"}"
+        command="cd ${command% " $MARKER"}"
+        quoted=${command//\'/\'\\\'\'}
+        printf "%s %s run %s -- /bin/sh -c '%s' >> %s/cron.log 2>&1 %s\n" \
+            "$schedule" "$GUARD" "$job" "$quoted" "$LOG_DIR" "$MARKER"
+    done
+}
+
+CRON_LINES="$(printf '%s\n' "$CRON_LINES" | render_cron)"
+
 # The current crontab minus the BTS lines. "no crontab for <user>" is an empty crontab; any other read
 # failure refuses. grep -v's status 1 (nothing left) is the empty result; any other filtering status
 # refuses (producer review r1 B1: `|| true` used to turn a filter error into "keep nothing"). (The old `(crontab -l | grep -v MARKER; echo ...) | crontab -` died under
@@ -142,6 +171,12 @@ crontab_without_bts() {
 
 case "$ACTION" in
     install)
+        if ! guard_version="$("$GUARD" version && printf '\001')" ||
+            [[ "$guard_version" != $'bts-deploy-hold 1\n\001' ]] ||
+            [[ ! -f "$GUARD_DIR/writers.lock" || -L "$GUARD_DIR/writers.lock" ]]; then
+            echo "Install the deploy guard with scripts/install-deploy-guard-hetzner.sh" >&2
+            exit 1
+        fi
         if [ ! -f "$BTS_DIR/.env" ]; then
             echo "ERROR: $BTS_DIR/.env not found." >&2
             exit 1

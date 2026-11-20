@@ -1,5 +1,11 @@
 # Systemd units for Pi5 deployment
 
+On the Hetzner deployment, the root-only scripts/install-deploy-guard-hetzner.sh
+installer provisions the scheduler's system-wide user-unit drop-in and the hold
+tool. The normal systemd installer manages the checked-in user units. Verify
+both the effective drop-in and synced service units before a guarded deploy.
+For snapshot 446156433, first complete the offline fence in R.
+
 ## Live-forward candidate capture
 
 Install as user units on Hetzner after the production checkout contains

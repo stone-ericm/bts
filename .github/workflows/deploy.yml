@@ -16,6 +16,10 @@ on:
         description: "Skip the test gate (emergency deploy only)"
         type: boolean
         default: false
+      recover_sha:
+        description: "Exact target SHA authorized for recovery with an unavailable heartbeat"
+        type: string
+        required: false
 
 # The workflow needs nothing from the GitHub token — deploy auth is the SSH
 # secret. Least-privilege the token so a compromised earlier step can't use it
@@ -71,7 +75,7 @@ jobs:
           uv sync --locked --extra model
           uv run pytest -m "not slow"
 
-      - name: Deploy via SSH with canary health check + auto-rollback
+      - name: Deploy via SSH with a durable hold and verified activation
         # Pinned to a commit SHA (not the floating @v1) because this step
         # receives the root HETZNER_SSH_KEY — a moved tag could exfiltrate it.
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
@@ -81,110 +85,24 @@ jobs:
           # ship a LATER queued commit whose own test/environment gate had
           # not run yet. github.sha is exactly what this run's gate tested.
           TARGET_SHA: ${{ github.sha }}
+          DEPLOY_EVENT: ${{ github.event_name }}
+          RECOVER_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.recover_sha || '' }}
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: root
           key: ${{ secrets.HETZNER_SSH_KEY }}
-          envs: TARGET_SHA
+          envs: TARGET_SHA,DEPLOY_EVENT,RECOVER_SHA
+          command_timeout: 25m
           script: |
-            set -e
-            cd /home/bts/projects/bts
-
-            # Capture pre-deploy SHA for rollback if canary fails.
-            OLD_SHA=$(sudo -Hu bts git rev-parse HEAD)
-            echo "Pre-deploy SHA: $(echo $OLD_SHA | cut -c1-7)"
-
-            sudo -Hu bts git config --global --add safe.directory /home/bts/projects/bts
-            # Hard-reset the working tree to THIS RUN's tested commit.
-            # History: `git pull --ff-only` pulled origin/main (silent no-op
-            # deploys); then `reset --hard origin/deploy` fixed that but read
-            # the MUTABLE ref at execution time — an in-flight run could ship
-            # a later queued commit that its own gate never tested (round-3
-            # F2). $TARGET_SHA is the exact SHA this run's test gate passed.
-            sudo -Hu bts git fetch origin
-            sudo -Hu bts git reset --hard "$TARGET_SHA"
-            sudo -Hu bts env UV_CACHE_DIR=/tmp/uv-cache /home/bts/.local/bin/uv sync --locked --extra model
-            # Self-heal: legacy system-level units (created before April 11)
-            # race the canonical user-level units. Remove if present.
-            if [ -f /etc/systemd/system/bts-scheduler.service ]; then
-              systemctl disable --now bts-scheduler.service bts-dashboard.service 2>/dev/null || true
-              rm -f /etc/systemd/system/bts-scheduler.service /etc/systemd/system/bts-dashboard.service
-              systemctl daemon-reload
-              pkill -u bts -f 'uv run bts schedule' 2>/dev/null || true
-            fi
-            sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user restart bts-scheduler bts-dashboard
-            NEW_SHA=$(sudo -Hu bts git rev-parse --short HEAD)
-            echo "Deployed $NEW_SHA"
-
-            # Canary: wait for services to stabilize, then check health.
-            # Failures auto-rollback to OLD_SHA + restart.
-            echo "Waiting 30s for services to stabilize..."
-            sleep 30
-
-            set +e
-            FAILED=0
-            FAILURE_REASONS=""
-
-            # Check 1: scheduler service is active, or it exited cleanly after
-            # completing the day and is waiting for Restart=always to relaunch.
-            SCHEDULER_ACTIVE=$(sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user is-active bts-scheduler 2>/dev/null)
-            if [ "$SCHEDULER_ACTIVE" != "active" ]; then
-              SCHEDULER_ACTIVE_STATE=$(sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user show bts-scheduler -p ActiveState --value)
-              SCHEDULER_SUB_STATE=$(sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user show bts-scheduler -p SubState --value)
-              SCHEDULER_RESULT=$(sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user show bts-scheduler -p Result --value)
-              SCHEDULER_EXIT_STATUS=$(sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user show bts-scheduler -p ExecMainStatus --value)
-              if [ "$SCHEDULER_ACTIVE_STATE" = "activating" ] && \
-                 [ "$SCHEDULER_SUB_STATE" = "auto-restart" ] && \
-                 [ "$SCHEDULER_RESULT" = "success" ] && \
-                 [ "$SCHEDULER_EXIT_STATUS" = "0" ]; then
-                echo "bts-scheduler.service completed cleanly and is waiting for Restart=always relaunch"
-              else
-                FAILED=1
-                FAILURE_REASONS="$FAILURE_REASONS\n  - bts-scheduler.service is not healthy (active=$SCHEDULER_ACTIVE active_state=$SCHEDULER_ACTIVE_STATE sub_state=$SCHEDULER_SUB_STATE result=$SCHEDULER_RESULT exit_status=$SCHEDULER_EXIT_STATUS)"
-              fi
-            fi
-
-            # Check 2: dashboard service is active
-            if ! sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user is-active --quiet bts-dashboard; then
-              FAILED=1
-              FAILURE_REASONS="$FAILURE_REASONS\n  - bts-dashboard.service is not active"
-            fi
-
-            # Check 3: dashboard HTTP 200. The dashboard binds the Tailscale IP
-            # (not loopback) for tailnet-only exposure, so probe it where it
-            # actually listens; fall back to loopback if tailscale ip is absent.
-            DASH_HOST=$(sudo -u bts tailscale ip -4 2>/dev/null | head -1)
-            DASH_HOST=${DASH_HOST:-127.0.0.1}
-            if ! curl -sS -m 10 -o /dev/null -w '%{http_code}' "http://${DASH_HOST}:3003/" | grep -q '^2'; then
-              FAILED=1
-              FAILURE_REASONS="$FAILURE_REASONS\n  - dashboard HTTP check failed (${DASH_HOST}:3003)"
-            fi
-
-            if [ $FAILED -eq 1 ]; then
-              echo "================================"
-              echo "CANARY FAILED — rolling back to $(echo $OLD_SHA | cut -c1-7)"
-              echo "Reasons:"
-              printf "$FAILURE_REASONS\n"
-              echo "================================"
-              sudo -Hu bts git reset --hard "$OLD_SHA"
-              sudo -Hu bts env UV_CACHE_DIR=/tmp/uv-cache /home/bts/.local/bin/uv sync --locked --extra model
-              sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user restart bts-scheduler bts-dashboard
-              sleep 15
-              if sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user is-active --quiet bts-scheduler bts-dashboard; then
-                echo "Rolled back cleanly to $(echo $OLD_SHA | cut -c1-7)"
-                # Stamp deploy time on rollback too — monotonic forward so the
-                # calibration cutoff never regresses (audit since_deploy_iso (3)).
-                sudo -u bts bash -c 'date -u +%Y-%m-%dT%H:%M:%SZ > /home/bts/projects/bts/data/.last_deploy_iso'
-              else
-                echo "CRITICAL: rollback also unhealthy — manual intervention required"
-              fi
+            set -eu
+            guard=/usr/local/bin/bts-deploy-hold
+            if ! protocol=$(sudo -n -- /usr/bin/python3 -I "$guard" version && printf '\001') ||
+                [ "$protocol" != "$(printf 'bts-deploy-hold 1\n\001')" ]; then
+              printf '%s\n' 'DEPLOY NOT STARTED — guard failed.'
               exit 1
             fi
-
-            echo "================================"
-            echo "CANARY PASSED — $NEW_SHA is live and healthy"
-            echo "================================"
-            # Stamp the real deploy time (wall-clock, monotonic) so the
-            # realized_calibration since_deploy filter uses deploy-time, not git
-            # commit-time, and can't regress on rollback (audit since_deploy_iso (2)+(3)).
-            sudo -u bts bash -c 'date -u +%Y-%m-%dT%H:%M:%SZ > /home/bts/projects/bts/data/.last_deploy_iso'
+            exec sudo -n -- /usr/bin/python3 -I "$guard" handoff "$TARGET_SHA" "$DEPLOY_EVENT" "${RECOVER_SHA:-}" <<'BTS_DEPLOY_PHASE'
+            #!/bin/bash
+            set -eu
+            exec /usr/bin/python3 -I /usr/local/bin/bts-deploy-hold owner "$@"
+            BTS_DEPLOY_PHASE

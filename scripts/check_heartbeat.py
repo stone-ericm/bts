@@ -16,10 +16,16 @@ Integration: invoke from cron like
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
+import fcntl
 import json
 import os
+import re
+import signal
+import stat
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -32,6 +38,142 @@ RUNNING_MAX_AGE = 5 * 60          # running: fresh = timestamp age < 5 min
 WAITING_MAX_AGE = 10 * 60         # waiting_for_games: 10 min
 SLEEPING_OVERRUN = 10 * 60        # sleeping: if past sleeping_until, fresh = <10 min overshoot
 IDLE_END_MAX_AGE = 90 * 60        # idle_end_of_day is a brief transitional state; stale if stuck >90 min
+HOLD_PATH = Path("/var/lib/bts-deploy/hold")
+GUARD_TOOL = "/usr/local/bin/bts-deploy-hold"
+NOFOLLOW = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+
+
+def _unique_fields(pairs):
+    record = dict(pairs)
+    if len(record) != len(pairs):
+        raise ValueError("duplicate record key")
+    return record
+
+
+def _bounded_record(path):
+    try:
+        fd = os.open(path, NOFOLLOW)
+    except FileNotFoundError:
+        return None
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise ValueError("record type")
+        payload = os.read(fd, 8193)
+    finally:
+        os.close(fd)
+    if len(payload) > 8192:
+        raise ValueError("record size")
+    record = json.loads(payload, object_pairs_hook=_unique_fields)
+    if not isinstance(record, dict):
+        raise ValueError("record shape")
+    return record
+
+
+@contextmanager
+def _hold_snapshot(hold):
+    fd = None
+    try:
+        try:
+            parent = os.open(hold.parent, NOFOLLOW | os.O_DIRECTORY)
+            try:
+                expected_uid = os.geteuid() if hold.parent != HOLD_PATH.parent else 0
+                info = os.fstat(parent)
+                if info.st_uid != expected_uid or stat.S_IMODE(info.st_mode) != 0o755:
+                    raise ValueError("guard directory")
+                fd = os.open("state.lock", NOFOLLOW, dir_fd=parent)
+            finally:
+                os.close(parent)
+            info = os.fstat(fd)
+            if (not stat.S_ISREG(info.st_mode) or info.st_uid != expected_uid
+                    or stat.S_IMODE(info.st_mode) != 0o644 or info.st_nlink != 1):
+                raise ValueError("state lock type")
+            deadline = time.monotonic() + 2
+            while True:
+                try:
+                    fcntl.flock(fd, fcntl.LOCK_SH | fcntl.LOCK_NB)
+                    break
+                except BlockingIOError:
+                    if time.monotonic() >= deadline:
+                        raise
+                    time.sleep(0.05)
+        except (OSError, ValueError):
+            yield False
+        else:
+            yield True
+    finally:
+        if fd is not None:
+            os.close(fd)
+
+
+def _hold_decision(hold, heartbeat, now):
+    try:
+        hold.lstat()
+    except FileNotFoundError:
+        pass
+    except OSError:
+        return "fail", "Deploy hold present and unreadable. See INCIDENT.md §4."
+    else:
+        try:
+            if not stat.S_ISREG(hold.lstat().st_mode):
+                raise ValueError("hold type")
+            result = subprocess.run(
+                ["/usr/bin/python3", "-I", GUARD_TOOL, "status", "--json"],
+                stdin=subprocess.DEVNULL, capture_output=True, timeout=3,
+            )
+            record = json.loads(result.stdout)
+            state = record["state"]
+            step = record["step"]
+            target = record["target"]
+            run_id = record["deploy_id"]
+            age = int(now.timestamp()) - record["armed_at"]
+            if (result.returncode != 1 or state not in ("pending", "activating", "failed")
+                    or not re.fullmatch(r"[a-z-]{1,32}", step)
+                    or not re.fullmatch(r"[0-9a-f]{40}", target)
+                    or not re.fullmatch(r"[0-9]{1,20}-[A-Za-z0-9]{1,64}", run_id)):
+                raise ValueError("hold values")
+            if state in ("pending", "activating") and 0 <= age <= 1380:
+                lock = os.open(hold.parent / "transaction.lock", NOFOLLOW)
+                try:
+                    if not stat.S_ISREG(os.fstat(lock).st_mode):
+                        raise ValueError("transaction lock type")
+                    try:
+                        fcntl.flock(lock, fcntl.LOCK_SH | fcntl.LOCK_NB)
+                    except BlockingIOError:
+                        unit = f"bts-deploy-{run_id}.service"
+                        query = subprocess.run(
+                            ["/usr/bin/systemctl", "show", unit, "-p", "ActiveState", "--value"],
+                            stdin=subprocess.DEVNULL, capture_output=True, timeout=3,
+                        )
+                        if query.returncode == 0 and query.stdout in (b"active\n", b"deactivating\n"):
+                            return "suppress", f"deploy in progress (run {run_id}, armed {age}s ago); no ping"
+                finally:
+                    os.close(lock)
+            return "fail", f"Deploy hold: {state} at {step} (requested target {target[:7]}). See INCIDENT.md §4."
+        except (OSError, KeyError, TypeError, ValueError, subprocess.TimeoutExpired):
+            return "fail", "Deploy hold present and unreadable. See INCIDENT.md §4."
+    try:
+        release = _bounded_record(hold.parent / "last-release")
+        if release is None:
+            return None, None
+        epoch, kind = release["released_at"], release["kind"]
+        if type(epoch) is not int or not 0 <= epoch <= int(now.timestamp()) or kind not in ("hand", "deploy"):
+            raise ValueError("release values")
+        released_at = datetime.fromtimestamp(epoch, timezone.utc)
+    except (OSError, KeyError, TypeError, ValueError, OverflowError):
+        return "fail", "Deploy hold release record unreadable. See INCIDENT.md §4."
+    try:
+        record = _bounded_record(heartbeat)
+        timestamp = datetime.fromisoformat(record["timestamp"])
+        if timestamp.utcoffset() is not None and released_at < timestamp <= now:
+            stale, assessment = _assess_heartbeat(record, now)
+            if not stale:
+                return "fresh", assessment
+    except (OSError, KeyError, TypeError, ValueError):
+        pass
+    return "fail", (
+        f"Deploy hold released at {released_at.isoformat()} ({kind}); "
+        "no scheduler heartbeat since. See INCIDENT.md §4."
+    )
 
 
 def is_stale(
@@ -50,6 +192,10 @@ def is_stale(
     except (OSError, json.JSONDecodeError) as e:
         return True, f"heartbeat unreadable: {e}"
 
+    return _assess_heartbeat(raw, now)
+
+
+def _assess_heartbeat(raw, now):
     ts_str = raw.get("timestamp")
     state = raw.get("state", "unknown")
     try:
@@ -214,6 +360,31 @@ def ping(url: str, suffix: str = "") -> None:
         print(f"ping failed: {e}", file=sys.stderr)
 
 
+def ping_deploy_failure(url, reason):
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *args, **kwargs):
+            return None
+
+    def deadline(signum, frame):
+        raise TimeoutError()
+
+    verified = False
+    if re.fullmatch(r"https://hc-ping\.com/[A-Za-z0-9_-]+", url):
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
+        request = urllib.request.Request(url + "/fail", data=reason.encode(), method="POST")
+        previous = signal.signal(signal.SIGALRM, deadline)
+        signal.alarm(10)
+        try:
+            with opener.open(request, timeout=10) as response:
+                verified = 200 <= response.status <= 299
+        except (OSError, ValueError):
+            pass
+        finally:
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, previous)
+    print("Failure ping received HTTP 2xx: " + ("verified." if verified else "unverified."))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--heartbeat-path", type=Path, required=True)
@@ -225,12 +396,31 @@ def main():
                     help="sample-history JSON (default: <heartbeat dir>/health_state/scheduler_churn.json)")
     ap.add_argument("--no-churn", action="store_true",
                     help="disable the NRestarts churn check")
+    test_root = os.environ.get("BTS_TEST_DEPLOY_GUARD_DIR")
+    ap.add_argument("--deploy-hold", type=Path, default=Path(test_root) / "hold" if test_root else HOLD_PATH)
     args = ap.parse_args()
 
+    with _hold_snapshot(args.deploy_hold) as verified:
+        if not verified:
+            decision, reason = "fail", "Deploy hold lookup failed. See INCIDENT.md §4."
+        else:
+            decision, reason = _hold_decision(args.deploy_hold, args.heartbeat_path, datetime.now(timezone.utc))
+        if decision == "suppress":
+            print(reason)
+            raise SystemExit(0)
+        if decision == "fail":
+            print(reason)
+            if args.ping_url:
+                ping_deploy_failure(args.ping_url, reason)
+            raise SystemExit(1)
+        return _legacy_check(args, reason if decision == "fresh" else None)
+
+
+def _legacy_check(args, prechecked_reason=None):
     if args.ping_url is None:
         print("  (no --ping-url provided; alerts disabled)", file=sys.stderr)
 
-    stale, reason = is_stale(args.heartbeat_path)
+    stale, reason = (False, prechecked_reason) if prechecked_reason else is_stale(args.heartbeat_path)
 
     # Churn overrides a fresh heartbeat: a crash-loop refreshes the heartbeat
     # every 30s cycle, so freshness alone cannot clear the daemon (audit F3).
