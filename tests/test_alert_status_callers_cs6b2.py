@@ -24,7 +24,7 @@ from tests.test_saved_pick_paths_cs5a import prepare_run_day, scheduler_state, w
     ("late", "late_delivery"),
     ("void", "postponed_pick"),
     ("unconfirmed", "late_delivery"),
-    ("classified_unconfirmed", None),
+    ("classified_unconfirmed", "late_delivery"),
     ("eod", "contest_state"),
 ])
 def test_shared_alert_callers(case, source, corrupt, world, monkeypatch, tmp_path):
@@ -146,6 +146,13 @@ def test_shared_alert_callers(case, source, corrupt, world, monkeypatch, tmp_pat
     else:
         assert any(a.source == source and a.level == "CRITICAL" for _, _, alerts in observed for a in alerts)
         assert sum(f"[{source}]" in call.args[1] for call in alert.send_dm.call_args_list) == 1
+        # Whole-range C2 gives both unconfirmed routes a dedicated slate receipt.
+        if case in {"unconfirmed", "classified_unconfirmed"}:
+            if corrupt:
+                assert path.read_text() == "[]"
+            else:
+                assert not path.exists()
+            path = path.parent / "delivery_outcome_unknown" / f"{DAY}.json"
         assert json.loads(path.read_bytes())["status"] == "sent"
     dm.send_dm.assert_not_called()
     posting.post_to_bluesky.assert_not_called()
