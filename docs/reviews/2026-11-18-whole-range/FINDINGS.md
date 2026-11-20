@@ -57,7 +57,8 @@ The check (`contract-check-c/`) reproduced every finding, Carbon's included, and
 | W1 day count, W2 same-cycle pick check, W5 schedule parser | **Merged** (fix set A, `082b8506`) |
 | W6 saver warning, W7 unconfirmed-delivery wording, W8 day-outcome names, W9 status line, W10 fetch status file, W19 checklist | **Merged** (fix set B, `a1bf1612`); full gate on the merged tree green (9,444 passed) |
 | W14 / W23 season replay | **Stopped** (R48); the visibility-only change set C3v was built and reviewed twice, and is **stopped after a second-round Codex BLOCK on its checklist step** (`STOP-C3V.md`, 2026-11-19 06:50): its code is proven byte-identical to `main` in what it saves; branch `fix/wr-c3v` not merged, lead to decide |
-| W20 after-midnight health read; W22 unknown-outcome alert after a restart | Contract check done (`contract-check-c/`), not built: each its own change set, trimmed scope (R47) |
+| W20 after-midnight health read | Contract checked twice (`contract-check-c/`, `contract-check-c1/`: BUILD WITH THESE EDITS); not built (2026-11-19 22:00) |
+| W22 unknown-outcome alert after a restart | Change set C2 built and reviewed twice; **stopped after a second-round Codex BLOCK on two receipt-identity findings** (`STOP-C2.md`); Carbon signed both rounds; branch `fix/wr-c2` not merged, lead to decide |
 | W3 lost lock decision; W4 stranded saved pick | Contract check done (`contract-check-a/`), not built: each its own change set (R45) |
 | W11 duplicate DM after a lost response | Left on purpose; note that W14's analysis shows the same window (the cleared attempt marker) is what makes an entered pick invisible afterwards |
 | W12, W13 rollback; W15 cache entry; W16 late entry check; W17 canary | For Eric |

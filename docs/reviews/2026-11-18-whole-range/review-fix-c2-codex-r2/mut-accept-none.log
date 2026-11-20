@@ -1,0 +1,500 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-c2-r2-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 122 items
+
+tests/test_wr_c2_recovery.py .........F................................. [ 35%]
+....................................FFFFFFFFFFFF..........               [ 82%]
+tests/test_wr_c2_carbon_v2.py FFFFF................                      [100%]
+
+=================================== FAILURES ===================================
+______________ test_only_unknown_alert_requires_message_id[None] _______________
+tests/test_wr_c2_recovery.py:177: in test_only_unknown_alert_requires_message_id
+    assert checkpoint["status"] == "failed"
+E   AssertionError: assert 'sent' == 'failed'
+E     
+E     - failed
+E     + sent
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+______ test_unknown_alert_operator_copy[never_left-18-35-0-False-direct] _______
+tests/test_wr_c2_recovery.py:516: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+__ test_unknown_alert_operator_copy[never_left-18-35-0-False-classification] ___
+tests/test_wr_c2_recovery.py:516: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+________ test_unknown_alert_operator_copy[accepted-18-35-0-True-direct] ________
+tests/test_wr_c2_recovery.py:516: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+____ test_unknown_alert_operator_copy[accepted-18-35-0-True-classification] ____
+tests/test_wr_c2_recovery.py:516: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+_________ test_unknown_alert_operator_copy[cutoff-19-6-0-False-direct] _________
+tests/test_wr_c2_recovery.py:516: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+_____ test_unknown_alert_operator_copy[cutoff-19-6-0-False-classification] _____
+tests/test_wr_c2_recovery.py:516: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[19:06 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[19:06 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 14 min)...
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[19:06 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[19:06 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 14 min)...
+  Day complete. Result: final
+______ test_unknown_alert_operator_copy[first_pitch-19-14-0-False-direct] ______
+tests/test_wr_c2_recovery.py:516: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+__ test_unknown_alert_operator_copy[first_pitch-19-14-0-False-classification] __
+tests/test_wr_c2_recovery.py:516: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[19:14 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[19:14 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 6 min)...
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[19:14 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[19:14 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 6 min)...
+  Day complete. Result: final
+________ test_unknown_alert_operator_copy[overnight-0-1-1-False-direct] ________
+tests/test_wr_c2_recovery.py:516: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+____ test_unknown_alert_operator_copy[overnight-0-1-1-False-classification] ____
+tests/test_wr_c2_recovery.py:516: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[00:01 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[00:01 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[00:01 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[00:01 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Day complete. Result: final
+___ test_unknown_alert_operator_copy[switched_private-18-35-0-False-direct] ____
+tests/test_wr_c2_recovery.py:516: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+_ test_unknown_alert_operator_copy[switched_private-18-35-0-False-classification] _
+tests/test_wr_c2_recovery.py:516: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[18:35 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+_____ test_classification_alert_runs_strictly_after_decision_commit[None] ______
+tests/test_wr_c2_carbon_v2.py:117: in test_classification_alert_runs_strictly_after_decision_commit
+    assert unknown_calls == [_copy(DAY), _copy(DAY)]
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+_ test_classification_alert_runs_strictly_after_decision_commit[locked_unconfirmed] _
+tests/test_wr_c2_carbon_v2.py:117: in test_classification_alert_runs_strictly_after_decision_commit
+    assert unknown_calls == [_copy(DAY), _copy(DAY)]
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+___ test_classification_alert_runs_strictly_after_decision_commit[delivered] ___
+tests/test_wr_c2_carbon_v2.py:117: in test_classification_alert_runs_strictly_after_decision_commit
+    assert unknown_calls == [_copy(DAY), _copy(DAY)]
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+___ test_classification_alert_runs_strictly_after_decision_commit[terminal] ____
+tests/test_wr_c2_carbon_v2.py:117: in test_classification_alert_runs_strictly_after_decision_commit
+    assert unknown_calls == [_copy(DAY), _copy(DAY)]
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+__ test_classification_alert_runs_strictly_after_decision_commit[write_none] ___
+tests/test_wr_c2_carbon_v2.py:117: in test_classification_alert_runs_strictly_after_decision_commit
+    assert unknown_calls == [_copy(DAY), _copy(DAY)]
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  MISSED-PICK ALERT — no delivery with ~35min to first pitch.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[18:35 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  MISSED-PICK ALERT — no delivery with ~35min to first pitch.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+=========================== short test summary info ============================
+FAILED tests/test_wr_c2_recovery.py::test_only_unknown_alert_requires_message_id[None]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[never_left-18-35-0-False-direct]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[never_left-18-35-0-False-classification]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[accepted-18-35-0-True-direct]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[accepted-18-35-0-True-classification]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[cutoff-19-6-0-False-direct]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[cutoff-19-6-0-False-classification]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[first_pitch-19-14-0-False-direct]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[first_pitch-19-14-0-False-classification]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[overnight-0-1-1-False-direct]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[overnight-0-1-1-False-classification]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[switched_private-18-35-0-False-direct]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[switched_private-18-35-0-False-classification]
+FAILED tests/test_wr_c2_carbon_v2.py::test_classification_alert_runs_strictly_after_decision_commit[None]
+FAILED tests/test_wr_c2_carbon_v2.py::test_classification_alert_runs_strictly_after_decision_commit[locked_unconfirmed]
+FAILED tests/test_wr_c2_carbon_v2.py::test_classification_alert_runs_strictly_after_decision_commit[delivered]
+FAILED tests/test_wr_c2_carbon_v2.py::test_classification_alert_runs_strictly_after_decision_commit[terminal]
+FAILED tests/test_wr_c2_carbon_v2.py::test_classification_alert_runs_strictly_after_decision_commit[write_none]
+======================== 18 failed, 104 passed in 2.81s ========================

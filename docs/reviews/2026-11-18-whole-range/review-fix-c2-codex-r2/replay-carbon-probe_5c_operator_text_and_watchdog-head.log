@@ -1,0 +1,75 @@
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.codex-review/wr-c2-r2/replay/carbon/probe_5c_operator_text_and_watchdog.py", line 260, in <module>
+    main()
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.codex-review/wr-c2-r2/replay/carbon/probe_5c_operator_text_and_watchdog.py", line 223, in main
+    chk = opening.invoke(
+          ^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/docs/reviews/2026-11-18-whole-range/slice-1-codex/opening_rehearsal.py", line 161, in invoke
+    result = CliRunner().invoke(cli, list(map(str, args)), catch_exceptions=False)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.venv/lib/python3.12/site-packages/click/testing.py", line 504, in invoke
+    return_value = cli.main(args=args or (), prog_name=prog_name, **extra)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.venv/lib/python3.12/site-packages/click/core.py", line 1406, in main
+    rv = self.invoke(ctx)
+         ^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.venv/lib/python3.12/site-packages/click/core.py", line 1873, in invoke
+    return _process_result(sub_ctx.command.invoke(sub_ctx))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.venv/lib/python3.12/site-packages/click/core.py", line 1269, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.venv/lib/python3.12/site-packages/click/core.py", line 824, in invoke
+    return callback(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/src/bts/cli.py", line 1929, in check_pick_entered
+    _check_pick_entered(Path(picks_dir), expected_username, dm_recipient, window_min, now, rec)
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/src/bts/cli.py", line 2035, in _check_pick_entered
+    pending = _cf.fetch_pending_predictions(cookies, session.xsid)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/src/bts/contest_fetch.py", line 56, in fetch_pending_predictions
+    response = client.get(
+               ^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.venv/lib/python3.12/site-packages/httpx/_api.py", line 195, in get
+    return request(
+           ^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.venv/lib/python3.12/site-packages/httpx/_api.py", line 109, in request
+    return client.request(
+           ^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.venv/lib/python3.12/site-packages/httpx/_client.py", line 825, in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.venv/lib/python3.12/site-packages/httpx/_client.py", line 914, in send
+    response = self._send_handling_auth(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.venv/lib/python3.12/site-packages/httpx/_client.py", line 942, in _send_handling_auth
+    response = self._send_handling_redirects(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.venv/lib/python3.12/site-packages/httpx/_client.py", line 979, in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.venv/lib/python3.12/site-packages/httpx/_client.py", line 1014, in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.venv/lib/python3.12/site-packages/httpx/_transports/default.py", line 250, in handle_request
+    resp = self._pool.handle_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.venv/lib/python3.12/site-packages/httpcore/_sync/connection_pool.py", line 256, in handle_request
+    raise exc from None
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.venv/lib/python3.12/site-packages/httpcore/_sync/connection_pool.py", line 236, in handle_request
+    response = connection.handle_request(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.venv/lib/python3.12/site-packages/httpcore/_sync/connection.py", line 101, in handle_request
+    raise exc
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.venv/lib/python3.12/site-packages/httpcore/_sync/connection.py", line 78, in handle_request
+    stream = self._connect(request)
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.venv/lib/python3.12/site-packages/httpcore/_sync/connection.py", line 124, in _connect
+    stream = self._network_backend.connect_tcp(**kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.venv/lib/python3.12/site-packages/httpcore/_backends/sync.py", line 208, in connect_tcp
+    sock = socket.create_connection(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/docs/reviews/2026-11-18-whole-range/slice-1-codex/opening_rehearsal.py", line 101, in fail_network
+    raise NetworkAttempt("unexpected network syscall")
+opening_rehearsal.sandbox.<locals>.NetworkAttempt: unexpected network syscall

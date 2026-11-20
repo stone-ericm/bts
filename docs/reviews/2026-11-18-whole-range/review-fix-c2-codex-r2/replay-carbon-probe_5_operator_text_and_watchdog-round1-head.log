@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.codex-review/wr-c2-r2/replay/carbon-round1/probe_5_operator_text_and_watchdog.py", line 271, in <module>
+    main()
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.codex-review/wr-c2-r2/replay/carbon-round1/probe_5_operator_text_and_watchdog.py", line 117, in main
+    assert "live decision now: accepted; source=manual_dated_observation; streak=46" in status_at_recovery[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
