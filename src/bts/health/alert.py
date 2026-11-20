@@ -257,6 +257,15 @@ def _check_receipt_entry(directory_fd: int, name: str) -> None:
     _check_receipt_file(info)
 
 
+def _unique_receipt_members(pairs: list[tuple[str, object]]) -> dict:
+    members = {}
+    for key, value in pairs:
+        if key in members:
+            raise ValueError(f"Duplicate receipt member: {key}")
+        members[key] = value
+    return members
+
+
 def _read_receipt(directory_fd: int, name: str) -> dict | None:
     _check_receipt_entry(directory_fd, name)
     try:
@@ -266,7 +275,7 @@ def _read_receipt(directory_fd: int, name: str) -> dict | None:
     try:
         _check_receipt_file(os.fstat(fd))
         with open(fd, "r", encoding="utf-8", closefd=False) as handle:
-            data = json.load(handle)
+            data = json.load(handle, object_pairs_hook=_unique_receipt_members)
     except (ValueError, RecursionError):
         return None
     finally:
@@ -305,6 +314,7 @@ def _dispatch_with_acknowledgement(
     alert_key: list[str],
 ) -> bool:
     """Use a dedicated receipt and keep the DM eligible if storage is unavailable."""
+    body_sha256 = hashlib.sha256(body.encode("utf-8")).hexdigest()
     directory_fd = None
     storage_error = None
     send_error = None
@@ -321,9 +331,16 @@ def _dispatch_with_acknowledgement(
                 prior = _read_receipt(directory_fd, path.name)
             except Exception as error:
                 storage_error = f"{stage} at {status_path}: {_unknown_alert_error_text(error)}"
-        if (prior and prior.get("schema_version") == HEALTH_DM_STATUS_SCHEMA_VERSION
-                and prior.get("status") == "sent" and prior.get("sent_day") == day
-                and prior.get("sent_sources") == alert_key and _usable_message_id(prior.get("message_id"))):
+        if (
+            prior is not None
+            and prior.keys() == {"schema_version", "status", "sent_day", "sent_sources", "message_id", "body_sha256"}
+            and prior.get("schema_version") == HEALTH_DM_STATUS_SCHEMA_VERSION
+            and prior.get("status") == "sent"
+            and prior.get("sent_day") == day
+            and prior.get("sent_sources") == alert_key
+            and _usable_message_id(prior.get("message_id"))
+            and prior.get("body_sha256") == body_sha256
+        ):
             return False
 
         payload = {"schema_version": HEALTH_DM_STATUS_SCHEMA_VERSION}
@@ -341,7 +358,10 @@ def _dispatch_with_acknowledgement(
                 send_error = f"transport: {detail}"
                 payload.update(status="failed", error=detail)
             else:
-                payload.update(status="sent", message_id=message_id, sent_day=day, sent_sources=alert_key)
+                payload.update(
+                    status="sent", message_id=message_id, sent_day=day,
+                    sent_sources=alert_key, body_sha256=body_sha256,
+                )
 
         if directory_fd is not None and storage_error is None:
             try:

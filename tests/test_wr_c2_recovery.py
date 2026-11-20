@@ -307,7 +307,9 @@ def test_unknown_receipt_ignores_unusable_path(world, monkeypatch, route, injury
     alert.send_dm.assert_called_once_with("offline.test", copy(DAY))
     assert health.read_bytes() == shared_bytes
     if injury in malformed:
-        assert json.loads(path.read_bytes()) == valid | {"message_id": "health-dm"}
+        assert json.loads(path.read_bytes()) == valid | {
+            "message_id": "health-dm", "body_sha256": hashlib.sha256(copy(DAY).encode("utf-8")).hexdigest(),
+        }
         scheduler.run_day(DAY, config)
         alert.send_dm.assert_called_once()
     elif injury in {"fifo", "directory", "symlink", "hardlink"}:

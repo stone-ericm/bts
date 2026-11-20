@@ -16,6 +16,8 @@ recipient, and `crash_then_corrected` `season-contract status` + B2 watchdog agr
 
 from __future__ import annotations
 
+from hashlib import sha256
+
 from datetime import datetime
 import json
 import os
@@ -121,6 +123,7 @@ def test_classification_alert_runs_strictly_after_decision_commit(world, monkeyp
         "message_id": "ack-after-commit",
         "sent_day": DAY,
         "sent_sources": ["CRITICAL:late_delivery"],
+        "body_sha256": sha256(_copy(DAY).encode("utf-8")).hexdigest(),
     }
     first_snap = witnessed[0]
     assert first_snap["pick_locked"] is True
@@ -274,6 +277,7 @@ def test_readonly_receipt_directory_dedups_sent_and_reports_write_failure(world,
             "schema_version": "bts_health_dm_delivery_status_v1",
             "status": "sent", "sent_day": DAY,
             "sent_sources": ["CRITICAL:late_delivery"], "message_id": "prior-ack",
+            "body_sha256": sha256(_copy(DAY).encode("utf-8")).hexdigest(),
         }))
     own_path.parent.chmod(0o500)
     try:
