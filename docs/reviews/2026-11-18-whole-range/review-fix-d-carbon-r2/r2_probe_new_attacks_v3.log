@@ -1,0 +1,283 @@
+{
+  "F1_attacks": {
+    "canonical_enter": "ACCEPTED",
+    "canonical_research": "ACCEPTED",
+    "writer_backslash_subcmd": {
+      "verify_crontab": "ACCEPTED",
+      "bin_sh_executes_argv_while_held": [
+        "run",
+        "--no-sync",
+        "bts",
+        "reconcile"
+      ]
+    },
+    "writer_backslash_bts": "ACCEPTED",
+    "writer_shell_var": "ACCEPTED",
+    "writer_python_c_cli": "ACCEPTED",
+    "monitor_equals_override_to_nonexistent": {
+      "verify_crontab": "ACCEPTED",
+      "monitor_rc_while_real_guard_held": 0,
+      "monitor_stdout": "[2026-11-20T22:59:10+00:00] stale=False  reason=fresh sleeping"
+    },
+    "monitor_at_reboot_schedule": "ACCEPTED",
+    "monitor_true_or_dead_branch": "ACCEPTED",
+    "monitor_valid_equals_syntax": "REFUSED:crontab"
+  },
+  "F2_attacks": {
+    "proc_locks_cases": {
+      "blocked_waiter_arrow": false,
+      "shared_read_flock": false,
+      "posix_fcntl_lock": false,
+      "wrong_inode_writers_lock": false,
+      "exact_granted_write_flock": true
+    },
+    "hook_killed_before_transition_reconciled_by_next_deploy": {
+      "next_rc": 1,
+      "hold_state": "failed",
+      "hold_step": "abandoned",
+      "events": [
+        "stop",
+        "page"
+      ],
+      "old_result_written": {
+        "deploy_id": "1795197580-adv02",
+        "outcome": "failed",
+        "step": "abandoned"
+      }
+    },
+    "sigterm_during_containment": {
+      "escaped_owned_deploy": true,
+      "hold_state": "failed",
+      "hold_step": "stop-dashboard",
+      "result_before_execstoppost": null,
+      "execstoppost_rc": 0,
+      "result_after_execstoppost": {
+        "deploy_id": "1795197580-adv02",
+        "outcome": "failed",
+        "step": "stop-dashboard"
+      }
+    }
+  },
+  "F3_attacks": {
+    "python_minus_I_still_honors_BTS_TEST_DEPLOY_GUARD_DIR_as_nonroot": {
+      "real_guard_held_rc": 1,
+      "decoy_env_override_rc": 0
+    },
+    "queried_scheduler_properties": [
+      "ExecStart",
+      "WorkingDirectory",
+      "Environment",
+      "EnvironmentFiles",
+      "ExecCondition",
+      "SuccessExitStatus"
+    ],
+    "queried_dashboard_properties": [
+      "ExecStart",
+      "WorkingDirectory",
+      "Environment",
+      "EnvironmentFiles"
+    ]
+  },
+  "F5_attacks": {
+    "valid_configs": {
+      "orchestrator_example_toml": {
+        "rc": 0,
+        "out": "deploy canary 2027-07-15T12:00:00-04:00: live contest state accepted (dated, streak 12)"
+      },
+      "hetzner_live_local_tier_dm": {
+        "rc": 0,
+        "out": "deploy canary 2027-07-15T12:00:00-04:00: live contest state accepted (dated, streak 12)"
+      },
+      "hetzner_research_no_bluesky": {
+        "rc": 0,
+        "out": "deploy canary 2027-07-15T12:00:00-04:00: research; contest state skipped"
+      }
+    },
+    "subprocess_stdout_clean_when_home_unwritable": {
+      "rc": 1,
+      "stdout": "deploy canary 2026-11-20T17:59:11.467362-05:00: contest state refused\n"
+    },
+    "canary_passes_then_scheduler_crashes": {
+      "fallback_deadline_min_lt_morning_default": {
+        "canary_rc": 0,
+        "canary_out": "deploy canary 2027-07-15T12:00:00-04:00: live contest state accepted (dated, streak 12)",
+        "run_day_crash": "ValueError: morning_min (25) must be <= standard_min (20); morning buffer should be shorter, not longer"
+      },
+      "heartbeat_parent_is_regular_file": {
+        "canary_rc": 0,
+        "canary_out": "deploy canary 2027-07-15T12:00:00-04:00: research; contest state skipped",
+        "run_day_crash_before_ready": "FileExistsError: [Errno 17] File exists: '/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/r2/r2_adv_v3_jzy48ut4/adv_f5/regular_file'"
+      },
+      "negative_poll_or_dh_recheck_min": {
+        "canary_rc": 0,
+        "canary_out": "deploy canary 2027-07-15T12:00:00-04:00: research; contest state skipped"
+      },
+      "finite_float_overflowing_timedelta": {
+        "canary_rc": 0,
+        "canary_out": "deploy canary 2027-07-15T12:00:00-04:00: research; contest state skipped",
+        "run_day_crash": "OverflowError: Python int too large to convert to C int"
+      }
+    }
+  },
+  "F6_midnight_steps": {
+    "during_activation": {
+      "rc": 1,
+      "hold_state": "failed",
+      "hold_step": "activation",
+      "events": [
+        "stop",
+        "activate",
+        "stop",
+        "page"
+      ]
+    },
+    "at_third_canary_date_mismatch": {
+      "rc": 1,
+      "hold_state": "failed",
+      "hold_step": "activation",
+      "events": [
+        "stop",
+        "activate",
+        "stop",
+        "page"
+      ]
+    },
+    "at_third_canary_refused": {
+      "rc": 1,
+      "hold_state": "failed",
+      "hold_step": "activation",
+      "events": [
+        "stop",
+        "activate",
+        "stop",
+        "page"
+      ]
+    },
+    "during_last_release_write": {
+      "rc": 1,
+      "hold_state": "failed",
+      "hold_step": "activation",
+      "events": [
+        "stop",
+        "activate",
+        "stop",
+        "page"
+      ]
+    }
+  },
+  "F8_F10_monitor_parity": {
+    "absent_guard": [],
+    "clear_no_release": [],
+    "post_release_10d_ago": [
+      {
+        "state": "missing",
+        "base": {
+          "rc": 1,
+          "out": "[2027-07-15T18:00:00+00:00] stale=True  reason=heartbeat file not found: /Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/r2/r2_adv_v3_jzy48ut4/hb_missing.json",
+          "pings": [
+            [
+              "GET",
+              "https://hc-ping.com/t/fail"
+            ]
+          ]
+        },
+        "head": {
+          "rc": 1,
+          "out": "Deploy hold released at 2027-07-05T18:00:00+00:00 (deploy); no scheduler heartbeat since. See INCIDENT.md \u00a74.\nFailure ping received HTTP 2xx: verified.",
+          "pings": [
+            [
+              "POST",
+              "https://hc-ping.com/t/fail",
+              "Deploy hold released at 2027-07-05T18:00:00+00:00 (deploy); no scheduler heartbeat since. See INCIDENT.md \u00a74."
+            ]
+          ]
+        }
+      },
+      {
+        "state": "corrupt",
+        "base": {
+          "rc": 1,
+          "out": "[2027-07-15T18:00:00+00:00] stale=True  reason=heartbeat unreadable: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)",
+          "pings": [
+            [
+              "GET",
+              "https://hc-ping.com/t/fail"
+            ]
+          ]
+        },
+        "head": {
+          "rc": 1,
+          "out": "Deploy hold released at 2027-07-05T18:00:00+00:00 (deploy); no scheduler heartbeat since. See INCIDENT.md \u00a74.\nFailure ping received HTTP 2xx: verified.",
+          "pings": [
+            [
+              "POST",
+              "https://hc-ping.com/t/fail",
+              "Deploy hold released at 2027-07-05T18:00:00+00:00 (deploy); no scheduler heartbeat since. See INCIDENT.md \u00a74."
+            ]
+          ]
+        }
+      },
+      {
+        "state": "tz_naive_fresh",
+        "base": {
+          "rc": "RAISED:TypeError",
+          "out": "",
+          "pings": []
+        },
+        "head": {
+          "rc": 1,
+          "out": "Deploy hold released at 2027-07-05T18:00:00+00:00 (deploy); no scheduler heartbeat since. See INCIDENT.md \u00a74.\nFailure ping received HTTP 2xx: verified.",
+          "pings": [
+            [
+              "POST",
+              "https://hc-ping.com/t/fail",
+              "Deploy hold released at 2027-07-05T18:00:00+00:00 (deploy); no scheduler heartbeat since. See INCIDENT.md \u00a74."
+            ]
+          ]
+        }
+      }
+    ]
+  },
+  "F9_hand_release_matrix": {
+    "absent_hb": {
+      "rc": 0,
+      "out": "Deploy hold released by hand at 2026-11-20T22:59:13+00:00 (deploy 1795197580-adv02, failed at sync, target bbbbbbb). Reason: verified recovery."
+    },
+    "stale_running_301s": {
+      "rc": 0,
+      "out": "Deploy hold released by hand at 2026-11-20T22:59:13+00:00 (deploy 1795197580-adv02, failed at sync, target bbbbbbb). Reason: verified recovery."
+    },
+    "fresh_running_300s": {
+      "rc": 1,
+      "out": "hand release refused: window"
+    },
+    "stale_waiting_601s": {
+      "rc": 0,
+      "out": "Deploy hold released by hand at 2026-11-20T22:59:13+00:00 (deploy 1795197580-adv02, failed at sync, target bbbbbbb). Reason: verified recovery."
+    },
+    "fresh_waiting_600s": {
+      "rc": 1,
+      "out": "hand release refused: window"
+    },
+    "stale_sleeping_expired_601s_ago": {
+      "rc": 0,
+      "out": "Deploy hold released by hand at 2026-11-20T22:59:13+00:00 (deploy 1795197580-adv02, failed at sync, target bbbbbbb). Reason: verified recovery."
+    },
+    "stopped_sleeping_expired_5s_ago_within_600s_overrun": {
+      "rc": 1,
+      "out": "hand release refused: window"
+    },
+    "fresh_sleeping_wake_in_29s": {
+      "rc": 1,
+      "out": "hand release refused: window"
+    },
+    "fresh_sleeping_wake_in_30s": {
+      "rc": 0,
+      "out": "Deploy hold released by hand at 2026-11-20T22:59:13+00:00 (deploy 1795197580-adv02, failed at sync, target bbbbbbb). Reason: verified recovery."
+    },
+    "fresh_idle_end_of_day": {
+      "rc": 0,
+      "out": "Deploy hold released by hand at 2026-11-20T22:59:13+00:00 (deploy 1795197580-adv02, failed at sync, target bbbbbbb). Reason: verified recovery."
+    }
+  }
+}

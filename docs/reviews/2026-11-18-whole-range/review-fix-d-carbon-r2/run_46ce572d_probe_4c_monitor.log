@@ -1,0 +1,59 @@
+{
+  "parity_corpus_runs_passed": 80,
+  "hold_matrix_summary": {
+    "young_pending_live_active": {
+      "rc": 0,
+      "out": "deploy in progress (run 1795197580-monprobe, armed 30s ago); no ping"
+    },
+    "young_pending_1380s_deactivating": {
+      "rc": 0,
+      "out": "deploy in progress (run 1795197580-monprobe, armed 1380s ago); no ping"
+    },
+    "young_activating_live_active": {
+      "rc": 0,
+      "out": "deploy in progress (run 1795197580-monprobe, armed 30s ago); no ping"
+    },
+    "old_pending_1381s_even_if_alive": {
+      "rc": 1,
+      "out": "Deploy hold: pending at sync (requested target bbbbbbb). See INCIDENT.md \u00a74.\nFailure ping received HTTP 2xx: verified."
+    },
+    "old_activating_1381s_even_if_alive": {
+      "rc": 1,
+      "out": "Deploy hold: activating at activation (requested target bbbbbbb). See INCIDENT.md \u00a74.\nFailure ping received HTTP 2xx: verified."
+    },
+    "pending_dead_unlock": {
+      "rc": 1,
+      "out": "Deploy hold: pending at sync (requested target bbbbbbb). See INCIDENT.md \u00a74.\nFailure ping received HTTP 2xx: verified."
+    },
+    "activating_foreign_lock_dead_unit": {
+      "rc": 1,
+      "out": "Deploy hold: activating at activation (requested target bbbbbbb). See INCIDENT.md \u00a74.\nFailure ping received HTTP 2xx: verified."
+    },
+    "failed_hold": {
+      "rc": 1,
+      "out": "Deploy hold: failed at sync (requested target bbbbbbb). See INCIDENT.md \u00a74.\nFailure ping received HTTP 2xx: verified."
+    }
+  },
+  "oldest_python": {
+    "binary": "/usr/bin/python3",
+    "version": "Python 3.9.6",
+    "clear_rc": 0,
+    "fifo_hold_rc": 1,
+    "post_release_older_hb_rc": 1,
+    "post_release_newer_hb_rc": 0
+  },
+  "adversarial_findings": {
+    "custom_deploy_hold_flag_misreads_guard_tool": {
+      "rc": 1,
+      "out": "Deploy hold present and unreadable. See INCIDENT.md \u00a74."
+    },
+    "stalled_cascade_20_days_after_release_masks_reason": {
+      "rc": 1,
+      "out": "Deploy hold released at 2026-10-31T22:44:35+00:00 (deploy); no scheduler heartbeat since. See INCIDENT.md \u00a74."
+    },
+    "heartbeat_1ms_newer_than_sampled_now_falsely_fails": {
+      "rc": 1,
+      "out": "Deploy hold released at 2026-10-31T22:44:35+00:00 (deploy); no scheduler heartbeat since. See INCIDENT.md \u00a74."
+    }
+  }
+}

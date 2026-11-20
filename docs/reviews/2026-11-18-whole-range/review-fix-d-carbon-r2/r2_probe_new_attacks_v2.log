@@ -1,0 +1,19 @@
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/r2/r2_probe_new_attacks_v2.py", line 753, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/r2/r2_probe_new_attacks_v2.py", line 741, in main
+    "F8_F10_monitor_parity": attack_f8_f10_monitor_parity(work),
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/r2/r2_probe_new_attacks_v2.py", line 670, in attack_f8_f10_monitor_parity
+    b_res = run_mon(bm, ["check_heartbeat.py", "--heartbeat-path", str(hb), "--ping-url", "https://hc-ping.com/t", "--no-churn"])
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/r2/r2_probe_new_attacks_v2.py", line 626, in run_mon
+    mod.main()
+  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/base/scripts/check_heartbeat.py", line 233, in main
+    stale, reason = is_stale(args.heartbeat_path)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/base/scripts/check_heartbeat.py", line 59, in is_stale
+    age_s = (now - ts).total_seconds()
+             ~~~~^~~~
+TypeError: can't subtract offset-naive and offset-aware datetimes

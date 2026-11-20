@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/r2/run_head/.codex-review/wr-d/probe_3b_guard_preflight.py", line 323, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/r2/run_head/.codex-review/wr-d/probe_3b_guard_preflight.py", line 198, in main
+    assert pf(cron_text=base_cron_res) is None
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

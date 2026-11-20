@@ -1,0 +1,51 @@
+{
+  "total_lines_replayed": 19,
+  "gated_lines_verified": 8,
+  "show_header_identical": true,
+  "grader_flock_singleton_verified": true,
+  "chain_0300_independence": {
+    "data pull": {
+      "rc": 17,
+      "commands_run": [
+        "bts data pull --start 2027-07-08 --end 2027-07-15"
+      ]
+    },
+    "data build": {
+      "rc": 17,
+      "commands_run": [
+        "bts data pull --start 2027-07-08 --end 2027-07-15",
+        "bts data build --seasons 2027"
+      ]
+    },
+    "bts preview": {
+      "rc": 0,
+      "commands_run": [
+        "bts data pull --start 2027-07-08 --end 2027-07-15",
+        "bts data build --seasons 2027",
+        "bts preview",
+        "bts data sync-to-r2"
+      ]
+    },
+    "sync-to-r2": {
+      "rc": 17,
+      "commands_run": [
+        "bts data pull --start 2027-07-08 --end 2027-07-15",
+        "bts data build --seasons 2027",
+        "bts preview",
+        "bts data sync-to-r2"
+      ]
+    }
+  },
+  "install_refusals_preserve_crontab": {
+    "symlink_writers_lock": 1,
+    "extra_newline_version": 1
+  },
+  "test_entry_intent_ast_diff": {
+    "base_test_count": 23,
+    "changed_existing_tests": [],
+    "added_tests": [
+      "test_guard_version_failure_cannot_replace_crontab",
+      "test_guarded_cron_install_fences_all_eight_writer_entries"
+    ]
+  }
+}

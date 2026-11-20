@@ -1,0 +1,85 @@
+{
+  "refusal_cases_verified_unchanged": 18,
+  "success_exact_lines": [
+    "Deploy hold released by hand at 2026-11-20T22:44:40+00:00 (deploy 1795197580-hand01, failed at sync, target bbbbbbb). Reason: verified all checks.",
+    "Cron and boot activation are now permitted. This command did not request a scheduler start."
+  ],
+  "syscall_durability_trace": [
+    [
+      "fsync",
+      "hold_exists=False",
+      "audit_events=[]"
+    ],
+    [
+      "replace",
+      "hold"
+    ],
+    [
+      "fsync",
+      "hold_exists=True",
+      "audit_events=[]"
+    ],
+    [
+      "fsync",
+      "hold_exists=True",
+      "audit_events=['intent']"
+    ],
+    [
+      "fsync",
+      "hold_exists=True",
+      "audit_events=['intent']"
+    ],
+    [
+      "fsync",
+      "hold_exists=True",
+      "audit_events=['intent']"
+    ],
+    [
+      "replace",
+      "last-release"
+    ],
+    [
+      "fsync",
+      "hold_exists=True",
+      "audit_events=['intent']"
+    ],
+    [
+      "unlink_hold",
+      "audit_events=['intent']",
+      "last_release_exists=True"
+    ],
+    [
+      "fsync",
+      "hold_exists=False",
+      "audit_events=['intent']"
+    ],
+    [
+      "fsync",
+      "hold_exists=False",
+      "audit_events=['intent', 'completion']"
+    ],
+    [
+      "fsync",
+      "hold_exists=False",
+      "audit_events=['intent', 'completion']"
+    ]
+  ],
+  "adversarial_hand_release_window_deadlock": {
+    "absent_heartbeat": {
+      "rc": 1,
+      "out": "hand release refused: window"
+    },
+    "stale_sleeping_expired_15m_ago_while_held": {
+      "rc": 1,
+      "out": "hand release refused: window"
+    },
+    "fresh_idle_end_of_day_all_games_over": {
+      "rc": 1,
+      "out": "hand release refused: window"
+    },
+    "fresh_sleeping_20min_ahead_despite_30s_arg": {
+      "rc": 1,
+      "out": "hand release refused: window"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+Replay monitor 0645be4b 2026-11-20T17:37:03.741943
+Python 3.9.6 no-hold comparisons 372
+without guard, same fresh sleeping input
+monitor_base (0, '[2027-07-15T18:00:00+00:00] stale=False  reason=fresh sleeping\n', '', [('GET', '', '')])
+monitor_head (0, '[2027-07-15T18:00:00+00:00] stale=False  reason=fresh sleeping\n', '', [('GET', '', '')])
+missing state.lock, with neither record (1, 'Deploy hold lookup failed. See INCIDENT.md §4.\nFailure ping received HTTP 2xx: verified.\n', '', [('POST', '/fail', 'Deploy hold lookup failed. See INCIDENT.md §4.')])
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-d/.codex-review/wr-d/r2/trees/0645be4b/.codex-review/wr-d/monitor_probe.py", line 180, in <module>
+    main()
+  File "/Users/eric/projects/bts-work/wr-review-d/.codex-review/wr-d/r2/trees/0645be4b/.codex-review/wr-d/monitor_probe.py", line 151, in main
+    assert result[0] == 0 and not result[3] and 'no ping' in result[1], result
+AssertionError: (1, 'Deploy hold present and unreadable. See INCIDENT.md §4.\nFailure ping received HTTP 2xx: verified.\n', '', [('POST', '/fail', 'Deploy hold present and unreadable. See INCIDENT.md §4.')])
+exit 1

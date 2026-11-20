@@ -1,0 +1,14 @@
+46ce572d inventory {'canonical': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'quote': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'indirect': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'python-module': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'wrapped': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'chained-ungated': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'monitor-comment': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'commented-writer-only': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'shell-escaped': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'monitor-short-circuit': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}
+46ce572d real /bin/sh, two accepted writer spellings wrote under pending; accepted heartbeat never ran
+46ce572d unit canonical aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+46ce572d unit condition executable aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+46ce572d unit condition skip promoted aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+46ce572d unit working tree aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+46ce572d unit environment aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+46ce572d unit environment file aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+46ce572d unit namespace root aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+46ce572d unit bind mount aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+46ce572d unit inherited test override aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+46ce572d same scheduler condition with held real-equivalent and empty inherited test root [1, 0]
+46ce572d F15 canary-http
+46ce572d F14 DEPLOY NOT STARTED — guard failed. This run did not change the checkout or services. Previous SHA: unknown.
