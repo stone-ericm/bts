@@ -1,0 +1,28 @@
+{
+  "ordinary_midnight": {
+    "2027-07-06T23:59:59-04:00": {
+      "loader": "dated",
+      "status": "live decision now: accepted"
+    },
+    "2027-07-07T00:00:01-04:00": {
+      "loader": "refused",
+      "status": "live decision now: refused"
+    }
+  },
+  "year_midnight": {
+    "2027-12-31T23:59:59-05:00": {
+      "loader": "dated",
+      "status": "live decision now: accepted"
+    },
+    "2028-01-01T00:00:01-05:00": {
+      "loader": "refused",
+      "status": "live decision now: refused"
+    }
+  },
+  "other": {
+    "malformed_private_problem": "[health_checks] is not a table",
+    "dm_research_mismatch_slips_past_live_gate_only": true,
+    "day_outcome_prior_research_decision": "research_commit",
+    "3.11_static_checks_accept": "from collections.abc import Buffer"
+  }
+}

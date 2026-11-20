@@ -1,0 +1,908 @@
+{
+  "base_bash": "GNU bash, version 3.2.57(1)-release (arm64-apple-darwin26)",
+  "base": {
+    "pass": {
+      "rc": 0,
+      "head": "41952802",
+      "stamp": true,
+      "output": [
+        "Pre-deploy SHA: 619abda",
+        "Deployed 4195280",
+        "Waiting 30s for services to stabilize...",
+        "================================",
+        "CANARY PASSED \u2014 4195280 is live and healthy",
+        "================================"
+      ],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "4195280200000000000000000000000000000000"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "--short",
+          "HEAD"
+        ],
+        [
+          "sleep",
+          "30"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "bts-scheduler"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "tailscale",
+          "ip",
+          "-4"
+        ],
+        [
+          "curl",
+          "-sS",
+          "-m",
+          "10",
+          "-o",
+          "/dev/null",
+          "-w",
+          "%{http_code}",
+          "http://127.0.0.1:3003/"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "bash",
+          "-c",
+          "date -u +%Y-%m-%dT%H:%M:%SZ > /home/bts/projects/bts/data/.last_deploy_iso"
+        ]
+      ]
+    },
+    "sync-error": {
+      "rc": 1,
+      "head": "41952802",
+      "stamp": false,
+      "output": [
+        "Pre-deploy SHA: 619abda"
+      ],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "4195280200000000000000000000000000000000"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ]
+      ]
+    },
+    "restart-error": {
+      "rc": 1,
+      "head": "41952802",
+      "stamp": false,
+      "output": [
+        "Pre-deploy SHA: 619abda"
+      ],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "4195280200000000000000000000000000000000"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ]
+      ]
+    },
+    "rollback": {
+      "rc": 1,
+      "head": "619abda7",
+      "stamp": true,
+      "output": [
+        "Pre-deploy SHA: 619abda",
+        "Deployed 4195280",
+        "Waiting 30s for services to stabilize...",
+        "================================",
+        "CANARY FAILED \u2014 rolling back to 619abda",
+        "Reasons:",
+        "",
+        "  - dashboard HTTP check failed (127.0.0.1:3003)",
+        "================================",
+        "Rolled back cleanly to 619abda"
+      ],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "4195280200000000000000000000000000000000"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "--short",
+          "HEAD"
+        ],
+        [
+          "sleep",
+          "30"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "bts-scheduler"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "tailscale",
+          "ip",
+          "-4"
+        ],
+        [
+          "curl",
+          "-sS",
+          "-m",
+          "10",
+          "-o",
+          "/dev/null",
+          "-w",
+          "%{http_code}",
+          "http://127.0.0.1:3003/"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "619abda700000000000000000000000000000000"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sleep",
+          "15"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "bash",
+          "-c",
+          "date -u +%Y-%m-%dT%H:%M:%SZ > /home/bts/projects/bts/data/.last_deploy_iso"
+        ]
+      ]
+    },
+    "broken-rollback": {
+      "rc": 1,
+      "head": "41952802",
+      "stamp": true,
+      "output": [
+        "Pre-deploy SHA: 619abda",
+        "Deployed 4195280",
+        "Waiting 30s for services to stabilize...",
+        "================================",
+        "CANARY FAILED \u2014 rolling back to 619abda",
+        "Reasons:",
+        "",
+        "  - dashboard HTTP check failed (127.0.0.1:3003)",
+        "================================",
+        "Rolled back cleanly to 619abda"
+      ],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "4195280200000000000000000000000000000000"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "--short",
+          "HEAD"
+        ],
+        [
+          "sleep",
+          "30"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "bts-scheduler"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "tailscale",
+          "ip",
+          "-4"
+        ],
+        [
+          "curl",
+          "-sS",
+          "-m",
+          "10",
+          "-o",
+          "/dev/null",
+          "-w",
+          "%{http_code}",
+          "http://127.0.0.1:3003/"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "619abda700000000000000000000000000000000"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sleep",
+          "15"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "bash",
+          "-c",
+          "date -u +%Y-%m-%dT%H:%M:%SZ > /home/bts/projects/bts/data/.last_deploy_iso"
+        ]
+      ]
+    },
+    "curl-28": {
+      "rc": 0,
+      "head": "41952802",
+      "stamp": true,
+      "output": [
+        "Pre-deploy SHA: 619abda",
+        "Deployed 4195280",
+        "Waiting 30s for services to stabilize...",
+        "================================",
+        "CANARY PASSED \u2014 4195280 is live and healthy",
+        "================================"
+      ],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "4195280200000000000000000000000000000000"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "--short",
+          "HEAD"
+        ],
+        [
+          "sleep",
+          "30"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "bts-scheduler"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "tailscale",
+          "ip",
+          "-4"
+        ],
+        [
+          "curl",
+          "-sS",
+          "-m",
+          "10",
+          "-o",
+          "/dev/null",
+          "-w",
+          "%{http_code}",
+          "http://127.0.0.1:3003/"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "bash",
+          "-c",
+          "date -u +%Y-%m-%dT%H:%M:%SZ > /home/bts/projects/bts/data/.last_deploy_iso"
+        ]
+      ]
+    }
+  },
+  "lock": {
+    "forked_after_arm_before_drain": 75,
+    "prearm_writer_blocks": true,
+    "detached_grandchild_blocks_after_launcher_exits": true,
+    "drains_after_fd_close": true
+  },
+  "models": {
+    "mv_to_directory_rc": 0,
+    "absolute_path_ignores_PATH": true,
+    "model_lease_traces": {
+      "old_process": [
+        "arm",
+        "controller lost before drain/stop",
+        "old process still runnable"
+      ],
+      "timer_gap": [
+        "canary record persisted",
+        "controller lost before systemd-run",
+        "explicit start passes condition",
+        "record expires, started process still runnable"
+      ],
+      "early_send": [
+        "lease",
+        "restart",
+        "scheduler READY",
+        "scheduler can send or write",
+        "contest or dashboard canary fails",
+        "stop cannot undo action"
+      ],
+      "release_expire": [
+        "release reads canary",
+        "expiry writes failed and stops",
+        "release unlinks failed"
+      ],
+      "late_release": [
+        "lease deadline passes",
+        "timer delayed",
+        "release finds canary and unlinks"
+      ],
+      "after_release_signal": [
+        "release",
+        "TERM before trap disarm",
+        "E4 recreates failed hold and stops"
+      ]
+    },
+    "nested_priors_exceed_limit_at": 25
+  }
+}

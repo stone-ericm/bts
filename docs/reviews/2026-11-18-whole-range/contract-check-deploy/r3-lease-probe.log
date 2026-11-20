@@ -1,0 +1,6 @@
+arm/stop gap leaves old scheduler running
+timer registration gap permits a candidate start which survives expiry
+same-boot guard denies the post-reboot start
+draft release predicate accepts an expired canary record
+split check/unlink can clear a failed record after the timer stops the candidate
+timer no-ops after a normal release
