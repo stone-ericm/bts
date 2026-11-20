@@ -1,0 +1,3539 @@
+{
+  "workflow": {
+    "cd": {
+      "exit": 1,
+      "sha": "619abda7",
+      "scheduler_model": "619abda7-running",
+      "stamp": false,
+      "side_effects": [],
+      "stdout": [],
+      "stderr": [],
+      "calls": []
+    },
+    "clean_exit": {
+      "exit": 0,
+      "sha": "acbd1234",
+      "scheduler_model": "acbd1234-running",
+      "stamp": true,
+      "side_effects": [
+        "global-config-touched"
+      ],
+      "stdout": [
+        "Pre-deploy SHA: 619abda",
+        "Deployed acbd123",
+        "Waiting 30s for services to stabilize...",
+        "bts-scheduler.service completed cleanly and is waiting for Restart=always relaunch",
+        "================================",
+        "CANARY PASSED \u2014 acbd123 is live and healthy",
+        "================================"
+      ],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "acbd1234"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "--short",
+          "HEAD"
+        ],
+        [
+          "sleep",
+          "30"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "bts-scheduler"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "show",
+          "bts-scheduler",
+          "-p",
+          "ActiveState",
+          "--value"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "show",
+          "bts-scheduler",
+          "-p",
+          "SubState",
+          "--value"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "show",
+          "bts-scheduler",
+          "-p",
+          "Result",
+          "--value"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "show",
+          "bts-scheduler",
+          "-p",
+          "ExecMainStatus",
+          "--value"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "tailscale",
+          "ip",
+          "-4"
+        ],
+        [
+          "curl",
+          "-sS",
+          "-m",
+          "10",
+          "-o",
+          "/dev/null",
+          "-w",
+          "%{http_code}",
+          "http://100.64.0.8:3003/"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "bash",
+          "-c",
+          "date -u +%Y-%m-%dT%H:%M:%SZ > /home/bts/projects/bts/data/.last_deploy_iso"
+        ]
+      ]
+    },
+    "config": {
+      "exit": 1,
+      "sha": "619abda7",
+      "scheduler_model": "619abda7-running",
+      "stamp": false,
+      "side_effects": [
+        "global-config-touched"
+      ],
+      "stdout": [
+        "Pre-deploy SHA: 619abda"
+      ],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ]
+      ]
+    },
+    "crash": {
+      "exit": 1,
+      "sha": "619abda7",
+      "scheduler_model": "619abda7-running",
+      "stamp": true,
+      "side_effects": [
+        "global-config-touched"
+      ],
+      "stdout": [
+        "Pre-deploy SHA: 619abda",
+        "Deployed acbd123",
+        "Waiting 30s for services to stabilize...",
+        "================================",
+        "CANARY FAILED \u2014 rolling back to 619abda",
+        "Reasons:",
+        "",
+        "  - bts-scheduler.service is not healthy (active=activating active_state=activating sub_state=auto-restart result=exit-code exit_status=2)",
+        "================================",
+        "Rolled back cleanly to 619abda"
+      ],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "acbd1234"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "--short",
+          "HEAD"
+        ],
+        [
+          "sleep",
+          "30"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "bts-scheduler"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "show",
+          "bts-scheduler",
+          "-p",
+          "ActiveState",
+          "--value"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "show",
+          "bts-scheduler",
+          "-p",
+          "SubState",
+          "--value"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "show",
+          "bts-scheduler",
+          "-p",
+          "Result",
+          "--value"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "show",
+          "bts-scheduler",
+          "-p",
+          "ExecMainStatus",
+          "--value"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "tailscale",
+          "ip",
+          "-4"
+        ],
+        [
+          "curl",
+          "-sS",
+          "-m",
+          "10",
+          "-o",
+          "/dev/null",
+          "-w",
+          "%{http_code}",
+          "http://100.64.0.8:3003/"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "619abda7"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sleep",
+          "15"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "bash",
+          "-c",
+          "date -u +%Y-%m-%dT%H:%M:%SZ > /home/bts/projects/bts/data/.last_deploy_iso"
+        ]
+      ]
+    },
+    "dashboard_inactive": {
+      "exit": 1,
+      "sha": "619abda7",
+      "scheduler_model": "619abda7-running",
+      "stamp": true,
+      "side_effects": [
+        "global-config-touched"
+      ],
+      "stdout": [
+        "Pre-deploy SHA: 619abda",
+        "Deployed acbd123",
+        "Waiting 30s for services to stabilize...",
+        "================================",
+        "CANARY FAILED \u2014 rolling back to 619abda",
+        "Reasons:",
+        "",
+        "  - bts-dashboard.service is not active",
+        "================================",
+        "Rolled back cleanly to 619abda"
+      ],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "acbd1234"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "--short",
+          "HEAD"
+        ],
+        [
+          "sleep",
+          "30"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "bts-scheduler"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "tailscale",
+          "ip",
+          "-4"
+        ],
+        [
+          "curl",
+          "-sS",
+          "-m",
+          "10",
+          "-o",
+          "/dev/null",
+          "-w",
+          "%{http_code}",
+          "http://100.64.0.8:3003/"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "619abda7"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sleep",
+          "15"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "bash",
+          "-c",
+          "date -u +%Y-%m-%dT%H:%M:%SZ > /home/bts/projects/bts/data/.last_deploy_iso"
+        ]
+      ]
+    },
+    "fetch": {
+      "exit": 1,
+      "sha": "619abda7",
+      "scheduler_model": "619abda7-running",
+      "stamp": false,
+      "side_effects": [
+        "fetched-metadata-touched",
+        "global-config-touched"
+      ],
+      "stdout": [
+        "Pre-deploy SHA: 619abda"
+      ],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ]
+      ]
+    },
+    "http_503": {
+      "exit": 1,
+      "sha": "619abda7",
+      "scheduler_model": "619abda7-running",
+      "stamp": true,
+      "side_effects": [
+        "global-config-touched"
+      ],
+      "stdout": [
+        "Pre-deploy SHA: 619abda",
+        "Deployed acbd123",
+        "Waiting 30s for services to stabilize...",
+        "================================",
+        "CANARY FAILED \u2014 rolling back to 619abda",
+        "Reasons:",
+        "",
+        "  - dashboard HTTP check failed (100.64.0.8:3003)",
+        "================================",
+        "Rolled back cleanly to 619abda"
+      ],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "acbd1234"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "--short",
+          "HEAD"
+        ],
+        [
+          "sleep",
+          "30"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "bts-scheduler"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "tailscale",
+          "ip",
+          "-4"
+        ],
+        [
+          "curl",
+          "-sS",
+          "-m",
+          "10",
+          "-o",
+          "/dev/null",
+          "-w",
+          "%{http_code}",
+          "http://100.64.0.8:3003/"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "619abda7"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sleep",
+          "15"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "bash",
+          "-c",
+          "date -u +%Y-%m-%dT%H:%M:%SZ > /home/bts/projects/bts/data/.last_deploy_iso"
+        ]
+      ]
+    },
+    "http_error_200": {
+      "exit": 0,
+      "sha": "acbd1234",
+      "scheduler_model": "acbd1234-running",
+      "stamp": true,
+      "side_effects": [
+        "global-config-touched"
+      ],
+      "stdout": [
+        "Pre-deploy SHA: 619abda",
+        "Deployed acbd123",
+        "Waiting 30s for services to stabilize...",
+        "================================",
+        "CANARY PASSED \u2014 acbd123 is live and healthy",
+        "================================"
+      ],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "acbd1234"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "--short",
+          "HEAD"
+        ],
+        [
+          "sleep",
+          "30"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "bts-scheduler"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "tailscale",
+          "ip",
+          "-4"
+        ],
+        [
+          "curl",
+          "-sS",
+          "-m",
+          "10",
+          "-o",
+          "/dev/null",
+          "-w",
+          "%{http_code}",
+          "http://100.64.0.8:3003/"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "bash",
+          "-c",
+          "date -u +%Y-%m-%dT%H:%M:%SZ > /home/bts/projects/bts/data/.last_deploy_iso"
+        ]
+      ]
+    },
+    "http_timeout": {
+      "exit": 1,
+      "sha": "619abda7",
+      "scheduler_model": "619abda7-running",
+      "stamp": true,
+      "side_effects": [
+        "global-config-touched"
+      ],
+      "stdout": [
+        "Pre-deploy SHA: 619abda",
+        "Deployed acbd123",
+        "Waiting 30s for services to stabilize...",
+        "================================",
+        "CANARY FAILED \u2014 rolling back to 619abda",
+        "Reasons:",
+        "",
+        "  - dashboard HTTP check failed (100.64.0.8:3003)",
+        "================================",
+        "Rolled back cleanly to 619abda"
+      ],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "acbd1234"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "--short",
+          "HEAD"
+        ],
+        [
+          "sleep",
+          "30"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "bts-scheduler"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "tailscale",
+          "ip",
+          "-4"
+        ],
+        [
+          "curl",
+          "-sS",
+          "-m",
+          "10",
+          "-o",
+          "/dev/null",
+          "-w",
+          "%{http_code}",
+          "http://100.64.0.8:3003/"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "619abda7"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sleep",
+          "15"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "bash",
+          "-c",
+          "date -u +%Y-%m-%dT%H:%M:%SZ > /home/bts/projects/bts/data/.last_deploy_iso"
+        ]
+      ]
+    },
+    "hup": {
+      "exit": -1,
+      "sha": "acbd1234",
+      "scheduler_model": "acbd1234-running",
+      "stamp": false,
+      "side_effects": [
+        "global-config-touched"
+      ],
+      "stdout": [
+        "Pre-deploy SHA: 619abda",
+        "Deployed acbd123",
+        "Waiting 30s for services to stabilize..."
+      ],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "acbd1234"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "--short",
+          "HEAD"
+        ],
+        [
+          "sleep",
+          "30"
+        ]
+      ]
+    },
+    "id": {
+      "exit": 0,
+      "sha": "acbd1234",
+      "scheduler_model": "acbd1234-running",
+      "stamp": true,
+      "side_effects": [
+        "global-config-touched"
+      ],
+      "stdout": [
+        "Pre-deploy SHA: 619abda",
+        "Deployed acbd123",
+        "Waiting 30s for services to stabilize...",
+        "================================",
+        "CANARY PASSED \u2014 acbd123 is live and healthy",
+        "================================"
+      ],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "acbd1234"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "--short",
+          "HEAD"
+        ],
+        [
+          "sleep",
+          "30"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/",
+          "systemctl",
+          "--user",
+          "is-active",
+          "bts-scheduler"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "tailscale",
+          "ip",
+          "-4"
+        ],
+        [
+          "curl",
+          "-sS",
+          "-m",
+          "10",
+          "-o",
+          "/dev/null",
+          "-w",
+          "%{http_code}",
+          "http://100.64.0.8:3003/"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "bash",
+          "-c",
+          "date -u +%Y-%m-%dT%H:%M:%SZ > /home/bts/projects/bts/data/.last_deploy_iso"
+        ]
+      ]
+    },
+    "legacy_disable": {
+      "exit": 0,
+      "sha": "acbd1234",
+      "scheduler_model": "acbd1234-running",
+      "stamp": true,
+      "side_effects": [
+        "global-config-touched"
+      ],
+      "stdout": [
+        "Pre-deploy SHA: 619abda",
+        "Deployed acbd123",
+        "Waiting 30s for services to stabilize...",
+        "================================",
+        "CANARY PASSED \u2014 acbd123 is live and healthy",
+        "================================"
+      ],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "acbd1234"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "systemctl",
+          "disable",
+          "--now",
+          "bts-scheduler.service",
+          "bts-dashboard.service"
+        ],
+        [
+          "rm",
+          "-f",
+          "/etc/systemd/system/bts-scheduler.service",
+          "/etc/systemd/system/bts-dashboard.service"
+        ],
+        [
+          "systemctl",
+          "daemon-reload"
+        ],
+        [
+          "pkill",
+          "-u",
+          "bts",
+          "-f",
+          "uv run bts schedule"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "--short",
+          "HEAD"
+        ],
+        [
+          "sleep",
+          "30"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "bts-scheduler"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "tailscale",
+          "ip",
+          "-4"
+        ],
+        [
+          "curl",
+          "-sS",
+          "-m",
+          "10",
+          "-o",
+          "/dev/null",
+          "-w",
+          "%{http_code}",
+          "http://100.64.0.8:3003/"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "bash",
+          "-c",
+          "date -u +%Y-%m-%dT%H:%M:%SZ > /home/bts/projects/bts/data/.last_deploy_iso"
+        ]
+      ]
+    },
+    "legacy_reload": {
+      "exit": 1,
+      "sha": "acbd1234",
+      "scheduler_model": "619abda7-running",
+      "stamp": false,
+      "side_effects": [
+        "global-config-touched"
+      ],
+      "stdout": [
+        "Pre-deploy SHA: 619abda"
+      ],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "acbd1234"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "systemctl",
+          "disable",
+          "--now",
+          "bts-scheduler.service",
+          "bts-dashboard.service"
+        ],
+        [
+          "rm",
+          "-f",
+          "/etc/systemd/system/bts-scheduler.service",
+          "/etc/systemd/system/bts-dashboard.service"
+        ],
+        [
+          "systemctl",
+          "daemon-reload"
+        ]
+      ]
+    },
+    "new_sha": {
+      "exit": 6,
+      "sha": "acbd1234",
+      "scheduler_model": "acbd1234-running",
+      "stamp": false,
+      "side_effects": [
+        "global-config-touched"
+      ],
+      "stdout": [
+        "Pre-deploy SHA: 619abda"
+      ],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "acbd1234"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "--short",
+          "HEAD"
+        ]
+      ]
+    },
+    "no_tailnet": {
+      "exit": 0,
+      "sha": "acbd1234",
+      "scheduler_model": "acbd1234-running",
+      "stamp": true,
+      "side_effects": [
+        "global-config-touched"
+      ],
+      "stdout": [
+        "Pre-deploy SHA: 619abda",
+        "Deployed acbd123",
+        "Waiting 30s for services to stabilize...",
+        "================================",
+        "CANARY PASSED \u2014 acbd123 is live and healthy",
+        "================================"
+      ],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "acbd1234"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "--short",
+          "HEAD"
+        ],
+        [
+          "sleep",
+          "30"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "bts-scheduler"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "tailscale",
+          "ip",
+          "-4"
+        ],
+        [
+          "curl",
+          "-sS",
+          "-m",
+          "10",
+          "-o",
+          "/dev/null",
+          "-w",
+          "%{http_code}",
+          "http://127.0.0.1:3003/"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "bash",
+          "-c",
+          "date -u +%Y-%m-%dT%H:%M:%SZ > /home/bts/projects/bts/data/.last_deploy_iso"
+        ]
+      ]
+    },
+    "old_sha": {
+      "exit": 6,
+      "sha": "619abda7",
+      "scheduler_model": "619abda7-running",
+      "stamp": false,
+      "side_effects": [],
+      "stdout": [],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ]
+      ]
+    },
+    "pass": {
+      "exit": 0,
+      "sha": "acbd1234",
+      "scheduler_model": "acbd1234-running",
+      "stamp": true,
+      "side_effects": [
+        "global-config-touched"
+      ],
+      "stdout": [
+        "Pre-deploy SHA: 619abda",
+        "Deployed acbd123",
+        "Waiting 30s for services to stabilize...",
+        "================================",
+        "CANARY PASSED \u2014 acbd123 is live and healthy",
+        "================================"
+      ],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "acbd1234"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "--short",
+          "HEAD"
+        ],
+        [
+          "sleep",
+          "30"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "bts-scheduler"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "tailscale",
+          "ip",
+          "-4"
+        ],
+        [
+          "curl",
+          "-sS",
+          "-m",
+          "10",
+          "-o",
+          "/dev/null",
+          "-w",
+          "%{http_code}",
+          "http://100.64.0.8:3003/"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "bash",
+          "-c",
+          "date -u +%Y-%m-%dT%H:%M:%SZ > /home/bts/projects/bts/data/.last_deploy_iso"
+        ]
+      ]
+    },
+    "reset": {
+      "exit": 1,
+      "sha": "619abda7",
+      "scheduler_model": "619abda7-running",
+      "stamp": false,
+      "side_effects": [
+        "global-config-touched",
+        "partial-tree"
+      ],
+      "stdout": [
+        "Pre-deploy SHA: 619abda"
+      ],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "acbd1234"
+        ]
+      ]
+    },
+    "restart": {
+      "exit": 2,
+      "sha": "acbd1234",
+      "scheduler_model": "candidate-refused",
+      "stamp": false,
+      "side_effects": [
+        "global-config-touched"
+      ],
+      "stdout": [
+        "Pre-deploy SHA: 619abda"
+      ],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "acbd1234"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ]
+      ]
+    },
+    "rollback_reset": {
+      "exit": 1,
+      "sha": "acbd1234",
+      "scheduler_model": "acbd1234-running",
+      "stamp": true,
+      "side_effects": [
+        "global-config-touched"
+      ],
+      "stdout": [
+        "Pre-deploy SHA: 619abda",
+        "Deployed acbd123",
+        "Waiting 30s for services to stabilize...",
+        "================================",
+        "CANARY FAILED \u2014 rolling back to 619abda",
+        "Reasons:",
+        "",
+        "  - dashboard HTTP check failed (100.64.0.8:3003)",
+        "================================",
+        "Rolled back cleanly to 619abda"
+      ],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "acbd1234"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "--short",
+          "HEAD"
+        ],
+        [
+          "sleep",
+          "30"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "bts-scheduler"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "tailscale",
+          "ip",
+          "-4"
+        ],
+        [
+          "curl",
+          "-sS",
+          "-m",
+          "10",
+          "-o",
+          "/dev/null",
+          "-w",
+          "%{http_code}",
+          "http://100.64.0.8:3003/"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "619abda7"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sleep",
+          "15"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "bash",
+          "-c",
+          "date -u +%Y-%m-%dT%H:%M:%SZ > /home/bts/projects/bts/data/.last_deploy_iso"
+        ]
+      ]
+    },
+    "scheduler_query_error": {
+      "exit": 0,
+      "sha": "acbd1234",
+      "scheduler_model": "acbd1234-running",
+      "stamp": true,
+      "side_effects": [
+        "global-config-touched"
+      ],
+      "stdout": [
+        "Pre-deploy SHA: 619abda",
+        "Deployed acbd123",
+        "Waiting 30s for services to stabilize...",
+        "================================",
+        "CANARY PASSED \u2014 acbd123 is live and healthy",
+        "================================"
+      ],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "acbd1234"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "--short",
+          "HEAD"
+        ],
+        [
+          "sleep",
+          "30"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "bts-scheduler"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "tailscale",
+          "ip",
+          "-4"
+        ],
+        [
+          "curl",
+          "-sS",
+          "-m",
+          "10",
+          "-o",
+          "/dev/null",
+          "-w",
+          "%{http_code}",
+          "http://100.64.0.8:3003/"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "bash",
+          "-c",
+          "date -u +%Y-%m-%dT%H:%M:%SZ > /home/bts/projects/bts/data/.last_deploy_iso"
+        ]
+      ]
+    },
+    "show_query_error": {
+      "exit": 0,
+      "sha": "acbd1234",
+      "scheduler_model": "acbd1234-running",
+      "stamp": true,
+      "side_effects": [
+        "global-config-touched"
+      ],
+      "stdout": [
+        "Pre-deploy SHA: 619abda",
+        "Deployed acbd123",
+        "Waiting 30s for services to stabilize...",
+        "bts-scheduler.service completed cleanly and is waiting for Restart=always relaunch",
+        "================================",
+        "CANARY PASSED \u2014 acbd123 is live and healthy",
+        "================================"
+      ],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "acbd1234"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "--short",
+          "HEAD"
+        ],
+        [
+          "sleep",
+          "30"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "bts-scheduler"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "show",
+          "bts-scheduler",
+          "-p",
+          "ActiveState",
+          "--value"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "show",
+          "bts-scheduler",
+          "-p",
+          "SubState",
+          "--value"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "show",
+          "bts-scheduler",
+          "-p",
+          "Result",
+          "--value"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "show",
+          "bts-scheduler",
+          "-p",
+          "ExecMainStatus",
+          "--value"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "tailscale",
+          "ip",
+          "-4"
+        ],
+        [
+          "curl",
+          "-sS",
+          "-m",
+          "10",
+          "-o",
+          "/dev/null",
+          "-w",
+          "%{http_code}",
+          "http://100.64.0.8:3003/"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "bash",
+          "-c",
+          "date -u +%Y-%m-%dT%H:%M:%SZ > /home/bts/projects/bts/data/.last_deploy_iso"
+        ]
+      ]
+    },
+    "sleep": {
+      "exit": 5,
+      "sha": "acbd1234",
+      "scheduler_model": "acbd1234-running",
+      "stamp": false,
+      "side_effects": [
+        "global-config-touched"
+      ],
+      "stdout": [
+        "Pre-deploy SHA: 619abda",
+        "Deployed acbd123",
+        "Waiting 30s for services to stabilize..."
+      ],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "acbd1234"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "--short",
+          "HEAD"
+        ],
+        [
+          "sleep",
+          "30"
+        ]
+      ]
+    },
+    "stamp": {
+      "exit": 1,
+      "sha": "acbd1234",
+      "scheduler_model": "acbd1234-running",
+      "stamp": false,
+      "side_effects": [
+        "global-config-touched"
+      ],
+      "stdout": [
+        "Pre-deploy SHA: 619abda",
+        "Deployed acbd123",
+        "Waiting 30s for services to stabilize...",
+        "================================",
+        "CANARY PASSED \u2014 acbd123 is live and healthy",
+        "================================"
+      ],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "acbd1234"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "--short",
+          "HEAD"
+        ],
+        [
+          "sleep",
+          "30"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "bts-scheduler"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "is-active",
+          "--quiet",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "tailscale",
+          "ip",
+          "-4"
+        ],
+        [
+          "curl",
+          "-sS",
+          "-m",
+          "10",
+          "-o",
+          "/dev/null",
+          "-w",
+          "%{http_code}",
+          "http://100.64.0.8:3003/"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "bash",
+          "-c",
+          "date -u +%Y-%m-%dT%H:%M:%SZ > /home/bts/projects/bts/data/.last_deploy_iso"
+        ]
+      ]
+    },
+    "sync": {
+      "exit": 1,
+      "sha": "acbd1234",
+      "scheduler_model": "619abda7-running",
+      "stamp": false,
+      "side_effects": [
+        "global-config-touched"
+      ],
+      "stdout": [
+        "Pre-deploy SHA: 619abda"
+      ],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "acbd1234"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ]
+      ]
+    },
+    "term": {
+      "exit": -15,
+      "sha": "acbd1234",
+      "scheduler_model": "acbd1234-running",
+      "stamp": false,
+      "side_effects": [
+        "global-config-touched"
+      ],
+      "stdout": [
+        "Pre-deploy SHA: 619abda",
+        "Deployed acbd123",
+        "Waiting 30s for services to stabilize..."
+      ],
+      "stderr": [],
+      "calls": [
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "config",
+          "--global",
+          "--add",
+          "safe.directory",
+          "/home/bts/projects/bts"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "fetch",
+          "origin"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "reset",
+          "--hard",
+          "acbd1234"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "env",
+          "UV_CACHE_DIR=/tmp/uv-cache",
+          "/home/bts/.local/bin/uv",
+          "sync",
+          "--locked",
+          "--extra",
+          "model"
+        ],
+        [
+          "id",
+          "-u",
+          "bts"
+        ],
+        [
+          "sudo",
+          "-u",
+          "bts",
+          "XDG_RUNTIME_DIR=/run/user/1000",
+          "systemctl",
+          "--user",
+          "restart",
+          "bts-scheduler",
+          "bts-dashboard"
+        ],
+        [
+          "sudo",
+          "-Hu",
+          "bts",
+          "git",
+          "rev-parse",
+          "--short",
+          "HEAD"
+        ],
+        [
+          "sleep",
+          "30"
+        ]
+      ]
+    }
+  },
+  "cron": {
+    "enter": [
+      "0 1 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && /usr/bin/flock -n /home/bts/.check-results.lock $HOME/.local/bin/uv run bts check-results --date $(date -d yesterday +\\%Y-\\%m-\\%d) --wait-deadline-et 06:00 >> $HOME/logs/cron.log 2>&1 # BTS-HETZNER",
+      "0 2 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts reconcile >> $HOME/logs/cron.log 2>&1 # BTS-HETZNER",
+      "40 7 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts reconcile >> $HOME/logs/cron.log 2>&1 # BTS-HETZNER",
+      "10 1 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $HOME/logs/cron.log 2>&1 # BTS-HETZNER",
+      "10 2 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $HOME/logs/cron.log 2>&1 # BTS-HETZNER",
+      "30 10 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $HOME/logs/cron.log 2>&1 # BTS-HETZNER",
+      "30 13 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $HOME/logs/cron.log 2>&1 # BTS-HETZNER",
+      "30 23 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts skip-policy-shadow-update >> $HOME/logs/cron.log 2>&1 # BTS-HETZNER",
+      "30 8 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts day-outcome --date $(date -d yesterday +\\%Y-\\%m-\\%d) --config $HOME/.bts-orchestrator.toml --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $HOME/logs/cron.log 2>&1 # BTS-HETZNER",
+      "45 7 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts park-drag-refresh >> $HOME/logs/park_drag.log 2>&1 # BTS-HETZNER",
+      "0 3 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && ($HOME/.local/bin/uv run bts data pull --start $(date -d \"7 days ago\" +\\%Y-\\%m-\\%d) --end $(date +\\%Y-\\%m-\\%d) && $HOME/.local/bin/uv run bts data build --seasons $(date +\\%Y) && { $HOME/.local/bin/uv run bts preview ; $HOME/.local/bin/uv run bts data sync-to-r2 ; }) >> $HOME/logs/cron.log 2>&1 # BTS-HETZNER",
+      "*/5 * * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts data collect-lineup-times --out-dir data/lineup_posting_times > /dev/null 2>&1 # BTS-HETZNER",
+      "*/5 * * * * curl -fsS --max-time 5 https://box.invalid/ping > /dev/null 2>&1 # BTS-HETZNER",
+      "*/5 * * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run python scripts/check_heartbeat.py --heartbeat-path data/.heartbeat --ping-url \"$BTS_SCHEDULER_HEARTBEAT_PING_URL\" >> $HOME/logs/heartbeat.log 2>&1 # BTS-HETZNER",
+      "*/30 * * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts leaderboard capture-static >> $HOME/logs/static_capture.log 2>&1 # BTS-HETZNER",
+      "*/15 10-23 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts check-pick-entered --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $HOME/logs/cron.log 2>&1 # BTS-HETZNER",
+      "20 */3 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts backup run --set ops >> $HOME/logs/backup.log 2>&1 # BTS-HETZNER",
+      "50 4 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts backup run --set archive >> $HOME/logs/backup.log 2>&1 # BTS-HETZNER",
+      "35 5 * * 0 cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts backup prune >> $HOME/logs/backup.log 2>&1 # BTS-HETZNER"
+    ],
+    "research": [
+      "0 1 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && /usr/bin/flock -n /home/bts/.check-results.lock $HOME/.local/bin/uv run bts check-results --date $(date -d yesterday +\\%Y-\\%m-\\%d) --wait-deadline-et 06:00 >> $HOME/logs/cron.log 2>&1 # BTS-HETZNER",
+      "0 2 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts reconcile >> $HOME/logs/cron.log 2>&1 # BTS-HETZNER",
+      "40 7 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts reconcile >> $HOME/logs/cron.log 2>&1 # BTS-HETZNER",
+      "10 1 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee >> $HOME/logs/cron.log 2>&1 # BTS-HETZNER",
+      "10 2 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee >> $HOME/logs/cron.log 2>&1 # BTS-HETZNER",
+      "30 10 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee >> $HOME/logs/cron.log 2>&1 # BTS-HETZNER",
+      "30 13 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee >> $HOME/logs/cron.log 2>&1 # BTS-HETZNER",
+      "30 23 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts skip-policy-shadow-update >> $HOME/logs/cron.log 2>&1 # BTS-HETZNER",
+      "30 8 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts day-outcome --date $(date -d yesterday +\\%Y-\\%m-\\%d) --config $HOME/.bts-orchestrator.toml --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $HOME/logs/cron.log 2>&1 # BTS-HETZNER",
+      "45 7 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts park-drag-refresh >> $HOME/logs/park_drag.log 2>&1 # BTS-HETZNER",
+      "0 3 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && ($HOME/.local/bin/uv run bts data pull --start $(date -d \"7 days ago\" +\\%Y-\\%m-\\%d) --end $(date +\\%Y-\\%m-\\%d) && $HOME/.local/bin/uv run bts data build --seasons $(date +\\%Y) && { $HOME/.local/bin/uv run bts preview ; $HOME/.local/bin/uv run bts data sync-to-r2 ; }) >> $HOME/logs/cron.log 2>&1 # BTS-HETZNER",
+      "*/5 * * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts data collect-lineup-times --out-dir data/lineup_posting_times > /dev/null 2>&1 # BTS-HETZNER",
+      "*/5 * * * * curl -fsS --max-time 5 https://box.invalid/ping > /dev/null 2>&1 # BTS-HETZNER",
+      "*/5 * * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run python scripts/check_heartbeat.py --heartbeat-path data/.heartbeat --ping-url \"$BTS_SCHEDULER_HEARTBEAT_PING_URL\" >> $HOME/logs/heartbeat.log 2>&1 # BTS-HETZNER",
+      "*/30 * * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts leaderboard capture-static >> $HOME/logs/static_capture.log 2>&1 # BTS-HETZNER",
+      "20 */3 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts backup run --set ops >> $HOME/logs/backup.log 2>&1 # BTS-HETZNER",
+      "50 4 * * * cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts backup run --set archive >> $HOME/logs/backup.log 2>&1 # BTS-HETZNER",
+      "35 5 * * 0 cd $HOME/projects/bts && set -a && . ./.env && set +a && $HOME/.local/bin/uv run bts backup prune >> $HOME/logs/backup.log 2>&1 # BTS-HETZNER"
+    ]
+  },
+  "heartbeat": {
+    "deploy_failed_monitor": [
+      true,
+      "unknown state: deploy_failed"
+    ],
+    "deploy_failed_dashboard": [
+      200,
+      {
+        "status": "ok",
+        "last_heartbeat": "2026-11-20T03:11:28.791698+00:00",
+        "scheduler_state": "deploy_failed",
+        "sleeping_until": null
+      }
+    ],
+    "directory_monitor": [
+      true,
+      "heartbeat unreadable: [Errno 21] Is a directory: '/Users/eric/projects/bts-work/wr-check-deploy/.codex-review/wr-check-deploy/contract-probe-xjvcm1xe/.heartbeat'"
+    ],
+    "fifo_monitor": "blocked until test timeout"
+  }
+}
