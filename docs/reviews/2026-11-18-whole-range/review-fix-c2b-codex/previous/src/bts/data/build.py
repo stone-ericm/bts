@@ -1,0 +1,418 @@
+"""Parse MLB game feed JSON into plate appearance records."""
+
+import json
+import re
+import sys
+from datetime import datetime
+from pathlib import Path
+
+import pandas as pd
+
+from bts.data.schema import HIT_EVENTS, PA_COLUMNS, PA_ENDING_EVENTS
+
+
+def _parse_feed_timestamp(value: str | None) -> datetime | None:
+    """Parse an MLB feed ISO-8601 UTC timestamp (e.g. '2026-06-17T18:00:00Z').
+
+    Returns a tz-aware datetime, or None if absent. Used to compare per-play
+    ``startTime`` against a suspended game's ``resumeDateTime`` — both are UTC,
+    so the comparison is exact and timezone-safe (unlike a raw date prefix,
+    which a normal late game's UTC innings can cross without any suspension).
+    """
+    if not value:
+        return None
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def filter_out_resumed_portion(pa):
+    """Drop resumed-portion PA rows for BTS/contest scoring.
+
+    The resumed portion of a suspended game is never evaluated for BTS, so an
+    original-gameday outcome must be graded from pre-suspension PA only. Excluding
+    these rows turns a batter whose only PA were post-resumption into a "missing"
+    outcome, which the final-game void routing then resolves as void_no_pa.
+
+    Backward-compatible: a frame lacking the ``is_resumed_portion`` column
+    (pre-enrichment PA) is returned unchanged -- those games had no resumed portion
+    recorded, so nothing is excluded. Non-BTS consumers (model training, features)
+    must NOT call this; the resumed PA are legitimate baseball events for them.
+    """
+    if "is_resumed_portion" not in pa.columns:
+        return pa
+    return pa.loc[~pa["is_resumed_portion"].fillna(False).astype(bool)]
+
+
+def read_pa_for_bts_scoring(path, columns):
+    """Read the given PA columns for BTS/contest scoring, with the resumed portion of
+    suspended games EXCLUDED.
+
+    ``is_resumed_portion`` is read transparently when the parquet carries it (pre-
+    enrichment PA predates the column, so nothing is excluded there) and dropped from
+    the result -- callers get exactly ``columns``. Use this anywhere a PA frame feeds
+    BTS hit/streak scoring, calibration, or contest evaluation. Do NOT use it for model
+    training or feature computation: the resumed PA are legitimate baseball events there.
+    """
+    import pyarrow.parquet as pq
+
+    want = list(columns)
+    read_cols = list(want)
+    if (
+        "is_resumed_portion" not in read_cols
+        and "is_resumed_portion" in pq.ParquetFile(path).schema_arrow.names
+    ):
+        read_cols = read_cols + ["is_resumed_portion"]
+    frame = pd.read_parquet(path, columns=read_cols)
+    return filter_out_resumed_portion(frame)[want]
+
+
+def assert_columns_match_schema(df):
+    """Assert that a DataFrame's columns exactly match PA_COLUMNS.
+
+    Fails loudly with a specific diff if not. This is the schema
+    guard that prevents silent drift: any change to build logic
+    that affects the parquet's columns MUST also update PA_COLUMNS
+    in src/bts/data/schema.py or this assert fires.
+    """
+    actual = set(df.columns)
+    expected = set(PA_COLUMNS)
+    if actual == expected:
+        return
+    missing = sorted(expected - actual)
+    extra = sorted(actual - expected)
+    raise RuntimeError(
+        f"Schema drift in build_season:\n"
+        f"  missing columns: {missing}\n"
+        f"  extra columns: {extra}\n"
+        f"Update PA_COLUMNS in src/bts/data/schema.py to match "
+        f"the new schema, which will also update SCHEMA_VERSION."
+    )
+
+
+def _parse_wind(wind_str: str) -> tuple[int | None, str | None]:
+    """Parse '9 mph, Out To CF' into (9, 'Out To CF')."""
+    if not wind_str:
+        return None, None
+    match = re.match(r"(\d+)\s*mph,?\s*(.*)", wind_str)
+    if match:
+        return int(match.group(1)), match.group(2).strip()
+    return None, wind_str
+
+
+def _get_lineup_positions(boxscore: dict) -> dict[int, int]:
+    """Build a map of batter_id -> lineup_position from boxscore.
+
+    battingOrder is stored as "100", "200", etc. Divide by 100.
+    Pinch hitters and substitutes may have values like "101" -> still position 1.
+    """
+    positions = {}
+    for side in ("away", "home"):
+        players = boxscore["teams"][side].get("players", {})
+        for key, player in players.items():
+            batting_order = player.get("battingOrder")
+            if batting_order:
+                batter_id = player["person"]["id"]
+                positions[batter_id] = int(batting_order) // 100
+    return positions
+
+
+def _get_starting_catchers(boxscore: dict) -> dict[str, int | None]:
+    """Get the starting catcher ID for each side (away/home)."""
+    catchers = {}
+    for side in ("away", "home"):
+        players = boxscore["teams"][side].get("players", {})
+        for key, player in players.items():
+            all_pos = player.get("allPositions", [])
+            if any(ap.get("code") == "2" for ap in all_pos):
+                catchers[side] = player["person"]["id"]
+                break
+        if side not in catchers:
+            # Fallback: check primary position
+            for key, player in players.items():
+                if player.get("position", {}).get("code") == "2":
+                    catchers[side] = player["person"]["id"]
+                    break
+        if side not in catchers:
+            catchers[side] = None
+    return catchers
+
+
+def _get_hp_umpire_id(boxscore: dict) -> int | None:
+    """Extract home plate umpire ID from officials list."""
+    for official in boxscore.get("officials", []):
+        if official.get("officialType") == "Home Plate":
+            return official["official"]["id"]
+    return None
+
+
+def parse_game_feed(feed: dict) -> list[dict]:
+    """Parse a game feed into a list of plate appearance dicts.
+
+    Each dict has all columns defined in schema.PA_COLUMNS.
+    Pitch sequence fields are stored as Python lists.
+    """
+    game_data = feed["gameData"]
+    live_data = feed["liveData"]
+    boxscore = live_data["boxscore"]
+
+    game_pk = game_data["game"]["pk"]
+    date = game_data["datetime"]["officialDate"]
+    # Suspended-then-resumed games carry a resumeDateTime; plays at/after it are the
+    # resumed portion (never evaluated for BTS). None for normal games -> no per-play
+    # timestamp parsing in the hot loop below.
+    resume_dt = _parse_feed_timestamp(game_data["datetime"].get("resumeDateTime"))
+    season = int(game_data["game"]["season"])
+    venue_id = game_data["venue"]["id"]
+    roof_type = game_data["venue"].get("fieldInfo", {}).get("roofType")
+
+    weather = game_data.get("weather", {})
+    weather_temp_str = weather.get("temp")
+    weather_temp = int(weather_temp_str) if weather_temp_str else None
+    wind_speed, wind_dir = _parse_wind(weather.get("wind", ""))
+
+    hp_umpire_id = _get_hp_umpire_id(boxscore)
+    lineup_positions = _get_lineup_positions(boxscore)
+    catchers = _get_starting_catchers(boxscore)
+    away_team_id = game_data.get("teams", {}).get("away", {}).get("id")
+    home_team_id = game_data.get("teams", {}).get("home", {}).get("id")
+
+    rows = []
+    for play in live_data["plays"]["allPlays"]:
+        event_type = play["result"].get("eventType", "")
+        if event_type not in PA_ENDING_EVENTS:
+            continue
+
+        batter_id = play["matchup"]["batter"]["id"]
+        pitcher_id = play["matchup"]["pitcher"]["id"]
+        bat_side = play["matchup"].get("batSide", {}).get("code")
+        pitch_hand = play["matchup"].get("pitchHand", {}).get("code")
+        is_home = play["about"]["halfInning"] == "bottom"
+        # Resumed-portion flag: only parse the play timestamp for suspended games.
+        is_resumed_portion = False
+        if resume_dt is not None:
+            start_dt = _parse_feed_timestamp(play["about"].get("startTime"))
+            # A suspended-game PA with a missing/unparseable startTime can't be placed; treat
+            # it as resumed (excluded from BTS scoring) -- the conservative direction (avoids
+            # counting a possible resumed hit) and consistent with
+            # picks._grade_pick_pre_suspension, which skips such plays.
+            is_resumed_portion = start_dt is None or start_dt >= resume_dt
+        # Fielding catcher: opposite side of the batter
+        fielding_catcher_id = catchers.get("away" if is_home else "home")
+        count = play.get("count", {})
+
+        pitch_types = []
+        pitch_calls = []
+        pitch_px = []
+        pitch_pz = []
+        pitch_speeds = []
+        pitch_end_speeds = []
+        pitch_spin_rates = []
+        pitch_extensions = []
+        pitch_break_vertical = []
+        pitch_break_horizontal = []
+        sz_top = None
+        sz_bottom = None
+        launch_speed = None
+        launch_angle = None
+        trajectory = None
+        hardness = None
+        total_distance = None
+        challenge_player_id = None
+        challenge_role = None
+        challenge_overturned = None
+        challenge_team_batting = None
+
+        for event in play.get("playEvents", []):
+            if not event.get("isPitch"):
+                continue
+            details = event.get("details", {})
+            pitch_data = event.get("pitchData", {})
+            coords = pitch_data.get("coordinates", {})
+
+            pitch_types.append(details.get("type", {}).get("code", "UN"))
+            pitch_calls.append(details.get("call", {}).get("code", ""))
+            pitch_px.append(coords.get("pX"))
+            pitch_pz.append(coords.get("pZ"))
+            pitch_speeds.append(pitch_data.get("startSpeed"))
+            pitch_end_speeds.append(pitch_data.get("endSpeed"))
+            breaks = pitch_data.get("breaks", {})
+            pitch_spin_rates.append(breaks.get("spinRate"))
+            pitch_extensions.append(pitch_data.get("extension"))
+            pitch_break_vertical.append(breaks.get("breakVertical"))
+            pitch_break_horizontal.append(breaks.get("breakHorizontal"))
+
+            sz_top = pitch_data.get("strikeZoneTop", sz_top)
+            sz_bottom = pitch_data.get("strikeZoneBottom", sz_bottom)
+
+            hit_data = event.get("hitData")
+            if hit_data:
+                launch_speed = hit_data.get("launchSpeed")
+                launch_angle = hit_data.get("launchAngle")
+                trajectory = hit_data.get("trajectory")
+                hardness = hit_data.get("hardness")
+                total_distance = hit_data.get("totalDistance")
+
+            # ABS challenge data (2026+). Only MJ type = standard ball/strike challenge.
+            # NH and MA types are non-player reviews (umpire-initiated, foul ball, etc).
+            rd = event.get("reviewDetails")
+            if rd and rd.get("reviewType") == "MJ":
+                challenge_player_id = rd.get("player", {}).get("id")
+                challenge_overturned = rd.get("isOverturned")
+                # Determine challenger's role in this PA
+                if challenge_player_id == batter_id:
+                    challenge_role = "batter"
+                elif challenge_player_id == pitcher_id:
+                    challenge_role = "pitcher"
+                else:
+                    challenge_role = "catcher"  # ~95% of non-batter/pitcher challenges
+                # Determine if the challenging team is batting
+                challenge_tid = rd.get("challengeTeamId")
+                if challenge_tid is not None:
+                    batting_tid = away_team_id if not is_home else home_team_id
+                    challenge_team_batting = (challenge_tid == batting_tid)
+
+        rows.append({
+            "game_pk": game_pk,
+            "date": date,
+            "season": season,
+            "batter_id": batter_id,
+            "pitcher_id": pitcher_id,
+            "bat_side": bat_side,
+            "pitch_hand": pitch_hand,
+            "lineup_position": lineup_positions.get(batter_id),
+            "is_home": is_home,
+            "hp_umpire_id": hp_umpire_id,
+            "venue_id": venue_id,
+            "pitch_count": len(pitch_types),
+            "pitch_types": pitch_types,
+            "pitch_calls": pitch_calls,
+            "pitch_px": pitch_px,
+            "pitch_pz": pitch_pz,
+            "sz_top": sz_top,
+            "sz_bottom": sz_bottom,
+            "final_count_balls": count.get("balls", 0),
+            "final_count_strikes": count.get("strikes", 0),
+            "launch_speed": launch_speed,
+            "launch_angle": launch_angle,
+            "trajectory": trajectory,
+            "hardness": hardness,
+            "total_distance": total_distance,
+            "pitch_speeds": pitch_speeds,
+            "pitch_end_speeds": pitch_end_speeds,
+            "pitch_spin_rates": pitch_spin_rates,
+            "pitch_extensions": pitch_extensions,
+            "pitch_break_vertical": pitch_break_vertical,
+            "pitch_break_horizontal": pitch_break_horizontal,
+            "fielding_catcher_id": fielding_catcher_id,
+            "challenge_player_id": challenge_player_id,
+            "challenge_role": challenge_role,
+            "challenge_overturned": challenge_overturned,
+            "challenge_team_batting": challenge_team_batting,
+            "event_type": event_type,
+            "is_hit": 1 if event_type in HIT_EVENTS else 0,
+            "weather_temp": weather_temp,
+            "weather_wind_speed": wind_speed,
+            "weather_wind_dir": wind_dir,
+            "roof_type": roof_type,
+            "atm_pressure": None,
+            "humidity": None,
+            "is_resumed_portion": is_resumed_portion,
+        })
+
+    return rows
+
+
+REGULAR_SEASON_TYPE = "R"
+
+
+def build_season(
+    raw_dir: Path,
+    output_path: Path,
+    season: int,
+    game_types: set[str] | None = None,
+) -> pd.DataFrame | None:
+    """Build PA-level Parquet from raw game feed JSONs for one season.
+
+    Args:
+        raw_dir: Root raw directory (looks in raw_dir/{season}/*.json)
+        output_path: Path to write the Parquet file
+        season: Year to process
+        game_types: Set of game type codes to include (default: {"R"} for regular season only).
+            Codes: R=regular, S=spring training, E=exhibition, F=wild card,
+            D=division series, L=league championship, W=world series, A=all-star.
+
+    Returns:
+        The built DataFrame, or None before the season output exists when no game feeds exist
+        or all have readable, excluded types (no output is written). Untyped means a missing
+        type or a hashable value that is not a
+        non-blank string. Untyped feeds are logged and skipped; if no requested-type feed exists
+        beside them, raise instead of treating the season as empty. Any other malformed shape
+        raises as it always has.
+    """
+    if game_types is None:
+        game_types = {REGULAR_SEASON_TYPE}
+
+    season_dir = raw_dir / str(season)
+    all_rows = []
+    eligible_games = 0
+    untyped_files = []
+    skipped = 0
+    try:
+        json_files = sorted(p for p in season_dir.iterdir() if p.name.endswith(".json"))
+    except FileNotFoundError:
+        json_files = []
+
+    for json_path in json_files:
+        # Skip weather sidecar files
+        if json_path.stem.endswith("_weather"):
+            continue
+        feed = json.loads(json_path.read_text(encoding="utf-8"))
+
+        # Filter by game type
+        game_info = feed.get("gameData", {}).get("game", {})
+        gt = game_info.get("type", "")
+        if gt not in game_types:
+            if not isinstance(gt, str) or not gt.strip():
+                untyped_files.append(str(json_path))
+                print(f"Skipping {json_path}: missing or unreadable gameData.game.type.", file=sys.stderr)
+            skipped += 1
+            continue
+        eligible_games += 1
+
+        # Skip 7-inning doubleheader games (2020-2021 COVID rule).
+        # The API reports scheduledInnings=9 even for these, so we detect
+        # them by: doubleheader flag + actual innings played <= 7.
+        dh = game_info.get("doubleHeader", "N")
+        if dh in ("Y", "S"):
+            plays = feed.get("liveData", {}).get("plays", {}).get("allPlays", [])
+            max_inning = max((p["about"]["inning"] for p in plays), default=9)
+            if max_inning <= 7:
+                skipped += 1
+                continue
+
+        rows = parse_game_feed(feed)
+
+        # Merge weather sidecar if present
+        weather_path = json_path.parent / f"{json_path.stem}_weather.json"
+        if weather_path.exists():
+            weather = json.loads(weather_path.read_text(encoding="utf-8"))
+            for row in rows:
+                row["atm_pressure"] = weather.get("surface_pressure")
+                row["humidity"] = weather.get("relative_humidity")
+
+        all_rows.extend(rows)
+
+    if eligible_games == 0:
+        if untyped_files:
+            raise ValueError("No requested-type game feeds; missing or unreadable gameData.game.type in "
+                             + ", ".join(untyped_files))
+        if output_path.exists():
+            raise ValueError(f"No requested-type game feeds for season {season} in {season_dir}; "
+                             f"season output already exists at {output_path}")
+        return None
+
+    df = pd.DataFrame(all_rows)
+    assert_columns_match_schema(df)
+    df = df[PA_COLUMNS]  # Enforce deterministic column order
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_parquet(output_path, index=False)
+    return df

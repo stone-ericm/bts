@@ -1,0 +1,8 @@
+{
+  "canonical_receipt_bytes": "{\n  \"body_sha256\": \"9f08c9013aec667f9a4208b4e930043efefe9a21d2c9c09cb35afaf1edc2cef2\",\n  \"message_id\": \"seed-ack\",\n  \"schema_version\": \"bts_health_dm_delivery_status_v1\",\n  \"sent_day\": \"2027-03-25\",\n  \"sent_sources\": [\n    \"CRITICAL:late_delivery\"\n  ],\n  \"status\": \"sent\"\n}\n",
+  "false_suppressions": 0,
+  "non_suppressing_patterns_verified": 54,
+  "non_suppressing_route_runs": 108,
+  "suppressing_patterns_verified": 7,
+  "suppressing_route_runs": 14
+}

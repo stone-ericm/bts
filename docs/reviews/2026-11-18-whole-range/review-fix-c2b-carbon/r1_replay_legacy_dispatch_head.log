@@ -1,0 +1,15 @@
+eod: sent=1, returns=[True], logs=2
+4c_stale: sent=1, returns=[True], logs=1
+morning_refused: sent=1, returns=[True], logs=1
+morning_stale: sent=1, returns=[True], logs=1
+cutoff: sent=1, returns=[True], logs=1
+void: sent=1, returns=[True], logs=1
+missed_pick: sent=1, returns=[True], logs=1
+missed_pick_unguarded: sent=1, returns=[True], logs=1
+contest_state_failure: sent=1, returns=[True], logs=1
+no_recipient: sent=0, returns=[False], logs=1
+duplicate: sent=1, returns=[True, False], logs=2
+exception: sent=1, returns=[True], logs=2
+missing_id: sent=1, returns=[True], logs=1
+exception_retry: sent=2, returns=[True, True], logs=3
+Base, omitted keyword and explicit False match.

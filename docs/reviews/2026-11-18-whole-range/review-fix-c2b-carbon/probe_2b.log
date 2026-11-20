@@ -1,0 +1,34 @@
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:20 ET] Fetching schedule for 2027-03-26...
+  1 games, 1 scheduled checks:
+    18:15 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:20 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Sat 03-27 10:00 ET
+  Waiting until 19:10 ET (game start + 10min, 50 min)...
+  Day complete. Result: final
+  DELIVERY REFUSED (receipt probe) — Example Batter: submission cutoff 18:19 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY OUTCOME UNKNOWN (review) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+  DELIVERY REFUSED (receipt probe) — Example Batter: submission cutoff 18:19 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (receipt probe) — Example Batter: submission cutoff 18:19 ET passed 1.0 min ago; not delivering an unenterable pick.
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-c2b-carbon/.codex-review/wr-c2b/probe_2b_round2_identity_and_reverse_dedup.py", line 297, in <module>
+    main()
+  File "/Users/eric/projects/bts-work/wr-review-c2b-carbon/.codex-review/wr-c2b/probe_2b_round2_identity_and_reverse_dedup.py", line 275, in main
+    full_head = run_full_128_and_reverse_on_head()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-c2b-carbon/.codex-review/wr-c2b/probe_2b_round2_identity_and_reverse_dedup.py", line 123, in run_full_128_and_reverse_on_head
+    got = identity.observe(root / f"{route}-{idx}", patch_ctx, opening, route, label, doc)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-c2b-carbon/.codex-review/wr-c2b/r2_codex_staged/probe_receipt_identity.py", line 123, in observe
+    initial = seed(label, document, config, directory, sender, now)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-c2b-carbon/.codex-review/wr-c2b/r2_codex_staged/probe_receipt_identity.py", line 107, in seed
+    assert json.loads(path.read_bytes()) == SHAPE | {"message_id": "cutoff-id"}
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

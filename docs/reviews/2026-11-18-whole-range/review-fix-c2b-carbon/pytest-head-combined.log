@@ -1,0 +1,10 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0 -- /Users/eric/projects/bts-work/wr-review-c2b-carbon/.venv/bin/python
+rootdir: /Users/eric/projects/bts-work/wr-review-c2b-carbon
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... ERROR: file or directory not found: tests/test_morning_state_cs4c_carbon.py
+
+collected 0 items
+
+============================ no tests ran in 0.00s =============================

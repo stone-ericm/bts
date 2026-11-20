@@ -1,0 +1,1 @@
+PROBE 1 OK: 7 suppressing patterns x 2 routes (14 runs -> 0 sends); 54 hostile/foreign-writer patterns x 2 routes (108 runs -> 1 send then dedup); 0 false suppressions.

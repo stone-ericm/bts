@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-c2b-carbon/.codex-review/wr-c2b/r2_codex_staged/probe_receipt_identity.py", line 192, in <module>
+    main()
+  File "/Users/eric/projects/bts-work/wr-review-c2b-carbon/.codex-review/wr-c2b/r2_codex_staged/probe_receipt_identity.py", line 181, in main
+    result = observe(root / f"{route}-{index}", patch, opening, route, label, document)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-c2b-carbon/.codex-review/wr-c2b/r2_codex_staged/probe_receipt_identity.py", line 142, in observe
+    assert json.loads(after) == SHAPE | {"message_id": "fresh-id"}
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
