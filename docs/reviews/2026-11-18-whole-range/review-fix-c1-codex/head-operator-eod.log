@@ -1,0 +1,12 @@
+head: /Users/eric/projects/bts-work/wr-review-c1/src/bts/__init__.py
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-c1/.codex-review/wr-c1/scheduler_replay.py", line 102, in <module>
+    evidence(sys.argv[1], sys.argv[2], "--disk-warning" in sys.argv[3:])
+  File "/Users/eric/projects/bts-work/wr-review-c1/.codex-review/wr-c1/scheduler_replay.py", line 91, in evidence
+    full_scheduler(Path(scratch))
+  File "/Users/eric/projects/bts-work/wr-review-c1/.codex-review/wr-c1/contract-check-c1/operator_cases.py", line 50, in full_scheduler
+    world.run_scheduler_day(D.isoformat(), stop_at_et=at(tomorrow, 1))
+  File "/Users/eric/projects/bts-work/wr-review-c1/.codex-review/wr-c1/scheduler_replay.py", line 72, in observe
+    assert dms == [] and receipt is None, (dms, receipt)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ([], {'schema_version': 'bts_health_dm_delivery_status_v1', 'status': 'sent', 'updated_at': '2026-09-28T23:55:00+00:00', 'recipient_configured': True, 'recipient': 'stonehengee.bsky.social', 'critical_count': 1, 'warn_attention_count': 0, 'body_sha256': '0000000000000000000000000000000000000000000000000000000000000000', 'body_first_line': 'BTS health CRITICAL alert(s):', 'sent_day': '2026-09-28', 'sent_sources': ['CRITICAL:park_drag_freshness']})

@@ -1,0 +1,62 @@
+[
+  {
+    "mutant": "m7a_read_text_in_primary_state_reader",
+    "file": "bts/contest_state.py",
+    "status": "KILLED",
+    "tail": [
+      "FAILED tests/test_wr_c1_history.py::test_historical_state_paths_are_bounded[manual]",
+      "!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!",
+      "========================= 1 failed, 17 passed in 5.30s ========================="
+    ]
+  },
+  {
+    "mutant": "m7b_read_text_in_second_manual_reread",
+    "file": "bts/health/contest_state.py",
+    "status": "SURVIVED",
+    "tail": [
+      "tests/test_wr_c1_history.py ....................................         [100%]",
+      "",
+      "============================== 41 passed in 3.44s =============================="
+    ]
+  },
+  {
+    "mutant": "m7c_read_text_in_coverage_scan",
+    "file": "bts/contest_state.py",
+    "status": "KILLED",
+    "tail": [
+      "FAILED tests/test_wr_c1_history.py::test_historical_state_paths_are_bounded[coverage]",
+      "!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!",
+      "========================= 1 failed, 21 passed in 6.23s ========================="
+    ]
+  },
+  {
+    "mutant": "m7d_read_text_in_switch_reader",
+    "file": "bts/season_contract.py",
+    "status": "KILLED",
+    "tail": [
+      "FAILED tests/test_wr_c1_history.py::test_historical_state_paths_are_bounded[switch]",
+      "!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!",
+      "========================= 1 failed, 19 passed in 5.80s ========================="
+    ]
+  },
+  {
+    "mutant": "m7e_read_text_in_saver_reader",
+    "file": "bts/saver_state.py",
+    "status": "KILLED",
+    "tail": [
+      "FAILED tests/test_wr_c1_history.py::test_historical_state_paths_are_bounded[saver]",
+      "!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!",
+      "========================= 1 failed, 20 passed in 6.02s ========================="
+    ]
+  },
+  {
+    "mutant": "m8_reraise_historical_diagnostic_as_crash",
+    "file": "bts/health/contest_state.py",
+    "status": "KILLED",
+    "tail": [
+      "FAILED tests/test_wr_c1_history.py::test_every_historical_contest_reason_is_exact_and_command_free",
+      "!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!",
+      "========================= 1 failed, 5 passed in 0.39s =========================="
+    ]
+  }
+]

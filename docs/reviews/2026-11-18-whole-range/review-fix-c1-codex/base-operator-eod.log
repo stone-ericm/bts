@@ -1,0 +1,12 @@
+base: /Users/eric/projects/bts-work/wr-review-c1/.codex-review/wr-c1/base/src/bts/__init__.py
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-c1/.codex-review/wr-c1/scheduler_replay.py", line 102, in <module>
+    evidence(sys.argv[1], sys.argv[2], "--disk-warning" in sys.argv[3:])
+  File "/Users/eric/projects/bts-work/wr-review-c1/.codex-review/wr-c1/scheduler_replay.py", line 91, in evidence
+    full_scheduler(Path(scratch))
+  File "/Users/eric/projects/bts-work/wr-review-c1/.codex-review/wr-c1/contract-check-c1/operator_cases.py", line 50, in full_scheduler
+    world.run_scheduler_day(D.isoformat(), stop_at_et=at(tomorrow, 1))
+  File "/Users/eric/projects/bts-work/wr-review-c1/.codex-review/wr-c1/scheduler_replay.py", line 75, in observe
+    assert [(item.level, item.source) for item in items] == [
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

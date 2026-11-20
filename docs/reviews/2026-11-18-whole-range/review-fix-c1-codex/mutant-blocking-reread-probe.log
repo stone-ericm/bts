@@ -1,0 +1,20 @@
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-c1/.codex-review/wr-c1/hostile_paths.py", line 221, in <module>
+    main()
+  File "/Users/eric/projects/bts-work/wr-review-c1/.codex-review/wr-c1/hostile_paths.py", line 183, in main
+    outcome = run_child(root / shape, "reread", shape, tree=tree)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-c1/.codex-review/wr-c1/hostile_paths.py", line 154, in run_child
+    proc = subprocess.run(args, text=True, capture_output=True, timeout=timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py", line 550, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py", line 1209, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py", line 2116, in _communicate
+    self._check_timeout(endtime, orig_timeout, stdout, stderr)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py", line 1253, in _check_timeout
+    raise TimeoutExpired(
+subprocess.TimeoutExpired: Command '['/Users/eric/projects/bts-work/wr-review-c1/.venv/bin/python', '/Users/eric/projects/bts-work/wr-review-c1/.codex-review/wr-c1/hostile_paths.py', 'child', '/Users/eric/projects/bts-work/wr-review-c1/.codex-review/wr-c1/tmpc1nrq067/fifo', 'reread', 'fifo', '/Users/eric/projects/bts-work/wr-review-c1/.codex-review/wr-c1/mutants/blocking-manual-reread/src', 'isolated']' timed out after 3 seconds

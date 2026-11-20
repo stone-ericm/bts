@@ -1,0 +1,9 @@
+wall-endpoint: bts/health/runner.py
+inclusive-mode: bts/health/runner.py
+no-mode: bts/health/runner.py
+old-absent-switch-copy: bts/season_contract.py
+wall-saver-season: bts/health/contest_state.py
+wall-switch-season: bts/season_contract.py
+no-warn-pointer: bts/health/runner.py
+blocking-manual-reread: bts/health/contest_state.py
+diagnostic-as-crash: bts/health/contest_state.py

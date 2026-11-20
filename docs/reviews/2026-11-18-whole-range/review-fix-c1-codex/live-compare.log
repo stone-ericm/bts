@@ -1,0 +1,3 @@
+base: /Users/eric/projects/bts-work/wr-review-c1/.codex-review/wr-c1/base/src/bts/__init__.py
+head: /Users/eric/projects/bts-work/wr-review-c1/src/bts/__init__.py
+15 controls (4 runner routes, 11 file fixtures); identical serialized bytes

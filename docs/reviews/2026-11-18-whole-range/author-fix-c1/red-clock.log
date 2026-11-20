@@ -1,0 +1,105 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-fix-c1
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 5 items
+
+tests/test_wr_c1_clock.py FFFFF                                          [100%]
+
+=================================== FAILURES ===================================
+__________________ test_oom_path_pages_only_in_same_day_mode ___________________
+tests/test_wr_c1_clock.py:50: in test_oom_path_pages_only_in_same_day_mode
+    assert [(alert.level, alert.source) for alert in run()] == [("WARN", "contest_state")]
+E   AssertionError: assert [('WARN', 'co...ics_job_oom')] == [('WARN', 'contest_state')]
+E     
+E     Left contains one more item: ('CRITICAL', 'analytics_job_oom')
+E     Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  bts.health.alert:alert.py:49 [contest_state WARN] legacy/expired manual override present at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_oom_path_pages_only_in_sa0/oom/picks/account_state/contest_streak.manual.json; archive it (auto contest_streak.json is the live source)
+ERROR    bts.health.alert:alert.py:47 [analytics_job_oom CRITICAL] OOM evidence detected: contest_state: legacy/expired manual override present at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_oom_path_pages_only_in_sa0/oom/picks/account_state/contest_streak.manual.json; archive it (auto contest_streak.json is the live source)
+ERROR    bts.health.alert:alert.py:454 [health_dm_delivery CRITICAL] health alert DM skipped: no recipient
+WARNING  bts.health.alert:alert.py:49 [contest_state WARN] legacy/expired manual override present at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_oom_path_pages_only_in_sa0/oom/picks/account_state/contest_streak.manual.json; archive it (auto contest_streak.json is the live source)
+ERROR    bts.health.alert:alert.py:47 [analytics_job_oom CRITICAL] OOM evidence detected: contest_state: legacy/expired manual override present at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_oom_path_pages_only_in_sa0/oom/picks/account_state/contest_streak.manual.json; archive it (auto contest_streak.json is the live source)
+ERROR    bts.health.alert:alert.py:454 [health_dm_delivery CRITICAL] health alert DM skipped: no recipient
+________________ test_mode_sample_and_last_et_microsecond[day0] ________________
+tests/test_wr_c1_clock.py:73: in test_mode_sample_and_last_et_microsecond
+    check.assert_called_once_with(
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: check(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_mode_sample_and_last_et_m0'), expected=True, now=datetime.datetime(2027, 7, 1, 3, 59, 59, 999999, tzinfo=datetime.timezone.utc), historical_day=datetime.date(2027, 6, 30))
+E     Actual: check(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_mode_sample_and_last_et_m0'), expected=True)
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:47 [blend_training CRITICAL] missing tomorrow's blend pkl: blend_2027-07-01.pkl not found in /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_mode_sample_and_last_et_m0. 3 AM cron on 2027-06-30 likely failed; predictions on 2027-07-01 will fall back to stale blend.
+WARNING  bts.health.alert:alert.py:49 [tail_policy WARN] base policy missing at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_mode_sample_and_last_et_m0/mdp_policy.npz (89 days left: tail window opens at 28)
+WARNING  bts.health.alert:alert.py:49 [tail_policy WARN] tail policy unverifiable: base policy unavailable, so the pairing cannot be checked — the pick path is on the forced fallback (89 days left: tail window opens at 28)
+ERROR    bts.health.alert:alert.py:47 [disk_fill CRITICAL] disk usage 97.1% (899.8/926.3GB) on /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_mode_sample_and_last_et_m0
+ERROR    bts.health.alert:alert.py:47 [streak_validation CRITICAL] streak.json missing at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_mode_sample_and_last_et_m0/streak.json
+ERROR    bts.health.alert:alert.py:454 [health_dm_delivery CRITICAL] health alert DM skipped: no recipient
+________________ test_mode_sample_and_last_et_microsecond[day1] ________________
+tests/test_wr_c1_clock.py:73: in test_mode_sample_and_last_et_microsecond
+    check.assert_called_once_with(
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: check(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_mode_sample_and_last_et_m1'), expected=True, now=datetime.datetime(2028, 1, 1, 4, 59, 59, 999999, tzinfo=datetime.timezone.utc), historical_day=datetime.date(2027, 12, 31))
+E     Actual: check(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_mode_sample_and_last_et_m1'), expected=True)
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:47 [blend_training CRITICAL] missing tomorrow's blend pkl: blend_2028-01-01.pkl not found in /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_mode_sample_and_last_et_m1. 3 AM cron on 2027-12-31 likely failed; predictions on 2028-01-01 will fall back to stale blend.
+WARNING  bts.health.alert:alert.py:49 [tail_policy WARN] base policy missing at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_mode_sample_and_last_et_m1/mdp_policy.npz (0 days left: tail window opens at 28)
+WARNING  bts.health.alert:alert.py:49 [tail_policy WARN] tail policy unverifiable: base policy unavailable, so the pairing cannot be checked — the pick path is on the forced fallback (0 days left: tail window opens at 28)
+ERROR    bts.health.alert:alert.py:47 [disk_fill CRITICAL] disk usage 97.1% (899.8/926.3GB) on /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_mode_sample_and_last_et_m1
+ERROR    bts.health.alert:alert.py:47 [streak_validation CRITICAL] streak.json missing at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_mode_sample_and_last_et_m1/streak.json
+ERROR    bts.health.alert:alert.py:454 [health_dm_delivery CRITICAL] health alert DM skipped: no recipient
+_______ test_eod_uses_processed_observation_and_safe_recovery_copy[0-15] _______
+tests/test_wr_c1_clock.py:114: in test_eod_uses_processed_observation_and_safe_recovery_copy
+    assert [alert for alert in alerts if alert.source in {"contest_state", "saver_state"}] == []
+E   AssertionError: assert [Alert(level=...ent_key=None)] == []
+E     
+E     Left contains 2 more items, first extra item: Alert(level='CRITICAL', source='contest_state', message='contest-account streak state expected but missing at /private...0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_eod_uses_processed_observ0/picks/account_state', incident_key=None)
+E     Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:47 [contest_state CRITICAL] contest-account streak state expected but missing at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_eod_uses_processed_observ0/picks/account_state
+ERROR    bts.health.alert:alert.py:47 [contest_state CRITICAL] Live decision refused: season 2027 switch is absent.
+Alternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-03-25 --streak N --best-streak B --saver S --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_eod_uses_processed_observ0/picks`. Read N, B and S from MLB (active streak, best streak and saver state).
+Alternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_eod_uses_processed_observ0/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_eod_uses_processed_observ0/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_eod_uses_processed_observ0/picks`; then run `bts fetch-contest-streak --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_eod_uses_processed_observ0/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.
+One repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.
+ERROR    bts.health.alert:alert.py:47 [blend_training CRITICAL] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_eod_uses_processed_observ0/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.
+WARNING  bts.health.alert:alert.py:49 [tail_policy WARN] base policy missing at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_eod_uses_processed_observ0/models/mdp_policy.npz (187 days left: tail window opens at 28)
+WARNING  bts.health.alert:alert.py:49 [tail_policy WARN] tail policy unverifiable: base policy unavailable, so the pairing cannot be checked — the pick path is on the forced fallback (187 days left: tail window opens at 28)
+ERROR    bts.health.alert:alert.py:47 [disk_fill CRITICAL] disk usage 97.1% (899.8/926.3GB) on /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_eod_uses_processed_observ0/picks
+ERROR    bts.health.alert:alert.py:47 [streak_validation CRITICAL] streak.json missing at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_eod_uses_processed_observ0/picks/streak.json
+ERROR    bts.health.alert:alert.py:454 [health_dm_delivery CRITICAL] health alert DM skipped: no recipient
+_______ test_eod_uses_processed_observation_and_safe_recovery_copy[2-0] ________
+tests/test_wr_c1_clock.py:114: in test_eod_uses_processed_observation_and_safe_recovery_copy
+    assert [alert for alert in alerts if alert.source in {"contest_state", "saver_state"}] == []
+E   AssertionError: assert [Alert(level=...ent_key=None)] == []
+E     
+E     Left contains 2 more items, first extra item: Alert(level='CRITICAL', source='contest_state', message='contest-account streak state expected but missing at /private...0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_eod_uses_processed_observ1/picks/account_state', incident_key=None)
+E     Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:47 [contest_state CRITICAL] contest-account streak state expected but missing at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_eod_uses_processed_observ1/picks/account_state
+ERROR    bts.health.alert:alert.py:47 [contest_state CRITICAL] Live decision refused: season 2027 switch is absent.
+Alternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-03-25 --streak N --best-streak B --saver S --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_eod_uses_processed_observ1/picks`. Read N, B and S from MLB (active streak, best streak and saver state).
+Alternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_eod_uses_processed_observ1/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_eod_uses_processed_observ1/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_eod_uses_processed_observ1/picks`; then run `bts fetch-contest-streak --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_eod_uses_processed_observ1/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.
+One repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.
+ERROR    bts.health.alert:alert.py:47 [blend_training CRITICAL] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_eod_uses_processed_observ1/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.
+WARNING  bts.health.alert:alert.py:49 [tail_policy WARN] base policy missing at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_eod_uses_processed_observ1/models/mdp_policy.npz (187 days left: tail window opens at 28)
+WARNING  bts.health.alert:alert.py:49 [tail_policy WARN] tail policy unverifiable: base policy unavailable, so the pairing cannot be checked — the pick path is on the forced fallback (187 days left: tail window opens at 28)
+ERROR    bts.health.alert:alert.py:47 [disk_fill CRITICAL] disk usage 97.1% (899.8/926.3GB) on /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_eod_uses_processed_observ1/picks
+ERROR    bts.health.alert:alert.py:47 [streak_validation CRITICAL] streak.json missing at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3257/test_eod_uses_processed_observ1/picks/streak.json
+ERROR    bts.health.alert:alert.py:454 [health_dm_delivery CRITICAL] health alert DM skipped: no recipient
+=========================== short test summary info ============================
+FAILED tests/test_wr_c1_clock.py::test_oom_path_pages_only_in_same_day_mode
+FAILED tests/test_wr_c1_clock.py::test_mode_sample_and_last_et_microsecond[day0]
+FAILED tests/test_wr_c1_clock.py::test_mode_sample_and_last_et_microsecond[day1]
+FAILED tests/test_wr_c1_clock.py::test_eod_uses_processed_observation_and_safe_recovery_copy[0-15]
+FAILED tests/test_wr_c1_clock.py::test_eod_uses_processed_observation_and_safe_recovery_copy[2-0]
+============================== 5 failed in 0.68s ===============================

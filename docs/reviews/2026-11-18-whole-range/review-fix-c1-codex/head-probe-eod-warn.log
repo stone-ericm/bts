@@ -1,0 +1,4 @@
+head: /Users/eric/projects/bts-work/wr-review-c1/src/bts/__init__.py
+EOD 2027-03-25T00:15:00-04:00, kwargs={'expected': True, 'now': Clock(2027, 3, 25, 3, 59, 59, 999999, tzinfo=datetime.timezone.utc), 'historical_day': datetime.date(2027, 3, 24)}, contest alerts=0, health DMs=1, receipt day=2027-03-24
+BTS health WARN attention:
+- [disk_fill] disk usage 92.0% (73.6/80.0GB) on /Users/eric/projects/bts-work/wr-review-c1/.codex-review/wr-c1/tmp_h_9x5de/p1/data/picks (1st observed day)
