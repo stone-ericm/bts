@@ -93,3 +93,6 @@ Change set C2 (`STOP-C2.md`; `bts-wr-fresh`) held in two rounds on everything ex
 - W15 (a bad entry in the probable-pitcher cache): **drop bad entries on read, with a warning the system or he can react to** (so: not only a stderr line; a health alert).
 - W16 (the entry check near first pitch): **accept**; not built.
 - W17 (the deploy canary): **make it also ask whether the box can pick**, as part of the deploy-workflow change (choice A).
+
+## 2026-11-20 14:00 (new lead, R51 item 2)
+- **The C3v operator text is repaired.** A fresh Codex xhigh review (`review-c3v-operator-text/`) BLOCKED the step the old lead wrote (round 1: five MUST FIX, among them that the model streak is not frozen while the replay is blocked, since later grading advances it and can spend the model saver, and that "report to Claude" named no route or deadline before the 08:00 ET correction cutoff), then signed its own replacement wording with two edits (round 2). Checklist B8b item 2 and the `CLAUDE.md` C3v sentences now carry that wording. The finding itself (W14/W23) is unchanged: visible, not fixed, awaiting Eric's acceptance.
