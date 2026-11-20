@@ -40,10 +40,12 @@ SLEEPING_OVERRUN = 10 * 60        # sleeping: if past sleeping_until, fresh = <1
 IDLE_END_MAX_AGE = 90 * 60        # idle_end_of_day is a brief transitional state; stale if stuck >90 min
 HOLD_PATH = Path("/var/lib/bts-deploy/hold")
 GUARD_TOOL = "/usr/local/bin/bts-deploy-hold"
+PROC_LOCKS = Path("/proc/locks")
 NOFOLLOW = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
 
 
 def _unique_fields(pairs):
+    pairs = tuple(pairs)
     record = dict(pairs)
     if len(record) != len(pairs):
         raise ValueError("duplicate record key")
@@ -105,6 +107,73 @@ def _hold_snapshot(hold):
             os.close(fd)
 
 
+def _owner_alive(hold, unit):
+    try:
+        info = (hold.parent / "transaction.lock").lstat()
+        expected_uid = 0 if hold.parent == HOLD_PATH.parent else os.geteuid()
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid != expected_uid
+                or stat.S_IMODE(info.st_mode) != 0o644 or info.st_nlink != 1):
+            return False
+        result = subprocess.run(
+            ["/usr/bin/systemctl", "show", unit, "-p", "ActiveState", "-p", "MainPID"],
+            stdin=subprocess.DEVNULL, capture_output=True, timeout=3,
+        )
+        if result.returncode != 0:
+            return False
+        fields = _unique_fields(line.split("=", 1) for line in result.stdout.decode().splitlines())
+        pid = fields.get("MainPID", "")
+        if fields.get("ActiveState") != "active" or not re.fullmatch(r"[1-9][0-9]*", pid):
+            return False
+        with PROC_LOCKS.open() as stream:
+            locks = stream.read(1_048_577)
+        if len(locks) > 1_048_576:
+            return False
+        for line in locks.splitlines():
+            parts = line.split()
+            if len(parts) != 8 or parts[1:5] != ["FLOCK", "ADVISORY", "WRITE", pid]:
+                continue
+            major, minor, inode = parts[5].split(":")
+            if (int(major, 16), int(minor, 16), int(inode)) == (
+                os.major(info.st_dev), os.minor(info.st_dev), info.st_ino,
+            ):
+                return True
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return False
+    return False
+
+
+def _monitor_hold(hold, now):
+    if hold == HOLD_PATH:
+        result = subprocess.run(
+            ["/usr/bin/python3", "-I", GUARD_TOOL, "status", "--json"],
+            stdin=subprocess.DEVNULL, capture_output=True, timeout=3,
+        )
+        if result.returncode != 1:
+            raise ValueError("hold status")
+        record = json.loads(result.stdout, object_pairs_hook=_unique_fields)
+    else:
+        record = _bounded_record(hold)
+    if not isinstance(record, dict):
+        raise ValueError("hold record")
+    state, step, target = (record[key] for key in ("state", "step", "target"))
+    run_id, armed, updated = (record[key] for key in ("deploy_id", "armed_at", "updated_at"))
+    if (
+        record.get("schema") != "bts_deploy_hold_v1"
+        or state not in ("pending", "activating", "failed")
+        or not re.fullmatch(r"[a-z-]{1,32}", step)
+        or not re.fullmatch(r"[0-9a-f]{40}", target)
+        or not re.fullmatch(r"[0-9]{1,20}-[A-Za-z0-9]{1,64}", run_id)
+        or record.get("owner_unit") != f"bts-deploy-{run_id}.service"
+        or type(armed) is not int or type(updated) is not int
+        or not 0 <= armed <= updated <= int(now.timestamp())
+    ):
+        raise ValueError("hold values")
+    age = int(now.timestamp()) - armed
+    if state in ("pending", "activating") and age <= 1380 and _owner_alive(hold, record["owner_unit"]):
+        return "suppress", f"deploy in progress (run {run_id}, armed {age}s ago); no ping"
+    return "fail", f"Deploy hold: {state} at {step} (requested target {target[:7]}). See INCIDENT.md §4."
+
+
 def _hold_decision(hold, heartbeat, now):
     try:
         hold.lstat()
@@ -114,41 +183,7 @@ def _hold_decision(hold, heartbeat, now):
         return "fail", "Deploy hold present and unreadable. See INCIDENT.md §4."
     else:
         try:
-            if not stat.S_ISREG(hold.lstat().st_mode):
-                raise ValueError("hold type")
-            result = subprocess.run(
-                ["/usr/bin/python3", "-I", GUARD_TOOL, "status", "--json"],
-                stdin=subprocess.DEVNULL, capture_output=True, timeout=3,
-            )
-            record = json.loads(result.stdout)
-            state = record["state"]
-            step = record["step"]
-            target = record["target"]
-            run_id = record["deploy_id"]
-            age = int(now.timestamp()) - record["armed_at"]
-            if (result.returncode != 1 or state not in ("pending", "activating", "failed")
-                    or not re.fullmatch(r"[a-z-]{1,32}", step)
-                    or not re.fullmatch(r"[0-9a-f]{40}", target)
-                    or not re.fullmatch(r"[0-9]{1,20}-[A-Za-z0-9]{1,64}", run_id)):
-                raise ValueError("hold values")
-            if state in ("pending", "activating") and 0 <= age <= 1380:
-                lock = os.open(hold.parent / "transaction.lock", NOFOLLOW)
-                try:
-                    if not stat.S_ISREG(os.fstat(lock).st_mode):
-                        raise ValueError("transaction lock type")
-                    try:
-                        fcntl.flock(lock, fcntl.LOCK_SH | fcntl.LOCK_NB)
-                    except BlockingIOError:
-                        unit = f"bts-deploy-{run_id}.service"
-                        query = subprocess.run(
-                            ["/usr/bin/systemctl", "show", unit, "-p", "ActiveState", "--value"],
-                            stdin=subprocess.DEVNULL, capture_output=True, timeout=3,
-                        )
-                        if query.returncode == 0 and query.stdout in (b"active\n", b"deactivating\n"):
-                            return "suppress", f"deploy in progress (run {run_id}, armed {age}s ago); no ping"
-                finally:
-                    os.close(lock)
-            return "fail", f"Deploy hold: {state} at {step} (requested target {target[:7]}). See INCIDENT.md §4."
+            return _monitor_hold(hold, now)
         except (OSError, KeyError, TypeError, ValueError, subprocess.TimeoutExpired):
             return "fail", "Deploy hold present and unreadable. See INCIDENT.md §4."
     try:
@@ -156,7 +191,7 @@ def _hold_decision(hold, heartbeat, now):
         if release is None:
             return None, None
         epoch, kind = release["released_at"], release["kind"]
-        if type(epoch) is not int or not 0 <= epoch <= int(now.timestamp()) or kind not in ("hand", "deploy"):
+        if type(epoch) not in (int, float) or not 0 <= epoch <= now.timestamp() or kind not in ("hand", "deploy"):
             raise ValueError("release values")
         released_at = datetime.fromtimestamp(epoch, timezone.utc)
     except (OSError, KeyError, TypeError, ValueError, OverflowError):
@@ -164,10 +199,8 @@ def _hold_decision(hold, heartbeat, now):
     try:
         record = _bounded_record(heartbeat)
         timestamp = datetime.fromisoformat(record["timestamp"])
-        if timestamp.utcoffset() is not None and released_at < timestamp <= now:
-            stale, assessment = _assess_heartbeat(record, now)
-            if not stale:
-                return "fresh", assessment
+        if timestamp.utcoffset() is not None and timestamp > released_at:
+            return "legacy", _assess_heartbeat(record, datetime.now(timezone.utc))
     except (OSError, KeyError, TypeError, ValueError):
         pass
     return "fail", (
@@ -402,6 +435,12 @@ def main():
 
     with _hold_snapshot(args.deploy_hold) as verified:
         if not verified:
+            try:
+                args.deploy_hold.parent.lstat()
+            except FileNotFoundError:
+                return _legacy_check(args)
+            except OSError:
+                pass
             decision, reason = "fail", "Deploy hold lookup failed. See INCIDENT.md §4."
         else:
             decision, reason = _hold_decision(args.deploy_hold, args.heartbeat_path, datetime.now(timezone.utc))
@@ -413,14 +452,14 @@ def main():
             if args.ping_url:
                 ping_deploy_failure(args.ping_url, reason)
             raise SystemExit(1)
-        return _legacy_check(args, reason if decision == "fresh" else None)
+        return _legacy_check(args, reason if decision == "legacy" else None)
 
 
-def _legacy_check(args, prechecked_reason=None):
+def _legacy_check(args, checked=None):
     if args.ping_url is None:
         print("  (no --ping-url provided; alerts disabled)", file=sys.stderr)
 
-    stale, reason = (False, prechecked_reason) if prechecked_reason else is_stale(args.heartbeat_path)
+    stale, reason = checked if checked is not None else is_stale(args.heartbeat_path)
 
     # Churn overrides a fresh heartbeat: a crash-loop refreshes the heartbeat
     # every 30s cycle, so freshness alone cannot clear the daemon (audit F3).

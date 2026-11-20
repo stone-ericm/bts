@@ -33,6 +33,7 @@ def test_deploy_canary_classifies_without_scheduler_start(
     sentinel.write_bytes(b'{"unchanged":true}\n')
     config = tmp_path / "scheduler.toml"
     config.write_text(
+        '[[tiers]]\nname = "fixture"\ntype = "local"\n[bluesky]\ndm_recipient = "fixture.example"\n'
         f"[orchestrator]\npicks_dir = {json.dumps(str(picks))}\n"
         f"[scheduler]\n{scheduler_config}"
         "[health_checks]\ncontest_state_expected = true\n"
@@ -74,6 +75,7 @@ def test_live_canary_uses_real_dated_observation_at_et_boundary(tmp_path, monkey
     original = source.read_bytes()
     config = tmp_path / "scheduler.toml"
     config.write_text(
+        '[[tiers]]\nname = "fixture"\ntype = "local"\n[bluesky]\ndm_recipient = "fixture.example"\n'
         f"[orchestrator]\npicks_dir = {json.dumps(str(picks))}\n"
         '[scheduler]\nentry_intent = "enter"\npick_delivery = "dm"\ncontest_state_required = true\n'
         "[health_checks]\ncontest_state_expected = true\n"
@@ -90,3 +92,33 @@ def test_live_canary_uses_real_dated_observation_at_et_boundary(tmp_path, monkey
         1, f"deploy canary {after.isoformat()}: contest state refused\n",
     )
     assert source.read_bytes() == original
+
+
+@pytest.mark.parametrize("case", [
+    "bad-cascade-live", "bad-cascade-public", "bad-cascade-research", "missing-tiers", "missing-recipient",
+])
+def test_f5_canary_refuses_config_that_startup_selection_or_delivery_cannot_use(tmp_path, monkeypatch, case):
+    from importlib import import_module
+
+    day = "2027-07-15"
+    et = ZoneInfo("America/New_York")
+    now = datetime.fromisoformat(day + "T18:00:00").replace(tzinfo=et)
+    picks = tmp_path / "picks"
+    write(picks, observation(day))
+    research = case == "bad-cascade-research"
+    mode = "private" if research else ("public" if case == "bad-cascade-public" else "dm")
+    intent = "research" if research else "enter"
+    parts = []
+    if case != "missing-tiers":
+        parts.append('[[tiers]]\nname = "fixture"\ntype = "local"\n')
+    parts.append(f"[orchestrator]\npicks_dir = {json.dumps(str(picks))}\n")
+    parts.append(f'[scheduler]\nentry_intent = "{intent}"\npick_delivery = "{mode}"\ncontest_state_required = true\n')
+    if case.startswith("bad-cascade"):
+        parts.append('cascade_budget_min = "forty"\n')
+    if case != "missing-recipient":
+        parts.append('[bluesky]\ndm_recipient = "fixture.example"\n')
+    config = tmp_path / "scheduler.toml"
+    config.write_text("".join(parts))
+    monkeypatch.setattr(import_module("bts.cli"), "_now_et", lambda: now)
+    result = CliRunner().invoke(cli, ["deploy-canary", "--config", str(config)])
+    assert result.exit_code == 1 and "configuration refused" in result.output

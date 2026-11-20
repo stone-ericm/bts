@@ -178,6 +178,7 @@ def load_guard(root):
     implementation.UID = os.geteuid()
     implementation.PROJECT = str(root.parent)
     implementation.time = SimpleNamespace(time=time.time, monotonic=time.monotonic, sleep=lambda seconds: None)
+    implementation.verified_stop_dashboard = lambda uid: True
     return implementation
 
 
@@ -217,7 +218,9 @@ def test_owner_transaction_uses_real_hold_and_terminal_evidence(owner, capsys, f
 
     owner.require = required
     owner.verified_stop = lambda uid: (events.append("stop"), True)[1]
-    owner.canary = lambda: check_state("pending", "canary-contest-state")
+    owner.canary = lambda: check_state(
+        "activating" if "activation" in events else "pending", "canary-contest-state",
+    )
     owner.dashboard = lambda uid: check_state("pending", "canary-dashboard")
     owner.activate_scheduler = lambda uid, at: check_state("activating", "activation")
     owner.page = lambda hold, stopped: (events.append("page"), stopped)[1]
@@ -229,7 +232,7 @@ def test_owner_transaction_uses_real_hold_and_terminal_evidence(owner, capsys, f
     assert events[:5] == ["stop", "reset", "head", "sync", "restart"]
     if failure is None:
         assert result == 0 and terminal["outcome"] == "committed"
-        assert events[-2:] == ["activation", "stamp"]
+        assert events[-3:] == ["activation", "canary-contest-state", "stamp"]
         assert "CANARY PASSED" in capsys.readouterr().out
         assert not (owner.ROOT / "hold").exists()
         assert json.loads((owner.ROOT / "last-release").read_text())["kind"] == "deploy"
@@ -404,7 +407,7 @@ def test_hand_release_checks_and_orders_durable_audit(owner, capsys, case):
     owner.bts_uid = lambda: 1000
     owner.preflight = lambda uid, target, fetch: (PREVIOUS if case == "target" else TARGET, ["fixture-git"])
     owner.canary = lambda: events.append("canary")
-    owner.window = lambda *args: events.append("window")
+    owner.window = lambda *args, **kwargs: events.append("window")
 
     def call(argv, *, limit):
         if "status" in argv:
@@ -481,14 +484,16 @@ def test_window_uses_pinned_heartbeat_and_exact_recovery(owner, state, age, wake
 @pytest.mark.parametrize("response,code,lookup,listener,step", [
     (b"204", 0, True, True, None), (b"503", 0, True, True, "canary-http"),
     (b"2A0", 0, True, True, "canary-http"), (b"999", 0, True, True, "canary-http"),
-    (b"200", 28, True, True, "canary-http"), (b"200", 0, False, True, "canary-http"),
+    (b"200", 28, True, True, "canary-http"), (b"200", 0, False, True, None),
+    (b"200", 0, False, False, "canary-dashboard"),
     (b"200", 0, True, False, "canary-dashboard"),
 ])
 def test_dashboard_checks_listener_and_exact_success_code(owner, monkeypatch, response, code, lookup, listener, step):
     cgroup = "/fixture/bts-dashboard.service"
+    address = "100.72.1.2" if lookup else "127.0.0.1"
     commands = {
         "/usr/bin/tailscale": (0, b"100.72.1.2\n") if lookup else (1, b""),
-        "/usr/bin/ss": (0, b'LISTEN 0 5 100.72.1.2:3003 0.0.0.0:* users:(("web",pid=123,fd=6))\n'),
+        "/usr/bin/ss": (0, f'LISTEN 0 5 {address}:3003 0.0.0.0:* users:(("web",pid=123,fd=6))\n'.encode()),
         "/usr/bin/curl": (code, response),
     }
     calls = []
@@ -511,7 +516,7 @@ def test_dashboard_checks_listener_and_exact_success_code(owner, monkeypatch, re
     else:
         with pytest.raises(owner.Refused, match=step):
             owner.dashboard(1000)
-    assert any("/usr/bin/curl" in argv for argv in calls) == (lookup and listener)
+    assert any(f"http://{address}:3003/" in argv for argv in calls) == listener
 
 
 @pytest.mark.parametrize("kind", ["directory", "fifo", "regular"])
@@ -562,7 +567,7 @@ def test_ping_allowlist_and_failed_post(owner, monkeypatch, value, send):
         return SimpleNamespace(open=open_request)
 
     monkeypatch.setattr(urllib.request, "build_opener", opener)
-    assert owner.page(hold_record(), True) is False
+    assert owner.page(hold_record(), True) is None
     assert len(requests) == int(send)
     if send:
         assert requests[0].get_method() == "POST"
@@ -837,6 +842,20 @@ def test_owner_records_stamp_failure_as_committed(owner, capsys, kind):
         assert owner.read_hold(root) is None
     assert "Calibration timestamp update failed" in capsys.readouterr().out
     assert stamp.is_dir() if kind == "directory" else stamp.is_fifo()
+
+
+@pytest.mark.parametrize("locked", [False, True])
+def test_f12_valid_pending_fences_scheduler_and_every_writer(guard, locked):
+    root, run = guard
+    (root / "hold").write_text(json.dumps(hold_record("pending")))
+    with (root / "transaction.lock").open("rb") as channel:
+        if locked:
+            fcntl.flock(channel, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        assert run("check-clear", "--scheduler").returncode == 1
+        for job in ("check-results", "reconcile", "fetch-contest-streak", "nightly-preview"):
+            result = run("run", job, "--", "/usr/bin/true")
+            assert result.returncode == 75
+            assert "skipped: held" in result.stdout
 
 
 if __name__ == "__main__":

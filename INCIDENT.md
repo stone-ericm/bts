@@ -94,10 +94,13 @@ from the cloud (§3) → escalate.
   today's ET slate, the original Bluesky delivery and MLB entry read-only. Use the dashboard
   for inspection. A missing receipt, preview or alert authorizes no entry or resend. A
   delivery may already have been admitted during activation.
-- **Contest-state refusal.** Read `bts season-contract status`. On a dated day, verify MLB
-  has settled the prior slate before entering today's observation. Rerun only inside a
-  verified window. If delivery or entry is uncertain, or the window is too short, keep
-  the hold and report to Eric.
+- **Contest-state refusal.** From the intended synced revision, read
+  `uv run --no-sync bts season-contract status --picks-dir <the configured picks_dir>`.
+  On a dated day, verify MLB has settled the prior slate, then use
+  `uv run --no-sync bts set-contest-streak --picks-dir <the configured picks_dir> --date <today ET> --streak <active> --best-streak <best> --saver <state>`.
+  Read the same status command back before any retry. Retry only inside a verified
+  window. If delivery or entry is uncertain, or the window is too short, keep the hold
+  and report to Eric.
 - **Partial sync.** Repair dependencies through a deploy of the intended revision. Check
   stop and paging evidence. A 2xx response records HTTP acceptance. If checkout monitoring
   is unavailable, consult the rehearsed missed-ping path.
@@ -111,14 +114,16 @@ from the cloud (§3) → escalate.
   `data/.last_deploy_iso` read-only. The previous cutoff can remain in use.
 - **After verified recovery.** Review grading, reconciliation and observation gaps read-only.
   Backfill in verified chronological order after Eric checks the dates, the applied results
-  and the current streak.
+  and the current streak. Keep backfill outside the grader and reconcile windows
+  and verify neither job is running before changing results.
 - **Picks frozen / none posted:** check the health DM Eric received and the Actions log. A code
   exception in a recent change → fix forward. Auth / cookie / box → **escalate** (§3).
 - **Bad pick logic, service otherwise up:** code fix → redeploy, but **respect the leakage
   safety rules in `CLAUDE.md`** — never ship feature changes without the `shift(1)` guards +
   `scripts/leakage_audit.py`. A wrong-but-running model is not an emergency; don't make it
   worse with a rushed change.
-- **Dashboard down, picks fine:** a redeploy (or `workflow_dispatch`) restarts `bts-dashboard`.
+- **Dashboard down, picks fine:** the redeploy and `workflow_dispatch` paths in §5 restart `bts-dashboard`
+  after the §5 checks and window verification.
   If that doesn't fix it, it's on-box → escalate.
 - **Box/filesystem loss — operational-state restore (audit F5, needs SSH):** encrypted restic
   backups of `data/picks` + `data/health_state` (ops set, 3h cadence) and
@@ -174,8 +179,9 @@ git push origin main:deploy     # ship the revert
 ```
 
 Eric verifies the intended revision, season state, configured delivery, prior send and
-MLB entry and a safe sleep window before shipping or retrying. A revert must serve the
-current season with today's state and installed jobs. Commit `619abda7` cannot serve 2027.
+MLB entry and a safe sleep window before shipping or retrying. Any ship, dispatch or
+revert must carry this guarded workflow and the same guard protocol. A revert must serve
+the current season with today's state and installed jobs. Commit `619abda7` cannot serve 2027.
 
 For writer contention, wait for completion and verify a new window. For a refused window,
 recheck the current slate and prior delivery and entry before retrying. A rerun through

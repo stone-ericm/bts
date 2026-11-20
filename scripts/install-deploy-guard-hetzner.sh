@@ -119,7 +119,7 @@ install_content "$tool" 0755 <<'BTS_DEPLOY_HOLD_PYTHON'
 #!/usr/bin/python3 -I
 """Standalone system-Python guard for deploy holds."""
 import argparse
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from datetime import datetime, timezone
 import fcntl
 import hashlib
@@ -129,11 +129,13 @@ from pathlib import Path
 import re
 import secrets
 import selectors
+import shlex
 import signal
 import stat
 import subprocess
 import sys
 import time
+from zoneinfo import ZoneInfo
 
 TEST_ROOT = os.environ.get("BTS_TEST_DEPLOY_GUARD_DIR") if os.geteuid() else None
 ROOT = Path(TEST_ROOT or "/var/lib/bts-deploy")
@@ -142,8 +144,9 @@ FLAGS = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
 JOBS = ("check-results", "reconcile", "fetch-contest-streak", "nightly-preview")
 RUN_ID = re.compile(r"[0-9]{1,20}-[A-Za-z0-9]{1,64}")
 SHA = re.compile(r"[0-9a-f]{40}")
+PROC_LOCKS = Path("/proc/locks")
 STEPS = frozenset((
-    "arm", "stop-old", "drain", "reset", "head", "sync", "restart", "wait",
+    "arm", "stop-dashboard", "stop-old", "drain", "reset", "head", "sync", "restart", "wait",
     "canary-contest-state", "canary-dashboard", "canary-http", "release",
     "activation", "interrupted", "abandoned", "owner-ended", "window",
 ))
@@ -247,18 +250,36 @@ def read_hold(root):
 
 def owner_alive(root, record):
     try:
-        with lock(root, "transaction.lock", fcntl.LOCK_SH):
+        info = os.stat("transaction.lock", dir_fd=root, follow_symlinks=False)
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid != UID
+                or stat.S_IMODE(info.st_mode) != 0o644 or info.st_nlink != 1):
             return False
-    except BlockingIOError:
-        pass
-    try:
         result = subprocess.run(
-            ["/usr/bin/systemctl", "show", record["owner_unit"], "-p", "ActiveState", "--value"],
+            ["/usr/bin/systemctl", "show", record["owner_unit"], "-p", "ActiveState", "-p", "MainPID"],
             stdin=subprocess.DEVNULL, capture_output=True, timeout=3,
         )
-    except (OSError, subprocess.TimeoutExpired):
+        if result.returncode != 0:
+            return False
+        fields = unique_fields(line.split("=", 1) for line in result.stdout.decode().splitlines())
+        pid = fields.get("MainPID", "")
+        if fields.get("ActiveState") != "active" or not re.fullmatch(r"[1-9][0-9]*", pid):
+            return False
+        with PROC_LOCKS.open() as stream:
+            locks = stream.read(1_048_577)
+        if len(locks) > 1_048_576:
+            return False
+        for line in locks.splitlines():
+            parts = line.split()
+            if parts[1:5] != ["FLOCK", "ADVISORY", "WRITE", pid] or len(parts) != 8:
+                continue
+            major, minor, inode = parts[5].split(":")
+            if (int(major, 16), int(minor, 16), int(inode)) == (
+                os.major(info.st_dev), os.minor(info.st_dev), info.st_ino,
+            ):
+                return True
+    except (OSError, ValueError, subprocess.TimeoutExpired):
         return False
-    return result.returncode == 0 and result.stdout in (b"active\n", b"deactivating\n")
+    return False
 
 
 def clear(root):
@@ -335,13 +356,18 @@ def transition(root, record, state, step):
         return updated
 
 
-def release(root, record, kind):
+def release(root, record, kind, *, authorized_at=None, certified_date=None):
     with lock(root, "state.lock", fcntl.LOCK_EX, timeout=30):
         if read_hold(root) != record:
             raise ValueError("release ownership changed")
         publish_json(root, "last-release", {
-            "released_at": int(time.time()), "kind": kind, "deploy_id": record["deploy_id"],
+            "released_at": int(time.time()) if authorized_at is None else authorized_at,
+            "kind": kind, "deploy_id": record["deploy_id"],
         })
+        if certified_date is not None:
+            today = datetime.fromtimestamp(time.time(), ZoneInfo("America/New_York")).date().isoformat()
+            if today != certified_date:
+                raise Refused("activation")
         os.unlink("hold", dir_fd=root)
         os.fsync(root)
 
@@ -396,6 +422,8 @@ def call(argv, *, limit=10):
 def require(argv, step, expected=None, *, limit=10):
     try:
         code, output = call(argv, limit=limit)
+    except InterruptedError:
+        raise
     except (OSError, subprocess.TimeoutExpired):
         raise Refused(step) from None
     if code != 0 or expected is not None and output != expected:
@@ -411,13 +439,23 @@ def user_manager(uid, *argv):
     return as_bts("/usr/bin/env", f"XDG_RUNTIME_DIR=/run/user/{uid}", "/usr/bin/systemctl", "--user", *argv)
 
 
-def verified_stop(uid):
+def stop_and_verify(uid, unit, allowed):
     try:
-        code, _ = call(user_manager(uid, "stop", "bts-scheduler.service"), limit=30)
-        query, value = call(user_manager(uid, "show", "bts-scheduler.service", "-p", "ActiveState", "--value"))
-        return code == query == 0 and value in (b"inactive\n", b"failed\n")
+        code, _ = call(user_manager(uid, "stop", unit), limit=30)
+        query, value = call(user_manager(uid, "show", unit, "-p", "ActiveState", "--value"))
+        return code == query == 0 and value in allowed
+    except InterruptedError:
+        raise
     except (OSError, subprocess.TimeoutExpired):
         return False
+
+
+def verified_stop(uid):
+    return stop_and_verify(uid, "bts-scheduler.service", (b"inactive\n", b"failed\n"))
+
+
+def verified_stop_dashboard(uid):
+    return stop_and_verify(uid, "bts-dashboard.service", (b"inactive\n",))
 
 
 def page(record, stopped):
@@ -435,21 +473,21 @@ def page(record, stopped):
         fd = os.open(PROJECT + "/.env", FLAGS)
         with os.fdopen(fd, "rb") as stream:
             if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
-                return False
+                return None
             raw = stream.read(65537)
         if len(raw) > 65536:
-            return False
+            return None
         assignments = [
             line for line in raw.splitlines()
             if re.match(rb"\s*(?:export\s+)?BTS_SCHEDULER_HEARTBEAT_PING_URL\s*=", line)
         ]
         if len(assignments) != 1:
-            return False
+            return None
         match = re.fullmatch(
             rb"BTS_SCHEDULER_HEARTBEAT_PING_URL=(https://hc-ping\.com/[A-Za-z0-9_-]+)", assignments[0],
         )
         if not match:
-            return False
+            return None
         body = (
             f'Deploy failed at {record["step"]}, requested target {record["target"][:7]}, '
             f'scheduler stop {"verified" if stopped else "unverified"}. See INCIDENT.md §4.'
@@ -460,12 +498,14 @@ def page(record, stopped):
         signal.alarm(10)
         try:
             with opener.open(request, timeout=10) as response:
-                return 200 <= response.status <= 299
+                return response.status if 200 <= response.status <= 299 else None
         finally:
             signal.alarm(0)
             signal.signal(signal.SIGALRM, previous)
+    except InterruptedError:
+        raise
     except (OSError, ValueError, urllib.error.URLError):
-        return False
+        return None
 
 
 def containment(root, record, uid):
@@ -474,30 +514,45 @@ def containment(root, record, uid):
         evidence = read_json(root, name) or {}
     except (OSError, ValueError):
         evidence = {}
-        evidence_unreadable = True
-    else:
-        evidence_unreadable = False
-    if evidence.get("stop") != "verified":
-        evidence["stop"] = "verified" if verified_stop(uid) else "unverified"
-        if not evidence_unreadable:
-            try:
-                publish_json(root, name, evidence)
-            except OSError:
-                pass
-    print(f'Scheduler stopped: {evidence["stop"]}.', flush=True)
-    if evidence.get("page") != "attempted":
-        evidence["page"] = "attempted"
-        outcome = "unverified"
-        if not evidence_unreadable:
-            try:
-                publish_json(root, name, evidence)
-            except OSError:
-                pass
-            else:
-                if page(record, evidence["stop"] == "verified"):
-                    outcome = "verified"
-        print(f"Failure ping received HTTP 2xx: {outcome}.", flush=True)
-    return evidence["stop"] == "verified"
+    stopped = evidence.get("stop") == "verified"
+    if not stopped and uid is not None:
+        try:
+            stopped = verified_stop(uid)
+        except InterruptedError:
+            raise
+        except (OSError, Refused, subprocess.TimeoutExpired):
+            stopped = False
+    status = "verified" if stopped else "unverified"
+    print(f"Scheduler stopped: {status}.", flush=True)
+    send = False
+    try:
+        with lock(root, "state.lock", fcntl.LOCK_EX, timeout=2):
+            evidence = read_json(root, name) or {}
+            if evidence.get("stop") != "verified":
+                evidence["stop"] = status
+            claim = evidence.get("page", "not-attempted")
+            attempts = evidence.get("page_attempts", 1 if claim == "claimed" else 0)
+            if claim in ("not-attempted", "claimed") and type(attempts) is int and 0 <= attempts < 2:
+                evidence.update(page="claimed", page_attempts=attempts + 1)
+                send = True
+            publish_json(root, name, evidence)
+    except (OSError, ValueError):
+        # A failed evidence write cannot establish a durable claim.
+        send = False
+    if send:
+        code = page(record, stopped)
+        outcome = f"sent {code}" if type(code) is int and 200 <= code <= 299 else "failed"
+        try:
+            with lock(root, "state.lock", fcntl.LOCK_EX, timeout=2):
+                latest = read_json(root, name) or {}
+                if latest.get("page") == "claimed" and latest.get("page_attempts") == attempts + 1:
+                    latest["page"] = outcome
+                    publish_json(root, name, latest)
+        except (OSError, ValueError):
+            pass
+        print("Failure ping received HTTP 2xx: "
+              + ("verified." if outcome != "failed" else "unverified."), flush=True)
+    return stopped
 
 
 def bts_uid():
@@ -507,17 +562,33 @@ def bts_uid():
     return int(output)
 
 
+def finish_incident(root, record):
+    try:
+        uid = bts_uid()
+    except (Refused, OSError):
+        uid = None
+    contained = containment(root, record, uid)
+    run_id = record["deploy_id"]
+    if read_json(root, run_name(run_id, "result")) is None:
+        record_result(root, run_id, "failed", record["step"])
+    return contained
+
+
 def reconcile(root, run_id):
-    with lock(root, "transaction.lock", fcntl.LOCK_EX):
+    with ExitStack() as transaction:
+        try:
+            transaction.enter_context(lock(root, "transaction.lock", fcntl.LOCK_EX, timeout=60))
+        except BlockingIOError:
+            record = read_hold(root)
+            if record is not None and record["deploy_id"] == run_id:
+                finish_incident(root, dict(record, step="owner-ended"))
+            return 1
         record = read_hold(root)
         if record is None or record["deploy_id"] != run_id:
             return 0
         if record["state"] != "failed":
             record = transition(root, record, "failed", "owner-ended")
-        contained = containment(root, record, bts_uid())
-        if read_json(root, run_name(run_id, "result")) is None:
-            record_result(root, run_id, "failed", record["step"])
-        return 0 if contained else 1
+        return 0 if finish_incident(root, record) else 1
 
 
 def heartbeat():
@@ -609,7 +680,7 @@ def verified_target(target, *, fetch):
 
     try:
         script = target_installer(git, target, fetch=fetch)
-    except Refused as error:
+    except (Refused, InterruptedError) as error:
         error.previous = previous
         raise
     if hashlib.sha256(script).hexdigest().encode() + b"\n" != fingerprint:
@@ -617,56 +688,154 @@ def verified_target(target, *, fetch):
     return previous, git
 
 
-def preflight(uid, target, *, fetch=True):
-    previous, git = verified_target(target, fetch=fetch)
-    if fetch:
-        require(as_bts("/usr/bin/git", "config", "--global", "--add", "safe.directory", PROJECT), "git-config")
-        require([*git, "fetch", "origin"], "fetch", limit=90)
-    for unit in ("bts-scheduler.service", "bts-dashboard.service"):
-        require(user_manager(uid, "show", unit, "-p", "LoadState", "--value"), "user-manager", b"loaded\n")
-        require(user_manager(uid, "show", unit, "-p", "NeedDaemonReload", "--value"), "guard", b"no\n")
-        if os.path.lexists(f"/etc/systemd/system/{unit}"):
-            raise Refused("legacy-unit")
-        require(["/usr/bin/systemctl", "show", unit, "-p", "LoadState", "--value"], "legacy-unit", b"not-found\n")
-        actual = require(user_manager(uid, "show", unit, "-p", "ExecStart", "--value"), "guard")
-        command = {
-            "bts-scheduler.service": f"{UV} run --no-sync bts schedule --config {CONFIG}",
-            "bts-dashboard.service": f"{UV} run --no-sync python3 -m bts.web",
-        }[unit].encode()
-        if actual != command + b"\n" and not (
-            b"argv[]=" + command + b" ;" in actual and actual.count(b"argv[]=") == 1
-            and b"ignore_errors=yes" not in actual
+CONDITION_COMMAND = "/usr/bin/python3 -I /usr/local/bin/bts-deploy-hold check-clear --scheduler"
+RUNTIME_ENVIRONMENT = {"UV_CACHE_DIR=/tmp/uv-cache", "PATH=/home/bts/.local/bin:/usr/local/bin:/usr/bin:/bin"}
+UNIT_PROPERTIES = (
+    "ExecStart", "WorkingDirectory", "Environment", "EnvironmentFiles",
+)
+SCHEDULER_PROPERTIES = (*UNIT_PROPERTIES, "ExecCondition", "SuccessExitStatus")
+
+
+def execution_matches(value, command):
+    match = re.fullmatch(r"\{\s*([^{}]+?)\s*\}", value)
+    if not match:
+        return False
+    fields = unique_fields(piece.strip().split("=", 1) for piece in match[1].split(";") if piece.strip())
+    return (
+        fields.get("path") == command.split()[0]
+        and fields.get("argv[]") == command
+        and fields.get("ignore_errors") == "no"
+    )
+
+
+def verify_unit_fields(unit, fields):
+    scheduler = unit == "bts-scheduler.service"
+    command = (f"{UV} run --no-sync bts schedule --config {CONFIG}" if scheduler
+               else f"{UV} run --no-sync python3 -m bts.web")
+    try:
+        environment = shlex.split(fields["Environment"])
+        if (
+            not execution_matches(fields["ExecStart"], command)
+            or fields["WorkingDirectory"] != PROJECT
+            or len(environment) != 2
+            or set(environment) != RUNTIME_ENVIRONMENT
+            or fields["EnvironmentFiles"] != f"{PROJECT}/.env (ignore_errors=no)"
         ):
             raise Refused("guard")
-    condition = require(user_manager(uid, "show", "bts-scheduler.service", "-p", "ExecCondition", "--value"), "guard")
-    required_condition = b"/usr/bin/python3 -I /usr/local/bin/bts-deploy-hold check-clear --scheduler"
-    if condition != required_condition + b"\n" and not (
-        b"argv[]=" + required_condition + b" ;" in condition and b"ignore_errors=no" in condition
-        and condition.count(b"argv[]=") == 1
-    ):
-        raise Refused("guard")
-    crontab = require(["/usr/bin/crontab", "-u", "bts", "-l"], "crontab")
-    counts = {job: 0 for job in JOBS}
-    for line in crontab.decode().splitlines():
-        if not line or line.lstrip().startswith("#"):
+        if scheduler and (
+            not execution_matches(fields["ExecCondition"], CONDITION_COMMAND)
+            or "1" in fields["SuccessExitStatus"].split()
+        ):
+            raise Refused("guard")
+    except (KeyError, ValueError):
+        raise Refused("guard") from None
+
+
+CRON_WRITERS = {job: ("preview" if job == "nightly-preview" else job) for job in JOBS}
+WRITER_INVOKES = re.compile(
+    r"(?<![\w.-])(?:bts|bts\.cli)\s+(" + "|".join(CRON_WRITERS.values()) + r")(?![\w-])"
+)
+CRON_GATE = re.compile(
+    r"\s*(?:[\d*,/\-]+\s+){5}/usr/local/bin/bts-deploy-hold run (\S+) -- /bin/sh -c "
+    r"'([^']+)' >> [^\s;&|<>]+ 2>&1 # BTS-HETZNER"
+)
+
+
+def runs_heartbeat(command):
+    lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|()")
+    lexer.whitespace_split = True
+    try:
+        tokens = list(lexer)
+    except ValueError:
+        return False
+    separators = {";", "&&", "||", "|", "&", "(", ")"}
+    for i, token in enumerate(tokens):
+        if (token != "/usr/bin/python3" or tokens[i + 1:i + 2] != ["scripts/check_heartbeat.py"]
+                or i and tokens[i - 1] not in separators):
             continue
-        for job in JOBS:
-            command = "preview" if job == "nightly-preview" else job
-            if re.search(rf"\bbts\s+{command}(?:\s|$)", line):
-                gate = f"/usr/local/bin/bts-deploy-hold run {job} -- /bin/sh -c "
-                if len(line.split(maxsplit=5)) != 6 or not line.split(maxsplit=5)[5].startswith(gate):
-                    raise Refused("crontab")
-                counts[job] += 1
-    if tuple(counts.values()) != (1, 2, 4, 1) or b"/usr/bin/python3 scripts/check_heartbeat.py " not in crontab:
+        end = next((j for j in range(i + 2, len(tokens)) if tokens[j] in separators), len(tokens))
+        flags = tokens[i + 2:end]
+        if flags.count("--deploy-hold") == 1:
+            offset = flags.index("--deploy-hold")
+            if flags[offset + 1:offset + 2] == ["/var/lib/bts-deploy/hold"]:
+                return True
+    return False
+
+
+def verify_crontab(raw):
+    counts = {job: 0 for job in JOBS}
+    heartbeat = False
+    for line in raw.decode().splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        parts = line.split(maxsplit=5)
+        if len(parts) == 6 and runs_heartbeat(parts[5]):
+            heartbeat = True
+        invoked = set(WRITER_INVOKES.findall(line.translate({ord("'"): None, ord('"'): None})))
+        if not invoked:
+            continue
+        gated = CRON_GATE.fullmatch(line)
+        if not gated or gated[1] not in CRON_WRITERS or invoked != {CRON_WRITERS[gated[1]]}:
+            raise Refused("crontab")
+        if set(WRITER_INVOKES.findall(gated[2])) != invoked:
+            raise Refused("crontab")
+        counts[gated[1]] += 1
+    if not heartbeat or tuple(counts.values()) != (1, 2, 4, 1):
         raise Refused("crontab")
+
+
+def preflight(uid, target, *, fetch=True):
+    previous, git = verified_target(target, fetch=fetch)
+    try:
+        if fetch:
+            require(as_bts("/usr/bin/git", "config", "--global", "--add", "safe.directory", PROJECT), "git-config")
+            require([*git, "fetch", "origin"], "fetch", limit=90)
+        for unit in ("bts-scheduler.service", "bts-dashboard.service"):
+            require(user_manager(uid, "show", unit, "-p", "LoadState", "--value"), "user-manager", b"loaded\n")
+            require(user_manager(uid, "show", unit, "-p", "NeedDaemonReload", "--value"), "guard", b"no\n")
+            if os.path.lexists(f"/etc/systemd/system/{unit}"):
+                raise Refused("legacy-unit")
+            require(["/usr/bin/systemctl", "show", unit, "-p", "LoadState", "--value"], "legacy-unit", b"not-found\n")
+            properties = SCHEDULER_PROPERTIES if unit == "bts-scheduler.service" else UNIT_PROPERTIES
+            options = [argument for prop in properties for argument in ("-p", prop)]
+            output = require(user_manager(uid, "show", unit, "--all", *options), "guard").decode()
+            try:
+                fields = unique_fields(line.split("=", 1) for line in output.splitlines())
+            except ValueError:
+                raise Refused("guard") from None
+            verify_unit_fields(unit, fields)
+        crontab = require(["/usr/bin/crontab", "-u", "bts", "-l"], "crontab")
+        verify_crontab(crontab)
+    except (Refused, InterruptedError) as error:
+        error.previous = previous
+        raise
+    except ValueError:
+        raise Refused("guard", previous) from None
     return previous, git
 
 
 def canary():
-    require(as_bts(
+    argv = as_bts(
         "/usr/bin/env", "UV_CACHE_DIR=/tmp/uv-cache", UV, "run", "--no-sync",
         "--directory", PROJECT, "bts", "deploy-canary", "--config", CONFIG,
-    ), "canary-contest-state", limit=60)
+    )
+    try:
+        code, output = call(argv, limit=60)
+        line = output.decode().removesuffix("\n")
+        match = re.fullmatch(r"deploy canary ([^\s]+): ([^\r\n]+)", line)
+        if match is None:
+            raise ValueError("unclassified canary")
+        sample = datetime.fromisoformat(match[1])
+        if sample.utcoffset() is None:
+            raise ValueError("canary clock")
+    except InterruptedError:
+        raise
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        raise Refused("canary-contest-state") from None
+    print(line, flush=True)
+    if code != 0:
+        raise Refused("canary-contest-state")
+    return sample.date().isoformat()
 
 
 def dashboard(uid):
@@ -676,7 +845,10 @@ def dashboard(uid):
                      "canary-dashboard").decode().strip()
     if not cgroup.startswith("/") or not cgroup.endswith("/bts-dashboard.service"):
         raise Refused("canary-dashboard")
-    address = require(as_bts("/usr/bin/tailscale", "ip", "-4"), "canary-http").decode().strip()
+    try:
+        address = require(as_bts("/usr/bin/tailscale", "ip", "-4"), "canary-http").decode().strip()
+    except Refused:
+        address = ""
     if address:
         from ipaddress import IPv4Address
         try:
@@ -765,7 +937,6 @@ def owned_deploy(root, run_id, target, recovery):
         with lock(root, "transaction.lock", fcntl.LOCK_EX):
             publish_json(root, run_name(run_id, "accepted"), {"deploy_id": run_id, "target": target})
             try:
-                uid = bts_uid()
                 try:
                     abandoned = read_hold(root)
                 except (OSError, ValueError):
@@ -773,13 +944,13 @@ def owned_deploy(root, run_id, target, recovery):
                         raise Refused("guard") from None
                     abandoned = None
                 if abandoned is not None:
-                    verified_target(target, fetch=True)
                     if abandoned["state"] != "failed":
                         abandoned = transition(root, abandoned, "failed", "abandoned")
-                        containment(root, abandoned, uid)
+                        finish_incident(root, abandoned)
                         raise Refused("abandoned")
-                    if not containment(root, abandoned, uid):
+                    if not finish_incident(root, abandoned):
                         raise Refused("abandoned")
+                uid = bts_uid()
                 if not Path(PROJECT).is_dir():
                     raise Refused("cd")
                 previous, git = preflight(uid, target)
@@ -796,6 +967,9 @@ def owned_deploy(root, run_id, target, recovery):
                         "armed_at": armed, "updated_at": armed,
                     }
                     record = transition(root, record, "pending", "arm")
+                    step = "stop-dashboard"
+                    if not verified_stop_dashboard(uid):
+                        raise Refused(step)
                 step = "stop-old"
                 if not verified_stop(uid):
                     raise Refused(step)
@@ -812,17 +986,23 @@ def owned_deploy(root, run_id, target, recovery):
                 dashboard(uid)
                 window(recovery, target, deadline, minimum=0)
                 require([*git, "rev-parse", "HEAD"], "head", target.encode() + b"\n")
-                canary()
+                certified_date = canary()
                 step = "release"
                 authorized_at = time.time()
                 record = transition(root, record, "activating", "activation")
                 step = "activation"
                 activate_scheduler(uid, authorized_at)
+                try:
+                    release_date = canary()
+                except Refused:
+                    raise Refused("activation") from None
+                if release_date != certified_date:
+                    raise Refused("activation")
                 publish_json(root, run_name(run_id, "evidence"), {
                     "activation": "verified", "stop": "not-attempted", "page": "not-attempted",
                 })
                 step = "release"
-                release(root, record, "deploy")
+                release(root, record, "deploy", authorized_at=authorized_at, certified_date=certified_date)
                 committed = True
                 stamp = write_stamp()
                 if not stamp:
@@ -838,7 +1018,7 @@ def owned_deploy(root, run_id, target, recovery):
                 if isinstance(error, InterruptedError):
                     step = "interrupted"
                 if record is None:
-                    if isinstance(error, Refused) and error.previous is not None:
+                    if getattr(error, "previous", None) is not None:
                         previous = error.previous
                     if step == "abandoned":
                         text = "DEPLOY NOT STARTED — abandoned deployment reconciled."
@@ -860,7 +1040,7 @@ def owned_deploy(root, run_id, target, recovery):
                     print("Deployment hold: verified.", flush=True)
                 containment(root, record, uid)
                 if step == "activation":
-                    print("Activation failed after certified release. Verify the new incident hold "
+                    print("Activation failed after certification; the hold was kept. Verify the incident hold "
                           "and any delivery/entry during activation before retrying.", flush=True)
                 print("Recovery procedure: INCIDENT.md §4.", flush=True)
                 record_result(root, run_id, "failed", step)
@@ -912,7 +1092,7 @@ def release_by_hand(root, reason):
                 print(f"hand release refused: the environment could not be verified as synced for {target[:7]}; use a deploy")
                 return 1
             canary()
-            window("", target, time.time() + 30)
+            window(target, target, time.time() + 30, minimum=30)
             release_audit(root, record, "intent", reason)
             release(root, record, "hand")
             try:
@@ -1053,6 +1233,9 @@ def main():
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("version")
     commands.add_parser("status").add_argument("--json", action="store_true")
+    commands.add_parser("verify-unit").add_argument(
+        "unit", choices=("bts-scheduler.service", "bts-dashboard.service"),
+    )
     commands.add_parser("check-clear").add_argument("--scheduler", action="store_true", required=True)
     run = commands.add_parser("run")
     run.add_argument("name", choices=JOBS)
@@ -1072,6 +1255,17 @@ def main():
     args = parser.parse_args()
     if args.command == "version":
         print("bts-deploy-hold 1")
+        return 0
+    if args.command == "verify-unit":
+        try:
+            raw = sys.stdin.buffer.read(8193)
+            if len(raw) > 8192:
+                raise ValueError("unit property size")
+            fields = unique_fields(line.split("=", 1) for line in raw.decode().splitlines())
+            verify_unit_fields(args.unit, fields)
+        except (Refused, ValueError):
+            print("FAILED: effective user unit differs from the template", file=sys.stderr)
+            return 1
         return 0
     if args.command == "run":
         argv = args.argv
@@ -1113,16 +1307,15 @@ manager() {
     runuser -u bts -- env "XDG_RUNTIME_DIR=/run/user/$uid" systemctl --user "$@"
 }
 manager daemon-reload
-loaded="$(manager show bts-scheduler -p ExecCondition --value)"
-[[ "$loaded" == "$condition" || ( "$loaded" == *"argv[]=$condition ;"* &&
-    "$loaded" == *"ignore_errors=no"* && "$loaded" != *"ignore_errors=yes"* &&
-    "${loaded#*argv[]=}" != *"argv[]="* ) ]]
-if ! reload_pending="$(manager show bts-scheduler -p NeedDaemonReload --value)" || [[ "$reload_pending" != no ]]; then
-    printf '%s\n' 'FAILED: scheduler user manager needs reload or could not be queried' >&2
-    exit 1
-fi
-start="$(manager show bts-scheduler -p ExecStart --value)"
-start_command='/home/bts/.local/bin/uv run --no-sync bts schedule --config /home/bts/.bts-orchestrator.toml'
-[[ "$start" == "$start_command" || ( "$start" == *"argv[]=$start_command ;"* &&
-    "${start#*argv[]=}" != *"argv[]="* ) ]]
+for unit in bts-scheduler.service bts-dashboard.service; do
+    if ! reload_pending="$(manager show "$unit" -p NeedDaemonReload --value)" || [[ "$reload_pending" != no ]]; then
+        printf '%s\n' 'FAILED: user manager needs reload or could not be queried' >&2
+        exit 1
+    fi
+    properties=(-p ExecStart -p WorkingDirectory -p Environment -p EnvironmentFiles)
+    if [[ "$unit" == bts-scheduler.service ]]; then
+        properties+=(-p ExecCondition -p SuccessExitStatus)
+    fi
+    manager show "$unit" --all "${properties[@]}" | /usr/bin/python3 -I "$tool" verify-unit "$unit"
+done
 install_fingerprint publish "$installer_sha"

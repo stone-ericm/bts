@@ -26,9 +26,19 @@ def installer(tmp_path):
             'printf "%s\\n" "$*" >> "$BTS_INSTALL_CALLS"\n'
             'case " $* " in\n'
             '  *" daemon-reload "*) exit 0;;\n'
-            f'  *" ExecCondition "*) printf "%s\\n" "{CONDITION}";;\n'
-            '  *" ExecStart "*) printf "%s\\n" "/home/bts/.local/bin/uv run --no-sync bts schedule --config /home/bts/.bts-orchestrator.toml";;\n'
             '  *" NeedDaemonReload "*) printf "%s\\n" "${BTS_RELOAD_PENDING:-no}";;\n'
+            '  *" ExecStart "*)\n'
+            '    uv=/home/bts/.local/bin/uv\n'
+            '    case " $* " in\n'
+            '      *" bts-scheduler.service "*)\n'
+            '        args="$uv run --no-sync bts schedule --config /home/bts/.bts-orchestrator.toml"\n'
+            f'        printf "%s\\n" "ExecCondition={{ path=${{BTS_CONDITION_PATH:-/usr/bin/python3}} ; argv[]={CONDITION} ; ignore_errors=no ; }}" "SuccessExitStatus=${{BTS_SUCCESS_STATUS:-}}";;\n'
+            '      *) args="$uv run --no-sync python3 -m bts.web";;\n'
+            '    esac\n'
+            '    printf "%s\\n" "ExecStart={ path=$uv ; argv[]=$args ; ignore_errors=no ; }" \\\n'
+            '      "WorkingDirectory=/home/bts/projects/bts" \\\n'
+            '      "Environment=UV_CACHE_DIR=/tmp/uv-cache PATH=/home/bts/.local/bin:/usr/local/bin:/usr/bin:/bin" \\\n'
+            '      "EnvironmentFiles=/home/bts/projects/bts/.env (ignore_errors=no)";;\n'
             '  *) exit 96;;\n'
             'esac\n'
         ),
@@ -91,3 +101,14 @@ def test_installer_records_exact_source_only_after_successful_verification(insta
     result = run(BTS_RELOAD_PENDING="yes")
     assert result.returncode != 0
     assert not record.exists()
+
+
+def test_f3_installer_uses_same_loaded_unit_validation(installer):
+    root, run = installer
+    accepted = run(BTS_SUCCESS_STATUS="143")
+    assert accepted.returncode == 0, accepted.stderr
+    for override in ({"BTS_CONDITION_PATH": "/usr/bin/true"}, {"BTS_SUCCESS_STATUS": "1"}):
+        result = run(**override)
+        assert result.returncode != 0
+        assert "effective user unit differs" in result.stderr
+        assert not (root / "var/lib/bts-deploy/guard-install.sha256").exists()

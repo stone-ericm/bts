@@ -6,6 +6,7 @@ and commits picks only when confirmed lineup + gap threshold met.
 """
 
 import json
+import math
 import shlex
 import subprocess
 import sys
@@ -1142,6 +1143,87 @@ def _pick_delivery_mode(config: dict) -> str:
             "scheduler.pick_delivery must be one of: public, dm, private"
         )
     return mode
+
+
+def validate_runtime_config(config: dict) -> list[str]:
+    """Check scheduler configuration without writing state or starting work."""
+    problems = []
+    scheduler = config.get("scheduler", {})
+    if not isinstance(scheduler, dict):
+        return ["scheduler must be a table"]
+    try:
+        delivery = _pick_delivery_mode(config)
+    except ValueError:
+        problems.append("invalid scheduler delivery")
+        delivery = None
+
+    for field in ("cascade_budget_min", "operator_reserve_min", "heartbeat_stall_after_sec",
+                  "shadow_model_trigger_timeout_sec", "live_forward_capture_trigger_timeout_sec"):
+        if field in scheduler:
+            try:
+                value = float(scheduler[field])
+                if not math.isfinite(value):
+                    raise ValueError
+            except (TypeError, ValueError, OverflowError):
+                problems.append(f"scheduler.{field} must be numeric and finite")
+    for field in ("lineup_check_offset_min", "cluster_min", "doubleheader_recheck_min", "early_lock_gap",
+                  "fallback_deadline_min", "fallback_deadline_min_morning", "missed_pick_alert_min",
+                  "results_poll_interval_min", "early_game_buffer_min"):
+        if field in scheduler:
+            value = scheduler[field]
+            if type(value) not in (int, float) or not math.isfinite(value):
+                problems.append(f"scheduler.{field} must be numeric and finite")
+    for field in ("morning_cutoff_hour", "results_cap_hour_et", "default_init_hour_et"):
+        value = scheduler.get(field, 0)
+        if type(value) is not int or not 0 <= value <= 23:
+            problems.append(f"scheduler.{field} must be an hour")
+
+    orchestrator = config.get("orchestrator")
+    if not isinstance(orchestrator, dict):
+        problems.append("orchestrator must be a table")
+    else:
+        try:
+            picks_setting = orchestrator["picks_dir"]
+            if not isinstance(picks_setting, str) or not picks_setting.strip():
+                raise ValueError
+            picks = Path(picks_setting)
+            heartbeat = Path(orchestrator.get("heartbeat_path", "data/.heartbeat"))
+            if not picks.is_dir() or heartbeat.is_dir():
+                problems.append("orchestrator state paths are unusable")
+            for field in ("data_dir", "models_dir"):
+                if field in orchestrator:
+                    Path(orchestrator[field])
+        except (KeyError, TypeError, ValueError, OSError):
+            problems.append("orchestrator state paths are invalid")
+
+    tiers = config.get("tiers")
+    if not isinstance(tiers, list) or not tiers:
+        problems.append("tiers must contain at least one compute tier")
+    else:
+        for index, tier in enumerate(tiers):
+            if not isinstance(tier, dict) or not isinstance(tier.get("name"), str) or not tier["name"].strip():
+                problems.append(f"tier {index} requires a name")
+                continue
+            kind = tier.get("type", "ssh")
+            if kind == "local":
+                continue
+            timeout = tier.get("timeout_min")
+            if (
+                kind != "ssh"
+                or not all(isinstance(tier.get(key), str) and tier[key].strip() for key in ("ssh_host", "bts_dir"))
+                or type(timeout) not in (int, float) or not math.isfinite(timeout) or timeout <= 0
+                or tier.get("platform", "unix") not in ("unix", "windows")
+            ):
+                problems.append(f"tier {index} has an invalid compute configuration")
+
+    bluesky = config.get("bluesky", {})
+    if not isinstance(bluesky, dict):
+        problems.append("bluesky must be a table")
+    elif delivery == "dm":
+        recipient = bluesky.get("dm_recipient")
+        if not isinstance(recipient, str) or not recipient.strip():
+            problems.append("bluesky.dm_recipient is required for DM delivery")
+    return problems
 
 
 def _format_pick_delivery_text(daily, streak: int) -> str:

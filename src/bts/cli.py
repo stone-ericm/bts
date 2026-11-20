@@ -2637,8 +2637,9 @@ def deploy_canary(config_path: Path):
         from bts import contest_state
         from bts.entry_intent import check_entry_intent
         from bts.orchestrator import load_config
-        import_module("bts.scheduler")
-        import_module("bts.model.predict")
+        from bts.scheduler import validate_runtime_config
+        for module in ("bts.model.predict", "bts.posting", "bts.daily_decision", "bts.slate", "bts.health.runner"):
+            import_module(module)
     except Exception:
         report("runtime unavailable")
 
@@ -2646,7 +2647,7 @@ def deploy_canary(config_path: Path):
         config = load_config(config_path)
         picks = Path(config["orchestrator"]["picks_dir"])
         intent = check_entry_intent(config)
-        if not picks.is_dir() or not intent.ok:
+        if validate_runtime_config(config) or not intent.ok:
             report("configuration refused")
     except (OSError, KeyError, TypeError, ValueError):
         report("configuration refused")
