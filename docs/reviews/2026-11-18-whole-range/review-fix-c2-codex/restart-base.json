@@ -1,0 +1,149 @@
+{
+  "after_remote_accept": {
+    "committed": true,
+    "decision_bytes": "8b3605b2c85ec6f3afed20f0375678905378d7a064532661c3b7d02700288c11",
+    "delivery_status": "locked_unconfirmed",
+    "first_committed": true,
+    "first_lock": true,
+    "locked": true,
+    "next_morning": "not_entered",
+    "pick_bytes": "a70bf3e584a3cdd342832346a117ddb5fc64bfe09cb3a5926c05de74176de40a",
+    "pick_messages": 1,
+    "polling": [
+      [
+        27240,
+        "2027-03-24",
+        "final"
+      ]
+    ],
+    "polls_before_repeat": 1,
+    "returns": [
+      null,
+      null
+    ],
+    "scoreable": true
+  },
+  "before_remote_accept": {
+    "committed": true,
+    "decision_bytes": "8b3605b2c85ec6f3afed20f0375678905378d7a064532661c3b7d02700288c11",
+    "delivery_status": "locked_unconfirmed",
+    "first_committed": true,
+    "first_lock": true,
+    "locked": true,
+    "next_morning": "not_entered",
+    "pick_bytes": "a70bf3e584a3cdd342832346a117ddb5fc64bfe09cb3a5926c05de74176de40a",
+    "pick_messages": 0,
+    "polling": [
+      [
+        27240,
+        "2027-03-24",
+        "final"
+      ]
+    ],
+    "polls_before_repeat": 1,
+    "returns": [
+      null,
+      null
+    ],
+    "scoreable": true
+  },
+  "corrected_after_marker": {
+    "committed": true,
+    "decision_bytes": "1f1ee00a8114bf161bc3142cdf77d7fbaf87011739e730796def2e8d6745afb8",
+    "delivery_status": "locked_unconfirmed",
+    "first_committed": true,
+    "first_lock": true,
+    "locked": true,
+    "next_morning": "not_entered",
+    "pick_bytes": "47fee1f6f8d3333ca3a8d872abfcf8a1c548e523d2f4573d16627f4a15762128",
+    "pick_messages": 0,
+    "polling": [
+      [
+        27250,
+        "2027-03-25",
+        "final"
+      ]
+    ],
+    "polls_before_repeat": 1,
+    "returns": [
+      null,
+      null
+    ],
+    "scoreable": true
+  },
+  "fresh": {
+    "committed": true,
+    "decision_bytes": "06a69693613db00188baf52b9cf3585344ed14a67810a20e8fcfd122eb700d9b",
+    "locked": true,
+    "missed_pick": [],
+    "pick_bytes": "603caae9c2b61b27952dc88bc0abf07fe42fe5037493b824a867880d1a791576",
+    "polls": 2,
+    "result_status": "final",
+    "returns": [
+      null,
+      null
+    ]
+  },
+  "prior_delivered": {
+    "committed": true,
+    "decision_bytes": "0150dcc448a3b2c4f55658f99123e50ba3e1562c5b2440e7b0b55e35f4bb6f2e",
+    "locked": true,
+    "missed_pick": [],
+    "pick_bytes": "603caae9c2b61b27952dc88bc0abf07fe42fe5037493b824a867880d1a791576",
+    "polls": 1,
+    "result_status": "final",
+    "returns": [
+      null
+    ]
+  },
+  "prior_locked": {
+    "committed": true,
+    "decision_bytes": "6b319cf07b1a1d8410c1d613eaa00792cb56fbf73827e698b80fca5c9d51039f",
+    "locked": true,
+    "missed_pick": [],
+    "pick_bytes": "603caae9c2b61b27952dc88bc0abf07fe42fe5037493b824a867880d1a791576",
+    "polls": 1,
+    "result_status": "final",
+    "returns": [
+      null
+    ]
+  },
+  "prior_private": {
+    "committed": true,
+    "decision_bytes": "affe5c59d9e460e580d19c69f1b38f7cb0f5b0b30e4c226dd977d1f33fd05c9b",
+    "locked": true,
+    "missed_pick": [],
+    "pick_bytes": "603caae9c2b61b27952dc88bc0abf07fe42fe5037493b824a867880d1a791576",
+    "polls": 1,
+    "result_status": "final",
+    "returns": [
+      null
+    ]
+  },
+  "terminal": {
+    "committed": true,
+    "decision_bytes": "6b319cf07b1a1d8410c1d613eaa00792cb56fbf73827e698b80fca5c9d51039f",
+    "locked": true,
+    "missed_pick": [],
+    "pick_bytes": "59b3b865f1d14d3bf0a2409ee79b3c83b15826eaf47d6f75629a5aa6f3de09dd",
+    "polls": 0,
+    "result_status": null,
+    "returns": [
+      null
+    ]
+  },
+  "writer_none": {
+    "committed": false,
+    "decision_bytes": null,
+    "locked": true,
+    "missed_pick": [
+      "BTS health CRITICAL alert(s):\n- [missed_pick] NO PICK DELIVERED. ~40 min to first pitch. See `bts season-contract status`."
+    ],
+    "pick_bytes": "603caae9c2b61b27952dc88bc0abf07fe42fe5037493b824a867880d1a791576",
+    "polls": 0,
+    "result_status": null,
+    "returns": [
+      null
+    ]
+  }
+}

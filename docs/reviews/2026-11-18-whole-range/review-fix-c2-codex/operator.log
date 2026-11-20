@@ -1,0 +1,21 @@
+  Refused status output contains pre-existing conditional enable/fetch instructions.
+direct/never_left: slate=2027-03-25, wall=2027-03-25T18:20:00-04:00, status read=True, entry=False, two exact recovery bodies.
+direct/accepted_and_entered: slate=2027-03-25, wall=2027-03-25T18:20:00-04:00, status read=True, entry=True, two exact recovery bodies.
+direct/past_cutoff: slate=2027-03-25, wall=2027-03-25T18:56:00-04:00, status read=False, entry=False, two exact recovery bodies.
+direct/past_first_pitch: slate=2027-03-25, wall=2027-03-25T19:04:00-04:00, status read=False, entry=False, two exact recovery bodies.
+direct/midnight: slate=2027-03-25, wall=2027-03-26T00:01:00-04:00, status read=False, entry=False, two exact recovery bodies.
+direct/new_year: slate=2027-12-31, wall=2028-01-01T00:01:00-05:00, status read=False, entry=False, two exact recovery bodies.
+direct/fresh_private: no attempt marker, no recovery DM.
+direct/switched_private: slate=2027-03-25, wall=2027-03-25T18:20:00-04:00, status read=True, entry=False, two exact recovery bodies.
+  Refused status output contains pre-existing conditional enable/fetch instructions.
+classification/never_left: slate=2027-03-25, wall=2027-03-25T18:20:00-04:00, status read=True, entry=False, two exact recovery bodies.
+classification/accepted_and_entered: slate=2027-03-25, wall=2027-03-25T18:20:00-04:00, status read=True, entry=True, two exact recovery bodies.
+classification/past_cutoff: slate=2027-03-25, wall=2027-03-25T18:56:00-04:00, status read=False, entry=False, two exact recovery bodies.
+classification/past_first_pitch: slate=2027-03-25, wall=2027-03-25T19:04:00-04:00, status read=False, entry=False, two exact recovery bodies.
+classification/midnight: slate=2027-03-25, wall=2027-03-26T00:01:00-04:00, status read=False, entry=False, two exact recovery bodies.
+classification/new_year: slate=2027-12-31, wall=2028-01-01T00:01:00-05:00, status read=False, entry=False, two exact recovery bodies.
+classification/fresh_private: no attempt marker, no recovery DM.
+classification/switched_private: slate=2027-03-25, wall=2027-03-25T18:20:00-04:00, status read=True, entry=False, two exact recovery bodies.
+direct/corrected: same primary 27250, old double versus current single, two exact recovery bodies; inspection read the corrected streak.
+classification/corrected: same primary 27250, old double versus current single, two exact recovery bodies; inspection read the corrected streak.
+Existing delivered-label watchdog conflict: ⚠️ BTS pick NOT entered in MLB app: Example Batter — first pitch 7:00 PM ET (33 min to submit). Fix it now!

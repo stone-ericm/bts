@@ -1,0 +1,21 @@
+/Users/eric/.matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/matplotlib-sywrol8h because there was an issue with the default path (/Users/eric/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+direct/format: contained; transport=0; bounded diagnostic=1.
+direct/dispatch: contained; transport=0; bounded diagnostic=1.
+direct/mkdir: contained; transport=1; bounded diagnostic=1.
+direct/read: contained; transport=1; bounded diagnostic=1.
+direct/write: contained; transport=1; bounded diagnostic=1.
+direct/transport: contained; transport=1; bounded diagnostic=1.
+direct/write_and_transport: contained; transport=1; bounded diagnostic=1.
+direct/stderr: contained; transport=0; bounded diagnostic=0.
+direct/unprintable: contained; transport=0; bounded diagnostic=1.
+classification/format: contained; transport=0; bounded diagnostic=1.
+classification/dispatch: contained; transport=0; bounded diagnostic=1.
+classification/mkdir: contained; transport=1; bounded diagnostic=1.
+classification/read: contained; transport=1; bounded diagnostic=1.
+classification/write: contained; transport=1; bounded diagnostic=1.
+classification/transport: contained; transport=1; bounded diagnostic=1.
+classification/write_and_transport: contained; transport=1; bounded diagnostic=1.
+classification/stderr: contained; transport=0; bounded diagnostic=0.
+classification/unprintable: contained; transport=0; bounded diagnostic=1.
+EOD: one unknown attempt and one independent pick_delivery alert; recovery retried only on restart.

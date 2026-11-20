@@ -1,0 +1,20 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-c2-rev-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 264 items
+
+tests/test_wr_c2_recovery.py ........................................... [ 16%]
+...................................                                      [ 29%]
+tests/test_lightgbm_optional.py .                                        [ 29%]
+tests/test_web_saver.py ............                                     [ 34%]
+tests/test_alert_status_callers_cs6b2.py ......................          [ 42%]
+tests/test_late_delivery_guard.py ........                               [ 45%]
+tests/test_stale_delivery_cs4c.py ...................................... [ 60%]
+........................                                                 [ 69%]
+tests/test_stale_delivery_cs4c_carbon.py ....................            [ 76%]
+tests/test_morning_state_cs6b1.py ...................................... [ 91%]
+.......................                                                  [100%]
+
+============================= 264 passed in 11.96s =============================
