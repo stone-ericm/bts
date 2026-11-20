@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
 
-from bts.util import atomic_write_text   # NB: defined in bts.util, not bts.picks
+from bts.util import atomic_write_text, read_regular_file_text
 
 _PERSISTED = {"not_earned", "active", "used"}
 
@@ -46,11 +46,16 @@ def load_saver_state(picks_dir: Path, *, season: int) -> SaverState:
     """Read the saver flag for `season`. Returns state='uninitialized' (fail-closed, DISTINCT
     from not_earned) when the file is missing, invalid, or for another season. A stale-season
     file preserves its `season` so health can distinguish stale from missing."""
+    return _read_saver_state(picks_dir, season=season, historical=False)
+
+
+def _read_saver_state(picks_dir: Path, *, season: int, historical: bool) -> SaverState:
     path = _path(picks_dir)
     if not path.exists():
         return SaverState("uninitialized", None)
     try:
-        d = json.loads(path.read_text())
+        raw = read_regular_file_text(path) if historical else path.read_text()
+        d = json.loads(raw)
     except (json.JSONDecodeError, OSError, UnicodeDecodeError):
         return SaverState("uninitialized", None)
     if not isinstance(d, dict):           # a JSON scalar/list ([], 123, "active") -> fail-closed

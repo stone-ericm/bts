@@ -10,6 +10,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from bts.contest_state import ContestStreakState, _UNREADABLE
+from bts.util import read_regular_file_text
 
 SCHEMA = "bts_season_contract_v1"
 AUTO_SCHEMA = "bts_contest_streak_auto_v2"
@@ -67,6 +68,12 @@ def validate_contract(data: object) -> dict:
 
 def switch_state(picks_dir: Path, now: datetime, *, season: int | None = None) -> SwitchState:
     """Read and validate one snapshot. Only lstat FileNotFoundError is absent."""
+    return _read_switch_state(picks_dir, now, season=season, historical=False)
+
+
+def _read_switch_state(
+    picks_dir: Path, now: datetime, *, season: int | None = None, historical: bool,
+) -> SwitchState:
     path = Path(picks_dir) / "account_state/season_contract.json"
     try:
         path.lstat()
@@ -75,7 +82,8 @@ def switch_state(picks_dir: Path, now: datetime, *, season: int | None = None) -
     except _UNREADABLE as exc:
         return SwitchState("corrupt", check=1, error=f"{path}: {exc}")
     try:
-        data = validate_contract(json.loads(path.read_text(encoding="utf-8")))
+        raw = read_regular_file_text(path) if historical else path.read_text(encoding="utf-8")
+        data = validate_contract(json.loads(raw))
     except InvalidContract as exc:
         return SwitchState("corrupt", check=exc.check, error=f"{path}: {exc}")
     except _UNREADABLE as exc:
@@ -109,30 +117,66 @@ def live_automatic_refusal(
     The caller bypasses this function for an in-effect dated observation. No
     observation is opened here; filename, not its claimed source, identifies it.
     """
-    state = switch_state(picks_dir, now) if switch is None else switch
+    return _automatic_refusal(picks_dir, now, selected, switch=switch, historical=False)
+
+
+def _automatic_refusal(
+    picks_dir: Path, now: datetime, selected: ContestStreakState | None,
+    *, switch: SwitchState | None = None, historical: bool,
+) -> str | None:
+    if switch is None:
+        switch = (_read_switch_state(picks_dir, now, historical=True)
+                  if historical else switch_state(picks_dir, now))
+    state = switch
     year = now.astimezone(ET).year
     if state.state == "corrupt":
+        if historical:
+            if state.check == 1:
+                return "The season switch file is malformed or unreadable."
+            fields = {
+                2: "schema_version", 3: "season", 4: "status", 5: "activation_id",
+                6: "switched_at", 7: "revoked_at", 8: "note",
+            }
+            return f"The season switch is corrupt because its {fields[state.check]} field failed validation."
         kind = 1
         reason = f"Live decision refused: corrupt season switch, check {state.check}: {state.error}."
     elif selected is not None and selected.path.name == "contest_streak.manual.json":
+        if historical:
+            return "The selected legacy manual override is ineligible for a live decision."
         kind = 2
         reason = "Live decision refused: the selected legacy manual override is no longer accepted for a live pick."
     elif state.state in {"absent", "other_season", "revoked"}:
+        if historical:
+            return {
+                "absent": "The season switch is absent.",
+                "other_season": "The season switch is for another season.",
+                "revoked": "The season switch is revoked.",
+            }[state.state]
         kind = 3
         detail = f" (file season {state.snapshot['season']})" if state.state == "other_season" else ""
         reason = f"Live decision refused: season {year} switch is {state.state}{detail}."
     elif selected is None:
+        if historical:
+            return "There is no automatic observation for the switch activation."
         kind = 4
         reason = "Live decision refused: there is no automatic observation for this activation."
     else:
         kind = 5
         if selected.schema_version != AUTO_SCHEMA:
+            if historical:
+                if isinstance(selected.schema_version, str):
+                    return "The automatic observation uses an unsupported schema."
+                return "The automatic observation schema is missing, null or invalid."
             detail = (f"schema_version is {selected.schema_version!r}, not {AUTO_SCHEMA!r}"
                       if isinstance(selected.schema_version, str) else
                       "schema_version is missing, null or not a string; look at status for the exact value")
         elif selected.season != year:
+            if historical:
+                return "The automatic observation is for another season."
             detail = f"automatic observation season is {selected.season}, not {year}"
         elif selected.activation_id != state.snapshot["activation_id"]:
+            if historical:
+                return "The automatic observation and season switch have different activation IDs."
             detail = (f"automatic observation activation_id is {selected.activation_id!r}, "
                       f"not the switch's {state.snapshot['activation_id']!r}")
         else:

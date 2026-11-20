@@ -18,6 +18,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from bts.saver_state import SaverState, load_saver_state, policy_saver_available
+from bts.util import read_regular_file_text
 
 
 logger = logging.getLogger(__name__)
@@ -35,6 +36,10 @@ _UNREADABLE = (OSError, ValueError, RecursionError)
 
 class ContestStateError(RuntimeError):
     """Contest-account state is missing or invalid for live decisions."""
+
+
+class _HistoricalContestStateError(ContestStateError):
+    """A controlled diagnostic from the historical contest reader."""
 
 
 @dataclass(frozen=True)
@@ -180,12 +185,18 @@ def dated_observation_in_effect(state: ContestStreakState, now: datetime) -> boo
 
 
 def validate_dated_observation(data: object, path: Path) -> ContestStreakState:
+    return _validate_dated_observation(data, path, historical=False)
+
+
+def _validate_dated_observation(data: object, path: Path, *, historical: bool) -> ContestStreakState:
     """Validate v3 contents in contract order, independently of today's date.
 
     Both the file reader and the command's raw-snapshot comparison use this
     validator. Other schemas retain the legacy parser and its timestamp grammar.
     """
     def invalid(number: int, field: str, requirement: str) -> None:
+        if historical:
+            raise _HistoricalContestStateError(f"The dated manual contest streak file failed validation for {field}.")
         raise ContestStateError(
             f"dated contest observation invalid at {path}: check {number}, "
             f"{field}: {requirement}")
@@ -307,20 +318,37 @@ def _contest_state_paths(picks_dir: Path) -> list[Path]:
 
 def _parse_state_file(path: Path, *, require_dated: bool = False) -> ContestStreakState:
     """Parse one contest-streak observation file. Raises ContestStateError if malformed."""
+    return _read_state_file(path, require_dated=require_dated, historical=False)
+
+
+def _read_state_file(path: Path, *, require_dated: bool, historical: bool) -> ContestStreakState:
+    label = "manual" if path.name == "contest_streak.manual.json" else "automatic"
+    malformed = f"The {label} contest streak file is malformed or unreadable."
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
+        raw = read_regular_file_text(path) if historical else path.read_text(encoding="utf-8")
+        data = json.loads(raw)
     except _UNREADABLE as exc:
+        if historical:
+            raise _HistoricalContestStateError(malformed) from exc
         raise ContestStateError(f"contest streak state malformed at {path}: {exc}") from exc
     if not isinstance(data, dict):
+        if historical:
+            raise _HistoricalContestStateError(malformed)
         raise ContestStateError(f"contest streak state malformed at {path}: expected object")
     if path.name == "contest_streak.manual.json" and data.get("schema_version") == DATED_MANUAL_SCHEMA:
+        if historical:
+            return _validate_dated_observation(data, path, historical=True)
         return validate_dated_observation(data, path)
     streak = data.get("active_streak", data.get("streak"))
     if type(streak) is not int or streak < 0:        # type() not isinstance: reject bool
+        if historical:
+            raise _HistoricalContestStateError(f"The {label} contest streak file has an invalid streak.")
         raise ContestStateError(f"contest streak invalid in {path}: {streak!r}")
 
     saver = data.get("saver_available")
     if saver is not None and not isinstance(saver, bool):
+        if historical:
+            raise _HistoricalContestStateError(f"The {label} contest streak file has an invalid saver value.")
         raise ContestStateError(f"contest saver_available invalid in {path}: {saver!r}")
 
     best = data.get("best_streak")
@@ -331,6 +359,8 @@ def _parse_state_file(path: Path, *, require_dated: bool = False) -> ContestStre
         streak > TARGET_STREAK
         or (best is not None and (best < streak or best > TARGET_STREAK))
     ):
+        if historical:
+            raise _HistoricalContestStateError("The automatic contest streak file has an invalid streak or best streak.")
         raise ContestStateError(
             f"automatic contest streak invalid in {path}: active_streak={streak}, best_streak={best}"
         )
@@ -338,6 +368,8 @@ def _parse_state_file(path: Path, *, require_dated: bool = False) -> ContestStre
     source_date = _parse_date(data.get("source_date") or data.get("as_of"))
     if (require_dated and source_date is None and _parse_date(data.get("as_of")) is None
             and _parse_dt(data.get("recorded_at")) is None):
+        if historical:
+            raise _HistoricalContestStateError("The automatic contest observation is undated.")
         raise ContestStateError(f"automatic contest observation is undated at {path}")
 
     season = activation_id = None
@@ -345,9 +377,13 @@ def _parse_state_file(path: Path, *, require_dated: bool = False) -> ContestStre
         from bts.season_contract import valid_activation_id
         season = data.get("season")
         if type(season) is not int:
+            if historical:
+                raise _HistoricalContestStateError("The automatic contest streak file failed validation for season.")
             raise ContestStateError(f"automatic contest season invalid in {path}: must be an integer")
         activation_id = data.get("activation_id")
         if not valid_activation_id(activation_id):
+            if historical:
+                raise _HistoricalContestStateError("The automatic contest streak file failed validation for activation_id.")
             raise ContestStateError(f"automatic contest activation_id invalid in {path}: must be 32 lowercase hexadecimal characters")
 
     return ContestStreakState(
@@ -386,13 +422,25 @@ def load_contest_streak_state(
     Status sets omit_selected_dated only after selecting today's dated snapshot.
     This lets it evaluate the automatic fallback without reopening that record.
     """
+    return _select_contest_streak_state(
+        picks_dir, now=now, require_dated_auto=require_dated_auto,
+        omit_selected_dated=omit_selected_dated, historical=False,
+    )
+
+
+def _select_contest_streak_state(
+    picks_dir: Path, *, now: datetime | None, require_dated_auto: bool,
+    omit_selected_dated: bool = False, historical: bool,
+) -> ContestStreakState | None:
     now = now or datetime.now(timezone.utc)
     state_dir = picks_dir / "account_state"
     manual_path = state_dir / "contest_streak.manual.json"
     auto_path = state_dir / "contest_streak.json"
 
-    manual = (_parse_state_file(manual_path)
-              if not omit_selected_dated and manual_path.exists() else None)
+    manual = None
+    if not omit_selected_dated and manual_path.exists():
+        manual = (_read_state_file(manual_path, require_dated=False, historical=True)
+                  if historical else _parse_state_file(manual_path))
     if manual is not None and manual.effective_date is not None:
         if dated_observation_in_effect(manual, now):
             return manual
@@ -406,15 +454,19 @@ def load_contest_streak_state(
             and manual.override_expires_at > now):
         return manual
 
-    auto = (_parse_state_file(auto_path, require_dated=require_dated_auto)
-            if auto_path.exists() else None)
-    if auto is not None:
-        return auto
+    if auto_path.exists():
+        if historical:
+            return _read_state_file(auto_path, require_dated=require_dated_auto, historical=True)
+        return _parse_state_file(auto_path, require_dated=require_dated_auto)
     return manual
 
 
 def _resolved_pick_dates(picks_dir: Path) -> list[date]:
     """All root-level production pick dates with a settled result."""
+    return _scan_resolved_pick_dates(picks_dir, historical=False)
+
+
+def _scan_resolved_pick_dates(picks_dir: Path, *, historical: bool) -> list[date]:
     dates: list[date] = []
     for path in picks_dir.glob("*.json"):
         if not _ISO_DATE_RE.match(path.stem):
@@ -424,7 +476,8 @@ def _resolved_pick_dates(picks_dir: Path) -> list[date]:
         except ValueError:        # ISO-shaped but invalid (e.g. 2026-99-99)
             continue
         try:
-            body = json.loads(path.read_text(encoding="utf-8"))
+            raw = read_regular_file_text(path) if historical else path.read_text(encoding="utf-8")
+            body = json.loads(raw)
         except _UNREADABLE:
             continue
         if not isinstance(body, dict):
