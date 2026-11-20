@@ -15,7 +15,8 @@ import pytest
 from bts.health import alert, contest_state, runner
 
 
-REVIEW = Path(__file__).resolve().parents[1] / "docs/reviews/2026-11-18-whole-range"
+REPO_ROOT = Path(__file__).resolve().parents[1]
+REVIEW = REPO_ROOT / "docs/reviews/2026-11-18-whole-range"
 POINTER_SENTENCES = (
     "This check used files available at run time.",
     "Do not enter picks, retry delivery, or change contest state from this alert.",
@@ -299,6 +300,59 @@ def test_historical_state_paths_are_bounded(tmp_path, probe, kind):
     assert output == ([exact(day, reasons[kind])] if kind in reasons else [])
 
 
+@pytest.mark.parametrize("kind", ["manual", "automatic"])
+@pytest.mark.parametrize("contents", ["[]", '"observation"'], ids=["array", "string"])
+def test_historical_state_rejects_non_object_json(tmp_path, probe, kind, contents):
+    day = probe.D
+    state_dir = tmp_path / "account_state"
+    state_dir.mkdir()
+    filename = "contest_streak.manual.json" if kind == "manual" else "contest_streak.json"
+    (state_dir / filename).write_text(contents, encoding="utf-8")
+
+    alerts, _ = run(tmp_path, day, probe.at(day + timedelta(days=1), 2), isolate=True)
+
+    assert [(item.level, item.source, item.message) for item in alerts] == [
+        ("CRITICAL", "contest_state", exact(day, f"The {kind} contest streak file is malformed or unreadable.")),
+    ]
+
+
+def test_historical_second_manual_read_is_bounded(tmp_path, probe):
+    day = probe.D
+    probe.put(tmp_path, "contest_streak.manual.json", {
+        "streak": 7, "source_date": str(day),
+        "override_expires_at": (probe.end(day) + timedelta(days=1)).isoformat(),
+    })
+    args = [sys.executable, str(Path(__file__).resolve()), "manual-reread", str(tmp_path), str(day)]
+    try:
+        child = subprocess.run(args, check=True, capture_output=True, text=True, timeout=4)
+    except subprocess.TimeoutExpired as error:
+        assert b"replaced selected manual file" in (error.stdout or b"")
+        raise AssertionError("Historical contest check blocked on the second manual read") from error
+    assert json.loads(child.stdout.splitlines()[-1]) == [
+        ["WARN", "contest_state", exact(day, "A legacy or expired manual override file is present.")],
+    ]
+
+
+def manual_reread_child(picks, day):
+    from zoneinfo import ZoneInfo
+
+    target = picks / "account_state/contest_streak.manual.json"
+    select = contest_state._select_contest_streak_state
+
+    def select_then_replace(*args, **kwargs):
+        state = select(*args, **kwargs)
+        assert state is not None and state.path == target
+        target.unlink()
+        os.mkfifo(target)
+        print("replaced selected manual file", flush=True)
+        return state
+
+    wall = datetime.combine(day + timedelta(days=1), time(2), ZoneInfo("America/New_York"))
+    with patch.object(contest_state, "_select_contest_streak_state", select_then_replace):
+        alerts, _ = run(picks, day, wall, expected=False, isolate=True)
+    print(json.dumps([(item.level, item.source, item.message) for item in alerts]))
+
+
 def fifo_child(picks, target, day):
     from datetime import date
     from zoneinfo import ZoneInfo
@@ -442,7 +496,7 @@ def scheduler_child(tmp_path):
     sys.path.insert(0, str(REVIEW / "slice-1-carbon"))
     from test_slice1_probes_v3 import RehearsalWorld, _H, _setup_revoked_box, et_dt
 
-    _H.REPO_ROOT = REVIEW.parents[1]
+    _H.REPO_ROOT = REPO_ROOT
     schedules = _H.default_opening_days_schedules()
     day = "2027-03-24"
     following = "2027-03-25"
@@ -470,7 +524,11 @@ def scheduler_child(tmp_path):
             def now(cls, tz):
                 return world.clock.now_et().astimezone(tz)
 
-        with patch.object(runner, "datetime", RunnerClock, create=True):
+        disk_warn = alert.Alert(level="WARN", source="disk_fill", message="Synthetic disk usage warning")
+        with (
+            patch.object(runner, "datetime", RunnerClock, create=True),
+            patch.object(runner.disk_fill, "check", return_value=[disk_warn]),
+        ):
             world.run_scheduler_day(day, stop_at_et=et_dt(2027, 3, 25, 1))
         (body,) = [dm["text"] for dm in world.dms if dm["text"].startswith("BTS health ")]
         assert "[contest_state]" not in body and "[saver_state]" not in body, body
@@ -514,5 +572,7 @@ if __name__ == "__main__":
 
     if sys.argv[1] == "scheduler":
         scheduler_child(Path(sys.argv[2]))
+    elif sys.argv[1] == "manual-reread":
+        manual_reread_child(Path(sys.argv[2]), date.fromisoformat(sys.argv[3]))
     else:
         fifo_child(Path(sys.argv[1]), Path(sys.argv[2]), date.fromisoformat(sys.argv[3]))
