@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/probe_7_hand_release.py", line 293, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/probe_7_hand_release.py", line 219, in main
+    mod_ok.os = SimpleNamespace(
+                ^^^^^^^^^^^^^^^^
+TypeError: types.SimpleNamespace() got multiple values for keyword argument 'fsync'

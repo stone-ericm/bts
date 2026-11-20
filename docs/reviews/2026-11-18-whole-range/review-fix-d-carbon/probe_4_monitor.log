@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/probe_4_monitor.py", line 369, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/probe_4_monitor.py", line 152, in main
+    assert b_res == h_res, f"Mismatch on {name} ping={ping_url} no_churn={no_churn}: {b_res} vs {h_res}"
+           ^^^^^^^^^^^^^^
+AssertionError: Mismatch on missing ping=None no_churn=False: (1, '[2027-07-15T18:00:00+00:00] stale=True  reason=heartbeat file not found: /Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/p4_s194e_8j/c_1/base/.heartbeat\n', '  (no --ping-url provided; alerts disabled)\n') vs (1, '[2027-07-15T18:00:00+00:00] stale=True  reason=heartbeat file not found: /Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/p4_s194e_8j/c_1/head/.heartbeat\n', '  (no --ping-url provided; alerts disabled)\n')

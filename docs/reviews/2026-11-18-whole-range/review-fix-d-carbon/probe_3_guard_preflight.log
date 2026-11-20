@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/probe_3_guard_preflight.py", line 306, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/probe_3_guard_preflight.py", line 158, in main
+    assert pf(cron_text=base_cron_res) is None
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/probe_3_guard_preflight.py", line 110, in run_preflight
+    path=SimpleNamespace(**{k: getattr(os.path, k) for k in dir(os.path)}, lexists=lambda p: legacy_exists),
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: types.SimpleNamespace() got multiple values for keyword argument 'lexists'

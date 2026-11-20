@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/probe_2_canary.py", line 249, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/probe_2_canary.py", line 105, in main
+    assert res.exit_code == 1, f"{name} unexpectedly passed: {res.output}"
+           ^^^^^^^^^^^^^^^^^^
+AssertionError: research_bad_health_table unexpectedly passed: deploy canary 2027-07-15T14:00:00-04:00: research; contest state skipped
+
