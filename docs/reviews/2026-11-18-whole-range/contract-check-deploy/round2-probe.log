@@ -1,0 +1,2766 @@
+{
+  "systemd_model": {
+    "pass": {
+      "exit": 0,
+      "stdout": [
+        "CANARY PASSED \u2014 fef05b5b is live and healthy"
+      ],
+      "stderr": [],
+      "before_reboot": {
+        "active": true,
+        "manager": true,
+        "links": [
+          "default.target.wants"
+        ],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "new",
+        "head": "fef05b5b",
+        "heartbeat": "running",
+        "faults": [],
+        "interrupt": null,
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "fixture",
+            "legacy-cleanup"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "restart",
+            "bts-scheduler",
+            "bts-dashboard"
+          ],
+          [
+            "fixture",
+            "head"
+          ],
+          [
+            "sleep",
+            "30"
+          ],
+          [
+            "curl",
+            "dashboard"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "enable",
+            "bts-scheduler"
+          ],
+          [
+            "stamp"
+          ]
+        ]
+      },
+      "boot_user": true,
+      "boot_legacy": false
+    },
+    "from_failed": {
+      "exit": 0,
+      "stdout": [
+        "CANARY PASSED \u2014 fef05b5b is live and healthy"
+      ],
+      "stderr": [],
+      "before_reboot": {
+        "active": true,
+        "manager": true,
+        "links": [
+          "default.target.wants"
+        ],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "new",
+        "head": "fef05b5b",
+        "heartbeat": "running",
+        "faults": [],
+        "interrupt": null,
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "fixture",
+            "legacy-cleanup"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "restart",
+            "bts-scheduler",
+            "bts-dashboard"
+          ],
+          [
+            "fixture",
+            "head"
+          ],
+          [
+            "sleep",
+            "30"
+          ],
+          [
+            "curl",
+            "dashboard"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "enable",
+            "bts-scheduler"
+          ],
+          [
+            "stamp"
+          ]
+        ]
+      },
+      "boot_user": true,
+      "boot_legacy": false
+    },
+    "known_extra_wants_link": {
+      "exit": 1,
+      "stdout": [
+        "DEPLOY FAILED at canary"
+      ],
+      "stderr": [],
+      "before_reboot": {
+        "active": false,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "deploy_failed",
+        "faults": [
+          "canary-failed"
+        ],
+        "interrupt": null,
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "fixture",
+            "legacy-cleanup"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "restart",
+            "bts-scheduler",
+            "bts-dashboard"
+          ],
+          [
+            "fixture",
+            "head"
+          ],
+          [
+            "sleep",
+            "30"
+          ],
+          [
+            "curl",
+            "dashboard"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "stop",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-active",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-enabled",
+            "bts-scheduler"
+          ],
+          [
+            "fixture",
+            "mark"
+          ]
+        ]
+      },
+      "boot_user": false,
+      "boot_legacy": false
+    },
+    "direct_wants": {
+      "exit": 1,
+      "stdout": [
+        "DEPLOY FAILED at canary"
+      ],
+      "stderr": [],
+      "before_reboot": {
+        "active": false,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [
+          "boot-reachable unit Wants="
+        ],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "deploy_failed",
+        "faults": [
+          "canary-failed"
+        ],
+        "interrupt": null,
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "fixture",
+            "legacy-cleanup"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "restart",
+            "bts-scheduler",
+            "bts-dashboard"
+          ],
+          [
+            "fixture",
+            "head"
+          ],
+          [
+            "sleep",
+            "30"
+          ],
+          [
+            "curl",
+            "dashboard"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "stop",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-active",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-enabled",
+            "bts-scheduler"
+          ],
+          [
+            "fixture",
+            "mark"
+          ]
+        ]
+      },
+      "boot_user": true,
+      "boot_legacy": false
+    },
+    "global_enable": {
+      "exit": 1,
+      "stdout": [
+        "DEPLOY FAILED at canary"
+      ],
+      "stderr": [],
+      "before_reboot": {
+        "active": false,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [
+          "global user unit enable link"
+        ],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "deploy_failed",
+        "faults": [
+          "canary-failed"
+        ],
+        "interrupt": null,
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "fixture",
+            "legacy-cleanup"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "restart",
+            "bts-scheduler",
+            "bts-dashboard"
+          ],
+          [
+            "fixture",
+            "head"
+          ],
+          [
+            "sleep",
+            "30"
+          ],
+          [
+            "curl",
+            "dashboard"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "stop",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-active",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-enabled",
+            "bts-scheduler"
+          ],
+          [
+            "fixture",
+            "mark"
+          ]
+        ]
+      },
+      "boot_user": true,
+      "boot_legacy": false
+    },
+    "linked_only": {
+      "exit": 1,
+      "stdout": [
+        "DEPLOY FAILED at restart"
+      ],
+      "stderr": [],
+      "before_reboot": {
+        "active": false,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [],
+        "unit_loadable": false,
+        "outside_unit": true,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "deploy_failed",
+        "faults": [],
+        "interrupt": null,
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "fixture",
+            "legacy-cleanup"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "restart",
+            "bts-scheduler",
+            "bts-dashboard"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "stop",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-active",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-enabled",
+            "bts-scheduler"
+          ],
+          [
+            "fixture",
+            "mark"
+          ]
+        ]
+      },
+      "boot_user": false,
+      "boot_legacy": false
+    },
+    "no_manager": {
+      "exit": 1,
+      "stdout": [
+        "DEPLOY FAILED at disable"
+      ],
+      "stderr": [],
+      "before_reboot": {
+        "active": true,
+        "manager": false,
+        "links": [
+          "default.target.wants"
+        ],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "619abda7",
+        "heartbeat": "deploy_failed",
+        "faults": [],
+        "interrupt": null,
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "stop",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-active",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-enabled",
+            "bts-scheduler"
+          ],
+          [
+            "fixture",
+            "mark"
+          ]
+        ]
+      },
+      "boot_user": true,
+      "boot_legacy": false
+    },
+    "manager_lost": {
+      "exit": 1,
+      "stdout": [
+        "DEPLOY FAILED at sync"
+      ],
+      "stderr": [],
+      "before_reboot": {
+        "active": true,
+        "manager": false,
+        "links": [],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "deploy_failed",
+        "faults": [
+          "manager-lost",
+          "sync-failed"
+        ],
+        "interrupt": null,
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "stop",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-active",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-enabled",
+            "bts-scheduler"
+          ],
+          [
+            "fixture",
+            "mark"
+          ]
+        ]
+      },
+      "boot_user": false,
+      "boot_legacy": false
+    },
+    "disable_reload_failed": {
+      "exit": 1,
+      "stdout": [
+        "DEPLOY FAILED at disable"
+      ],
+      "stderr": [],
+      "before_reboot": {
+        "active": false,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "619abda7",
+        "heartbeat": "deploy_failed",
+        "faults": [
+          "disable-reload-failed"
+        ],
+        "interrupt": null,
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "stop",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-active",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-enabled",
+            "bts-scheduler"
+          ],
+          [
+            "fixture",
+            "mark"
+          ]
+        ]
+      },
+      "boot_user": false,
+      "boot_legacy": false
+    },
+    "legacy_early": {
+      "exit": 1,
+      "stdout": [
+        "DEPLOY FAILED at sync"
+      ],
+      "stderr": [],
+      "before_reboot": {
+        "active": false,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": true,
+        "legacy_active": true,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "deploy_failed",
+        "faults": [
+          "sync-failed"
+        ],
+        "interrupt": null,
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "stop",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-active",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-enabled",
+            "bts-scheduler"
+          ],
+          [
+            "fixture",
+            "mark"
+          ]
+        ]
+      },
+      "boot_user": false,
+      "boot_legacy": true
+    },
+    "legacy_ignored": {
+      "exit": 1,
+      "stdout": [
+        "DEPLOY FAILED at canary"
+      ],
+      "stderr": [],
+      "before_reboot": {
+        "active": false,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": true,
+        "legacy_active": true,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "deploy_failed",
+        "faults": [
+          "ignore-legacy-error",
+          "canary-failed"
+        ],
+        "interrupt": null,
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "fixture",
+            "legacy-cleanup"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "restart",
+            "bts-scheduler",
+            "bts-dashboard"
+          ],
+          [
+            "fixture",
+            "head"
+          ],
+          [
+            "sleep",
+            "30"
+          ],
+          [
+            "curl",
+            "dashboard"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "stop",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-active",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-enabled",
+            "bts-scheduler"
+          ],
+          [
+            "fixture",
+            "mark"
+          ]
+        ]
+      },
+      "boot_user": false,
+      "boot_legacy": true
+    },
+    "stop_failed": {
+      "exit": 1,
+      "stdout": [
+        "DEPLOY FAILED at canary"
+      ],
+      "stderr": [],
+      "before_reboot": {
+        "active": true,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "deploy_failed",
+        "faults": [
+          "canary-failed",
+          "stop-failed"
+        ],
+        "interrupt": null,
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "fixture",
+            "legacy-cleanup"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "restart",
+            "bts-scheduler",
+            "bts-dashboard"
+          ],
+          [
+            "fixture",
+            "head"
+          ],
+          [
+            "sleep",
+            "30"
+          ],
+          [
+            "curl",
+            "dashboard"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "stop",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-active",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-enabled",
+            "bts-scheduler"
+          ],
+          [
+            "fixture",
+            "mark"
+          ]
+        ]
+      },
+      "boot_user": false,
+      "boot_legacy": false
+    },
+    "enable_failed": {
+      "exit": 1,
+      "stdout": [
+        "DEPLOY FAILED at enable"
+      ],
+      "stderr": [],
+      "before_reboot": {
+        "active": false,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "deploy_failed",
+        "faults": [
+          "enable-reload-failed"
+        ],
+        "interrupt": null,
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "fixture",
+            "legacy-cleanup"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "restart",
+            "bts-scheduler",
+            "bts-dashboard"
+          ],
+          [
+            "fixture",
+            "head"
+          ],
+          [
+            "sleep",
+            "30"
+          ],
+          [
+            "curl",
+            "dashboard"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "enable",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "stop",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-active",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-enabled",
+            "bts-scheduler"
+          ],
+          [
+            "fixture",
+            "mark"
+          ]
+        ]
+      },
+      "boot_user": false,
+      "boot_legacy": false
+    },
+    "stamp_failed": {
+      "exit": 1,
+      "stdout": [
+        "WARNING: deploy succeeded but data/.last_deploy_iso was not written"
+      ],
+      "stderr": [],
+      "before_reboot": {
+        "active": true,
+        "manager": true,
+        "links": [
+          "default.target.wants"
+        ],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "running",
+        "faults": [
+          "stamp-failed"
+        ],
+        "interrupt": null,
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "fixture",
+            "legacy-cleanup"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "restart",
+            "bts-scheduler",
+            "bts-dashboard"
+          ],
+          [
+            "fixture",
+            "head"
+          ],
+          [
+            "sleep",
+            "30"
+          ],
+          [
+            "curl",
+            "dashboard"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "enable",
+            "bts-scheduler"
+          ],
+          [
+            "stamp"
+          ]
+        ]
+      },
+      "boot_user": true,
+      "boot_legacy": false
+    },
+    "manual_refusal": {
+      "exit": 1,
+      "stdout": [],
+      "stderr": [],
+      "before_reboot": {
+        "active": false,
+        "manager": true,
+        "links": [
+          "default.target.wants"
+        ],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "619abda7",
+        "heartbeat": "sleeping",
+        "faults": [
+          "gate-refuses"
+        ],
+        "interrupt": null,
+        "calls": [
+          [
+            "systemctl",
+            "--user",
+            "enable",
+            "--now",
+            "bts-scheduler"
+          ]
+        ]
+      },
+      "boot_user": true,
+      "boot_legacy": false
+    },
+    "hard-loss-after-before-disable": {
+      "exit": -9,
+      "stdout": [],
+      "stderr": [],
+      "before_reboot": {
+        "active": true,
+        "manager": true,
+        "links": [
+          "default.target.wants"
+        ],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "619abda7",
+        "heartbeat": "sleeping",
+        "faults": [],
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ]
+        ],
+        "interrupt": null
+      },
+      "boot_user": true,
+      "boot_legacy": false
+    },
+    "hard-loss-after-disable": {
+      "exit": -9,
+      "stdout": [],
+      "stderr": [],
+      "before_reboot": {
+        "active": true,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "619abda7",
+        "heartbeat": "sleeping",
+        "faults": [],
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ]
+        ],
+        "interrupt": null
+      },
+      "boot_user": false,
+      "boot_legacy": false
+    },
+    "hard-loss-after-reset": {
+      "exit": -9,
+      "stdout": [],
+      "stderr": [],
+      "before_reboot": {
+        "active": true,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "sleeping",
+        "faults": [],
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ]
+        ],
+        "interrupt": null
+      },
+      "boot_user": false,
+      "boot_legacy": false
+    },
+    "hard-loss-after-sync": {
+      "exit": -9,
+      "stdout": [],
+      "stderr": [],
+      "before_reboot": {
+        "active": true,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "sleeping",
+        "faults": [],
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ]
+        ],
+        "interrupt": null
+      },
+      "boot_user": false,
+      "boot_legacy": false
+    },
+    "hard-loss-after-legacy-cleanup": {
+      "exit": -9,
+      "stdout": [],
+      "stderr": [],
+      "before_reboot": {
+        "active": true,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "sleeping",
+        "faults": [],
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "fixture",
+            "legacy-cleanup"
+          ]
+        ],
+        "interrupt": null
+      },
+      "boot_user": false,
+      "boot_legacy": false
+    },
+    "hard-loss-after-restart": {
+      "exit": -9,
+      "stdout": [],
+      "stderr": [],
+      "before_reboot": {
+        "active": true,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "running",
+        "faults": [],
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "fixture",
+            "legacy-cleanup"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "restart",
+            "bts-scheduler",
+            "bts-dashboard"
+          ]
+        ],
+        "interrupt": null
+      },
+      "boot_user": false,
+      "boot_legacy": false
+    },
+    "hard-loss-after-head": {
+      "exit": -9,
+      "stdout": [],
+      "stderr": [],
+      "before_reboot": {
+        "active": true,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "running",
+        "faults": [],
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "fixture",
+            "legacy-cleanup"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "restart",
+            "bts-scheduler",
+            "bts-dashboard"
+          ],
+          [
+            "fixture",
+            "head"
+          ]
+        ],
+        "interrupt": null
+      },
+      "boot_user": false,
+      "boot_legacy": false
+    },
+    "hard-loss-after-sleep": {
+      "exit": -9,
+      "stdout": [],
+      "stderr": [],
+      "before_reboot": {
+        "active": true,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "running",
+        "faults": [],
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "fixture",
+            "legacy-cleanup"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "restart",
+            "bts-scheduler",
+            "bts-dashboard"
+          ],
+          [
+            "fixture",
+            "head"
+          ],
+          [
+            "sleep",
+            "30"
+          ]
+        ],
+        "interrupt": null
+      },
+      "boot_user": false,
+      "boot_legacy": false
+    },
+    "hard-loss-after-canary": {
+      "exit": -9,
+      "stdout": [],
+      "stderr": [],
+      "before_reboot": {
+        "active": true,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "running",
+        "faults": [],
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "fixture",
+            "legacy-cleanup"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "restart",
+            "bts-scheduler",
+            "bts-dashboard"
+          ],
+          [
+            "fixture",
+            "head"
+          ],
+          [
+            "sleep",
+            "30"
+          ],
+          [
+            "curl",
+            "dashboard"
+          ]
+        ],
+        "interrupt": null
+      },
+      "boot_user": false,
+      "boot_legacy": false
+    },
+    "hard-loss-after-enable": {
+      "exit": -9,
+      "stdout": [],
+      "stderr": [],
+      "before_reboot": {
+        "active": true,
+        "manager": true,
+        "links": [
+          "default.target.wants"
+        ],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "running",
+        "faults": [],
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "fixture",
+            "legacy-cleanup"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "restart",
+            "bts-scheduler",
+            "bts-dashboard"
+          ],
+          [
+            "fixture",
+            "head"
+          ],
+          [
+            "sleep",
+            "30"
+          ],
+          [
+            "curl",
+            "dashboard"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "enable",
+            "bts-scheduler"
+          ]
+        ],
+        "interrupt": null
+      },
+      "boot_user": true,
+      "boot_legacy": false
+    },
+    "hard-loss-after-stamp": {
+      "exit": -9,
+      "stdout": [],
+      "stderr": [],
+      "before_reboot": {
+        "active": true,
+        "manager": true,
+        "links": [
+          "default.target.wants"
+        ],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "new",
+        "head": "fef05b5b",
+        "heartbeat": "running",
+        "faults": [],
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "fixture",
+            "legacy-cleanup"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "restart",
+            "bts-scheduler",
+            "bts-dashboard"
+          ],
+          [
+            "fixture",
+            "head"
+          ],
+          [
+            "sleep",
+            "30"
+          ],
+          [
+            "curl",
+            "dashboard"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "enable",
+            "bts-scheduler"
+          ],
+          [
+            "stamp"
+          ]
+        ],
+        "interrupt": null
+      },
+      "boot_user": true,
+      "boot_legacy": false
+    },
+    "SIGHUP-in-reset": {
+      "exit": 1,
+      "stdout": [
+        "DEPLOY FAILED at interrupted"
+      ],
+      "stderr": [],
+      "before_reboot": {
+        "active": false,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "deploy_failed",
+        "faults": [],
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "stop",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-active",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-enabled",
+            "bts-scheduler"
+          ],
+          [
+            "fixture",
+            "mark"
+          ]
+        ],
+        "interrupt": null
+      },
+      "boot_user": false,
+      "boot_legacy": false
+    },
+    "SIGHUP-in-sync": {
+      "exit": 1,
+      "stdout": [
+        "DEPLOY FAILED at interrupted"
+      ],
+      "stderr": [],
+      "before_reboot": {
+        "active": false,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "deploy_failed",
+        "faults": [],
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "stop",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-active",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-enabled",
+            "bts-scheduler"
+          ],
+          [
+            "fixture",
+            "mark"
+          ]
+        ],
+        "interrupt": null
+      },
+      "boot_user": false,
+      "boot_legacy": false
+    },
+    "SIGHUP-in-restart": {
+      "exit": 1,
+      "stdout": [
+        "DEPLOY FAILED at interrupted"
+      ],
+      "stderr": [],
+      "before_reboot": {
+        "active": false,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "deploy_failed",
+        "faults": [],
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "fixture",
+            "legacy-cleanup"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "restart",
+            "bts-scheduler",
+            "bts-dashboard"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "stop",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-active",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-enabled",
+            "bts-scheduler"
+          ],
+          [
+            "fixture",
+            "mark"
+          ]
+        ],
+        "interrupt": null
+      },
+      "boot_user": false,
+      "boot_legacy": false
+    },
+    "SIGHUP-in-sleep": {
+      "exit": 1,
+      "stdout": [
+        "DEPLOY FAILED at interrupted"
+      ],
+      "stderr": [],
+      "before_reboot": {
+        "active": false,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "deploy_failed",
+        "faults": [],
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "fixture",
+            "legacy-cleanup"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "restart",
+            "bts-scheduler",
+            "bts-dashboard"
+          ],
+          [
+            "fixture",
+            "head"
+          ],
+          [
+            "sleep",
+            "30"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "stop",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-active",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-enabled",
+            "bts-scheduler"
+          ],
+          [
+            "fixture",
+            "mark"
+          ]
+        ],
+        "interrupt": null
+      },
+      "boot_user": false,
+      "boot_legacy": false
+    },
+    "SIGTERM-in-reset": {
+      "exit": 1,
+      "stdout": [
+        "DEPLOY FAILED at interrupted"
+      ],
+      "stderr": [],
+      "before_reboot": {
+        "active": false,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "deploy_failed",
+        "faults": [],
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "stop",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-active",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-enabled",
+            "bts-scheduler"
+          ],
+          [
+            "fixture",
+            "mark"
+          ]
+        ],
+        "interrupt": null
+      },
+      "boot_user": false,
+      "boot_legacy": false
+    },
+    "SIGTERM-in-sync": {
+      "exit": 1,
+      "stdout": [
+        "DEPLOY FAILED at interrupted"
+      ],
+      "stderr": [],
+      "before_reboot": {
+        "active": false,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "deploy_failed",
+        "faults": [],
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "stop",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-active",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-enabled",
+            "bts-scheduler"
+          ],
+          [
+            "fixture",
+            "mark"
+          ]
+        ],
+        "interrupt": null
+      },
+      "boot_user": false,
+      "boot_legacy": false
+    },
+    "SIGTERM-in-restart": {
+      "exit": 1,
+      "stdout": [
+        "DEPLOY FAILED at interrupted"
+      ],
+      "stderr": [],
+      "before_reboot": {
+        "active": false,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "deploy_failed",
+        "faults": [],
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "fixture",
+            "legacy-cleanup"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "restart",
+            "bts-scheduler",
+            "bts-dashboard"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "stop",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-active",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-enabled",
+            "bts-scheduler"
+          ],
+          [
+            "fixture",
+            "mark"
+          ]
+        ],
+        "interrupt": null
+      },
+      "boot_user": false,
+      "boot_legacy": false
+    },
+    "SIGTERM-in-sleep": {
+      "exit": 1,
+      "stdout": [
+        "DEPLOY FAILED at interrupted"
+      ],
+      "stderr": [],
+      "before_reboot": {
+        "active": false,
+        "manager": true,
+        "links": [],
+        "persistent_edges": [],
+        "unit_loadable": true,
+        "outside_unit": false,
+        "legacy_enabled": false,
+        "legacy_active": false,
+        "stamp": "old",
+        "head": "fef05b5b",
+        "heartbeat": "deploy_failed",
+        "faults": [],
+        "calls": [
+          [
+            "fixture",
+            "before-disable"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "git",
+            "reset",
+            "--hard",
+            "fef05b5b"
+          ],
+          [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "model"
+          ],
+          [
+            "fixture",
+            "legacy-cleanup"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "restart",
+            "bts-scheduler",
+            "bts-dashboard"
+          ],
+          [
+            "fixture",
+            "head"
+          ],
+          [
+            "sleep",
+            "30"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "disable",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "stop",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-active",
+            "bts-scheduler"
+          ],
+          [
+            "systemctl",
+            "--user",
+            "is-enabled",
+            "bts-scheduler"
+          ],
+          [
+            "fixture",
+            "mark"
+          ]
+        ],
+        "interrupt": null
+      },
+      "boot_user": false,
+      "boot_legacy": false
+    }
+  },
+  "cron_writer": {
+    "initial": {
+      "failure-a": {
+        "observation": {
+          "active_streak": 12,
+          "best_streak": 18,
+          "source": "mlb_bts_profile",
+          "source_date": "2027-07-15",
+          "recorded_at": "2027-07-16T02:00:00-04:00",
+          "username": "stonehengee",
+          "user_id": 100,
+          "schema_version": "bts_contest_streak_auto_v2",
+          "season": 2027,
+          "activation_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "acceptance": "accepted"
+      },
+      "failure-b": {
+        "observation": {
+          "active_streak": 12,
+          "best_streak": 17,
+          "source": "mlb_bts_profile",
+          "source_date": "2027-07-15",
+          "recorded_at": "2027-07-16T01:00:00-04:00",
+          "username": "stonehengee",
+          "user_id": 100,
+          "schema_version": "bts_contest_streak_auto_v2",
+          "season": 2027,
+          "activation_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "acceptance": "accepted"
+      },
+      "success": {
+        "observation": {
+          "active_streak": 12,
+          "best_streak": 18,
+          "source": "mlb_bts_profile",
+          "source_date": "2027-07-15",
+          "recorded_at": "2027-07-16T02:00:00-04:00",
+          "username": "stonehengee",
+          "user_id": 100,
+          "schema_version": "bts_contest_streak_auto_v2",
+          "season": 2027,
+          "activation_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "acceptance": "accepted"
+      }
+    },
+    "failed_reset_cron_old_code": {
+      "failure-a": {
+        "before": {
+          "active_streak": 12,
+          "best_streak": 18,
+          "source": "mlb_bts_profile",
+          "source_date": "2027-07-15",
+          "recorded_at": "2027-07-16T02:00:00-04:00",
+          "username": "stonehengee",
+          "user_id": 100,
+          "schema_version": "bts_contest_streak_auto_v2",
+          "season": 2027,
+          "activation_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "after": {
+          "active_streak": 13,
+          "best_streak": 18,
+          "recorded_at": "2027-07-16T14:00:00Z",
+          "saver_available": null,
+          "schema_version": "bts_contest_streak_auto_v1",
+          "source": "mlb_bts_profile",
+          "source_date": "2027-07-15",
+          "user_id": 100,
+          "username": "stonehengee"
+        },
+        "result": {
+          "exit": 0,
+          "stdout": "wrote /Users/eric/projects/bts-work/wr-check-deploy/.codex-review/wr-check-deploy/round2-replay-moddpn8m/failure-a/committed/data/picks/account_state/contest_streak.json: active_streak=13 best_streak=18 source_date=2027-07-15\n",
+          "stderr": "",
+          "exception": null
+        }
+      },
+      "failure-b": {
+        "before": {
+          "active_streak": 12,
+          "best_streak": 17,
+          "source": "mlb_bts_profile",
+          "source_date": "2027-07-15",
+          "recorded_at": "2027-07-16T01:00:00-04:00",
+          "username": "stonehengee",
+          "user_id": 100,
+          "schema_version": "bts_contest_streak_auto_v2",
+          "season": 2027,
+          "activation_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "after": {
+          "active_streak": 13,
+          "best_streak": 18,
+          "recorded_at": "2027-07-16T14:00:00Z",
+          "saver_available": null,
+          "schema_version": "bts_contest_streak_auto_v1",
+          "source": "mlb_bts_profile",
+          "source_date": "2027-07-15",
+          "user_id": 100,
+          "username": "stonehengee"
+        },
+        "result": {
+          "exit": 0,
+          "stdout": "wrote /Users/eric/projects/bts-work/wr-check-deploy/.codex-review/wr-check-deploy/round2-replay-moddpn8m/failure-b/committed/data/picks/account_state/contest_streak.json: active_streak=13 best_streak=18 source_date=2027-07-15\n",
+          "stderr": "",
+          "exception": null
+        }
+      }
+    },
+    "successful_deploy_cron_correct_code": {
+      "success": {
+        "before": {
+          "active_streak": 12,
+          "best_streak": 18,
+          "source": "mlb_bts_profile",
+          "source_date": "2027-07-15",
+          "recorded_at": "2027-07-16T02:00:00-04:00",
+          "username": "stonehengee",
+          "user_id": 100,
+          "schema_version": "bts_contest_streak_auto_v2",
+          "season": 2027,
+          "activation_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "after": {
+          "activation_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "active_streak": 13,
+          "best_streak": 18,
+          "recorded_at": "2027-07-16T14:00:00Z",
+          "saver_available": null,
+          "schema_version": "bts_contest_streak_auto_v2",
+          "season": 2027,
+          "source": "mlb_bts_profile",
+          "source_date": "2027-07-15",
+          "user_id": 100,
+          "username": "stonehengee"
+        },
+        "result": {
+          "exit": 0,
+          "stdout": "wrote /Users/eric/projects/bts-work/wr-check-deploy/.codex-review/wr-check-deploy/round2-replay-moddpn8m/success/committed/data/picks/account_state/contest_streak.json for season 2027: active_streak=13 best_streak=18 source_date=2027-07-15\n",
+          "stderr": "",
+          "exception": null
+        }
+      }
+    },
+    "correct_code_after_both_timelines": {
+      "failure-a": {
+        "observation": {
+          "active_streak": 13,
+          "best_streak": 18,
+          "recorded_at": "2027-07-16T14:00:00Z",
+          "saver_available": null,
+          "schema_version": "bts_contest_streak_auto_v1",
+          "source": "mlb_bts_profile",
+          "source_date": "2027-07-15",
+          "user_id": 100,
+          "username": "stonehengee"
+        },
+        "acceptance": "Live decision refused: schema_version is 'bts_contest_streak_auto_v1', not 'bts_contest_streak_auto_v2'.\nAlternative dated path \u2014 TEMPLATE: `bts set-contest-streak --date 2027-07-16 --streak N --best-streak B --saver S --picks-dir /Users/eric/projects/bts-work/wr-check-deploy/.codex-review/wr-check-deploy/round2-replay-moddpn8m/failure-a/committed/data/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: run `bts fetch-contest-streak --picks-dir /Users/eric/projects/bts-work/wr-check-deploy/.codex-review/wr-check-deploy/round2-replay-moddpn8m/failure-a/committed/data/picks`; the season is already switched, so a switched fetch writes an observation for this season and current activation.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows."
+      },
+      "failure-b": {
+        "observation": {
+          "active_streak": 13,
+          "best_streak": 18,
+          "recorded_at": "2027-07-16T14:00:00Z",
+          "saver_available": null,
+          "schema_version": "bts_contest_streak_auto_v1",
+          "source": "mlb_bts_profile",
+          "source_date": "2027-07-15",
+          "user_id": 100,
+          "username": "stonehengee"
+        },
+        "acceptance": "Live decision refused: schema_version is 'bts_contest_streak_auto_v1', not 'bts_contest_streak_auto_v2'.\nAlternative dated path \u2014 TEMPLATE: `bts set-contest-streak --date 2027-07-16 --streak N --best-streak B --saver S --picks-dir /Users/eric/projects/bts-work/wr-check-deploy/.codex-review/wr-check-deploy/round2-replay-moddpn8m/failure-b/committed/data/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: run `bts fetch-contest-streak --picks-dir /Users/eric/projects/bts-work/wr-check-deploy/.codex-review/wr-check-deploy/round2-replay-moddpn8m/failure-b/committed/data/picks`; the season is already switched, so a switched fetch writes an observation for this season and current activation.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows."
+      },
+      "success": {
+        "observation": {
+          "activation_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "active_streak": 13,
+          "best_streak": 18,
+          "recorded_at": "2027-07-16T14:00:00Z",
+          "saver_available": null,
+          "schema_version": "bts_contest_streak_auto_v2",
+          "season": 2027,
+          "source": "mlb_bts_profile",
+          "source_date": "2027-07-15",
+          "user_id": 100,
+          "username": "stonehengee"
+        },
+        "acceptance": "accepted"
+      }
+    }
+  }
+}
