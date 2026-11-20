@@ -20,6 +20,7 @@ from bts.picks import API_BASE, season_of_date
 from bts.heartbeat import write_heartbeat, HeartbeatState, heartbeat_watchdog
 from bts.sd_notify import notify_ready, notify_watchdog
 from bts.features.park_drag import with_pinned_artifact
+from bts.health.alert import report_unknown_outcome_alert_failure
 from bts.orchestrator import predict_local_shadow, run_and_pick
 from bts.picks import save_shadow_pick
 from bts.strategy import select_pick
@@ -1156,6 +1157,31 @@ def _format_pick_delivery_text(daily, streak: int) -> str:
     )
 
 
+def _alert_delivery_outcome_unknown(config: dict, picks_dir: Path, date: str) -> None:
+    """Page for an existing, unconfirmed attempt after the lock is saved."""
+    try:
+        from bts.health.alert import Alert, dispatch_dm_for_health_alerts
+
+        slate = date_type.fromisoformat(date)
+        dispatch_dm_for_health_alerts(
+            [Alert(
+                "CRITICAL", "late_delivery",
+                f"DELIVERY OUTCOME UNKNOWN for {date} ET. A send attempt for that slate "
+                "was never confirmed, and the scheduler locked the slate without resending. "
+                f"Check the DM or public feed and the MLB entry for {date} ET. Do not enter "
+                f"or change a pick based on this alert. If {date} is still today in ET and its "
+                "submission window is open, run bts season-contract status with --picks-dir set "
+                "to the scheduler's picks directory before making any entry decision for that slate.",
+            )],
+            config.get("bluesky", {}).get("dm_recipient"),
+            status_path=picks_dir.parent / "health_state" / "delivery_outcome_unknown" / f"{slate}.json",
+            now_et_date=slate,
+            require_message_id=True,
+        )
+    except Exception as error:
+        report_unknown_outcome_alert_failure("prepare or dispatch alert", error)
+
+
 def _deliver_and_lock_pick(
     daily,
     config: dict,
@@ -1217,20 +1243,7 @@ def _deliver_and_lock_pick(
         state.pick_locked_at = _now_et().isoformat()
         save_state(state, picks_dir)
         _record_commit("locked_unconfirmed")
-        # Codex r2 F2 (partial): this branch used to be journal-only. Page the
-        # operator — whether the send landed, and whether the entry exists, both
-        # need eyes NOW. (The delivery_unknown/non-scoreable redesign is a
-        # recorded follow-up; scoring semantics are out of scope here.)
-        from bts.health.alert import Alert, dispatch_dm_for_health_alerts
-        dispatch_dm_for_health_alerts(
-            [Alert("CRITICAL", "late_delivery",
-                   f"DELIVERY OUTCOME UNKNOWN for {date}: a prior send attempt for "
-                   f"{daily.pick.batter_name} was never confirmed (crash mid-send?). "
-                   f"Locked without re-sending — verify the DM/feed and the MLB app "
-                   f"entry immediately.")],
-            config.get("bluesky", {}).get("dm_recipient"),
-            status_path=picks_dir.parent / "health_state" / "health_dm_delivery_status.json",
-        )
+        _alert_delivery_outcome_unknown(config, picks_dir, date)
         return False
 
     # Fail-closed submission-cutoff guard (2026-08-30 incident: a lineup lock
@@ -3083,19 +3096,22 @@ def run_day(
             # (so the captured MDP skip still records at end-of-day — GH #144).
             ld = result["pick_result"].daily
             attempted = bool(getattr(ld, "delivery_attempted", False))
-            if attempted and not pick_was_delivered(ld):
+            delivered = pick_was_delivered(ld)
+            if attempted and not delivered:
                 print("  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; "
                       "finalizing as locked_unconfirmed. Verify manually.",
                       file=sys.stderr)
             _write_classification_decision(
                 picks_dir, date,
                 action=("double" if ld.double_down else "single"),
-                delivered=pick_was_delivered(ld),
+                delivered=delivered,
                 attempted=attempted,
                 primary=_row_from_daily(ld.pick),
                 double_down=_row_from_daily(ld.double_down),
                 state=state, daily=ld,
             )
+            if attempted and not delivered:
+                _alert_delivery_outcome_unknown(config, picks_dir, date)
 
         if result["should_post"] and result["pick_result"] and not result["pick_result"].locked:
             daily = result["pick_result"].daily

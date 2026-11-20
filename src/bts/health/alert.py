@@ -15,9 +15,11 @@ import json
 import logging
 import os
 import stat
+import sys
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
+from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 from bts.dm import send_dm
@@ -226,12 +228,167 @@ def _resurface_note(data: dict | None) -> str | None:
     return None
 
 
+def _unknown_alert_error_text(error: Exception) -> str:
+    try:
+        return str(error)
+    except Exception:
+        return type(error).__name__
+
+
+def report_unknown_outcome_alert_failure(detail: str, error: Exception | None = None) -> None:
+    try:
+        if error is not None:
+            detail = f"{detail}: {_unknown_alert_error_text(error)}"
+        print(f"Unknown-outcome alert failed: {ascii(detail)[1:-1][:200]}", file=sys.stderr)
+    except Exception:
+        pass
+
+
+def _check_receipt_file(info: os.stat_result) -> None:
+    if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+        raise OSError("receipt must be an unaliased regular file")
+
+
+def _check_receipt_entry(directory_fd: int, name: str) -> None:
+    try:
+        info = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+    except FileNotFoundError:
+        return
+    _check_receipt_file(info)
+
+
+def _unique_receipt_members(pairs: list[tuple[str, object]]) -> dict:
+    members = {}
+    for key, value in pairs:
+        if key in members:
+            raise ValueError(f"Duplicate receipt member: {key}")
+        members[key] = value
+    return members
+
+
+def _read_receipt(directory_fd: int, name: str) -> dict | None:
+    _check_receipt_entry(directory_fd, name)
+    try:
+        fd = os.open(name, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW, dir_fd=directory_fd)
+    except FileNotFoundError:
+        return None
+    try:
+        _check_receipt_file(os.fstat(fd))
+        with open(fd, "r", encoding="utf-8", closefd=False) as handle:
+            data = json.load(handle, object_pairs_hook=_unique_receipt_members)
+    except (ValueError, RecursionError):
+        return None
+    finally:
+        os.close(fd)
+    return data if isinstance(data, dict) else None
+
+
+def _replace_receipt(directory_fd: int, name: str, payload: dict) -> None:
+    temporary = f".{name}.{uuid4().hex}"
+    fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600, dir_fd=directory_fd)
+    try:
+        with open(fd, "w", encoding="utf-8", closefd=False) as handle:
+            json.dump(payload, handle, indent=2, sort_keys=True)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(fd)
+        _check_receipt_entry(directory_fd, name)
+        os.replace(temporary, name, src_dir_fd=directory_fd, dst_dir_fd=directory_fd)
+    finally:
+        os.close(fd)
+        try:
+            os.unlink(temporary, dir_fd=directory_fd)
+        except OSError:
+            pass
+
+
+def _usable_message_id(value: object) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _dispatch_with_acknowledgement(
+    body: str,
+    dm_recipient: str | None,
+    status_path: Path | str | None,
+    day: str,
+    alert_key: list[str],
+) -> bool:
+    """Use a dedicated receipt and keep the DM eligible if storage is unavailable."""
+    body_sha256 = hashlib.sha256(body.encode("utf-8")).hexdigest()
+    directory_fd = None
+    storage_error = None
+    send_error = None
+    attempted = False
+    try:
+        prior = None
+        if status_path is not None:
+            stage = "open receipt directory"
+            try:
+                path = Path(status_path)
+                path.parent.mkdir(parents=True, exist_ok=True)
+                directory_fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+                stage = "read receipt"
+                prior = _read_receipt(directory_fd, path.name)
+            except Exception as error:
+                storage_error = f"{stage} at {status_path}: {_unknown_alert_error_text(error)}"
+        if (
+            prior is not None
+            and prior.keys() == {"schema_version", "status", "sent_day", "sent_sources", "message_id", "body_sha256"}
+            and prior.get("schema_version") == HEALTH_DM_STATUS_SCHEMA_VERSION
+            and prior.get("status") == "sent"
+            and prior.get("sent_day") == day
+            and prior.get("sent_sources") == alert_key
+            and _usable_message_id(prior.get("message_id"))
+            and prior.get("body_sha256") == body_sha256
+        ):
+            return False
+
+        payload = {"schema_version": HEALTH_DM_STATUS_SCHEMA_VERSION}
+        if not dm_recipient:
+            send_error = "dm_recipient is not configured"
+            payload.update(status="skipped_no_recipient", error=send_error)
+        else:
+            attempted = True
+            try:
+                message_id = send_dm(dm_recipient, body)
+                if not _usable_message_id(message_id):
+                    raise ValueError("send_dm returned no usable message id")
+            except Exception as error:
+                detail = _unknown_alert_error_text(error)
+                send_error = f"transport: {detail}"
+                payload.update(status="failed", error=detail)
+            else:
+                payload.update(
+                    status="sent", message_id=message_id, sent_day=day,
+                    sent_sources=alert_key, body_sha256=body_sha256,
+                )
+
+        if directory_fd is not None and storage_error is None:
+            try:
+                _replace_receipt(directory_fd, path.name, payload)
+            except Exception as error:
+                storage_error = f"write receipt at {status_path}: {_unknown_alert_error_text(error)}"
+    finally:
+        if directory_fd is not None:
+            try:
+                os.close(directory_fd)
+            except OSError as error:
+                if storage_error is None:
+                    storage_error = f"close receipt directory at {status_path}: {_unknown_alert_error_text(error)}"
+        failures = [detail for detail in (storage_error, send_error) if detail is not None]
+        if failures:
+            report_unknown_outcome_alert_failure(". ".join(failures))
+    return attempted
+
+
 def dispatch_dm_for_health_alerts(
     alerts: list[Alert],
     dm_recipient: str | None,
     warn_attention: list[Alert] | None = None,
     status_path: Path | str | None = None,
     now_et_date: date | None = None,
+    *,
+    require_message_id: bool = False,
 ) -> bool:
     """Send one Bluesky DM for CRITICALs and selected WARN attention.
 
@@ -247,14 +404,20 @@ def dispatch_dm_for_health_alerts(
     (restart_spike's delta) changes the body every run while remaining the
     same problem. A new source same-day still sends (escalation visible);
     a prior FAILED send is never suppressed (H6 resurface flow).
+
+    With require_message_id, status_path is a dedicated receipt and only a
+    nonblank transport ID acknowledges delivery. The message body stays fixed
+    across retries.
     """
     warn_attention = warn_attention or []
     critical = [a for a in alerts if a.level == "CRITICAL"]
     body = format_health_dm_body(critical, warn_attention)
-    prior = _read_health_dm_delivery_status(status_path)
-    resurface = _resurface_note(prior)  # H6: resurface a prior failed DM
-    if resurface:
-        body = resurface + ("\n\n" + body if body else "")
+    prior = None
+    if not require_message_id:
+        prior = _read_health_dm_delivery_status(status_path)
+        resurface = _resurface_note(prior)  # H6: resurface a prior failed DM
+        if resurface:
+            body = resurface + ("\n\n" + body if body else "")
     if body is None:
         return False
 
@@ -263,6 +426,9 @@ def dispatch_dm_for_health_alerts(
         {f"CRITICAL:{a.incident_key or a.source}" for a in critical}
         | {f"WARN_ATTENTION:{a.incident_key or a.source}" for a in warn_attention}
     )
+    if require_message_id:
+        return _dispatch_with_acknowledgement(body, dm_recipient, status_path, now_day, alert_key)
+
     prior_sent_sources: list[str] = []
     if prior is not None and prior.get("status") == "sent" and prior.get("sent_day") == now_day:
         sources = prior.get("sent_sources")
