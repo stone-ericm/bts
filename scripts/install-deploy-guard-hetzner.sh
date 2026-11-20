@@ -876,7 +876,7 @@ def release_audit(root, record, event, reason):
                  0o600, dir_fd=root)
     with os.fdopen(fd, "ab") as stream:
         info = os.fstat(stream.fileno())
-        if not stat.S_ISREG(info.st_mode) or info.st_uid != 0 or info.st_nlink != 1 or info.st_mode & 0o022:
+        if not stat.S_ISREG(info.st_mode) or info.st_uid != UID or info.st_nlink != 1 or info.st_mode & 0o022:
             raise OSError("release log")
         line = json.dumps({
             "event": event, "date": datetime.now(timezone.utc).isoformat(),
@@ -935,15 +935,23 @@ def release_by_hand(root, reason):
 def write_stamp():
     script = (
         "from datetime import datetime,timezone\n"
-        "import os,tempfile\n"
+        "import os,stat,tempfile\n"
         f"directory={PROJECT!r}+'/data'\n"
+        "destination=directory+'/.last_deploy_iso'\n"
+        "try:\n"
+        "    destination_mode=os.lstat(destination).st_mode\n"
+        "except FileNotFoundError:\n"
+        "    pass\n"
+        "else:\n"
+        "    if not stat.S_ISREG(destination_mode):\n"
+        "        raise OSError('non-regular stamp destination')\n"
         "fd,path=tempfile.mkstemp(prefix='.deploy-',dir=directory)\n"
         "try:\n"
         "    with os.fdopen(fd,'w') as stream:\n"
         "        stream.write(datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ\\n'))\n"
         "        stream.flush()\n"
         "        os.fsync(stream.fileno())\n"
-        "    os.replace(path,directory+'/.last_deploy_iso')\n"
+        "    os.replace(path,destination)\n"
         "finally:\n"
         "    if os.path.exists(path): os.unlink(path)\n"
     )
@@ -962,12 +970,13 @@ def handoff(root, target, event, recovery):
     def read_timeout(signum, frame):
         raise TimeoutError("phase input")
 
-    signal.signal(signal.SIGALRM, read_timeout)
+    old_alarm_handler = signal.signal(signal.SIGALRM, read_timeout)
     signal.alarm(10)
     try:
         phase = sys.stdin.buffer.read(65537)
     finally:
         signal.alarm(0)
+        signal.signal(signal.SIGALRM, old_alarm_handler)
     if not phase or len(phase) > 65536 or not phase.endswith(b"\n"):
         print("DEPLOY NOT STARTED — phase payload invalid.")
         return 1
@@ -1025,7 +1034,7 @@ def run_owner(root, run_id, target, digest):
     fd = os.open(run_name(run_id, "sh"), FLAGS, dir_fd=root)
     try:
         info = os.fstat(fd)
-        if (not stat.S_ISREG(info.st_mode) or info.st_uid != 0 or stat.S_IMODE(info.st_mode) != 0o700
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid != UID or stat.S_IMODE(info.st_mode) != 0o700
                 or not 0 < info.st_size <= 65536 or hashlib.sha256(os.read(fd, 65537)).hexdigest() != digest):
             return 1
     finally:

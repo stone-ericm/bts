@@ -2,6 +2,8 @@
 import json
 from datetime import datetime, timezone
 
+import pytest
+
 from bts.web import saver_dashboard_context, saver_transition_response
 from bts.saver_state import transition_saver_state
 
@@ -231,6 +233,71 @@ def test_dashboard_transition_records_peer_ip(tmp_path):
     assert last["peer"] == "100.64.7.7"
     assert last["source"] == "dashboard"
     assert last["outcome"] == "written"
+
+
+@pytest.mark.parametrize("first", ["post", "arm"])
+def test_saver_post_and_arm_serialize_without_a_socket(tmp_path, monkeypatch, first):
+    import fcntl
+    from io import BytesIO
+
+    import bts.web as web
+
+    _setup(tmp_path, "active")
+    guard = _deploy_guard(tmp_path, monkeypatch)
+    monkeypatch.setattr(web, "PICKS_DIR", tmp_path)
+
+    class Clock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return NOW.astimezone(tz) if tz else NOW.replace(tzinfo=None)
+
+    monkeypatch.setattr(web, "datetime", Clock)
+    form = b"expected_prior=active&new_state=used"
+    attempted = []
+
+    def arm():
+        with (guard / "writers.lock").open("rb") as writer:
+            try:
+                fcntl.flock(writer, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                attempted.append("excluded")
+            else:
+                (guard / "hold").write_text("pending")
+                attempted.append("armed")
+
+    class Input(BytesIO):
+        def read(self, length):
+            if first == "arm":
+                arm()
+            return super().read(length)
+
+    original = web.saver_transition_response
+
+    def write_with_arm_attempt(*args, **kwargs):
+        if first == "post":
+            arm()
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(web, "saver_transition_response", write_with_arm_attempt)
+    request = object.__new__(web.Handler)
+    request.rfile = Input(form)
+    request.wfile = BytesIO()
+    request.path = "/saver/transition"
+    request.headers = {"Content-Length": str(len(form)), "Host": "localhost"}
+    request.client_address = ("127.0.0.1", 0)
+    codes = []
+    request.send_response = codes.append
+    request.send_header = lambda *args: None
+    request.end_headers = lambda: None
+    request.do_POST()
+    if first == "post":
+        assert attempted == ["excluded"]
+        assert codes == [303] and _saver_state(tmp_path) == "used"
+        arm()
+        assert attempted == ["excluded", "armed"]
+    else:
+        assert attempted == ["armed"]
+        assert codes == [409] and _saver_state(tmp_path) == "active"
 
 
 def test_rejected_probes_are_audited_with_peer(tmp_path):

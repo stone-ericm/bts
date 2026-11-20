@@ -1,17 +1,22 @@
 """Replay the exact standalone guard source with local files and commands."""
 
 import ast
+from contextlib import nullcontext
 from datetime import datetime, timedelta, timezone
 import fcntl
 import hashlib
+from io import BytesIO
 import json
 import os
 from pathlib import Path
 import shutil
+import signal
 import subprocess
 import sys
 import time
 from types import ModuleType, SimpleNamespace
+import urllib.error
+import urllib.request
 
 import pytest
 
@@ -166,19 +171,24 @@ def test_guard_and_monitor_run_on_python311(tmp_path):
     assert held.returncode == 1 and "Deploy hold present and unreadable" in held.stdout
 
 
-@pytest.fixture
-def owner(tmp_path, monkeypatch):
+def load_guard(root):
     implementation = ModuleType("fixture_deploy_guard")
-    monkeypatch.setenv("BTS_TEST_DEPLOY_GUARD_DIR", str(tmp_path))
     exec(compile(guard_source(), str(INSTALLER), "exec"), implementation.__dict__)
-    implementation.ROOT = tmp_path / "guard"
-    implementation.ROOT.mkdir(mode=0o755)
+    implementation.ROOT = root
     implementation.UID = os.geteuid()
-    implementation.PROJECT = str(tmp_path)
-    for name in ("writers.lock", "transaction.lock", "state.lock"):
-        (implementation.ROOT / name).touch(mode=0o644)
+    implementation.PROJECT = str(root.parent)
     implementation.time = SimpleNamespace(time=time.time, monotonic=time.monotonic, sleep=lambda seconds: None)
     return implementation
+
+
+@pytest.fixture
+def owner(tmp_path, monkeypatch):
+    root = tmp_path / "guard"
+    root.mkdir(mode=0o755)
+    monkeypatch.setenv("BTS_TEST_DEPLOY_GUARD_DIR", str(root))
+    for name in ("writers.lock", "transaction.lock", "state.lock"):
+        (root / name).touch(mode=0o644)
+    return load_guard(root)
 
 
 @pytest.mark.parametrize("failure", [None, "canary-contest-state", "activation"])
@@ -364,3 +374,472 @@ def test_remote_only_target_with_stale_guard_never_fetches_into_checkout(owner):
     assert all(temporary in argv for argv in calls if "fetch" in argv)
     assert calls[-1][-4:] == ["/usr/bin/rm", "-rf", "--", temporary]
     assert not (owner.ROOT / "hold").exists()
+
+
+TARGET = "b" * 40
+PREVIOUS = "a" * 40
+RUN_ID = "1795197580-coverage"
+
+
+def hold_record(state="failed"):
+    armed = int(time.time()) - 10
+    return {
+        "schema": "bts_deploy_hold_v1", "deploy_id": RUN_ID,
+        "owner_unit": f"bts-deploy-{RUN_ID}.service", "state": state, "step": "sync",
+        "previous": PREVIOUS, "target": TARGET, "armed_at": armed, "updated_at": armed,
+    }
+
+
+@pytest.mark.parametrize("case", [
+    "no-hold", "pending", "activating", "target", "dirty", "uv-unsynced", "uv-unsupported",
+    "uv-missing", "reason-empty", "reason-blank", "reason-newline", "reason-long", "busy", "audit", "success",
+])
+def test_hand_release_checks_and_orders_durable_audit(owner, capsys, case):
+    state = case if case in {"pending", "activating"} else "failed"
+    record = hold_record(state)
+    events = []
+    reason = {
+        "reason-empty": "", "reason-blank": "  ", "reason-newline": "foo\nbar", "reason-long": "a" * 201,
+    }.get(case, "verified delivery, entry and window")
+    owner.bts_uid = lambda: 1000
+    owner.preflight = lambda uid, target, fetch: (PREVIOUS if case == "target" else TARGET, ["fixture-git"])
+    owner.canary = lambda: events.append("canary")
+    owner.window = lambda *args: events.append("window")
+
+    def call(argv, *, limit):
+        if "status" in argv:
+            return 0, b" M file\n" if case == "dirty" else b""
+        assert [arg for arg in argv if arg in ("--check", "--locked", "--offline")] == [
+            "--locked", "--check", "--offline",
+        ]
+        events.append("uv")
+        if case == "uv-missing":
+            raise FileNotFoundError("fixture uv")
+        return {"uv-unsynced": 1, "uv-unsupported": 2}.get(case, 0), b""
+
+    owner.call = call
+    original = owner.release_audit
+
+    def audit(root, current, event, why):
+        assert (owner.ROOT / "hold").exists() == (event == "intent")
+        events.append(event)
+        if case == "audit":
+            raise OSError("fixture audit write failure")
+        original(root, current, event, why)
+
+    owner.release_audit = audit
+    with owner.directory() as root:
+        if case != "no-hold":
+            owner.publish_json(root, "hold", record)
+        busy = owner.lock(root, "transaction.lock", fcntl.LOCK_EX) if case == "busy" else nullcontext()
+        with busy:
+            rc = owner.release_by_hand(root, reason)
+        if case == "success":
+            assert rc == 0
+            assert events == ["uv", "canary", "window", "intent", "completion"]
+            assert owner.read_hold(root) is None
+            assert owner.read_json(root, "last-release")["kind"] == "hand"
+            audit_lines = (owner.ROOT / "releases.log").read_text().splitlines()
+            assert [json.loads(line)["event"] for line in audit_lines] == ["intent", "completion"]
+        else:
+            assert rc == 1
+            assert owner.read_hold(root) == (None if case == "no-hold" else record)
+            assert owner.read_json(root, "last-release") is None
+            assert "completion" not in events
+            if case.startswith("uv-"):
+                assert "environment could not be verified as synced" in capsys.readouterr().out
+            elif case != "audit":
+                assert "intent" not in events
+
+
+@pytest.mark.parametrize("state,age,wake,recover,allowed", [
+    ("running", 300, None, False, False), ("running", 5, None, True, False),
+    ("waiting_for_games", 600, None, False, False), ("waiting_for_games", 5, None, True, False),
+    ("sleeping", 2, 1799, False, False), ("sleeping", 2, 1799, True, False),
+    ("sleeping", 2, 1800, False, True), ("running", 301, None, False, False),
+    ("running", 301, None, True, True), (None, None, None, False, False),
+    (None, None, None, True, True),
+])
+def test_window_uses_pinned_heartbeat_and_exact_recovery(owner, state, age, wake, recover, allowed):
+    now = 1_800_000_000
+    owner.time.time = lambda: now
+    if state is not None:
+        timestamp = datetime.fromtimestamp(now - age, timezone.utc)
+        record = {"state": state, "timestamp": timestamp.isoformat()}
+        if wake is not None:
+            record["sleeping_until"] = datetime.fromtimestamp(now + wake, timezone.utc).isoformat()
+        data = Path(owner.PROJECT) / "data"
+        data.mkdir()
+        (data / ".heartbeat").write_text(json.dumps(record))
+    if allowed:
+        owner.window(TARGET if recover else "", TARGET, now + 1200)
+    else:
+        with pytest.raises(owner.Refused, match="window"):
+            owner.window(TARGET if recover else PREVIOUS, TARGET, now + 1200)
+
+
+@pytest.mark.parametrize("response,code,lookup,listener,step", [
+    (b"204", 0, True, True, None), (b"503", 0, True, True, "canary-http"),
+    (b"2A0", 0, True, True, "canary-http"), (b"999", 0, True, True, "canary-http"),
+    (b"200", 28, True, True, "canary-http"), (b"200", 0, False, True, "canary-http"),
+    (b"200", 0, True, False, "canary-dashboard"),
+])
+def test_dashboard_checks_listener_and_exact_success_code(owner, monkeypatch, response, code, lookup, listener, step):
+    cgroup = "/fixture/bts-dashboard.service"
+    commands = {
+        "/usr/bin/tailscale": (0, b"100.72.1.2\n") if lookup else (1, b""),
+        "/usr/bin/ss": (0, b'LISTEN 0 5 100.72.1.2:3003 0.0.0.0:* users:(("web",pid=123,fd=6))\n'),
+        "/usr/bin/curl": (code, response),
+    }
+    calls = []
+
+    def call(argv, *, limit):
+        calls.append(argv)
+        if "ActiveState" in argv:
+            return 0, b"active\n"
+        if "ControlGroup" in argv:
+            return 0, cgroup.encode() + b"\n"
+        return next(result for command, result in commands.items() if command in argv)
+
+    owner.call = call
+    owner.Path = lambda path: SimpleNamespace(
+        read_text=lambda: "0::" + (cgroup if listener else "/fixture/other") + "\n",
+    )
+    monkeypatch.setattr(owner.os, "readlink", lambda path: owner.PROJECT)
+    if step is None:
+        owner.dashboard(1000)
+    else:
+        with pytest.raises(owner.Refused, match=step):
+            owner.dashboard(1000)
+    assert any("/usr/bin/curl" in argv for argv in calls) == (lookup and listener)
+
+
+@pytest.mark.parametrize("kind", ["directory", "fifo", "regular"])
+def test_stamp_rejects_nonregular_destination_without_opening_it(owner, kind):
+    data = Path(owner.PROJECT) / "data"
+    data.mkdir()
+    stamp = data / ".last_deploy_iso"
+    if kind == "directory":
+        stamp.mkdir()
+    elif kind == "fifo":
+        os.mkfifo(stamp)
+    else:
+        stamp.write_text("old\n")
+    owner.as_bts = lambda python, *args: [sys.executable, *args]
+    assert owner.write_stamp() == (kind == "regular")
+    assert not list(data.glob(".deploy-*"))
+    if kind == "directory":
+        assert stamp.is_dir()
+    elif kind == "fifo":
+        assert stamp.is_fifo()
+    else:
+        assert stamp.read_text().strip().endswith("Z")
+
+
+_PING = "BTS_SCHEDULER_HEARTBEAT_PING_URL="
+
+
+@pytest.mark.parametrize("value,send", [
+    ("https://hc-ping.com/token_9-a", True), ("http://hc-ping.com/token", False),
+    ("https://hc-ping.com.attacker.invalid/token", False), ("https://user@hc-ping.com/token", False),
+    ("https://hc-ping.com:443/token", False), ("https://hc-ping.com/token?q=1", False),
+    ("https://hc-ping.com/token#f", False), ("https://hc-ping.com/foo/token", False),
+    ('"https://hc-ping.com/token"', False),
+    ("https://hc-ping.com/token\n" + _PING + "https://hc-ping.com/other", False),
+])
+def test_ping_allowlist_and_failed_post(owner, monkeypatch, value, send):
+    (Path(owner.PROJECT) / ".env").write_text(_PING + value + "\n")
+    requests = []
+
+    def open_request(request, *, timeout):
+        assert timeout == 10
+        requests.append(request)
+        raise urllib.error.URLError("fixture refused POST")
+
+    def opener(proxy, redirect):
+        assert proxy.proxies == {}
+        assert redirect.redirect_request(None, None, 302, "", {}, "https://elsewhere.invalid") is None
+        return SimpleNamespace(open=open_request)
+
+    monkeypatch.setattr(urllib.request, "build_opener", opener)
+    assert owner.page(hold_record(), True) is False
+    assert len(requests) == int(send)
+    if send:
+        assert requests[0].get_method() == "POST"
+        assert requests[0].full_url == value + "/fail"
+        assert b"requested target bbbbbbb" in requests[0].data
+
+
+def configure_transaction(owner, boundary=lambda phase: None):
+    owner.bts_uid = lambda: 1000
+
+    def preflight(uid, target):
+        boundary("preflight")
+        return PREVIOUS, ["fixture-git"]
+
+    def require(argv, step, expected=None, **kwargs):
+        boundary(step)
+        return expected or b""
+
+    owner.preflight = preflight
+    owner.verified_target = lambda *args, **kwargs: (PREVIOUS, ["fixture-git"])
+    owner.require = require
+    owner.window = lambda *args, **kwargs: boundary("window")
+    owner.verified_stop = lambda uid: (boundary("stop-old"), True)[1]
+    owner.canary = lambda: boundary("candidate")
+    owner.dashboard = lambda uid: boundary("dashboard")
+    owner.activate_scheduler = lambda uid, moment: boundary("activation")
+    owner.write_stamp = lambda: (boundary("released"), True)[1]
+    owner.page = lambda record, stopped: (boundary("page"), True)[1]
+
+
+def child_command(owner, operation, *args):
+    return [sys.executable, __file__, operation, str(owner.ROOT), *args]
+
+
+def prepare_owner(owner, root):
+    phase = b"exec fixture\n"
+    digest = hashlib.sha256(phase).hexdigest()
+    owner.publish(root, owner.run_name(RUN_ID, "sh"), phase, 0o700)
+    owner.publish_json(root, owner.run_name(RUN_ID, "metadata"), {
+        "deploy_id": RUN_ID, "target": TARGET, "phase_sha256": digest,
+    })
+    return digest
+
+
+def interrupt_owner(owner, phase, termination, digest):
+    delivered = False
+
+    def boundary(name):
+        nonlocal delivered
+        if name == phase and not delivered:
+            delivered = True
+            # The shim models systemd's RuntimeMaxSec expiry as TERM to MainPID.
+            os.kill(os.getpid(), signal.SIGKILL if termination == "KILL" else signal.SIGTERM)
+
+    configure_transaction(owner, boundary)
+    publish_json = owner.publish_json
+    lock = owner.lock
+
+    def publish(root, name, content):
+        publish_json(root, name, content)
+        if name == "hold" and content["state"] == "pending":
+            boundary("armed")
+        elif name.endswith(".evidence") and content.get("activation") == "verified":
+            boundary("activated")
+        elif name.endswith(".result") and content["outcome"] == "committed":
+            boundary("reported")
+
+    def lock_at_boundary(root, name, operation, timeout=0):
+        if name == "writers.lock" and timeout:
+            boundary("drain")
+        return lock(root, name, operation, timeout)
+
+    owner.publish_json = publish
+    owner.lock = lock_at_boundary
+    with owner.directory() as root:
+        return owner.run_owner(root, RUN_ID, TARGET, digest)
+
+
+@pytest.mark.parametrize("phase", [
+    "preflight", "window", "armed", "stop-old", "drain", "reset", "sync", "restart", "candidate",
+    "dashboard", "activation", "activated", "released", "reported",
+])
+@pytest.mark.parametrize("termination", ["TERM", "KILL", "RuntimeMaxSec"])
+@pytest.mark.parametrize("recovery", ["hook", "next-preflight"])
+def test_owner_interruption_at_phase_boundary(owner, phase, termination, recovery):
+    with owner.directory() as root:
+        digest = prepare_owner(owner, root)
+        child = subprocess.run(
+            child_command(owner, "interrupt", phase, termination, digest),
+            stdin=subprocess.DEVNULL, capture_output=True, timeout=5, text=True,
+        )
+        assert child.returncode == (-signal.SIGKILL if termination == "KILL" else 1), child.stderr
+        early = phase in {"preflight", "window"}
+        released = phase in {"released", "reported"}
+        assert owner.read_json(root, owner.run_name(RUN_ID, "accepted"))["target"] == TARGET
+        record = owner.read_hold(root)
+        terminal = owner.read_json(root, owner.run_name(RUN_ID, "result"))
+        if released:
+            assert record is None
+            assert owner.read_json(root, "last-release")["deploy_id"] == RUN_ID
+        if phase == "reported":
+            assert terminal["outcome"] == "committed"
+        elif termination == "KILL" or released:
+            assert terminal is None
+        else:
+            assert (terminal["outcome"], terminal["step"]) == (
+                "not-started" if early else "failed", "interrupted",
+            )
+        events = []
+        configure_transaction(owner, events.append)
+        if recovery == "hook":
+            assert owner.reconcile(root, RUN_ID) == 0
+            if early or released:
+                assert events == []
+                assert owner.read_hold(root) is None
+            else:
+                assert owner.read_hold(root)["state"] == "failed"
+                assert events == (["stop-old", "page"] if termination == "KILL" else [])
+        elif record is not None and record["state"] != "failed":
+            follower = "1795197581-next"
+            assert owner.owned_deploy(root, follower, TARGET, "") == 1
+            assert owner.read_hold(root)["step"] == "abandoned"
+            assert events == ["stop-old", "page"]
+            result = owner.read_json(root, owner.run_name(follower, "result"))
+            assert result["step"] == "abandoned"
+        else:
+            assert owner.owned_deploy(root, "1795197581-next", TARGET, "") == 0
+            assert events.count("page") == 0
+            assert owner.read_hold(root) is None
+        if released:
+            assert owner.read_json(root, "last-release")["kind"] == "deploy"
+
+
+def await_file(path):
+    deadline = time.monotonic() + 4
+    while not path.exists():
+        if time.monotonic() >= deadline:
+            raise TimeoutError(path.name)
+        time.sleep(0.01)
+
+
+def disconnected_follower(owner):
+    def launch(argv, *, limit):
+        assert limit == 15
+        assert "--property=RuntimeMaxSec=1200" in argv
+        assert "--property=TimeoutStopSec=120" in argv
+        assert "--property=KillMode=mixed" in argv
+        run_id, target, digest = argv[-3:]
+        assert any(arg.endswith(f"reconcile --deploy-id {run_id}") for arg in argv)
+        temporary = owner.ROOT / "launch-request.tmp"
+        temporary.write_text(json.dumps([run_id, target, digest]))
+        temporary.replace(owner.ROOT / "launch-request")
+        await_file(owner.ROOT / "launch-reply")
+        return 0, b""
+
+    def poll(seconds):
+        (owner.ROOT / "following").touch()
+        time.sleep(seconds)
+
+    signal.signal(signal.SIGHUP, signal.SIG_DFL)
+    owner.sys.stdin = SimpleNamespace(buffer=BytesIO(b"#!/bin/bash\nexec fixture\n"))
+    owner.call = launch
+    owner.time.sleep = poll
+    with owner.directory() as root:
+        return owner.handoff(root, TARGET, "push", TARGET)
+
+
+def detached_service(owner, run_id, target, digest):
+    def boundary(phase):
+        if phase == "preflight":
+            await_file(owner.ROOT / "continue-owner")
+
+    configure_transaction(owner, boundary)
+    with owner.directory() as root:
+        return owner.run_owner(root, run_id, target, digest)
+
+
+def test_handoff_survives_loss_of_follower_and_owner_reaches_result(owner):
+    with owner.directory() as root:
+        follower = subprocess.Popen(
+            child_command(owner, "follower"), stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+        )
+        service = None
+        try:
+            launch_request = owner.ROOT / "launch-request"
+            await_file(launch_request)
+            run_id, target, digest = json.loads(launch_request.read_text())
+            service = subprocess.Popen(
+                child_command(owner, "service", run_id, target, digest),
+                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+            )
+            await_file(owner.ROOT / owner.run_name(run_id, "accepted"))
+            (owner.ROOT / "launch-reply").touch()
+            await_file(owner.ROOT / "following")
+            follower.send_signal(signal.SIGHUP)
+            assert follower.wait(timeout=5) == -signal.SIGHUP
+            (owner.ROOT / "continue-owner").touch()
+            assert service.wait(timeout=5) == 0
+        finally:
+            for process in (follower, service):
+                if process is not None and process.poll() is None:
+                    process.kill()
+                    process.wait(timeout=5)
+        assert owner.read_json(root, owner.run_name(run_id, "result"))["outcome"] == "committed"
+        assert owner.read_json(root, owner.run_name(run_id, "metadata"))["recovery"] == ""
+
+
+@pytest.mark.parametrize("conflict", ["owner", "writer-before-arm", "drain-timeout"])
+def test_transaction_refuses_lock_contention_at_correct_boundary(owner, conflict):
+    events = []
+    configure_transaction(owner, events.append)
+    original_lock = owner.lock
+
+    if conflict == "drain-timeout":
+        def lock(root, name, operation, timeout=0):
+            if name == "writers.lock" and timeout:
+                assert timeout == 120
+                raise BlockingIOError("fixture drain deadline elapsed")
+            return original_lock(root, name, operation, timeout)
+        owner.lock = lock
+
+    with owner.directory() as root:
+        if conflict == "owner":
+            with owner.lock(root, "transaction.lock", fcntl.LOCK_EX):
+                assert owner.owned_deploy(root, RUN_ID, TARGET, "") == 1
+            assert not (owner.ROOT / owner.run_name(RUN_ID, "accepted")).exists()
+        elif conflict == "writer-before-arm":
+            open_writer = []
+
+            def acquire_writer(*args, **kwargs):
+                context = owner.lock(root, "writers.lock", fcntl.LOCK_SH)
+                context.__enter__()
+                open_writer.append(context)
+
+            owner.window = acquire_writer
+            try:
+                assert owner.owned_deploy(root, RUN_ID, TARGET, "") == 1
+            finally:
+                for context in open_writer:
+                    context.__exit__(None, None, None)
+        else:
+            assert owner.owned_deploy(root, RUN_ID, TARGET, "") == 1
+        result = owner.read_json(root, owner.run_name(RUN_ID, "result"))
+        assert result["step"] == {"owner": "hold-busy", "writer-before-arm": "writers-busy",
+                                  "drain-timeout": "drain"}[conflict]
+        assert "reset" not in events
+        if conflict == "drain-timeout":
+            assert owner.read_hold(root)["state"] == "failed"
+            assert events.count("page") == 1
+        else:
+            assert owner.read_hold(root) is None
+            assert "stop-old" not in events
+
+
+@pytest.mark.parametrize("kind", ["directory", "fifo"])
+def test_owner_records_stamp_failure_as_committed(owner, capsys, kind):
+    stamp_writer = owner.write_stamp
+    configure_transaction(owner)
+    owner.write_stamp = stamp_writer
+    owner.as_bts = lambda python, *args: [sys.executable, *args]
+    data = Path(owner.PROJECT) / "data"
+    data.mkdir()
+    stamp = data / ".last_deploy_iso"
+    if kind == "directory":
+        stamp.mkdir()
+    else:
+        os.mkfifo(stamp)
+    with owner.directory() as root:
+        assert owner.owned_deploy(root, RUN_ID, TARGET, "") == 0
+        result = owner.read_json(root, owner.run_name(RUN_ID, "result"))
+        assert (result["outcome"], result["stamp"]) == ("committed", "unverified")
+        assert owner.read_hold(root) is None
+    assert "Calibration timestamp update failed" in capsys.readouterr().out
+    assert stamp.is_dir() if kind == "directory" else stamp.is_fifo()
+
+
+if __name__ == "__main__":
+    operation, root, *args = sys.argv[1:]
+    command = {"interrupt": interrupt_owner, "follower": disconnected_follower, "service": detached_service}[operation]
+    raise SystemExit(command(load_guard(Path(root)), *args))
