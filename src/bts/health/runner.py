@@ -10,8 +10,10 @@ from __future__ import annotations
 
 import logging
 import os
-from datetime import date
+from dataclasses import replace
+from datetime import date, datetime, time, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from bts.health import (
     analytics_artifacts_missing,
@@ -48,6 +50,7 @@ from bts.health.alert import Alert, dispatch_dm_for_health_alerts, log_alerts
 from bts.health.attention import apply_warn_attention_policy
 
 log = logging.getLogger(__name__)
+ET = ZoneInfo("America/New_York")
 
 
 def _safe_run(name: str, fn) -> list[Alert]:
@@ -124,10 +127,25 @@ def run_all_checks(
     )))
 
     # Tier 1 — silent failures with damage
-    alerts.extend(_safe_run("contest_state", lambda: contest_state.check(
-        picks_dir,
-        expected=contest_state_expected,
-    )))
+    historical_day = None
+    contest_kwargs = {}
+    if today is not None and today < datetime.now(timezone.utc).astimezone(ET).date():
+        historical_day = today
+        contest_kwargs = {
+            "now": datetime.combine(today, time.max, ET).astimezone(timezone.utc),
+            "historical_day": today,
+        }
+    contest_alerts = _safe_run("contest_state", lambda: contest_state.check(
+        picks_dir, expected=contest_state_expected, **contest_kwargs,
+    ))
+    if historical_day is not None:
+        contest_alerts = [
+            replace(alert, message=contest_state.historical_message(
+                historical_day, "The contest state health check failed before it could finish.",
+            )) if alert.incident_key == "health_runner:contest_state" else alert
+            for alert in contest_alerts
+        ]
+    alerts.extend(contest_alerts)
     alerts.extend(_safe_run("blend_training", lambda: blend_training.check(
         models_dir, today=today,
     )))
@@ -283,6 +301,23 @@ def run_all_checks(
         today=today,
     )
     alerts.extend(policy_alerts)
+
+    if historical_day is not None and warn_attention:
+        # Attention appends a streak label. Place it before the operator pointer
+        # for this slot's selected WARNs in the DM, leaving raw messages alone.
+        historical_warns = {
+            (alert.source, alert.incident_key, alert.message)
+            for alert in contest_alerts if alert.level == "WARN"
+        }
+        pointer = " " + contest_state.HISTORICAL_POINTER
+        for index, alert in enumerate(warn_attention):
+            original, separator, label = alert.message.rpartition(" (")
+            if separator and original.endswith(pointer) and (
+                alert.source, alert.incident_key, original
+            ) in historical_warns:
+                warn_attention[index] = replace(
+                    alert, message=original.removesuffix(pointer) + separator + label + pointer,
+                )
 
     log_alerts(alerts)
     dispatch_dm_for_health_alerts(
