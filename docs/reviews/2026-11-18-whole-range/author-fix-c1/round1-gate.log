@@ -1,0 +1,1005 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-fix-c1
+configfile: pyproject.toml
+testpaths: tests
+plugins: anyio-4.13.0
+collected 10526 items / 6 deselected / 1 skipped / 10520 selected
+
+tests/data/test_build.py .........................                       [  0%]
+tests/data/test_pull.py ..........                                       [  0%]
+tests/data/test_schema.py ....                                           [  0%]
+tests/data/test_swing_pull.py .....                                      [  0%]
+tests/health/test_alert.py .......................                       [  0%]
+tests/health/test_alert_status_cs6b2.py ................................ [  0%]
+........................................................................ [  1%]
+........................................................................ [  2%]
+........................................................................ [  2%]
+........................................................................ [  3%]
+.................                                                        [  3%]
+tests/health/test_alert_status_cs6b2_carbon_r2.py ...........            [  3%]
+tests/health/test_alert_status_cs6b2_review.py ...............           [  4%]
+tests/health/test_analytics_artifacts_missing.py .............           [  4%]
+tests/health/test_attention.py .................                         [  4%]
+tests/health/test_backup_freshness.py ..........                         [  4%]
+tests/health/test_blend_training.py .........                            [  4%]
+tests/health/test_calibration.py ..........................              [  4%]
+tests/health/test_contest_state.py ................                      [  4%]
+tests/health/test_deploy_iso_stamp.py ...                                [  4%]
+tests/health/test_disk_fill.py ......                                    [  5%]
+tests/health/test_f4_exception_propagation.py .........                  [  5%]
+tests/health/test_fallback_defer.py ......                               [  5%]
+tests/health/test_h6_resurface.py ....                                   [  5%]
+tests/health/test_late_delivery.py ............                          [  5%]
+tests/health/test_leaderboard_freshness.py .....                         [  5%]
+tests/health/test_live_forward_resolution.py .........                   [  5%]
+tests/health/test_mdp_policy_alignment.py ........                       [  5%]
+tests/health/test_memory_growth.py ......................                [  5%]
+tests/health/test_park_drag_freshness.py .......                         [  5%]
+tests/health/test_pick_entry_source.py ......                            [  5%]
+tests/health/test_pitcher_sparsity.py .........                          [  5%]
+tests/health/test_pooled_training.py .........                           [  6%]
+tests/health/test_post_failure.py ................                       [  6%]
+tests/health/test_postponed_pick.py ........                             [  6%]
+tests/health/test_predicted_vs_realized.py ...................           [  6%]
+tests/health/test_projected_lineup.py ......                             [  6%]
+tests/health/test_realized_calibration.py .............................. [  6%]
+..                                                                       [  6%]
+tests/health/test_restart_spike.py .............                         [  6%]
+tests/health/test_result_resolution.py ............                      [  7%]
+tests/health/test_runner.py .....................                        [  7%]
+tests/health/test_same_team_corr.py ..............                       [  7%]
+tests/health/test_scheduler_state_integrity_source.py .....              [  7%]
+tests/health/test_since_deploy_iso_compare.py ....                       [  7%]
+tests/health/test_slate_auc.py .........                                 [  7%]
+tests/health/test_streak_validation.py ........                          [  7%]
+tests/health/test_tail_policy_health.py .....                            [  7%]
+tests/health/test_unit_drift.py .........                                [  7%]
+tests/leaderboard/test_analysis.py ............                          [  7%]
+tests/leaderboard/test_auth.py ......................................... [  8%]
+......                                                                   [  8%]
+tests/leaderboard/test_auth_session.py ..                                [  8%]
+tests/leaderboard/test_cli.py ........                                   [  8%]
+tests/leaderboard/test_models.py ...........                             [  8%]
+tests/leaderboard/test_ratelimit.py ...                                  [  8%]
+tests/leaderboard/test_safe_filename.py ...                              [  8%]
+tests/leaderboard/test_scraper.py ..........................             [  8%]
+tests/leaderboard/test_scraper_stealth.py ...........                    [  8%]
+tests/leaderboard/test_static_capture.py .................               [  9%]
+tests/leaderboard/test_storage.py ............                           [  9%]
+tests/scripts/c1_r3/test_count_build_e2e.py ............................ [  9%]
+.........................................                                [  9%]
+tests/scripts/c1_r3/test_count_build_parts.py .......................... [ 10%]
+............                                                             [ 10%]
+tests/scripts/c1_r3/test_count_meta.py ................                  [ 10%]
+tests/scripts/c1_r4a/test_calendar_population_outcomes.py .............. [ 10%]
+........................................................                 [ 11%]
+tests/scripts/c1_r4a/test_fit_evaluate.py ..................             [ 11%]
+tests/scripts/c1_r4a/test_provenance_stored.py .....s................... [ 11%]
+....                                                                     [ 11%]
+tests/scripts/c1_r4a/test_run_e2e.py .................................   [ 11%]
+tests/scripts/c1_r4b/test_data_fit.py ....................               [ 11%]
+tests/scripts/c1_r4b/test_generator_check.py ............                [ 12%]
+tests/scripts/c1_r4b/test_project.py .................                   [ 12%]
+tests/scripts/c1_r4b/test_replay.py ............                         [ 12%]
+tests/scripts/c1_r4b/test_run_e2e.py ....................                [ 12%]
+tests/scripts/c1_r4b/test_run_logic.py ................................. [ 12%]
+.......                                                                  [ 12%]
+tests/scripts/c1_r4b/test_solvers.py .........                           [ 13%]
+tests/scripts/c2_framing/test_f26_hook.py ...............                [ 13%]
+tests/scripts/c2_framing/test_f26_rules.py ............................. [ 13%]
+.......................................................................  [ 14%]
+tests/scripts/c2_framing/test_f26_run.py ............................... [ 14%]
+........................................................................ [ 15%]
+........................................................................ [ 15%]
+..............                                                           [ 15%]
+tests/scripts/c2_framing/test_f26_studio.py ....................         [ 16%]
+tests/scripts/c2_framing/test_screen.py ................................ [ 16%]
+........................................................................ [ 17%]
+........................................................................ [ 17%]
+........................................................................ [ 18%]
+..................................................                       [ 18%]
+tests/scripts/incident_register/test_certify.py ........................ [ 19%]
+..............                                                           [ 19%]
+tests/scripts/incident_register/test_defence.py ........................ [ 19%]
+.....                                                                    [ 19%]
+tests/scripts/incident_register/test_deploy_runs.py .................    [ 19%]
+tests/scripts/incident_register/test_expected_failure.py ............... [ 19%]
+..                                                                       [ 19%]
+tests/scripts/incident_register/test_fresh_counterexamples.py .......... [ 20%]
+.......................                                                  [ 20%]
+tests/scripts/incident_register/test_owned.py .......................... [ 20%]
+                                                                         [ 20%]
+tests/scripts/incident_register/test_r10_counterexamples.py ............ [ 20%]
+........................................................................ [ 21%]
+.................................                                        [ 21%]
+tests/scripts/incident_register/test_r4_counterexamples.py ............. [ 21%]
+....                                                                     [ 21%]
+tests/scripts/incident_register/test_r5_counterexamples.py ............. [ 21%]
+....sssss.......                                                         [ 22%]
+tests/scripts/incident_register/test_r6_counterexamples.py .........sss. [ 22%]
+.                                                                        [ 22%]
+tests/scripts/incident_register/test_r7_counterexamples.py ............. [ 22%]
+.                                                                        [ 22%]
+tests/scripts/incident_register/test_r8_counterexamples.py ............. [ 22%]
+.....                                                                    [ 22%]
+tests/scripts/incident_register/test_r9_counterexamples.py ............. [ 22%]
+...............                                                          [ 22%]
+tests/scripts/incident_register/test_replay.py ...........               [ 22%]
+tests/scripts/incident_register/test_runner.py ......................... [ 23%]
+......                                                                   [ 23%]
+tests/scripts/incident_register/test_sweep_classifier.py ............... [ 23%]
+.                                                                        [ 23%]
+tests/scripts/season_ledger/test_acquire.py ..                           [ 23%]
+tests/scripts/season_ledger/test_bundle_io.py .............              [ 23%]
+tests/scripts/season_ledger/test_compile.py .....................        [ 23%]
+tests/scripts/season_ledger/test_contest.py .........                    [ 23%]
+tests/scripts/season_ledger/test_day_records.py ........                 [ 23%]
+tests/scripts/season_ledger/test_matching.py ...........                 [ 23%]
+tests/scripts/season_ledger/test_outcomes.py ......                      [ 23%]
+tests/scripts/season_ledger/test_pick_files.py ...........               [ 24%]
+tests/scripts/season_ledger/test_reconcile.py .......................... [ 24%]
+..................                                                       [ 24%]
+tests/scripts/season_ledger/test_rows.py ..............................  [ 24%]
+tests/scripts/season_ledger/test_static.py .........                     [ 24%]
+tests/scripts/test_audit_mdp_live_aggressiveness.py .                    [ 24%]
+tests/scripts/test_benchmark_bridge.py ...........................       [ 25%]
+tests/scripts/test_bin_collapse_read.py ..                               [ 25%]
+tests/scripts/test_bts_scoring_change_check.py ..........                [ 25%]
+tests/scripts/test_c1_admission.py .........................             [ 25%]
+tests/scripts/test_c1_cycle.py .................................FF...... [ 25%]
+...............................FF.......                                 [ 26%]
+tests/scripts/test_c1_r3_acquire.py .................................... [ 26%]
+                                                                         [ 26%]
+tests/scripts/test_canonicalize_realized_picks.py ...........            [ 26%]
+tests/scripts/test_canonicalize_realized_picks_p1.py ................    [ 26%]
+tests/scripts/test_dd_p_value_sensitivity.py ................            [ 26%]
+tests/scripts/test_determinism_gap_bound.py .....                        [ 27%]
+tests/scripts/test_dr_mdp_gap_measure.py ............                    [ 27%]
+tests/scripts/test_evaluate_mdp_dd_guardrail.py ........                 [ 27%]
+tests/scripts/test_field_products_census.py ..........                   [ 27%]
+tests/scripts/test_field_products_cohort.py ..........                   [ 27%]
+tests/scripts/test_field_products_compare.py ..............              [ 27%]
+tests/scripts/test_field_products_leaders.py ...                         [ 27%]
+tests/scripts/test_field_products_ledger.py .........                    [ 27%]
+tests/scripts/test_field_products_picks.py ............................. [ 27%]
+                                                                         [ 27%]
+tests/scripts/test_field_products_run.py ....................            [ 28%]
+tests/scripts/test_field_products_sources.py ....                        [ 28%]
+tests/scripts/test_field_products_streaks.py ..................          [ 28%]
+tests/scripts/test_final_leaderboard_grab.py ........................... [ 28%]
+...............................                                          [ 28%]
+tests/scripts/test_gate_b_fair_comparator_rebaseline.py ...              [ 28%]
+tests/scripts/test_gate_b_production_metric_rebaseline.py ..             [ 28%]
+tests/scripts/test_gate_b_walk_forward_policy_eval.py ...                [ 28%]
+tests/scripts/test_generate_mdp_dd_guardrail_profiles.py .               [ 28%]
+tests/scripts/test_inventory_validation_splits.py ......                 [ 29%]
+tests/scripts/test_leaderboard_backfilled_model_audit.py ........        [ 29%]
+tests/scripts/test_leaderboard_candidate_join_audit.py ...               [ 29%]
+tests/scripts/test_leaderboard_mechanism_mining.py .....                 [ 29%]
+tests/scripts/test_live_forward_capture_once.py ........................ [ 29%]
+........................                                                 [ 29%]
+tests/scripts/test_live_forward_provenance_inventory.py .........        [ 29%]
+tests/scripts/test_live_forward_resolve_once.py ...........              [ 29%]
+tests/scripts/test_live_forward_surface_export.py .....                  [ 29%]
+tests/scripts/test_measure_pa_basis_rebin_gate.py ....                   [ 29%]
+tests/scripts/test_measure_raw_rebin_gate.py ...                         [ 29%]
+tests/scripts/test_mining87_consensus.py ............................... [ 30%]
+......                                                                   [ 30%]
+tests/scripts/test_mining87_inference.py ......................          [ 30%]
+tests/scripts/test_mining87_production.py ..........                     [ 30%]
+tests/scripts/test_mining87_run.py .........................             [ 30%]
+tests/scripts/test_mining87_surfaces.py ..........................       [ 31%]
+tests/scripts/test_mining87_units.py ......                              [ 31%]
+tests/scripts/test_mlb_benchmark.py .......................              [ 31%]
+tests/scripts/test_mlb_benchmark_metrics.py .........                    [ 31%]
+tests/scripts/test_p05_tail_policy_audit.py ...                          [ 31%]
+tests/scripts/test_phase_d_pooled_policy_outer_eval.py .....             [ 31%]
+tests/scripts/test_phase_d_pooled_policy_postmortem.py ....              [ 31%]
+tests/scripts/test_pooled_policy_gap_ci.py ..                            [ 31%]
+tests/scripts/test_production_live_boundary_feasibility.py ..            [ 31%]
+tests/scripts/test_readme_live_record.py .                               [ 31%]
+tests/scripts/test_repeat_batter_conditioning.py .......                 [ 31%]
+tests/scripts/test_rolling_origin_policy_candidate_screen.py ......      [ 31%]
+tests/scripts/test_run_audit_verdict_fdr.py ...                          [ 31%]
+tests/scripts/test_run_falsification_harness.py ...                      [ 31%]
+tests/scripts/test_state_segment_policy_candidate_screen.py .....        [ 31%]
+tests/scripts/test_v2_5_attribution.py .....                             [ 31%]
+tests/scripts/test_v2_5_orchestration.py ..............                  [ 32%]
+tests/scripts/test_validate_calibration.py ....                          [ 32%]
+tests/scripts/test_w13_tests.py .....................                    [ 32%]
+tests/test_alert_status_callers_cs6b2.py ......................          [ 32%]
+tests/test_alert_status_cs6b2_carbon.py ............................     [ 32%]
+tests/test_atomic_write.py ..                                            [ 32%]
+tests/test_audit_driver.py FFFFFFFFFFFFFFFFFFFFFFFFFFFEEEEEEEEEEEFFFEEEE [ 33%]
+EFFF                                                                     [ 33%]
+tests/test_audit_f6_review_probes.py ...                                 [ 33%]
+tests/test_audit_progress.py .........................                   [ 33%]
+tests/test_audit_progress_traversal.py ...                               [ 33%]
+tests/test_automatic_reading_cs4c.py ................................... [ 33%]
+....................................                                     [ 34%]
+tests/test_backup.py ...........................                         [ 34%]
+tests/test_backup_cli.py .....                                           [ 34%]
+tests/test_bluesky_password.py ....                                      [ 34%]
+tests/test_boundary_shadow_census.py ..........                          [ 34%]
+tests/test_build_schema_assert.py ....                                   [ 34%]
+tests/test_bullpen_review_probes.py ......s                              [ 34%]
+tests/test_bullpen_same_day.py .....s                                    [ 34%]
+tests/test_check_hit_suspension.py ..........                            [ 34%]
+tests/test_check_results_wait.py ..............                          [ 35%]
+tests/test_cli_integration.py .......................................... [ 35%]
+............................                                             [ 35%]
+tests/test_cli_preview_date.py ...                                       [ 35%]
+tests/test_cli_schedule_date.py .                                        [ 35%]
+tests/test_cold_start_integration.py ...x                                [ 35%]
+tests/test_contest_dated_cs4a.py ....................................... [ 36%]
+........................................................................ [ 36%]
+........................................................................ [ 37%]
+........................................................................ [ 38%]
+........................................................................ [ 38%]
+........................................................................ [ 39%]
+........................................................................ [ 40%]
+........................................................................ [ 40%]
+........................................................................ [ 41%]
+........................................................................ [ 42%]
+...                                                                      [ 42%]
+tests/test_contest_dated_cs4a_review.py ................................ [ 42%]
+.................                                                        [ 42%]
+tests/test_contest_fetch.py ............................................ [ 43%]
+..........                                                               [ 43%]
+tests/test_contest_ledger.py .......                                     [ 43%]
+tests/test_contest_state.py .................                            [ 43%]
+tests/test_contest_state_best_trust.py .........                         [ 43%]
+tests/test_contest_state_corrupt_precedence.py ..                        [ 43%]
+tests/test_contest_state_cs1_review.py ...................               [ 43%]
+tests/test_contest_state_decoder_limits.py ............                  [ 43%]
+tests/test_contest_state_defensive_reads.py ............................ [ 44%]
+.........................                                                [ 44%]
+tests/test_context_features.py ................                          [ 44%]
+tests/test_cutoff_candidate_exclusion.py .........                       [ 44%]
+tests/test_daily_decision.py ........                                    [ 44%]
+tests/test_daily_decision_v2.py ....                                     [ 44%]
+tests/test_daily_decision_v3.py ...                                      [ 44%]
+tests/test_dashboard_bind.py ...                                         [ 44%]
+tests/test_data_build_empty.py ......................................... [ 45%]
+.....................................................................    [ 45%]
+tests/test_day_outcome.py .............................................. [ 46%]
+..........                                                               [ 46%]
+tests/test_day_outcome_entry_sequence.py ............................... [ 46%]
+....                                                                     [ 46%]
+tests/test_decide_action.py .............                                [ 46%]
+tests/test_decision_saver_fallback.py ...                                [ 46%]
+tests/test_dm.py ......                                                  [ 46%]
+tests/test_e2_delivery_idempotency.py ...                                [ 46%]
+tests/test_e3_missed_pick_alert.py .......                               [ 47%]
+tests/test_entry_intent.py ............................................. [ 47%]
+.......                                                                  [ 47%]
+tests/test_entry_receipt.py ............................................ [ 47%]
+.....                                                                    [ 47%]
+tests/test_fallback_plan.py .............                                [ 48%]
+tests/test_health_endpoint.py ............                               [ 48%]
+tests/test_heartbeat.py .................                                [ 48%]
+tests/test_heartbeat_churn.py ..........                                 [ 48%]
+tests/test_heartbeat_staleness.py .............                          [ 48%]
+tests/test_incident_2026_08_30.py ....                                   [ 48%]
+tests/test_incident_register_2026.py ................................... [ 48%]
+...........................                                              [ 49%]
+tests/test_incident_register_2026_meta.py ...                            [ 49%]
+tests/test_is_resume_date_game.py .....                                  [ 49%]
+tests/test_late_delivery_guard.py ........                               [ 49%]
+tests/test_leads_small_fixes.py ....                                     [ 49%]
+tests/test_lgb_params.py ..........                                      [ 49%]
+tests/test_lightgbm_optional.py .                                        [ 49%]
+tests/test_lineup_analyze.py .........                                   [ 49%]
+tests/test_lineup_collect.py ...........                                 [ 49%]
+tests/test_live_gate_cs6a.py ........................................... [ 50%]
+.............                                                            [ 50%]
+tests/test_live_gate_cs6a_review.py ........                             [ 50%]
+tests/test_local_tier.py ....                                            [ 50%]
+tests/test_lock_decision.py .......                                      [ 50%]
+tests/test_london_series_tz.py ....                                      [ 50%]
+tests/test_morning_state_cs6b1.py ...................................... [ 50%]
+.......................                                                  [ 51%]
+tests/test_morning_state_cs6b1_carbon.py .................               [ 51%]
+tests/test_morning_state_cs6b1_review.py .................               [ 51%]
+tests/test_orchestrator.py .............                                 [ 51%]
+tests/test_park_drag_feature.py ..................................       [ 51%]
+tests/test_park_drag_producer.py ........s....                           [ 51%]
+tests/test_pick_chosen_on_cs5a.py ...................................... [ 52%]
+........................................................................ [ 52%]
+.............................................................            [ 53%]
+tests/test_pickpath_review_pp1.py ....                                   [ 53%]
+tests/test_pickpath_review_pp2.py ...................................... [ 53%]
+ss....ss....ss....ss.........                                            [ 54%]
+tests/test_picks.py .................................................... [ 54%]
+....................                                                     [ 54%]
+tests/test_picks_lineup_evolution.py ........                            [ 55%]
+tests/test_posting.py ................                                   [ 55%]
+tests/test_postponed_delivery_guard.py ........................          [ 55%]
+tests/test_predict_json.py ....                                          [ 55%]
+tests/test_private_mode.py ..                                            [ 55%]
+tests/test_private_mode_transport.py ........                            [ 55%]
+tests/test_probable_cache_review.py .......                              [ 55%]
+tests/test_progress.py ........                                          [ 55%]
+tests/test_receipt_io.py ......                                          [ 55%]
+tests/test_reconcile_cutoff.py ..................                        [ 55%]
+tests/test_reconcile_receipt.py ......................................   [ 56%]
+tests/test_refresh_memo.py ..........                                    [ 56%]
+tests/test_saved_pick_cs5a_review.py ................................... [ 56%]
+.............                                                            [ 56%]
+tests/test_saved_pick_paths_cs5a.py .................................... [ 57%]
+..ss..ss.........................................................        [ 57%]
+tests/test_saver_cs3.py ................................................ [ 58%]
+........................................................................ [ 58%]
+................................................................         [ 59%]
+tests/test_saver_cs3_review.py ......................                    [ 59%]
+tests/test_saver_state.py ................                               [ 59%]
+tests/test_scheduler.py ................................................ [ 60%]
+............................                                             [ 60%]
+tests/test_scheduler_decision_record.py .........                        [ 60%]
+tests/test_scheduler_decision_record_integration.py .................... [ 60%]
+....                                                                     [ 60%]
+tests/test_scheduler_eve_of_break.py ..........                          [ 61%]
+tests/test_scheduler_fallback_deadline.py .......                        [ 61%]
+tests/test_scheduler_no_games.py .                                       [ 61%]
+tests/test_scheduler_skip_visibility.py ................................ [ 61%]
+.......                                                                  [ 61%]
+tests/test_scheduler_state_integrity.py .......                          [ 61%]
+tests/test_scheduler_tail_objective.py .........                         [ 61%]
+tests/test_scheduler_watchdog_discipline.py .                            [ 61%]
+tests/test_schema_version.py ....                                        [ 61%]
+tests/test_scorecard.py ................................................ [ 62%]
+..................................................                       [ 62%]
+tests/test_scoring_lock.py .......                                       [ 62%]
+tests/test_sd_notify.py .....                                            [ 62%]
+tests/test_season_contract_cs4b1.py .................................... [ 63%]
+..................................................................       [ 63%]
+tests/test_season_contract_cs4b1_edges.py .............................. [ 63%]
+.......................................................                  [ 64%]
+tests/test_season_contract_cs4b1_review.py .......                       [ 64%]
+tests/test_season_contract_cs4b2.py .................................... [ 64%]
+........................................................................ [ 65%]
+........................................................................ [ 66%]
+........................................................................ [ 66%]
+........................................................................ [ 67%]
+........................................................................ [ 68%]
+........................................................................ [ 68%]
+........................................................................ [ 69%]
+........................................................................ [ 70%]
+........................................................................ [ 71%]
+........................................................................ [ 71%]
+........................................................................ [ 72%]
+........................................................................ [ 73%]
+........................................................................ [ 73%]
+........................................................................ [ 74%]
+........................................................................ [ 75%]
+........................................................................ [ 75%]
+........................................................................ [ 76%]
+........................................................................ [ 77%]
+........................................................................ [ 77%]
+........................................................................ [ 78%]
+........................................................................ [ 79%]
+.............                                                            [ 79%]
+tests/test_season_contract_cs4b2_edges.py ....................           [ 79%]
+tests/test_season_contract_cs4b2_review.py ............                  [ 79%]
+tests/test_season_end_date.py ........                                   [ 79%]
+tests/test_season_rollover_data.py .............................         [ 80%]
+tests/test_shadow_eval.py ................                               [ 80%]
+tests/test_shadow_picks.py ......                                        [ 80%]
+tests/test_shadow_pipeline.py ....                                       [ 80%]
+tests/test_shadow_predict_once.py ....                                   [ 80%]
+tests/test_shadow_report.py .....                                        [ 80%]
+tests/test_shadow_scheduler.py ........                                  [ 80%]
+tests/test_skip_policy_shadow.py ...................................     [ 80%]
+tests/test_slate.py ........                                             [ 80%]
+tests/test_slate_rank.py ......                                          [ 80%]
+tests/test_stale_delivery_cs4c.py ...................................... [ 81%]
+........................                                                 [ 81%]
+tests/test_stale_delivery_cs4c_carbon.py ....................            [ 81%]
+tests/test_stale_delivery_cs4c_review.py ............................... [ 81%]
+................                                                         [ 82%]
+tests/test_state_export.py ....                                          [ 82%]
+tests/test_state_regenerate.py ...............                           [ 82%]
+tests/test_state_verify.py ....                                          [ 82%]
+tests/test_strategy.py ................................................  [ 82%]
+tests/test_streak_applied_dates.py .......                               [ 82%]
+tests/test_streak_replay.py .........                                    [ 82%]
+tests/test_streak_season_cs2.py ........................................ [ 83%]
+........................................................................ [ 84%]
+........................................................................ [ 84%]
+.................................................................        [ 85%]
+tests/test_streak_season_cs2_review.py ................                  [ 85%]
+tests/test_streak_season_cs2b_review.py ................................ [ 85%]
+........................................................................ [ 86%]
+..............................                                           [ 86%]
+tests/test_submission_cutoff.py .....                                    [ 86%]
+tests/test_swing_features.py ............                                [ 86%]
+tests/test_sync.py .........................                             [ 87%]
+tests/test_tail_policy_artifact_contract.py ....                         [ 87%]
+tests/test_tail_policy_r3_fixes.py ...................                   [ 87%]
+tests/test_tail_policy_strategy.py .........................             [ 87%]
+tests/test_tail_provenance.py ...                                        [ 87%]
+tests/test_thin_slate_checks.py ..............                           [ 87%]
+tests/test_util.py ..........                                            [ 87%]
+tests/test_warmup_lock_classification.py ........                        [ 87%]
+tests/test_web_audit_progress.py ..........                              [ 88%]
+tests/test_web_render.py ............................                    [ 88%]
+tests/test_web_saver.py ............                                     [ 88%]
+tests/test_web_skip_policy_shadow.py ...                                 [ 88%]
+tests/test_web_streak_subtitle.py .....                                  [ 88%]
+tests/test_wr_a_calendar.py ........                                     [ 88%]
+tests/test_wr_a_calendar_replay_carbon.py ..............                 [ 88%]
+tests/test_wr_a_pick.py ...............................                  [ 89%]
+tests/test_wr_a_review_carbon.py .........................               [ 89%]
+tests/test_wr_a_schedule.py ........................                     [ 89%]
+tests/test_wr_b_contract.py ........................                     [ 89%]
+tests/test_wr_b_edges.py ............................................... [ 90%]
+..........................                                               [ 90%]
+tests/test_wr_b_r2_review_adopt.py ...........                           [ 90%]
+tests/test_wr_c1_clock.py .....                                          [ 90%]
+tests/test_wr_c1_history.py .........................................    [ 90%]
+tests/test_wr_c2_carbon_v2.py .....................                      [ 91%]
+tests/test_wr_c2_r2_carbon.py ..................                         [ 91%]
+tests/test_wr_c2_receipt_identity.py ................................... [ 91%]
+........................................................................ [ 92%]
+....................................                                     [ 92%]
+tests/test_wr_c2_recovery.py ........................................... [ 93%]
+..........................................................               [ 93%]
+tests/test_wr_c3_r2_entered_pick_blockers.py .........                   [ 93%]
+tests/test_wr_c3v_corpus.py ............................................ [ 94%]
+........................................................................ [ 94%]
+........................................................................ [ 95%]
+........................................................................ [ 96%]
+........................................................................ [ 96%]
+........................................................................ [ 97%]
+........................................................................ [ 98%]
+........................................................................ [ 98%]
+........................................................................ [ 99%]
+..........                                                               [ 99%]
+tests/test_wr_c3v_delivery.py .........                                  [ 99%]
+tests/test_wr_c3v_r2_adopt.py ..                                         [ 99%]
+tests/test_wr_c3v_reconcile.py ..............                            [ 99%]
+tests/test_wr_c3v_review_gaps.py .......                                 [100%]
+
+==================================== ERRORS ====================================
+__ ERROR at setup of TestTeardownRetrieved.test_all_ok_tears_down_everything ___
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ ERROR at setup of TestTeardownRetrieved.test_one_partial_preserves_only_that_box _
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+____ ERROR at setup of TestTeardownRetrieved.test_all_partial_preserves_all ____
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ ERROR at setup of TestTeardownRetrieved.test_missing_key_defaults_to_preserve _
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+___ ERROR at setup of TestTeardownRetrieved.test_empty_results_preserves_all ___
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+______ ERROR at setup of TestTeardownRetrieved.test_empty_boxes_list_noop ______
+tests/test_audit_driver.py:564: in captured_log
+    from audit_driver import log as _original_log  # noqa: F401 — force import first
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+____ ERROR at setup of TestTeardownRetrieved.test_malformed_values_preserve ____
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ ERROR at setup of TestTeardownRetrieved.test_provider_delete_raises_on_one_box _
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ ERROR at setup of TestTeardownRetrieved.test_retrieve_results_none_raises_typeerror _
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+____ ERROR at setup of TestTeardownRetrieved.test_stray_key_logged_no_crash ____
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ ERROR at setup of TestTeardownAllReturn.test_teardown_all_returns_count_of_successful_deletes _
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ ERROR at setup of TestAuditAttachRetrieveMode.test_select_boxes_for_attach_preserves_original_order _
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ ERROR at setup of TestAuditAttachRetrieveMode.test_select_boxes_for_attach_rejects_unknown_box _
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+____ ERROR at setup of TestPollResilience.test_one_timeout_doesnt_kill_poll ____
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ ERROR at setup of TestPollResilience.test_one_generic_exception_doesnt_kill_poll _
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+____ ERROR at setup of TestPollResilience.test_done_marker_still_recognized ____
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+=================================== FAILURES ===================================
+_ test_the_guard_runs_the_job_in_the_payload_leaf_and_writes_a_terminal_receipt _
+tests/scripts/test_c1_cycle.py:277: in test_the_guard_runs_the_job_in_the_payload_leaf_and_writes_a_terminal_receipt
+    assert rc == 0 and rec["result"] == "exit" and rec["rc"] == 0 and rec["cpu_seconds"] == 1.0
+E   assert (87 == 0)
+----------------------------- Captured stderr call -----------------------------
+guard preexec failed: PermissionError: [Errno 1] Operation not permitted
+_________ test_the_guard_reports_an_overrun_after_killing_the_payload __________
+tests/scripts/test_c1_cycle.py:284: in test_the_guard_reports_an_overrun_after_killing_the_payload
+    assert rc == guard.OVERRUN_EXIT and rec["result"] == "overrun"
+E   assert (87 == 86)
+E    +  where 86 = guard.OVERRUN_EXIT
+----------------------------- Captured stderr call -----------------------------
+guard preexec failed: PermissionError: [Errno 1] Operation not permitted
+__________ test_a_nested_descendant_is_killed_before_the_measurement ___________
+tests/scripts/test_c1_cycle.py:584: in test_a_nested_descendant_is_killed_before_the_measurement
+    assert rec["result"] == "exit" and rec["leftover"] is True and (cg / "payload" / "cgroup.kill").read_text() == "1"
+E   AssertionError: assert ('guard-error' == 'exit'
+E     
+E     - exit
+E     + guard-error)
+----------------------------- Captured stderr call -----------------------------
+guard preexec failed: PermissionError: [Errno 1] Operation not permitted
+_________ test_an_unconfirmed_empty_payload_is_an_enforcement_failure __________
+tests/scripts/test_c1_cycle.py:593: in test_an_unconfirmed_empty_payload_is_an_enforcement_failure
+    assert rc == guard.GUARD_ERROR_EXIT and rec["result"] == "guard-error" and "not confirmed empty" in rec["reason"]
+E   AssertionError: assert (87 == 87 and 'guard-error' == 'guard-error'
+E    +  where 87 = guard.GUARD_ERROR_EXIT
+E     
+E       guard-error and 'not confirmed empty' in 'the job could not start: Exception occurred in preexec_fn.')
+----------------------------- Captured stderr call -----------------------------
+guard preexec failed: PermissionError: [Errno 1] Operation not permitted
+______ TestKeychainFallback.test_fallback_to_env_var_when_keychain_misses ______
+tests/test_audit_driver.py:23: in test_fallback_to_env_var_when_keychain_misses
+    from audit_driver import _keychain
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+__ TestKeychainFallback.test_raises_when_neither_keychain_nor_env_has_secret ___
+tests/test_audit_driver.py:33: in test_raises_when_neither_keychain_nor_env_has_secret
+    from audit_driver import _keychain
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+___ TestKeychainFallback.test_fallback_to_env_alias_when_primary_env_misses ____
+tests/test_audit_driver.py:43: in test_fallback_to_env_alias_when_primary_env_misses
+    from audit_driver import _keychain
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_____________ TestKeychainFallback.test_error_mentions_env_aliases _____________
+tests/test_audit_driver.py:54: in test_error_mentions_env_aliases
+    from audit_driver import _keychain
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+________ TestOCIReadinessHelpers.test_ad_order_rotates_from_next_cursor ________
+tests/test_audit_driver.py:79: in test_ad_order_rotates_from_next_cursor
+    provider = self._provider(["AD-1", "AD-2", "AD-3"], cursor=1)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_audit_driver.py:71: in _provider
+    from audit_driver import OCIProvider
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+________ TestOCIReadinessHelpers.test_mark_ad_used_advances_next_cursor ________
+tests/test_audit_driver.py:84: in test_mark_ad_used_advances_next_cursor
+    provider = self._provider(["AD-1", "AD-2", "AD-3"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_audit_driver.py:71: in _provider
+    from audit_driver import OCIProvider
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ TestOCIReadinessHelpers.test_service_error_classification_for_next_ad[error0-True] _
+tests/test_audit_driver.py:101: in test_service_error_classification_for_next_ad
+    from audit_driver import OCIProvider
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ TestOCIReadinessHelpers.test_service_error_classification_for_next_ad[error1-True] _
+tests/test_audit_driver.py:101: in test_service_error_classification_for_next_ad
+    from audit_driver import OCIProvider
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ TestOCIReadinessHelpers.test_service_error_classification_for_next_ad[error2-True] _
+tests/test_audit_driver.py:101: in test_service_error_classification_for_next_ad
+    from audit_driver import OCIProvider
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ TestOCIReadinessHelpers.test_service_error_classification_for_next_ad[error3-False] _
+tests/test_audit_driver.py:101: in test_service_error_classification_for_next_ad
+    from audit_driver import OCIProvider
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+____ TestOCIReadinessHelpers.test_create_tries_next_ad_after_limit_exceeded ____
+tests/test_audit_driver.py:108: in test_create_tries_next_ad_after_limit_exceeded
+    import audit_driver
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+______ TestValidationSplit.test_default_legacy_split_renders_test_seasons ______
+tests/test_audit_driver.py:182: in test_default_legacy_split_renders_test_seasons
+    from audit_driver import render_screen_command, resolve_validation_split
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+___ TestValidationSplit.test_split_flags_render_without_legacy_test_seasons ____
+tests/test_audit_driver.py:197: in test_split_flags_render_without_legacy_test_seasons
+    from audit_driver import render_screen_command, resolve_validation_split
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ TestValidationSplit.test_profile_seasons_default_to_full_surface_for_legacy_split _
+tests/test_audit_driver.py:213: in test_profile_seasons_default_to_full_surface_for_legacy_split
+    from audit_driver import resolve_profile_seasons, resolve_validation_split
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ TestValidationSplit.test_profile_seasons_default_to_full_surface_plus_split_seasons _
+tests/test_audit_driver.py:230: in test_profile_seasons_default_to_full_surface_plus_split_seasons
+    from audit_driver import resolve_profile_seasons, resolve_validation_split
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_____ TestValidationSplit.test_profile_seasons_reject_missing_split_season _____
+tests/test_audit_driver.py:248: in test_profile_seasons_reject_missing_split_season
+    from audit_driver import resolve_profile_seasons, resolve_validation_split
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+________ TestValidationSplit.test_rejects_mixed_legacy_and_split_flags _________
+tests/test_audit_driver.py:260: in test_rejects_mixed_legacy_and_split_flags
+    from audit_driver import resolve_validation_split
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_________ TestValidationSplit.test_rejects_half_specified_split_flags __________
+tests/test_audit_driver.py:270: in test_rejects_half_specified_split_flags
+    from audit_driver import resolve_validation_split
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+___________ TestValidationSplit.test_rejects_overlapping_split_flags ___________
+tests/test_audit_driver.py:286: in test_rejects_overlapping_split_flags
+    from audit_driver import resolve_validation_split
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_____________ TestValidationSplit.test_writes_local_split_metadata _____________
+tests/test_audit_driver.py:296: in test_writes_local_split_metadata
+    from audit_driver import _write_validation_split_metadata, resolve_validation_split
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ TestValidationSplit.test_seed_metadata_records_provider_box_and_determinism __
+tests/test_audit_driver.py:326: in test_seed_metadata_records_provider_box_and_determinism
+    from audit_driver import Box, _seed_audit_metadata, resolve_validation_split
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ TestValidationSplit.test_audit_driver_provenance_base_records_determinism_intent _
+tests/test_audit_driver.py:365: in test_audit_driver_provenance_base_records_determinism_intent
+    from audit_driver import _audit_driver_provenance_base
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ TestValidationSplit.test_launch_queue_command_uses_split_flags_and_seed_metadata _
+tests/test_audit_driver.py:379: in test_launch_queue_command_uses_split_flags_and_seed_metadata
+    import audit_driver
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_____ TestValidationSplit.test_render_profile_command_logs_pa_predictions ______
+tests/test_audit_driver.py:430: in test_render_profile_command_logs_pa_predictions
+    from audit_driver import render_profile_command
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+__ TestValidationSplit.test_render_profile_command_threads_estimated_pa_mode ___
+tests/test_audit_driver.py:446: in test_render_profile_command_threads_estimated_pa_mode
+    from audit_driver import render_profile_command
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ TestValidationSplit.test_launch_profile_queue_command_uses_profile_artifacts_and_metadata _
+tests/test_audit_driver.py:459: in test_launch_profile_queue_command_uses_profile_artifacts_and_metadata
+    import audit_driver
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+__ TestValidationSplit.test_retrieve_profile_one_fetches_simulation_seed_dirs __
+tests/test_audit_driver.py:513: in test_retrieve_profile_one_fetches_simulation_seed_dirs
+    import audit_driver
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+______ TestAuditAttachRetrieveMode.test_screen_mode_uses_phase1_retrieve _______
+tests/test_audit_driver.py:720: in test_screen_mode_uses_phase1_retrieve
+    import audit_attach
+scripts/audit_attach.py:44: in <module>
+    from audit_driver import (
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ TestAuditAttachRetrieveMode.test_profiles_mode_uses_simulation_seed_retrieve _
+tests/test_audit_driver.py:726: in test_profiles_mode_uses_simulation_seed_retrieve
+    import audit_attach
+scripts/audit_attach.py:44: in <module>
+    from audit_driver import (
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_____________ TestAuditAttachRetrieveMode.test_unknown_mode_raises _____________
+tests/test_audit_driver.py:735: in test_unknown_mode_raises
+    import audit_attach
+scripts/audit_attach.py:44: in <module>
+    from audit_driver import (
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+______ TestStage1SeedDirsViaSymlinks.test_stage1_seed_dirs_clean_creation ______
+tests/test_audit_driver.py:852: in test_stage1_seed_dirs_clean_creation
+    from audit_driver import _stage1_seed_dirs_via_symlinks
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+________ TestStage1SeedDirsViaSymlinks.test_stage1_seed_dirs_idempotent ________
+tests/test_audit_driver.py:874: in test_stage1_seed_dirs_idempotent
+    from audit_driver import _stage1_seed_dirs_via_symlinks
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ TestStage1SeedDirsViaSymlinks.test_stage1_seed_dirs_integration_with_aggregate _
+tests/test_audit_driver.py:891: in test_stage1_seed_dirs_integration_with_aggregate
+    from audit_driver import _stage1_seed_dirs_via_symlinks
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+=========================== short test summary info ============================
+FAILED tests/scripts/test_c1_cycle.py::test_the_guard_runs_the_job_in_the_payload_leaf_and_writes_a_terminal_receipt
+FAILED tests/scripts/test_c1_cycle.py::test_the_guard_reports_an_overrun_after_killing_the_payload
+FAILED tests/scripts/test_c1_cycle.py::test_a_nested_descendant_is_killed_before_the_measurement
+FAILED tests/scripts/test_c1_cycle.py::test_an_unconfirmed_empty_payload_is_an_enforcement_failure
+FAILED tests/test_audit_driver.py::TestKeychainFallback::test_fallback_to_env_var_when_keychain_misses
+FAILED tests/test_audit_driver.py::TestKeychainFallback::test_raises_when_neither_keychain_nor_env_has_secret
+FAILED tests/test_audit_driver.py::TestKeychainFallback::test_fallback_to_env_alias_when_primary_env_misses
+FAILED tests/test_audit_driver.py::TestKeychainFallback::test_error_mentions_env_aliases
+FAILED tests/test_audit_driver.py::TestOCIReadinessHelpers::test_ad_order_rotates_from_next_cursor
+FAILED tests/test_audit_driver.py::TestOCIReadinessHelpers::test_mark_ad_used_advances_next_cursor
+FAILED tests/test_audit_driver.py::TestOCIReadinessHelpers::test_service_error_classification_for_next_ad[error0-True]
+FAILED tests/test_audit_driver.py::TestOCIReadinessHelpers::test_service_error_classification_for_next_ad[error1-True]
+FAILED tests/test_audit_driver.py::TestOCIReadinessHelpers::test_service_error_classification_for_next_ad[error2-True]
+FAILED tests/test_audit_driver.py::TestOCIReadinessHelpers::test_service_error_classification_for_next_ad[error3-False]
+FAILED tests/test_audit_driver.py::TestOCIReadinessHelpers::test_create_tries_next_ad_after_limit_exceeded
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_default_legacy_split_renders_test_seasons
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_split_flags_render_without_legacy_test_seasons
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_profile_seasons_default_to_full_surface_for_legacy_split
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_profile_seasons_default_to_full_surface_plus_split_seasons
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_profile_seasons_reject_missing_split_season
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_rejects_mixed_legacy_and_split_flags
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_rejects_half_specified_split_flags
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_rejects_overlapping_split_flags
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_writes_local_split_metadata
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_seed_metadata_records_provider_box_and_determinism
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_audit_driver_provenance_base_records_determinism_intent
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_launch_queue_command_uses_split_flags_and_seed_metadata
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_render_profile_command_logs_pa_predictions
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_render_profile_command_threads_estimated_pa_mode
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_launch_profile_queue_command_uses_profile_artifacts_and_metadata
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_retrieve_profile_one_fetches_simulation_seed_dirs
+FAILED tests/test_audit_driver.py::TestAuditAttachRetrieveMode::test_screen_mode_uses_phase1_retrieve
+FAILED tests/test_audit_driver.py::TestAuditAttachRetrieveMode::test_profiles_mode_uses_simulation_seed_retrieve
+FAILED tests/test_audit_driver.py::TestAuditAttachRetrieveMode::test_unknown_mode_raises
+FAILED tests/test_audit_driver.py::TestStage1SeedDirsViaSymlinks::test_stage1_seed_dirs_clean_creation
+FAILED tests/test_audit_driver.py::TestStage1SeedDirsViaSymlinks::test_stage1_seed_dirs_idempotent
+FAILED tests/test_audit_driver.py::TestStage1SeedDirsViaSymlinks::test_stage1_seed_dirs_integration_with_aggregate
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_all_ok_tears_down_everything
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_one_partial_preserves_only_that_box
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_all_partial_preserves_all
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_missing_key_defaults_to_preserve
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_empty_results_preserves_all
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_empty_boxes_list_noop
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_malformed_values_preserve
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_provider_delete_raises_on_one_box
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_retrieve_results_none_raises_typeerror
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_stray_key_logged_no_crash
+ERROR tests/test_audit_driver.py::TestTeardownAllReturn::test_teardown_all_returns_count_of_successful_deletes
+ERROR tests/test_audit_driver.py::TestAuditAttachRetrieveMode::test_select_boxes_for_attach_preserves_original_order
+ERROR tests/test_audit_driver.py::TestAuditAttachRetrieveMode::test_select_boxes_for_attach_rejects_unknown_box
+ERROR tests/test_audit_driver.py::TestPollResilience::test_one_timeout_doesnt_kill_poll
+ERROR tests/test_audit_driver.py::TestPollResilience::test_one_generic_exception_doesnt_kill_poll
+ERROR tests/test_audit_driver.py::TestPollResilience::test_done_marker_still_recognized
+= 37 failed, 10442 passed, 25 skipped, 6 deselected, 1 xfailed, 16 errors in 1515.36s (0:25:15) =

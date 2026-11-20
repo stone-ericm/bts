@@ -855,3 +855,17 @@ BTS health CRITICAL alert(s):
 WARN attention:
 - [saver_state] Prior slate 2027-03-24 ET. The saver flag contradicts the recorded streak. The saver counted as spent. (1st observed day) This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
 ````
+
+## Round 1 edits
+
+Commit `e608e899` on `fix/wr-c1`. The diff covers `CLAUDE.md` and `tests/test_wr_c1_history.py` with 64 insertions and 3 deletions.
+
+1. `test_historical_second_manual_read_is_bounded` waits for a readable legacy observation to be selected, replaces its file with a writerless FIFO, and verifies the exact historical WARN for the unreadable reread. The scratch `read_text` mutant failed at the four-second child deadline after the replacement was confirmed (1 failed in 4.31s).
+2. `test_historical_state_rejects_non_object_json` verifies the exact malformed-or-unreadable CRITICAL for arrays and strings at both observation paths. Removing the historical non-object exception in a scratch copy produced a generic crash CRITICAL in all four cases (4 failed in 0.32s).
+3. `test_eod_scheduler_uses_processed_observation` points the rehearsal at the repository root and generates a synthetic disk WARN to exercise the dispatcher receipt. The existing DM, contest-copy and receipt assertions all pass.
+4. The W20 entry in `CLAUDE.md` records both inherited limits. A writerless FIFO at a date-named pick file blocks calibration before the contest check. A boolean saver season is diagnosed as another season.
+5. Before rerunning the four slice harnesses on the final head, add a `bts.health.runner.datetime` pin to the archived `slice-1-carbon/rehearsal_v3_harness.py`.
+
+The focused run passed 2,973 tests in 20.71 seconds. Wrapper logs are `round1-focused.log`, `round1-mutant-reread.log` and `round1-mutant-nonobject.log` under `.codex-review/wr-c1/`.
+
+The one fast-suite run on committed `e608e899` finished in 25:15 with 10,442 passed, 37 failed, 16 errors, 25 skipped, 6 deselected and 1 xfailed. All 53 FAILED and ERROR IDs matched `~/bts-runs/gate-failed.txt` exactly, with zero additions and zero omissions. The wrapper recorded exit 1. See `.codex-review/wr-c1/round1-gate.log` and `round1-gate.log.watch`.
