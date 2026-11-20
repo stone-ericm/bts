@@ -321,7 +321,8 @@ def _dispatch_with_acknowledgement(
                 prior = _read_receipt(directory_fd, path.name)
             except Exception as error:
                 storage_error = f"{stage} at {status_path}: {_unknown_alert_error_text(error)}"
-        if (prior and prior.get("status") == "sent" and prior.get("sent_day") == day
+        if (prior and prior.get("schema_version") == HEALTH_DM_STATUS_SCHEMA_VERSION
+                and prior.get("status") == "sent" and prior.get("sent_day") == day
                 and prior.get("sent_sources") == alert_key and _usable_message_id(prior.get("message_id"))):
             return False
 

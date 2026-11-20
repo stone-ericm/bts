@@ -94,17 +94,20 @@ def test_direct_unconfirmed_uses_own_receipt_after_commit(world):
     config, directory, _, _ = world
     shared(directory).parent.mkdir()
     shared(directory).write_bytes(b"[]")
+    checkpoints = []
 
-    def send(recipient, body):
-        assert scheduler.load_state(DAY, directory).pick_locked
-        assert load_decision(DAY, directory)["delivery_status"] == "locked_unconfirmed"
-        assert body == copy(DAY)
+    def send(_recipient, _body):
+        checkpoints.append((scheduler.load_state(DAY, directory), load_decision(DAY, directory)))
         return "ack"
 
     alert.send_dm.side_effect = send
     assert direct(config, directory) is False
-    alert.send_dm.assert_called_once()
-    assert json.loads(own(directory).read_bytes())["message_id"] == "ack"
+    alert.send_dm.assert_called_once_with("offline.test", copy(DAY))
+    (state, decision), = checkpoints
+    assert state.pick_locked and state.committed_pick_written
+    assert decision["delivery_status"] == "locked_unconfirmed"
+    receipt = json.loads(own(directory).read_bytes())
+    assert receipt["status"] == "sent" and receipt["message_id"] == "ack"
     assert shared(directory).read_bytes() == b"[]"
     dm.send_dm.assert_not_called()
 
@@ -124,23 +127,34 @@ def test_classified_restart_preserves_existing_commit_and_terminal_result(world,
                        delivery_status=prior if prior != "terminal" else "locked_unconfirmed",
                        primary={"batter_id": daily.pick.batter_id, "batter_name": daily.pick.batter_name},
                        scoreable=True)
-    if prior == "write_none":
-        monkeypatch.setattr("bts.daily_decision.write_decision", Mock(return_value=None))
+    writer = Mock(return_value=None) if prior == "write_none" else None
+    if writer is not None:
+        monkeypatch.setattr("bts.daily_decision.write_decision", writer)
     original = path.read_bytes() if path.exists() else None
+    checkpoints = []
 
-    def send(recipient, body):
-        state = scheduler.load_state(DAY, directory)
-        assert state.pick_locked
-        if original is not None:
-            assert path.read_bytes() == original and state.committed_pick_written
-        elif prior == "write_none":
-            assert not path.exists() and not state.committed_pick_written
-        else:
-            assert load_decision(DAY, directory)["delivery_status"] == "locked_unconfirmed"
+    def send(_recipient, body):
+        if "DELIVERY OUTCOME UNKNOWN" in body:
+            checkpoints.append((
+                scheduler.load_state(DAY, directory),
+                path.read_bytes() if path.exists() else None,
+                writer.call_count if writer is not None else None,
+            ))
         return "ack"
 
     alert.send_dm.side_effect = send
     scheduler.run_day(DAY, config)
+    (state, decision_bytes, write_attempts), = checkpoints
+    assert state.pick_locked
+    if original is not None:
+        assert decision_bytes == path.read_bytes() == original and state.committed_pick_written
+    elif prior == "write_none":
+        assert decision_bytes is None and not state.committed_pick_written and write_attempts == 1
+    else:
+        assert json.loads(decision_bytes)["delivery_status"] == "locked_unconfirmed"
+        assert state.committed_pick_written
+    receipt = json.loads(own(directory).read_bytes())
+    assert receipt["status"] == "sent" and receipt["message_id"] == "ack"
     bodies = [call.args[1] for call in alert.send_dm.call_args_list]
     assert [body for body in bodies if "DELIVERY OUTCOME UNKNOWN" in body] == [copy(DAY)]
     assert any("[missed_pick]" in body for body in bodies) is (prior == "write_none")
@@ -227,16 +241,37 @@ def test_legacy_health_dispatch_matches_base(world, tmp_path, caplog, case, sour
         assert [entry.message for entry in caplog.records] == logs
 
 
-@pytest.mark.parametrize("injury", ["truncated", "array", "null", "bad_sent", "directory", "fifo",
-                                    "unreadable", "symlink", "hardlink", "dir_link", "blocked_parent"])
-def test_unknown_receipt_ignores_unusable_path(world, injury):
+@pytest.mark.parametrize("route", ["direct", "classification"])
+@pytest.mark.parametrize("injury", [
+    "truncated", "array", "null", "bad_schema_type", "wrong_schema", "missing_schema",
+    "bad_status", "bad_sent_day", "bad_sent_sources", "bad_message_id",
+    "directory", "fifo", "unreadable", "symlink", "hardlink", "dir_link", "blocked_parent",
+])
+def test_unknown_receipt_ignores_unusable_path(world, monkeypatch, route, injury):
     config, directory, _, _ = world
+    prepare_run_day(monkeypatch)
+    daily = daily_pick()
+    daily.delivery_attempted = True
+    picks.save_pick(daily, directory)
     path = own(directory)
     health = shared(directory)
     health.parent.mkdir()
-    valid = json.dumps({"status": "sent", "sent_day": DAY, "sent_sources": ["CRITICAL:late_delivery"],
-                        "message_id": "old"}).encode()
-    health.write_bytes(valid)
+    valid = {
+        "schema_version": alert.HEALTH_DM_STATUS_SCHEMA_VERSION, "status": "sent", "sent_day": DAY,
+        "sent_sources": ["CRITICAL:late_delivery"], "message_id": "old",
+    }
+    shared_bytes = json.dumps(valid).encode()
+    health.write_bytes(shared_bytes)
+    malformed = {
+        "truncated": b"{", "array": b"[]", "null": b"null",
+        "bad_schema_type": json.dumps(valid | {"schema_version": ["damaged"]}).encode(),
+        "wrong_schema": json.dumps(valid | {"schema_version": "unknown"}).encode(),
+        "missing_schema": json.dumps({k: v for k, v in valid.items() if k != "schema_version"}).encode(),
+        "bad_status": json.dumps(valid | {"status": ["sent"]}).encode(),
+        "bad_sent_day": json.dumps(valid | {"sent_day": [DAY]}).encode(),
+        "bad_sent_sources": json.dumps(valid | {"sent_sources": "CRITICAL:late_delivery"}).encode(),
+        "bad_message_id": json.dumps(valid | {"message_id": 17}).encode(),
+    }
     if injury == "blocked_parent":
         path.parent.touch()
     elif injury == "dir_link":
@@ -252,25 +287,29 @@ def test_unknown_receipt_ignores_unusable_path(world, injury):
         elif injury == "hardlink":
             os.link(health, path)
         else:
-            path.write_bytes({"truncated": b"{", "array": b"[]", "null": b"null",
-                              "bad_sent": valid.replace(b'"old"', b'null'),
-                              "unreadable": valid}[injury])
+            path.write_bytes(shared_bytes if injury == "unreadable" else malformed[injury])
             if injury == "unreadable":
                 path.chmod(0)
+
     def timed_out(*_):
         raise BaseException("receipt I/O timed out")
 
     previous = signal.signal(signal.SIGALRM, timed_out)
     signal.alarm(5)
     try:
-        assert direct(config, directory) is False
+        if route == "direct":
+            assert direct(config, directory, daily) is False
+        else:
+            assert scheduler.run_day(DAY, config) is None
     finally:
         signal.alarm(0)
         signal.signal(signal.SIGALRM, previous)
     alert.send_dm.assert_called_once_with("offline.test", copy(DAY))
-    assert health.read_bytes() == valid
-    if injury in {"truncated", "array", "null", "bad_sent"}:
-        assert json.loads(path.read_bytes())["message_id"] == "health-dm"
+    assert health.read_bytes() == shared_bytes
+    if injury in malformed:
+        assert json.loads(path.read_bytes()) == valid | {"message_id": "health-dm"}
+        scheduler.run_day(DAY, config)
+        alert.send_dm.assert_called_once()
     elif injury in {"fifo", "directory", "symlink", "hardlink"}:
         assert os.path.lexists(path)
 
@@ -462,14 +501,11 @@ def test_unknown_alert_operator_copy(world, monkeypatch, route, scenario, hour, 
     if scenario == "switched_private":
         config["scheduler"].update(pick_delivery="private", entry_intent="research")
 
-    def send(recipient, body):
-        assert f"the MLB entry for {DAY} ET" in body
-        assert "Do not enter or change a pick based on this alert." in body
-        assert f"If {DAY} is still today in ET and its submission window is open" in body
-        if now[0].date().isoformat() != DAY or now[0] >= cutoff:
-            assert scenario in {"overnight", "cutoff", "first_pitch"}
-        assert entry.get(DAY) == (daily.pick.batter_id if entered else None)
-        return None if alert.send_dm.call_count == 1 else "ack"
+    checkpoints = []
+
+    def send(_recipient, body):
+        checkpoints.append((now[0], entry.get(DAY), body))
+        return None if len(checkpoints) == 1 else "ack"
 
     alert.send_dm.side_effect = send
     for _ in range(2):
@@ -478,6 +514,15 @@ def test_unknown_alert_operator_copy(world, monkeypatch, route, scenario, hour, 
         else:
             scheduler.run_day(DAY, config)
     assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+    for observed_at, entered_batter, body in checkpoints:
+        assert f"the MLB entry for {DAY} ET" in body
+        assert "Do not enter or change a pick based on this alert." in body
+        assert f"If {DAY} is still today in ET and its submission window is open" in body
+        window_closed = observed_at.date().isoformat() != DAY or observed_at >= cutoff
+        assert window_closed is (scenario in {"overnight", "cutoff", "first_pitch"})
+        assert entered_batter == (daily.pick.batter_id if entered else None)
+    receipt = json.loads(own(directory).read_bytes())
+    assert receipt["status"] == "sent" and receipt["message_id"] == "ack"
 
 
 @pytest.mark.parametrize("control", ["dm", "public", "private", "stale", "pre_attempt", "eod",
