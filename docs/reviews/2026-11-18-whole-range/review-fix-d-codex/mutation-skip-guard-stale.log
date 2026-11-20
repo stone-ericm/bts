@@ -1,0 +1,43 @@
+Command ['/Users/eric/projects/bts-work/wr-review-d/.venv/bin/python', '-m', 'pytest', '-p', 'no:cacheprovider', '-q', '--tb=short', '-ra', 'tests/test_deploy_canary.py', 'tests/test_deploy_hold_monitor.py', 'tests/test_deploy_hold_tool.py', 'tests/test_deploy_workflow.py', 'tests/test_entry_intent.py', 'tests/test_install_deploy_guard.py', 'tests/test_web_saver.py'] cwd /Users/eric/projects/bts-work/wr-review-d/.codex-review/wr-d/mutation-scratch-q9tn5xil
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-review-d/.codex-review/wr-d/mutation-scratch-q9tn5xil
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 242 items
+
+tests/test_deploy_canary.py .....                                        [  2%]
+tests/test_deploy_hold_monitor.py .......                                [  4%]
+tests/test_deploy_hold_tool.py .......s.....F.....F..................... [ 21%]
+........................................................................ [ 51%]
+...........................................                              [ 69%]
+tests/test_deploy_workflow.py ..                                         [ 70%]
+tests/test_entry_intent.py ............................................. [ 88%]
+.........                                                                [ 92%]
+tests/test_install_deploy_guard.py ...                                   [ 93%]
+tests/test_web_saver.py ...............                                  [100%]
+
+=================================== FAILURES ===================================
+__ test_preflight_checks_installed_guard_against_exact_target_blob[mismatch] ___
+tests/test_deploy_hold_tool.py:317: in test_preflight_checks_installed_guard_against_exact_target_blob
+    owner.preflight(1000, target)
+scripts/install-deploy-guard-hetzner.sh:505: in preflight
+    if not re.fullmatch(rb"[0-9]+\n", output):
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_deploy_hold_tool.py:313: in require
+    pytest.fail(f"unexpected command: {argv!r}")
+E   Failed: unexpected command: ['/usr/bin/sudo', '-n', '-Hu', 'bts', '--', '/usr/bin/git', 'config', '--global', '--add', 'safe.directory', '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-117/test_preflight_checks_installe1']
+_____ test_remote_only_target_with_stale_guard_never_fetches_into_checkout _____
+tests/test_deploy_hold_tool.py:372: in test_remote_only_target_with_stale_guard_never_fetches_into_checkout
+    owner.preflight(1000, target)
+scripts/install-deploy-guard-hetzner.sh:505: in preflight
+    if not re.fullmatch(rb"[0-9]+\n", output):
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_deploy_hold_tool.py:367: in require
+    pytest.fail(f"unexpected command: {argv!r}")
+E   Failed: unexpected command: ['/usr/bin/sudo', '-n', '-Hu', 'bts', '--', '/usr/bin/git', 'config', '--global', '--add', 'safe.directory', '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-117/test_remote_only_target_with_s0']
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_deploy_hold_tool.py:140: no Python 3.11 interpreter on this machine (set BTS_TEST_PYTHON311)
+FAILED tests/test_deploy_hold_tool.py::test_preflight_checks_installed_guard_against_exact_target_blob[mismatch]
+FAILED tests/test_deploy_hold_tool.py::test_remote_only_target_with_stale_guard_never_fetches_into_checkout
+================== 2 failed, 239 passed, 1 skipped in 21.15s ===================

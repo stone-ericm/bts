@@ -1,0 +1,4 @@
+real guard.call child session complete late write True reported None
+real guard.call child session timeout late write False reported TimeoutExpired
+real guard.call child session TERM late write False reported TimeoutExpired
+real guard.call child session KILL late write False reported None
