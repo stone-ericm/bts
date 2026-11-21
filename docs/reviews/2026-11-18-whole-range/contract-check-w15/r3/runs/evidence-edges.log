@@ -1,0 +1,5 @@
+unreadable UTF-16 bytes / gate evidence errors [('evidence', 'FileExistsError')] evidence False published True original still active True
+unreadable UTF-16 bytes / gate status errors [('status', 'FileExistsError')] evidence True published False original still active True
+unreadable UTF-16 bytes / gate both errors [('evidence', 'FileExistsError'), ('status', 'FileExistsError')] evidence False published False original still active True
+unreadable UTF-16 bytes / gate none errors [] evidence True published True original still active False
+all-valid initial cache + raw-only rejected candidate: base includes and persists game 109
