@@ -1,0 +1,3 @@
+Inline Python on Python 3.11.18: OK
+python: Python 3.12.16 all ordinary + chmod0 + deploy_failed + special/malformed checks OK
+python3.11: Python 3.11.18 all ordinary + chmod0 + deploy_failed + special/malformed checks OK
