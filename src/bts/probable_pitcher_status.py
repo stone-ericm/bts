@@ -23,6 +23,11 @@ FIELDS = {
 }
 
 
+def display(value):
+    """Show a path or file name read from disk with no backtick, reversibly (W15b)."""
+    return str(value).replace("\\", "\\\\").replace("`", "\\x60")
+
+
 class NonRegularFile(OSError):
     """The opened descriptor is not a regular file."""
 

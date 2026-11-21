@@ -13,7 +13,7 @@ from pathlib import Path
 
 from bts.probable_pitcher_status import (
     COUNTS, ET, EVIDENCE, MAX_BYTES, SCHEMA, SOURCE, NonRegularFile,
-    directory_exists, open_regular, read_record,
+    directory_exists, display, open_regular, read_record,
 )
 
 
@@ -37,7 +37,7 @@ def warn(message):
             print(line, file=stream, flush=True)
         else:
             stream.flush()
-            os.write(fd, f"{line}\n".encode(stream.encoding or "utf-8", errors="replace"))
+            os.write(fd, f"{line}\n".encode(stream.encoding or "utf-8", stream.errors or "backslashreplace"))
     except Exception:
         pass
 
@@ -244,7 +244,7 @@ def report(cache, original, special, reason, scanned, outcomes, counts):
             preserved = preserve(folder, target, original, original_sha)
         except Exception as error:
             preserved_ok = False
-            warn(f"could not preserve probable-pitcher cache evidence at {target} ({type(error).__name__})")
+            warn(f"could not preserve probable-pitcher cache evidence at {display(target)} ({type(error).__name__})")
 
     observation = dict(
         reason=reason, cache_path=str(cache), original_sha256=original_sha, preserved=preserved,
@@ -260,7 +260,7 @@ def report(cache, original, special, reason, scanned, outcomes, counts):
     try:
         publish(target, row)
     except Exception as error:
-        warn(f"could not write probable-pitcher cache status at {target} ({type(error).__name__})")
+        warn(f"could not write probable-pitcher cache status at {display(target)} ({type(error).__name__})")
         return False
     return preserved_ok
 
@@ -280,7 +280,7 @@ def build(cache, raw):
         noun = "entry" if dropped == 1 else "entries"
         sample = ", ".join(str(outcome[0]) for outcome in outcomes[:10])
         warn(
-            f"probable-pitcher cache {cache}: dropped {dropped} invalid {noun} "
+            f"probable-pitcher cache {display(cache)}: dropped {dropped} invalid {noun} "
             f"({aliases} recovered from valid cache entries, {rescanned} rescanned from raw feeds, "
             f"{unusable} with unusable feeds, {missing} without feeds); first game ids: {sample}"
         )

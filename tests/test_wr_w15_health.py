@@ -316,10 +316,11 @@ def test_sixteen_records_send_one_bounded_warning(tmp_path, monkeypatch, long_pa
     bad = f"{DAY}.bad.json"
     (folder / bad).write_text("{")
     result, = probable_pitcher_cache.check(folder, DAY)
-    path = "data/health_state/probable_pitcher_cache" if long_path else str(folder)
+    # W15b (amendment 3): the summary names no path, long or short.
     assert result.message == (
         "Probable-pitcher cache: 16 observations (invalid entries, status unreadable, unreadable cache) "
-        f"recorded today or yesterday; details in {path}. "
+        "recorded today or yesterday; details in this health run's log and in "
+        "health_state/probable_pitcher_cache beside the picks directory. "
         "Keep the active cache, raw feeds, evidence copies and other copies intact. "
         "Send this alert promptly to the supervised BTS lead Claude session (bts-lead), or to Eric if it is unavailable, "
         "to review the latest preview and any pending pick before the next selection; for an unreadable cache, "

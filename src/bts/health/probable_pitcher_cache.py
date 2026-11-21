@@ -8,20 +8,18 @@ from fnmatch import fnmatchcase
 from pathlib import Path
 
 from bts.health.alert import Alert
-from bts.probable_pitcher_status import SOURCE, directory_exists, read_record
+from bts.probable_pitcher_status import SOURCE, directory_exists, display, read_record
 
 
 ROUTE = "to the supervised BTS lead Claude session (bts-lead), or to Eric if the session is unavailable."
 KEEP = "Keep the active cache, raw feeds, any named evidence copy and other available copies intact for review."
 KINDS = {"unreadable_cache": "unreadable cache", "invalid_entries": "invalid entries"}
 STATUS_UNREADABLE = "status unreadable"
-DEFAULT_STATUS_DIR = Path("data/health_state") / SOURCE
-MAX_ALERT_LENGTH = 600
 log = logging.getLogger(__name__)
 
 
 def log_unreadable(path):
-    log.warning("Probable-pitcher cache status unreadable at %s. Send this alert %s", path, ROUTE)
+    log.warning("Probable-pitcher cache status unreadable at %s. Send this alert %s", display(path), ROUTE)
 
 
 def message(row):
@@ -30,7 +28,7 @@ def message(row):
         evidence = "This observation names no evidence copy. That run left the active cache unchanged."
     else:
         copy = Path(row["cache_path"]).parent / "rejected" / row["preserved"]
-        evidence = f"That run recorded an evidence copy at {copy}."
+        evidence = f"That run recorded an evidence copy at {display(copy)}."
 
     rescanned = row["rescanned"]
     if row["reason"] == "unreadable_cache":
@@ -61,20 +59,20 @@ def message(row):
     )
 
 
-def summarize(status_dir, today, identities, kinds):
+def summarize(today, identities, kinds):
+    # Fixed words, a count and fixed labels only: no path or other text read from disk, so the
+    # summary can never be OOM evidence for the attention policy (W15b) and stays under 600 characters.
     count = len(identities)
     noun = "observation" if count == 1 else "observations"
     labels = ", ".join(sorted(kinds))
-    template = (
-        f"Probable-pitcher cache: {count} {noun} ({labels}) recorded today or yesterday; details in {{}}. "
+    text = (
+        f"Probable-pitcher cache: {count} {noun} ({labels}) recorded today or yesterday; "
+        "details in this health run's log and in health_state/probable_pitcher_cache beside the picks directory. "
         "Keep the active cache, raw feeds, evidence copies and other copies intact. "
         "Send this alert promptly to the supervised BTS lead Claude session (bts-lead), "
         "or to Eric if it is unavailable, to review the latest preview and any pending pick before "
         "the next selection; for an unreadable cache, to secure a usable R2 copy before the next successful sync."
     )
-    text = template.format(status_dir)
-    if len(text) > MAX_ALERT_LENGTH:
-        text = template.format(DEFAULT_STATUS_DIR)
     payload = json.dumps(sorted(identities), separators=(",", ":")).encode("utf-8")
     digest = hashlib.sha256(payload).hexdigest()[:16]
     return Alert("WARN", SOURCE, text, incident_key=f"{SOURCE}:{today}:{digest}")
@@ -87,7 +85,7 @@ def check(status_dir: Path, today: date) -> list[Alert]:
         paths = sorted(status_dir.iterdir())
     except OSError:
         log_unreadable(status_dir)
-        return [summarize(status_dir, today, [status_dir.name], {STATUS_UNREADABLE})]
+        return [summarize(today, [status_dir.name], {STATUS_UNREADABLE})]
 
     patterns = (f"{today}.*.json", f"{today - timedelta(days=1)}.*.json")
     identities = []
@@ -105,4 +103,4 @@ def check(status_dir: Path, today: date) -> list[Alert]:
         log.warning("%s", message(row))
         identities.append(row["identity"])
         kinds.add(KINDS[row["reason"]])
-    return [summarize(status_dir, today, identities, kinds)] if identities else []
+    return [summarize(today, identities, kinds)] if identities else []
