@@ -1,0 +1,47 @@
+  upload models/probable_pitcher_lookup.json -> objects/5e160c23c0d35812dd2b008fcf45f3fb09da1d9a86ae2f6b0d308b32dd641b1e/probable_pitcher_lookup.json (0.0 MB)
+  manifest: 0 → 1 files
+  upload models/probable_pitcher_lookup.json -> objects/537ed15efd87bf8ea20dd044c5852ce5c5a859f415dc5f50f5e5790a808147d6/probable_pitcher_lookup.json (0.0 MB)
+  manifest: 1 → 1 files
+  skip models/probable_pitcher_lookup.json (unchanged)
+  manifest: 1 → 1 files
+route service writer box/projects/bts/data/health_state/probable_pitcher_cache_status.json matches reader True can change live slot True
+route 03:00 cron writer box/projects/bts/data/health_state/probable_pitcher_cache_status.json matches reader True can change live slot True
+route same-clone backtest writer box/projects/bts/data/health_state/probable_pitcher_cache_status.json matches reader True can change live slot True
+route separate checkout writer box/projects/backtest/data/health_state/probable_pitcher_cache_status.json matches reader False can change live slot False
+route pytest tmp cache writer box/tmp/test-one/health_state/probable_pitcher_cache_status.json matches reader False can change live slot False
+route flat patched cache writer box/projects/bts/health_state/probable_pitcher_cache_status.json matches reader False can change live slot False
+route service custom picks writer box/projects/bts/data/health_state/probable_pitcher_cache_status.json matches reader False can change live slot True
+event UTC/ET 2027-01-01T04:59:00+00:00 2026-12-31T23:59:00-05:00
+event UTC/ET 2027-01-01T05:01:00+00:00 2027-01-01T00:01:00-05:00
+P5 unchanged D event sends again for D+1; later unreadable same day suppressed; other source repeats it
+P6 rendered mixed WARN digest:
+BTS health WARN attention:
+- [probable_pitcher_cache] Probable-pitcher cache: 2 invalid entries dropped at 2027-01-01T04:59:00+00:00 (1 rescanned from raw feeds, 1 without a feed on this machine; games 100, 101). Features for those games use the rescanned probable pitchers, or none where the feed is missing. No action is needed for rescanned games. Do not delete or edit the cache by hand: entries whose feeds are not on this machine cannot be rebuilt. Paste this alert as written into the supervised BTS lead Claude session (`bts-lead`), or keep it for the next such session if none is running. It is not time-bound: the 03:00 preview and every lineup check already use the lookup without these entries, waiting does not change what they compute, and the alert repeats daily while the cause remains. (1st observed day)
+P6 rendered invalid only (characters=795):
+BTS health WARN attention:
+- [probable_pitcher_cache] Probable-pitcher cache: 1 invalid entry dropped at 2027-01-01T04:59:00+00:00 (1 rescanned from raw feeds, 0 without a feed on this machine; games 100). Features for those games use the rescanned probable pitchers, or none where the feed is missing. No action is needed for rescanned games. Do not delete or edit the cache by hand: entries whose feeds are not on this machine cannot be rebuilt. Paste this alert as written into the supervised BTS lead Claude session (`bts-lead`), or keep it for the next such session if none is running. It is not time-bound: the 03:00 preview and every lineup check already use the lookup without these entries, waiting does not change what they compute, and the alert repeats daily while the cause remains.
+P6 rendered invalid only (characters=795):
+BTS health WARN attention:
+- [probable_pitcher_cache] Probable-pitcher cache: 1 invalid entry dropped at 2027-01-01T04:59:00+00:00 (0 rescanned from raw feeds, 1 without a feed on this machine; games 101). Features for those games use the rescanned probable pitchers, or none where the feed is missing. No action is needed for rescanned games. Do not delete or edit the cache by hand: entries whose feeds are not on this machine cannot be rebuilt. Paste this alert as written into the supervised BTS lead Claude session (`bts-lead`), or keep it for the next such session if none is running. It is not time-bound: the 03:00 preview and every lineup check already use the lookup without these entries, waiting does not change what they compute, and the alert repeats daily while the cause remains.
+P6 rendered invalid only (characters=874):
+BTS health WARN attention:
+- [probable_pitcher_cache] Probable-pitcher cache: 10 invalid entries dropped at 2027-01-01T04:59:00+00:00 (0 rescanned from raw feeds, 10 without a feed on this machine; games 100000, 100001, 100002, 100003, 100004, 100005, 100006, 100007, 100008, 100009). Features for those games use the rescanned probable pitchers, or none where the feed is missing. No action is needed for rescanned games. Do not delete or edit the cache by hand: entries whose feeds are not on this machine cannot be rebuilt. Paste this alert as written into the supervised BTS lead Claude session (`bts-lead`), or keep it for the next such session if none is running. It is not time-bound: the 03:00 preview and every lineup check already use the lookup without these entries, waiting does not change what they compute, and the alert repeats daily while the cause remains.
+P6 rendered unreadable rebuild/no-feed/no-write/refill (same body):
+BTS health WARN attention:
+- [probable_pitcher_cache] Probable-pitcher cache was unreadable at 2027-01-01T04:59:00+00:00 and was rebuilt from the raw feeds present; entries for games whose feeds are not on this machine were lost. Do not delete or edit the cache by hand. Paste this alert as written into the supervised BTS lead Claude session (`bts-lead`), or keep it for the next such session if none is running. It is not time-bound: the lost entries cannot be recovered by acting sooner, and the rebuilt cache is what the 03:00 preview and every lineup check now use.
+P6 unreadable status:
+BTS health WARN attention:
+- [probable_pitcher_cache] probable-pitcher cache status unreadable at probable_pitcher_cache_status.json
+single slot D+1 observation overwrites and hides D from a late D run
+send exception failed H6 note None empty future run attempted False
+send blank response sent H6 note None empty future run attempted False
+blocked until 200 ms probe timer base cache FIFO
+blocked until 200 ms probe timer base raw FIFO
+blocked until 200 ms probe timer insecure fixed-name status temp FIFO
+blind atomic rename replaces a FIFO destination without error
+existing fd-checked reader rejects FIFO: not a regular file
+warning emission can raise BrokenPipeError on closed stderr
+unreadable P6 case, no rewrite: { WARNING: unreadable probable-pitcher cache /Users/eric/projects/bts-work/wr-check-w15/.codex-review/wr-check-w15/runs/health-rjkdzoxo/backup/models/probable_pitcher_lookup.json (JSONDecodeError); rebuilding it from raw feeds
+cache-only game 999 recoverable via outgoing R2 manifest after first sync; second sync advances previous pointer
+active nested team group key: [(1, True, [51]), (22, False, 52)] TypeError: unhashable type: 'list'
+active nested team group key: [(1, True, {'id': 51}), (22, False, 52)] TypeError: unhashable type: 'dict'
