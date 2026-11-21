@@ -1,0 +1,25 @@
+=== 1A. Replay Codex probe_journal.py Sequence (284dc97a vs 0ce9e5ee) ===
+  first-eod : 284dc97a sent=[741] | 0ce9e5ee sent=[741]
+  eod-restart: 284dc97a alerts=[['CRITICAL', 'analytics_artifacts_missing'], ['WARN', 'probable_pitcher_cache']] rejected=[1009] receipt=failed | 0ce9e5ee alerts=[['WARN', 'analytics_artifacts_missing'], ['WARN', 'probable_pitcher_cache']] rejected=[] receipt=sent
+  genuine control 'systemd_oom_kill': CRITICAL fired & sent (860 chars < 1000)
+  genuine control 'systemd_oom_killer': CRITICAL fired & sent (887 chars < 1000)
+  genuine control 'kernel_oom': CRITICAL fired & sent (845 chars < 1000)
+  genuine control 'sigkill_9': CRITICAL fired & sent (877 chars < 1000)
+  genuine control 'status_137': CRITICAL fired & sent (878 chars < 1000)
+
+=== 1B. Replay Codex Finding 2 (Timestamp Backtick & Path Line Break) + StderrProxy ===
+  284dc97a leaked backtick, newline, and 'oom' into log and dropped StderrProxy output;
+  0ce9e5ee normalized timestamp to 2027-01-01T04:59:00+00:00, omitted disk path, preserved raw record & key, and wrote to StderrProxy.
+
+=== 2. Exhaustive Adversarial Sweep of Every W15 Text (Logged, Stderr, Sent) ===
+  Verified 18 rendered W15 lines under hostile disk/path/timestamp inputs: 0 disk text, 0 OOM matches, 0 backticks, 0 control/newline chars.
+
+=== 3. Byte-Identity of Cache, Evidence, Records, Identities, and incident_keys (284dc97a vs 0ce9e5ee) ===
+  100% byte-identical across 284dc97a and 0ce9e5ee:
+    rewritten_cache_sha: 407071d0d597d0e3...
+    evidence_files     : ['probable_pitcher_lookup.20261231T200000Z.c274b0d7a524.json']
+    status_files       : ['2026-12-30.invalid_entries.cccccccccccc.json', '2026-12-31.invalid_entries.51c8a68d1880.json', '2026-12-31.oom`bad.json', '2026-12-31.unreadable_cache.48fc8ecde4ac.json']
+    health_incident_key: probable_pitcher_cache:2026-12-31:66331af4741c24f8
+    fifo_incident_key  : probable_pitcher_cache:2026-12-31:e85c4b2f897beec4
+
+ALL ROUND-2 ITEMS 1-3 DIRECT PROBES COMPLETED.
