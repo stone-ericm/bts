@@ -1,14 +1,15 @@
 """Read recent probable-pitcher cache observations for end-of-day health."""
 
 import hashlib
+import re
 import json
 import logging
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from fnmatch import fnmatchcase
 from pathlib import Path
 
 from bts.health.alert import Alert
-from bts.probable_pitcher_status import SOURCE, directory_exists, display, read_record
+from bts.probable_pitcher_status import SOURCE, directory_exists, read_record
 
 
 ROUTE = "to the supervised BTS lead Claude session (bts-lead), or to Eric if the session is unavailable."
@@ -18,17 +19,30 @@ STATUS_UNREADABLE = "status unreadable"
 log = logging.getLogger(__name__)
 
 
-def log_unreadable(path):
-    log.warning("Probable-pitcher cache status unreadable at %s. Send this alert %s", display(path), ROUTE)
+RECORD_NAME = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}\.(?:invalid_entries|unreadable_cache)\.[0-9a-f]{12}\.json")
+FOLDER = "the status folder (health_state/probable_pitcher_cache beside the picks directory)"
+
+
+# W15b round 1 (amendment 4): no logged or sent W15 text carries text read from disk or configuration
+# (paths, file names, raw field values). The scheduler journal is scanned for OOM words by the shadow
+# check and alert text by the attention policy; fixed words, numbers and our own strict names cannot match.
+def log_unreadable(what):
+    log.warning("Probable-pitcher cache status unreadable: %s. Send this alert %s", what, ROUTE)
+
+
+def entry_label(name, day):
+    if RECORD_NAME.fullmatch(name):
+        return f"record {name}"
+    return f"an entry for {day} whose name is not a status record name"
 
 
 def message(row):
-    at = row["recorded_at"]
+    at = datetime.fromisoformat(row["recorded_at"]).isoformat()
     if row["preserved"] is None:
         evidence = "This observation names no evidence copy. That run left the active cache unchanged."
     else:
-        copy = Path(row["cache_path"]).parent / "rejected" / row["preserved"]
-        evidence = f"That run recorded an evidence copy at {display(copy)}."
+        evidence = (f"That run recorded an evidence copy named {row['preserved']} "
+                    "in the rejected folder beside the cache.")
 
     rescanned = row["rescanned"]
     if row["reason"] == "unreadable_cache":
@@ -84,19 +98,20 @@ def check(status_dir: Path, today: date) -> list[Alert]:
             return []
         paths = sorted(status_dir.iterdir())
     except OSError:
-        log_unreadable(status_dir)
+        log_unreadable(FOLDER)
         return [summarize(today, [status_dir.name], {STATUS_UNREADABLE})]
 
-    patterns = (f"{today}.*.json", f"{today - timedelta(days=1)}.*.json")
+    days = (str(today), str(today - timedelta(days=1)))
     identities = []
     kinds = set()
     for path in paths:
-        if not any(fnmatchcase(path.name, pattern) for pattern in patterns):
+        day = next((day for day in days if fnmatchcase(path.name, f"{day}.*.json")), None)
+        if day is None:
             continue
         try:
             row = read_record(path)
         except (OSError, ValueError, OverflowError, RecursionError):
-            log_unreadable(path)
+            log_unreadable(entry_label(path.name, day))
             identities.append(path.name)
             kinds.add(STATUS_UNREADABLE)
             continue

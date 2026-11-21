@@ -111,7 +111,7 @@ def test_nonobject_features_and_status(incident, capsys, feed):
     assert observed == expected
     k, u, m = tuple(int(feed == name) for name in ("usable", "invalid", "absent"))
     assert capsys.readouterr().err == (
-        f"WARNING: probable-pitcher cache {cache}: dropped 1 invalid entry "
+        "WARNING: probable-pitcher cache: dropped 1 invalid entry "
         f"(0 recovered from valid cache entries, {k} rescanned from raw feeds, "
         f"{u} with unusable feeds, {m} without feeds); first game ids: 100\n"
     )

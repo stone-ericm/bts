@@ -135,8 +135,8 @@ def test_operator_text_describes_the_observation_and_recovery_route(health, capl
         "Probable-pitcher cache at 2026-12-31T14:00:00+00:00 had 4 invalid entries (first game IDs 100). "
         "Of those entries, 1 had a valid cache alias and 1 had a usable raw feed. "
         "No usable lookup was found for 1 with unusable or unverified feeds and 1 with missing feeds. "
-        "That run recorded an evidence copy at "
-        "data/models/rejected/probable_pitcher_lookup.20261231T140000Z.cccccccccccc.json. "
+        "That run recorded an evidence copy named "
+        "probable_pitcher_lookup.20261231T140000Z.cccccccccccc.json in the rejected folder beside the cache. "
         "This describes the cache at the recorded time; health may show this observation again on the next processed day. "
         "Keep the active cache, raw feeds, any named evidence copy and other available copies intact for review. "
         "Send this alert promptly to the supervised BTS lead Claude session (bts-lead), or to Eric if the session is unavailable. "
@@ -182,8 +182,9 @@ def test_malformed_fields_warn(health, field, value, caplog):
     path.write_text(json.dumps(row))
     result, = run()
     unreadable_summary(result, path.name)
+    # W15b round 1 (amendment 4): the log names the record by its own validated name, never its path.
     assert (
-        f"Probable-pitcher cache status unreadable at {path}. "
+        f"Probable-pitcher cache status unreadable: record {path.name}. "
         "Send this alert to the supervised BTS lead Claude session (bts-lead), "
         "or to Eric if the session is unavailable."
     ) in [record.getMessage() for record in caplog.records]
@@ -276,7 +277,7 @@ def test_same_day_changed_incident_remains_visible(health, incident, caplog):
     assert len(sent) == 2
     assert result.incident_key == summary_key(DAY, *(row["identity"] for row in rows))
     assert "2 observations (invalid entries)" in sent[-1]
-    assert "That run recorded an evidence copy at" in caplog.text
+    assert "That run recorded an evidence copy named" in caplog.text
     assert "This observation names no evidence copy." in caplog.text
     run()
     assert len(sent) == 2
