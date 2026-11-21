@@ -91,6 +91,11 @@ from the cloud (§3) → escalate.
 - **A deploy failed.** Read the Actions result and the deploy and recovery logs.
   `DEPLOY NOT STARTED` describes that invocation. Read recovery separately and verify the stop,
   heartbeat and HTTP results. The box may have committed even if Actions lost the log.
+  `Scheduler stopped: verified` reports the snapshot checks for the two named units, their observed
+  cgroups, the local boot link and the stated bts command-line match. Independent services,
+  different UIDs/argv and starts after the observations remain outside that proof (L8).
+  A commit record can survive a failed containment rewrite. If the logs disagree or are missing,
+  verify current state with Eric before retrying.
   If any result is unverified or absent, the run was cancelled, or the reports disagree, contact
   Eric before retrying. He checks both scheduler scopes and the boot link by SSH. The old or
   candidate scheduler can still be running.
@@ -122,9 +127,10 @@ from the cloud (§3) → escalate.
   `last_success_snapshot_id` from the backed-up status file):
   `~/.local/bin/restic restore <SNAPSHOT_ID> --target /` — restic re-creates
   the original absolute paths (`/home/bts/projects/bts/data/...`). Parquets/models come from
-  the separate artifact sync: `bts data sync-from-r2`. Systemd units: repo templates via
-  `bash scripts/install-systemd-hetzner.sh` (audit F12), then enable + start deliberately.
-  For scheduler activation after a restore, follow §4 and use §5's checked deploy.
+  the separate artifact sync: `bts data sync-from-r2`. Keep the scheduler stopped and its local
+  boot link disabled through restore and activation checks. `bash scripts/install-systemd-hetzner.sh`
+  (audit F12) copies the user unit templates and reloads the user manager. Follow §4 and activate the
+  scheduler through §5's checked deploy.
 
 ## 5. Deploy and revert commands
 

@@ -130,8 +130,15 @@ if at and fault[0] == at and not (root / "fault-fired").exists():
         while not (root / "release").exists() and time.monotonic() < end:
             time.sleep(0.01)
     else:
+        if len(fault) > 2 and fault[2].startswith("forge-"):
+            # D3b K17: a valid record appears in place of this invocation's write.
+            _, field, state = fault[2].split("-")
+            values = dict(run="123", attempt=os.environ["RUN_ATTEMPT"], target="b" * 40, old="a" * 40)
+            values[field] = {"run": "999", "attempt": "9", "target": "c" * 40, "old": "d" * 40}.get(field, values.get(field))
+            (root / "run/bts-deploy/attempt").write_text(
+                f"bts_deploy_attempt_v1 {values['run']} {values['attempt']} {values['target']} {values['old']} {state} - - - -\n")
         os.kill(int((root / "owner.pid").read_text()), getattr(signal, "SIG" + fault[1]))
-        if len(fault) > 2 and fault[2] == "unpublished":
+        if len(fault) > 2 and (fault[2] == "unpublished" or fault[2].startswith("forge-")):
             raise SystemExit(17)
 
 def dispatch(words):
@@ -215,10 +222,19 @@ elif command == "python3":
     if op == "clock" and (root / "clock-at-795").exists():
         print(time.monotonic_ns() // 1_000_000 + 795_000)
         raise SystemExit(0)
-    if op == "read" and scenario in {"commit-read-124", "commit-read-137"}:
+    if op == "read" and scenario == "beginning-read-126" and (root / "fault-fired").exists():
+        if not (root / "read-failed").exists():
+            (root / "read-failed").touch()
+            raise SystemExit(126)
+    if op == "read" and scenario in {"commit-read-124", "commit-read-137", "commit-read-126"}:
         record = root / "run/bts-deploy/attempt"
         if record.exists() and " committed " in record.read_text():
             raise SystemExit(int(scenario.rsplit("-", 1)[1]))
+    if op == "read" and scenario == "commit-read-126-contain-fail" and not (root / "commit-read-failed").exists():
+        record = root / "run/bts-deploy/attempt"
+        if record.exists() and " committed " in record.read_text():
+            (root / "commit-read-failed").touch()
+            raise SystemExit(126)
     if op == "read" and scenario == "record-read-126" and (root / "exhausted-phase").exists() and not (root / "stopped").exists():
         if not (root / "read-failed").exists():
             (root / "read-failed").touch()
@@ -250,6 +266,8 @@ elif command == "python3":
         os.kill(int((root / "owner.pid").read_text()), signal.SIGTERM)
 elif command == "mv":
     if scenario == "commit-error" and at == "publish-committed":
+        raise SystemExit(17)
+    if scenario in {"commit-read-126-contain-fail", "contain-rename-fails"} and at == "publish-contained":
         raise SystemExit(17)
     os.replace(args[-2], args[-1])
     if scenario == "published-with-error" and at == "publish-begun":
@@ -314,6 +332,20 @@ elif command == "systemctl":
             states["ControlGroup"] = ""
         if "ControlGroup" in args and not user and scenario == "legacy-blank-cgroup" and not (root / "legacy-stopped").exists():
             states["ControlGroup"] = "/sched"
+        if not user and args[1] == "bts-scheduler.service" and scenario.startswith("legacy-vanishing"):
+            # D3b K11/K12: loaded at containment, reported not-found after its stop.
+            if not (root / "legacy-stopped").exists():
+                states.update(LoadState="loaded", ActiveState="active", MainPID="1234",
+                              ControlGroup="" if scenario.endswith("nogroup") else "/legacy-orphan")
+        if "ControlGroup" in args and user and scenario.startswith("moved-user"):
+            states["ControlGroup"] = "/b" if (root / "stopped").exists() else "/a"
+        if not user and args[1] == "bts-scheduler.service" and scenario.startswith("moved-legacy"):
+            states.update(LoadState="loaded", ControlGroup="/lb" if (root / "legacy-stopped").exists() else "/la")
+        if (not user and args[1] == "bts-scheduler.service" and scenario == "legacy-vanishing-queryfail"
+                and (root / "legacy-stopped").exists()):
+            raise SystemExit(1)
+        if user and scenario == "user-group-fail" and args[1:] == ["bts-scheduler", "-p", "ControlGroup"]:
+            raise SystemExit(1)
         if "ControlGroup" in args and user and scenario == "main-pid":
             states["MainPID"] = "4321"
         if user and "UnitFileState" in args and scenario in {"masked", "linked", "static"}:
@@ -346,6 +378,8 @@ elif command == "systemctl":
         (root / "legacy-stopped").touch()
     if user and args[0] == "list-jobs" and scenario == "pending-job":
         print("17 bts-scheduler.service start waiting")
+    if not user and args[0] == "list-jobs" and scenario == "legacy-vanishing-job" and (root / "legacy-stopped").exists():
+        print("18 bts-scheduler.service stop waiting")
 elif command == "tailscale":
     print("100.64.0.1")
     if scenario == "tailnet-error":
@@ -421,7 +455,8 @@ def box(tmp_path):
     return tmp_path
 
 
-def run_box_script(box, script, scenario, *, fault="", run_id="123", attempt="1", target=TARGET, closed_output=False):
+def run_box_script(box, script, scenario, *, fault="", run_id="123", attempt="1", target=TARGET, closed_output=False,
+                   limit=15):
     # Documented injection points: checkout and its bts home, deployed state,
     # systemd fragments, system Python, the null sink, and the uv executable.
     # The frame uses the host /bin/bash explicitly. All PATH lookups use shims.
@@ -467,7 +502,7 @@ def run_box_script(box, script, scenario, *, fault="", run_id="123", attempt="1"
     with process:
         (box / "owner.pid").write_text(str(process.pid))
         try:
-            stdout, stderr = process.communicate(timeout=15)
+            stdout, stderr = process.communicate(timeout=limit)
         except subprocess.TimeoutExpired:
             process.kill()
             process.communicate(timeout=2)
@@ -672,7 +707,7 @@ def test_round2_failure_post_never_follows_redirects(box):
 def test_round2_recovery_creates_real_lockfile_and_mark(box):
     scripts, _ = scripts_and_steps()
     result, _ = run_box_script(box, scripts[1], "active")
-    assert "this attempt has no phase-2 record on this boot" in result.stdout
+    assert "no phase-2 record is present" in result.stdout
     lock_dir = box / "run/bts-deploy"
     for path in (lock_dir / "lock", lock_dir / "cancelled.123.1"):
         assert path.is_file()
@@ -699,7 +734,7 @@ def test_round2_recovery_waits_for_a_held_lock(box):
             fcntl.flock(holder, fcntl.LOCK_UN)
         result, calls = invocation.result(timeout=8)
     assert ["flock", "-w", "1500", "9"] in calls
-    assert "this attempt has no phase-2 record on this boot" in result.stdout
+    assert "no phase-2 record is present" in result.stdout
     assert (lock_dir / "cancelled.123.1").is_file()
 
 
@@ -780,7 +815,7 @@ def test_recovery_first_cancels_late_deploy(box):
     assert len(scripts) == 2
     result, calls = run_box_script(box, scripts[1], "active")
     assert result.returncode == 1, result
-    assert "this attempt has no phase-2 record on this boot" in result.stdout
+    assert "no phase-2 record is present" in result.stdout
     assert not any(call[0] == "systemctl" for call in calls)
     assert (box / "run/bts-deploy/cancelled.123.1").read_bytes() == b""
     result, calls = run_box_script(box, scripts[0], "active")
@@ -832,7 +867,7 @@ def test_attempt_record_controls_authorization(box, case):
     if case == "duplicate":
         assert "DEPLOY NOT STARTED — attempt-record failed." in result.stdout
     elif case == "committed":
-        assert "this attempt committed on the box" in result.stdout
+        assert "this attempt's record says committed" in result.stdout
     else:
         assert "the attempt record is unreadable" in result.stdout
     assert not any(call[0] == "systemctl" for call in calls)
@@ -1205,7 +1240,7 @@ def test_boot_link_and_record_loss_at_boundaries(box, command, enabled):
     assert (link.read_text() if link.exists() else "enabled") == enabled
     shutil.rmtree(box / "run")
     result, _ = run_box_script(box, scripts[1], "active")
-    assert "this attempt has no phase-2 record on this boot" in result.stdout
+    assert "no phase-2 record is present" in result.stdout
 
 
 def test_older_recovery_does_not_mutate_newer_commit(box):
@@ -1434,3 +1469,402 @@ def test_old_recovery_during_ownership_transfer(box):
         assert owner.result(timeout=15)[0].returncode == 0
     older, _ = run_box_script(box, scripts[1], "active", attempt="1")
     assert "a different attempt owns the box record" in older.stdout
+
+
+# ---------------------------------------------------------------------------
+# D3b (contract amendment 4, rulings R56 and R57). The class: recovery claims a
+# state it did not prove. Row numbers K9 to K20 refer to the amendment's
+# "must still catch" table.
+
+D3B_PRIORS = {
+    "other-run-committed": f"bts_deploy_attempt_v1 101 1 {OLD} {'c' * 40} committed - - - -\n",
+    "earlier-attempt-contained": f"bts_deploy_attempt_v1 123 1 {TARGET} {OLD} contained sync verified verified verified\n",
+    "other-run-begun": f"bts_deploy_attempt_v1 101 1 {'c' * 40} {OLD} begun - - - -\n",
+}
+
+
+def d3b_box(box, prior=None):
+    runtime = box / "run/bts-deploy"
+    runtime.mkdir(mode=0o700, parents=True)
+    (box / "enabled").write_text("enabled")
+    (box / "home/projects/bts/data/.heartbeat").write_text('{"state":"running"}')
+    (box / "home/projects/bts/.env").write_text("BTS_SCHEDULER_HEARTBEAT_PING_URL=https://checks.invalid/d3b\n")
+    if prior:
+        (runtime / "attempt").write_text(D3B_PRIORS[prior])
+    return runtime
+
+
+def posts(calls):
+    return [call for call in calls if call[0] == "curl" and "--data-raw" in call]
+
+
+def service_mutations(calls):
+    return [call for call in calls if call[0] == "systemctl" and any(
+        word in call for word in ("disable", "enable", "stop", "restart", "daemon-reload"))]
+
+
+@pytest.mark.parametrize("signal_name", ["HUP", "INT", "TERM", "PIPE"])
+@pytest.mark.parametrize("where", ["stage-begun", "publish-begun"])
+@pytest.mark.parametrize("prior", sorted(D3B_PRIORS))
+def test_d3b_signal_before_begin_is_published_never_contains(box, prior, where, signal_name):
+    """K9 (round-2 finding 1, both reviewers): rule S6."""
+    scripts, _ = scripts_and_steps()
+    runtime = d3b_box(box, prior)
+    attempt = "2" if prior == "earlier-attempt-contained" else "1"
+    result, calls = run_box_script(box, scripts[0], "active", fault=f"{where}:{signal_name}:unpublished", attempt=attempt)
+    assert (box / "fault-fired").exists()
+    assert result.returncode == 1
+    assert "DEPLOY NOT STARTED — attempt-record failed." in result.stdout
+    assert "DEPLOY FAILED" not in result.stdout
+    assert not service_mutations(calls) and not posts(calls)
+    assert (runtime / "attempt").read_text() == D3B_PRIORS[prior]
+    assert (box / "home/projects/bts/data/.heartbeat").read_text() == '{"state":"running"}'
+    assert (box / "enabled").read_text() == "enabled"
+    assert (box / "head").read_text() == OLD
+
+
+@pytest.mark.parametrize("prior", [None, *sorted(D3B_PRIORS)])
+def test_d3b_signal_after_begin_is_published_contains(box, prior):
+    """K10 control (rule S7): the begin was renamed before the signal."""
+    scripts, _ = scripts_and_steps()
+    runtime = d3b_box(box, prior)
+    attempt = "2" if prior == "earlier-attempt-contained" else "1"
+    result, calls = run_box_script(box, scripts[0], "active", fault="publish-begun:TERM", attempt=attempt)
+    assert result.returncode == 1
+    assert sum(call[0] == "mv" and call[-1] == str(runtime / "attempt") for call in calls) >= 2
+    assert result.stdout.count("DEPLOY FAILED at interrupted") == 1
+    assert "DEPLOY NOT STARTED" not in result.stdout
+    assert ["systemctl", "--user", "stop", "bts-scheduler"] in [call[:4] for call in calls]
+    assert f" {attempt} {TARGET} {OLD} contained interrupted " in (runtime / "attempt").read_text()
+
+
+@pytest.mark.parametrize("prior", sorted(D3B_PRIORS))
+def test_d3b_unreadable_record_while_beginning_contains(box, prior):
+    """K10 control (rule S9): a failed fresh read cannot exclude publication."""
+    scripts, _ = scripts_and_steps()
+    d3b_box(box, prior)
+    attempt = "2" if prior == "earlier-attempt-contained" else "1"
+    result, calls = run_box_script(box, scripts[0], "beginning-read-126", fault="stage-begun:TERM:unpublished",
+                                   attempt=attempt)
+    assert (box / "read-failed").exists()
+    assert result.returncode == 1
+    assert result.stdout.count("DEPLOY FAILED at interrupted") == 1
+    assert "DEPLOY NOT STARTED" not in result.stdout
+
+
+def d3b_legacy_group(box, populated):
+    group = box / "sys/fs/cgroup/legacy-orphan"
+    group.mkdir()
+    (group / "cgroup.procs").touch()
+    (group / "cgroup.events").write_text(f"populated {populated}\n")
+
+
+def d3b_run_contained(box, recovery, scenario):
+    scripts, _ = scripts_and_steps()
+    runtime = d3b_box(box)
+    if recovery:
+        (box / "head").write_text(TARGET)
+        (runtime / "attempt").write_text(f"bts_deploy_attempt_v1 123 1 {TARGET} {OLD} begun - - - -\n")
+        return run_box_script(box, scripts[1], scenario)
+    return run_box_script(box, scripts[0], scenario, fault="reset:17")
+
+
+@pytest.mark.parametrize("recovery", [False, True], ids=["deploy", "recovery"])
+@pytest.mark.parametrize(("populated", "verified"), [(1, False), (0, True)])
+def test_d3b_recorded_legacy_group_stays_in_the_proof(box, recovery, populated, verified):
+    """K11 (round-2 finding 2) and its K12 control."""
+    d3b_legacy_group(box, populated)
+    result, calls = d3b_run_contained(box, recovery, "legacy-vanishing")
+    assert result.returncode == 1
+    assert ["systemctl", "stop", "bts-scheduler.service"] in calls
+    assert any(call[0] == "python3" and call[3:5] == ["cgroup", str(box / "sys/fs/cgroup")]
+               and call[-1] == "/legacy-orphan" for call in calls)
+    assert ("Scheduler stopped: verified." in result.stdout) == verified
+    assert ("Scheduler stopped: unverified." in result.stdout) == (not verified)
+
+
+@pytest.mark.parametrize("recovery", [False, True], ids=["deploy", "recovery"])
+def test_d3b_loaded_legacy_unit_without_a_known_group_is_unverified(box, recovery):
+    """K12 (new case of the class): seen loaded, no cgroup path known, then not-found."""
+    result, calls = d3b_run_contained(box, recovery, "legacy-vanishing-nogroup")
+    assert result.returncode == 1
+    assert ["systemctl", "stop", "bts-scheduler.service"] in calls
+    assert "Scheduler stopped: unverified." in result.stdout
+
+
+@pytest.mark.parametrize("recovery", [False, True], ids=["deploy", "recovery"])
+def test_d3b_legacy_absent_throughout_needs_no_legacy_stop(box, recovery):
+    """K12 control: never loaded, so nothing to stop and the proof can pass."""
+    result, calls = d3b_run_contained(box, recovery, "active")
+    assert result.returncode == 1
+    assert not any(call[:2] == ["systemctl", "stop"] for call in calls)
+    assert "Scheduler stopped: verified." in result.stdout
+
+
+@pytest.mark.parametrize("scope", ["user", "legacy"])
+@pytest.mark.parametrize(("before", "after"), [(1, 0), (0, 1), (0, 0)])
+def test_d3b_every_known_cgroup_path_is_in_the_proof(box, scope, before, after):
+    """K16 (round-2 Carbon N3 b): distinct pre-stop and post-stop paths in both scopes."""
+    scripts, _ = scripts_and_steps()
+    names = ("a", "b") if scope == "user" else ("la", "lb")
+    for name, populated in zip(names, (before, after)):
+        group = box / "sys/fs/cgroup" / name
+        group.mkdir()
+        (group / "cgroup.events").write_text(f"populated {populated}\n")
+    d3b_box(box)
+    result, calls = run_box_script(box, scripts[0], f"moved-{scope}", fault="reset:17")
+    checked = [call[-1] for call in calls if call[0] == "python3" and call[3:4] == ["cgroup"]]
+    if before or after:
+        assert "Scheduler stopped: unverified." in result.stdout
+        assert f"/{names[0 if before else 1]}" in checked
+    else:
+        assert "Scheduler stopped: verified." in result.stdout
+        assert {f"/{names[0]}", f"/{names[1]}"} <= set(checked)
+
+
+def test_d3b_commit_readback_keeps_its_own_status(box):
+    """K15 (round-2 note): a read-back exiting 126 after the rename is logged as 126."""
+    scripts, _ = scripts_and_steps()
+    d3b_box(box)
+    result, _ = run_box_script(box, scripts[0], "commit-read-126")
+    assert result.returncode == 1
+    assert "Check commit-record failed (126)." in result.stdout
+
+
+def shell_function(script, name):
+    match = re.search(rf"^{name}\(\) {{\n(.*?)^}}\n", script, re.MULTILINE | re.DOTALL)
+    assert match, name
+    return match.group(1)
+
+
+def test_d3b_containment_windows_reserve_the_residual_check():
+    """K14 (M2): the windows in both scripts; marker and POST windows as before."""
+    window = r"deadline=\$\(\(containment_deadline - (\d+)\)\)"
+    for script in scripts_and_steps()[0]:
+        contain, proof = shell_function(script, "contain"), shell_function(script, "prove")
+        assert [int(n) for n in re.findall(window, contain)] == [190000, 100000, 40000, 26000, 10000, 2000]
+        assert [int(n) for n in re.findall(window, proof)] == [75000, 60000]
+        residual = proof.index("pgrep -u bts -f 'bts schedule'")
+        assert proof.index("containment_deadline - 75000") < proof.index("containment_deadline - 60000") < residual
+        assert contain.index("containment_deadline - 40000") < contain.index("\"$fs_code\" marker")
+        assert contain.index("containment_deadline - 26000") < contain.index("\"$fs_code\" endpoint")
+        assert contain.index("\"$fs_code\" endpoint") < contain.index("containment_deadline - 10000))") < contain.index("--data-raw")
+        assert contain.index("\"$fs_code\" marker") < contain.index('rm -f -- "$staged"')
+        assert contain.index("containment_deadline - 2000))") < contain.index("publish contained")
+
+
+RESULT_LINES = ("Scheduler stopped:", "Failure heartbeat written:", "Failure ping received HTTP 2xx:",
+                "containment re-checked")
+
+
+def test_d3b_only_the_proof_function_makes_or_prints_a_verified_result():
+    """K19 (M1): one proof function, byte-identical in both scripts (RD8)."""
+    scripts, _ = scripts_and_steps()
+    proofs = {shell_function(script, "prove") for script in scripts}
+    assert len(proofs) == 1
+    proof = proofs.pop()
+    for script in scripts:
+        outside = script.replace(proof, "")
+        for line in RESULT_LINES:
+            assert line in proof
+            assert line not in outside
+        assert not re.search(r"\b(stop|marker|page)=verified\b", outside)
+        assert re.findall(r"\b(stop|marker|page)=verified\b", proof)
+
+
+def test_d3b_signal_handler_has_one_named_rule():
+    """K17 / M3: on_signal acts only on signal_rule's answer; the rule is shared."""
+    scripts, _ = scripts_and_steps()
+    deploy = scripts[0]
+    handler = shell_function(deploy, "on_signal")
+    assert "signal_rule" in handler
+    assert "read_record" not in handler and "publication" not in handler
+    rule = shell_function(deploy, "signal_rule")
+    for answer in ("success", "not-started", "contain"):
+        assert f"answer={answer}" in rule
+
+
+def timed_shim():
+    old = 'elif command == "timeout":\n    dispatch(args[3:])'
+    assert SHIM.count(old) == 1
+    shim = SHIM.replace(old, '''
+elif command == "timeout":
+    word = args[3]
+    if word.startswith("/") and word != "/bin/bash" and not Path(word).is_relative_to(root):
+        raise SystemExit(99)
+    executable = root / "shims" / Path(word).name
+    if not executable.is_file():
+        raise SystemExit(98)
+    os.execv("/usr/bin/timeout", ["timeout", *args[:3], str(executable), *args[4:]])''')
+    delays = '''
+    proof = (root / "stopped").exists() and (root / "legacy-stopped").exists()
+    if (root / "clock-failed").exists():
+        if args[0] == "stop":
+            time.sleep(52.9)
+        elif args[0] in {"show", "list-jobs", "is-enabled"} and proof:
+            time.sleep(13.7)
+        elif args[0] in {"show", "list-jobs", "disable"}:
+            time.sleep(3.9)
+    if user and args[0] in {"disable", "enable"}:'''
+    old = '    if user and args[0] in {"disable", "enable"}:'
+    assert shim.count(old) == 1
+    shim = shim.replace(old, delays)
+    old = '    if op == "marker" and scenario == "marker-unwritable":'
+    assert shim.count(old) == 1
+    shim = shim.replace(old, """    if op == "endpoint" and (root / "clock-failed").exists():
+        time.sleep(12)
+""" + old)
+    old = '        if "ControlGroup" in args and user and scenario == "main-pid":'
+    shim = shim.replace(old, '''        if not user and args[1] == "bts-scheduler.service" and scenario == "recovery-clock-every":
+            states.update(LoadState="loaded", ControlGroup="/legacy-sched")
+''' + old)
+    return shim
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(not Path("/usr/bin/timeout").exists(), reason="needs a real timeout(1)")
+def test_d3b_residual_check_is_launched_after_a_slow_proof(box):
+    """K13 (round-2 finding 3): slow stops and proof queries, no clock; about 4 minutes."""
+    shim = timed_shim()
+    for file in (box / "shims").iterdir():
+        file.write_text(file.read_text().split("\n", 1)[0] + "\n" + shim)
+    scripts, _ = scripts_and_steps()
+    runtime = d3b_box(box)
+    (box / "head").write_text(TARGET)
+    (runtime / "attempt").write_text(f"bts_deploy_attempt_v1 123 1 {TARGET} {OLD} begun - - - -\n")
+    started = time.monotonic()
+    result, calls = run_box_script(box, scripts[1], "recovery-clock-every", limit=300)
+    elapsed = time.monotonic() - started
+    assert result.returncode == 1 and elapsed < 280
+    residual = [call for call in calls if call[0] == "timeout" and "pgrep" in call]
+    assert residual, "the residual check was never launched"
+    assert int(residual[0][3]) >= 5
+    post = [call for call in calls if call[0] == "timeout" and "curl" in call and "--data-raw" in call]
+    assert post and int(post[0][3]) >= 10
+    assert "Scheduler stopped: unverified." in result.stdout
+    assert json.loads((box / "home/projects/bts/data/.heartbeat").read_text())["state"] == "deploy_failed"
+    assert len(posts(calls)) == 1
+    assert " contained " in (runtime / "attempt").read_text()
+
+
+def test_d3b_operator_notes():
+    """K20: the restore instruction and B8a's picks directory for every saver-state command."""
+    repo = WORKFLOW.parents[2]
+    incident = (repo / "INCIDENT.md").read_text()
+    restore = incident.split("- **Box/filesystem loss", 1)[1].split("\n- ", 1)[0]
+    assert "enable + start" not in restore and "systemctl --user restart" not in restore
+    assert restore.index("Keep the scheduler stopped and its local") < restore.index("install-systemd-hetzner.sh")
+    assert "activate the" in restore and "scheduler through §5's checked deploy" in restore
+    b8a = next(line for line in (repo / "docs/ops/2027-season-start.md").read_text().splitlines()
+               if line.startswith("| B8a |"))
+    assert "Use the scheduler's configured picks directory for status, revoke, enable, fetch, dated observations and every `saver-state` invocation." in b8a
+    savers = re.findall(r"`bts saver-state [^`]*`", b8a)
+    assert savers and all("--season <ET year>" in c and "--picks-dir <scheduler picks dir>" in c for c in savers)
+    for text in ("`Scheduler stopped: verified` reports the snapshot checks",
+                 "A commit record can survive a failed containment rewrite."):
+        assert text in incident
+
+
+def test_d3b_prior_begun_owner_keeps_its_own_recovery(box):
+    """K9 (check text): after B's unpublished begin over A's begun record, B's recovery and a later
+    attempt run as separate invocations; A's record survives B."""
+    scripts, _ = scripts_and_steps()
+    runtime = d3b_box(box, "other-run-begun")
+    first, calls = run_box_script(box, scripts[0], "active", fault="stage-begun:TERM:unpublished")
+    assert "DEPLOY NOT STARTED" in first.stdout and not service_mutations(calls)
+    (box / "calls").unlink()
+    (box / "fault-fired").unlink()
+    recovered, calls = run_box_script(box, scripts[1], "active")
+    assert "a different attempt owns the box record" in recovered.stdout
+    assert not service_mutations(calls) and (runtime / "cancelled.123.1").is_file()
+    assert (runtime / "attempt").read_text() == D3B_PRIORS["other-run-begun"]
+    (box / "calls").unlink()
+    later, _ = run_box_script(box, scripts[0], "active", run_id="124")
+    assert later.returncode == 0 and "CANARY PASSED" in later.stdout
+    assert " 124 1 " in (runtime / "attempt").read_text()
+
+
+@pytest.mark.parametrize(("scenario", "fragment"), [
+    ("legacy-vanishing-job", False), ("legacy-vanishing-queryfail", False), ("active", True),
+])
+def test_d3b_unproved_legacy_absence_is_unverified(box, scenario, fragment):
+    """K12 (check text): a pending job, a failed absence query, a dangling fragment link."""
+    d3b_legacy_group(box, 0)
+    if fragment:
+        units = box / "etc/systemd/system"
+        units.mkdir(parents=True)
+        (units / "bts-scheduler.service").symlink_to(box / "missing-unit-file")
+    result, _ = d3b_run_contained(box, False, scenario)
+    assert result.returncode == 1
+    assert "Scheduler stopped: unverified." in result.stdout
+
+
+def test_d3b_failed_user_group_query_is_unverified(box):
+    """M1 rule (check text): a failed pre-stop cgroup query, unlike a blank one, leaves the scope unverified."""
+    scripts, _ = scripts_and_steps()
+    d3b_box(box)
+    result, _ = run_box_script(box, scripts[0], "user-group-fail", fault="reset:17")
+    assert "Scheduler stopped: unverified." in result.stdout
+
+
+@pytest.mark.parametrize("field", ["run", "attempt", "target", "old", "none"])
+def test_d3b_success_needs_this_attempts_exact_commit(box, field):
+    """K17 (S3, S4): a valid committed record appears while committing; only the exact one is success."""
+    scripts, _ = scripts_and_steps()
+    d3b_box(box)
+    result, calls = run_box_script(box, scripts[0], "active", fault=f"publish-committed:TERM:forge-{field}-committed")
+    assert (box / "fault-fired").exists()
+    if field == "none":
+        assert result.returncode == 0 and "DEPLOY FAILED" not in result.stdout
+    else:
+        assert result.returncode == 1
+        assert "DEPLOY FAILED at interrupted" in result.stdout
+
+
+@pytest.mark.parametrize("fault", ["forge-none-committed", "forge-target-committed", "forge-old-begun"])
+def test_d3b_same_ids_while_beginning_contains(box, fault):
+    """K17 (S8, synthetic: preflight refuses these ids under the lock): contain, never success."""
+    scripts, _ = scripts_and_steps()
+    d3b_box(box)
+    result, _ = run_box_script(box, scripts[0], "active", fault=f"stage-begun:TERM:{fault}")
+    assert (box / "fault-fired").exists()
+    assert result.returncode == 1
+    assert "DEPLOY FAILED at interrupted" in result.stdout
+
+
+@pytest.mark.parametrize("failure", [None, "stop", "marker", "record"])
+def test_d3b_recovery_reproves_stop_and_marker(box, failure):
+    """K18: an earlier 2xx is carried, stop and marker are proved again, re-checked only when both hold."""
+    scripts, _ = scripts_and_steps()
+    runtime = d3b_box(box)
+    record = f"bts_deploy_attempt_v1 123 1 {TARGET} {OLD} contained sync verified verified verified\n"
+    (runtime / "attempt").write_text(record)
+    scenario = {None: "active", "stop": "main-pid", "marker": "active", "record": "contain-rename-fails"}[failure]
+    if failure == "marker":
+        heartbeat = box / "home/projects/bts/data/.heartbeat"
+        heartbeat.unlink()
+        heartbeat.mkdir()
+    result, calls = run_box_script(box, scripts[1], scenario)
+    assert result.returncode == 1 and not posts(calls)
+    assert "Failure ping received HTTP 2xx: verified." in result.stdout
+    assert ("Scheduler stopped: verified." in result.stdout) == (failure != "stop")
+    assert ("Failure heartbeat written: verified." in result.stdout) == (failure != "marker")
+    assert ("containment re-checked" in result.stdout) == (failure in {None, "record"})
+    if failure == "record":
+        assert (runtime / "attempt").read_text() == record
+    if failure in {None, "stop"}:
+        assert json.loads((box / "home/projects/bts/data/.heartbeat").read_text())["state"] == "deploy_failed"
+
+
+def test_d3b_surviving_commit_record_is_reported_as_a_record(box):
+    """Appended case: a commit rename, a failed read-back and a failed contained rename."""
+    scripts, _ = scripts_and_steps()
+    runtime = d3b_box(box)
+    deployed, _ = run_box_script(box, scripts[0], "commit-read-126-contain-fail")
+    assert deployed.returncode == 1 and "Check commit-record failed (126)." in deployed.stdout
+    assert " committed " in (runtime / "attempt").read_text()
+    (box / "calls").unlink()
+    recovered, calls = run_box_script(box, scripts[1], "commit-read-126-contain-fail")
+    assert ("DEPLOY RECOVERY — this attempt's record says committed. Check the deploy log and verify "
+            "current state via INCIDENT.md §4.") in recovered.stdout
+    assert not service_mutations(calls)

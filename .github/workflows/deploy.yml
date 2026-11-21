@@ -298,6 +298,8 @@ jobs:
                     [[ $now =~ ^[0-9]+$ ]] || return 124
                 fi
                 available=$(((deadline - now) / 1000))
+                # Bash SECONDS counts whole seconds: allow one for rounding.
+                [[ -z ${budget_start:-} ]] || available=$((available - 1))
                 if [[ $mode == wait ]] && (( available < cap )); then
                     return 124
                 fi
@@ -395,7 +397,7 @@ jobs:
                 fi
                 read_record
                 rc=$?
-                if (( rc == 0 )) && same_record && [[ $r_state == "$wanted" ]]; then
+                if (( rc == 0 )) && same_record && [[ $r_state == "$wanted" && "$r_step $r_stop $r_marker $r_page" == "$*" ]]; then
                     return 0
                 fi
                 if [[ $wanted == committed ]]; then
@@ -403,6 +405,8 @@ jobs:
                         124:*|137:*|*:124|*:137) return 124 ;;
                     esac
                     (( status == 0 )) || return "$status"
+                    # A failed read-back after a successful rename keeps its own status.
+                    (( rc == 0 || rc == 3 )) || return "$rc"
                 fi
                 if (( rc != 0 && rc != 3 )); then
                     return 2
@@ -459,10 +463,12 @@ jobs:
                 esac
                 jobs_clear system_unit "$cap" "$name"
             }
+            no_fragment() { [[ ! -e $legacy_dir/$scheduler && ! -L $legacy_dir/$scheduler ]]; }
             scheduler_group() {
                 local output
                 output=$("$1" 10 normal show "$2" -p ControlGroup) || return 1
-                field ControlGroup "$output"
+                # A successful blank value is an observation; only a failed query returns non-zero.
+                field ControlGroup "$output" yes
             }
             check_stopped() {
                 local command=$1 name=$2 previous_group=$3 output active pid group
@@ -477,12 +483,84 @@ jobs:
                 fi
                 [[ -z $group ]] || fs 20 normal cgroup /sys/fs/cgroup "$group"
             }
+            # The one proof function (D3 amendment 4, M1): the only code that makes a
+            # result "verified" and the only printer of the containment results. Each
+            # result starts unverified and becomes verified only from an observation
+            # made by this containment (the page also from this attempt's own record).
+            prove() {
+                case $1 in
+                    stop)
+                        local user_proof=1 system_proof=1 residual legacy_ok=1 post_group
+                        stop=unverified
+                        # Proof queries: to 205 s of the handler's 280 s.
+                        deadline=$((containment_deadline - 75000))
+                        if (( uid_status == 0 && user_group_status == 0 )) && [[ $uid =~ ^[0-9]+$ ]]; then
+                            unit=bts-scheduler
+                            if enabled disabled 20 as_user && check_stopped as_user "$unit" "$user_group"; then
+                                user_proof=0
+                            fi
+                        fi
+                        if legacy_state 20 "$scheduler"; then
+                            unit=$scheduler
+                            if [[ $legacy == not-found ]] && no_fragment; then
+                                if [[ $legacy_absent == 0 ]]; then
+                                    # Absent at the containment's first query and now: no path needed.
+                                    system_proof=0
+                                elif (( legacy_group_status == 0 )) && post_group=$(scheduler_group system_unit "$scheduler") &&
+                                     [[ -n $legacy_group || -n $post_group ]]; then
+                                    # Seen loaded, or not seen absent: every known path must be empty.
+                                    system_proof=0
+                                    [[ -z $legacy_group ]] || fs 20 normal cgroup /sys/fs/cgroup "$legacy_group" || system_proof=1
+                                    [[ -z $post_group || $post_group == "$legacy_group" ]] ||
+                                        fs 20 normal cgroup /sys/fs/cgroup "$post_group" || system_proof=1
+                                fi
+                            elif (( legacy_group_status == 0 )) && check_stopped system_unit "$scheduler" "$legacy_group" &&
+                                 enabled disabled 20 system_unit; then
+                                system_proof=0
+                            fi
+                        fi
+                        if (( system_proof == 0 )) && [[ $legacy_absent == 0 || $legacy_disabled$legacy_stopped == 00 ]]; then
+                            legacy_ok=0
+                        fi
+                        # The residual check's own window, 205 to 220 s: no proof query above runs past 205 s,
+                        # and it is launched whatever the proof found.
+                        deadline=$((containment_deadline - 60000))
+                        run 20 5 normal pgrep -u bts -f 'bts schedule' >/dev/null; residual=$?
+                        if [[ $user_disabled$user_stopped$user_proof$legacy_ok$residual == 00001 ]]; then
+                            stop=verified
+                        fi
+                        ;;
+                    marker)
+                        marker=unverified
+                        [[ $2 == 0 ]] && marker=verified
+                        ;;
+                    page)
+                        page=unverified
+                        if [[ $2 == carried ]] || [[ $2 == 0 && $3 =~ ^2[0-9][0-9]$ ]]; then
+                            page=verified
+                        fi
+                        ;;
+                    report)
+                        # Best effort with a short grace: the last two seconds of the handler.
+                        (exec 9>&- 8>&-; timeout -k 1 1 /bin/bash -c 'printf "%s\n" "$@"' _ \
+                            "Scheduler stopped: $stop." "Failure heartbeat written: $marker." \
+                            "Failure ping received HTTP 2xx: $page." "Recovery procedure: INCIDENT.md §4.") >&8 2>/dev/null || :
+                        ;;
+                    recheck)
+                        if [[ $repeat == yes && $stop$marker$page == verifiedverifiedverified ]]; then
+                            (exec 9>&- 8>&-; timeout -k 1 1 /bin/bash -c 'printf "%s\n" "$@"' _ \
+                                'DEPLOY RECOVERY — containment re-checked.') >&8 2>/dev/null || :
+                        fi
+                        ;;
+                esac
+            }
             contain() {
                 trap '' HUP INT TERM PIPE
                 local step=$1 status=$2 prior_page=$3 repeat=$4
-                local stop=unverified marker=unverified page=unverified uid unit before= query_ok=0
-                local user_disabled=1 user_stopped=1 legacy_disabled=1 legacy_stopped=1 user_proof=1 system_proof=1 residual
-                local deadline containment_deadline output endpoint user_group legacy_group
+                local stop=unverified marker=unverified page=unverified uid unit
+                local user_disabled=1 user_stopped=1 legacy_disabled=1 legacy_stopped=1 legacy_absent=1
+                local deadline containment_deadline output endpoint user_group legacy_group= post_status
+                local user_group_status=1 legacy_group_status=1
                 local budget_start=$SECONDS budget_origin
                 # One sample anchors the handler's separate budget. Bash SECONDS also
                 # keeps that budget running when the external clock cannot be sampled.
@@ -493,73 +571,53 @@ jobs:
                     log "DEPLOY FAILED at $step — requested target ${TARGET_SHA:0:7}, previous SHA ${old:0:7}. No automatic rollback was attempted. Recovery has not been verified."
                     [[ $reported == "$step" ]] || log "Check $step failed ($status)."
                 fi
+                # User scope stop: to 90 s.
                 deadline=$((containment_deadline - 190000))
                 uid=$(run 10 5 normal id -u bts)
                 local uid_status=$?
                 if (( uid_status != 0 )) || [[ ! $uid =~ ^[0-9]+$ ]]; then
                     uid=
                 fi
-                user_group=$(scheduler_group as_user bts-scheduler)
+                user_group=$(scheduler_group as_user bts-scheduler); user_group_status=$?
                 as_user 10 mutation disable bts-scheduler >/dev/null; user_disabled=$?
                 as_user 60 mutation stop bts-scheduler >/dev/null; user_stopped=$?
+                # Legacy scope stop: to 180 s.
                 deadline=$((containment_deadline - 100000))
-                if legacy_state 10 "$scheduler"; then
-                    query_ok=1
-                    before=$legacy
-                fi
-                if [[ $query_ok != 1 || $before != not-found || -e $legacy_dir/$scheduler ]]; then
-                    legacy_group=$(scheduler_group system_unit "$scheduler")
+                if legacy_state 10 "$scheduler" && [[ $legacy == not-found ]] && no_fragment; then
+                    legacy_absent=0
+                else
+                    legacy_group=$(scheduler_group system_unit "$scheduler"); legacy_group_status=$?
                     system_unit 10 mutation disable "$scheduler" >/dev/null; legacy_disabled=$?
                     system_unit 60 mutation stop "$scheduler" >/dev/null; legacy_stopped=$?
-                else
-                    legacy_disabled=0 legacy_stopped=0
                 fi
-                deadline=$((containment_deadline - 60000))
-                if (( uid_status == 0 )) && [[ $uid =~ ^[0-9]+$ ]]; then
-                    unit=bts-scheduler
-                    if enabled disabled 20 as_user && check_stopped as_user "$unit" "$user_group"; then
-                        user_proof=0
-                    fi
-                fi
-                if legacy_state 20 "$scheduler"; then
-                    unit=$scheduler
-                    if [[ $legacy == not-found && ! -e $legacy_dir/$scheduler ]]; then
-                        system_proof=0
-                    elif check_stopped system_unit "$scheduler" "$legacy_group" && enabled disabled 20 system_unit; then
-                        system_proof=0
-                    fi
-                fi
-                run 20 5 normal pgrep -u bts -f 'bts schedule' >/dev/null; residual=$?
-                if [[ $user_disabled$user_stopped$legacy_disabled$legacy_stopped$user_proof$system_proof$residual == 0000001 ]]; then
-                    stop=verified
-                fi
+                prove stop
+                # Marker: to 240 s, before the optional staged-file cleanup.
                 deadline=$((containment_deadline - 40000))
+                as_bts 20 mutation /usr/bin/python3 -c "$fs_code" marker "$checkout/data/.heartbeat" "$step" "${TARGET_SHA:0:7}" "${old:0:7}" >/dev/null
+                prove marker "$?"
                 if [[ -n $staged ]]; then
                     as_bts 10 mutation rm -f -- "$staged" >/dev/null || :
                 fi
-                if as_bts 20 mutation /usr/bin/python3 -c "$fs_code" marker "$checkout/data/.heartbeat" "$step" "${TARGET_SHA:0:7}" "${old:0:7}" >/dev/null; then
-                    marker=verified
-                fi
-                deadline=$((containment_deadline - 10000))
+                # Endpoint parsing to 254 s, so a valid URL leaves curl at least 10 s of TERM before 270 s.
+                deadline=$((containment_deadline - 26000))
                 if [[ $prior_page == verified ]]; then
-                    page=verified
+                    prove page carried
                 elif endpoint=$(as_bts 20 normal /usr/bin/python3 -c "$fs_code" endpoint "$checkout/.env"); then
+                    deadline=$((containment_deadline - 10000))
                     output=$(run 20 5 normal curl --disable --globoff --noproxy '*' -sS -m 10 -o /dev/null -w '%{http_code}' \
                         --data-raw "Deploy failed at $step, requested target ${TARGET_SHA:0:7}, scheduler stop $stop. See INCIDENT.md §4." "$endpoint"
                         local status=$?; printf '\037'; exit "$status")
-                    local post_status=$?
-                    output=${output%$'\037'}
-                    if [[ $post_status == 0 && $output =~ ^2[0-9][0-9]$ ]]; then
-                        page=verified
-                    fi
+                    post_status=$?
+                    prove page "$post_status" "${output%$'\037'}"
+                else
+                    prove page none
                 fi
-                log "Scheduler stopped: $stop." "Failure heartbeat written: $marker." "Failure ping received HTTP 2xx: $page." "Recovery procedure: INCIDENT.md §4."
-                deadline=$containment_deadline
+                # The record to 278 s; the last two seconds are for the result lines.
+                deadline=$((containment_deadline - 2000))
                 publish contained "$step" "$stop" "$marker" "$page" || :
                 exec 9>&-
-                if [[ $repeat == yes && $stop$marker$page == verifiedverifiedverified ]]; then
-                    log 'DEPLOY RECOVERY — containment re-checked.'
-                fi
+                prove report
+                prove recheck
                 exit 1
             }
 
@@ -573,25 +631,36 @@ jobs:
                 log 'DEPLOY NOT STARTED — attempt-record failed. This deploy invocation did not change the checkout or services. Recovery has not been verified.'
                 exit 1
             }
-            on_signal() {
-                trap '' HUP INT TERM PIPE
+            # The signal handler's one decision (D3 amendment 4, M3, rows S1 to S9).
+            # It sets answer to success, not-started or contain.
+            signal_rule() {
+                answer=contain
                 case $publication in
-                    begun) contain interrupted 130 ;;
-                    committed) exec 9>&-; exit 0 ;;
+                    committed) answer=success; return ;;                      # S1
+                    beginning|committing) ;;
+                    *) return ;;                                              # S2; an unknown value contains
                 esac
-
                 # A rename may have completed before its caller observed the result.
                 local budget_start=$SECONDS budget_origin=0 deadline=15000 rc
                 read_record 15
                 rc=$?
-                if (( rc == 0 )) && same_record && [[ $r_state == committed ]]; then
-                    exec 9>&-
-                    exit 0
-                fi
-                if [[ $publication == beginning ]] && (( rc == 3 )); then
-                    not_started attempt-record
-                fi
-                contain interrupted 130
+                if [[ $publication == committing ]]; then
+                    if (( rc == 0 )) && same_record && [[ $r_state == committed ]]; then
+                        answer=success                                        # S3; else S4
+                    fi
+                elif (( rc == 3 )) || { (( rc == 0 )) && ! same_ids; }; then
+                    answer=not-started                                        # S5, S6
+                fi                                                            # else S7, S8, S9
+            }
+            on_signal() {
+                trap '' HUP INT TERM PIPE
+                local answer
+                signal_rule
+                case $answer in
+                    success) exec 9>&-; exit 0 ;;
+                    not-started) not_started attempt-record ;;
+                    *) contain interrupted 130 ;;
+                esac
             }
             step_status() {
                 local step=$1 status=$2
@@ -691,7 +760,7 @@ jobs:
                  [[ $active =~ ^[a-z-]+$ && $sub =~ ^[a-z-]+$ && $result =~ ^[a-z-]+$ && $status =~ ^[0-9]+$ ]]; then
                 if [[ $active != active ]]; then
                     if [[ $active == activating && $sub == auto-restart && $result == success && $status == 0 ]]; then
-                        log 'bts-scheduler.service completed cleanly and is waiting for Restart=always relaunch'
+                        log 'bts-scheduler.service completed cleanly and is waiting for relaunch'
                     else
                         check scheduler-state 1
                     fi
@@ -990,6 +1059,8 @@ jobs:
                     [[ $now =~ ^[0-9]+$ ]] || return 124
                 fi
                 available=$(((deadline - now) / 1000))
+                # Bash SECONDS counts whole seconds: allow one for rounding.
+                [[ -z ${budget_start:-} ]] || available=$((available - 1))
                 if [[ $mode == wait ]] && (( available < cap )); then
                     return 124
                 fi
@@ -1087,7 +1158,7 @@ jobs:
                 fi
                 read_record
                 rc=$?
-                if (( rc == 0 )) && same_record && [[ $r_state == "$wanted" ]]; then
+                if (( rc == 0 )) && same_record && [[ $r_state == "$wanted" && "$r_step $r_stop $r_marker $r_page" == "$*" ]]; then
                     return 0
                 fi
                 if [[ $wanted == committed ]]; then
@@ -1095,6 +1166,8 @@ jobs:
                         124:*|137:*|*:124|*:137) return 124 ;;
                     esac
                     (( status == 0 )) || return "$status"
+                    # A failed read-back after a successful rename keeps its own status.
+                    (( rc == 0 || rc == 3 )) || return "$rc"
                 fi
                 if (( rc != 0 && rc != 3 )); then
                     return 2
@@ -1151,10 +1224,12 @@ jobs:
                 esac
                 jobs_clear system_unit "$cap" "$name"
             }
+            no_fragment() { [[ ! -e $legacy_dir/$scheduler && ! -L $legacy_dir/$scheduler ]]; }
             scheduler_group() {
                 local output
                 output=$("$1" 10 normal show "$2" -p ControlGroup) || return 1
-                field ControlGroup "$output"
+                # A successful blank value is an observation; only a failed query returns non-zero.
+                field ControlGroup "$output" yes
             }
             check_stopped() {
                 local command=$1 name=$2 previous_group=$3 output active pid group
@@ -1169,12 +1244,84 @@ jobs:
                 fi
                 [[ -z $group ]] || fs 20 normal cgroup /sys/fs/cgroup "$group"
             }
+            # The one proof function (D3 amendment 4, M1): the only code that makes a
+            # result "verified" and the only printer of the containment results. Each
+            # result starts unverified and becomes verified only from an observation
+            # made by this containment (the page also from this attempt's own record).
+            prove() {
+                case $1 in
+                    stop)
+                        local user_proof=1 system_proof=1 residual legacy_ok=1 post_group
+                        stop=unverified
+                        # Proof queries: to 205 s of the handler's 280 s.
+                        deadline=$((containment_deadline - 75000))
+                        if (( uid_status == 0 && user_group_status == 0 )) && [[ $uid =~ ^[0-9]+$ ]]; then
+                            unit=bts-scheduler
+                            if enabled disabled 20 as_user && check_stopped as_user "$unit" "$user_group"; then
+                                user_proof=0
+                            fi
+                        fi
+                        if legacy_state 20 "$scheduler"; then
+                            unit=$scheduler
+                            if [[ $legacy == not-found ]] && no_fragment; then
+                                if [[ $legacy_absent == 0 ]]; then
+                                    # Absent at the containment's first query and now: no path needed.
+                                    system_proof=0
+                                elif (( legacy_group_status == 0 )) && post_group=$(scheduler_group system_unit "$scheduler") &&
+                                     [[ -n $legacy_group || -n $post_group ]]; then
+                                    # Seen loaded, or not seen absent: every known path must be empty.
+                                    system_proof=0
+                                    [[ -z $legacy_group ]] || fs 20 normal cgroup /sys/fs/cgroup "$legacy_group" || system_proof=1
+                                    [[ -z $post_group || $post_group == "$legacy_group" ]] ||
+                                        fs 20 normal cgroup /sys/fs/cgroup "$post_group" || system_proof=1
+                                fi
+                            elif (( legacy_group_status == 0 )) && check_stopped system_unit "$scheduler" "$legacy_group" &&
+                                 enabled disabled 20 system_unit; then
+                                system_proof=0
+                            fi
+                        fi
+                        if (( system_proof == 0 )) && [[ $legacy_absent == 0 || $legacy_disabled$legacy_stopped == 00 ]]; then
+                            legacy_ok=0
+                        fi
+                        # The residual check's own window, 205 to 220 s: no proof query above runs past 205 s,
+                        # and it is launched whatever the proof found.
+                        deadline=$((containment_deadline - 60000))
+                        run 20 5 normal pgrep -u bts -f 'bts schedule' >/dev/null; residual=$?
+                        if [[ $user_disabled$user_stopped$user_proof$legacy_ok$residual == 00001 ]]; then
+                            stop=verified
+                        fi
+                        ;;
+                    marker)
+                        marker=unverified
+                        [[ $2 == 0 ]] && marker=verified
+                        ;;
+                    page)
+                        page=unverified
+                        if [[ $2 == carried ]] || [[ $2 == 0 && $3 =~ ^2[0-9][0-9]$ ]]; then
+                            page=verified
+                        fi
+                        ;;
+                    report)
+                        # Best effort with a short grace: the last two seconds of the handler.
+                        (exec 9>&- 8>&-; timeout -k 1 1 /bin/bash -c 'printf "%s\n" "$@"' _ \
+                            "Scheduler stopped: $stop." "Failure heartbeat written: $marker." \
+                            "Failure ping received HTTP 2xx: $page." "Recovery procedure: INCIDENT.md §4.") >&8 2>/dev/null || :
+                        ;;
+                    recheck)
+                        if [[ $repeat == yes && $stop$marker$page == verifiedverifiedverified ]]; then
+                            (exec 9>&- 8>&-; timeout -k 1 1 /bin/bash -c 'printf "%s\n" "$@"' _ \
+                                'DEPLOY RECOVERY — containment re-checked.') >&8 2>/dev/null || :
+                        fi
+                        ;;
+                esac
+            }
             contain() {
                 trap '' HUP INT TERM PIPE
                 local step=$1 status=$2 prior_page=$3 repeat=$4
-                local stop=unverified marker=unverified page=unverified uid unit before= query_ok=0
-                local user_disabled=1 user_stopped=1 legacy_disabled=1 legacy_stopped=1 user_proof=1 system_proof=1 residual
-                local deadline containment_deadline output endpoint user_group legacy_group
+                local stop=unverified marker=unverified page=unverified uid unit
+                local user_disabled=1 user_stopped=1 legacy_disabled=1 legacy_stopped=1 legacy_absent=1
+                local deadline containment_deadline output endpoint user_group legacy_group= post_status
+                local user_group_status=1 legacy_group_status=1
                 local budget_start=$SECONDS budget_origin
                 # One sample anchors the handler's separate budget. Bash SECONDS also
                 # keeps that budget running when the external clock cannot be sampled.
@@ -1185,73 +1332,53 @@ jobs:
                     log "DEPLOY FAILED at $step — requested target ${TARGET_SHA:0:7}, previous SHA ${old:0:7}. No automatic rollback was attempted. Recovery has not been verified."
                     [[ $reported == "$step" ]] || log "Check $step failed ($status)."
                 fi
+                # User scope stop: to 90 s.
                 deadline=$((containment_deadline - 190000))
                 uid=$(run 10 5 normal id -u bts)
                 local uid_status=$?
                 if (( uid_status != 0 )) || [[ ! $uid =~ ^[0-9]+$ ]]; then
                     uid=
                 fi
-                user_group=$(scheduler_group as_user bts-scheduler)
+                user_group=$(scheduler_group as_user bts-scheduler); user_group_status=$?
                 as_user 10 mutation disable bts-scheduler >/dev/null; user_disabled=$?
                 as_user 60 mutation stop bts-scheduler >/dev/null; user_stopped=$?
+                # Legacy scope stop: to 180 s.
                 deadline=$((containment_deadline - 100000))
-                if legacy_state 10 "$scheduler"; then
-                    query_ok=1
-                    before=$legacy
-                fi
-                if [[ $query_ok != 1 || $before != not-found || -e $legacy_dir/$scheduler ]]; then
-                    legacy_group=$(scheduler_group system_unit "$scheduler")
+                if legacy_state 10 "$scheduler" && [[ $legacy == not-found ]] && no_fragment; then
+                    legacy_absent=0
+                else
+                    legacy_group=$(scheduler_group system_unit "$scheduler"); legacy_group_status=$?
                     system_unit 10 mutation disable "$scheduler" >/dev/null; legacy_disabled=$?
                     system_unit 60 mutation stop "$scheduler" >/dev/null; legacy_stopped=$?
-                else
-                    legacy_disabled=0 legacy_stopped=0
                 fi
-                deadline=$((containment_deadline - 60000))
-                if (( uid_status == 0 )) && [[ $uid =~ ^[0-9]+$ ]]; then
-                    unit=bts-scheduler
-                    if enabled disabled 20 as_user && check_stopped as_user "$unit" "$user_group"; then
-                        user_proof=0
-                    fi
-                fi
-                if legacy_state 20 "$scheduler"; then
-                    unit=$scheduler
-                    if [[ $legacy == not-found && ! -e $legacy_dir/$scheduler ]]; then
-                        system_proof=0
-                    elif check_stopped system_unit "$scheduler" "$legacy_group" && enabled disabled 20 system_unit; then
-                        system_proof=0
-                    fi
-                fi
-                run 20 5 normal pgrep -u bts -f 'bts schedule' >/dev/null; residual=$?
-                if [[ $user_disabled$user_stopped$legacy_disabled$legacy_stopped$user_proof$system_proof$residual == 0000001 ]]; then
-                    stop=verified
-                fi
+                prove stop
+                # Marker: to 240 s, before the optional staged-file cleanup.
                 deadline=$((containment_deadline - 40000))
+                as_bts 20 mutation /usr/bin/python3 -c "$fs_code" marker "$checkout/data/.heartbeat" "$step" "${TARGET_SHA:0:7}" "${old:0:7}" >/dev/null
+                prove marker "$?"
                 if [[ -n $staged ]]; then
                     as_bts 10 mutation rm -f -- "$staged" >/dev/null || :
                 fi
-                if as_bts 20 mutation /usr/bin/python3 -c "$fs_code" marker "$checkout/data/.heartbeat" "$step" "${TARGET_SHA:0:7}" "${old:0:7}" >/dev/null; then
-                    marker=verified
-                fi
-                deadline=$((containment_deadline - 10000))
+                # Endpoint parsing to 254 s, so a valid URL leaves curl at least 10 s of TERM before 270 s.
+                deadline=$((containment_deadline - 26000))
                 if [[ $prior_page == verified ]]; then
-                    page=verified
+                    prove page carried
                 elif endpoint=$(as_bts 20 normal /usr/bin/python3 -c "$fs_code" endpoint "$checkout/.env"); then
+                    deadline=$((containment_deadline - 10000))
                     output=$(run 20 5 normal curl --disable --globoff --noproxy '*' -sS -m 10 -o /dev/null -w '%{http_code}' \
                         --data-raw "Deploy failed at $step, requested target ${TARGET_SHA:0:7}, scheduler stop $stop. See INCIDENT.md §4." "$endpoint"
                         local status=$?; printf '\037'; exit "$status")
-                    local post_status=$?
-                    output=${output%$'\037'}
-                    if [[ $post_status == 0 && $output =~ ^2[0-9][0-9]$ ]]; then
-                        page=verified
-                    fi
+                    post_status=$?
+                    prove page "$post_status" "${output%$'\037'}"
+                else
+                    prove page none
                 fi
-                log "Scheduler stopped: $stop." "Failure heartbeat written: $marker." "Failure ping received HTTP 2xx: $page." "Recovery procedure: INCIDENT.md §4."
-                deadline=$containment_deadline
+                # The record to 278 s; the last two seconds are for the result lines.
+                deadline=$((containment_deadline - 2000))
                 publish contained "$step" "$stop" "$marker" "$page" || :
                 exec 9>&-
-                if [[ $repeat == yes && $stop$marker$page == verifiedverifiedverified ]]; then
-                    log 'DEPLOY RECOVERY — containment re-checked.'
-                fi
+                prove report
+                prove recheck
                 exit 1
             }
 
@@ -1275,13 +1402,13 @@ jobs:
                 fs 10 mutation mark "$lock_dir/cancelled.$RUN_ID.$RUN_ATTEMPT" ||
                     recovery_exit 'DEPLOY RECOVERY — cancellation mark could not be verified. No service change was attempted. See INCIDENT.md §4.'
                 if (( rc == 3 )); then
-                    recovery_exit 'DEPLOY RECOVERY — this attempt has no phase-2 record on this boot. Check the deploy log and the host'\''s boot time.'
+                    recovery_exit 'DEPLOY RECOVERY — no phase-2 record is present. Check the deploy log and the host'\''s boot time.'
                 fi
                 recovery_exit 'DEPLOY RECOVERY — a different attempt owns the box record. See INCIDENT.md §4.'
             fi
             old=$r_old
             case $r_state in
-                committed) recovery_exit 'DEPLOY RECOVERY — this attempt committed on the box. Check the deploy log.' ;;
+                committed) recovery_exit 'DEPLOY RECOVERY — this attempt'\''s record says committed. Check the deploy log and verify current state via INCIDENT.md §4.' ;;
                 begun) contain deploy-step-incomplete 1 ;;
                 contained) contain "$r_step" 1 "$r_page" yes ;;
             esac
