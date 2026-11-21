@@ -136,3 +136,6 @@ The second check (`contract-check-d3/contract-check-r2.md`, `WRCHKD3R2-bb07ae25`
 - The NOTE "order and limits" goes into the ledger: **L2** gains "two lost owners can still leave an unowned candidate"; **L9** gains "if recovery never records a mark (or a reboot clears it), an older SSH request that reaches the box late can take ownership after a newer run".
 
 **Next:** no author before W15b has merged or stopped (the lead's condition of 04:53). The author's brief is this file with amendment 1 and `contract-check-d3/contract-check-r2.md`.
+
+## Amendment 2 (2026-11-21 08:12 ET, on the author's question): the wait's deadline
+F0's "the wait 30 s plus 5 s" with a 5-second TERM-to-KILL grace inside the cap would send TERM at 30 seconds and could cut a healthy `sleep 30` (the second check's F0 text requires a healthy wait to complete all 30 seconds). **Ruled:** the wait runs as `timeout -k 2 33 sleep 30` (TERM at 33 s, KILL 2 s later: 35 s total, within the published cap). Every other deadline keeps its 5-second grace inside its published cap, except where a command's own healthy duration would then exceed its TERM deadline; the author lists any such case in the handover instead of raising a cap.
