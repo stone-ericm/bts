@@ -9,14 +9,14 @@ dates strictly before D. This is enforced by:
 3. Park factor normalization uses expanding league-wide mean.
 """
 
-import json
 import os
-import sys
 
 import numpy as np
 import pandas as pd
 from collections import Counter
 from pathlib import Path
+
+from bts.features import probable_pitcher_cache
 
 # Optimal training window: 2019 onward. Adding 2017-2018 hurts P@1 by 1.1%
 # because the game changed enough that old training examples add noise.
@@ -53,67 +53,7 @@ def _build_probable_pitcher_lookup(raw_dir: str = "data/raw") -> dict:
     Returns {game_pk: {"away": pitcher_id, "home": pitcher_id,
                         "away_tid": team_id, "home_tid": team_id}}.
     """
-    # Load existing cache
-    lookup = {}
-    if _probable_pitcher_cache_path.exists():
-        try:
-            cached = json.loads(_probable_pitcher_cache_path.read_text())
-            lookup = {int(k): v for k, v in cached.items()}
-        except Exception as e:
-            # Rebuilt below from whatever raw feeds are present; entries for
-            # games whose feeds are not on this machine are lost, so say so.
-            lookup = {}
-            print(
-                f"WARNING: unreadable probable-pitcher cache {_probable_pitcher_cache_path} "
-                f"({type(e).__name__}); rebuilding it from raw feeds",
-                file=sys.stderr,
-            )
-
-    raw = Path(raw_dir)
-    if not raw.exists():
-        return lookup
-
-    # Scan only files not already in cache
-    new_count = 0
-    for season_dir in sorted(raw.iterdir()):
-        if not season_dir.is_dir():
-            continue
-        for f in season_dir.glob("*.json"):
-            if not f.stem.isdigit():
-                continue
-            pk = int(f.stem)
-            if pk in lookup:
-                continue
-            try:
-                d = json.loads(f.read_text())
-                gd = d.get("gameData", {})
-                teams = gd.get("teams", {})
-                pp = gd.get("probablePitchers", {})
-                lookup[pk] = {
-                    "away": pp.get("away", {}).get("id"),
-                    "home": pp.get("home", {}).get("id"),
-                    "away_tid": teams.get("away", {}).get("id"),
-                    "home_tid": teams.get("home", {}).get("id"),
-                }
-                new_count += 1
-            except Exception:
-                continue
-
-    # Save updated cache
-    # Write a sibling temp file and rename it over the cache: an interrupted
-    # write must never leave a truncated cache (it would read as empty).
-    if new_count > 0:
-        _probable_pitcher_cache_path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = _probable_pitcher_cache_path.with_name(
-            f".{_probable_pitcher_cache_path.name}.{os.getpid()}.tmp"
-        )
-        try:
-            tmp.write_text(json.dumps({str(k): v for k, v in lookup.items()}))
-            os.replace(tmp, _probable_pitcher_cache_path)
-        finally:
-            tmp.unlink(missing_ok=True)
-
-    return lookup
+    return probable_pitcher_cache.build(_probable_pitcher_cache_path, raw_dir)
 
 
 def _is_barrel(ev, la):
