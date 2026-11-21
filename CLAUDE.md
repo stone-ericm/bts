@@ -112,14 +112,29 @@ Source, mapping and what this supersedes: `docs/superpowers/notes/work-policies-
 - Reopened by Eric 11/12: the longest-streak policy (4b, trade table still needs his D7 approval before it affects picks) and a narrower watchdog.
 
 ## Deployment
-- **🚨 Remote / phone incident response → see [`INCIDENT.md`](INCIDENT.md)** — what a cloud (phone) session can vs. can't fix, exact deploy/rollback commands, and the escalation triggers (esp. the on-box cookie re-capture you can't do from the cloud).
+- **Remote and phone incident response.** [INCIDENT.md](INCIDENT.md) covers what a cloud or phone session can and cannot fix, the deploy and recovery commands, and when to escalate. On-box cookie re-capture requires SSH access to the box and cannot be done from the cloud.
 - **Deploys trigger on push to `deploy` branch** (NOT main, since 2026-04-21). Workflow: commit/push to main freely; when ready to ship, `git push origin main:deploy`. Gives explicit control over when scheduler restart fires (avoids disrupting live-game scorecard polling).
-- **Canary + auto-rollback**: after deploy, workflow waits 30s then checks `systemctl is-active bts-scheduler bts-dashboard` + dashboard HTTP. On failure, auto-reverts to pre-deploy SHA + restarts services.
+- **Canary and containment (D3).** After the 30-second wait, the canary checks both units, dashboard HTTP and, for live delivery, `bts deploy-canary`. The workflow leaves the reached checkout in place. After authorization the remote script attempts containment on a detected failure. Recovery is eligible after a failed or cancelled deploy step. Verify the result in Actions and follow INCIDENT.md §4 if containment cannot be confirmed.
 - **Deploys restart the scheduler** — before a midday deploy, check the sleep window (`ssh bts-hetzner 'journalctl --user -u bts-scheduler -n 2 | grep "Sleeping until"'`) and land inside it; never deploy during a decisive live observation day (a deploy-transition muddied the 6/22 skip-day read).
 - **The 01:00 grading cron can now live until ~06:00 ET** (`--wait-deadline-et`). A deploy in that window leaves the old-code grader running against the new tree — harmless for grading but its status artifact stamps the NEW git SHA while produced by the old process. The cron line holds a `flock -n` singleton, so an overlapping manual run no-ops instead of double-grading.
-- **Emergency deploy**: `workflow_dispatch` trigger in the GitHub Actions UI — runs deploy without pushing anything. **Select the `deploy` branch in the dropdown** (defaults to main, which fails at the `production` environment gate — the root SSH key is branch-scoped since 2026-07-10).
-- Every push to `deploy` triggers the workflow (no paths filter — `deploy` is a dedicated deploy ref, so any push to it is an intentional deploy). Workflow SSHes as root, runs `git pull --ff-only` + restarts `bts-scheduler` + `bts-dashboard` as user `bts`. **Don't manually `systemctl restart` on bts-mlb after pushing** — workflow does it.
+- **Emergency deploy.** Select `deploy` in the Actions dispatch dropdown and verify its SHA. The dropdown defaults to `main`, which fails at the `production` environment gate. The root SSH key is scoped to the `production` environment and the `deploy` branch. For deploy recovery use INCIDENT.md §4 and the whole deploy. Avoid a manual scheduler restart.
+- Every push to `deploy` triggers the workflow. The workflow resets to the run's tested SHA and restarts the user services after temporarily disabling the scheduler's local boot link as a soft hold. **Do not run systemctl restart on the box after pushing: the workflow does it.**
 - See `the claude-shared memory file reference_bts_deploy_workflow.md` for full details.
+
+**Deploy limits**
+
+- **L1.** Skipping checklist B8c can leave the October code (`619abda7`) and its crontab after a failed reset. The 10:30 fetch rewrites a 2027 reading on the live path and refuses, causing a missed pick. October scoring can drop `season` and `applied_dates`.
+- **L2.** A lost SSH session, cancellation, timeout or lost runner can leave a candidate scheduler running. Recovery can fail to start, reach the box or obtain the mutex. Two lost owners can still leave an unowned candidate. A soft hold cannot undo a sent pick.
+- **L3.** A failed reset can leave a partial tree. Cron can start from that tree, and a running job can keep old code while files are replaced.
+- **L4.** The heartbeat cron and immediate POST depend on the reached checkout and `.env`. A broken checkout or environment can leave the GitHub notice and missed-ping checks as the remaining channels.
+- **L5.** The candidate scheduler runs during the canary and can send a pick before a failure is found.
+- **L6.** A retry rewrites the heartbeat. A read begun before containment can succeed after the failure ping, and a surviving process can overwrite the marker.
+- **L7.** The frozen incident-register parser interprets the new lines as `canary=absent` and `rollback=none`.
+- **L8.** Other user links, dependencies, legacy units and manual starts can activate the scheduler. Stop verification covers the checked scopes at the time of the check.
+- **L9.** Power loss before disable or after enable and before commit can start the scheduler at boot. A boot clears the attempt record and cancellation mark in `/run`. If recovery never records a mark or reboot clears it, an older SSH request reaching the box late can take ownership after a newer run.
+- **L10.** The box can commit after Actions fails or cancels. Recovery reports a matching committed attempt.
+- **L11.** The scheduler unit reads `EnvironmentFile` and invokes `uv run`. Overrides such as `UV_PROJECT_ENVIRONMENT`, `PYTHONPATH`, `PYTHONHOME` or `PYTHONTZPATH` can alter the interpreter or semantics and produce a false green canary. A7 verifies the installed runtime.
+- **L12.** A 2xx confirms the POST response. Confirm the provider history and Eric's receipt separately.
 
 ## Box access (bts-hetzner) gotchas
 - **🛑 bts-mlb is DELETED for the 2026–27 offseason (2026-10-21).** `ssh bts-hetzner`, the dashboard, crons and `git push origin main:deploy` all fail until the box is recreated from Hetzner snapshot `446156433` onto the retained Primary IPv4 `204.168.243.169` (id 126036156). Runbook + spring restore recipe + Codex sign-off review: memory `project_bts_hetzner_offseason_2026_10_21.md` and `docs/reviews/2026-10-21-offseason-teardown/`. Before activation follow `docs/ops/2027-season-start.md`; the resolve timer is `Persistent=true` and will catch up on first boot.

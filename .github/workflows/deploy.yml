@@ -71,120 +71,1129 @@ jobs:
           uv sync --locked --extra model
           uv run pytest -m "not slow"
 
-      - name: Deploy via SSH with canary health check + auto-rollback
-        # Pinned to a commit SHA (not the floating @v1) because this step
-        # receives the root HETZNER_SSH_KEY — a moved tag could exfiltrate it.
+      - name: Deploy via SSH with canary health checks
+        id: deploy
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
         env:
-          # Deploy the TRIGGERING commit, not the mutable ref (round-3 F2):
-          # resetting to origin/deploy at execution time let an in-flight run
-          # ship a LATER queued commit whose own test/environment gate had
-          # not run yet. github.sha is exactly what this run's gate tested.
           TARGET_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: root
           key: ${{ secrets.HETZNER_SSH_KEY }}
-          envs: TARGET_SHA
+          envs: TARGET_SHA,RUN_ID,RUN_ATTEMPT
+          command_timeout: 20m
           script: |
-            set -e
-            cd /home/bts/projects/bts
-
-            # Capture pre-deploy SHA for rollback if canary fails.
-            OLD_SHA=$(sudo -Hu bts git rev-parse HEAD)
-            echo "Pre-deploy SHA: $(echo $OLD_SHA | cut -c1-7)"
-
-            sudo -Hu bts git config --global --add safe.directory /home/bts/projects/bts
-            # Hard-reset the working tree to THIS RUN's tested commit.
-            # History: `git pull --ff-only` pulled origin/main (silent no-op
-            # deploys); then `reset --hard origin/deploy` fixed that but read
-            # the MUTABLE ref at execution time — an in-flight run could ship
-            # a later queued commit that its own gate never tested (round-3
-            # F2). $TARGET_SHA is the exact SHA this run's test gate passed.
-            sudo -Hu bts git fetch origin
-            sudo -Hu bts git reset --hard "$TARGET_SHA"
-            sudo -Hu bts env UV_CACHE_DIR=/tmp/uv-cache /home/bts/.local/bin/uv sync --locked --extra model
-            # Self-heal: legacy system-level units (created before April 11)
-            # race the canonical user-level units. Remove if present.
-            if [ -f /etc/systemd/system/bts-scheduler.service ]; then
-              systemctl disable --now bts-scheduler.service bts-dashboard.service 2>/dev/null || true
-              rm -f /etc/systemd/system/bts-scheduler.service /etc/systemd/system/bts-dashboard.service
-              systemctl daemon-reload
-              pkill -u bts -f 'uv run bts schedule' 2>/dev/null || true
-            fi
-            sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user restart bts-scheduler bts-dashboard
-            NEW_SHA=$(sudo -Hu bts git rev-parse --short HEAD)
-            echo "Deployed $NEW_SHA"
-
-            # Canary: wait for services to stabilize, then check health.
-            # Failures auto-rollback to OLD_SHA + restart.
-            echo "Waiting 30s for services to stabilize..."
-            sleep 30
-
+            exec /bin/bash -s <<'BTS_DEPLOY'
             set +e
-            FAILED=0
-            FAILURE_REASONS=""
+            exec 8>&1
+            export LC_ALL=C
+            checkout=/home/bts/projects/bts
+            lock_dir=/run/bts-deploy
+            attempt=$lock_dir/attempt
+            scheduler=bts-scheduler.service
+            dashboard=bts-dashboard.service
+            legacy_dir=/etc/systemd/system
+            old=unknown
+            staged=
+            reported=
+            phase_steps='commit-record|disable|reset|sync|legacy-units|restart|head|wait|scheduler-state|dashboard-state|dashboard-http|contest-state|stamp-stage|enable|stamp|interrupted|deploy-step-incomplete'
 
-            # Check 1: scheduler service is active, or it exited cleanly after
-            # completing the day and is waiting for Restart=always to relaunch.
-            SCHEDULER_ACTIVE=$(sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user is-active bts-scheduler 2>/dev/null)
-            if [ "$SCHEDULER_ACTIVE" != "active" ]; then
-              SCHEDULER_ACTIVE_STATE=$(sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user show bts-scheduler -p ActiveState --value)
-              SCHEDULER_SUB_STATE=$(sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user show bts-scheduler -p SubState --value)
-              SCHEDULER_RESULT=$(sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user show bts-scheduler -p Result --value)
-              SCHEDULER_EXIT_STATUS=$(sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user show bts-scheduler -p ExecMainStatus --value)
-              if [ "$SCHEDULER_ACTIVE_STATE" = "activating" ] && \
-                 [ "$SCHEDULER_SUB_STATE" = "auto-restart" ] && \
-                 [ "$SCHEDULER_RESULT" = "success" ] && \
-                 [ "$SCHEDULER_EXIT_STATUS" = "0" ]; then
-                echo "bts-scheduler.service completed cleanly and is waiting for Restart=always relaunch"
-              else
-                FAILED=1
-                FAILURE_REASONS="$FAILURE_REASONS\n  - bts-scheduler.service is not healthy (active=$SCHEDULER_ACTIVE active_state=$SCHEDULER_ACTIVE_STATE sub_state=$SCHEDULER_SUB_STATE result=$SCHEDULER_RESULT exit_status=$SCHEDULER_EXIT_STATUS)"
-              fi
+            # Test injection points are the fixed checkout, bts home, runtime and legacy
+            # directories, cgroup root, null device, and fixed executable paths at use.
+            fs_code='
+            import datetime, json, os, pathlib, signal, stat, subprocess, sys, tempfile, time
+            from urllib.parse import urlsplit
+
+            op, *args = sys.argv[1:]
+            def bounded(path, limit, nofollow=True):
+                flags = os.O_RDONLY | os.O_NONBLOCK
+                if nofollow:
+                    flags |= os.O_NOFOLLOW
+                fd = os.open(path, flags)
+                with os.fdopen(fd, "rb") as f:
+                    metadata = os.fstat(f.fileno())
+                    if not stat.S_ISREG(metadata.st_mode):
+                        raise ValueError()
+                    data = f.read(limit + 1)
+                    if len(data) > limit or not os.path.samestat(metadata, os.stat(path, follow_symlinks=False)):
+                        raise ValueError()
+                    return data, metadata
+
+            def atomic(path, data):
+                fd, temporary = tempfile.mkstemp(dir=os.path.dirname(path))
+                try:
+                    with os.fdopen(fd, "wb") as f:
+                        f.write(data)
+                    os.replace(temporary, path)
+                finally:
+                    if os.path.lexists(temporary):
+                        os.unlink(temporary)
+
+            try:
+                if op == "clock":
+                    print(time.monotonic_ns() // 1_000_000)
+                elif op == "supervise":
+                    term, grace, *command = args
+                    # This process retains the inherited lock while the command runs.
+                    for sig in (signal.SIGHUP, signal.SIGINT, signal.SIGTERM, signal.SIGPIPE):
+                        signal.signal(sig, lambda *_: None)
+                    child = subprocess.Popen(["timeout", "-k", grace, term, *command],
+                                             start_new_session=True, close_fds=True)
+                    try:
+                        status = child.wait(timeout=float(term) + float(grace))
+                    except subprocess.TimeoutExpired:
+                        status = 124
+                    if status in (124, 137) or status < 0:
+                        try:
+                            os.killpg(child.pid, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                    if child.poll() is None:
+                        try:
+                            child.wait(timeout=0.1)
+                        except subprocess.TimeoutExpired:
+                            pass
+                    sys.exit(128 - status if status < 0 else status)
+                elif op == "capture":
+                    limit, *command = args
+                    with subprocess.Popen(command, stdout=subprocess.PIPE) as child:
+                        data = child.stdout.read(int(limit) + 1)
+                        if len(data) > int(limit):
+                            child.kill()
+                            sys.exit(125)
+                        sys.stdout.buffer.write(data)
+                        status = child.wait()
+                    sys.exit(128 - status if status < 0 else status)
+                elif op == "lockfile":
+                    p, = args
+                    fd = os.open(p, os.O_WRONLY | os.O_APPEND | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600)
+                    with os.fdopen(fd, "ab") as f:
+                        s = os.fstat(f.fileno())
+                        if not stat.S_ISREG(s.st_mode) or s.st_uid != 0 or stat.S_IMODE(s.st_mode) != 0o600:
+                            raise ValueError()
+                elif op == "read":
+                    p, = args
+                    data, _ = bounded(p, 512)
+                    if not data.endswith(b"\n") or any(c < 32 or c > 126 for c in data[:-1]):
+                        raise ValueError()
+                    print(data[:-1].decode("ascii"))
+                elif op == "mark":
+                    p, = args
+                    try:
+                        fd = os.open(p, os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
+                    except FileExistsError:
+                        pass
+                    else:
+                        os.close(fd)
+                    data, s = bounded(p, 0)
+                    if s.st_uid != 0 or stat.S_IMODE(s.st_mode) != 0o600:
+                        raise ValueError()
+                elif op == "stage-record":
+                    directory, line = args
+                    fd, name = tempfile.mkstemp(dir=directory, prefix=".attempt.")
+                    try:
+                        with os.fdopen(fd, "wb") as f:
+                            f.write(line.encode("ascii") + b"\n")
+                    except BaseException:
+                        os.unlink(name)
+                        raise
+                    print(name)
+                elif op == "stage":
+                    directory, = args
+                    with tempfile.NamedTemporaryFile(dir=directory, prefix=".deploy.", delete=False) as f:
+                        try:
+                            f.write(datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ\n").encode("ascii"))
+                            f.flush()
+                            os.fsync(f.fileno())
+                        except BaseException:
+                            os.unlink(f.name)
+                            raise
+                    print(f.name)
+                elif op == "stamp":
+                    source, path = args
+                    if os.path.isdir(path):
+                        raise ValueError()
+                    os.replace(source, path)
+                    fd = os.open(os.path.dirname(path), os.O_RDONLY | os.O_DIRECTORY)
+                    try:
+                        os.fsync(fd)
+                    finally:
+                        os.close(fd)
+                elif op == "marker":
+                    path, step, target, old = args
+                    data = json.dumps(dict(state="deploy_failed", timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                                           step=step, target_sha=target, old_sha=old)).encode()
+                    atomic(path, data)
+                    if bounded(path, 4096)[0] != data:
+                        raise ValueError()
+                elif op == "endpoint":
+                    path, = args
+                    prefix = "BTS_SCHEDULER_HEARTBEAT_PING_URL="
+                    lines = bounded(path, 65536)[0].decode().split("\n")
+                    value, = [line[len(prefix):] for line in lines if line.startswith(prefix)]
+                    if len(value) >= 2 and value[0] in (chr(34), chr(39)) and value[-1] == value[0]:
+                        value = value[1:-1]
+                    if any(c.isspace() or not c.isprintable() or c in (chr(34), chr(39), "\\", "?", "#") for c in value):
+                        raise ValueError()
+                    parsed = urlsplit(value)
+                    if parsed.scheme != "https" or not parsed.hostname or parsed.username is not None or parsed.password is not None:
+                        raise ValueError()
+                    if parsed.netloc.endswith(":"):
+                        raise ValueError()
+                    parsed.port
+                    print(value.rstrip("/") + "/fail")
+                elif op == "cgroup":
+                    root, group = args
+                    if not os.path.isfile(os.path.join(root, "cgroup.controllers")):
+                        raise ValueError()
+                    if group:
+                        if not group.startswith("/") or ".." in pathlib.PurePosixPath(group).parts:
+                            raise ValueError()
+                        path = root + group
+                        try:
+                            events, _ = bounded(os.path.join(path, "cgroup.events"), 4096)
+                        except FileNotFoundError:
+                            if os.path.lexists(path):
+                                raise
+                        else:
+                            if [line for line in events.splitlines() if line.startswith(b"populated ")] != [b"populated 0"]:
+                                raise ValueError()
+            except FileNotFoundError:
+                sys.exit(3 if op == "read" and not os.path.lexists(args[0]) else 1)
+            except Exception:
+                sys.exit(1)
+            '
+
+            clock() {
+                (exec 9>&- 8>&-; timeout -k 5 1 /usr/bin/python3 -c "$fs_code" clock) 2>/dev/null
+            }
+            start_phase() {
+                local now
+                now=$(clock)
+                [[ $now =~ ^[0-9]+$ ]] || return 1
+                deadline=$((now + $1 * 1000))
+            }
+            run() {
+                local cap=$1 grace=$2 mode=$3 now available term
+                shift 3
+                now=$(clock)
+                [[ $now =~ ^[0-9]+$ ]] || return 124
+                available=$(((deadline - now) / 1000))
+                if [[ $mode == wait ]] && (( available < cap )); then
+                    return 124
+                fi
+                (( available < cap )) && cap=$available
+                term=$((cap - grace))
+                (( term > 0 )) || return 124
+                case $mode in
+                    mutation)
+                        /usr/bin/python3 -c "$fs_code" supervise "$term" "$grace" "$@" ;;
+                    lock)
+                        (exec 8>&-; timeout -k "$grace" "$term" "$@") ;;
+                    *)
+                        (exec 9>&- 8>&-; timeout -k "$grace" "$term" "$@") ;;
+                esac </dev/null 2>/dev/null
+            }
+            log() {
+                (exec 9>&- 8>&-; timeout -k 5 1 /bin/bash -c 'printf "%s\n" "$@"' _ "$@") >&8 2>/dev/null || :
+            }
+            fs() {
+                local cap=$1 mode=$2
+                shift 2
+                run "$cap" 5 "$mode" /usr/bin/python3 -c "$fs_code" "$@"
+            }
+            as_user() {
+                local cap=$1 mode=$2
+                shift 2
+                if [[ $uid =~ ^[0-9]+$ ]]; then
+                    run "$cap" 5 "$mode" sudo -u bts "XDG_RUNTIME_DIR=/run/user/$uid" systemctl --user "$@"
+                else
+                    run "$cap" 5 "$mode" sudo -u bts systemctl --user "$@"
+                fi
+            }
+            as_bts() {
+                local cap=$1 mode=$2
+                shift 2
+                run "$cap" 5 "$mode" sudo -Hu bts "$@"
+            }
+            valid_inputs() {
+                [[ $TARGET_SHA =~ ^[0-9a-f]{40}$ ]] || return 1
+                [[ $RUN_ID =~ ^[0-9]{1,20}$ && $RUN_ATTEMPT =~ ^[0-9]{1,20}$ &&
+                   $RUN_ID =~ [1-9] && $RUN_ATTEMPT =~ [1-9] ]] || return 2
+            }
+            lock() {
+                local metadata
+                [[ ! -L $lock_dir ]] || return 1
+                if [[ ! -e $lock_dir ]]; then
+                    run 10 5 normal install -d -m 0700 -o root -g root "$lock_dir" >/dev/null || return 1
+                fi
+                [[ -d $lock_dir && ! -L $lock_dir && ! -L $lock_dir/lock ]] || return 1
+                metadata=$(run 10 5 normal stat -c '%u %a' "$lock_dir") || return 1
+                [[ $metadata == '0 700' ]] || return 1
+                [[ ! -e $lock_dir/lock || -f $lock_dir/lock ]] || return 1
+                fs 10 normal lockfile "$lock_dir/lock" || return 1
+                { exec 9>>"$lock_dir/lock"; } 2>/dev/null || return 1
+                if [[ $1 == deploy ]]; then
+                    run 10 5 lock flock -n 9
+                else
+                    run 1505 5 lock flock -w 1500 9
+                fi
+            }
+            read_record() {
+                local record
+                record=$(fs 10 normal read "$attempt")
+                local rc=$?
+                (( rc == 0 )) || return "$rc"
+                local grammar="^bts_deploy_attempt_v1 ([0-9]{1,20}) ([0-9]{1,20}) ([0-9a-f]{40}) ([0-9a-f]{40}) (begun|committed|contained) ([a-z-]+) (-|verified|unverified) (-|verified|unverified) (-|verified|unverified)$"
+                [[ $record =~ $grammar ]] || return 1
+                r_run=${BASH_REMATCH[1]} r_try=${BASH_REMATCH[2]} r_target=${BASH_REMATCH[3]} r_old=${BASH_REMATCH[4]}
+                r_state=${BASH_REMATCH[5]} r_step=${BASH_REMATCH[6]}
+                r_stop=${BASH_REMATCH[7]} r_marker=${BASH_REMATCH[8]} r_page=${BASH_REMATCH[9]}
+                [[ $r_run =~ [1-9] && $r_try =~ [1-9] ]] || return 1
+                if [[ $r_state == contained ]]; then
+                    [[ $r_step =~ ^($phase_steps)$ && $r_stop != - && $r_marker != - && $r_page != - ]]
+                else
+                    [[ $r_step == - && $r_stop$r_marker$r_page == --- ]]
+                fi
+            }
+            same_ids() { [[ $r_run == "$RUN_ID" && $r_try == "$RUN_ATTEMPT" ]]; }
+            same_record() { same_ids && [[ $r_target == "$TARGET_SHA" && $r_old == "$old" ]]; }
+            publish() {
+                local wanted=$1 staged_record
+                shift
+                staged_record=$(fs 10 mutation stage-record "$lock_dir" "bts_deploy_attempt_v1 $RUN_ID $RUN_ATTEMPT $TARGET_SHA $old $wanted $*")
+                if [[ $? == 0 && $staged_record == "$lock_dir/.attempt."* ]]; then
+                    run 10 5 mutation mv -fT "$staged_record" "$attempt" >/dev/null
+                    if [[ -e $staged_record ]]; then
+                        run 10 5 mutation rm -f -- "$staged_record" >/dev/null || :
+                    fi
+                fi
+                read_record
+                local rc=$?
+                (( rc == 3 )) && return 1
+                (( rc == 0 )) || return 2
+                same_record && [[ $r_state == "$wanted" ]]
+            }
+            field() {
+                local key=$1 contents=$2 allow_empty=${3:-no} line result= count=0
+                while IFS= read -r line; do
+                    if [[ $line == "$key="* ]]; then
+                        result=${line#*=}
+                        (( count += 1 ))
+                    fi
+                done <<< "$contents"
+                [[ $count == 1 && ( -n $result || $allow_empty == yes ) ]] || return 1
+                printf '%s' "$result"
+            }
+            enabled() {
+                local expected=$1 cap=$2 output rc
+                shift 2
+                output=$("$@" "$cap" normal is-enabled "$unit"; rc=$?; printf '\037'; exit "$rc")
+                rc=$?
+                [[ $rc != 124 && $rc != 137 ]] || return "$rc"
+                if [[ $expected == disabled ]]; then
+                    [[ $rc == 1 && $output == $'disabled\n\037' ]]
+                else
+                    [[ $rc == 0 && $output == $'enabled\n\037' ]]
+                fi
+            }
+            system_unit() {
+                local cap=$1 mode=$2
+                shift 2
+                run "$cap" 5 "$mode" systemctl "$@"
+            }
+            jobs_clear() {
+                local command=$1 cap=$2 name=$3 jobs job id rest
+                jobs=$("$command" "$cap" normal list-jobs --no-legend --no-pager) || return 1
+                while read -r id job rest; do
+                    [[ -z $id || ( $id =~ ^[0-9]+$ && -n $job && -n $rest && $job != "$name" ) ]] || return 1
+                done <<< "$jobs"
+            }
+            legacy_state() {
+                local cap=$1 name=$2 output id active pid
+                output=$(system_unit "$cap" normal show "$name" -p Id -p LoadState -p ActiveState -p MainPID) || return 1
+                id=$(field Id "$output") && [[ $id == "$name" ]] || return 1
+                active=$(field ActiveState "$output") || return 1
+                pid=$(field MainPID "$output") && [[ $pid =~ ^[0-9]+$ ]] || return 1
+                legacy=$(field LoadState "$output") || return 1
+                case $active in active|inactive|failed|activating|deactivating|reloading) ;; *) return 1 ;; esac
+                case $legacy in
+                    loaded) ;;
+                    not-found) [[ $active == inactive && $pid == 0 ]] || return 1 ;;
+                    *) return 1 ;;
+                esac
+                jobs_clear system_unit "$cap" "$name"
+            }
+            check_stopped() {
+                local command=$1 name=$2 output active pid group
+                output=$("$command" 20 normal show "$name" -p ActiveState -p MainPID -p ControlGroup) || return 1
+                active=$(field ActiveState "$output") && [[ $active == inactive || $active == failed ]] || return 1
+                pid=$(field MainPID "$output") && [[ $pid == 0 ]] || return 1
+                group=$(field ControlGroup "$output" yes) || return 1
+                jobs_clear "$command" 20 "$scheduler" || return 1
+                fs 20 normal cgroup /sys/fs/cgroup "$group"
+            }
+            contain() {
+                trap '' HUP INT TERM PIPE
+                local step=$1 status=$2 prior_page=$3 repeat=$4
+                local stop=unverified marker=unverified page=unverified uid unit before= query_ok=0
+                local user_disabled=1 user_stopped=1 legacy_disabled=1 legacy_stopped=1 user_proof=1 system_proof=1 residual
+                local containment_deadline output endpoint
+                start_phase 280 || deadline=0
+                containment_deadline=$deadline
+                if [[ $repeat != yes ]]; then
+                    log "DEPLOY FAILED at $step — requested target ${TARGET_SHA:0:7}, previous SHA ${old:0:7}. No automatic rollback was attempted. Recovery has not been verified."
+                    [[ $reported == "$step" ]] || log "Check $step failed ($status)."
+                fi
+                deadline=$((containment_deadline - 200000))
+                uid=$(run 10 5 normal id -u bts)
+                local uid_status=$?
+                if (( uid_status != 0 )) || [[ ! $uid =~ ^[0-9]+$ ]]; then
+                    uid=
+                fi
+                as_user 10 mutation disable bts-scheduler >/dev/null; user_disabled=$?
+                as_user 60 mutation stop bts-scheduler >/dev/null; user_stopped=$?
+                deadline=$((containment_deadline - 110000))
+                if legacy_state 10 "$scheduler"; then
+                    query_ok=1
+                    before=$legacy
+                fi
+                if [[ $query_ok != 1 || $before != not-found || -e $legacy_dir/$scheduler ]]; then
+                    system_unit 10 mutation disable "$scheduler" >/dev/null; legacy_disabled=$?
+                    system_unit 60 mutation stop "$scheduler" >/dev/null; legacy_stopped=$?
+                else
+                    legacy_disabled=0 legacy_stopped=0
+                fi
+                deadline=$((containment_deadline - 60000))
+                if (( uid_status == 0 )) && [[ $uid =~ ^[0-9]+$ ]]; then
+                    unit=bts-scheduler
+                    if enabled disabled 20 as_user && check_stopped as_user "$unit"; then
+                        user_proof=0
+                    fi
+                fi
+                if legacy_state 20 "$scheduler"; then
+                    unit=$scheduler
+                    if [[ $legacy == not-found && ! -e $legacy_dir/$scheduler ]]; then
+                        system_proof=0
+                    elif check_stopped system_unit "$scheduler" && enabled disabled 20 system_unit; then
+                        system_proof=0
+                    fi
+                fi
+                run 20 5 normal pgrep -u bts -f 'bts schedule' >/dev/null; residual=$?
+                if [[ $user_disabled$user_stopped$legacy_disabled$legacy_stopped$user_proof$system_proof$residual == 0000001 ]]; then
+                    stop=verified
+                fi
+                deadline=$((containment_deadline - 40000))
+                if [[ -n $staged ]]; then
+                    as_bts 10 mutation rm -f -- "$staged" >/dev/null || :
+                fi
+                if as_bts 20 mutation /usr/bin/python3 -c "$fs_code" marker "$checkout/data/.heartbeat" "$step" "${TARGET_SHA:0:7}" "${old:0:7}" >/dev/null; then
+                    marker=verified
+                fi
+                deadline=$((containment_deadline - 10000))
+                if [[ $prior_page == verified ]]; then
+                    page=verified
+                elif endpoint=$(as_bts 20 normal /usr/bin/python3 -c "$fs_code" endpoint "$checkout/.env"); then
+                    output=$(run 20 5 normal curl --disable --noproxy '*' -sS -m 10 -o /dev/null -w '%{http_code}' \
+                        --data-raw "Deploy failed at $step, requested target ${TARGET_SHA:0:7}, scheduler stop $stop. See INCIDENT.md §4." "$endpoint"
+                        local status=$?; printf '\037'; exit "$status")
+                    local post_status=$?
+                    output=${output%$'\037'}
+                    if [[ $post_status == 0 && $output =~ ^2[0-9][0-9]$ ]]; then
+                        page=verified
+                    fi
+                fi
+                log "Scheduler stopped: $stop." "Failure heartbeat written: $marker." "Failure ping received HTTP 2xx: $page." "Recovery procedure: INCIDENT.md §4."
+                deadline=$containment_deadline
+                publish contained "$step" "$stop" "$marker" "$page" || :
+                exec 9>&-
+                if [[ $repeat == yes && $stop$marker$page == verifiedverifiedverified ]]; then
+                    log 'DEPLOY RECOVERY — containment re-checked.'
+                fi
+                exit 1
+            }
+
+            not_started() {
+                exec 9>&-
+                log "DEPLOY NOT STARTED — $1 failed. This deploy invocation did not change the checkout or services. Previous SHA: ${old:0:7}."
+                exit 1
+            }
+            unknown_begin() {
+                exec 9>&-
+                log 'DEPLOY NOT STARTED — attempt-record failed. This deploy invocation did not change the checkout or services. Recovery has not been verified.'
+                exit 1
+            }
+            on_signal() {
+                trap '' HUP INT TERM PIPE
+                read_record
+                case $? in
+                    3) not_started attempt-record ;;
+                    0) ;;
+                    *) unknown_begin ;;
+                esac
+                same_record || not_started attempt-record
+                case $r_state in
+                    begun) contain interrupted 130 ;;
+                    committed) exec 9>&-; exit 0 ;;
+                    *) not_started attempt-record ;;
+                esac
+            }
+            step_status() {
+                local step=$1 status=$2
+                case $status in 124|137) status=timeout ;; esac
+                (( $2 == 0 )) || contain "$step" "$status"
+            }
+            check() {
+                local step=$1 status=$2
+                [[ $status == 0 ]] && return
+                case $status in 124|137) status=timeout ;; esac
+                log "Check $step failed ($status)."
+                if [[ -z $reported ]]; then
+                    reported=$step
+                    first_status=$status
+                fi
+            }
+            query_status() {
+                case $1 in 124|137) printf timeout ;; *) printf query ;; esac
+            }
+
+            valid_inputs
+            case $? in 1) not_started target ;; 2) not_started attempt-id ;; esac
+            start_phase 75 || not_started cd
+            cd "$checkout" 2>/dev/null || not_started cd
+            lock deploy || not_started lock
+            cancel=$lock_dir/cancelled.$RUN_ID.$RUN_ATTEMPT
+            [[ ! -L $cancel && ! -e $cancel ]] || not_started cancelled
+            read_record
+            case $? in
+                0) if same_ids; then not_started attempt-record; fi ;;
+                3) ;;
+                *) not_started attempt-record ;;
+            esac
+            uid=$(run 10 5 normal id -u bts) && [[ $uid =~ ^[0-9]+$ ]] || not_started uid
+            head=$(as_bts 10 normal git rev-parse HEAD) && [[ $head =~ ^[0-9a-f]{40}$ ]] || not_started old-sha
+            old=$head
+            log "Pre-deploy SHA: ${old:0:7}"
+            as_bts 10 mutation git config --global --add safe.directory "$checkout" >/dev/null || not_started git-config
+            as_bts 45 mutation git fetch origin >/dev/null || not_started fetch
+            object=$(as_bts 10 normal git cat-file -t "$TARGET_SHA") && [[ $object == commit ]] || not_started target
+            services=$(as_user 10 normal show bts-scheduler -p LoadState -p UnitFileState) || not_started user-units
+            loaded=$(field LoadState "$services") && [[ $loaded == loaded ]] || not_started user-units
+            unit_file=$(field UnitFileState "$services") && [[ $unit_file == enabled || $unit_file == disabled ]] || not_started user-units
+            services=$(as_user 10 normal show bts-dashboard -p LoadState) || not_started user-units
+            loaded=$(field LoadState "$services") && [[ $loaded == loaded ]] || not_started user-units
+            legacy_names=()
+            for name in "$scheduler" "$dashboard"; do
+                legacy_state 10 "$name" || not_started legacy-units
+                [[ $legacy != loaded ]] || legacy_names+=("$name")
+            done
+
+            start_phase 800 || not_started attempt-record
+            trap on_signal HUP INT TERM PIPE
+            publish begun - - - -
+            case $? in 1) not_started attempt-record ;; 2) unknown_begin ;; esac
+            as_user 20 mutation disable bts-scheduler >/dev/null
+            step_status disable "$?"
+            unit=bts-scheduler
+            enabled disabled 20 as_user
+            step_status disable "$?"
+            as_bts 45 mutation git reset --hard "$TARGET_SHA" >/dev/null
+            step_status reset "$?"
+            as_bts 480 mutation env UV_CACHE_DIR=/tmp/uv-cache UV_PROJECT_ENVIRONMENT="$checkout/.venv" /home/bts/.local/bin/uv sync --locked --extra model >/dev/null
+            step_status sync "$?"
+            if (( ${#legacy_names[@]} )); then
+                for name in "${legacy_names[@]}"; do
+                    system_unit 20 mutation disable "$name" >/dev/null
+                    step_status legacy-units "$?"
+                    system_unit 20 mutation stop "$name" >/dev/null
+                    step_status legacy-units "$?"
+                    run 20 5 mutation rm -f "$legacy_dir/$name" >/dev/null
+                    step_status legacy-units "$?"
+                done
+                system_unit 20 mutation daemon-reload >/dev/null
+                step_status legacy-units "$?"
+                run 20 5 mutation pkill -u bts -f 'uv run bts schedule' >/dev/null
+                rc=$?
+                (( rc == 1 )) || step_status legacy-units "$rc"
+            fi
+            as_user 75 mutation restart bts-scheduler bts-dashboard >/dev/null
+            step_status restart "$?"
+            head=$(as_bts 10 normal git rev-parse HEAD)
+            step_status head "$?"
+            [[ $head == "$TARGET_SHA" ]] || contain head query
+            log "Checking requested target ${TARGET_SHA:0:7}." 'Waiting 30s for services to stabilize...'
+            run 35 2 wait sleep 30 >/dev/null
+            step_status wait "$?"
+
+            services=$(as_user 20 normal show bts-scheduler -p ActiveState -p SubState -p Result -p ExecMainStatus)
+            rc=$?
+            if (( rc )); then
+                check scheduler-state "$(query_status "$rc")"
+            elif active=$(field ActiveState "$services") && sub=$(field SubState "$services") &&
+                 result=$(field Result "$services") && status=$(field ExecMainStatus "$services") &&
+                 [[ $active =~ ^[a-z-]+$ && $sub =~ ^[a-z-]+$ && $result =~ ^[a-z-]+$ && $status =~ ^[0-9]+$ ]]; then
+                if [[ $active != active ]]; then
+                    if [[ $active == activating && $sub == auto-restart && $result == success && $status == 0 ]]; then
+                        log 'bts-scheduler.service completed cleanly and is waiting for Restart=always relaunch'
+                    else
+                        check scheduler-state 1
+                    fi
+                fi
+            else
+                check scheduler-state query
             fi
 
-            # Check 2: dashboard service is active
-            if ! sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user is-active --quiet bts-dashboard; then
-              FAILED=1
-              FAILURE_REASONS="$FAILURE_REASONS\n  - bts-dashboard.service is not active"
+            services=$(as_user 20 normal show bts-dashboard -p ActiveState)
+            rc=$?
+            if (( rc )); then
+                check dashboard-state "$(query_status "$rc")"
+            elif active=$(field ActiveState "$services") && [[ $active =~ ^[a-z-]+$ ]]; then
+                [[ $active == active ]] || check dashboard-state 1
+            else
+                check dashboard-state query
             fi
 
-            # Check 3: dashboard HTTP 200. The dashboard binds the Tailscale IP
-            # (not loopback) for tailnet-only exposure, so probe it where it
-            # actually listens; fall back to loopback if tailscale ip is absent.
-            DASH_HOST=$(sudo -u bts tailscale ip -4 2>/dev/null | head -1)
-            DASH_HOST=${DASH_HOST:-127.0.0.1}
-            if ! curl -sS -m 10 -o /dev/null -w '%{http_code}' "http://${DASH_HOST}:3003/" | grep -q '^2'; then
-              FAILED=1
-              FAILURE_REASONS="$FAILURE_REASONS\n  - dashboard HTTP check failed (${DASH_HOST}:3003)"
+            address=$(run 20 5 normal /usr/bin/python3 -c "$fs_code" capture 4096 sudo -u bts tailscale ip -4)
+            rc=$?
+            address=${address%%$'\n'*}
+            host=127.0.0.1
+            if (( rc == 0 )) && [[ $address =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]]; then
+                IFS=. read -r a b c d <<< "$address"
+                if (( 10#$a <= 255 && 10#$b <= 255 && 10#$c <= 255 && 10#$d <= 255 )); then
+                    host=$address
+                fi
+            fi
+            code=$(run 15 5 normal curl --disable --noproxy '*' -sS -m 10 -o /dev/null -w '%{http_code}' "http://$host:3003/"
+                rc=$?; printf '\037'; exit "$rc")
+            rc=$?
+            code=${code%$'\037'}
+            if (( rc )); then
+                check dashboard-http "$rc"
+            elif [[ ! $code =~ ^[0-9]{3}$ ]]; then
+                check dashboard-http query
+            elif [[ ! $code =~ ^2 ]]; then
+                check dashboard-http "$code"
             fi
 
-            if [ $FAILED -eq 1 ]; then
-              echo "================================"
-              echo "CANARY FAILED — rolling back to $(echo $OLD_SHA | cut -c1-7)"
-              echo "Reasons:"
-              printf "$FAILURE_REASONS\n"
-              echo "================================"
-              sudo -Hu bts git reset --hard "$OLD_SHA"
-              sudo -Hu bts env UV_CACHE_DIR=/tmp/uv-cache /home/bts/.local/bin/uv sync --locked --extra model
-              sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user restart bts-scheduler bts-dashboard
-              sleep 15
-              if sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user is-active --quiet bts-scheduler bts-dashboard; then
-                echo "Rolled back cleanly to $(echo $OLD_SHA | cut -c1-7)"
-                # Stamp deploy time on rollback too — monotonic forward so the
-                # calibration cutoff never regresses (audit since_deploy_iso (3)).
-                sudo -u bts bash -c 'date -u +%Y-%m-%dT%H:%M:%SZ > /home/bts/projects/bts/data/.last_deploy_iso'
-              else
-                echo "CRITICAL: rollback also unhealthy — manual intervention required"
-              fi
-              exit 1
+            output=$(run 60 5 normal /usr/bin/python3 -c "$fs_code" capture 4096 sudo -Hu bts \
+                env PYTHONDONTWRITEBYTECODE=1 "$checkout/.venv/bin/bts" deploy-canary --config /home/bts/.bts-orchestrator.toml
+                rc=$?; printf '\037'; exit "$rc")
+            rc=$?
+            output=${output%$'\037'}
+            output=${output%$'\n'}
+            prefix_ok=no
+            case $rc:$output in
+                '0:Deploy canary: live contest state accepted ('*|'0:Deploy canary: not a live configuration (delivery '*) prefix_ok=yes ;;
+                '1:Deploy canary: REFUSED — '*) prefix_ok=yes ;;
+                '2:Deploy canary: ERROR — '*) prefix_ok=yes ;;
+            esac
+            if [[ $prefix_ok == yes && $output != *$'\n'* && $output != *$'\r'* ]]; then
+                safe=$(run 10 5 normal /usr/bin/python3 -c 'import sys; print("".join(c if c.isprintable() else ascii(c)[1:-1] for c in sys.argv[1])[:900])' "$output")
+                safe_rc=$?
+                if (( safe_rc )); then
+                    (( rc != 0 )) || rc=$(query_status "$safe_rc")
+                else
+                    log "$safe"
+                fi
+            elif (( rc == 0 )); then
+                rc=query
             fi
+            check contest-state "$rc"
+            [[ -z $reported ]] || contain "$reported" "$first_status"
 
-            echo "================================"
-            echo "CANARY PASSED — $NEW_SHA is live and healthy"
-            echo "================================"
-            # Stamp the real deploy time (wall-clock, monotonic) so the
-            # realized_calibration since_deploy filter uses deploy-time, not git
-            # commit-time, and can't regress on rollback (audit since_deploy_iso (2)+(3)).
-            sudo -u bts bash -c 'date -u +%Y-%m-%dT%H:%M:%SZ > /home/bts/projects/bts/data/.last_deploy_iso'
+            staged=$(as_bts 10 mutation /usr/bin/python3 -c "$fs_code" stage "$checkout/data")
+            step_status stamp-stage "$?"
+            [[ $staged == "$checkout/data/.deploy."* ]] || contain stamp-stage query
+            as_user 20 mutation enable bts-scheduler >/dev/null
+            step_status enable "$?"
+            enabled enabled 20 as_user
+            step_status enable "$?"
+            as_bts 10 mutation /usr/bin/python3 -c "$fs_code" stamp "$staged" "$checkout/data/.last_deploy_iso" >/dev/null
+            step_status stamp "$?"
+            staged=
+            publish committed - - - -
+            step_status commit-record "$?"
+            trap '' HUP INT TERM PIPE
+            exec 9>&-
+            log '================================' "Deployed ${TARGET_SHA:0:7}" "CANARY PASSED — ${TARGET_SHA:0:7} passed the deploy checks" '================================'
+            exit 0
+            BTS_DEPLOY
+
+      - name: Recover failed deploy via SSH
+        if: ${{ always() && (steps.deploy.outcome == 'failure' || steps.deploy.outcome == 'cancelled') }}
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
+        env:
+          TARGET_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: root
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: TARGET_SHA,RUN_ID,RUN_ATTEMPT
+          command_timeout: 35m
+          script: |
+            exec /bin/bash -s <<'BTS_DEPLOY'
+            set +e
+            exec 8>&1
+            export LC_ALL=C
+            checkout=/home/bts/projects/bts
+            lock_dir=/run/bts-deploy
+            attempt=$lock_dir/attempt
+            scheduler=bts-scheduler.service
+            dashboard=bts-dashboard.service
+            legacy_dir=/etc/systemd/system
+            old=unknown
+            staged=
+            reported=
+            phase_steps='commit-record|disable|reset|sync|legacy-units|restart|head|wait|scheduler-state|dashboard-state|dashboard-http|contest-state|stamp-stage|enable|stamp|interrupted|deploy-step-incomplete'
+
+            # Test injection points are the fixed checkout, bts home, runtime and legacy
+            # directories, cgroup root, null device, and fixed executable paths at use.
+            fs_code='
+            import datetime, json, os, pathlib, signal, stat, subprocess, sys, tempfile, time
+            from urllib.parse import urlsplit
+
+            op, *args = sys.argv[1:]
+            def bounded(path, limit, nofollow=True):
+                flags = os.O_RDONLY | os.O_NONBLOCK
+                if nofollow:
+                    flags |= os.O_NOFOLLOW
+                fd = os.open(path, flags)
+                with os.fdopen(fd, "rb") as f:
+                    metadata = os.fstat(f.fileno())
+                    if not stat.S_ISREG(metadata.st_mode):
+                        raise ValueError()
+                    data = f.read(limit + 1)
+                    if len(data) > limit or not os.path.samestat(metadata, os.stat(path, follow_symlinks=False)):
+                        raise ValueError()
+                    return data, metadata
+
+            def atomic(path, data):
+                fd, temporary = tempfile.mkstemp(dir=os.path.dirname(path))
+                try:
+                    with os.fdopen(fd, "wb") as f:
+                        f.write(data)
+                    os.replace(temporary, path)
+                finally:
+                    if os.path.lexists(temporary):
+                        os.unlink(temporary)
+
+            try:
+                if op == "clock":
+                    print(time.monotonic_ns() // 1_000_000)
+                elif op == "supervise":
+                    term, grace, *command = args
+                    # This process retains the inherited lock while the command runs.
+                    for sig in (signal.SIGHUP, signal.SIGINT, signal.SIGTERM, signal.SIGPIPE):
+                        signal.signal(sig, lambda *_: None)
+                    child = subprocess.Popen(["timeout", "-k", grace, term, *command],
+                                             start_new_session=True, close_fds=True)
+                    try:
+                        status = child.wait(timeout=float(term) + float(grace))
+                    except subprocess.TimeoutExpired:
+                        status = 124
+                    if status in (124, 137) or status < 0:
+                        try:
+                            os.killpg(child.pid, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                    if child.poll() is None:
+                        try:
+                            child.wait(timeout=0.1)
+                        except subprocess.TimeoutExpired:
+                            pass
+                    sys.exit(128 - status if status < 0 else status)
+                elif op == "capture":
+                    limit, *command = args
+                    with subprocess.Popen(command, stdout=subprocess.PIPE) as child:
+                        data = child.stdout.read(int(limit) + 1)
+                        if len(data) > int(limit):
+                            child.kill()
+                            sys.exit(125)
+                        sys.stdout.buffer.write(data)
+                        status = child.wait()
+                    sys.exit(128 - status if status < 0 else status)
+                elif op == "lockfile":
+                    p, = args
+                    fd = os.open(p, os.O_WRONLY | os.O_APPEND | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600)
+                    with os.fdopen(fd, "ab") as f:
+                        s = os.fstat(f.fileno())
+                        if not stat.S_ISREG(s.st_mode) or s.st_uid != 0 or stat.S_IMODE(s.st_mode) != 0o600:
+                            raise ValueError()
+                elif op == "read":
+                    p, = args
+                    data, _ = bounded(p, 512)
+                    if not data.endswith(b"\n") or any(c < 32 or c > 126 for c in data[:-1]):
+                        raise ValueError()
+                    print(data[:-1].decode("ascii"))
+                elif op == "mark":
+                    p, = args
+                    try:
+                        fd = os.open(p, os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
+                    except FileExistsError:
+                        pass
+                    else:
+                        os.close(fd)
+                    data, s = bounded(p, 0)
+                    if s.st_uid != 0 or stat.S_IMODE(s.st_mode) != 0o600:
+                        raise ValueError()
+                elif op == "stage-record":
+                    directory, line = args
+                    fd, name = tempfile.mkstemp(dir=directory, prefix=".attempt.")
+                    try:
+                        with os.fdopen(fd, "wb") as f:
+                            f.write(line.encode("ascii") + b"\n")
+                    except BaseException:
+                        os.unlink(name)
+                        raise
+                    print(name)
+                elif op == "stage":
+                    directory, = args
+                    with tempfile.NamedTemporaryFile(dir=directory, prefix=".deploy.", delete=False) as f:
+                        try:
+                            f.write(datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ\n").encode("ascii"))
+                            f.flush()
+                            os.fsync(f.fileno())
+                        except BaseException:
+                            os.unlink(f.name)
+                            raise
+                    print(f.name)
+                elif op == "stamp":
+                    source, path = args
+                    if os.path.isdir(path):
+                        raise ValueError()
+                    os.replace(source, path)
+                    fd = os.open(os.path.dirname(path), os.O_RDONLY | os.O_DIRECTORY)
+                    try:
+                        os.fsync(fd)
+                    finally:
+                        os.close(fd)
+                elif op == "marker":
+                    path, step, target, old = args
+                    data = json.dumps(dict(state="deploy_failed", timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                                           step=step, target_sha=target, old_sha=old)).encode()
+                    atomic(path, data)
+                    if bounded(path, 4096)[0] != data:
+                        raise ValueError()
+                elif op == "endpoint":
+                    path, = args
+                    prefix = "BTS_SCHEDULER_HEARTBEAT_PING_URL="
+                    lines = bounded(path, 65536)[0].decode().split("\n")
+                    value, = [line[len(prefix):] for line in lines if line.startswith(prefix)]
+                    if len(value) >= 2 and value[0] in (chr(34), chr(39)) and value[-1] == value[0]:
+                        value = value[1:-1]
+                    if any(c.isspace() or not c.isprintable() or c in (chr(34), chr(39), "\\", "?", "#") for c in value):
+                        raise ValueError()
+                    parsed = urlsplit(value)
+                    if parsed.scheme != "https" or not parsed.hostname or parsed.username is not None or parsed.password is not None:
+                        raise ValueError()
+                    if parsed.netloc.endswith(":"):
+                        raise ValueError()
+                    parsed.port
+                    print(value.rstrip("/") + "/fail")
+                elif op == "cgroup":
+                    root, group = args
+                    if not os.path.isfile(os.path.join(root, "cgroup.controllers")):
+                        raise ValueError()
+                    if group:
+                        if not group.startswith("/") or ".." in pathlib.PurePosixPath(group).parts:
+                            raise ValueError()
+                        path = root + group
+                        try:
+                            events, _ = bounded(os.path.join(path, "cgroup.events"), 4096)
+                        except FileNotFoundError:
+                            if os.path.lexists(path):
+                                raise
+                        else:
+                            if [line for line in events.splitlines() if line.startswith(b"populated ")] != [b"populated 0"]:
+                                raise ValueError()
+            except FileNotFoundError:
+                sys.exit(3 if op == "read" and not os.path.lexists(args[0]) else 1)
+            except Exception:
+                sys.exit(1)
+            '
+
+            clock() {
+                (exec 9>&- 8>&-; timeout -k 5 1 /usr/bin/python3 -c "$fs_code" clock) 2>/dev/null
+            }
+            start_phase() {
+                local now
+                now=$(clock)
+                [[ $now =~ ^[0-9]+$ ]] || return 1
+                deadline=$((now + $1 * 1000))
+            }
+            run() {
+                local cap=$1 grace=$2 mode=$3 now available term
+                shift 3
+                now=$(clock)
+                [[ $now =~ ^[0-9]+$ ]] || return 124
+                available=$(((deadline - now) / 1000))
+                if [[ $mode == wait ]] && (( available < cap )); then
+                    return 124
+                fi
+                (( available < cap )) && cap=$available
+                term=$((cap - grace))
+                (( term > 0 )) || return 124
+                case $mode in
+                    mutation)
+                        /usr/bin/python3 -c "$fs_code" supervise "$term" "$grace" "$@" ;;
+                    lock)
+                        (exec 8>&-; timeout -k "$grace" "$term" "$@") ;;
+                    *)
+                        (exec 9>&- 8>&-; timeout -k "$grace" "$term" "$@") ;;
+                esac </dev/null 2>/dev/null
+            }
+            log() {
+                (exec 9>&- 8>&-; timeout -k 5 1 /bin/bash -c 'printf "%s\n" "$@"' _ "$@") >&8 2>/dev/null || :
+            }
+            fs() {
+                local cap=$1 mode=$2
+                shift 2
+                run "$cap" 5 "$mode" /usr/bin/python3 -c "$fs_code" "$@"
+            }
+            as_user() {
+                local cap=$1 mode=$2
+                shift 2
+                if [[ $uid =~ ^[0-9]+$ ]]; then
+                    run "$cap" 5 "$mode" sudo -u bts "XDG_RUNTIME_DIR=/run/user/$uid" systemctl --user "$@"
+                else
+                    run "$cap" 5 "$mode" sudo -u bts systemctl --user "$@"
+                fi
+            }
+            as_bts() {
+                local cap=$1 mode=$2
+                shift 2
+                run "$cap" 5 "$mode" sudo -Hu bts "$@"
+            }
+            valid_inputs() {
+                [[ $TARGET_SHA =~ ^[0-9a-f]{40}$ ]] || return 1
+                [[ $RUN_ID =~ ^[0-9]{1,20}$ && $RUN_ATTEMPT =~ ^[0-9]{1,20}$ &&
+                   $RUN_ID =~ [1-9] && $RUN_ATTEMPT =~ [1-9] ]] || return 2
+            }
+            lock() {
+                local metadata
+                [[ ! -L $lock_dir ]] || return 1
+                if [[ ! -e $lock_dir ]]; then
+                    run 10 5 normal install -d -m 0700 -o root -g root "$lock_dir" >/dev/null || return 1
+                fi
+                [[ -d $lock_dir && ! -L $lock_dir && ! -L $lock_dir/lock ]] || return 1
+                metadata=$(run 10 5 normal stat -c '%u %a' "$lock_dir") || return 1
+                [[ $metadata == '0 700' ]] || return 1
+                [[ ! -e $lock_dir/lock || -f $lock_dir/lock ]] || return 1
+                fs 10 normal lockfile "$lock_dir/lock" || return 1
+                { exec 9>>"$lock_dir/lock"; } 2>/dev/null || return 1
+                if [[ $1 == deploy ]]; then
+                    run 10 5 lock flock -n 9
+                else
+                    run 1505 5 lock flock -w 1500 9
+                fi
+            }
+            read_record() {
+                local record
+                record=$(fs 10 normal read "$attempt")
+                local rc=$?
+                (( rc == 0 )) || return "$rc"
+                local grammar="^bts_deploy_attempt_v1 ([0-9]{1,20}) ([0-9]{1,20}) ([0-9a-f]{40}) ([0-9a-f]{40}) (begun|committed|contained) ([a-z-]+) (-|verified|unverified) (-|verified|unverified) (-|verified|unverified)$"
+                [[ $record =~ $grammar ]] || return 1
+                r_run=${BASH_REMATCH[1]} r_try=${BASH_REMATCH[2]} r_target=${BASH_REMATCH[3]} r_old=${BASH_REMATCH[4]}
+                r_state=${BASH_REMATCH[5]} r_step=${BASH_REMATCH[6]}
+                r_stop=${BASH_REMATCH[7]} r_marker=${BASH_REMATCH[8]} r_page=${BASH_REMATCH[9]}
+                [[ $r_run =~ [1-9] && $r_try =~ [1-9] ]] || return 1
+                if [[ $r_state == contained ]]; then
+                    [[ $r_step =~ ^($phase_steps)$ && $r_stop != - && $r_marker != - && $r_page != - ]]
+                else
+                    [[ $r_step == - && $r_stop$r_marker$r_page == --- ]]
+                fi
+            }
+            same_ids() { [[ $r_run == "$RUN_ID" && $r_try == "$RUN_ATTEMPT" ]]; }
+            same_record() { same_ids && [[ $r_target == "$TARGET_SHA" && $r_old == "$old" ]]; }
+            publish() {
+                local wanted=$1 staged_record
+                shift
+                staged_record=$(fs 10 mutation stage-record "$lock_dir" "bts_deploy_attempt_v1 $RUN_ID $RUN_ATTEMPT $TARGET_SHA $old $wanted $*")
+                if [[ $? == 0 && $staged_record == "$lock_dir/.attempt."* ]]; then
+                    run 10 5 mutation mv -fT "$staged_record" "$attempt" >/dev/null
+                    if [[ -e $staged_record ]]; then
+                        run 10 5 mutation rm -f -- "$staged_record" >/dev/null || :
+                    fi
+                fi
+                read_record
+                local rc=$?
+                (( rc == 3 )) && return 1
+                (( rc == 0 )) || return 2
+                same_record && [[ $r_state == "$wanted" ]]
+            }
+            field() {
+                local key=$1 contents=$2 allow_empty=${3:-no} line result= count=0
+                while IFS= read -r line; do
+                    if [[ $line == "$key="* ]]; then
+                        result=${line#*=}
+                        (( count += 1 ))
+                    fi
+                done <<< "$contents"
+                [[ $count == 1 && ( -n $result || $allow_empty == yes ) ]] || return 1
+                printf '%s' "$result"
+            }
+            enabled() {
+                local expected=$1 cap=$2 output rc
+                shift 2
+                output=$("$@" "$cap" normal is-enabled "$unit"; rc=$?; printf '\037'; exit "$rc")
+                rc=$?
+                [[ $rc != 124 && $rc != 137 ]] || return "$rc"
+                if [[ $expected == disabled ]]; then
+                    [[ $rc == 1 && $output == $'disabled\n\037' ]]
+                else
+                    [[ $rc == 0 && $output == $'enabled\n\037' ]]
+                fi
+            }
+            system_unit() {
+                local cap=$1 mode=$2
+                shift 2
+                run "$cap" 5 "$mode" systemctl "$@"
+            }
+            jobs_clear() {
+                local command=$1 cap=$2 name=$3 jobs job id rest
+                jobs=$("$command" "$cap" normal list-jobs --no-legend --no-pager) || return 1
+                while read -r id job rest; do
+                    [[ -z $id || ( $id =~ ^[0-9]+$ && -n $job && -n $rest && $job != "$name" ) ]] || return 1
+                done <<< "$jobs"
+            }
+            legacy_state() {
+                local cap=$1 name=$2 output id active pid
+                output=$(system_unit "$cap" normal show "$name" -p Id -p LoadState -p ActiveState -p MainPID) || return 1
+                id=$(field Id "$output") && [[ $id == "$name" ]] || return 1
+                active=$(field ActiveState "$output") || return 1
+                pid=$(field MainPID "$output") && [[ $pid =~ ^[0-9]+$ ]] || return 1
+                legacy=$(field LoadState "$output") || return 1
+                case $active in active|inactive|failed|activating|deactivating|reloading) ;; *) return 1 ;; esac
+                case $legacy in
+                    loaded) ;;
+                    not-found) [[ $active == inactive && $pid == 0 ]] || return 1 ;;
+                    *) return 1 ;;
+                esac
+                jobs_clear system_unit "$cap" "$name"
+            }
+            check_stopped() {
+                local command=$1 name=$2 output active pid group
+                output=$("$command" 20 normal show "$name" -p ActiveState -p MainPID -p ControlGroup) || return 1
+                active=$(field ActiveState "$output") && [[ $active == inactive || $active == failed ]] || return 1
+                pid=$(field MainPID "$output") && [[ $pid == 0 ]] || return 1
+                group=$(field ControlGroup "$output" yes) || return 1
+                jobs_clear "$command" 20 "$scheduler" || return 1
+                fs 20 normal cgroup /sys/fs/cgroup "$group"
+            }
+            contain() {
+                trap '' HUP INT TERM PIPE
+                local step=$1 status=$2 prior_page=$3 repeat=$4
+                local stop=unverified marker=unverified page=unverified uid unit before= query_ok=0
+                local user_disabled=1 user_stopped=1 legacy_disabled=1 legacy_stopped=1 user_proof=1 system_proof=1 residual
+                local containment_deadline output endpoint
+                start_phase 280 || deadline=0
+                containment_deadline=$deadline
+                if [[ $repeat != yes ]]; then
+                    log "DEPLOY FAILED at $step — requested target ${TARGET_SHA:0:7}, previous SHA ${old:0:7}. No automatic rollback was attempted. Recovery has not been verified."
+                    [[ $reported == "$step" ]] || log "Check $step failed ($status)."
+                fi
+                deadline=$((containment_deadline - 200000))
+                uid=$(run 10 5 normal id -u bts)
+                local uid_status=$?
+                if (( uid_status != 0 )) || [[ ! $uid =~ ^[0-9]+$ ]]; then
+                    uid=
+                fi
+                as_user 10 mutation disable bts-scheduler >/dev/null; user_disabled=$?
+                as_user 60 mutation stop bts-scheduler >/dev/null; user_stopped=$?
+                deadline=$((containment_deadline - 110000))
+                if legacy_state 10 "$scheduler"; then
+                    query_ok=1
+                    before=$legacy
+                fi
+                if [[ $query_ok != 1 || $before != not-found || -e $legacy_dir/$scheduler ]]; then
+                    system_unit 10 mutation disable "$scheduler" >/dev/null; legacy_disabled=$?
+                    system_unit 60 mutation stop "$scheduler" >/dev/null; legacy_stopped=$?
+                else
+                    legacy_disabled=0 legacy_stopped=0
+                fi
+                deadline=$((containment_deadline - 60000))
+                if (( uid_status == 0 )) && [[ $uid =~ ^[0-9]+$ ]]; then
+                    unit=bts-scheduler
+                    if enabled disabled 20 as_user && check_stopped as_user "$unit"; then
+                        user_proof=0
+                    fi
+                fi
+                if legacy_state 20 "$scheduler"; then
+                    unit=$scheduler
+                    if [[ $legacy == not-found && ! -e $legacy_dir/$scheduler ]]; then
+                        system_proof=0
+                    elif check_stopped system_unit "$scheduler" && enabled disabled 20 system_unit; then
+                        system_proof=0
+                    fi
+                fi
+                run 20 5 normal pgrep -u bts -f 'bts schedule' >/dev/null; residual=$?
+                if [[ $user_disabled$user_stopped$legacy_disabled$legacy_stopped$user_proof$system_proof$residual == 0000001 ]]; then
+                    stop=verified
+                fi
+                deadline=$((containment_deadline - 40000))
+                if [[ -n $staged ]]; then
+                    as_bts 10 mutation rm -f -- "$staged" >/dev/null || :
+                fi
+                if as_bts 20 mutation /usr/bin/python3 -c "$fs_code" marker "$checkout/data/.heartbeat" "$step" "${TARGET_SHA:0:7}" "${old:0:7}" >/dev/null; then
+                    marker=verified
+                fi
+                deadline=$((containment_deadline - 10000))
+                if [[ $prior_page == verified ]]; then
+                    page=verified
+                elif endpoint=$(as_bts 20 normal /usr/bin/python3 -c "$fs_code" endpoint "$checkout/.env"); then
+                    output=$(run 20 5 normal curl --disable --noproxy '*' -sS -m 10 -o /dev/null -w '%{http_code}' \
+                        --data-raw "Deploy failed at $step, requested target ${TARGET_SHA:0:7}, scheduler stop $stop. See INCIDENT.md §4." "$endpoint"
+                        local status=$?; printf '\037'; exit "$status")
+                    local post_status=$?
+                    output=${output%$'\037'}
+                    if [[ $post_status == 0 && $output =~ ^2[0-9][0-9]$ ]]; then
+                        page=verified
+                    fi
+                fi
+                log "Scheduler stopped: $stop." "Failure heartbeat written: $marker." "Failure ping received HTTP 2xx: $page." "Recovery procedure: INCIDENT.md §4."
+                deadline=$containment_deadline
+                publish contained "$step" "$stop" "$marker" "$page" || :
+                exec 9>&-
+                if [[ $repeat == yes && $stop$marker$page == verifiedverifiedverified ]]; then
+                    log 'DEPLOY RECOVERY — containment re-checked.'
+                fi
+                exit 1
+            }
+
+            recovery_exit() {
+                exec 9>&-
+                log "$1"
+                exit 1
+            }
+            valid_inputs || recovery_exit 'DEPLOY RECOVERY — invalid attempt inputs. Recovery has not been verified. See INCIDENT.md §4.'
+            start_phase 1580 && cd "$checkout" 2>/dev/null && lock recovery ||
+                recovery_exit 'DEPLOY RECOVERY — lock unavailable. Recovery has not been verified. See INCIDENT.md §4.'
+            read_record
+            rc=$?
+            unreadable='DEPLOY RECOVERY — the attempt record is unreadable. Recovery has not been verified. See INCIDENT.md §4.'
+            case $rc in
+                0) if same_ids && [[ $r_target != "$TARGET_SHA" ]]; then recovery_exit "$unreadable"; fi ;;
+                3) ;;
+                *) recovery_exit "$unreadable" ;;
+            esac
+            if (( rc == 3 )) || ! same_ids; then
+                fs 10 mutation mark "$lock_dir/cancelled.$RUN_ID.$RUN_ATTEMPT" ||
+                    recovery_exit 'DEPLOY RECOVERY — cancellation mark could not be verified. No service change was attempted. See INCIDENT.md §4.'
+                if (( rc == 3 )); then
+                    recovery_exit 'DEPLOY RECOVERY — this attempt has no phase-2 record on this boot. Check the deploy log and the host'\''s boot time.'
+                fi
+                recovery_exit 'DEPLOY RECOVERY — a different attempt owns the box record. See INCIDENT.md §4.'
+            fi
+            old=$r_old
+            case $r_state in
+                committed) recovery_exit 'DEPLOY RECOVERY — this attempt committed on the box. Check the deploy log.' ;;
+                begun) contain deploy-step-incomplete 1 ;;
+                contained) contain "$r_step" 1 "$r_page" yes ;;
+            esac
+            exit 1
+            BTS_DEPLOY

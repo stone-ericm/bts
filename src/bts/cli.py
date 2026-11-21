@@ -2620,6 +2620,49 @@ def schedule(date: str | None, config_path: str, dry_run: bool):
     run_day(date=date, config=config, dry_run=dry_run)
 
 
+@cli.command(name="deploy-canary")
+@click.option("--config", "config_path", required=True, type=click.Path(path_type=Path))
+def deploy_canary(config_path: Path):
+    """Check the scheduler's live contest-state decision without running a day."""
+    from logging import getLogger
+
+    logger = getLogger("bts.contest_state")
+    was_disabled = logger.disabled
+    try:
+        now = _now_et()
+        from bts.contest_state import ContestStateError, load_decision_streak_state
+        from bts.entry_intent import live_gate_problem
+        from bts.orchestrator import load_config
+        from bts.scheduler import _contest_state_required, _pick_delivery_mode
+
+        config = load_config(config_path, max_bytes=64 * 1024)
+        problem = live_gate_problem(config)
+        if problem is not None:
+            click.echo(f"Deploy canary: REFUSED — {problem}")
+            raise SystemExit(1)
+        delivery = _pick_delivery_mode(config)
+        if delivery not in ("dm", "public") or not _contest_state_required(config):
+            click.echo(f"Deploy canary: not a live configuration (delivery {delivery}); contest state not checked.")
+            return
+
+        logger.disabled = True
+        picks_dir = Path(config["orchestrator"]["picks_dir"])
+        try:
+            decision = load_decision_streak_state(picks_dir, require_contest_state=True, now=now)
+        except ContestStateError as exc:
+            click.echo(f"Deploy canary: REFUSED — {ascii(str(exc))[:800]}")
+            raise SystemExit(1) from None
+        click.echo(
+            f"Deploy canary: live contest state accepted ({decision.observation_kind}, "
+            f"streak {decision.streak}) at {now.isoformat()}."
+        )
+    except Exception as exc:
+        click.echo(f"Deploy canary: ERROR — {type(exc).__name__}")
+        raise SystemExit(2) from None
+    finally:
+        logger.disabled = was_disabled
+
+
 @cli.command(name="check-results")
 @click.option("--date", required=True, help="Date to check results for (YYYY-MM-DD)")
 @click.option("--picks-dir", default="data/picks", type=click.Path(), help="Picks directory")

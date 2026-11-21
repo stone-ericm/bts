@@ -1,12 +1,124 @@
 """Tests for scripts/check_heartbeat.py staleness decision logic."""
 from __future__ import annotations
 import json
+import os
+import subprocess
+import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
 
+from scripts import check_heartbeat
 from scripts.check_heartbeat import is_stale
+
+
+@pytest.mark.parametrize("timestamp", [{}, {"timestamp": "bad"}, {"timestamp": "2026-11-21T12:00:00Z"}])
+@pytest.mark.parametrize(
+    ("step", "target", "expected_step", "expected_target"),
+    [
+        ("contest-state", "012abcd", "contest-state", "012abcd"),
+        (["reset"], "012abcd", "unknown", "012abcd"),
+        ("reset", {"sha": "012abcd"}, "reset", "unknown"),
+        ("RESET", "012ABCD", "unknown", "unknown"),
+        ("deploy-step-incomplete", "012abcd", "deploy-step-incomplete", "012abcd"),
+    ],
+)
+def test_deploy_failure_precedes_timestamp(tmp_path, timestamp, step, target, expected_step, expected_target):
+    path = tmp_path / ".heartbeat"
+    path.write_text(json.dumps(dict(timestamp, state="deploy_failed", step=step, target_sha=target)))
+    assert is_stale(path) == (
+        True, f"Deploy failed at {expected_step} (requested target {expected_target}). See INCIDENT.md §4."
+    )
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [b"[]", b"\xff", b" " * 65537, b'{"timestamp":"2026-11-21T12:00:00"}'],
+    ids=["non-object", "invalid-encoding", "oversized", "naive-timestamp"],
+)
+def test_unsupported_heartbeat_payload(tmp_path, payload):
+    path = tmp_path / ".heartbeat"
+    path.write_bytes(payload)
+    assert is_stale(path) == (True, "heartbeat unreadable or malformed")
+
+
+def test_fifo_heartbeat_returns_without_a_writer(tmp_path):
+    path = tmp_path / ".heartbeat"
+    os.mkfifo(path)
+    command = [sys.executable, check_heartbeat.__file__, "--heartbeat-path", str(path)]
+    result = subprocess.run(command, capture_output=True, text=True, timeout=3)
+    assert result.returncode == 1
+    assert "heartbeat unreadable or malformed" in result.stdout
+
+
+def test_deploy_failed_marker_pings_fail_and_skips_churn(tmp_path, monkeypatch, capsys):
+    marker = tmp_path / ".heartbeat"
+    marker.write_text('{"state":"deploy_failed","step":"sync","target_sha":"012abcd"}')
+    pings = []
+    churn = []
+    monkeypatch.setattr(check_heartbeat, "ping", lambda *args: pings.append(args))
+    monkeypatch.setattr(check_heartbeat, "read_nrestarts", lambda *args: churn.append(args))
+    monkeypatch.setattr(sys, "argv", ["check_heartbeat.py", "--heartbeat-path", str(marker),
+                                     "--ping-url", "https://example.invalid/check"])
+    with pytest.raises(SystemExit) as exc:
+        check_heartbeat.main()
+    assert exc.value.code == 1
+    assert pings == [("https://example.invalid/check", "/fail")]
+    assert not churn
+    assert "Deploy failed at sync (requested target 012abcd). See INCIDENT.md §4." in capsys.readouterr().out
+
+
+@pytest.fixture(scope="module")
+def base_heartbeat_source():
+    root = Path(__file__).resolve().parents[1]
+    return subprocess.run(
+        ["git", "show", "24019a9a:scripts/check_heartbeat.py"], cwd=root,
+        capture_output=True, text=True, check=True, timeout=5,
+    ).stdout
+
+
+@pytest.mark.parametrize(("state", "fields"), [
+    ("running", {}), ("waiting_for_games", {}),
+    ("sleeping", {"sleeping_until": "2026-11-21T13:00:00Z"}),
+    ("sleeping", {"sleeping_until": "2026-11-21T11:00:00Z"}),
+    ("sleeping", {}), ("idle_end_of_day", {}),
+    ("stalled", {"stage": "predict", "stalled_for_s": 30}),
+    ("something-else", {}),
+])
+@pytest.mark.parametrize("timestamp", ["2026-11-21T12:00:00Z", "2026-11-20T12:00:00Z"])
+def test_ordinary_outputs_match_base(tmp_path, monkeypatch, capsys, base_heartbeat_source, state, fields, timestamp):
+    now = datetime(2026, 11, 21, 12, tzinfo=timezone.utc)
+
+    class PinnedDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return now.astimezone(tz)
+
+    marker = tmp_path / ".heartbeat"
+    marker.write_text(json.dumps(dict(state=state, timestamp=timestamp, **fields)))
+    symlink = tmp_path / "heartbeat-link"
+    symlink.symlink_to(marker)
+    monkeypatch.setattr(sys, "argv", [
+        "check_heartbeat.py", "--heartbeat-path", str(symlink), "--no-churn",
+        "--ping-url", "https://example.invalid/check",
+    ])
+    baseline = {"__name__": "heartbeat_baseline"}
+    exec(compile(base_heartbeat_source, "<pinned base heartbeat>", "exec"), baseline)
+    baseline["datetime"] = PinnedDatetime
+    monkeypatch.setattr(check_heartbeat, "datetime", PinnedDatetime)
+
+    def run(main, set_ping):
+        pings = []
+        set_ping(lambda *args: pings.append(args))
+        with pytest.raises(SystemExit) as exc:
+            main()
+        output = capsys.readouterr()
+        return exc.value.code, output.out.encode(), output.err.encode(), pings
+
+    old = run(baseline["main"], lambda ping: baseline.update(ping=ping))
+    current = run(check_heartbeat.main, lambda ping: monkeypatch.setattr(check_heartbeat, "ping", ping))
+    assert current == old
 
 
 def _write_hb(path: Path, **kv) -> None:

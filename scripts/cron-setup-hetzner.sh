@@ -99,7 +99,7 @@ CRON_LINES="$MARKER
 0 3 * * * $PREFIX ($UV_BIN run bts data pull --start $DATA_PULL_START --end $DATA_PULL_END && $UV_BIN run bts data build --seasons $DATA_BUILD_SEASON && { $UV_BIN run bts preview ; $UV_BIN run bts data sync-to-r2 ; }) >> $LOG_DIR/cron.log 2>&1 $MARKER
 */5 * * * * $PREFIX $UV_BIN run bts data collect-lineup-times --out-dir data/lineup_posting_times > /dev/null 2>&1 $MARKER
 */5 * * * * curl -fsS --max-time 5 $HC_PING_URL > /dev/null 2>&1 $MARKER
-*/5 * * * * $PREFIX $UV_BIN run python scripts/check_heartbeat.py --heartbeat-path data/.heartbeat --ping-url \"\$BTS_SCHEDULER_HEARTBEAT_PING_URL\" >> $LOG_DIR/heartbeat.log 2>&1 $MARKER
+*/5 * * * * $PREFIX /usr/bin/python3 scripts/check_heartbeat.py --heartbeat-path data/.heartbeat --ping-url \"\$BTS_SCHEDULER_HEARTBEAT_PING_URL\" >> $LOG_DIR/heartbeat.log 2>&1 $MARKER
 */30 * * * * $PREFIX $UV_BIN run bts leaderboard capture-static >> $LOG_DIR/static_capture.log 2>&1 $MARKER$ENTRY_CRON_LINE
 20 */3 * * * $PREFIX $UV_BIN run bts backup run --set ops >> $LOG_DIR/backup.log 2>&1 $MARKER
 50 4 * * * $PREFIX $UV_BIN run bts backup run --set archive >> $LOG_DIR/backup.log 2>&1 $MARKER

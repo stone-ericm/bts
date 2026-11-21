@@ -1,6 +1,9 @@
 """Pi5 orchestrator: cascade model runs across compute machines via SSH."""
 
+import io
 import json
+import os
+import stat
 import subprocess
 import sys
 import tomllib
@@ -10,10 +13,18 @@ from pathlib import Path
 import pandas as pd
 
 
-def load_config(path: Path) -> dict:
+def load_config(path: Path, *, max_bytes: int | None = None) -> dict:
     """Load orchestrator config from TOML file."""
-    with open(path, "rb") as f:
-        return tomllib.load(f)
+    if max_bytes is None:
+        with open(path, "rb") as stream:
+            return tomllib.load(stream)
+    with open(path, "rb", opener=lambda name, flags: os.open(name, flags | os.O_NONBLOCK)) as stream:
+        if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+            raise ValueError("configuration is not a regular file")
+        payload = stream.read(max_bytes + 1)
+        if len(payload) > max_bytes:
+            raise ValueError("configuration exceeds size limit")
+    return tomllib.load(io.BytesIO(payload))
 
 
 def ssh_predict(

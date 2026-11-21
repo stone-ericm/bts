@@ -24,10 +24,13 @@ or `ssh root@bts-hetzner`, you're in a **cloud sandbox** — stay inside the §2
   GitHub-hosted runner and SSHes into the box using a key stored in **GitHub Actions secrets**
   (`HETZNER_SSH_KEY`) — *not* on anyone's laptop. **That's why you can deploy from a cloud
   sandbox with zero SSH access of your own.**
-- The workflow hard-resets the box to `origin/deploy`, runs `uv sync --extra model`, restarts
-  both services, waits 30s, then runs a **canary**: scheduler healthy + dashboard active +
-  dashboard HTTP 200. **If the canary fails it auto-rolls-back to the previous SHA.** A bad
-  deploy is self-healing.
+- The workflow checks the target and service manager, disables the scheduler's local boot link
+  as a soft hold, resets to the run's tested commit, syncs, restarts both user services, waits
+  30 seconds and runs the canary. It checks both units, dashboard HTTP and the contest-state
+  read for a live configuration. After authorization the remote script attempts containment on
+  a detected failure. Recovery is eligible after a failed or cancelled deploy step. Verify the
+  result in Actions and follow INCIDENT.md §4 if containment cannot be confirmed.
+  `CANARY PASSED` records the checks at that moment. Verify pick delivery and MLB entry separately.
 - **Do NOT** `systemctl restart` on the box after pushing — the workflow already does it.
 - `origin/main` and `origin/deploy` are **independent**. Deploy ships *whatever ref you push
   to `deploy`*. Normal path is `git push origin main:deploy`; you can also push a branch with
@@ -37,15 +40,14 @@ or `ssh root@bts-hetzner`, you're in a **cloud sandbox** — stay inside the §2
 
 - ✅ Diagnose a **code bug** against the repo + tests.
 - ✅ Write a fix on a branch.
-- ✅ **Ship it** by pushing to `deploy` — the canary + auto-rollback protect you.
-- ✅ **Roll back / revert** (§5).
+- ✅ Ship an approved fix through `deploy` (§5).
+- ✅ Revert (§5).
 - ✅ **Re-run a deploy** with no code change: GitHub → Actions → "Deploy to Hetzner" →
   **Run workflow** (`workflow_dispatch`) — **select the `deploy` branch in the dropdown**
   (defaults to `main`, which fails at the environment gate: the root SSH key lives in the
   `production` environment whose branch policy allows only `deploy`; rotated 2026-07-10).
-  Restarts services off the current `deploy` ref.
-- ✅ **Read the last deploy's Actions log** — the canary prints exactly which check failed.
-  This is your best remote diagnostic.
+  Select `deploy`. A new dispatch uses that ref's current SHA and runs the whole deploy.
+- ✅ Read the Actions result and the deploy and recovery lines. A failure can occur before the canary.
 
 Run tests before shipping:
 
@@ -86,10 +88,18 @@ ready-to-run instruction, e.g.:
 *Is it about the box's runtime, auth/cookies, config files, or network?* → you can't reach it
 from the cloud (§3) → escalate.
 
-- **A deploy failed / canary rolled back:** open Actions → last "Deploy to Hetzner" run; the
-  log names the failed check. Code error in a recent commit → fix forward. If it says
-  *"rollback also unhealthy — manual intervention required"*, the box itself is sick →
-  **escalate** (needs SSH).
+- **A deploy failed.** Read the Actions result and the deploy and recovery logs.
+  `DEPLOY NOT STARTED` describes that invocation. Read recovery separately and verify the stop,
+  heartbeat and HTTP results. The box may have committed even if Actions lost the log.
+  If any result is unverified or absent, the run was cancelled, or the reports disagree, contact
+  Eric before retrying. He checks both scheduler scopes and the boot link by SSH. The old or
+  candidate scheduler can still be running.
+  Preserve pick, receipt, saver and streak files. Verify today's ET slate, the original Bluesky
+  delivery and the MLB entry read-only. Leave the dashboard's saver controls and MLB entries
+  untouched, do not enter a pick from a preview, and never resend. If delivery or entry remains
+  uncertain, keep the scheduler stopped once confirmed and have Eric resolve the uncertainty
+  before attempting recovery. Apply the same checks and restart window to a dashboard fault.
+  During deploy recovery the dashboard is for inspection.
 - **Picks frozen / none posted:** check the health DM Eric received and the Actions log. A code
   exception in a recent change → fix forward. Auth / cookie / box → **escalate** (§3).
 - **Bad pick logic, service otherwise up:** code fix → redeploy, but **respect the leakage
@@ -114,7 +124,7 @@ from the cloud (§3) → escalate.
   the separate artifact sync: `bts data sync-from-r2`. Systemd units: repo templates via
   `bash scripts/install-systemd-hetzner.sh` (audit F12), then enable + start deliberately.
 
-## 5. Deploy / rollback commands
+## 5. Deploy and revert commands
 
 **Normal ship** (keeps `main` as the source of truth that gets deployed):
 
@@ -125,8 +135,11 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest
 git commit -am "fix: <what and why>"
 git push origin fix/<short-desc>     # open a PR so Eric can eyeball it from his phone
 # after it's merged to main:
-git push origin main:deploy          # ship — canary + auto-rollback guard it
+git push origin main:deploy
 ```
+
+This runs the gate, deploy and canary. Follow §4 for failed or cancelled runs.
+The workflow leaves the reached checkout in place.
 
 **Emergency lane** (picks actively broken, fix is small + obvious, Eric ok'd it in chat) —
 ship the branch straight to `deploy`:
@@ -140,7 +153,7 @@ git push origin HEAD:deploy
 > `main`. An emergency branch-ship is not done until main has it too.
 > **Use a true merge, not a squash**: a squash-merge means the emergency commit is not an
 > ancestor of `main`, so the reconciling `main:deploy` push is non-fast-forward and the
-> `protect-main-deploy` ruleset will reject it (see the break-glass note under blunt rollback).
+> `protect-main-deploy` ruleset will reject it.
 
 **Revert a bad change** (preferred — history keeps moving forward):
 
@@ -151,21 +164,23 @@ git push origin main            # keep main canonical
 git push origin main:deploy     # ship the revert
 ```
 
-**Blunt rollback** to a known-good SHA (stopgap — get prod healthy now, fix `main` after):
+Deploy an older commit only with Eric's explicit approval and a rehearsal against today's
+on-disk state, dependencies and installed jobs. Do not deploy `619abda7` or other code without
+2027 support to a 2027 box. Prefer a revert commit through the normal ship.
 
-```bash
-git push origin <good-sha>:deploy --force   # workflow hard-resets the box to this ref
-```
+For a code failure, fix forward with a tested commit. For a contest-state refusal, use the
+scheduler's configured picks directory, confirm today's ET date and MLB values, and correct
+the state under checklist B8a. Run `bts season-contract status --picks-dir <scheduler picks dir>`
+and read `live decision now: accepted`. If approved for today's remaining verified lineup and
+submission window, rerun the same tested SHA. Use Re-run jobs on the original run if eligible,
+or dispatch `deploy` after confirming it still points to that SHA. Check the current ET state
+again if the day changed. Never start or restart the scheduler by hand to retry a failed
+deploy. If no usable window remains, tell Eric, check that the scheduler is stopped, and
+record the missed day.
 
-> 🛑 **Break-glass required (2026-07-10):** the `protect-main-deploy` ruleset blocks
-> force-pushes and deletions on `main` + `deploy` for EVERYONE (no bypass actors) — a stray
-> tool rewinding `deploy` would otherwise hard-reset production. To run this rollback:
-> repo → Settings → Rules → Rulesets → `protect-main-deploy` → Enforcement **Disabled** →
-> force-push → re-enable. 30 seconds, and a deliberate speed bump before hard-resetting prod.
-> Prefer the revert flow above whenever there's time.
-
-**Just restart services** off the current `deploy` ref, no code change: GitHub → Actions →
-"Deploy to Hetzner" → **Run workflow** (`workflow_dispatch`).
+After a verified recovery, check missed grading and observations read-only, and backfill only
+in verified chronological order with Eric. A new dispatch of a moved branch can ship a
+different commit.
 
 ## 6. Where signal comes from when you're remote
 
@@ -175,3 +190,22 @@ git push origin <good-sha>:deploy --force   # workflow hard-resets the box to th
 - **The repo + tests** — reproduce code bugs here.
 - You **cannot** see the live dashboard or box logs from the cloud. Don't guess at on-box
   state — ask Eric or escalate per §3.
+
+| Channel | When |
+|---|---|
+| GitHub failed-run notice | Depends on GitHub recording a failure and Eric's settings. A preflight failure, forced cancellation or failed SSH can leave the old process running with no page. |
+| Immediate scheduler-heartbeat `/fail` POST | During initial containment, and on recovery if the prior response was unverified. A 2xx confirms the POST response. Check the provider's history and Eric's receipt separately. |
+| Heartbeat cron | Every five minutes while the failure marker remains or the heartbeat is stale, once the stock-Python line is installed. |
+| Healthchecks missed pings | The liveness check when the box, cron or egress is down. The heartbeat check when its checker cannot run. Both depend on provider schedule, grace and integration. |
+
+Cron and timers continue.
+
+- Scoring starts at 01:00 and may run until 06:00 ET. Reconcile runs at 02:00 and 07:40.
+  Contest fetch runs at 01:10, 02:10, 10:30 and 13:30. Each can write against the reached tree.
+- The 03:00 data build can run preview and sync assets. The 07:45 park-drag refresh,
+  23:30 shadow update, five-minute lineup collector, 30-minute static capture, and analysis
+  timers continue.
+- Ops backups run at :20 every three hours. Archive runs at 04:50 and pruning at 05:35 Sunday.
+- Entry checks every 15 minutes from 10:00 through 23:45, the 08:30 day-outcome job, and the
+  contest fetch can DM according to the installed cron and intent. The October fetch can DM
+  in research. These jobs send no pick.

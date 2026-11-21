@@ -8,16 +8,19 @@ Returns:
     Exit code 0 if fresh. Exit code 1 + POST to hc-ping /fail if stale.
 
 Integration: invoke from cron like
-    */5 * * * * cd /home/bts/projects/bts && /home/bts/.local/bin/uv run \\
-        python scripts/check_heartbeat.py --heartbeat-path data/.heartbeat \\
+    */5 * * * * cd /home/bts/projects/bts && /usr/bin/python3 \\
+        scripts/check_heartbeat.py --heartbeat-path data/.heartbeat \\
         --ping-url "$BTS_SCHEDULER_HEARTBEAT_PING_URL" \\
         >> /home/bts/logs/heartbeat.log 2>&1
 """
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import os
+import re
+import stat
 import subprocess
 import sys
 import urllib.error
@@ -32,6 +35,13 @@ RUNNING_MAX_AGE = 5 * 60          # running: fresh = timestamp age < 5 min
 WAITING_MAX_AGE = 10 * 60         # waiting_for_games: 10 min
 SLEEPING_OVERRUN = 10 * 60        # sleeping: if past sleeping_until, fresh = <10 min overshoot
 IDLE_END_MAX_AGE = 90 * 60        # idle_end_of_day is a brief transitional state; stale if stuck >90 min
+HEARTBEAT_MAX_BYTES = 64 * 1024
+MALFORMED_HEARTBEAT = (True, "heartbeat unreadable or malformed")
+DEPLOY_FAILURE_STEPS = frozenset("""
+    commit-record disable reset sync legacy-units restart head wait scheduler-state
+    dashboard-state dashboard-http contest-state stamp-stage enable stamp interrupted
+    deploy-step-incomplete
+""".split())
 
 
 def is_stale(
@@ -42,13 +52,38 @@ def is_stale(
     if now is None:
         now = datetime.now(timezone.utc)
 
-    if not path.exists():
-        return True, f"heartbeat file not found: {path}"
+    try:
+        if not path.exists():
+            return True, f"heartbeat file not found: {path}"
+    except (OSError, ValueError):
+        return MALFORMED_HEARTBEAT
 
     try:
-        raw = json.loads(path.read_text())
+        if not stat.S_ISREG(path.stat().st_mode):
+            return MALFORMED_HEARTBEAT
+        with open(path, "rb", opener=lambda name, flags: os.open(name, flags | os.O_NONBLOCK)) as stream:
+            if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+                return MALFORMED_HEARTBEAT
+            payload = stream.read(HEARTBEAT_MAX_BYTES + 1)
+        if len(payload) > HEARTBEAT_MAX_BYTES:
+            return MALFORMED_HEARTBEAT
+        with io.TextIOWrapper(io.BytesIO(payload)) as text:
+            raw = json.load(text)
     except (OSError, json.JSONDecodeError) as e:
         return True, f"heartbeat unreadable: {e}"
+    except (ValueError, RecursionError):
+        return MALFORMED_HEARTBEAT
+
+    if not isinstance(raw, dict):
+        return MALFORMED_HEARTBEAT
+    if raw.get("state") == "deploy_failed":
+        step = raw.get("step")
+        target = raw.get("target_sha")
+        if not isinstance(step, str) or step not in DEPLOY_FAILURE_STEPS:
+            step = "unknown"
+        if not isinstance(target, str) or not re.fullmatch("[0-9a-f]{7}", target):
+            target = "unknown"
+        return True, f"Deploy failed at {step} (requested target {target}). See INCIDENT.md §4."
 
     ts_str = raw.get("timestamp")
     state = raw.get("state", "unknown")
@@ -56,6 +91,8 @@ def is_stale(
         ts = datetime.fromisoformat(ts_str)
     except (TypeError, ValueError):
         return True, f"heartbeat timestamp invalid: {ts_str}"
+    if (now.utcoffset() is None) != (ts.utcoffset() is None):
+        return MALFORMED_HEARTBEAT
     age_s = (now - ts).total_seconds()
 
     if state == "running":
@@ -76,6 +113,10 @@ def is_stale(
             wake = datetime.fromisoformat(wake_str)
         except ValueError:
             return True, f"sleeping_until invalid: {wake_str}"
+        except TypeError:
+            return MALFORMED_HEARTBEAT
+        if (now.utcoffset() is None) != (wake.utcoffset() is None):
+            return MALFORMED_HEARTBEAT
         overshoot = (now - wake).total_seconds()
         if overshoot > SLEEPING_OVERRUN:
             return True, f"sleeping past sleeping_until by {overshoot:.0f}s (>{SLEEPING_OVERRUN}s)"
