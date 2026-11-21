@@ -234,3 +234,29 @@ def test_genuine_journal_evidence_still_fires_beside_every_w15_text(tmp_path, ca
                     "worker exited status=137"):
         lines = [*health_texts(caplog, alerts), genuine]
         assert journal_scan(lines) == genuine.strip()[:240]
+
+
+def test_record_name_must_match_whole_name(tmp_path, caplog):
+    """Carbon round 2 N2: a valid record-name prefix with a trailing suffix is not a record name."""
+    caplog.set_level(logging.WARNING)
+    status = tmp_path / SOURCE
+    status.mkdir()
+    name = f"{DAY}.invalid_entries.{'a' * 12}.json.oom-kill.json"
+    (status / name).write_text("{")
+    alerts = probable_pitcher_cache.check(status, DAY)
+    texts = health_texts(caplog, alerts)
+    assert_safe(texts)
+    assert any(f"an entry for {DAY} whose name is not a status record name" in text for text in texts)
+
+
+def test_evidence_name_must_match_whole_name(tmp_path, caplog):
+    """Carbon round 2 N2: a preserved name with a valid prefix and a trailing suffix makes the record unreadable."""
+    caplog.set_level(logging.WARNING)
+    status = tmp_path / SOURCE
+    _, row = envelope()
+    row["preserved"] = "probable_pitcher_lookup.20261231T140000Z.cccccccccccc.json.oom-kill"
+    put(status, row)
+    alerts = probable_pitcher_cache.check(status, DAY)
+    texts = health_texts(caplog, alerts)
+    assert_safe(texts)
+    assert " (status unreadable) recorded today or yesterday;" in alerts[0].message
