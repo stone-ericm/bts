@@ -23,6 +23,7 @@ A finding about test code or evidence tooling is a NOTE, never a BLOCK, unless i
 
 ## Running things
 - Python is `.venv/bin/python` in this copy (synced, with the model extra). Earlier revisions: `git archive <commit> src | tar -x -C <a directory under .codex-review/wr-w15b/>`; put it first on `PYTHONPATH` and confirm `bts.__file__` points there.
+- **The author's full test run (the gate) is in progress: start NO wrapper run and no pytest before 07:00 ET** (read, and run small direct probe scripts under a minute, until then).
 - This machine is shared with long jobs. Run every pytest invocation and any run longer than about a minute through `~/bts-runs/yield_run.sh .codex-review/wr-w15b/<name>.log <command…>`, ONE at a time: check `pgrep -f yield_run.sh` first and WAIT while any job is running, however long (a backtest can take hours; never stop one; another reviewer shares the machine; a `nice` warning is not an exit). Small direct probe scripts under a minute may run at any time. Do not run the whole fast suite.
 - One script per family of checks; create files with your edit tool, never a shell heredoc; do not edit a script after asking to run it. Never use a pattern kill; never list every process on the machine. Bound every blocking read with a timeout. Copy real files before reading them in probes; never write outside this copy.
 

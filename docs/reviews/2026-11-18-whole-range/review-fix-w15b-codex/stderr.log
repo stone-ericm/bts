@@ -1,0 +1,16 @@
+Unreadable existing stderr bytes ascii ["b'WARNING: unreadable probable-pitcher cache c`af\\\\\\\\xe9/data/models/probable_pitcher_lookup.json (JSONDecodeError); rebuilding it from raw feeds\\n'", "b'WARNING: unreadable probable-pitcher cache c`af\\\\?/data/models/probable_pitcher_lookup.json (JSONDecodeError); rebuilding it from raw feeds\\n'", "b'WARNING: unreadable probable-pitcher cache c`af\\\\\\\\xe9/data/models/probable_pitcher_lookup.json (JSONDecodeError); rebuilding it from raw feeds\\n'"]
+Unreadable existing stderr bytes utf-8 ["b'WARNING: unreadable probable-pitcher cache c`af\\\\\\xc3\\xa9/data/models/probable_pitcher_lookup.json (JSONDecodeError); rebuilding it from raw feeds\\n'", "b'WARNING: unreadable probable-pitcher cache c`af\\\\\\xc3\\xa9/data/models/probable_pitcher_lookup.json (JSONDecodeError); rebuilding it from raw feeds\\n'", "b'WARNING: unreadable probable-pitcher cache c`af\\\\\\xc3\\xa9/data/models/probable_pitcher_lookup.json (JSONDecodeError); rebuilding it from raw feeds\\n'"]
+strict-utf8 ["b'WARNING: sample path x?.json\\n'", "b''"]
+surrogate-utf8 ["b'WARNING: sample path x?.json\\n'", "b'WARNING: sample path x\\\\udcff.json\\n'"]
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-w15b/.codex-review/wr-w15b/probe_stderr.py", line 105, in <module>
+    main()
+  File "/Users/eric/projects/bts-work/wr-review-w15b/.codex-review/wr-w15b/probe_stderr.py", line 86, in main
+    status.write_bytes(b"non-directory")
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 1036, in write_bytes
+    with self.open(mode='wb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 1013, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+IsADirectoryError: [Errno 21] Is a directory: '/Users/eric/projects/bts-work/wr-review-w15b/.codex-review/wr-w15b/stderr-3n2cjhr0/c`af\\é/data/health_state/probable_pitcher_cache'

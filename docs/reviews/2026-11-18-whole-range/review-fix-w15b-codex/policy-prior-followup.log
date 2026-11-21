@@ -1,0 +1,29 @@
+Probable-pitcher cache at 2027-01-01T04:59:00+00:00 had 1 invalid entry (first game IDs 100). Of those entries, 0 had a valid cache alias and 0 had a usable raw feed. No usable lookup was found for 0 with unusable or unverified feeds and 1 with missing feeds. This observation names no evidence copy. That run left the active cache unchanged. This describes the cache at the recorded time; health may show this observation again on the next processed day. Keep the active cache, raw feeds, any named evidence copy and other available copies intact for review. Send this alert promptly to the supervised BTS lead Claude session (bts-lead), or to Eric if the session is unavailable. Ask them to review the latest preview and any pending pick before the next scheduled selection. If a pick was already sent or entered, report that and preserve its records.
+Probable-pitcher cache at 2027-01-01T04:59:00+00:00 had 1 invalid entry (first game IDs 100). Of those entries, 0 had a valid cache alias and 0 had a usable raw feed. No usable lookup was found for 0 with unusable or unverified feeds and 1 with missing feeds. This observation names no evidence copy. That run left the active cache unchanged. This describes the cache at the recorded time; health may show this observation again on the next processed day. Keep the active cache, raw feeds, any named evidence copy and other available copies intact for review. Send this alert promptly to the supervised BTS lead Claude session (bts-lead), or to Eric if the session is unavailable. Ask them to review the latest preview and any pending pick before the next scheduled selection. If a pick was already sent or entered, report that and preserve its records.
+Policy difference oom/data genuine warning first [('analytics_job_oom', 'quotes W15')] genuine-only ['analytics_job_oom']
+Policy difference oom/data warning+memory first [('analytics_job_oom', 'quotes W15')] genuine-only ['analytics_job_oom']
+Policy difference oom/data critical+memory first [('memory_oom_correlation', 'quotes W15')] genuine-only ['memory_oom_correlation']
+Policy difference oom/data spelled out first [('analytics_job_oom', 'quotes W15')] genuine-only ['analytics_job_oom']
+Policy difference oom/data room first [('analytics_job_oom', 'quotes W15')] genuine-only []
+Policy difference oom/data room last [('analytics_job_oom', 'quotes W15')] genuine-only []
+Policy difference oom/data none first [('analytics_job_oom', 'quotes W15')] genuine-only []
+Policy difference oom/data none last [('analytics_job_oom', 'quotes W15')] genuine-only []
+Probable-pitcher cache at 2027-01-01T04:59:00+00:00 had 1 invalid entry (first game IDs 100). Of those entries, 0 had a valid cache alias and 0 had a usable raw feed. No usable lookup was found for 0 with unusable or unverified feeds and 1 with missing feeds. This observation names no evidence copy. That run left the active cache unchanged. This describes the cache at the recorded time; health may show this observation again on the next processed day. Keep the active cache, raw feeds, any named evidence copy and other available copies intact for review. Send this alert promptly to the supervised BTS lead Claude session (bts-lead), or to Eric if the session is unavailable. Ask them to review the latest preview and any pending pick before the next scheduled selection. If a pick was already sent or entered, report that and preserve its records.
+Policy difference x/out-of-memory genuine warning first [('analytics_job_oom', 'quotes W15')] genuine-only ['analytics_job_oom']
+Policy difference x/out-of-memory warning+memory first [('analytics_job_oom', 'quotes W15')] genuine-only ['analytics_job_oom']
+Policy difference x/out-of-memory critical+memory first [('memory_oom_correlation', 'quotes W15')] genuine-only ['memory_oom_correlation']
+Policy difference x/out-of-memory spelled out first [('analytics_job_oom', 'quotes W15')] genuine-only ['analytics_job_oom']
+Policy difference x/out-of-memory room first [('analytics_job_oom', 'quotes W15')] genuine-only []
+Policy difference x/out-of-memory room last [('analytics_job_oom', 'quotes W15')] genuine-only []
+Policy difference x/out-of-memory none first [('analytics_job_oom', 'quotes W15')] genuine-only []
+Policy difference x/out-of-memory none last [('analytics_job_oom', 'quotes W15')] genuine-only []
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-w15b/.codex-review/wr-w15b/probe_prior_followup.py", line 50, in <module>
+    main()
+  File "/Users/eric/projects/bts-work/wr-review-w15b/.codex-review/wr-w15b/probe_prior_followup.py", line 38, in main
+    probe_health.journal_feedback(True)
+  File "/Users/eric/projects/bts-work/wr-review-w15b/.codex-review/wr-w15b/probe_health.py", line 171, in journal_feedback
+    STATUS.mkdir(parents=True)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 1311, in mkdir
+    os.mkdir(self, mode)
+FileExistsError: [Errno 17] File exists: 'data/health_state/probable_pitcher_cache'
