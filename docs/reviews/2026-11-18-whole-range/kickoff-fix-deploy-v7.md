@@ -158,3 +158,58 @@ F0's "the wait 30 s plus 5 s" with a 5-second TERM-to-KILL grace inside the cap 
 - **R9 (Carbon N2), one sentence each:** `INCIDENT.md`'s dashboard-only advice and filesystem-restore path point to §4 and §5's checked deploy (as amendment 3's last item); `CLAUDE.md`'s "Season 2026 wrap" re-enable sentence ("restart inside a sleep window") becomes "follow checklist B8a's activation order and deploy inside an approved sleep window".
 - **Ledgered (Carbon N3):** `check_heartbeat.py` printing a non-`deploy_failed` heartbeat field with a lone surrogate can raise under a strict UTF-8 locale before `/fail` (inherited from the base; F8 keeps ordinary inputs byte-identical).
 - **Ruled assertion change (R5):** `test_failed_checks_are_reported_and_contained[commit-error-commit-record-1]` expects the retained status 17.
+
+## Amendment 4 (2026-11-21 16:13 ET, `bts-wr-fresh6`): D3b, the round-2 follow-up (rulings R56 and R57). Where it and a row above differ, this amendment governs.
+Built on `fix/wr-d3` at `d57f4013`. **Ruling R57:** D3b is the only follow-up; if it stops, the piece goes to Eric (accept the findings as known limits, or defer the deploy workflow to January). A Carbon-only verdict never merges.
+
+**The defect class: recovery claims a state it did not prove.** All three round-2 findings print or act on a conclusion that no observation of this invocation established: a signal handler that contains a box it never changed (it concluded "published" from a record that was not its own), and a stop proof that printed `verified` from a branch that skipped a known cgroup or from a run whose residual check never launched. D3b changes the mechanism for the class, not only the three inputs:
+
+- **M1, one proof function.** `prove_stopped` is the ONLY code that may set the stop result to `verified`; `report` is the ONLY code that prints `Scheduler stopped:`, `Failure heartbeat written:`, `Failure ping received HTTP 2xx:` and `DEPLOY RECOVERY — containment re-checked.` Each result starts `unverified` and becomes `verified` only from an observation made by THIS containment (stop: the rule below; marker: the helper's read-back of the payload this containment wrote; page: a 2xx with curl exit 0 from this containment's POST, or, on recovery of a `contained` record, that record's `page` field, which only a 2xx in this attempt's own earlier containment wrote, as F6 and amendment 1 require: no second page). The two functions are byte-identical in both scripts (RD8).
+- **M1's stop rule** (all must hold; any missing, failed, ambiguous or timed-out observation gives `unverified`):
+  1. user scope: `disable` and `stop` each exit 0; `is-enabled` reads exactly `disabled`; one successful `show` gives `ActiveState` `inactive` or `failed` and `MainPID=0`; `list-jobs` shows no job for the unit; at least one cgroup path is known (recorded before the stop, or reported after it) and EVERY known path is empty or absent.
+  2. legacy scope, either (a) **absent throughout**: the containment's first query succeeded and read `not-found`, no fragment file existed then, and the proof query also succeeds and reads `not-found` with no fragment (no stop is needed and none is claimed); or (b) **present or unknown at the start**: `disable` and `stop` each exit 0, then the proof query succeeds and either reads `loaded` (then the user scope's unit-state, job, `is-enabled` and cgroup checks apply to it) or reads `not-found` with no fragment, and in BOTH cases at least one cgroup path is known and every known path is empty or absent (**finding 2**: a recorded path stays in the proof after a later `not-found`; a unit seen loaded, or not observed absent, with no known path is `unverified`, as R3 rules for a loaded unit).
+  3. the residual check: `pgrep -u bts -f 'bts schedule'` is launched and exits exactly 1.
+- **M2, finding 3: the residual check has its own reserved window.** The handler's 280-second budget is cut into consecutive windows, each a deadline for the commands inside it: user stop to 90 s, legacy stop to 180 s, proof queries to 205 s, **residual check 205 to 220 s (reserved: no earlier query can run past 205 s, so the check is always launched with at least about 10 seconds of term)**, marker 220 to 240 s, POST 240 to 270 s, record to 280 s. The marker and POST windows are unchanged; the proof window shrinks from 40 to 25 seconds (a slow proof gives `unverified`, the fail-closed direction).
+- **M3, one signal rule.** `signal_rule` is the ONLY decision of the signal handler, a table of the publication state held in memory and, where needed, one fresh bounded read (15 s, its own budget) of the attempt record. `on_signal` acts on its single answer: `success` (release, exit 0), `not-started` (the indeterminate-begin line of amendment 1, exit 1, no change), or `contain` (`contain interrupted 130`).
+
+| # | Publication (memory) | Fresh read | Answer | Why |
+|---|---|---|---|---|
+| S1 | `committed` | not read | success | the commit is confirmed |
+| S2 | `begun` | not read | contain | this invocation may have changed the box (R2) |
+| S3 | `committing` | valid, this attempt (same record), `committed` | success | the rename completed before its caller saw it |
+| S4 | `committing` | anything else | contain | R2, R5 |
+| S5 | `beginning` | absent | not-started | nothing of this invocation was published or changed |
+| **S6** | `beginning` | **valid record of a DIFFERENT attempt** (run or attempt differs) | **not-started** | **finding 1**: the older record proves this begin was not published; no mutation runs before `begun` is confirmed |
+| S7 | `beginning` | valid, this attempt (same record), `begun` | contain | the begin was published; recovery would contain it too |
+| S8 | `beginning` | valid, same run and attempt, any other state or target | contain if not `committed`; success if the same record says `committed` (both as `d57f4013`) | unreachable: preflight refused a record with this run and attempt under the lock held since |
+| S9 | `beginning` | unreadable, malformed, failed or timed out | contain | the evidence cannot exclude publication |
+
+Only S6 changes the handler's decision (from contain to not-started), which is the case R56 names, so no contract check is required by the kickoff; this session runs one anyway because R57 changes the mechanism.
+
+**Notes carried into D3b (one or two lines each, each with a test):** a commit-record read-back that fails after a successful rename keeps its own status (`126`, not `2`); `INCIDENT.md`'s restore line says the installer copies and reloads the units and the scheduler is activated only by §5's checked deploy (no "enable + start deliberately"); B8a's `--picks-dir` list names `saver-state`. **Ledgered, not built:** on real Debian systemd an empty cgroup is pruned on stop, so recovery of an already contained attempt can report `unverified` (A7 measures it); the surviving mutant that drops the lock helper's `st_uid` check (the shim emulates root ownership; A7). The other two round-2 surviving mutants are in the class and get tests (a different non-empty post-stop group; `same_record` in the signal rule).
+
+### Must still catch (written before the fix; given to both reviewers as inputs they must probe)
+Every row is a test in `tests/test_deploy_workflow.py` on the D3b commit, in BOTH scripts where the containment is shared.
+
+| # | Source | Input | Must |
+|---|---|---|---|
+| K1 | R2 r1 Codex 1 (R1) | the first or every containment clock sample fails, deploy and recovery | stop, marker, POST attempted; record `contained` |
+| K2 | R2 r1 Codex 2 / Carbon B1 (R2) | signal after `begun` confirmed: at 790, 795, 805 s, during the wait, after `enable` and the stamp; a record read failing (126) after `begun` | contain; never `DEPLOY NOT STARTED` |
+| K3 | r1 Codex 3 (R3) | blank `ControlGroup=` with a populated subtree, user and legacy; always blank | `unverified` |
+| K4 | r1 Codex 4 / Carbon B3 (R4) | `.env` URL with `{other}`, `{one,two}`, `[1-1]`, `[1-2]` | no POST, `unverified`; every curl has `--globoff` |
+| K5 | r1 Codex 5 / Carbon B2 (R5) | commit staging or rename 17, 124, 137; read-back 124, 137 | `(17)` or `(timeout)`; contain |
+| K6 | r1 Codex 6 (R6) | A5 and B8a order | edits after stop and boot-disable |
+| K7 | r1 Codex 7 (R7) | NUL inside the canary's accepted prefix | `contest-state` fails `(query)` |
+| K8 | r1 Carbon mutants (R8 a to d) | a different run ID at the same attempt; a POST following redirects; the real lock-file and mark helpers; the recovery lock wait | each detected |
+| K9 | **r2 finding 1** | TERM, HUP, INT, PIPE while staging or renaming `begun` (not published), with a prior `committed` record of another run, a prior `contained` record of an earlier attempt of the same run, and a prior `begun` record of another run | `DEPLOY NOT STARTED`; no `systemctl` mutation, POST or marker; the prior record, heartbeat and boot link byte-identical |
+| K10 | r2 finding 1 controls | the same signal after `begun` IS renamed, with each prior record; the fresh read failing (126) while `beginning` with a prior record | contain (S7, S9) |
+| K11 | **r2 finding 2** | legacy unit loaded and active with group `/legacy-orphan` at containment, reported `not-found` after its stop, the group `populated 1`; deploy (reset fails) and matching `begun` recovery | `unverified`; the recorded group is read |
+| K12 | finding 2 controls and new class case | the same with `populated 0` (`verified`); loaded at containment with NO known group, then `not-found` (`unverified`, new); absent throughout (`verified`, no legacy stop) | as stated |
+| K13 | **r2 finding 3** | clock unavailable; slow stops and proof queries that would run past 205 s | `pgrep` launched with term of at least 5 s; marker and POST attempted; handler under 280 s (slow test) |
+| K14 | M2 control | the window boundaries in both scripts | marker window starts at 220 s and POST at 240 s as before |
+| K15 | r2 note | commit read-back exits 126 after the rename | `Check commit-record failed (126).` |
+| K16 | r2 Carbon N3 b (class) | pre-stop group `/a` populated, post-stop group `/b` empty | `unverified` |
+| K17 | r2 Carbon N3 c (class) | the signal rule with a prior committed record of another run while `beginning` | not `success` |
+| K18 | new class case | recovery of `contained` with `page verified`: no POST; `stop` and `marker` re-proved in this run; `containment re-checked` only when all three hold | as stated |
+| K19 | new class case | every literal `verified` in both scripts is produced inside `prove_stopped`, the marker or POST evidence branch, or `report`, and the four lines are printed only by `report` | a source test |
+| K20 | r2 notes (docs) | `INCIDENT.md` restore line; B8a `saver-state` | as stated |
