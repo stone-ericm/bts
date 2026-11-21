@@ -35,6 +35,7 @@ from bts.health import (
     post_failure,
     postponed_pick,
     predicted_vs_realized,
+    probable_pitcher_cache,
     projected_lineup,
     realized_calibration,
     restart_spike,
@@ -120,6 +121,8 @@ def run_all_checks(
     """
     overrides = thresholds_overrides or {}
     alerts: list[Alert] = []
+    wall_date_et = datetime.now(timezone.utc).astimezone(ET).date()
+    processed_date = today if today is not None else wall_date_et
 
     # Calibration drift (existing)
     alerts.extend(_safe_run("calibration", lambda: calibration.check(
@@ -129,7 +132,7 @@ def run_all_checks(
     # Tier 1 — silent failures with damage
     historical_day = None
     contest_kwargs = {}
-    if today is not None and today < datetime.now(timezone.utc).astimezone(ET).date():
+    if today is not None and today < wall_date_et:
         historical_day = today
         contest_kwargs = {
             "now": datetime.combine(today, time.max, ET).astimezone(timezone.utc),
@@ -287,8 +290,9 @@ def run_all_checks(
         )))
     alerts.extend(_safe_run("streak_validation", lambda: streak_validation.check(picks_dir)))
 
-    if today is None:
-        today = date.today()
+    alerts.extend(_safe_run("probable_pitcher_cache", lambda: probable_pitcher_cache.check(
+        picks_dir.parent / "health_state" / "probable_pitcher_cache", today=processed_date,
+    )))
     warn_attention_path = (overrides.get("warn_attention_state")
                            if "warn_attention_state" in overrides
                            else picks_dir.parent / "health_state" / "warn_attention_state.json")
@@ -298,7 +302,7 @@ def run_all_checks(
     policy_alerts, warn_attention = apply_warn_attention_policy(
         alerts,
         state_path=_path(warn_attention_path),
-        today=today,
+        today=processed_date,
     )
     alerts.extend(policy_alerts)
 
@@ -328,7 +332,7 @@ def run_all_checks(
         # Dedup by the PROCESSED day, not the wall date: a post-midnight EOD
         # for date D must not consume D+1's "already sent today" budget
         # (round-2 review #5).
-        now_et_date=today,
+        now_et_date=processed_date,
     )
     return alerts
 
