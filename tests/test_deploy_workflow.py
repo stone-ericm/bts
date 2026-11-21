@@ -115,10 +115,12 @@ def phase():
     return None
 
 at = phase()
+if command == "python3" and len(args) > 3 and args[2] == "stage-record":
+    at = "stage-" + args[-1].split()[5]
 fault = os.environ.get("FAULT", "").split(":")
 if at and fault[0] == at and not (root / "fault-fired").exists():
     (root / "fault-fired").touch()
-    if fault[1] in {"17", "124"}:
+    if fault[1] in {"17", "124", "137"}:
         raise SystemExit(int(fault[1]))
     if fault[1] == "mismatch":
         print("c" * 40)
@@ -161,58 +163,104 @@ elif command == "stat":
     owner = 1000 if scenario == "bad-owner" else 0
     print(f"{owner} {p.stat().st_mode & 0o777:o}")
 elif command == "flock":
-    try:
-        fcntl.flock(int(args[-1]), fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except BlockingIOError:
-        raise SystemExit(1)
+    fd = int(args[-1])
+    # Keep the real advisory lock and compress the 1500s timeout for tests.
+    wait = min(float(args[1]), 1) if args[0] == "-w" else 0
+    deadline = time.monotonic() + wait
+    while True:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            break
+        except BlockingIOError:
+            if time.monotonic() >= deadline:
+                raise SystemExit(1)
+            (root / "waiting-for-lock").touch()
+            time.sleep(0.01)
 elif command == "python3":
     op = args[2] if len(args) > 2 else None
+    code = args[1]
+    sys.argv = ["-c", *args[2:]]
     if op in {"lockfile", "mark"}:
-        import stat
-        path = Path(args[3])
-        try:
-            fd = os.open(path, os.O_APPEND | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600)
-            with os.fdopen(fd, "ab") as f:
-                metadata = os.fstat(f.fileno())
-                if not stat.S_ISREG(metadata.st_mode) or stat.S_IMODE(metadata.st_mode) != 0o600:
-                    raise SystemExit(1)
-                if op == "mark" and (metadata.st_size or scenario == "mark-error"):
-                    raise SystemExit(1)
-        except OSError:
-            raise SystemExit(1)
-    else:
-        code = args[1]
-        sys.argv = ["-c", *args[2:]]
-        if op == "clock" and scenario == "canary-budget" and (root / "advance-clock").exists():
-            print(time.monotonic_ns() // 1_000_000 + 1_000_000)
+        # Emulate only the root UID, leaving creation and verification to fs_code.
+        original_fstat = os.fstat
+
+        def root_fstat(fd):
+            metadata = original_fstat(fd)
+            if metadata.st_uid != os.geteuid():
+                return metadata
+            fields = list(metadata)
+            fields[4] = 0
+            return os.stat_result(fields)
+
+        os.fstat = root_fstat
+        if op == "mark" and scenario == "mark-error":
+            def denied_open(*args, **kwargs):
+                raise PermissionError("simulated cancellation mark creation failure")
+            os.open = denied_open
+    if op == "clock" and (root / "fail-containment-clock").exists():
+        if not scenario.endswith("-every"):
+            (root / "fail-containment-clock").unlink()
+        (root / "clock-failed").touch()
+        raise SystemExit(124)
+    if op == "read" and scenario.startswith("recovery-clock-") and not (root / "recovery-armed").exists():
+        (root / "recovery-armed").touch()
+        (root / "fail-containment-clock").touch()
+    if op == "clock" and scenario == "late-signal":
+        if (root / "exhausted-phase").exists():
+            print(time.monotonic_ns() // 1_000_000 + 805_000)
             raise SystemExit(0)
-        if op == "marker" and scenario == "marker-unwritable":
-            raise SystemExit(17)
-        if op == "stamp" and scenario == "stamp-directory-sync":
-            def fail_fsync(fd):
-                raise OSError("simulated directory sync failure")
-            os.fsync = fail_fsync
-        if op == "stage" and scenario == "partial-stamp":
-            import tempfile
-            original = tempfile.NamedTemporaryFile
-            def partially_written(*args, **kwargs):
-                file = original(*args, **kwargs)
-                write = file.write
-                def partial_write(data):
-                    write(data[:2])
-                    raise OSError("simulated short stage write")
-                file.write = partial_write
-                return file
-            tempfile.NamedTemporaryFile = partially_written
-        exec(compile(code, "<workflow helper>", "exec"), {"__name__": "__main__"})
+        if (root / "next-clock").exists():
+            print(time.monotonic_ns() // 1_000_000 + 790_000)
+            raise SystemExit(0)
+    if op == "clock" and (root / "clock-at-795").exists():
+        print(time.monotonic_ns() // 1_000_000 + 795_000)
+        raise SystemExit(0)
+    if op == "read" and scenario in {"commit-read-124", "commit-read-137"}:
+        record = root / "run/bts-deploy/attempt"
+        if record.exists() and " committed " in record.read_text():
+            raise SystemExit(int(scenario.rsplit("-", 1)[1]))
+    if op == "read" and scenario == "record-read-126" and (root / "exhausted-phase").exists() and not (root / "stopped").exists():
+        if not (root / "read-failed").exists():
+            (root / "read-failed").touch()
+            raise SystemExit(126)
+    if op == "clock" and scenario == "canary-budget" and (root / "advance-clock").exists():
+        print(time.monotonic_ns() // 1_000_000 + 1_000_000)
+        raise SystemExit(0)
+    if op == "marker" and scenario == "marker-unwritable":
+        raise SystemExit(17)
+    if op == "stamp" and scenario == "stamp-directory-sync":
+        def fail_fsync(fd):
+            raise OSError("simulated directory sync failure")
+        os.fsync = fail_fsync
+    if op == "stage" and scenario == "partial-stamp":
+        import tempfile
+        original = tempfile.NamedTemporaryFile
+        def partially_written(*args, **kwargs):
+            file = original(*args, **kwargs)
+            write = file.write
+            def partial_write(data):
+                write(data[:2])
+                raise OSError("simulated short stage write")
+            file.write = partial_write
+            return file
+        tempfile.NamedTemporaryFile = partially_written
+    exec(compile(code, "<workflow helper>", "exec"), {"__name__": "__main__"})
+    if op == "stamp" and scenario == "signal-after-stamp":
+        (root / "clock-at-795").touch()
+        os.kill(int((root / "owner.pid").read_text()), signal.SIGTERM)
 elif command == "mv":
     if scenario == "commit-error" and at == "publish-committed":
         raise SystemExit(17)
     os.replace(args[-2], args[-1])
     if scenario == "published-with-error" and at == "publish-begun":
         raise SystemExit(17)
+    if scenario == "committed-with-error" and at == "publish-committed":
+        raise SystemExit(17)
 elif command == "git":
     branch = root / "head"
+    if at == "head" and scenario.startswith("deploy-clock-"):
+        (root / "fail-containment-clock").touch()
+        raise SystemExit(17)
     if args[0] == "fetch" and scenario == "fetch":
         raise SystemExit(17)
     if args[0] == "rev-parse":
@@ -249,13 +297,22 @@ elif command == "systemctl":
     if args[0] == "is-active" and "--quiet" not in args:
         print("activating" if os.environ["SCENARIO"] == "auto-restart" else "active")
     if args[0] == "show":
+        if user and "ExecMainStatus" in args and scenario in {"late-signal", "record-read-126"}:
+            (root / "exhausted-phase").touch()
+            os.kill(int((root / "owner.pid").read_text()), signal.SIGTERM)
         active = "active" if user and not (root / "stopped").exists() else "inactive"
-        states = dict(Id=args[1], LoadState="loaded" if user or scenario in {"legacy-present", "legacy-survivor"} else "not-found", UnitFileState="enabled",
+        states = dict(Id=args[1], LoadState="loaded" if user or scenario in {"legacy-present", "legacy-survivor", "legacy-blank-cgroup"} else "not-found", UnitFileState="enabled",
                       ActiveState=active, SubState="running", Result="success", ExecMainStatus="0",
-                      MainPID="0", ControlGroup="")
+                      MainPID="0", ControlGroup="/user-sched" if user else "")
         if os.environ["SCENARIO"] == "auto-restart" and "bts-scheduler" in args:
             states.update(ActiveState="activating", SubState="auto-restart")
         if "ControlGroup" in args and user and scenario == "descendant-cgroup":
+            states["ControlGroup"] = "/sched"
+        if "ControlGroup" in args and user and scenario == "blank-cgroup":
+            states["ControlGroup"] = "" if (root / "stopped").exists() else "/sched"
+        if "ControlGroup" in args and user and scenario == "unknown-cgroup":
+            states["ControlGroup"] = ""
+        if "ControlGroup" in args and not user and scenario == "legacy-blank-cgroup" and not (root / "legacy-stopped").exists():
             states["ControlGroup"] = "/sched"
         if "ControlGroup" in args and user and scenario == "main-pid":
             states["MainPID"] = "4321"
@@ -285,6 +342,8 @@ elif command == "systemctl":
             os.kill(owner, signal.SIGINT)
             os.kill(owner, signal.SIGPIPE)
         (root / "stopped").touch()
+    if not user and args[0] == "stop":
+        (root / "legacy-stopped").touch()
     if user and args[0] == "list-jobs" and scenario == "pending-job":
         print("17 bts-scheduler.service start waiting")
 elif command == "tailscale":
@@ -313,6 +372,9 @@ elif command == "bash" and args[0] == "-c" and args[1].startswith("exec 9>&-"):
     os.close(9)
     dispatch(args[3:])
 elif command == "bts":
+    if scenario == "contest-nul":
+        sys.stdout.buffer.write(b"Deploy canary: not a live configu\x00ration (delivery private); contest state not checked.\n")
+        raise SystemExit(0)
     if scenario == "contest-refused":
         print("Deploy canary: REFUSED — invalid state")
         raise SystemExit(1)
@@ -332,6 +394,11 @@ elif command == "rm":
     for operand in (arg for arg in args if not arg.startswith("-")):
         Path(operand).unlink(missing_ok=True)
 elif command in {"sleep", "uv"}:
+    if command == "sleep" and scenario == "late-signal":
+        (root / "next-clock").touch()
+    if command == "sleep" and scenario == "signal-during-wait":
+        (root / "clock-at-795").touch()
+        os.kill(int((root / "owner.pid").read_text()), signal.SIGHUP)
     if command == "uv" and os.environ["SCENARIO"] == "sync":
         raise SystemExit(17)
 else:
@@ -417,6 +484,229 @@ def assert_direct_paths(box, script):
         if path == Path("/fail") and script[match.start() - 4 : match.end() + 2] == ' + "/fail")':
             continue
         assert path == Path("/bin/bash") or path.is_relative_to(box), path
+
+
+@pytest.mark.parametrize("recovery", [False, True])
+@pytest.mark.parametrize("frequency", ["once", "every"])
+def test_round1_clock_failure_does_not_skip_containment(box, recovery, frequency):
+    scripts, _ = scripts_and_steps()
+    data = box / "home/projects/bts/data"
+    (data.parent / ".env").write_text("BTS_SCHEDULER_HEARTBEAT_PING_URL=https://checks.invalid/a\n")
+    if recovery:
+        root = box / "run/bts-deploy"
+        root.mkdir(mode=0o700, parents=True)
+        (root / "attempt").write_text(f"bts_deploy_attempt_v1 123 1 {TARGET} {OLD} begun - - - -\n")
+    scenario = f"{'recovery' if recovery else 'deploy'}-clock-{frequency}"
+    result, calls = run_box_script(box, scripts[int(recovery)], scenario)
+    assert result.returncode == 1
+    assert (box / "clock-failed").exists()
+    assert ["systemctl", "--user", "stop", "bts-scheduler"] in calls
+    assert any(call[0] == "curl" and "--data-raw" in call for call in calls)
+    assert json.loads((data / ".heartbeat").read_text())["state"] == "deploy_failed"
+    assert " contained " in (box / "run/bts-deploy/attempt").read_text()
+
+
+@pytest.mark.parametrize("scenario", ["late-signal", "record-read-126"])
+def test_round1_late_signal_uses_confirmed_begin(box, scenario):
+    scripts, _ = scripts_and_steps()
+    result, calls = run_box_script(box, scripts[0], scenario)
+    assert result.returncode == 1
+    assert "DEPLOY FAILED at interrupted" in result.stdout
+    assert "DEPLOY NOT STARTED" not in result.stdout
+    assert ["systemctl", "--user", "stop", "bts-scheduler"] in calls
+    assert not (box / "read-failed").exists()
+
+
+@pytest.mark.parametrize(("scenario", "fault"), [("blank-cgroup", "head:17"), ("legacy-blank-cgroup", "sync:17")])
+def test_round1_blank_control_group_retains_populated_subtree(box, scenario, fault):
+    scripts, _ = scripts_and_steps()
+    group = box / "sys/fs/cgroup/sched"
+    group.mkdir()
+    (group / "cgroup.events").write_text("populated 1\n")
+    result, calls = run_box_script(box, scripts[0], scenario, fault=fault)
+    assert "Scheduler stopped: unverified." in result.stdout
+    assert any(call[0] == "python3" and call[-1] == "/sched" for call in calls)
+
+
+def test_round1_unknown_control_group_cannot_verify_stop(box):
+    scripts, _ = scripts_and_steps()
+    group = box / "sys/fs/cgroup/sched"
+    group.mkdir()
+    (group / "cgroup.events").write_text("populated 1\n")
+    result, _ = run_box_script(box, scripts[0], "unknown-cgroup", fault="head:17")
+    assert "Scheduler stopped: unverified." in result.stdout
+
+
+@pytest.mark.parametrize("endpoint", ["{other}", "{one,two}", "[1-2]"])
+def test_round1_post_rejects_curl_globs(box, endpoint):
+    scripts, _ = scripts_and_steps()
+    (box / "home/projects/bts/.env").write_text(f"BTS_SCHEDULER_HEARTBEAT_PING_URL=https://checks.invalid/{endpoint}\n")
+    result, calls = run_box_script(box, scripts[0], "active", fault="head:17")
+    assert not any(call[0] == "curl" and "--data-raw" in call for call in calls)
+    assert "Failure ping received HTTP 2xx: unverified." in result.stdout
+
+
+def test_round1_curl_disables_globs(box):
+    scripts, _ = scripts_and_steps()
+    (box / "home/projects/bts/.env").write_text("BTS_SCHEDULER_HEARTBEAT_PING_URL=https://checks.invalid/a\n")
+    result, calls = run_box_script(box, scripts[0], "http")
+    assert result.returncode == 1
+    curls = [call for call in calls if call[0] == "curl"]
+    assert len(curls) == 2
+    assert all("--globoff" in call for call in curls)
+
+
+@pytest.mark.parametrize("command", ["stage-committed", "publish-committed"])
+@pytest.mark.parametrize(("status", "logged"), [(17, "17"), (124, "timeout")])
+def test_round1_commit_status_survives_failed_publication(box, command, status, logged):
+    scripts, _ = scripts_and_steps()
+    result, _ = run_box_script(box, scripts[0], "active", fault=f"{command}:{status}")
+    assert (box / "fault-fired").exists()
+    assert f"Check commit-record failed ({logged})." in result.stdout
+    assert (box / "home/projects/bts/data/.last_deploy_iso").is_file()
+
+
+def test_round1_commit_readback_overrides_failed_rename_status(box):
+    scripts, _ = scripts_and_steps()
+    result, _ = run_box_script(box, scripts[0], "committed-with-error")
+    assert result.returncode == 0
+    assert "CANARY PASSED" in result.stdout
+    assert " committed " in (box / "run/bts-deploy/attempt").read_text()
+
+
+def test_round1_activation_edits_follow_the_boot_hold():
+    checklist = (WORKFLOW.parents[2] / "docs/ops/2027-season-start.md").read_text().splitlines()
+    a5 = next(line for line in checklist if line.startswith("| A5 |"))
+    b8a = next(line for line in checklist if line.startswith("| B8a |"))
+    assert a5.split("|")[2].strip() == "Follow B8a's activation order; do not edit delivery, intent or cron before B8a says so."
+    stop = b8a.index("confirm the scheduler is stopped and its local boot link disabled")
+    for command in ('pick_delivery = "dm"', 'entry_intent = "enter"', "cron-setup-hetzner.sh"):
+        assert stop < b8a.index(command)
+
+
+def test_round1_incident_shortcuts_point_to_checked_deploy():
+    incident = (WORKFLOW.parents[2] / "INCIDENT.md").read_text()
+    sections = incident.split("- **Dashboard down, picks fine:**", 1)[1].split("## 5.", 1)[0]
+    dashboard, restore = sections.split("- **Box/filesystem loss", 1)
+    for advice in (dashboard, restore):
+        assert "§4" in advice and "§5" in advice and "checked deploy" in advice
+
+
+def test_round1_canary_rejects_a_nul_in_the_prefix(box):
+    scripts, _ = scripts_and_steps()
+    result, _ = run_box_script(box, scripts[0], "contest-nul")
+    assert result.returncode == 1
+    assert "Check contest-state failed (query)." in result.stdout
+    assert "CANARY PASSED" not in result.stdout
+
+
+@pytest.mark.parametrize("scenario", ["signal-during-wait", "signal-after-stamp"])
+def test_round2_signal_at_795_seconds_contains(box, scenario):
+    scripts, _ = scripts_and_steps()
+    result, calls = run_box_script(box, scripts[0], scenario)
+    assert (box / "clock-at-795").exists()
+    assert result.returncode == 1
+    assert "DEPLOY FAILED at interrupted" in result.stdout
+    assert "DEPLOY NOT STARTED" not in result.stdout
+    assert (box / "head").read_text() == TARGET
+    assert (box / "enabled").read_text() == "disabled"
+    assert ["systemctl", "--user", "stop", "bts-scheduler"] in calls
+    assert (box / "home/projects/bts/data/.last_deploy_iso").exists() == (scenario == "signal-after-stamp")
+
+
+def test_round2_uncertain_commit_signal_has_a_fresh_read_budget(box):
+    scripts, _ = scripts_and_steps()
+    result, calls = run_box_script(box, scripts[0], "active", fault="publish-committed:TERM")
+    assert result.returncode == 0
+    assert " committed " in (box / "run/bts-deploy/attempt").read_text()
+    reads = [call for call in calls if call[0] == "timeout" and call[-2] == "read"]
+    assert reads[-1][:3] == ["timeout", "-k", "5"]
+    assert 9 <= int(reads[-1][3]) <= 10
+
+
+def test_round2_endpoint_rejects_carbon_bracket_range(box):
+    scripts, _ = scripts_and_steps()
+    (box / "home/projects/bts/.env").write_text(
+        "BTS_SCHEDULER_HEARTBEAT_PING_URL=https://hc-ping.invalid/[1-1]/uuid\n"
+    )
+    result, calls = run_box_script(box, scripts[0], "active", fault="head:17")
+    assert "Failure ping received HTTP 2xx: unverified." in result.stdout
+    assert not any(call[0] == "curl" for call in calls)
+
+
+@pytest.mark.parametrize("timeout", [124, 137])
+@pytest.mark.parametrize("operation", ["stage-committed", "publish-committed", "read"])
+def test_round2_all_commit_timeouts_keep_timeout_status(box, operation, timeout):
+    scripts, _ = scripts_and_steps()
+    scenario = f"commit-read-{timeout}" if operation == "read" else "active"
+    fault = "" if operation == "read" else f"{operation}:{timeout}"
+    result, _ = run_box_script(box, scripts[0], scenario, fault=fault)
+    assert result.returncode == 1
+    assert "Check commit-record failed (timeout)." in result.stdout
+    assert " contained commit-record " in (box / "run/bts-deploy/attempt").read_text()
+
+
+def test_round2_different_run_with_same_attempt_cannot_recover(box):
+    scripts, _ = scripts_and_steps()
+    lock_dir = box / "run/bts-deploy"
+    lock_dir.mkdir(mode=0o700, parents=True)
+    record = f"bts_deploy_attempt_v1 456 1 {TARGET} {OLD} begun - - - -\n"
+    (lock_dir / "attempt").write_text(record)
+    result, calls = run_box_script(box, scripts[1], "active", run_id="123", attempt="1")
+    assert "a different attempt owns the box record" in result.stdout
+    assert (lock_dir / "attempt").read_text() == record
+    assert (lock_dir / "cancelled.123.1").is_file()
+    assert not any(call[0] == "systemctl" for call in calls)
+
+
+def test_round2_failure_post_never_follows_redirects(box):
+    scripts, _ = scripts_and_steps()
+    (box / "home/projects/bts/.env").write_text("BTS_SCHEDULER_HEARTBEAT_PING_URL=https://checks.invalid/a\n")
+    result, calls = run_box_script(box, scripts[0], "post-0-301", fault="head:17")
+    posts = [call for call in calls if call[0] == "curl" and "--data-raw" in call]
+    assert len(posts) == 1
+    assert all(option not in posts[0] for option in ("-L", "--location", "--location-trusted"))
+    assert "Failure ping received HTTP 2xx: unverified." in result.stdout
+
+
+def test_round2_recovery_creates_real_lockfile_and_mark(box):
+    scripts, _ = scripts_and_steps()
+    result, _ = run_box_script(box, scripts[1], "active")
+    assert "this attempt has no phase-2 record on this boot" in result.stdout
+    lock_dir = box / "run/bts-deploy"
+    for path in (lock_dir / "lock", lock_dir / "cancelled.123.1"):
+        assert path.is_file()
+        assert path.stat().st_mode & 0o777 == 0o600
+        assert path.read_bytes() == b""
+
+
+def test_round2_recovery_waits_for_a_held_lock(box):
+    scripts, _ = scripts_and_steps()
+    lock_dir = box / "run/bts-deploy"
+    lock_dir.mkdir(mode=0o700, parents=True)
+    with (lock_dir / "lock").open("a") as holder, ThreadPoolExecutor(max_workers=1) as executor:
+        os.chmod(holder.name, 0o600)
+        fcntl.flock(holder, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        invocation = executor.submit(run_box_script, box, scripts[1], "active")
+        try:
+            deadline = time.monotonic() + 5
+            while not (box / "waiting-for-lock").exists() and not invocation.done() and time.monotonic() < deadline:
+                time.sleep(0.01)
+            assert (box / "waiting-for-lock").exists()
+            assert not invocation.done()
+            assert not (lock_dir / "cancelled.123.1").exists()
+        finally:
+            fcntl.flock(holder, fcntl.LOCK_UN)
+        result, calls = invocation.result(timeout=8)
+    assert ["flock", "-w", "1500", "9"] in calls
+    assert "this attempt has no phase-2 record on this boot" in result.stdout
+    assert (lock_dir / "cancelled.123.1").is_file()
+
+
+def test_round2_wrap_points_to_checked_activation():
+    claude = (WORKFLOW.parents[2] / "CLAUDE.md").read_text()
+    wrap = claude.split("## Season 2026 wrap", 1)[1].split("\n\n", 1)[0]
+    assert "follow checklist B8a's activation order and deploy inside an approved sleep window" in wrap
 
 
 def test_external_commands_resolve_in_the_shim_directory(box):
@@ -580,7 +870,7 @@ def test_invalid_lock_paths_are_refused(box, case):
         ("contest-refused", "contest-state", "1"),
         ("contest-error", "contest-state", "2"),
         ("contest-multiline", "contest-state", "query"),
-        ("commit-error", "commit-record", "1"),
+        ("commit-error", "commit-record", "17"),
     ],
 )
 def test_failed_checks_are_reported_and_contained(box, scenario, step, status):
@@ -672,7 +962,10 @@ PHASE_TWO = {
     "restart": "restart", "head": "head", "wait": "wait",
 }
 PHASE_THREE = ("scheduler-state", "dashboard-state", "dashboard-http", "contest-state")
-PHASE_FOUR = {"stamp-stage": "stamp-stage", "enable": "enable", "check-enable": "enable", "stamp": "stamp"}
+PHASE_FOUR = {
+    "stamp-stage": "stamp-stage", "enable": "enable", "check-enable": "enable",
+    "stamp": "stamp", "publish-committed": "commit-record",
+}
 
 
 @pytest.mark.parametrize("status", [17, 124])
@@ -702,7 +995,12 @@ def test_head_mismatch_contains_without_rollback(box):
 def test_owner_signal_at_each_phase_boundary(box, command, signal_name):
     scripts, _ = scripts_and_steps()
     scenario = "legacy-present" if command.startswith("legacy-") else "active"
-    result, calls = run_box_script(box, scripts[0], scenario, fault=f"{command}:{signal_name}")
+    fault = f"{command}:{signal_name}"
+    if command == "publish-committed":
+        # Keep the rename unpublished here. The publication-boundary tests
+        # separately verify signals after a successful atomic rename.
+        fault += ":unpublished"
+    result, calls = run_box_script(box, scripts[0], scenario, fault=fault)
     assert (box / "fault-fired").exists()
     assert result.returncode == 1, result
     assert result.stdout.count("DEPLOY FAILED at interrupted") == 1

@@ -107,6 +107,7 @@ from the cloud (§3) → escalate.
   `scripts/leakage_audit.py`. A wrong-but-running model is not an emergency; don't make it
   worse with a rushed change.
 - **Dashboard down, picks fine:** a redeploy (or `workflow_dispatch`) restarts `bts-dashboard`.
+  Apply §4's incident checks and §5's checked deploy before restarting through the workflow.
   If that doesn't fix it, it's on-box → escalate.
 - **Box/filesystem loss — operational-state restore (audit F5, needs SSH):** encrypted restic
   backups of `data/picks` + `data/health_state` (ops set, 3h cadence) and
@@ -123,6 +124,7 @@ from the cloud (§3) → escalate.
   the original absolute paths (`/home/bts/projects/bts/data/...`). Parquets/models come from
   the separate artifact sync: `bts data sync-from-r2`. Systemd units: repo templates via
   `bash scripts/install-systemd-hetzner.sh` (audit F12), then enable + start deliberately.
+  For scheduler activation after a restore, follow §4 and use §5's checked deploy.
 
 ## 5. Deploy and revert commands
 

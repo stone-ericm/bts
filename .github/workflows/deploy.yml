@@ -97,6 +97,7 @@ jobs:
             legacy_dir=/etc/systemd/system
             old=unknown
             staged=
+            budget_start=
             reported=
             phase_steps='commit-record|disable|reset|sync|legacy-units|restart|head|wait|scheduler-state|dashboard-state|dashboard-http|contest-state|stamp-stage|enable|stamp|interrupted|deploy-step-incomplete'
 
@@ -156,15 +157,27 @@ jobs:
                         except subprocess.TimeoutExpired:
                             pass
                     sys.exit(128 - status if status < 0 else status)
-                elif op == "capture":
+                elif op in ("capture", "capture-contest"):
                     limit, *command = args
                     with subprocess.Popen(command, stdout=subprocess.PIPE) as child:
                         data = child.stdout.read(int(limit) + 1)
                         if len(data) > int(limit):
                             child.kill()
                             sys.exit(125)
-                        sys.stdout.buffer.write(data)
                         status = child.wait()
+                    if op == "capture":
+                        sys.stdout.buffer.write(data)
+                    else:
+                        line = data.removesuffix(b"\n")
+                        prefixes = {
+                            0: (b"Deploy canary: live contest state accepted (",
+                                b"Deploy canary: not a live configuration (delivery "),
+                            1: ("Deploy canary: REFUSED — ".encode(),),
+                            2: ("Deploy canary: ERROR — ".encode(),),
+                        }
+                        if not any(byte in line for byte in (b"\0", b"\n", b"\r")) and line.startswith(prefixes.get(status, ())):
+                            text = line.decode("utf-8", errors="backslashreplace")
+                            print("".join(c if c.isprintable() else ascii(c)[1:-1] for c in text)[:900])
                     sys.exit(128 - status if status < 0 else status)
                 elif op == "lockfile":
                     p, = args
@@ -235,7 +248,7 @@ jobs:
                     value, = [line[len(prefix):] for line in lines if line.startswith(prefix)]
                     if len(value) >= 2 and value[0] in (chr(34), chr(39)) and value[-1] == value[0]:
                         value = value[1:-1]
-                    if any(c.isspace() or not c.isprintable() or c in (chr(34), chr(39), "\\", "?", "#") for c in value):
+                    if any(c.isspace() or not c.isprintable() or c in (chr(34), chr(39), "\\", "?", "#", "{", "}", "[", "]") for c in value):
                         raise ValueError()
                     parsed = urlsplit(value)
                     if parsed.scheme != "https" or not parsed.hostname or parsed.username is not None or parsed.password is not None:
@@ -278,8 +291,12 @@ jobs:
             run() {
                 local cap=$1 grace=$2 mode=$3 now available term
                 shift 3
-                now=$(clock)
-                [[ $now =~ ^[0-9]+$ ]] || return 124
+                if [[ -n ${budget_start:-} ]]; then
+                    now=$((budget_origin + (SECONDS - budget_start) * 1000))
+                else
+                    now=$(clock)
+                    [[ $now =~ ^[0-9]+$ ]] || return 124
+                fi
                 available=$(((deadline - now) / 1000))
                 if [[ $mode == wait ]] && (( available < cap )); then
                     return 124
@@ -342,8 +359,8 @@ jobs:
                 fi
             }
             read_record() {
-                local record
-                record=$(fs 10 normal read "$attempt")
+                local record cap=${1:-10}
+                record=$(fs "$cap" normal read "$attempt")
                 local rc=$?
                 (( rc == 0 )) || return "$rc"
                 local grammar="^bts_deploy_attempt_v1 ([0-9]{1,20}) ([0-9]{1,20}) ([0-9a-f]{40}) ([0-9a-f]{40}) (begun|committed|contained) ([a-z-]+) (-|verified|unverified) (-|verified|unverified) (-|verified|unverified)$"
@@ -361,20 +378,36 @@ jobs:
             same_ids() { [[ $r_run == "$RUN_ID" && $r_try == "$RUN_ATTEMPT" ]]; }
             same_record() { same_ids && [[ $r_target == "$TARGET_SHA" && $r_old == "$old" ]]; }
             publish() {
-                local wanted=$1 staged_record
+                local wanted=$1 staged_record status rc
                 shift
                 staged_record=$(fs 10 mutation stage-record "$lock_dir" "bts_deploy_attempt_v1 $RUN_ID $RUN_ATTEMPT $TARGET_SHA $old $wanted $*")
-                if [[ $? == 0 && $staged_record == "$lock_dir/.attempt."* ]]; then
-                    run 10 5 mutation mv -fT "$staged_record" "$attempt" >/dev/null
-                    if [[ -e $staged_record ]]; then
-                        run 10 5 mutation rm -f -- "$staged_record" >/dev/null || :
+                status=$?
+                if (( status == 0 )); then
+                    if [[ $staged_record == "$lock_dir/.attempt."* ]]; then
+                        run 10 5 mutation mv -fT "$staged_record" "$attempt" >/dev/null
+                        status=$?
+                        if [[ -e $staged_record ]]; then
+                            run 10 5 mutation rm -f -- "$staged_record" >/dev/null || :
+                        fi
+                    else
+                        status=1
                     fi
                 fi
                 read_record
-                local rc=$?
-                (( rc == 3 )) && return 1
-                (( rc == 0 )) || return 2
-                same_record && [[ $r_state == "$wanted" ]]
+                rc=$?
+                if (( rc == 0 )) && same_record && [[ $r_state == "$wanted" ]]; then
+                    return 0
+                fi
+                if [[ $wanted == committed ]]; then
+                    case $status:$rc in
+                        124:*|137:*|*:124|*:137) return 124 ;;
+                    esac
+                    (( status == 0 )) || return "$status"
+                fi
+                if (( rc != 0 && rc != 3 )); then
+                    return 2
+                fi
+                return 1
             }
             field() {
                 local key=$1 contents=$2 allow_empty=${3:-no} line result= count=0
@@ -426,41 +459,56 @@ jobs:
                 esac
                 jobs_clear system_unit "$cap" "$name"
             }
+            scheduler_group() {
+                local output
+                output=$("$1" 10 normal show "$2" -p ControlGroup) || return 1
+                field ControlGroup "$output"
+            }
             check_stopped() {
-                local command=$1 name=$2 output active pid group
+                local command=$1 name=$2 previous_group=$3 output active pid group
                 output=$("$command" 20 normal show "$name" -p ActiveState -p MainPID -p ControlGroup) || return 1
                 active=$(field ActiveState "$output") && [[ $active == inactive || $active == failed ]] || return 1
                 pid=$(field MainPID "$output") && [[ $pid == 0 ]] || return 1
                 group=$(field ControlGroup "$output" yes) || return 1
                 jobs_clear "$command" 20 "$scheduler" || return 1
-                fs 20 normal cgroup /sys/fs/cgroup "$group"
+                [[ -n $previous_group || -n $group ]] || return 1
+                if [[ -n $previous_group && $previous_group != "$group" ]]; then
+                    fs 20 normal cgroup /sys/fs/cgroup "$previous_group" || return 1
+                fi
+                [[ -z $group ]] || fs 20 normal cgroup /sys/fs/cgroup "$group"
             }
             contain() {
                 trap '' HUP INT TERM PIPE
                 local step=$1 status=$2 prior_page=$3 repeat=$4
                 local stop=unverified marker=unverified page=unverified uid unit before= query_ok=0
                 local user_disabled=1 user_stopped=1 legacy_disabled=1 legacy_stopped=1 user_proof=1 system_proof=1 residual
-                local containment_deadline output endpoint
-                start_phase 280 || deadline=0
-                containment_deadline=$deadline
+                local deadline containment_deadline output endpoint user_group legacy_group
+                local budget_start=$SECONDS budget_origin
+                # One sample anchors the handler's separate budget. Bash SECONDS also
+                # keeps that budget running when the external clock cannot be sampled.
+                budget_origin=$(clock)
+                [[ $budget_origin =~ ^[0-9]+$ ]] || budget_origin=0
+                containment_deadline=$((budget_origin + 280000))
                 if [[ $repeat != yes ]]; then
                     log "DEPLOY FAILED at $step — requested target ${TARGET_SHA:0:7}, previous SHA ${old:0:7}. No automatic rollback was attempted. Recovery has not been verified."
                     [[ $reported == "$step" ]] || log "Check $step failed ($status)."
                 fi
-                deadline=$((containment_deadline - 200000))
+                deadline=$((containment_deadline - 190000))
                 uid=$(run 10 5 normal id -u bts)
                 local uid_status=$?
                 if (( uid_status != 0 )) || [[ ! $uid =~ ^[0-9]+$ ]]; then
                     uid=
                 fi
+                user_group=$(scheduler_group as_user bts-scheduler)
                 as_user 10 mutation disable bts-scheduler >/dev/null; user_disabled=$?
                 as_user 60 mutation stop bts-scheduler >/dev/null; user_stopped=$?
-                deadline=$((containment_deadline - 110000))
+                deadline=$((containment_deadline - 100000))
                 if legacy_state 10 "$scheduler"; then
                     query_ok=1
                     before=$legacy
                 fi
                 if [[ $query_ok != 1 || $before != not-found || -e $legacy_dir/$scheduler ]]; then
+                    legacy_group=$(scheduler_group system_unit "$scheduler")
                     system_unit 10 mutation disable "$scheduler" >/dev/null; legacy_disabled=$?
                     system_unit 60 mutation stop "$scheduler" >/dev/null; legacy_stopped=$?
                 else
@@ -469,7 +517,7 @@ jobs:
                 deadline=$((containment_deadline - 60000))
                 if (( uid_status == 0 )) && [[ $uid =~ ^[0-9]+$ ]]; then
                     unit=bts-scheduler
-                    if enabled disabled 20 as_user && check_stopped as_user "$unit"; then
+                    if enabled disabled 20 as_user && check_stopped as_user "$unit" "$user_group"; then
                         user_proof=0
                     fi
                 fi
@@ -477,7 +525,7 @@ jobs:
                     unit=$scheduler
                     if [[ $legacy == not-found && ! -e $legacy_dir/$scheduler ]]; then
                         system_proof=0
-                    elif check_stopped system_unit "$scheduler" && enabled disabled 20 system_unit; then
+                    elif check_stopped system_unit "$scheduler" "$legacy_group" && enabled disabled 20 system_unit; then
                         system_proof=0
                     fi
                 fi
@@ -496,7 +544,7 @@ jobs:
                 if [[ $prior_page == verified ]]; then
                     page=verified
                 elif endpoint=$(as_bts 20 normal /usr/bin/python3 -c "$fs_code" endpoint "$checkout/.env"); then
-                    output=$(run 20 5 normal curl --disable --noproxy '*' -sS -m 10 -o /dev/null -w '%{http_code}' \
+                    output=$(run 20 5 normal curl --disable --globoff --noproxy '*' -sS -m 10 -o /dev/null -w '%{http_code}' \
                         --data-raw "Deploy failed at $step, requested target ${TARGET_SHA:0:7}, scheduler stop $stop. See INCIDENT.md §4." "$endpoint"
                         local status=$?; printf '\037'; exit "$status")
                     local post_status=$?
@@ -527,18 +575,23 @@ jobs:
             }
             on_signal() {
                 trap '' HUP INT TERM PIPE
-                read_record
-                case $? in
-                    3) not_started attempt-record ;;
-                    0) ;;
-                    *) unknown_begin ;;
-                esac
-                same_record || not_started attempt-record
-                case $r_state in
+                case $publication in
                     begun) contain interrupted 130 ;;
                     committed) exec 9>&-; exit 0 ;;
-                    *) not_started attempt-record ;;
                 esac
+
+                # A rename may have completed before its caller observed the result.
+                local budget_start=$SECONDS budget_origin=0 deadline=15000 rc
+                read_record 15
+                rc=$?
+                if (( rc == 0 )) && same_record && [[ $r_state == committed ]]; then
+                    exec 9>&-
+                    exit 0
+                fi
+                if [[ $publication == beginning ]] && (( rc == 3 )); then
+                    not_started attempt-record
+                fi
+                contain interrupted 130
             }
             step_status() {
                 local step=$1 status=$2
@@ -591,9 +644,11 @@ jobs:
             done
 
             start_phase 800 || not_started attempt-record
+            publication=beginning
             trap on_signal HUP INT TERM PIPE
             publish begun - - - -
             case $? in 1) not_started attempt-record ;; 2) unknown_begin ;; esac
+            publication=begun
             as_user 20 mutation disable bts-scheduler >/dev/null
             step_status disable "$?"
             unit=bts-scheduler
@@ -665,7 +720,7 @@ jobs:
                     host=$address
                 fi
             fi
-            code=$(run 15 5 normal curl --disable --noproxy '*' -sS -m 10 -o /dev/null -w '%{http_code}' "http://$host:3003/"
+            code=$(run 15 5 normal curl --disable --globoff --noproxy '*' -sS -m 10 -o /dev/null -w '%{http_code}' "http://$host:3003/"
                 rc=$?; printf '\037'; exit "$rc")
             rc=$?
             code=${code%$'\037'}
@@ -677,26 +732,11 @@ jobs:
                 check dashboard-http "$code"
             fi
 
-            output=$(run 60 5 normal /usr/bin/python3 -c "$fs_code" capture 4096 sudo -Hu bts \
-                env PYTHONDONTWRITEBYTECODE=1 "$checkout/.venv/bin/bts" deploy-canary --config /home/bts/.bts-orchestrator.toml
-                rc=$?; printf '\037'; exit "$rc")
+            output=$(run 60 5 normal /usr/bin/python3 -c "$fs_code" capture-contest 4096 sudo -Hu bts \
+                env PYTHONDONTWRITEBYTECODE=1 "$checkout/.venv/bin/bts" deploy-canary --config /home/bts/.bts-orchestrator.toml)
             rc=$?
-            output=${output%$'\037'}
-            output=${output%$'\n'}
-            prefix_ok=no
-            case $rc:$output in
-                '0:Deploy canary: live contest state accepted ('*|'0:Deploy canary: not a live configuration (delivery '*) prefix_ok=yes ;;
-                '1:Deploy canary: REFUSED — '*) prefix_ok=yes ;;
-                '2:Deploy canary: ERROR — '*) prefix_ok=yes ;;
-            esac
-            if [[ $prefix_ok == yes && $output != *$'\n'* && $output != *$'\r'* ]]; then
-                safe=$(run 10 5 normal /usr/bin/python3 -c 'import sys; print("".join(c if c.isprintable() else ascii(c)[1:-1] for c in sys.argv[1])[:900])' "$output")
-                safe_rc=$?
-                if (( safe_rc )); then
-                    (( rc != 0 )) || rc=$(query_status "$safe_rc")
-                else
-                    log "$safe"
-                fi
+            if [[ -n $output ]]; then
+                log "$output"
             elif (( rc == 0 )); then
                 rc=query
             fi
@@ -713,8 +753,10 @@ jobs:
             as_bts 10 mutation /usr/bin/python3 -c "$fs_code" stamp "$staged" "$checkout/data/.last_deploy_iso" >/dev/null
             step_status stamp "$?"
             staged=
+            publication=committing
             publish committed - - - -
             step_status commit-record "$?"
+            publication=committed
             trap '' HUP INT TERM PIPE
             exec 9>&-
             log '================================' "Deployed ${TARGET_SHA:0:7}" "CANARY PASSED — ${TARGET_SHA:0:7} passed the deploy checks" '================================'
@@ -747,6 +789,7 @@ jobs:
             legacy_dir=/etc/systemd/system
             old=unknown
             staged=
+            budget_start=
             reported=
             phase_steps='commit-record|disable|reset|sync|legacy-units|restart|head|wait|scheduler-state|dashboard-state|dashboard-http|contest-state|stamp-stage|enable|stamp|interrupted|deploy-step-incomplete'
 
@@ -806,15 +849,27 @@ jobs:
                         except subprocess.TimeoutExpired:
                             pass
                     sys.exit(128 - status if status < 0 else status)
-                elif op == "capture":
+                elif op in ("capture", "capture-contest"):
                     limit, *command = args
                     with subprocess.Popen(command, stdout=subprocess.PIPE) as child:
                         data = child.stdout.read(int(limit) + 1)
                         if len(data) > int(limit):
                             child.kill()
                             sys.exit(125)
-                        sys.stdout.buffer.write(data)
                         status = child.wait()
+                    if op == "capture":
+                        sys.stdout.buffer.write(data)
+                    else:
+                        line = data.removesuffix(b"\n")
+                        prefixes = {
+                            0: (b"Deploy canary: live contest state accepted (",
+                                b"Deploy canary: not a live configuration (delivery "),
+                            1: ("Deploy canary: REFUSED — ".encode(),),
+                            2: ("Deploy canary: ERROR — ".encode(),),
+                        }
+                        if not any(byte in line for byte in (b"\0", b"\n", b"\r")) and line.startswith(prefixes.get(status, ())):
+                            text = line.decode("utf-8", errors="backslashreplace")
+                            print("".join(c if c.isprintable() else ascii(c)[1:-1] for c in text)[:900])
                     sys.exit(128 - status if status < 0 else status)
                 elif op == "lockfile":
                     p, = args
@@ -885,7 +940,7 @@ jobs:
                     value, = [line[len(prefix):] for line in lines if line.startswith(prefix)]
                     if len(value) >= 2 and value[0] in (chr(34), chr(39)) and value[-1] == value[0]:
                         value = value[1:-1]
-                    if any(c.isspace() or not c.isprintable() or c in (chr(34), chr(39), "\\", "?", "#") for c in value):
+                    if any(c.isspace() or not c.isprintable() or c in (chr(34), chr(39), "\\", "?", "#", "{", "}", "[", "]") for c in value):
                         raise ValueError()
                     parsed = urlsplit(value)
                     if parsed.scheme != "https" or not parsed.hostname or parsed.username is not None or parsed.password is not None:
@@ -928,8 +983,12 @@ jobs:
             run() {
                 local cap=$1 grace=$2 mode=$3 now available term
                 shift 3
-                now=$(clock)
-                [[ $now =~ ^[0-9]+$ ]] || return 124
+                if [[ -n ${budget_start:-} ]]; then
+                    now=$((budget_origin + (SECONDS - budget_start) * 1000))
+                else
+                    now=$(clock)
+                    [[ $now =~ ^[0-9]+$ ]] || return 124
+                fi
                 available=$(((deadline - now) / 1000))
                 if [[ $mode == wait ]] && (( available < cap )); then
                     return 124
@@ -992,8 +1051,8 @@ jobs:
                 fi
             }
             read_record() {
-                local record
-                record=$(fs 10 normal read "$attempt")
+                local record cap=${1:-10}
+                record=$(fs "$cap" normal read "$attempt")
                 local rc=$?
                 (( rc == 0 )) || return "$rc"
                 local grammar="^bts_deploy_attempt_v1 ([0-9]{1,20}) ([0-9]{1,20}) ([0-9a-f]{40}) ([0-9a-f]{40}) (begun|committed|contained) ([a-z-]+) (-|verified|unverified) (-|verified|unverified) (-|verified|unverified)$"
@@ -1011,20 +1070,36 @@ jobs:
             same_ids() { [[ $r_run == "$RUN_ID" && $r_try == "$RUN_ATTEMPT" ]]; }
             same_record() { same_ids && [[ $r_target == "$TARGET_SHA" && $r_old == "$old" ]]; }
             publish() {
-                local wanted=$1 staged_record
+                local wanted=$1 staged_record status rc
                 shift
                 staged_record=$(fs 10 mutation stage-record "$lock_dir" "bts_deploy_attempt_v1 $RUN_ID $RUN_ATTEMPT $TARGET_SHA $old $wanted $*")
-                if [[ $? == 0 && $staged_record == "$lock_dir/.attempt."* ]]; then
-                    run 10 5 mutation mv -fT "$staged_record" "$attempt" >/dev/null
-                    if [[ -e $staged_record ]]; then
-                        run 10 5 mutation rm -f -- "$staged_record" >/dev/null || :
+                status=$?
+                if (( status == 0 )); then
+                    if [[ $staged_record == "$lock_dir/.attempt."* ]]; then
+                        run 10 5 mutation mv -fT "$staged_record" "$attempt" >/dev/null
+                        status=$?
+                        if [[ -e $staged_record ]]; then
+                            run 10 5 mutation rm -f -- "$staged_record" >/dev/null || :
+                        fi
+                    else
+                        status=1
                     fi
                 fi
                 read_record
-                local rc=$?
-                (( rc == 3 )) && return 1
-                (( rc == 0 )) || return 2
-                same_record && [[ $r_state == "$wanted" ]]
+                rc=$?
+                if (( rc == 0 )) && same_record && [[ $r_state == "$wanted" ]]; then
+                    return 0
+                fi
+                if [[ $wanted == committed ]]; then
+                    case $status:$rc in
+                        124:*|137:*|*:124|*:137) return 124 ;;
+                    esac
+                    (( status == 0 )) || return "$status"
+                fi
+                if (( rc != 0 && rc != 3 )); then
+                    return 2
+                fi
+                return 1
             }
             field() {
                 local key=$1 contents=$2 allow_empty=${3:-no} line result= count=0
@@ -1076,41 +1151,56 @@ jobs:
                 esac
                 jobs_clear system_unit "$cap" "$name"
             }
+            scheduler_group() {
+                local output
+                output=$("$1" 10 normal show "$2" -p ControlGroup) || return 1
+                field ControlGroup "$output"
+            }
             check_stopped() {
-                local command=$1 name=$2 output active pid group
+                local command=$1 name=$2 previous_group=$3 output active pid group
                 output=$("$command" 20 normal show "$name" -p ActiveState -p MainPID -p ControlGroup) || return 1
                 active=$(field ActiveState "$output") && [[ $active == inactive || $active == failed ]] || return 1
                 pid=$(field MainPID "$output") && [[ $pid == 0 ]] || return 1
                 group=$(field ControlGroup "$output" yes) || return 1
                 jobs_clear "$command" 20 "$scheduler" || return 1
-                fs 20 normal cgroup /sys/fs/cgroup "$group"
+                [[ -n $previous_group || -n $group ]] || return 1
+                if [[ -n $previous_group && $previous_group != "$group" ]]; then
+                    fs 20 normal cgroup /sys/fs/cgroup "$previous_group" || return 1
+                fi
+                [[ -z $group ]] || fs 20 normal cgroup /sys/fs/cgroup "$group"
             }
             contain() {
                 trap '' HUP INT TERM PIPE
                 local step=$1 status=$2 prior_page=$3 repeat=$4
                 local stop=unverified marker=unverified page=unverified uid unit before= query_ok=0
                 local user_disabled=1 user_stopped=1 legacy_disabled=1 legacy_stopped=1 user_proof=1 system_proof=1 residual
-                local containment_deadline output endpoint
-                start_phase 280 || deadline=0
-                containment_deadline=$deadline
+                local deadline containment_deadline output endpoint user_group legacy_group
+                local budget_start=$SECONDS budget_origin
+                # One sample anchors the handler's separate budget. Bash SECONDS also
+                # keeps that budget running when the external clock cannot be sampled.
+                budget_origin=$(clock)
+                [[ $budget_origin =~ ^[0-9]+$ ]] || budget_origin=0
+                containment_deadline=$((budget_origin + 280000))
                 if [[ $repeat != yes ]]; then
                     log "DEPLOY FAILED at $step — requested target ${TARGET_SHA:0:7}, previous SHA ${old:0:7}. No automatic rollback was attempted. Recovery has not been verified."
                     [[ $reported == "$step" ]] || log "Check $step failed ($status)."
                 fi
-                deadline=$((containment_deadline - 200000))
+                deadline=$((containment_deadline - 190000))
                 uid=$(run 10 5 normal id -u bts)
                 local uid_status=$?
                 if (( uid_status != 0 )) || [[ ! $uid =~ ^[0-9]+$ ]]; then
                     uid=
                 fi
+                user_group=$(scheduler_group as_user bts-scheduler)
                 as_user 10 mutation disable bts-scheduler >/dev/null; user_disabled=$?
                 as_user 60 mutation stop bts-scheduler >/dev/null; user_stopped=$?
-                deadline=$((containment_deadline - 110000))
+                deadline=$((containment_deadline - 100000))
                 if legacy_state 10 "$scheduler"; then
                     query_ok=1
                     before=$legacy
                 fi
                 if [[ $query_ok != 1 || $before != not-found || -e $legacy_dir/$scheduler ]]; then
+                    legacy_group=$(scheduler_group system_unit "$scheduler")
                     system_unit 10 mutation disable "$scheduler" >/dev/null; legacy_disabled=$?
                     system_unit 60 mutation stop "$scheduler" >/dev/null; legacy_stopped=$?
                 else
@@ -1119,7 +1209,7 @@ jobs:
                 deadline=$((containment_deadline - 60000))
                 if (( uid_status == 0 )) && [[ $uid =~ ^[0-9]+$ ]]; then
                     unit=bts-scheduler
-                    if enabled disabled 20 as_user && check_stopped as_user "$unit"; then
+                    if enabled disabled 20 as_user && check_stopped as_user "$unit" "$user_group"; then
                         user_proof=0
                     fi
                 fi
@@ -1127,7 +1217,7 @@ jobs:
                     unit=$scheduler
                     if [[ $legacy == not-found && ! -e $legacy_dir/$scheduler ]]; then
                         system_proof=0
-                    elif check_stopped system_unit "$scheduler" && enabled disabled 20 system_unit; then
+                    elif check_stopped system_unit "$scheduler" "$legacy_group" && enabled disabled 20 system_unit; then
                         system_proof=0
                     fi
                 fi
@@ -1146,7 +1236,7 @@ jobs:
                 if [[ $prior_page == verified ]]; then
                     page=verified
                 elif endpoint=$(as_bts 20 normal /usr/bin/python3 -c "$fs_code" endpoint "$checkout/.env"); then
-                    output=$(run 20 5 normal curl --disable --noproxy '*' -sS -m 10 -o /dev/null -w '%{http_code}' \
+                    output=$(run 20 5 normal curl --disable --globoff --noproxy '*' -sS -m 10 -o /dev/null -w '%{http_code}' \
                         --data-raw "Deploy failed at $step, requested target ${TARGET_SHA:0:7}, scheduler stop $stop. See INCIDENT.md §4." "$endpoint"
                         local status=$?; printf '\037'; exit "$status")
                     local post_status=$?
