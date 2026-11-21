@@ -213,3 +213,23 @@ Every row is a test in `tests/test_deploy_workflow.py` on the D3b commit, in BOT
 | K18 | new class case | recovery of `contained` with `page verified`: no POST; `stop` and `marker` re-proved in this run; `containment re-checked` only when all three hold | as stated |
 | K19 | new class case | every literal `verified` in both scripts is produced inside `prove_stopped`, the marker or POST evidence branch, or `report`, and the four lines are printed only by `report` | a source test |
 | K20 | r2 notes (docs) | `INCIDENT.md` restore line; B8a `saver-state` | as stated |
+
+## Amendment 4a (2026-11-21 16:35 ET, `bts-wr-fresh6`): the D3b contract check's edits
+Check `contract-check-d3b/contract-check.md` (`WRCHKD3B-6eb4b7a2`, Codex xhigh): **BUILD WITH THESE EDITS.** Where this list and amendment 4 differ, this list governs. "Adopted" means the check's quoted replacement text is the contract for that item.
+
+**Adopted:**
+- The class paragraph (its first MUST FIX), verbatim.
+- What reports establish (F5/F6/F7): verbatim. `publish contained` succeeds only on an exact read-back of every field (step and three results).
+- Recovery record messages (F6/F7), verbatim: `DEPLOY RECOVERY — this attempt's record says committed. Check the deploy log and verify current state via INCIDENT.md §4.` and `DEPLOY RECOVERY — no phase-2 record is present. Check the deploy log and the host's boot time.`, plus the §4 sentence. **Ruled assertion changes:** tests that assert the old texts `this attempt committed on the box` and `no phase-2 record on this boot` assert the new texts.
+- The clean auto-restart line: `bts-scheduler.service completed cleanly and is waiting for relaunch` (it claimed `Restart=always` without querying it: in the class). **Ruled assertion change:** tests and the transcript comparison that carry the old line.
+- M1 rule 2, verbatim (absence only on a checked `not-found`, inactive, PID 0, no jobs and an absent fragment that is neither a file nor a link, dangling links included; every non-empty path seen before or after the stop is checked; a FAILED pre-stop cgroup query, as opposed to a successful blank one, leaves that scope unverified unless a later pre-stop query succeeds). Applies to the user scope's pre-stop query too.
+- The scope of `verified` (M1 and `INCIDENT.md` §4), verbatim.
+- M2's windows, verbatim: user stop 90, legacy stop 180, proof 205, residual 220, marker 240 (the marker before the staged-file cleanup), endpoint parsing by 254, POST 270 (at least 10 s of curl TERM when the URL is read by 254), record by 278, the last 2 s for the report lines; a one-second rounding allowance when capping containment calls.
+- M3's S8 replacement and output, verbatim: a `committed` read authorizes success only while `committing`; S8 (beginning with the same run and attempt but another target or old SHA, or any state other than `begun`) contains; S5 and S6 print F1's `not_started attempt-record` line (correcting amendment 4's wording); an unknown publication value contains. This changes S8's unreachable committed case from success to contain, which this check examined.
+- The table preamble and every K row's replacement text, and the appended case "a commit rename followed by a failed read-back and a failed contained rename" (recovery reports the surviving record and points to §4).
+- Operator texts: the `INCIDENT.md` restore bullet and B8a's sentence and both saver examples, verbatim.
+
+**Not adopted, ledgered (with cost):**
+- **L13, F2's legacy cleanup re-check** (outside the class: phase 2 acts on F1's legacy snapshot; `pkill` 1 is not proof of no process). Already within L8 (an independent legacy unit or a manual start can run the scheduler); containment's own stop proof re-observes both legacy names. Cost: a legacy unit started between preflight and phase 2 runs beside the candidate until containment or by hand.
+- **L14, NUL inside `systemctl` output** (the check's "shared machine output" item and its NUL appended case). The values parsed (`ActiveState`, `MainPID`, `ControlGroup`, `LoadState`, `Id`, `list-jobs`, `is-enabled`) are D-Bus strings, which cannot contain NUL, and curl's `%{http_code}` is three digits; Bash 3.2 dropping a NUL could only join two fragments of a value the manager cannot emit. The canary's command output, which is application text, keeps R7's raw-byte check. Cost: a manager that emitted NUL in a value could yield a joined token; A7 sees the real manager.
+- The check's NOTEs stand as recorded (A7 items: Debian 252 `show`/job/`is-enabled` statuses, cgroup pruning; a manual scheduler under another argv or UID is outside the proof, now said in §4).
