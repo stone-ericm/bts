@@ -1,0 +1,10 @@
+=== 5(a). Cache path & raw feed unusual files (bounded child, 5s timeout) ===
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-w15-carbon/.codex-review/wr-w15/probe_item5_unusual_files.py", line 351, in <module>
+    main()
+  File "/Users/eric/projects/bts-work/wr-review-w15-carbon/.codex-review/wr-w15/probe_item5_unusual_files.py", line 345, in main
+    test_cache_and_raw_edges(root)
+  File "/Users/eric/projects/bts-work/wr-review-w15-carbon/.codex-review/wr-w15/probe_item5_unusual_files.py", line 240, in test_cache_and_raw_edges
+    assert res.returncode == 0, f"{rkind}: {res.stderr}"
+           ^^^^^^^^^^^^^^^^^^^
+AssertionError: broken_stderr_epipe: 

@@ -1,0 +1,2 @@
+actual producer observations for unchanged bad cache: ['2026-12-31.invalid_entries.a047b58095e6.json', '2027-01-01.invalid_entries.a047b58095e6.json']
+processed D then D+1 received and failed, ASCII body lengths: [926, 1829]

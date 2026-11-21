@@ -1,0 +1,5 @@
+=== 2(a). Exact original bytes (including undecodable) & full-sha256 regular-file reuse ===
+PASS: Exact original bytes, full-sha256 regular-file reuse, and occupied/special evidence failures verified.
+=== 2(b). Independent A4 identity verification, coalescing, occupied status, 64 KiB limit ===
+PASS: A4 identity (invalid & unreadable, non-ASCII path), coalescing, conflicting/special status failure, and 64 KiB limit verified.
+ALL PROBE 2 CHECKS PASSED
