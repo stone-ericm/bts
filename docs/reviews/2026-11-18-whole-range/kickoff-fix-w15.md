@@ -90,5 +90,7 @@ Not built here, ledgered in `CLAUDE.md` with their cost: (1) **R2 sync** keeps i
 - **R6 (Carbon N1).** No literal backticks in any logged or sent text.
 - Notes adopted as written: the raw discovery order differs from the base only when uncached candidates are found (A1 permits it).
 
+- **Amendment 2a (2026-11-21 01:51, on the author's stop):** R4's exact text is 526 characters with all three kinds even with the fallback path, so the cap 500 conflicts with the exact wording (the lead's error). The wording stands; every "500 characters" in R4 and its tests reads **600 characters**; the fallback path applies only when the full path would exceed 600.
+
 ## Handover
 `HANDOVER-WR-W15.md` in the worktree root (not committed): the corpus table with base and after values, per row the test and RED status, the real-artifact check output, what ran with counts. Then print `WRW15-<first 8 hex characters of the sha256 of HANDOVER-WR-W15.md>` and `DONE`.
