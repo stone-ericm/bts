@@ -1,0 +1,13 @@
+=== 2A. Base AttributeError vs HEAD Recovery/Drop ===
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-w15b-carbon/.codex-review/wr-w15b/probe_item2_3_4_branch_and_w15b.py", line 406, in <module>
+    check_item2_parity_and_sequences()
+  File "/Users/eric/projects/bts-work/wr-review-w15b-carbon/.codex-review/wr-w15b/probe_item2_3_4_branch_and_w15b.py", line 241, in check_item2_parity_and_sequences
+    base_def = json.loads(run_feat_child(BASE_SRC, "nonobject_defect").stdout)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-w15b-carbon/.codex-review/wr-w15b/probe_item2_3_4_branch_and_w15b.py", line 223, in run_feat_child
+    script.write_text(FEATURE_CHILD)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 1048, in write_text
+    return f.write(data)
+           ^^^^^^^^^^^^^
+UnicodeEncodeError: 'utf-8' codec can't encode character '\udcff' in position 8373: surrogates not allowed

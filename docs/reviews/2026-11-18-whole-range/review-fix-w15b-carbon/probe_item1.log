@@ -1,0 +1,9 @@
+=== 1A. Round-2 Finding 1 (OOM-named paths): d7c66234 vs 284dc97a ===
+  symlink_oom_data: d7c66234 -> alerts=[('WARN', 'probable_pitcher_cache'), ('CRITICAL', 'analytics_job_oom')], rejected_len=1337 | 284dc97a -> alerts=[('WARN', 'probable_pitcher_cache')], sent_len=610
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-w15b-carbon/.codex-review/wr-w15b/probe_item1_round2_and_policy.py", line 570, in <module>
+    check_round2_findings_and_policy()
+  File "/Users/eric/projects/bts-work/wr-review-w15b-carbon/.codex-review/wr-w15b/probe_item1_round2_and_policy.py", line 358, in check_round2_findings_and_policy
+    assert r2_sources == [("WARN", SOURCE), ("CRITICAL", "analytics_job_oom")], (case_name, r2_sources)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('oom_kill', [('WARN', 'probable_pitcher_cache')])
