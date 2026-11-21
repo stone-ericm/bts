@@ -429,6 +429,126 @@ def bullpen_fixture():
     return [pa(100 + i, day, 3 if i < 10 else 1, True, i % 2) for i, day in enumerate(dates)]
 
 
+def test_directory_feed_candidates_keep_descriptors_and_bullpen_value(incident):
+    cache, raw = incident
+    seed(cache, {str(game): SEED for game in range(100, 111) if game != 109})
+    for game in range(1, 81):
+        raw.with_name(f"{game:05d}.json").mkdir()
+    raw.with_name("109.json").write_text(feed_payload(SEED))
+    script = """
+import json, os, resource, sys
+from pathlib import Path
+from tests.test_wr_w15_incidents import bullpen_fixture, compute, feature, park_drag
+
+compute._probable_pitcher_cache_path = Path(sys.argv[1])
+park_drag.get_table = lambda: None
+_, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+resource.setrlimit(resource.RLIMIT_NOFILE, (64, hard))
+before = len(os.listdir("/dev/fd"))
+_, error, frame = feature(bullpen_fixture())
+assert error is None, error
+after = len(os.listdir("/dev/fd"))
+assert "109" in json.loads(compute._probable_pitcher_cache_path.read_bytes())
+assert before == after, (before, after)
+print(frame.iloc[-1]["opp_bullpen_hr_30g"])
+"""
+    child = subprocess.run([sys.executable, "-c", script, str(cache)],
+                           env=child_env(), capture_output=True, text=True, timeout=15)
+    assert child.returncode == 0, child.stderr
+    assert float(child.stdout) == 0.5
+
+
+def test_feature_child_exits_zero_with_closed_stderr_reader(incident):
+    cache, raw = incident
+    seed(cache, {"100": None})
+    raw.write_text(feed_payload(RECOVERY))
+    script = """
+import sys
+from pathlib import Path
+from pytest import MonkeyPatch
+from tests.test_wr_w15_incidents import AT, compute, feature, freeze_clock, park_drag
+
+compute._probable_pitcher_cache_path = Path(sys.argv[1])
+park_drag.get_table = lambda: None
+with MonkeyPatch.context() as monkeypatch:
+    freeze_clock(monkeypatch, AT)
+    tuples, error, _ = feature()
+assert error is None and tuples == [(2, True, 61), (23, True, 62)]
+print("FEATURES_OK", flush=True)
+"""
+    reader, writer = os.pipe()
+    os.close(reader)
+    try:
+        child = subprocess.run([sys.executable, "-c", script, str(cache)], env=child_env(),
+                               stdout=subprocess.PIPE, stderr=writer, text=True, timeout=15)
+    finally:
+        os.close(writer)
+    assert child.stdout == "FEATURES_OK\n"
+    assert child.returncode == 0
+
+
+def test_missing_home_team_member_loses_prior_away_bullpen_bucket(incident):
+    cache, _ = incident
+    values = {str(game): dict(SEED) for game in range(100, 111)}
+    del values["100"]["home_tid"]
+    seed(cache, values)
+    _, error, frame = feature(bullpen_fixture())
+    assert error is None
+    assert pd.isna(frame.iloc[-1]["opp_bullpen_hr_30g"])
+    row, = records(cache)
+    assert row["game_ids"] == [100] and row["without_feed"] == 1
+
+
+def test_inaccessible_raw_root_marks_unverified_feeds_unusable(incident, monkeypatch):
+    cache, raw = incident
+    seed(cache, {"100": None})
+    iterdir = Path.iterdir
+
+    def deny_root(path):
+        if path.absolute() == raw.parent.parent:
+            raise PermissionError(path)
+        return iterdir(path)
+
+    monkeypatch.setattr(Path, "iterdir", deny_root)
+    assert build() == {}
+    row, = records(cache)
+    assert (row["unusable_feed"], row["without_feed"]) == (1, 0)
+
+
+def test_publish_rejects_valid_conflicting_record_at_same_destination(incident, capsys):
+    cache, raw = incident
+    seed(cache, {"100": None})
+    original = cache.read_bytes()
+    raw.write_text(feed_payload(RECOVERY))
+    assert build() == {100: RECOVERY}
+    folder = cache.parent.parent / "health_state/probable_pitcher_cache"
+    path, = folder.glob("*.json")
+    conflicting = json.loads(path.read_bytes())
+    conflicting["identity"] = conflicting["identity"][:12] + (
+        "1" if conflicting["identity"][12] == "0" else "0"
+    ) + conflicting["identity"][13:]
+    path.write_text(json.dumps(conflicting))
+    cache.write_bytes(original)
+    capsys.readouterr()
+    assert build() == {100: RECOVERY}
+    assert cache.read_bytes() == original
+    assert json.loads(path.read_bytes()) == conflicting
+    assert "could not write probable-pitcher cache status" in capsys.readouterr().err
+
+
+def test_publish_rejects_oversize_serialization_before_writing(incident):
+    from bts.features.probable_pitcher_cache import publish
+    from bts.probable_pitcher_status import MAX_BYTES
+
+    cache, _ = incident
+    path = cache.parent.parent / "health_state/probable_pitcher_cache/status.json"
+    # The payload is valid JSON, and the destination is fresh.
+    row = {"cache_path": "x" * (MAX_BYTES + 1)}
+    with pytest.raises(ValueError, match="status exceeds size limit"):
+        publish(path, row)
+    assert not path.exists()
+
+
 def test_unrelated_bad_member_does_not_lose_new_game_after_raw_removed(incident):
     cache, raw = incident
     seed(cache, {**{str(game): SEED for game in range(100, 111) if game != 109}, "999": None})

@@ -1,5 +1,8 @@
 """Read recent probable-pitcher cache observations for end-of-day health."""
 
+import hashlib
+import json
+import logging
 from datetime import date, timedelta
 from fnmatch import fnmatchcase
 from pathlib import Path
@@ -10,14 +13,15 @@ from bts.probable_pitcher_status import SOURCE, directory_exists, read_record
 
 ROUTE = "to the supervised BTS lead Claude session (bts-lead), or to Eric if the session is unavailable."
 KEEP = "Keep the active cache, raw feeds, any named evidence copy and other available copies intact for review."
+KINDS = {"unreadable_cache": "unreadable cache", "invalid_entries": "invalid entries"}
+STATUS_UNREADABLE = "status unreadable"
+DEFAULT_STATUS_DIR = Path("data/health_state") / SOURCE
+MAX_ALERT_LENGTH = 600
+log = logging.getLogger(__name__)
 
 
-def unreadable(path):
-    return Alert(
-        "WARN", SOURCE,
-        f"Probable-pitcher cache status unreadable at {path}. Send this alert {ROUTE}",
-        incident_key=f"{SOURCE}:status_unreadable:{path.name}",
-    )
+def log_unreadable(path):
+    log.warning("Probable-pitcher cache status unreadable at %s. Send this alert %s", path, ROUTE)
 
 
 def message(row):
@@ -26,7 +30,7 @@ def message(row):
         evidence = "This observation names no evidence copy. That run left the active cache unchanged."
     else:
         copy = Path(row["cache_path"]).parent / "rejected" / row["preserved"]
-        evidence = f"That run recorded an evidence copy at `{copy}`."
+        evidence = f"That run recorded an evidence copy at {copy}."
 
     rescanned = row["rescanned"]
     if row["reason"] == "unreadable_cache":
@@ -57,26 +61,48 @@ def message(row):
     )
 
 
+def summarize(status_dir, today, identities, kinds):
+    count = len(identities)
+    noun = "observation" if count == 1 else "observations"
+    labels = ", ".join(sorted(kinds))
+    template = (
+        f"Probable-pitcher cache: {count} {noun} ({labels}) recorded today or yesterday; details in {{}}. "
+        "Keep the active cache, raw feeds, evidence copies and other copies intact. "
+        "Send this alert promptly to the supervised BTS lead Claude session (bts-lead), "
+        "or to Eric if it is unavailable, to review the latest preview and any pending pick before "
+        "the next selection; for an unreadable cache, to secure a usable R2 copy before the next successful sync."
+    )
+    text = template.format(status_dir)
+    if len(text) > MAX_ALERT_LENGTH:
+        text = template.format(DEFAULT_STATUS_DIR)
+    payload = json.dumps(sorted(identities), separators=(",", ":")).encode("utf-8")
+    digest = hashlib.sha256(payload).hexdigest()[:16]
+    return Alert("WARN", SOURCE, text, incident_key=f"{SOURCE}:{today}:{digest}")
+
+
 def check(status_dir: Path, today: date) -> list[Alert]:
     try:
         if not directory_exists(status_dir):
             return []
         paths = sorted(status_dir.iterdir())
     except OSError:
-        return [unreadable(status_dir)]
+        log_unreadable(status_dir)
+        return [summarize(status_dir, today, [status_dir.name], {STATUS_UNREADABLE})]
 
     patterns = (f"{today}.*.json", f"{today - timedelta(days=1)}.*.json")
-    alerts = []
+    identities = []
+    kinds = set()
     for path in paths:
         if not any(fnmatchcase(path.name, pattern) for pattern in patterns):
             continue
         try:
             row = read_record(path)
         except (OSError, ValueError, OverflowError, RecursionError):
-            alerts.append(unreadable(path))
+            log_unreadable(path)
+            identities.append(path.name)
+            kinds.add(STATUS_UNREADABLE)
             continue
-        alerts.append(Alert(
-            "WARN", SOURCE, message(row),
-            incident_key=f"{SOURCE}:{row['recorded_date_et']}:{row['identity']}",
-        ))
-    return alerts
+        log.warning("%s", message(row))
+        identities.append(row["identity"])
+        kinds.add(KINDS[row["reason"]])
+    return [summarize(status_dir, today, identities, kinds)] if identities else []

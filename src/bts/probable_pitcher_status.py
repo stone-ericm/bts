@@ -32,10 +32,14 @@ def open_regular(path, *, follow_symlinks=False):
     flags = os.O_RDONLY | os.O_NONBLOCK
     if not follow_symlinks:
         flags |= os.O_NOFOLLOW
-    with os.fdopen(os.open(path, flags), "rb") as stream:
-        if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+    fd = os.open(path, flags)
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
             raise NonRegularFile(path)
-        yield stream
+        with os.fdopen(fd, "rb", closefd=False) as stream:
+            yield stream
+    finally:
+        os.close(fd)
 
 
 def directory_exists(path):

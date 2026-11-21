@@ -27,7 +27,17 @@ def valid(entry):
 
 def warn(message):
     try:
-        print(f"WARNING: {message}", file=sys.stderr)
+        stream = sys.stderr
+        line = f"WARNING: {message}"
+        try:
+            fd = stream.fileno()
+        except (AttributeError, OSError, ValueError):
+            fd = -1
+        if fd < 0:
+            print(line, file=stream, flush=True)
+        else:
+            stream.flush()
+            os.write(fd, f"{line}\n".encode(stream.encoding or "utf-8", errors="replace"))
     except Exception:
         pass
 

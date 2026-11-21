@@ -1,5 +1,6 @@
 """Dated observation discovery and delivery through the health runner."""
 
+import hashlib
 import json
 import os
 import subprocess
@@ -9,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from bts.health import alert, runner
+from bts.health import alert, probable_pitcher_cache, runner
 from tests.test_wr_w15_corpus import corpus_env, RECOVERY, feed_payload
 from tests.test_wr_w15_incidents import AT, build, child_env, clock, freeze_clock, incident, records, seed
 
@@ -68,6 +69,17 @@ def put(folder, day=DAY, reason="invalid_entries"):
     return target
 
 
+def summary_key(day, *identities):
+    payload = json.dumps(sorted(identities), separators=(",", ":")).encode()
+    return f"{SOURCE}:{day}:{hashlib.sha256(payload).hexdigest()[:16]}"
+
+
+def unreadable_summary(result, name, day=DAY):
+    assert result.level == "WARN"
+    assert " (status unreadable) recorded today or yesterday;" in result.message
+    assert result.incident_key == summary_key(day, name)
+
+
 def test_missing_status_is_silent(health):
     _, run, sent = health
     assert run() == []
@@ -87,9 +99,9 @@ def test_late_d_health_can_read_d_after_d_plus_one(health):
     folder, run, sent = health
     for offset in (-2, -1, 0, 1):
         put(folder, DAY + timedelta(days=offset))
-    assert {a.incident_key for a in run()} == {
-        f"{SOURCE}:{DAY + timedelta(days=offset)}:{'a' * 64}" for offset in (-1, 0)
-    }
+    result, = run()
+    assert result.incident_key == summary_key(DAY, "a" * 64, "a" * 64)
+    assert "2 observations" in result.message
     assert len(sent) == 1
 
 
@@ -99,14 +111,16 @@ def test_attention_delivery_both_reasons_and_processed_day_dedup(health):
     put(folder, reason="unreadable_cache")
     for day in [DAY, DAY + timedelta(days=1)]:
         before = len(sent)
-        assert len(run(day)) == 2
-        assert len(run(day)) == 2
+        result, = run(day)
+        assert result.incident_key == summary_key(day, "a" * 64, "b" * 64)
+        assert len(result.message) <= 600
+        assert len(run(day)) == 1
         assert len(sent) == before + 1
-    assert all("had 1 invalid entry" in body and "was unreadable" in body for body in sent)
-    assert all("That run left the active cache unchanged." in body for body in sent)
+    assert all("2 observations (invalid entries, unreadable cache)" in body for body in sent)
+    assert all(len(body) < 1000 and "That run left the active cache unchanged." not in body for body in sent)
 
 
-def test_operator_text_describes_the_observation_and_recovery_route(health):
+def test_operator_text_describes_the_observation_and_recovery_route(health, caplog):
     folder, run, _ = health
     path = put(folder)
     row = json.loads(path.read_text())
@@ -116,25 +130,27 @@ def test_operator_text_describes_the_observation_and_recovery_route(health):
     )
     path.write_text(json.dumps(row))
     invalid, = run()
-    assert invalid.message == (
+    assert invalid.message.startswith("Probable-pitcher cache: 1 observation (invalid entries)")
+    assert (
         "Probable-pitcher cache at 2026-12-31T14:00:00+00:00 had 4 invalid entries (first game IDs 100). "
         "Of those entries, 1 had a valid cache alias and 1 had a usable raw feed. "
         "No usable lookup was found for 1 with unusable or unverified feeds and 1 with missing feeds. "
         "That run recorded an evidence copy at "
-        "`data/models/rejected/probable_pitcher_lookup.20261231T140000Z.cccccccccccc.json`. "
+        "data/models/rejected/probable_pitcher_lookup.20261231T140000Z.cccccccccccc.json. "
         "This describes the cache at the recorded time; health may show this observation again on the next processed day. "
         "Keep the active cache, raw feeds, any named evidence copy and other available copies intact for review. "
         "Send this alert promptly to the supervised BTS lead Claude session (bts-lead), or to Eric if the session is unavailable. "
         "Ask them to review the latest preview and any pending pick before the next scheduled selection. "
         "If a pick was already sent or entered, report that and preserve its records."
-    )
+    ) in [record.getMessage() for record in caplog.records]
     path.unlink()
     path = put(folder, reason="unreadable_cache")
     row = json.loads(path.read_text())
     row["rescanned"] = 1
     path.write_text(json.dumps(row))
     unreadable, = run()
-    assert unreadable.message == (
+    assert unreadable.message.startswith("Probable-pitcher cache: 1 observation (unreadable cache)")
+    assert (
         "Probable-pitcher cache was unreadable at 2026-12-31T14:00:00+00:00. "
         "That run started from an empty lookup and built usable entries from raw feeds for 1 game. "
         "Keep the active cache, raw feeds, any named evidence copy and other available copies intact for review. "
@@ -143,7 +159,8 @@ def test_operator_text_describes_the_observation_and_recovery_route(health):
         "Send this alert immediately to the supervised BTS lead Claude session (bts-lead), or to Eric if the session is unavailable. "
         "Ask them to preserve and verify any usable cache copy in the current or previous R2 manifest before the next successful sync. "
         "An unreferenced content-addressed cache object can be pruned once it is at least seven days old."
-    )
+    ) in [record.getMessage() for record in caplog.records]
+    assert all(chr(96) not in record.getMessage() for record in caplog.records)
 
 
 @pytest.mark.parametrize("field,value", [
@@ -157,20 +174,19 @@ def test_operator_text_describes_the_observation_and_recovery_route(health):
     ("preserved", "../probable_pitcher_lookup.20270101T045900Z.0123456789ab.json"),
     ("original_sha256", "bad"),
 ])
-def test_malformed_fields_warn(health, field, value):
+def test_malformed_fields_warn(health, field, value, caplog):
     folder, run, _ = health
     path = put(folder)
     row = json.loads(path.read_text())
     row[field] = value
     path.write_text(json.dumps(row))
     result, = run()
-    assert result.level == "WARN"
-    assert result.message == (
+    unreadable_summary(result, path.name)
+    assert (
         f"Probable-pitcher cache status unreadable at {path}. "
         "Send this alert to the supervised BTS lead Claude session (bts-lead), "
         "or to Eric if the session is unavailable."
-    )
-    assert result.incident_key == f"{SOURCE}:status_unreadable:{path.name}"
+    ) in [record.getMessage() for record in caplog.records]
 
 
 @pytest.mark.parametrize("field,value", [
@@ -184,7 +200,7 @@ def test_malformed_unreadable_envelope_warns(health, field, value):
     row[field] = value
     path.write_text(json.dumps(row))
     result, = run()
-    assert result.incident_key == f"{SOURCE}:status_unreadable:{path.name}"
+    unreadable_summary(result, path.name)
 
 
 @pytest.mark.parametrize("kind", ["encoding", "oversized", "directory", "symlink", "bad-name"])
@@ -205,7 +221,7 @@ def test_malformed_status_files_warn(health, kind):
     else:
         path = path.rename(folder / f"{DAY}.bad.json")
     result, = run()
-    assert result.incident_key == f"{SOURCE}:status_unreadable:{path.name}"
+    unreadable_summary(result, path.name)
 
 
 @pytest.mark.parametrize("kind", ["file", "symlink", "fifo"])
@@ -221,8 +237,7 @@ def test_bad_status_directory_warns(health, kind):
     else:
         os.mkfifo(folder)
     result, = run()
-    assert result.level == "WARN"
-    assert result.message.startswith(f"Probable-pitcher cache status unreadable at {folder}.")
+    unreadable_summary(result, folder.name)
 
 
 def test_fifo_status_file_is_bounded(health):
@@ -242,10 +257,10 @@ def test_fifo_status_file_is_bounded(health):
         capture_output=True, text=True, timeout=10,
     )
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout) == [f"{SOURCE}:status_unreadable:{path.name}"]
+    assert json.loads(result.stdout) == [summary_key(DAY, path.name)]
 
 
-def test_same_day_changed_incident_remains_visible(health, incident):
+def test_same_day_changed_incident_remains_visible(health, incident, caplog):
     _, run, sent = health
     cache, raw = incident
     seed(cache, {"100": None})
@@ -257,16 +272,18 @@ def test_same_day_changed_incident_remains_visible(health, incident):
     rows = records(cache)
     assert len(rows) == 2
     assert {row["recorded_at"] for row in rows} == {AT}
-    result = run()
-    assert len(result) == 2 and len(sent) == 2
-    assert "That run recorded an evidence copy at" in sent[-1]
-    assert "This observation names no evidence copy." in sent[-1]
+    result, = run()
+    assert len(sent) == 2
+    assert result.incident_key == summary_key(DAY, *(row["identity"] for row in rows))
+    assert "2 observations (invalid entries)" in sent[-1]
+    assert "That run recorded an evidence copy at" in caplog.text
+    assert "This observation names no evidence copy." in caplog.text
     run()
     assert len(sent) == 2
 
 
 def test_producer_midnight_and_year_boundary(health, incident, monkeypatch):
-    _, run, _ = health
+    _, run, sent = health
     cache, _ = incident
     seed(cache, {"100": None})
     build()
@@ -276,5 +293,39 @@ def test_producer_midnight_and_year_boundary(health, incident, monkeypatch):
     assert [(row["recorded_at"], row["recorded_date_et"]) for row in rows] == [
         (AT, "2026-12-31"), ("2027-01-01T05:01:00+00:00", "2027-01-01"),
     ]
-    assert len(run(DAY)) == 1
-    assert len(run(DAY + timedelta(days=1))) == 2
+    first, = run(DAY)
+    second, = run(DAY + timedelta(days=1))
+    assert "1 observation (invalid entries)" in first.message
+    assert "2 observations (invalid entries)" in second.message
+    assert len(sent) == 2 and all(len(body) < 1000 for body in sent)
+
+@pytest.mark.parametrize("long_path", [False, True])
+def test_sixteen_records_send_one_bounded_warning(tmp_path, monkeypatch, long_path):
+    monkeypatch.chdir(tmp_path)
+    folder = Path(SOURCE)
+    if long_path:
+        folder = Path("x" * 130) / ("y" * 130) / SOURCE
+    folder.mkdir(parents=True)
+    identities = []
+    for number in range(15):
+        _, row = envelope(reason="invalid_entries" if number % 2 else "unreadable_cache")
+        identity = f"{number:012x}" + "a" * 52
+        identities.append(identity)
+        row["identity"] = identity
+        (folder / f"{DAY}.{row['reason']}.{identity[:12]}.json").write_text(json.dumps(row))
+    bad = f"{DAY}.bad.json"
+    (folder / bad).write_text("{")
+    result, = probable_pitcher_cache.check(folder, DAY)
+    path = "data/health_state/probable_pitcher_cache" if long_path else str(folder)
+    assert result.message == (
+        "Probable-pitcher cache: 16 observations (invalid entries, status unreadable, unreadable cache) "
+        f"recorded today or yesterday; details in {path}. "
+        "Keep the active cache, raw feeds, evidence copies and other copies intact. "
+        "Send this alert promptly to the supervised BTS lead Claude session (bts-lead), or to Eric if it is unavailable, "
+        "to review the latest preview and any pending pick before the next selection; for an unreadable cache, "
+        "to secure a usable R2 copy before the next successful sync."
+    )
+    assert result.incident_key == summary_key(DAY, *identities, bad)
+    assert len(result.message) <= 600
+    body = alert.format_health_dm_body([], [result])
+    assert len(body) < 1000 and chr(96) not in body
