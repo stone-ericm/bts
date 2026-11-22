@@ -9,6 +9,7 @@ import logging
 import math
 import os
 import re
+import stat
 import subprocess
 from contextlib import contextmanager
 from dataclasses import dataclass, asdict
@@ -405,14 +406,21 @@ def save_pick(daily: DailyPick, picks_dir: Path) -> Path:
     morning projected-lineup picks underperform confirmed-lineup picks.
     Audit-log failures must not block the save.
     """
+    path, _ = save_pick_with_bytes(daily, picks_dir)
+    return path
+
+
+def save_pick_with_bytes(daily: DailyPick, picks_dir: Path) -> tuple[Path, bytes]:
+    """Save a pick and return the serialization used for that atomic write."""
     picks_dir.mkdir(parents=True, exist_ok=True)
     path = picks_dir / f"{daily.date}.json"
-    atomic_write_text(path, json.dumps(asdict(daily), indent=2))
+    text = json.dumps(asdict(daily), indent=2)
+    atomic_write_text(path, text)
     try:
         append_lineup_evolution(daily, picks_dir)
     except Exception:
         pass
-    return path
+    return path, text.encode("ascii")
 
 
 def pick_was_delivered(daily: DailyPick) -> bool:
@@ -562,13 +570,33 @@ def load_pick(date: str, picks_dir: Path) -> DailyPick | None:
     return parse_daily_pick(path.read_text())
 
 
-def load_pick_bytes(date: str, picks_dir: Path) -> tuple[DailyPick | None, bytes | None]:
-    """load_pick from one read, also returning the exact bytes parsed (the entry receipt binds them)."""
+def load_pick_bytes(
+    date: str, picks_dir: Path, *, regular_only: bool = False,
+) -> tuple[DailyPick | None, bytes | None]:
+    """Load the pick and its exact bytes from one read.
+
+    Regular-only reads reject missing paths and special files with OSError.
+    """
     path = Path(picks_dir) / f"{date}.json"
-    if not path.exists():
-        return None, None
-    raw = path.read_bytes()
+    if regular_only:
+        raw = read_regular_file_bytes(path)
+    else:
+        if not path.exists():
+            return None, None
+        raw = path.read_bytes()
     return parse_daily_pick(_read_text_bytes(raw)), raw
+
+
+def read_regular_file_bytes(path: Path) -> bytes:
+    """Read exact bytes from a regular file without waiting on special files."""
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise OSError(f"{path}: not a regular file")
+        with os.fdopen(fd, "rb", closefd=False) as handle:
+            return handle.read()
+    finally:
+        os.close(fd)
 
 
 def _read_text_bytes(raw: bytes) -> str:

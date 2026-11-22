@@ -682,16 +682,16 @@ def test_overrun_reloads_the_same_cycle_choice_and_checks_it_as_saved(world, mon
     orchestrator.run_cascade.side_effect = [(frame, tier), (None, None)]
     check = scheduler.run_single_check
 
-    def inject_overrun_key(*args, **kwargs):
+    def correct_after_check(*args, **kwargs):
         result = check(*args, **kwargs)
         if result["pick_result"] is not None:
             assert not result["should_post"] and result["selection"].decision is not None
-            result["lock_decision"] = scheduler._lock_decision_from_predictions(
-                frame, result["pick_result"].daily, DAY, 0.03)
+            assert result["lock_decision"] is not None
+            assert result["saved_pick_bytes"] == (directory / f"{DAY}.json").read_bytes()
             set_dated(directory, best=10)
         return result
 
-    monkeypatch.setattr(scheduler, "run_single_check", inject_overrun_key)
+    monkeypatch.setattr(scheduler, "run_single_check", correct_after_check)
     scheduler.run_day(date=DAY, config=config)
     err = capsys.readouterr().err
     assert "reusing this check's fresh cascade decision" in err

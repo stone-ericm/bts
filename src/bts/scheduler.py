@@ -6,9 +6,11 @@ and commits picks only when confirmed lineup + gap threshold met.
 """
 
 import json
+import queue
 import shlex
 import subprocess
 import sys
+import threading
 import time
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta, timezone, date as date_type
@@ -893,6 +895,112 @@ def _row_from_daily(pick) -> dict | None:
             "p_game_hit": pick.p_game_hit}
 
 
+def _matches_pick_slot(row, pick) -> bool:
+    if pick is None:
+        return row is None
+    return (isinstance(row, dict) and row.get("batter_id") == pick.batter_id
+            and row.get("game_pk") == pick.game_pk)
+
+
+def _reuse_commit_selection(selection, daily):
+    action = "double" if daily.double_down else "single"
+    if (selection is not None and selection.action == action
+            and selection.primary_candidate == _row_from_daily(daily.pick)
+            and (action == "single" or selection.double_candidate == _row_from_daily(daily.double_down))):
+        return selection
+    return None
+
+
+def _pick_matches_reuse_commit(daily, record) -> bool:
+    return (daily is not None and daily.date == record["date"]
+            and record["action"] == ("double" if daily.double_down else "single")
+            and _matches_pick_slot(record.get("primary"), daily.pick)
+            and (daily.double_down is None or _matches_pick_slot(
+                record.get("double_down"), daily.double_down)))
+
+
+def _reuse_decision_snapshot(date: str, picks_dir: Path) -> tuple[dict | None, bytes | None] | None:
+    """Return a record and its bytes, an absent snapshot, or None for untrusted data."""
+    from bts.daily_decision import decision_path, parse_decision
+    from bts.picks import read_regular_file_bytes
+
+    path = decision_path(date, picks_dir)
+    try:
+        raw = read_regular_file_bytes(path)
+    except FileNotFoundError:
+        try:
+            path.lstat()
+        except FileNotFoundError:
+            return None, None
+        except OSError:
+            pass
+        return None
+    except OSError:
+        return None
+    try:
+        record = parse_decision(raw.decode("utf-8"))
+    except (TypeError, ValueError, RecursionError):
+        return None
+    return (record, raw) if record is not None and record["date"] == date else None
+
+
+def _reuse_lookups(calls, deadline: float):
+    """Yield completed lookups within the shared deadline, including body reads."""
+    completed = queue.Queue()
+
+    def run(call):
+        if time.monotonic() >= deadline:
+            return
+        try:
+            result = call()
+        except BaseException as error:
+            completed.put((time.monotonic(), None, error))
+        else:
+            completed.put((time.monotonic(), result, None))
+
+    count = 0
+    for call in calls:
+        if time.monotonic() >= deadline:
+            break
+        # Requests already have their own timeouts. The scheduler cannot wait
+        # for a slow body or retry, and a late worker must never mutate its state.
+        threading.Thread(target=run, args=(call,), daemon=True).start()
+        count += 1
+    for _ in range(count):
+        try:
+            finished, result, error = completed.get(timeout=max(0.0, deadline - time.monotonic()))
+        except queue.Empty:
+            break
+        if finished <= deadline:
+            if isinstance(error, (KeyboardInterrupt, SystemExit)):
+                raise error
+            if error is None:
+                yield result
+
+
+def _replan_after_reuse_poll(daily, date, cutoff, planner_inputs):
+    """Confirm pending sides and check defer-only statuses within one budget."""
+    deadline = time.monotonic() + 2.0
+    confirmed_sides = planner_inputs["confirmed_sides"]
+    if (cutoff - _now_et()).total_seconds() > 3:
+        pending_pks = sorted({
+            pk for run in planner_inputs["remaining_runs"] for pk in run["game_pks"]
+            if any((pk, side) not in confirmed_sides for side in ("away", "home"))
+        })
+        lookups = (lambda pk=pk: check_confirmed_lineups([pk]) for pk in pending_pks)
+        for confirmation in _reuse_lookups(lookups, deadline):
+            confirmed_sides.update(
+                (pk, side) for pk, sides in confirmation.items() for side in sides
+            )
+    now = _now_et()
+    plan = plan_fallback_action(now=now, **planner_inputs)
+    void_games = {}
+    if plan.action == "defer" and (cutoff - now).total_seconds() > 3:
+        for statuses in _reuse_lookups([lambda: _delivery_game_statuses(date)], deadline):
+            void_games = _void_pick_games(daily, statuses)
+    return plan, void_games
+
+
 def _write_commit_decision(picks_dir, date, *, action, source, primary, double_down, delivery_status, state,
                            streak=None, saver_available=None, state_source=None,
                            state_status=None, allow_double=None, contest_source_date=None,
@@ -1191,6 +1299,7 @@ def _deliver_and_lock_pick(
     label: str,
     *,
     selection: "SelectionResult | None" = None,
+    reused_check_cascade: bool = False,
 ) -> bool:
     """Deliver a pick through the configured channel and persist the lock.
 
@@ -1287,8 +1396,28 @@ def _deliver_and_lock_pick(
         return True
 
     required = _contest_state_required(config)
+    snapshot_day = None
+
+    def read_live_state():
+        nonlocal snapshot_day
+        if not reused_check_cascade:
+            return load_decision_streak_state(picks_dir, require_contest_state=required)
+        for _ in range(2):
+            sampled_at = _now_et()
+            snapshot_day = sampled_at.date()
+            try:
+                reading = load_decision_streak_state(
+                    picks_dir, require_contest_state=required, now=sampled_at)
+            except ContestStateError:
+                if _now_et().date() == snapshot_day:
+                    raise
+            else:
+                if _now_et().date() == snapshot_day:
+                    return reading
+        raise ContestStateError("ET date changed before contest state could be validated")
+
     try:
-        decision_state = load_decision_streak_state(picks_dir, require_contest_state=required)
+        decision_state = read_live_state()
     except ContestStateError as e:
         print(f"  CONTEST STATE ERROR — pick delivery blocked: {e}", file=sys.stderr)
         _alert_contest_state_failure(config, e)
@@ -1303,6 +1432,22 @@ def _deliver_and_lock_pick(
                 print(f"  Contest-state alert failed: {alert_error}", file=sys.stderr)
             return False
     text = _format_pick_delivery_text(daily, decision_state.streak)
+    prior_reading = daily.automatic_reading if reused_check_cascade else None
+
+    def allow_reused_transport() -> bool:
+        now = _now_et()
+        if now < cutoff and now.date() == snapshot_day:
+            return True
+        daily.delivery_attempted = False
+        daily.automatic_reading = prior_reading
+        save_pick(daily, picks_dir)
+        if now >= cutoff:
+            _refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)
+        else:
+            error = ContestStateError("ET date changed after the final contest-state read")
+            print(f"  CONTEST STATE ERROR — pick delivery blocked: {error}", file=sys.stderr)
+            _alert_contest_state_failure(config, error)
+        return False
 
     def _stamp_reading(attempt_time: datetime) -> None:
         if required:
@@ -1329,6 +1474,8 @@ def _deliver_and_lock_pick(
         save_pick(daily, picks_dir)
         try:
             from bts.dm import send_dm
+            if reused_check_cascade and not allow_reused_transport():
+                return False
             msg_id = send_dm(recipient, text)
             daily.delivered_at = _now_et().isoformat()
             daily.notification_sent = True
@@ -1361,6 +1508,8 @@ def _deliver_and_lock_pick(
     save_pick(daily, picks_dir)
     try:
         from bts.posting import post_to_bluesky
+        if reused_check_cascade and not allow_reused_transport():
+            return False
         uri = post_to_bluesky(text)
         daily.delivered_at = _now_et().isoformat()
         daily.bluesky_posted = True
@@ -1821,6 +1970,8 @@ def run_single_check(
     Returns {"skipped": bool, "new_lineups": int, "should_post": bool,
              "pick_result": PickResult | None, "pick_name": str | None,
              "pick_p": float | None}.
+    A successful unlocked save also returns the computed lock decision and
+    the exact bytes from the candidate write.
     """
     from bts.contest_state import ContestStateError
     from bts.orchestrator import run_and_pick
@@ -1829,7 +1980,7 @@ def run_single_check(
         classify_pick_lock_state,
         load_pick,
         pick_was_delivered,
-        save_pick,
+        save_pick_with_bytes,
     )
     from bts.strategy import PickResult
 
@@ -1984,7 +2135,7 @@ def run_single_check(
         policy_path=DEFAULT_POLICY_PATH,
         tail_path=DEFAULT_TAIL_POLICY_PATH,
     )
-    save_pick(pick_result.daily, picks_dir)
+    _, saved_pick_bytes = save_pick_with_bytes(pick_result.daily, picks_dir)
 
     decision = _lock_decision_from_predictions(
         predictions,
@@ -2006,7 +2157,7 @@ def run_single_check(
     return {"skipped": False, "new_lineups": new_count, "should_post": do_post,
             "pick_result": pick_result,
             "pick_name": pick.batter_name, "pick_p": pick.p_game_hit,
-            "selection": sel}
+            "selection": sel, "lock_decision": decision, "saved_pick_bytes": saved_pick_bytes}
 
 
 @with_pinned_artifact
@@ -2475,13 +2626,18 @@ def _delivery_game_statuses(date: str) -> dict[int, dict]:
 def _void_committed_games(daily, date: str) -> dict[int, str]:
     """{game_pk: detailed state} for the pick's games that MLB lists as postponed, cancelled or otherwise void
     right now. Empty when none is, and when the schedule cannot be read (the caller then delivers)."""
-    from bts.picks import _committed_pick_game_pks, _is_void_detailed_state
     try:
         statuses = _delivery_game_statuses(date)
     except Exception as exc:
         print(f"  Game status unreadable before delivery ({type(exc).__name__}); delivering unverified.",
               file=sys.stderr)
         return {}
+    return _void_pick_games(daily, statuses)
+
+
+def _void_pick_games(daily, statuses: dict[int, dict]) -> dict[int, str]:
+    from bts.picks import _committed_pick_game_pks, _is_void_detailed_state
+
     out = {}
     for pk in _committed_pick_game_pks(daily):
         detailed = (statuses.get(pk) or {}).get("detailed")
@@ -2866,7 +3022,10 @@ def run_day(
     """
     from bts.contest_state import ContestStateError
     from bts.daily_decision import is_scoreable_commit
-    from bts.picks import load_pick, pick_was_delivered, submission_cutoff_et
+    from bts.picks import (
+        _committed_pick_game_pks, load_pick, load_pick_bytes, pick_was_delivered,
+        submission_cutoff_et,
+    )
 
     sched_config = config.get("scheduler", {})
     delivery_mode = _pick_delivery_mode(config)
@@ -2987,6 +3146,16 @@ def run_day(
 
     # 4. Main loop — sleep until each check time, then run
     coalesced: set[int] = set()   # run indexes covered by a fallback refresh (2026-08-30)
+    authoritative_reuse_commit = None
+
+    def preserve_reuse_commit(record):
+        nonlocal authoritative_reuse_commit
+        authoritative_reuse_commit = record
+        state.pick_locked = True
+        state.pick_locked_at = _now_et().isoformat()
+        state.committed_pick_written = True
+        save_state(state, picks_dir)
+
     for run_idx, run_info in enumerate(runs):
         target = run_info["time_et"]
         now = _now_et()
@@ -3171,14 +3340,29 @@ def run_day(
                 # Force-deliver current pick (waited to deadline, or past it).
                 # Re-run predictions first in case late-arriving lineups
                 # changed the top pick since the last scheduled check.
-                daily = load_pick(date, picks_dir)
+                fresh_decision = result.get("lock_decision")
+                saved_bytes = result.get("saved_pick_bytes")
+                reuse_snapshot = None
+                if not slept_to_deadline and fresh_decision is not None and saved_bytes is not None:
+                    daily, raw = load_pick_bytes(date, picks_dir)
+                    if daily is not None and daily.date == date and raw == saved_bytes:
+                        reuse_snapshot = _reuse_decision_snapshot(date, picks_dir)
+                        if reuse_snapshot is not None:
+                            record, _ = reuse_snapshot
+                            if record is not None and record["scoreable"]:
+                                preserve_reuse_commit(record)
+                                break
+                            if pick_was_delivered(daily) or daily.delivery_attempted:
+                                _deliver_and_lock_pick(daily, config, picks_dir, state, date, "fallback")
+                                break
+                else:
+                    daily = load_pick(date, picks_dir)
                 if daily and not pick_was_delivered(daily):
                     # Only the games in the remaining scheduled runs matter to the
                     # planner — sync just those (Codex r2 F4: a full-slate sync can
                     # burn minutes of retry timeouts, twice over).
                     sync_pks = sorted({pk for r in future_runs for pk in r["game_pks"]})
-                    fresh_decision = result.get("lock_decision")
-                    if not slept_to_deadline and fresh_decision is not None:
+                    if reuse_snapshot is not None:
                         # Codex r2 F3: this iteration's own cascade just finished —
                         # we never slept, the check simply overran the deadline. A
                         # second full refresh would spend a budget the floor only
@@ -3274,8 +3458,8 @@ def run_day(
                         measured = measured + [refresh_duration]
                     budget_eff = effective_cascade_budget_min(cascade_budget_min_cfg, measured)
                     cutoff = submission_cutoff_et(daily)
-                    plan = plan_fallback_action(
-                        now=now, cutoff=cutoff,
+                    planner_inputs = dict(
+                        cutoff=cutoff,
                         should_post=refresh.should_post,
                         should_post_ungated=refresh.should_post_ungated,
                         block_reason=refresh.block_reason,
@@ -3283,12 +3467,61 @@ def run_day(
                         contender_game_pks=getattr(refresh, "contender_game_pks", ()),
                         remaining_runs=future_runs, confirmed_sides=confirmed_sides,
                         budget_min=budget_eff, operator_reserve_min=operator_reserve_min)
+                    if reused_check_cascade:
+                        remaining_runs = [
+                            run for index, run in enumerate(future_runs, run_idx + 1)
+                            if index not in coalesced
+                        ]
+                        planner_inputs["remaining_runs"] = remaining_runs
+                    plan = plan_fallback_action(now=now, **planner_inputs)
+                    defer_void_games = {}
+                    if reused_check_cascade:
+                        if now < cutoff and plan.action == "defer":
+                            plan, defer_void_games = _replan_after_reuse_poll(
+                                daily, date, cutoff, planner_inputs)
+
+                        # The bounded lookups can give another writer time to
+                        # publish a delivery, attempt, or authoritative decision.
+                        current_record = _reuse_decision_snapshot(date, picks_dir)
+                        if current_record is not None:
+                            record, _ = current_record
+                            if record is not None and record["scoreable"]:
+                                preserve_reuse_commit(record)
+                                break
+                        try:
+                            current, current_bytes = load_pick_bytes(
+                                date, picks_dir, regular_only=True)
+                        except FileNotFoundError:
+                            current, current_bytes = None, None
+                        except (OSError, ValueError, TypeError, KeyError, AttributeError, RecursionError):
+                            current, current_bytes = None, None
+                        if current_record is not None and current is not None and current.date == date:
+                            if pick_was_delivered(current) or current.delivery_attempted:
+                                _deliver_and_lock_pick(
+                                    current, config, picks_dir, state, date, "fallback")
+                                break
+                        if (current_record is None or current_record[1] != reuse_snapshot[1]
+                                or current_bytes != saved_bytes):
+                            continue
+                        now = _now_et()
+
                     state.fallback_refreshes = (state.fallback_refreshes or []) + [{
                         "started": refresh_started.isoformat(), "finished": now.isoformat(),
                         "duration_sec": refresh_duration,
                         "reused_check_cascade": reused_check_cascade,
                         "action": plan.action, "reason": plan.reason}]
                     save_state(state, picks_dir)
+                    if reused_check_cascade:
+                        now = _now_et()
+                        if now >= cutoff:
+                            _refuse_late_delivery(
+                                daily, config, picks_dir, state, date, "fallback", cutoff, now)
+                            continue
+                        if (defer_void_games
+                                and len(defer_void_games) == len(_committed_pick_game_pks(daily))):
+                            _refuse_void_game_delivery(
+                                daily, config, picks_dir, state, date, "fallback", defer_void_games)
+                            continue
                     if plan.action == "defer":
                         archive = _defer_pick_at_fallback(picks_dir, date, daily, reason=plan.reason)
                         window = (plan.window_time_et.strftime('%H:%M ET')
@@ -3298,18 +3531,25 @@ def run_day(
                         # Overrun scheduled checks the refresh already covered (no
                         # lineups arrived for their games since it started) would
                         # only re-run the same cascade — coalesce them.
-                        for j in range(run_idx + 1, len(runs)):
-                            r = runs[j]
-                            if r["time_et"] <= now and not any(
-                                (pk, s) in new_since_refresh or (pk, s) not in confirmed_sides
-                                for pk in r["game_pks"] for s in ("away", "home")
-                            ):
-                                coalesced.add(j)
+                        if not reused_check_cascade:
+                            for j in range(run_idx + 1, len(runs)):
+                                r = runs[j]
+                                if r["time_et"] <= now and not any(
+                                    (pk, s) in new_since_refresh or (pk, s) not in confirmed_sides
+                                    for pk in r["game_pks"] for s in ("away", "home")
+                                ):
+                                    coalesced.add(j)
                         continue
                     print(f"  FALLBACK — delivering ({plan.reason}) before the "
                           f"{cutoff.strftime('%H:%M ET')} cutoff.", file=sys.stderr)
-                    _deliver_and_lock_pick(daily, config, picks_dir, state, date, "fallback",
-                                           selection=refresh.selection)
+                    if reused_check_cascade:
+                        _deliver_and_lock_pick(
+                            daily, config, picks_dir, state, date, "fallback",
+                            selection=_reuse_commit_selection(refresh.selection, daily),
+                            reused_check_cascade=True)
+                    else:
+                        _deliver_and_lock_pick(daily, config, picks_dir, state, date, "fallback",
+                                               selection=refresh.selection)
 
                 if state.pick_locked:
                     if shadow_model_enabled and daily:
@@ -3480,7 +3720,10 @@ def run_day(
     # (decision.scoreable) and falls back to pick_was_delivered when no record
     # exists, so a stale preview is locked (for other purposes) but never scored.
     daily_for_poll = load_pick(date, picks_dir)
-    if state.pick_locked and daily_for_poll is not None and is_scoreable_commit(date, picks_dir, daily_for_poll):
+    if (state.pick_locked and daily_for_poll is not None
+            and (_pick_matches_reuse_commit(daily_for_poll, authoritative_reuse_commit)
+                 if authoritative_reuse_commit is not None
+                 else is_scoreable_commit(date, picks_dir, daily_for_poll))):
         daily = load_pick(date, picks_dir)
         if daily and daily.result is None:
             # Wait until earliest pick game (primary or double-down) + 10 min.

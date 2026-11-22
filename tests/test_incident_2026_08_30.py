@@ -137,7 +137,8 @@ def test_check_overrunning_deadline_reuses_its_cascade(tmp_path, capsys):
         return {"skipped": False, "new_lineups": 4, "should_post": False,
                 "pick_result": PickResult(daily=daily, locked=False),
                 "pick_name": "Steven Kwan", "pick_p": 0.7566, "selection": None,
-                "lock_decision": LockDecision(False, 0.741, False, "gap", 823987, (823987,))}
+                "lock_decision": LockDecision(False, 0.741, False, "gap", 823987, (823987,)),
+                "saved_pick_bytes": (tmp_path / f"{DATE}.json").read_bytes()}
 
     def fake_sleep(secs):
         clock.advance(timedelta(seconds=secs))
