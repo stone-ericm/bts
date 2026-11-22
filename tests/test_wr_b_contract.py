@@ -177,4 +177,4 @@ def test_b8a_requires_successful_fetch_automatic_readiness_and_saver_read():
     docs = Path(__file__).resolve().parents[1] / "docs/ops/2027-season-start.md"
     row = next(line for line in docs.read_text().splitlines() if line.startswith("| B8a |"))
     assert re.search(r"fetch-contest-streak` succeeds.*automatic path alone: accepted.*"
-                     r"read `bts saver-state`.*Initialize only if it reports `uninitialized`", row)
+                     r"read `bts saver-state[^`]*`.*Initialize only if it reports `uninitialized`", row)
