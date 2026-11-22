@@ -1,0 +1,18 @@
+# Review, round 2 (the last round): change set W3
+
+Same rules as your round-1 brief (`.codex-review/wr-w3/brief.md`), with these changes. This copy is now at `c0917aa7`: on top of `f7a8f601` and `59b72c04` (which you reviewed) come `82acab73` (amendment 1, R1 to R3, from the Codex reviewer) and `c0917aa7` (amendment 1b, R4 and R5, from the Carbon reviewer). Run `git log --oneline -5` and `git diff 59b72c04 HEAD`. Probes, logs and your report go in `.codex-review/wr-w3/r2/`. The contract's newest copy, with amendments 1 and 1b at its end, is in `.codex-review/wr-w3/main-docs/docs/reviews/2026-11-18-whole-range/kickoff-fix-w3.md` (refreshed); both round-1 reports are beside it in `review-fix-w3-codex/report.md` and `review-fix-w3-carbon/report.md` with their probes. The author's updated handover is `.codex-review/wr-w3/r2/HANDOVER-WR-W3.md`.
+
+**The author's gate on `c0917aa7` is running from 10:03 (about 25 minutes):** start no wrapper run before it ends; check `pgrep -f yield_run.sh` and wait while any wrapped job runs, however long; then run your pytest and mutation runs through `~/bts-runs/yield_run.sh`, one at a time. Small direct probes of under a minute are fine at any time.
+
+In short: R1, a preserved `locked_unconfirmed` record sends the receipt-deduplicated unknown-outcome alert and a newly seen attempt is recovered even with an untrusted record; R2, the planner runs again with a fresh clock after the added reads, before archiving; R3, a failed marker clear on a refused reused candidate is retried inside the refusal path, which then completes; R4, on a reused candidate the all-void refusal precedes the late refusal and both apply only on a reuse-based defer (a reused deliver keeps `_deliver_and_lock_pick`'s void-before-cutoff order); R5, every early reuse lock reaches the inline shadow trigger; plus tests for both reviewers' surviving mutants and the reuse journal line printed after the extra checks.
+
+Establish, by running the real code:
+1. **Each round-1 blocking finding of BOTH reviewers is fixed on its original inputs** (replay your own and the other reviewer's round-1 probes).
+2. **The required probes of your round-1 brief still hold on `c0917aa7`** (rerun your round-1 table inputs; a table).
+3. **What the round-1 fixes changed and anything they made worse:** in particular the second planner run (find a state where it now delivers, defers or refuses wrongly where the first plan was right), the retry in the refusal path (a write that fails twice; an interrupt there), the unknown-outcome alert from the reuse branch (a duplicate with C2's restart alert for the same slate; its receipt), the attempt recovery with an untrusted record, the reordered void and late refusals, and the shadow trigger on the new break paths.
+4. **Every new or changed operator sentence:** worst state if followed literally.
+5. Re-run your round-1 mutation set plus at least: drop the second planner run; drop the retry; drop the alert for `locked_unconfirmed`; put the late refusal back before the void refusal; drop the shadow trigger on one break path. Report survivors.
+
+A finding about test code or evidence tooling is a NOTE unless it makes a false claim about behaviour that nothing else covers. Findings in code this change does not touch are NOTES.
+
+Deliverable: `.codex-review/wr-w3/r2/report.md`, under 110 lines: `Verdict` (SIGN, SIGN WITH EDITS, or BLOCK), `Blocking findings`, `Notes`, one section per item (item 2 as a table, item 4 as a per-sentence table), `What I ran` / `What I did not run`. When complete print `WRW3CARB2-<first 8 hex characters of the sha256 of r2/report.md>` on its own line and then `DONE`.
