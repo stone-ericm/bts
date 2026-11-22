@@ -1977,10 +1977,11 @@ def run_single_check(
     from bts.orchestrator import run_and_pick
     from bts.picks import (
         _committed_pick_game_pks,
+        capture_pick_write,
         classify_pick_lock_state,
         load_pick,
         pick_was_delivered,
-        save_pick_with_bytes,
+        save_pick,
     )
     from bts.strategy import PickResult
 
@@ -2135,7 +2136,9 @@ def run_single_check(
         policy_path=DEFAULT_POLICY_PATH,
         tail_path=DEFAULT_TAIL_POLICY_PATH,
     )
-    _, saved_pick_bytes = save_pick_with_bytes(pick_result.daily, picks_dir)
+    with capture_pick_write(pick_result.daily) as written:
+        save_pick(pick_result.daily, picks_dir)
+    saved_pick_bytes = written[0] if written else None
 
     decision = _lock_decision_from_predictions(
         predictions,

@@ -396,6 +396,27 @@ def _optional_int(value) -> int | None:
         raise
 
 
+_PICK_WRITE_OBSERVER: contextvars.ContextVar[Callable[[DailyPick, str], None] | None] = (
+    contextvars.ContextVar("pick_write_observer", default=None)
+)
+
+
+@contextmanager
+def capture_pick_write(candidate: DailyPick):
+    """Capture the first successful write of this candidate in the current context."""
+    written: list[bytes] = []
+
+    def observe(daily: DailyPick, text: str) -> None:
+        if daily is candidate and not written:
+            written.append(text.encode("ascii"))
+
+    token = _PICK_WRITE_OBSERVER.set(observe)
+    try:
+        yield written
+    finally:
+        _PICK_WRITE_OBSERVER.reset(token)
+
+
 def save_pick(daily: DailyPick, picks_dir: Path) -> Path:
     """Save daily pick to JSON file (overwrite-on-write).
 
@@ -406,21 +427,18 @@ def save_pick(daily: DailyPick, picks_dir: Path) -> Path:
     morning projected-lineup picks underperform confirmed-lineup picks.
     Audit-log failures must not block the save.
     """
-    path, _ = save_pick_with_bytes(daily, picks_dir)
-    return path
-
-
-def save_pick_with_bytes(daily: DailyPick, picks_dir: Path) -> tuple[Path, bytes]:
-    """Save a pick and return the serialization used for that atomic write."""
     picks_dir.mkdir(parents=True, exist_ok=True)
     path = picks_dir / f"{daily.date}.json"
     text = json.dumps(asdict(daily), indent=2)
     atomic_write_text(path, text)
+    observer = _PICK_WRITE_OBSERVER.get()
+    if observer is not None:
+        observer(daily, text)
     try:
         append_lineup_evolution(daily, picks_dir)
     except Exception:
         pass
-    return path, text.encode("ascii")
+    return path
 
 
 def pick_was_delivered(daily: DailyPick) -> bool:
