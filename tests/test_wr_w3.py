@@ -8,7 +8,8 @@ import json
 import os
 from pathlib import Path
 import signal
-from threading import Event
+from threading import Event, current_thread, main_thread
+from time import monotonic
 
 import pytest
 
@@ -63,7 +64,7 @@ def test_real_overrun_reuses_the_same_candidate_before_cutoff(offline):
         assert commit["scoreable"] and commit["primary"]["batter_name"] in text
 
 
-def test_missed_pick_alert_survives_abandoned_reuse(offline):
+def test_missed_pick_alert_survives_abandoned_reuse(offline, capsys):
     at = lambda hour, minute: offline.instant(DAY, hour, minute)
     with offline.offline(at(18, 25)) as (world, mp):
         world.schedule[DAY] = world.schedule[DAY][:1]
@@ -99,6 +100,7 @@ def test_missed_pick_alert_survives_abandoned_reuse(offline):
         alerts = world.sends("health-dm")
         assert sum("[contest_state]" in text for text in alerts) == 1
         assert sum("[missed_pick]" in text for text in alerts) == 1
+        assert "reusing this check's fresh cascade decision" not in capsys.readouterr().err
 
 
 @pytest.mark.parametrize("case", [
@@ -283,13 +285,15 @@ def test_fallback_reload(offline, case):
 
 
 @pytest.mark.parametrize("mode", ["dm", "public"])
-def test_reuse_refuses_when_attempt_write_reaches_cutoff(offline, mode):
+@pytest.mark.parametrize("clear_error", [False, True])
+def test_reuse_refuses_when_attempt_write_reaches_cutoff(offline, mode, clear_error):
     with offline.offline(offline.instant(DAY, 18, 25)) as (world, mp):
         world.schedule[DAY] = world.schedule[DAY][:1]
         world.config["scheduler"]["pick_delivery"] = mode
         world.dated(0)
         starts = []
         writes = []
+        clear_failed = False
         write = picks.atomic_write_text
 
         def forecast():
@@ -301,18 +305,23 @@ def test_reuse_refuses_when_attempt_write_reaches_cutoff(offline, mode):
             return None
 
         def write_and_advance(path, text):
-            write(path, text)
+            nonlocal clear_failed
             if path == world.picks / f"{DAY}.json":
                 attempted = json.loads(text)["delivery_attempted"]
+                if clear_error and writes == [False, True] and not attempted and not clear_failed:
+                    clear_failed = True
+                    raise OSError("fixture transient marker-clear failure")
                 writes.append(attempted)
                 if attempted:
                     world.advance(1.25)
+            write(path, text)
 
         world.predictions = forecast
         mp.setattr(picks, "atomic_write_text", write_and_advance)
         scheduler.run_day(DAY, world.config)
 
         assert not world.sends("dm") and not world.sends("post")
+        assert clear_failed is clear_error
         assert len(starts) == 1 and writes == [False, True, False]
         assert sum("[late_delivery]" in text for text in world.sends("health-dm")) == 1
         archived, = (world.picks / DAY).glob("refused_delivery*.json")
@@ -321,7 +330,7 @@ def test_reuse_refuses_when_attempt_write_reaches_cutoff(offline, mode):
 
 
 @pytest.mark.parametrize("day", ["2027-06-18", "2026-12-31"])
-@pytest.mark.parametrize("crossing", ["before_read", "during_read", "during_marker"])
+@pytest.mark.parametrize("crossing", ["before_read", "during_read", "during_marker", "clear_error"])
 def test_reuse_checks_live_day_at_midnight(offline, day, crossing):
     from bts import strategy
 
@@ -337,6 +346,8 @@ def test_reuse_checks_live_day_at_midnight(offline, day, crossing):
         read = contest_state.load_decision_streak_state
         write = picks.atomic_write_text
         checked = False
+        marker_written = False
+        clear_failed = False
 
         def forecast():
             starts.append(world.now)
@@ -363,10 +374,15 @@ def test_reuse_checks_live_day_at_midnight(offline, day, crossing):
             return result
 
         def crossing_write(path, text):
+            nonlocal marker_written, clear_failed
+            if crossing in {"during_marker", "clear_error"} and path == world.picks / f"{day}.json":
+                if json.loads(text)["delivery_attempted"]:
+                    marker_written = True
+                    world.advance(2)
+                elif crossing == "clear_error" and marker_written and not clear_failed:
+                    clear_failed = True
+                    raise OSError("fixture transient marker-clear failure")
             write(path, text)
-            if (crossing == "during_marker" and path == world.picks / f"{day}.json"
-                    and json.loads(text)["delivery_attempted"]):
-                world.advance(2)
 
         world.predictions = forecast
         mp.setattr(strategy, "_load_mdp", lambda: None)
@@ -385,11 +401,17 @@ def test_reuse_checks_live_day_at_midnight(offline, day, crossing):
         assert reads[-1] != day
         assert (day in reads) is (crossing != "before_read")
         assert not picks.load_pick(day, world.picks).delivery_attempted
+        if crossing == "clear_error":
+            assert clear_failed
+            alerts = [when for kind, when, body in world.events
+                      if kind == "health-dm" and "ET date changed after the final contest-state read" in body]
+            assert len(alerts) == 1
 
 
 @pytest.mark.parametrize("case", [
     "confirm", "attempt_deliver", "attempt_defer", "void", "reload_cutoff", "slow_status", "partial",
     "changed_decision_fifo", "poll_keyboard_interrupt", "poll_system_exit",
+    "attempt_scoreable", "attempt_invalid", "shared_budget",
 ])
 def test_pending_window_replans_without_losing_later_checks(offline, case):
     at = lambda hour, minute: offline.instant(DAY, hour, minute)
@@ -405,10 +427,15 @@ def test_pending_window_replans_without_losing_later_checks(offline, case):
         mp.setattr(scheduler, "run_result_polling", lambda *_a, **_kw: "fixture")
         starts = []
         replans = []
+        workers = []
+        live_confirmations = None
+        measured = []
+        published_record = None
         real_plan = scheduler.plan_fallback_action
         real_read = picks.load_pick_bytes
         real_check = scheduler.run_single_check
         real_statuses = scheduler._delivery_game_statuses
+        real_replan = scheduler._replan_after_reuse_poll
         decision_path = daily_decision.decision_path(DAY, world.picks)
         first_returned = False
         poll_changed_pick = False
@@ -438,13 +465,27 @@ def test_pending_window_replans_without_losing_later_checks(offline, case):
             return result
 
         def confirmations(game_pks):
-            nonlocal poll_changed_pick
+            nonlocal poll_changed_pick, published_record
             if first_returned and game_pks == [102] and not poll_changed_pick:
                 if case.startswith("attempt"):
                     current = picks.load_pick(DAY, world.picks)
                     current.delivery_attempted = True
                     picks.save_pick(current, world.picks)
                     poll_changed_pick = True
+                    if case == "attempt_scoreable":
+                        daily_decision.write_decision(
+                            DAY, world.picks, action="double" if current.double_down else "single",
+                            source="mdp", primary=scheduler._row_from_daily(current.pick),
+                            double_down=scheduler._row_from_daily(current.double_down),
+                            delivery_status="locked_unconfirmed", scoreable=True,
+                        )
+                        published_record = decision_path.read_bytes()
+                    if case == "attempt_invalid":
+                        decision_path.write_text(json.dumps(dict(
+                            schema_version=daily_decision.DECISION_SCHEMA, date=DAY,
+                            action=[], scoreable=False)))
+                if case == "shared_budget":
+                    assert not Event().wait(1.2)
                 if case in {"confirm", "attempt_deliver"}:
                     return {102: {"away", "home"}}
                 if case == "partial":
@@ -462,16 +503,25 @@ def test_pending_window_replans_without_losing_later_checks(offline, case):
             return {pk: {"away", "home"} for pk in game_pks if pk == 101}
 
         def plan(**kwargs):
+            nonlocal live_confirmations
+            live_confirmations = kwargs["confirmed_sides"]
             replans.append(set(kwargs["confirmed_sides"]))
             return real_plan(**kwargs)
 
+        def measure_replan(*args, **kwargs):
+            started = monotonic()
+            result = real_replan(*args, **kwargs)
+            measured.append(monotonic() - started)
+            return result
+
         def slow_body():
+            workers.append(current_thread())
             body_started.set()
             release_body.wait(timeout=8)
             body_finished.set()
 
         def statuses(date):
-            if case == "slow_status" and world.now < at(18, 50):
+            if case in {"slow_status", "shared_budget"} and world.now < at(18, 50):
                 slow_body()
                 return {}
             return real_statuses(date)
@@ -496,6 +546,7 @@ def test_pending_window_replans_without_losing_later_checks(offline, case):
         world.predictions = forecast
         mp.setattr(scheduler, "check_confirmed_lineups", confirmations)
         mp.setattr(scheduler, "plan_fallback_action", plan)
+        mp.setattr(scheduler, "_replan_after_reuse_poll", measure_replan)
         mp.setattr(scheduler, "_delivery_game_statuses", statuses)
         if case == "reload_cutoff":
             mp.setattr(picks, "load_pick_bytes", reload_at_cutoff)
@@ -514,7 +565,7 @@ def test_pending_window_replans_without_losing_later_checks(offline, case):
             signal.alarm(3)
         try:
             scheduler.run_day(DAY, world.config)
-            if case in {"slow_status", "partial"}:
+            if case in {"slow_status", "partial", "shared_budget"}:
                 assert body_started.is_set() and not body_finished.is_set()
         finally:
             if case == "changed_decision_fifo":
@@ -523,13 +574,20 @@ def test_pending_window_replans_without_losing_later_checks(offline, case):
             release_body.set()
             if body_started.is_set():
                 assert body_finished.wait(timeout=1)
+            for worker in workers:
+                worker.join(timeout=1)
+                assert not worker.is_alive()
 
         record = daily_decision.load_decision(DAY, world.picks)
         state = scheduler.load_state(DAY, world.picks)
         if case.startswith("attempt"):
             assert poll_changed_pick and len(starts) == 1 and not world.sends("dm")
             assert record["delivery_status"] == "locked_unconfirmed"
-            assert any("OUTCOME UNKNOWN" in text for text in world.sends("health-dm"))
+            assert sum("OUTCOME UNKNOWN" in text for text in world.sends("health-dm")) == 1
+            if case == "attempt_scoreable":
+                assert decision_path.read_bytes() == published_record
+                scheduler._alert_delivery_outcome_unknown(world.config, world.picks, DAY)
+                assert sum("OUTCOME UNKNOWN" in text for text in world.sends("health-dm")) == 1
         elif case == "confirm":
             assert len(starts) == 1 and len(world.sends("dm")) == 1
             assert state.fallback_refreshes[0]["reused_check_cascade"]
@@ -546,9 +604,69 @@ def test_pending_window_replans_without_losing_later_checks(offline, case):
             if case == "partial":
                 assert any((102, "away") in sides and (102, "home") not in sides
                            and (103, "home") not in sides for sides in replans)
+                assert (103, "home") not in live_confirmations
+            if case == "shared_budget":
+                elapsed, = measured
+                assert 1.9 <= elapsed < 2.6
             if case in {"void", "reload_cutoff"}:
                 code = "postponed_pick" if case == "void" else "late_delivery"
                 assert sum(f"[{code}]" in text for text in world.sends("health-dm")) == 1
+
+
+@pytest.mark.parametrize("correction", [False, True])
+def test_reuse_replans_gap_after_status_read(offline, correction):
+    at = lambda hour, minute, second=0: offline.instant(DAY, hour, minute, second)
+    with offline.offline(at(18, 25)) as (world, mp):
+        world.dated(30)
+        starts = []
+        plans = []
+        real_plan = scheduler.plan_fallback_action
+        real_status = scheduler._delivery_game_statuses
+
+        def forecast():
+            starts.append(world.now)
+            if len(starts) == 1:
+                world.advance(17 * 60 + 59)
+                return world.frame((0.99, 0.98), (False, True))
+            return None
+
+        def statuses(date):
+            if current_thread() is not main_thread():
+                assert world.now == at(18, 42, 59)
+                world.advance(2)
+                if correction:
+                    world.dated(30, best=31)
+            return real_status(date)
+
+        def plan(**kwargs):
+            result = real_plan(**kwargs)
+            plans.append((kwargs["now"], result.reason))
+            return result
+
+        world.predictions = forecast
+        mp.setattr(scheduler, "plan_run_times", lambda *a, **kw: [
+            {"time_et": at(18, 25), "game_pks": [101]},
+            {"time_et": at(18, 42), "game_pks": [102]},
+        ])
+        mp.setattr(scheduler, "check_confirmed_lineups", lambda pks: {
+            pk: {"away", "home"} for pk in pks if pk == 101})
+        mp.setattr(scheduler, "_delivery_game_statuses", statuses)
+        mp.setattr(scheduler, "plan_fallback_action", plan)
+        scheduler.run_day(DAY, world.config)
+
+        assert plans[0] == (at(18, 42, 59), "gap_contender_window_feasible")
+        assert plans[-1] == (at(18, 43, 1), "gap_no_feasible_window")
+        assert not list((world.picks / DAY).glob("deferred_fallback*.json"))
+        refresh = scheduler.load_state(DAY, world.picks).fallback_refreshes[0]
+        assert refresh["action"] == "deliver" and refresh["reused_check_cascade"]
+        record = daily_decision.load_decision(DAY, world.picks)
+        if correction:
+            assert not world.sends("dm") and record is None
+            alerts = world.sends("health-dm")
+            assert any("[contest_state]" in text for text in alerts)
+            assert any("[missed_pick]" in text for text in alerts)
+        else:
+            assert len(world.sends("dm")) == 1 and record["primary"]["game_pk"] == 101
 
 
 @pytest.mark.parametrize("mode", ["dm", "public"])

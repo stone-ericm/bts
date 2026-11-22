@@ -1440,7 +1440,10 @@ def _deliver_and_lock_pick(
             return True
         daily.delivery_attempted = False
         daily.automatic_reading = prior_reading
-        save_pick(daily, picks_dir)
+        try:
+            save_pick(daily, picks_dir)
+        except OSError:
+            save_pick(daily, picks_dir)
         if now >= cutoff:
             _refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)
         else:
@@ -1469,13 +1472,16 @@ def _deliver_and_lock_pick(
         if now >= cutoff:
             _refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)
             return False
+        if reused_check_cascade:
+            from bts.dm import send_dm
         _stamp_reading(now)
         daily.delivery_attempted = True  # persist BEFORE the network call (E2 idempotency)
         save_pick(daily, picks_dir)
+        if reused_check_cascade and not allow_reused_transport():
+            return False
         try:
-            from bts.dm import send_dm
-            if reused_check_cascade and not allow_reused_transport():
-                return False
+            if not reused_check_cascade:
+                from bts.dm import send_dm
             msg_id = send_dm(recipient, text)
             daily.delivered_at = _now_et().isoformat()
             daily.notification_sent = True
@@ -1503,13 +1509,16 @@ def _deliver_and_lock_pick(
     if now >= cutoff:
         _refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)
         return False
+    if reused_check_cascade:
+        from bts.posting import post_to_bluesky
     _stamp_reading(now)
     daily.delivery_attempted = True  # persist BEFORE the network call (E2 idempotency)
     save_pick(daily, picks_dir)
+    if reused_check_cascade and not allow_reused_transport():
+        return False
     try:
-        from bts.posting import post_to_bluesky
-        if reused_check_cascade and not allow_reused_transport():
-            return False
+        if not reused_check_cascade:
+            from bts.posting import post_to_bluesky
         uri = post_to_bluesky(text)
         daily.delivered_at = _now_et().isoformat()
         daily.bluesky_posted = True
@@ -3158,6 +3167,8 @@ def run_day(
         state.pick_locked_at = _now_et().isoformat()
         state.committed_pick_written = True
         save_state(state, picks_dir)
+        if record.get("delivery_status") == "locked_unconfirmed":
+            _alert_delivery_outcome_unknown(config, picks_dir, date)
 
     for run_idx, run_info in enumerate(runs):
         target = run_info["time_et"]
@@ -3370,8 +3381,6 @@ def run_day(
                         # we never slept, the check simply overran the deadline. A
                         # second full refresh would spend a budget the floor only
                         # reserves once; reuse the fresh decision instead.
-                        print("  FALLBACK: reusing this check's fresh cascade "
-                              "decision (no second refresh).", file=sys.stderr)
                         before_refresh = set(confirmed_sides)
                         refresh_started = _now_et()
                         refresh_duration = 0.0
@@ -3479,7 +3488,8 @@ def run_day(
                     plan = plan_fallback_action(now=now, **planner_inputs)
                     defer_void_games = {}
                     if reused_check_cascade:
-                        if now < cutoff and plan.action == "defer":
+                        polled_for_defer = now < cutoff and plan.action == "defer"
+                        if polled_for_defer:
                             plan, defer_void_games = _replan_after_reuse_poll(
                                 daily, date, cutoff, planner_inputs)
 
@@ -3498,8 +3508,10 @@ def run_day(
                             current, current_bytes = None, None
                         except (OSError, ValueError, TypeError, KeyError, AttributeError, RecursionError):
                             current, current_bytes = None, None
-                        if current_record is not None and current is not None and current.date == date:
-                            if pick_was_delivered(current) or current.delivery_attempted:
+                        if current is not None and current.date == date:
+                            if current.delivery_attempted or (
+                                current_record is not None and pick_was_delivered(current)
+                            ):
                                 _deliver_and_lock_pick(
                                     current, config, picks_dir, state, date, "fallback")
                                 break
@@ -3507,6 +3519,10 @@ def run_day(
                                 or current_bytes != saved_bytes):
                             continue
                         now = _now_et()
+                        if polled_for_defer and now < cutoff:
+                            plan = plan_fallback_action(now=now, **planner_inputs)
+                        print("  FALLBACK: reusing this check's fresh cascade "
+                              "decision (no second refresh).", file=sys.stderr)
 
                     state.fallback_refreshes = (state.fallback_refreshes or []) + [{
                         "started": refresh_started.isoformat(), "finished": now.isoformat(),
