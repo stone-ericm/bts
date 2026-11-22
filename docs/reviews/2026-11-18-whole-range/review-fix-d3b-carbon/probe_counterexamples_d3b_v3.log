@@ -1,0 +1,94 @@
+{
+  "CE1_absent_unit_with_populated_cgroup": {
+    "deploy_stdout": [
+      "Pre-deploy SHA: aaaaaaa",
+      "DEPLOY FAILED at reset \u2014 requested target bbbbbbb, previous SHA aaaaaaa. No automatic rollback was attempted. Recovery has not been verified.",
+      "Check reset failed (17).",
+      "Scheduler stopped: verified.",
+      "Failure heartbeat written: verified.",
+      "Failure ping received HTTP 2xx: verified.",
+      "Recovery procedure: INCIDENT.md \u00a74."
+    ],
+    "deploy_checked_cgroups": [
+      "/user-sched"
+    ],
+    "deploy_post_body": "Deploy failed at reset, requested target bbbbbbb, scheduler stop verified. See INCIDENT.md \u00a74.",
+    "deploy_record": "bts_deploy_attempt_v1 123 1 bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa contained deploy-step-incomplete verified verified verified",
+    "recovery_contained_stdout": [
+      "Scheduler stopped: verified.",
+      "Failure heartbeat written: verified.",
+      "Failure ping received HTTP 2xx: verified.",
+      "Recovery procedure: INCIDENT.md \u00a74.",
+      "DEPLOY RECOVERY \u2014 containment re-checked."
+    ],
+    "recovery_contained_checked_cgroups": [
+      "/user-sched"
+    ],
+    "recovery_begun_stdout": [
+      "DEPLOY FAILED at deploy-step-incomplete \u2014 requested target bbbbbbb, previous SHA aaaaaaa. No automatic rollback was attempted. Recovery has not been verified.",
+      "Check deploy-step-incomplete failed (1).",
+      "Scheduler stopped: verified.",
+      "Failure heartbeat written: verified.",
+      "Failure ping received HTTP 2xx: verified.",
+      "Recovery procedure: INCIDENT.md \u00a74."
+    ],
+    "recovery_begun_checked_cgroups": [
+      "/user-sched"
+    ]
+  },
+  "CE1b_absent_then_post_stop_populated_cgroup": {
+    "deploy_stdout": [
+      "Pre-deploy SHA: aaaaaaa",
+      "DEPLOY FAILED at reset \u2014 requested target bbbbbbb, previous SHA aaaaaaa. No automatic rollback was attempted. Recovery has not been verified.",
+      "Check reset failed (17).",
+      "Scheduler stopped: verified.",
+      "Failure heartbeat written: verified.",
+      "Failure ping received HTTP 2xx: verified.",
+      "Recovery procedure: INCIDENT.md \u00a74."
+    ],
+    "checked_cgroups": [
+      "/user-sched"
+    ]
+  },
+  "CE2_phase2_legacy_cleanup_unloads_populated_unit_before_canary_fail": {
+    "control_reset_fail_stdout_stop": [
+      "Scheduler stopped: unverified."
+    ],
+    "canary_fail_stdout": [
+      "Pre-deploy SHA: aaaaaaa",
+      "Checking requested target bbbbbbb.",
+      "Waiting 30s for services to stabilize...",
+      "Check contest-state failed (17).",
+      "DEPLOY FAILED at contest-state \u2014 requested target bbbbbbb, previous SHA aaaaaaa. No automatic rollback was attempted. Recovery has not been verified.",
+      "Scheduler stopped: verified.",
+      "Failure heartbeat written: verified.",
+      "Failure ping received HTTP 2xx: verified.",
+      "Recovery procedure: INCIDENT.md \u00a74."
+    ],
+    "canary_fail_checked_cgroups": [
+      "/user-sched"
+    ],
+    "canary_fail_record": "bts_deploy_attempt_v1 123 1 bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa contained contest-state verified verified verified",
+    "subsequent_recovery_stdout": [
+      "Scheduler stopped: verified.",
+      "Failure heartbeat written: verified.",
+      "Failure ping received HTTP 2xx: verified.",
+      "Recovery procedure: INCIDENT.md \u00a74.",
+      "DEPLOY RECOVERY \u2014 containment re-checked."
+    ]
+  },
+  "CE2b_phase2_legacy_cleanup_unloads_nogroup_unit_before_canary_fail": {
+    "canary_fail_stdout": [
+      "Pre-deploy SHA: aaaaaaa",
+      "Checking requested target bbbbbbb.",
+      "Waiting 30s for services to stabilize...",
+      "Check contest-state failed (17).",
+      "DEPLOY FAILED at contest-state \u2014 requested target bbbbbbb, previous SHA aaaaaaa. No automatic rollback was attempted. Recovery has not been verified.",
+      "Scheduler stopped: verified.",
+      "Failure heartbeat written: verified.",
+      "Failure ping received HTTP 2xx: verified.",
+      "Recovery procedure: INCIDENT.md \u00a74."
+    ]
+  },
+  "smallest_fix_verification": "ALL 8 CASES PASSED (RD8 shared prefix & prove byte-identical)"
+}

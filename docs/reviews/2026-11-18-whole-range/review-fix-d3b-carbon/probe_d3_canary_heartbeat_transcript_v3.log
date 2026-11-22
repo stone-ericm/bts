@@ -1,0 +1,81 @@
+{
+  "success_transcript_and_stamp": {
+    "legacy_absent": {
+      "base_calls": 31,
+      "candidate_calls": 201,
+      "stdout": [
+        "Pre-deploy SHA: aaaaaaa",
+        "Checking requested target bbbbbbb.",
+        "Waiting 30s for services to stabilize...",
+        "Deploy canary: not a live configuration (delivery private); contest state not checked.",
+        "================================",
+        "Deployed bbbbbbb",
+        "CANARY PASSED \u2014 bbbbbbb passed the deploy checks",
+        "================================"
+      ],
+      "milestone_indices": {
+        "flock": 17,
+        "fetch": 44,
+        "publish_begun": 87,
+        "disable": 97,
+        "reset": 108,
+        "sync": 115,
+        "restart": 121,
+        "wait_30": 131,
+        "deploy_canary": 159,
+        "stamp_stage": 167,
+        "enable": 173,
+        "stamp_replace": 184,
+        "publish_committed": 194,
+        "canary_passed_log": 200
+      }
+    },
+    "legacy_present": {
+      "base_calls": 35,
+      "candidate_calls": 241,
+      "stdout": [
+        "Pre-deploy SHA: aaaaaaa",
+        "Checking requested target bbbbbbb.",
+        "Waiting 30s for services to stabilize...",
+        "Deploy canary: not a live configuration (delivery private); contest state not checked.",
+        "================================",
+        "Deployed bbbbbbb",
+        "CANARY PASSED \u2014 bbbbbbb passed the deploy checks",
+        "================================"
+      ],
+      "milestone_indices": {
+        "flock": 17,
+        "fetch": 44,
+        "publish_begun": 87,
+        "disable": 97,
+        "reset": 108,
+        "sync": 115,
+        "restart": 161,
+        "wait_30": 171,
+        "deploy_canary": 199,
+        "stamp_stage": 207,
+        "enable": 213,
+        "stamp_replace": 224,
+        "publish_committed": 234,
+        "canary_passed_log": 240
+      }
+    }
+  },
+  "deploy_canary_parity": {
+    "paired_cases_verified": 164,
+    "dec31_jan1_rollover": "PASS"
+  },
+  "heartbeat_and_inline_py311_py312": {
+    "py312_venv": {
+      "python": "3.12.16",
+      "ordinary_checked": 34,
+      "status": "OK"
+    },
+    "py311_real": {
+      "python": "3.11.18",
+      "ordinary_checked": 34,
+      "status": "OK"
+    },
+    "cron_line_rd4": "VERIFIED"
+  }
+}

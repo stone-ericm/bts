@@ -1,0 +1,14 @@
+{
+  "phase2_to_4_sweep": {
+    "runs_verified": 43,
+    "status": "PASS"
+  },
+  "recovery_orders_and_reboot": {
+    "checked": [
+      "lost_session_recover_dup_refused_rerun_try2_next_run124",
+      "reboot_clears_run_soft_hold_intact_recovery_fences_late_deploy",
+      "hostile_attempt_records_7_cases"
+    ],
+    "status": "PASS"
+  }
+}

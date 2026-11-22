@@ -1,0 +1,10 @@
+{
+  "revoke_exit": 0,
+  "status_pre_obs": "live decision now: refused",
+  "status_post_obs": "live decision now: accepted",
+  "entry_intent": "enter",
+  "deploy_canary": "Deploy canary: live contest state accepted (dated, streak 0) at 2026-11-21T19:06:50.311875-05:00.",
+  "saver_show_custom_before_init": "uninitialized (isolated from default_picks=used)",
+  "saver_show_custom_after_init": "not_earned",
+  "status": "ALL OPERATOR CLI SEQUENCES VERIFIED"
+}

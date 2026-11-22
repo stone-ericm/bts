@@ -1,0 +1,44 @@
+nice: setpriority: Operation not permitted
+Replay probe_r2_audit_new_logic.py
+COUNTEREXAMPLE (prior committed record + signal before begun rename):
+{
+  "case": "sig_during_beginning_with_prior_committed",
+  "rc": 1,
+  "elapsed_s": 1.92,
+  "head": "9999999999999999999999999999999999999999",
+  "stopped": false,
+  "enabled": "enabled",
+  "heartbeat": {
+    "state": "running"
+  },
+  "attempt": "bts_deploy_attempt_v1 100 1 9999999999999999999999999999999999999999 8888888888888888888888888888888888888888 committed - - - -",
+  "posts": 0,
+  "stdout": [
+    "Pre-deploy SHA: 9999999",
+    "DEPLOY NOT STARTED \u2014 attempt-record failed. This deploy invocation did not change the checkout or services. Previous SHA: 9999999."
+  ]
+}
+COUNTEREXAMPLE (re-run attempt=2 + signal before begun rename):
+{
+  "case": "sig_during_beginning_rerun_after_contained",
+  "rc": 1,
+  "elapsed_s": 1.81,
+  "head": "2222222222222222222222222222222222222222",
+  "stopped": true,
+  "enabled": "disabled",
+  "heartbeat": {
+    "state": "running"
+  },
+  "attempt": "bts_deploy_attempt_v1 100 1 2222222222222222222222222222222222222222 1111111111111111111111111111111111111111 contained sync verified verified verified",
+  "posts": 0,
+  "stdout": [
+    "Pre-deploy SHA: 2222222",
+    "DEPLOY NOT STARTED \u2014 attempt-record failed. This deploy invocation did not change the checkout or services. Previous SHA: 2222222."
+  ]
+}
+Control (fresh boot, no prior record): DEPLOY NOT STARTED without touching services -> OK
+Other publication boundaries (renamed begun, unpublished commit, published commit): OK
+Slow failing clock in contain -> SECONDS fallback completed all sub-steps in 4.68s: OK
+Debian pruned ControlGroup='' on already-stopped unit:
+  deploy contain: ['Scheduler stopped: verified.'] record: bts_deploy_attempt_v1 200 1 2222222222222222222222222222222222222222 1111111111111111111111111111111111111111 contained head verified verified verified
+  recovery contain: ['Scheduler stopped: unverified.'] record: bts_deploy_attempt_v1 200 1 2222222222222222222222222222222222222222 1111111111111111111111111111111111111111 contained head unverified verified verified
