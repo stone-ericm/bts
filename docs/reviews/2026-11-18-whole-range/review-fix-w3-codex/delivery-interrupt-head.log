@@ -1,0 +1,319 @@
+nice: setpriority: Operation not permitted
+/Users/eric/.matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/matplotlib-vnfy_xne because there was an issue with the default path (/Users/eric/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK — delivering (primary_projected_no_window) before the 19:05 ET cutoff.
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[19:00 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[19:00 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  FALLBACK REFRESH: no fresh pick available, using cached
+  FALLBACK — 35min to first pitch, delivering on projected data.
+  LOCKED (final fallback) — Pick DM sent: captured-dm
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 20 min)...
+  Day complete. Result: captured-poll
+CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/probe-0pr9u10u/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=30 best=30 saver=used reason=None
+contest_streak: 30 (best 30, saver used) for 2027-03-24, in effect today
+TRANSPORT dm 2027-03-24T19:00:00-04:00 "Today's pick: Synthetic Batter 101 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 30"
+INTERRUPT {"stage": "pre-marker", "exception": "KeyboardInterrupt", "first_history": [{"started": "2027-03-24T19:00:00-04:00", "finished": "2027-03-24T19:00:00-04:00", "duration_sec": 0.0, "reused_check_cascade": true, "action": "deliver", "reason": "primary_projected_no_window"}], "after_history": [{"started": "2027-03-24T19:00:00-04:00", "finished": "2027-03-24T19:00:00-04:00", "duration_sec": 0.0, "reused_check_cascade": true, "action": "deliver", "reason": "primary_projected_no_window"}], "send": [["2027-03-24T19:00:00-04:00", "Today's pick: Synthetic Batter 101 (ABC)"]], "health": [], "record": "delivered"}
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK — delivering (primary_projected_no_window) before the 19:05 ET cutoff.
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[19:00 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[19:00 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 20 min)...
+  Day complete. Result: captured-poll
+CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/probe-xtog230m/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=30 best=30 saver=used reason=None
+contest_streak: 30 (best 30, saver used) for 2027-03-24, in effect today
+TRANSPORT health-dm 2027-03-24T19:00:00-04:00 "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-03-24 ET. Do not enter or change a pick based on this alert. If 2027-03-24 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+INTERRUPT {"stage": "post-marker", "exception": "KeyboardInterrupt", "first_history": [{"started": "2027-03-24T19:00:00-04:00", "finished": "2027-03-24T19:00:00-04:00", "duration_sec": 0.0, "reused_check_cascade": true, "action": "deliver", "reason": "primary_projected_no_window"}], "after_history": [{"started": "2027-03-24T19:00:00-04:00", "finished": "2027-03-24T19:00:00-04:00", "duration_sec": 0.0, "reused_check_cascade": true, "action": "deliver", "reason": "primary_projected_no_window"}], "send": [], "health": ["- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-03-24 ET. Do not enter or change a pick based on this alert. If 2027-03-24 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."], "record": "locked_unconfirmed"}
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK — delivering (primary_projected_no_window) before the 19:05 ET cutoff.
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[19:00 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+
+[19:00 ET] Running lineup check...
+  Pick already locked (notification_sent) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 20 min)...
+  Day complete. Result: captured-poll
+CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/probe-kx6k6efz/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=30 best=30 saver=used reason=None
+contest_streak: 30 (best 30, saver used) for 2027-03-24, in effect today
+TRANSPORT dm 2027-03-24T19:00:00-04:00 "Today's pick: Synthetic Batter 101 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 30"
+INTERRUPT {"stage": "post-confirmation", "exception": "KeyboardInterrupt", "first_history": [{"started": "2027-03-24T19:00:00-04:00", "finished": "2027-03-24T19:00:00-04:00", "duration_sec": 0.0, "reused_check_cascade": true, "action": "deliver", "reason": "primary_projected_no_window"}], "after_history": [{"started": "2027-03-24T19:00:00-04:00", "finished": "2027-03-24T19:00:00-04:00", "duration_sec": 0.0, "reused_check_cascade": true, "action": "deliver", "reason": "primary_projected_no_window"}], "send": [["2027-03-24T19:00:00-04:00", "Today's pick: Synthetic Batter 101 (ABC)"]], "health": [], "record": "delivered"}
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-03-24...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:50 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0%, gap=29.0% vs projected 70.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:47 ET] Fetching schedule for 2027-03-24...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:50 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:47 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Sleeping until 18:50 ET (3 min)...
+
+[18:50 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  FALLBACK REFRESH: no fresh pick available, using cached
+  FALLBACK — 35min to first pitch, delivering on projected data.
+  LOCKED (final fallback) — Pick DM sent: captured-dm
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 30 min)...
+  Day complete. Result: captured-poll
+CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/probe-x2m80vir/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=30 best=30 saver=used reason=None
+contest_streak: 30 (best 30, saver used) for 2027-03-24, in effect today
+TRANSPORT dm 2027-03-24T18:50:00-04:00 "Today's pick: Synthetic Batter 101 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 30"
+INTERRUPT {"stage": "confirmation-poll", "exception": "KeyboardInterrupt", "first_history": [], "after_history": [], "send": [["2027-03-24T18:50:00-04:00", "Today's pick: Synthetic Batter 101 (ABC)"]], "health": [], "record": "delivered"}
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-03-24...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:50 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0%, gap=29.0% vs projected 70.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:47 ET] Fetching schedule for 2027-03-24...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:50 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:47 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Sleeping until 18:50 ET (3 min)...
+
+[18:50 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  FALLBACK REFRESH: no fresh pick available, using cached
+  FALLBACK — 35min to first pitch, delivering on projected data.
+  LOCKED (final fallback) — Pick DM sent: captured-dm
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 30 min)...
+  Day complete. Result: captured-poll
+CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/probe-hlabagfi/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=30 best=30 saver=used reason=None
+contest_streak: 30 (best 30, saver used) for 2027-03-24, in effect today
+TRANSPORT dm 2027-03-24T18:50:00-04:00 "Today's pick: Synthetic Batter 101 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 30"
+INTERRUPT {"stage": "status-poll", "exception": "KeyboardInterrupt", "first_history": [], "after_history": [], "send": [["2027-03-24T18:50:00-04:00", "Today's pick: Synthetic Batter 101 (ABC)"]], "health": [], "record": "delivered"}
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK — delivering (primary_projected_no_window) before the 19:05 ET cutoff.
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[19:00 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[19:00 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  FALLBACK REFRESH: no fresh pick available, using cached
+  FALLBACK — 35min to first pitch, delivering on projected data.
+  LOCKED (final fallback) — Pick DM sent: captured-dm
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 20 min)...
+  Day complete. Result: captured-poll
+CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/probe-x52ksu16/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=30 best=30 saver=used reason=None
+contest_streak: 30 (best 30, saver used) for 2027-03-24, in effect today
+TRANSPORT dm 2027-03-24T19:00:00-04:00 "Today's pick: Synthetic Batter 101 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 30"
+INTERRUPT {"stage": "pre-marker", "exception": "SystemExit", "first_history": [{"started": "2027-03-24T19:00:00-04:00", "finished": "2027-03-24T19:00:00-04:00", "duration_sec": 0.0, "reused_check_cascade": true, "action": "deliver", "reason": "primary_projected_no_window"}], "after_history": [{"started": "2027-03-24T19:00:00-04:00", "finished": "2027-03-24T19:00:00-04:00", "duration_sec": 0.0, "reused_check_cascade": true, "action": "deliver", "reason": "primary_projected_no_window"}], "send": [["2027-03-24T19:00:00-04:00", "Today's pick: Synthetic Batter 101 (ABC)"]], "health": [], "record": "delivered"}
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK — delivering (primary_projected_no_window) before the 19:05 ET cutoff.
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[19:00 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[19:00 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 20 min)...
+  Day complete. Result: captured-poll
+CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/probe-o1ar2hgz/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=30 best=30 saver=used reason=None
+contest_streak: 30 (best 30, saver used) for 2027-03-24, in effect today
+TRANSPORT health-dm 2027-03-24T19:00:00-04:00 "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-03-24 ET. Do not enter or change a pick based on this alert. If 2027-03-24 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+INTERRUPT {"stage": "post-marker", "exception": "SystemExit", "first_history": [{"started": "2027-03-24T19:00:00-04:00", "finished": "2027-03-24T19:00:00-04:00", "duration_sec": 0.0, "reused_check_cascade": true, "action": "deliver", "reason": "primary_projected_no_window"}], "after_history": [{"started": "2027-03-24T19:00:00-04:00", "finished": "2027-03-24T19:00:00-04:00", "duration_sec": 0.0, "reused_check_cascade": true, "action": "deliver", "reason": "primary_projected_no_window"}], "send": [], "health": ["- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-03-24 ET. Do not enter or change a pick based on this alert. If 2027-03-24 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."], "record": "locked_unconfirmed"}
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK — delivering (primary_projected_no_window) before the 19:05 ET cutoff.
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[19:00 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+
+[19:00 ET] Running lineup check...
+  Pick already locked (notification_sent) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 20 min)...
+  Day complete. Result: captured-poll
+CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/probe-uk94j90x/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=30 best=30 saver=used reason=None
+contest_streak: 30 (best 30, saver used) for 2027-03-24, in effect today
+TRANSPORT dm 2027-03-24T19:00:00-04:00 "Today's pick: Synthetic Batter 101 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 30"
+INTERRUPT {"stage": "post-confirmation", "exception": "SystemExit", "first_history": [{"started": "2027-03-24T19:00:00-04:00", "finished": "2027-03-24T19:00:00-04:00", "duration_sec": 0.0, "reused_check_cascade": true, "action": "deliver", "reason": "primary_projected_no_window"}], "after_history": [{"started": "2027-03-24T19:00:00-04:00", "finished": "2027-03-24T19:00:00-04:00", "duration_sec": 0.0, "reused_check_cascade": true, "action": "deliver", "reason": "primary_projected_no_window"}], "send": [["2027-03-24T19:00:00-04:00", "Today's pick: Synthetic Batter 101 (ABC)"]], "health": [], "record": "delivered"}
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-03-24...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:50 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0%, gap=29.0% vs projected 70.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:47 ET] Fetching schedule for 2027-03-24...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:50 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:47 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Sleeping until 18:50 ET (3 min)...
+
+[18:50 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  FALLBACK REFRESH: no fresh pick available, using cached
+  FALLBACK — 35min to first pitch, delivering on projected data.
+  LOCKED (final fallback) — Pick DM sent: captured-dm
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 30 min)...
+  Day complete. Result: captured-poll
+CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/probe-hp4kz1d7/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=30 best=30 saver=used reason=None
+contest_streak: 30 (best 30, saver used) for 2027-03-24, in effect today
+TRANSPORT dm 2027-03-24T18:50:00-04:00 "Today's pick: Synthetic Batter 101 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 30"
+INTERRUPT {"stage": "confirmation-poll", "exception": "SystemExit", "first_history": [], "after_history": [], "send": [["2027-03-24T18:50:00-04:00", "Today's pick: Synthetic Batter 101 (ABC)"]], "health": [], "record": "delivered"}
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-03-24...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:50 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0%, gap=29.0% vs projected 70.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:47 ET] Fetching schedule for 2027-03-24...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:50 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:47 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Sleeping until 18:50 ET (3 min)...
+
+[18:50 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  FALLBACK REFRESH: no fresh pick available, using cached
+  FALLBACK — 35min to first pitch, delivering on projected data.
+  LOCKED (final fallback) — Pick DM sent: captured-dm
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 30 min)...
+  Day complete. Result: captured-poll
+CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/probe-gyck5680/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=30 best=30 saver=used reason=None
+contest_streak: 30 (best 30, saver used) for 2027-03-24, in effect today
+TRANSPORT dm 2027-03-24T18:50:00-04:00 "Today's pick: Synthetic Batter 101 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 30"
+INTERRUPT {"stage": "status-poll", "exception": "SystemExit", "first_history": [], "after_history": [], "send": [["2027-03-24T18:50:00-04:00", "Today's pick: Synthetic Batter 101 (ABC)"]], "health": [], "record": "delivered"}
