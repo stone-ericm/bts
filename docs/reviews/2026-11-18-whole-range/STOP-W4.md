@@ -1,6 +1,6 @@
 # STOP: change set W4 (a saved pick stranded by an empty lineup check)
 
-Stopped 2026-11-22 at 11:05 ET by `bts-wr-fresh7`, at the contract stage, after the first Codex xhigh contract check returned **NOT YET** on the design (`contract-check-w4/contract-check.md`, `WRCHKW4-54104b18`). The kickoff says: "if the contract check or a round-1 review shows the design unsafe, stop and report". **Nothing was built: no author, no commit on `fix/wr-w4`, `main`'s `src/` unchanged.**
+Stopped 2026-11-22 at 10:58 ET by `bts-wr-fresh7`, at the contract stage, after the first Codex xhigh contract check returned **NOT YET** on the design (`contract-check-w4/contract-check.md`, `WRCHKW4-54104b18`). The kickoff says: "if the contract check or a round-1 review shows the design unsafe, stop and report". **Nothing was built: no author, no commit on `fix/wr-w4`, `main`'s `src/` unchanged.**
 
 ## Record
 - Contract `kickoff-fix-w4.md` version 1 (`5ace3050`), from `contract-check-a/` A4's replacement text, with the stale-plan class named (item 8), W3's round-2 cases as rows S1 to S6, the "must still happen" rows H1 to H17 and the standing rows.
