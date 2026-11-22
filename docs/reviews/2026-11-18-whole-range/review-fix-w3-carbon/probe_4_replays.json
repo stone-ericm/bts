@@ -1,0 +1,122 @@
+{
+  "cc1_accepted_cost_lineup": {
+    "action": "single",
+    "calls": [
+      "18:25"
+    ],
+    "committed_batter": "Synthetic Batter 101",
+    "dm_count": 1,
+    "ok": true
+  },
+  "cc1_accepted_cost_skip": {
+    "action": "single",
+    "calls": [
+      "18:25"
+    ],
+    "committed_batter": "Synthetic Batter 101",
+    "dm_count": 1,
+    "ok": true
+  },
+  "cc2_attempt_poll_defer": {
+    "delivery_status": "locked_unconfirmed",
+    "dm_count": 0,
+    "ok": true,
+    "primary_id": 601,
+    "starts": [
+      "18:25"
+    ],
+    "unknown_alerts": 1
+  },
+  "cc2_attempt_poll_deliver": {
+    "delivery_status": "locked_unconfirmed",
+    "dm_count": 0,
+    "ok": true,
+    "primary_id": 601,
+    "starts": [
+      "18:25"
+    ],
+    "unknown_alerts": 1
+  },
+  "cc2_delivered_during_poll": {
+    "delivery_status": "delivered",
+    "dm_count": 0,
+    "ok": true,
+    "primary_id": 601,
+    "starts": [
+      "18:25"
+    ],
+    "unknown_alerts": 0
+  },
+  "cc2_pick_corrupt_during_poll": {
+    "committed_pk": 102,
+    "deferred_archives": 0,
+    "ok": true,
+    "refreshes": [
+      {
+        "action": "deliver",
+        "duration_sec": 0.0,
+        "finished": "2027-03-24T18:50:00-04:00",
+        "reason": "dd_gate_only",
+        "reused_check_cascade": true,
+        "started": "2027-03-24T18:50:00-04:00"
+      }
+    ],
+    "starts": [
+      "18:25",
+      "18:50"
+    ]
+  },
+  "cc2_pick_fifo_during_poll": {
+    "committed_pk": 102,
+    "deferred_archives": 0,
+    "ok": true,
+    "refreshes": [
+      {
+        "action": "deliver",
+        "duration_sec": 0.0,
+        "finished": "2027-03-24T18:50:00-04:00",
+        "reason": "dd_gate_only",
+        "reused_check_cascade": true,
+        "started": "2027-03-24T18:50:00-04:00"
+      }
+    ],
+    "starts": [
+      "18:25",
+      "18:50"
+    ]
+  },
+  "cc2_scoreable_during_poll": {
+    "delivery_status": "private_locked",
+    "dm_count": 0,
+    "ok": true,
+    "primary_id": 777,
+    "starts": [
+      "18:25"
+    ],
+    "unknown_alerts": 0
+  },
+  "slice3_cached_fallbacks_in_loop": {
+    "corrected": true,
+    "dm_count": 0,
+    "health_dms": 2,
+    "ok": true,
+    "pick_chosen_streak": 0,
+    "predict_times": [
+      "18:25",
+      "18:35",
+      "18:35"
+    ]
+  },
+  "slice3_overrun_double_cascade": {
+    "calls": [
+      "16:10",
+      "17:10",
+      "18:25"
+    ],
+    "dm_count": 1,
+    "ok": true,
+    "refused_archives": 0,
+    "reused": true,
+    "scoreable": true
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "op_after_read_rollover": {
+    "alerts": [
+      "BTS health CRITICAL alert(s):\n- [contest_state] ET date changed after the final contest-state read"
+    ],
+    "ok": true,
+    "pick_dms": [
+      "Today's pick: Synthetic Batter 101 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 4"
+    ],
+    "stderr_lines": [
+      "  FALLBACK: reusing this check's fresh cascade decision (no second refresh).",
+      "  FALLBACK \u2014 delivering (primary_projected_no_window) before the 00:25 ET cutoff.",
+      "  CONTEST STATE ERROR \u2014 pick delivery blocked: ET date changed after the final contest-state read",
+      "  FALLBACK REFRESH: no fresh pick available, using cached",
+      "  FALLBACK \u2014 40min to first pitch, delivering on projected data.",
+      "  LOCKED (final fallback) \u2014 Pick DM sent: captured-dm"
+    ]
+  },
+  "op_double_rollover": {
+    "alerts": [
+      "BTS health CRITICAL alert(s):\n- [contest_state] ET date changed before contest state could be validated",
+      "BTS health CRITICAL alert(s):\n- [late_delivery] LATE DELIVERY REFUSED: Synthetic Batter 101 would have been sent 1415 min after the 00:25 ET cutoff. Nothing delivered; the scheduler will re-pick from later games if any remain. Enter a pick manually if you want one now."
+    ],
+    "ok": true,
+    "stderr_lines": [
+      "  FALLBACK: reusing this check's fresh cascade decision (no second refresh).",
+      "  FALLBACK \u2014 delivering (primary_projected_no_window) before the 00:25 ET cutoff.",
+      "  CONTEST STATE ERROR \u2014 pick delivery blocked: ET date changed before contest state could be validated",
+      "  FALLBACK REFRESH: no fresh pick available, using cached",
+      "  FALLBACK \u2014 40min to first pitch, delivering on projected data."
+    ]
+  },
+  "race_free_base": {
+    "decision": null,
+    "deferred_archives": 0,
+    "health_alerts": [
+      "- [late_delivery] LATE DELIVERY REFUSED: Synthetic Batter 101 would have been sent 1 min after the 19:05 ET cutoff. Nothing delivered; the scheduler will re-pick from later games if any remain. Enter a pick manually if you want one now."
+    ],
+    "ok": true,
+    "pick_dms": 0,
+    "refused_archives": 1,
+    "starts": [
+      "18:25",
+      "19:00",
+      "19:25"
+    ]
+  },
+  "race_free_head": {
+    "decision": null,
+    "deferred_archives": 1,
+    "health_alerts": [],
+    "ok": true,
+    "pick_dms": 0,
+    "refused_archives": 0,
+    "starts": [
+      "18:25",
+      "19:25"
+    ]
+  }
+}

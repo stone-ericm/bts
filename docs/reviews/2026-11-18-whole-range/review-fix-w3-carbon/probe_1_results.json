@@ -1,0 +1,1323 @@
+{
+  "base": {
+    "m11_early_returns": {
+      "ok": true,
+      "shapes": {
+        "contest_error": {
+          "has_lock_decision": false,
+          "has_saved_bytes": false,
+          "keys": [
+            "new_lineups",
+            "pick_name",
+            "pick_p",
+            "pick_result",
+            "selection",
+            "should_post",
+            "skipped"
+          ]
+        },
+        "mdp_skip": {
+          "has_lock_decision": false,
+          "has_saved_bytes": false,
+          "keys": [
+            "new_lineups",
+            "pick_name",
+            "pick_p",
+            "pick_result",
+            "selection",
+            "should_post",
+            "skip_summary",
+            "skipped"
+          ]
+        },
+        "no_predictions": {
+          "has_lock_decision": false,
+          "has_saved_bytes": false,
+          "keys": [
+            "new_lineups",
+            "pick_name",
+            "pick_p",
+            "pick_result",
+            "selection",
+            "should_post",
+            "skip_summary",
+            "skipped"
+          ]
+        },
+        "scoreable_locked": {
+          "has_lock_decision": false,
+          "has_saved_bytes": false,
+          "keys": [
+            "new_lineups",
+            "pick_name",
+            "pick_p",
+            "pick_result",
+            "selection",
+            "should_post",
+            "skipped"
+          ]
+        },
+        "status_locked": {
+          "has_lock_decision": false,
+          "has_saved_bytes": false,
+          "keys": [
+            "new_lineups",
+            "pick_name",
+            "pick_p",
+            "pick_result",
+            "selection",
+            "should_post",
+            "skipped"
+          ]
+        },
+        "write_error": "raised_OSError"
+      }
+    },
+    "m1_overrun": {
+      "alerts": [
+        "- [late_delivery] LATE DELIVERY REFUSED: Synthetic Batter 101 would have been sent 1 min after the 19:05 ET cutoff. Nothing delivered; the scheduler will re-pick from later games if any remain. Enter a pick manually if you want one now."
+      ],
+      "committed_batter": null,
+      "dms": [],
+      "ok": true,
+      "refreshes": [
+        {
+          "action": "deliver",
+          "duration_sec": 0.0,
+          "finished": "2027-03-24T19:06:00-04:00",
+          "reason": "lock_decision_unknown",
+          "reused_check_cascade": false,
+          "started": "2027-03-24T19:00:00-04:00"
+        }
+      ],
+      "scoreable": false,
+      "starts": [
+        "16:10",
+        "17:10",
+        "18:25",
+        "19:00"
+      ]
+    },
+    "m2_audit_replacement": {
+      "committed_id": 999,
+      "dm_count": 1,
+      "dm_matches_commit": true,
+      "ok": true,
+      "reused": false,
+      "starts": [
+        "18:25",
+        "19:00"
+      ]
+    },
+    "m2_nonmatching_selection": {
+      "committed_p": null,
+      "ok": true
+    },
+    "m2_replacement": {
+      "committed_id": 999,
+      "dm_count": 1,
+      "dm_matches_commit": true,
+      "ok": true,
+      "reused": false,
+      "starts": [
+        "18:25",
+        "19:00"
+      ]
+    },
+    "m2_single_runner_up": {
+      "ok": false,
+      "returncode": 1,
+      "stderr": "e to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.\n  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[18:25 ET] Fetching schedule for 2027-03-24...\n  2 games, 2 scheduled checks:\n    18:25 ET \u2014 1 game(s)\n    19:25 ET \u2014 1 game(s)\n  Morning state check skipped: first lineup check is due within 10 minutes.\n\n[18:25 ET] Running lineup check...\n  4 new confirmed lineup(s). Running predictions...\n  Pick: Synthetic Batter 101 (ABC) 99.0%, gap=14.0% vs projected 85.0% \u2192 should_lock=True\n  LOCKED (lineup) \u2014 Pick DM sent: captured-dm\n  Pick locked. Stopping lineup checks.\n  Tomorrow's wake-up: Thu 03-25 10:00 ET\n  Waiting until 19:20 ET (game start + 10min, 20 min)...\n  Day complete. Result: captured-poll\nTraceback (most recent call last):\n  File \"/Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/probe_1_contract_and_required_rows.py\", line 1084, in <module>\n    main()\n  File \"/Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/probe_1_contract_and_required_rows.py\", line 1002, in main\n    out = worker_main(sys.argv[2], sys.argv[3])\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/probe_1_contract_and_required_rows.py\", line 219, in worker_main\n    \"reused\": st.fallback_refreshes[0][\"reused_check_cascade\"],\n              ~~~~~~~~~~~~~~~~~~~~~^^^\nTypeError: 'NoneType' object is not subscriptable\n",
+      "stdout": "CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0\nObservation written at /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-base-m2_single_runner_up-kr6xel_s/probe-kdryt34a/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=30 best=30 saver=used reason=None\ncontest_streak: 30 (best 30, saver used) for 2027-03-24, in effect today\nTRANSPORT dm 2027-03-24T19:00:00-04:00 \"Today's pick: Synthetic Batter 101 (ABC)\\nvs Synthetic Pitcher | 99.0%\\n\\nStreak: 30\"\n"
+    },
+    "m2_warmup_cache": {
+      "best_streak": null,
+      "expected_primary": {
+        "batter_id": 601,
+        "batter_name": "Synthetic Batter 101",
+        "game_pk": 101,
+        "p_game_hit": 0.99,
+        "team": "ABC"
+      },
+      "objective": null,
+      "ok": true,
+      "primary": null,
+      "reused": false
+    },
+    "m2_whitespace": {
+      "committed_id": 601,
+      "dm_count": 1,
+      "dm_matches_commit": true,
+      "ok": true,
+      "reused": false,
+      "starts": [
+        "18:25",
+        "19:00"
+      ]
+    },
+    "m2_wrong_pick_date": {
+      "committed_id": 601,
+      "dm_count": 1,
+      "dm_matches_commit": true,
+      "ok": true,
+      "reused": false,
+      "starts": [
+        "18:25",
+        "19:00"
+      ]
+    },
+    "m3_defer_no_coalesce_no_inherit": {
+      "checks": [
+        "18:25",
+        "19:35"
+      ],
+      "coalesced": [
+        {
+          "new_lineups": 0,
+          "pick_name": null,
+          "pick_p": null,
+          "reason": "coalesced_after_fallback",
+          "skipped": true,
+          "time": "2027-03-24T19:35:00-04:00"
+        }
+      ],
+      "committed_pk": 102,
+      "ok": true,
+      "refreshes": [
+        {
+          "action": "defer",
+          "duration_sec": 0.0,
+          "finished": "2027-03-24T19:35:00-04:00",
+          "reason": "primary_projected_pending_window",
+          "reused_check_cascade": false,
+          "started": "2027-03-24T19:00:00-04:00"
+        },
+        {
+          "action": "deliver",
+          "duration_sec": 0.0,
+          "finished": "2027-03-24T19:35:00-04:00",
+          "reason": "dd_gate_only",
+          "reused_check_cascade": false,
+          "started": "2027-03-24T19:35:00-04:00"
+        }
+      ]
+    },
+    "m3_equality": {
+      "dm_count": 1,
+      "duration_sec": 0.0,
+      "ok": true,
+      "reused": false,
+      "starts": [
+        "18:25",
+        "18:35"
+      ]
+    },
+    "m3_sleep": {
+      "dm_count": 1,
+      "duration_sec": 0.0,
+      "ok": true,
+      "reused": false,
+      "starts": [
+        "18:25",
+        "18:35"
+      ]
+    },
+    "m4_skip_survives_warmup": {
+      "decision_action": "single",
+      "ok": true,
+      "pick_dms": 1,
+      "scoreable": true
+    },
+    "m4_skip_yields_to_genuine": {
+      "decision_action": "single",
+      "ok": true,
+      "pick_dms": 1,
+      "scoreable": true
+    },
+    "m5_marker_cutoff_dm": {
+      "archived_attempt_flag": false,
+      "archived_auto_reading": null,
+      "attempt_flags": [
+        false
+      ],
+      "decision": null,
+      "late_alerts": 1,
+      "ok": true,
+      "sent": 0,
+      "stale_warns": 0,
+      "starts": [
+        "18:25:00",
+        "19:04:59"
+      ]
+    },
+    "m5_marker_cutoff_public": {
+      "archived_attempt_flag": false,
+      "archived_auto_reading": null,
+      "attempt_flags": [
+        false
+      ],
+      "decision": null,
+      "late_alerts": 1,
+      "ok": true,
+      "sent": 0,
+      "stale_warns": 0,
+      "starts": [
+        "18:25:00",
+        "19:04:59"
+      ]
+    },
+    "m5_reload_cutoff_with_pending_window": {
+      "committed_pk": 101,
+      "deferred_archives": 1,
+      "late_alerts": 0,
+      "ok": true,
+      "refused_archives": 0,
+      "starts": [
+        "18:25",
+        "18:47",
+        "18:50",
+        "18:50"
+      ]
+    },
+    "m6_auto_to_auto": {
+      "contest_alerts": 0,
+      "decision": {
+        "action": "single",
+        "allow_double": null,
+        "best_status": "untrusted",
+        "best_streak": 2,
+        "contest_source_date": null,
+        "date": "2027-03-24",
+        "degraded_reason": null,
+        "delivery_status": "delivered",
+        "double_down": null,
+        "effective_best": null,
+        "finalized_at": "2027-03-24T23:00:00Z",
+        "objective": "reach57",
+        "primary": {
+          "batter_id": 601,
+          "batter_name": "Synthetic Batter 101",
+          "game_pk": 101,
+          "p_game_hit": 0.99,
+          "team": "ABC"
+        },
+        "saver_available": null,
+        "schema_version": "bts_daily_decision_v3",
+        "scoreable": true,
+        "second_candidate": null,
+        "source": "mdp",
+        "state_source": null,
+        "state_status": null,
+        "streak": null,
+        "tail_policy_sha256": null
+      },
+      "dms": [
+        "Today's pick: Synthetic Batter 101 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 9"
+      ],
+      "missed_alerts": 0,
+      "ok": true
+    },
+    "m6_best": {
+      "contest_alerts": 1,
+      "decision": null,
+      "dms": [],
+      "missed_alerts": 1,
+      "ok": true
+    },
+    "m6_saver": {
+      "contest_alerts": 1,
+      "decision": null,
+      "dms": [],
+      "missed_alerts": 1,
+      "ok": true
+    },
+    "m7_failed_retries": {
+      "calls": 2,
+      "ok": true,
+      "sent": 1,
+      "stale_flag": true,
+      "stale_warns": 1
+    },
+    "m7_stale_dm": {
+      "calls": 0,
+      "ok": true,
+      "sent": 1,
+      "stale_flag": true,
+      "stale_warns": 1
+    },
+    "m7_stale_public": {
+      "calls": 0,
+      "ok": true,
+      "sent": 1,
+      "stale_flag": true,
+      "stale_warns": 1
+    },
+    "m7_unconfirmed_no_warn": {
+      "calls": 1,
+      "ok": true,
+      "sent": 0,
+      "stale_flag": true,
+      "stale_warns": 0
+    },
+    "m8_partial_double": {
+      "committed_pk": 101,
+      "decision_action": "double",
+      "dms": [
+        "Today's picks (double down):\nSynthetic Batter 101 (ABC) vs Synthetic Pitcher \u2014 99.0%\nSynthetic Batter 102 (ABC) vs Synthetic Pitcher \u2014 98.0%\nP(both): 97.0%\n\nStreak: 0"
+      ],
+      "ok": true,
+      "postponed_alerts": 0,
+      "starts": [
+        "18:25",
+        "19:00"
+      ]
+    },
+    "m8_void_defer": {
+      "committed_pk": 101,
+      "decision_action": "double",
+      "dms": [
+        "Today's picks (double down):\nSynthetic Batter 101 (ABC) vs Synthetic Pitcher \u2014 99.0%\nSynthetic Batter 102 (ABC) vs Synthetic Pitcher \u2014 40.0%\nP(both): 39.6%\n\nStreak: 0"
+      ],
+      "ok": true,
+      "postponed_alerts": 0,
+      "starts": [
+        "18:25",
+        "18:47"
+      ]
+    },
+    "m8_void_deliver": {
+      "committed_pk": null,
+      "decision_action": null,
+      "dms": [],
+      "ok": true,
+      "postponed_alerts": 1,
+      "starts": [
+        "18:25",
+        "19:00"
+      ]
+    },
+    "m9_absence": {
+      "bytes_preserved": true,
+      "dm_count": 0,
+      "lexists": false,
+      "ok": true,
+      "raised": null,
+      "reused": null
+    },
+    "m9_dangling": {
+      "bytes_preserved": true,
+      "dm_count": 0,
+      "lexists": true,
+      "ok": true,
+      "raised": null,
+      "reused": null
+    },
+    "m9_directory": {
+      "bytes_preserved": true,
+      "dm_count": 0,
+      "lexists": true,
+      "ok": true,
+      "raised": "IsADirectoryError",
+      "reused": null
+    },
+    "m9_fifo": {
+      "bytes_preserved": true,
+      "dm_count": 0,
+      "lexists": true,
+      "ok": true,
+      "raised": "fifo_blocked",
+      "reused": null
+    },
+    "m9_invalid_time": {
+      "bytes_preserved": true,
+      "dm_count": 0,
+      "lexists": true,
+      "ok": true,
+      "raised": "ValueError",
+      "reused": null
+    },
+    "m9_json": {
+      "bytes_preserved": true,
+      "dm_count": 0,
+      "lexists": true,
+      "ok": true,
+      "raised": "JSONDecodeError",
+      "reused": null
+    },
+    "m9_shape": {
+      "bytes_preserved": true,
+      "dm_count": 0,
+      "lexists": true,
+      "ok": true,
+      "raised": "TypeError",
+      "reused": null
+    },
+    "m9_symlink_regular": {
+      "bytes_preserved": true,
+      "dm_count": 1,
+      "lexists": true,
+      "ok": true,
+      "raised": null,
+      "reused": false
+    },
+    "m9_unreadable": {
+      "bytes_preserved": true,
+      "dm_count": 0,
+      "lexists": true,
+      "ok": true,
+      "raised": "PermissionError",
+      "reused": null
+    },
+    "ruling1_signature": {
+      "default": null,
+      "has_kw": false,
+      "kind": null,
+      "ok": true
+    }
+  },
+  "head": {
+    "c2_dec_dangling": {
+      "dms": 1,
+      "ok": true,
+      "polled": [
+        101
+      ],
+      "raised": null,
+      "reused": false,
+      "scoreable_preserved": null,
+      "starts": [
+        "18:25",
+        "19:00"
+      ]
+    },
+    "c2_dec_directory": {
+      "dms": 1,
+      "ok": true,
+      "polled": [
+        101
+      ],
+      "raised": null,
+      "reused": false,
+      "scoreable_preserved": null,
+      "starts": [
+        "18:25",
+        "19:00"
+      ]
+    },
+    "c2_dec_empty": {
+      "dms": 1,
+      "ok": true,
+      "polled": [
+        101
+      ],
+      "raised": null,
+      "reused": false,
+      "scoreable_preserved": null,
+      "starts": [
+        "18:25",
+        "19:00"
+      ]
+    },
+    "c2_dec_fifo": {
+      "dms": 1,
+      "ok": true,
+      "polled": [
+        101
+      ],
+      "raised": null,
+      "reused": false,
+      "scoreable_preserved": null,
+      "starts": [
+        "18:25",
+        "19:00"
+      ]
+    },
+    "c2_dec_invalid_json": {
+      "dms": 1,
+      "ok": true,
+      "polled": [
+        101
+      ],
+      "raised": null,
+      "reused": false,
+      "scoreable_preserved": null,
+      "starts": [
+        "18:25",
+        "19:00"
+      ]
+    },
+    "c2_dec_scoreable_match": {
+      "dms": 0,
+      "ok": true,
+      "polled": [
+        101
+      ],
+      "raised": null,
+      "reused": null,
+      "scoreable_preserved": true,
+      "starts": [
+        "18:25"
+      ]
+    },
+    "c2_dec_scoreable_mismatch": {
+      "dms": 0,
+      "ok": true,
+      "polled": [],
+      "raised": null,
+      "reused": null,
+      "scoreable_preserved": true,
+      "starts": [
+        "18:25"
+      ]
+    },
+    "c2_dec_unhashable_action": {
+      "dms": 1,
+      "ok": true,
+      "polled": [
+        101
+      ],
+      "raised": null,
+      "reused": false,
+      "scoreable_preserved": null,
+      "starts": [
+        "18:25",
+        "19:00"
+      ]
+    },
+    "c2_dec_unreadable": {
+      "dms": 1,
+      "ok": true,
+      "polled": [
+        101
+      ],
+      "raised": null,
+      "reused": false,
+      "scoreable_preserved": null,
+      "starts": [
+        "18:25",
+        "19:00"
+      ]
+    },
+    "c2_dec_unscoreable": {
+      "dms": 1,
+      "ok": true,
+      "polled": [
+        101
+      ],
+      "raised": null,
+      "reused": true,
+      "scoreable_preserved": null,
+      "starts": [
+        "18:25"
+      ]
+    },
+    "c2_dec_wrong_date": {
+      "dms": 1,
+      "ok": true,
+      "polled": [
+        101
+      ],
+      "raised": null,
+      "reused": false,
+      "scoreable_preserved": null,
+      "starts": [
+        "18:25",
+        "19:00"
+      ]
+    },
+    "cutoff_within_3s_skips_polls": {
+      "deferred_archives": 1,
+      "ok": true,
+      "poll_calls_near_cutoff": [],
+      "status_calls_near_cutoff": []
+    },
+    "lw3_2_jun_auto_during_marker": {
+      "attempt_cleared": false,
+      "contest_alerts": [
+        "BTS health CRITICAL alert(s):\n- [contest_state] ET date changed after the final contest-state read"
+      ],
+      "decision": {
+        "action": "single",
+        "allow_double": null,
+        "best_status": "untrusted",
+        "best_streak": 4,
+        "contest_source_date": null,
+        "date": "2027-06-18",
+        "degraded_reason": null,
+        "delivery_status": "delivered",
+        "double_down": null,
+        "effective_best": null,
+        "finalized_at": "2027-06-19T04:00:07Z",
+        "objective": "reach57",
+        "primary": {
+          "batter_id": 601,
+          "batter_name": "Synthetic Batter 101",
+          "game_pk": 101,
+          "p_game_hit": 0.99,
+          "team": "ABC"
+        },
+        "saver_available": null,
+        "schema_version": "bts_daily_decision_v3",
+        "scoreable": true,
+        "second_candidate": null,
+        "source": "heuristic",
+        "state_source": null,
+        "state_status": null,
+        "streak": null,
+        "tail_policy_sha256": null
+      },
+      "dms": 1,
+      "ok": true,
+      "reads": [
+        "2027-06-18",
+        "2027-06-19"
+      ]
+    },
+    "lw3_2_jun_auto_during_read": {
+      "attempt_cleared": false,
+      "contest_alerts": [],
+      "decision": {
+        "action": "single",
+        "allow_double": true,
+        "best_status": "untrusted",
+        "best_streak": 4,
+        "contest_source_date": "2027-06-18",
+        "date": "2027-06-18",
+        "degraded_reason": null,
+        "delivery_status": "delivered",
+        "double_down": null,
+        "effective_best": null,
+        "finalized_at": "2027-06-19T04:00:01Z",
+        "objective": "reach57",
+        "primary": {
+          "batter_id": 601,
+          "batter_name": "Synthetic Batter 101",
+          "game_pk": 101,
+          "p_game_hit": 0.99,
+          "team": "ABC"
+        },
+        "saver_available": false,
+        "schema_version": "bts_daily_decision_v3",
+        "scoreable": true,
+        "second_candidate": null,
+        "source": "heuristic",
+        "state_source": "contest",
+        "state_status": "fresh",
+        "streak": 4,
+        "tail_policy_sha256": null
+      },
+      "dms": 1,
+      "ok": true,
+      "reads": [
+        "2027-06-18",
+        "2027-06-19"
+      ]
+    },
+    "lw3_2_jun_dated_before_read": {
+      "attempt_cleared": true,
+      "contest_alerts": [
+        "BTS health CRITICAL alert(s):\n- [contest_state] Live decision refused: season 2027 switch is absent.\nAlternative dated path \u2014 TEMPLATE: `bts set-contest-streak --date 2027-06-19 --streak N --best-streak B --saver S --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_jun_dated_before_read-kmeoqtqi/probe-z_jw7987/data/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_jun_dated_before_read-kmeoqtqi/probe-z_jw7987/data/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_jun_dated_before_read-kmeoqtqi/probe-z_jw7987/data/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_jun_dated_before_read-kmeoqtqi/probe-z_jw7987/data/picks`; then run `bts fetch-contest-streak --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_jun_dated_before_read-kmeoqtqi/probe-z_jw7987/data/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows."
+      ],
+      "decision": null,
+      "dms": 0,
+      "ok": true,
+      "reads": [
+        "2027-06-19",
+        "2027-06-19"
+      ]
+    },
+    "lw3_2_jun_dated_double_rollover": {
+      "attempt_cleared": true,
+      "contest_alerts": [
+        "BTS health CRITICAL alert(s):\n- [contest_state] Live decision refused: season 2027 switch is absent.\nAlternative dated path \u2014 TEMPLATE: `bts set-contest-streak --date 2027-06-19 --streak N --best-streak B --saver S --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_jun_dated_double_rollover-1x5ssh90/probe-5zw222he/data/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_jun_dated_double_rollover-1x5ssh90/probe-5zw222he/data/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_jun_dated_double_rollover-1x5ssh90/probe-5zw222he/data/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_jun_dated_double_rollover-1x5ssh90/probe-5zw222he/data/picks`; then run `bts fetch-contest-streak --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_jun_dated_double_rollover-1x5ssh90/probe-5zw222he/data/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows."
+      ],
+      "decision": null,
+      "dms": 0,
+      "ok": true,
+      "reads": [
+        "2027-06-18",
+        "2027-06-19",
+        "2027-06-19"
+      ]
+    },
+    "lw3_2_jun_dated_during_marker": {
+      "attempt_cleared": true,
+      "contest_alerts": [
+        "BTS health CRITICAL alert(s):\n- [contest_state] ET date changed after the final contest-state read"
+      ],
+      "decision": null,
+      "dms": 0,
+      "ok": true,
+      "reads": [
+        "2027-06-18",
+        "2027-06-19"
+      ]
+    },
+    "lw3_2_jun_dated_during_read": {
+      "attempt_cleared": true,
+      "contest_alerts": [
+        "BTS health CRITICAL alert(s):\n- [contest_state] Live decision refused: season 2027 switch is absent.\nAlternative dated path \u2014 TEMPLATE: `bts set-contest-streak --date 2027-06-19 --streak N --best-streak B --saver S --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_jun_dated_during_read-izkbx8da/probe-irzmj1wa/data/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_jun_dated_during_read-izkbx8da/probe-irzmj1wa/data/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_jun_dated_during_read-izkbx8da/probe-irzmj1wa/data/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_jun_dated_during_read-izkbx8da/probe-irzmj1wa/data/picks`; then run `bts fetch-contest-streak --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_jun_dated_during_read-izkbx8da/probe-irzmj1wa/data/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows."
+      ],
+      "decision": null,
+      "dms": 0,
+      "ok": true,
+      "reads": [
+        "2027-06-18",
+        "2027-06-19",
+        "2027-06-19"
+      ]
+    },
+    "lw3_2_ny_auto_during_read": {
+      "attempt_cleared": true,
+      "contest_alerts": [
+        "BTS health CRITICAL alert(s):\n- [contest_state] Live decision refused: season 2027 switch is other_season (file season 2026).\nAlternative dated path \u2014 TEMPLATE: `bts set-contest-streak --date 2027-01-01 --streak N --best-streak B --saver S --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_ny_auto_during_read-dctrg_t9/probe-55x9spun/data/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_ny_auto_during_read-dctrg_t9/probe-55x9spun/data/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_ny_auto_during_read-dctrg_t9/probe-55x9spun/data/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_ny_auto_during_read-dctrg_t9/probe-55x9spun/data/picks`; then run `bts fetch-contest-streak --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_ny_auto_during_read-dctrg_t9/probe-55x9spun/data/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows."
+      ],
+      "decision": null,
+      "dms": 0,
+      "ok": true,
+      "reads": [
+        "2026-12-31",
+        "2027-01-01",
+        "2027-01-01"
+      ]
+    },
+    "lw3_2_ny_dated_during_read": {
+      "attempt_cleared": true,
+      "contest_alerts": [
+        "BTS health CRITICAL alert(s):\n- [contest_state] Live decision refused: season 2027 switch is absent.\nAlternative dated path \u2014 TEMPLATE: `bts set-contest-streak --date 2027-01-01 --streak N --best-streak B --saver S --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_ny_dated_during_read-60v0__t1/probe-sdmj2_92/data/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_ny_dated_during_read-60v0__t1/probe-sdmj2_92/data/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_ny_dated_during_read-60v0__t1/probe-sdmj2_92/data/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_ny_dated_during_read-60v0__t1/probe-sdmj2_92/data/picks`; then run `bts fetch-contest-streak --picks-dir /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-lw3_2_ny_dated_during_read-60v0__t1/probe-sdmj2_92/data/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows."
+      ],
+      "decision": null,
+      "dms": 0,
+      "ok": true,
+      "reads": [
+        "2026-12-31",
+        "2027-01-01",
+        "2027-01-01"
+      ]
+    },
+    "m11_early_returns": {
+      "ok": true,
+      "shapes": {
+        "contest_error": {
+          "has_lock_decision": false,
+          "has_saved_bytes": false,
+          "keys": [
+            "new_lineups",
+            "pick_name",
+            "pick_p",
+            "pick_result",
+            "selection",
+            "should_post",
+            "skipped"
+          ]
+        },
+        "mdp_skip": {
+          "has_lock_decision": false,
+          "has_saved_bytes": false,
+          "keys": [
+            "new_lineups",
+            "pick_name",
+            "pick_p",
+            "pick_result",
+            "selection",
+            "should_post",
+            "skip_summary",
+            "skipped"
+          ]
+        },
+        "no_predictions": {
+          "has_lock_decision": false,
+          "has_saved_bytes": false,
+          "keys": [
+            "new_lineups",
+            "pick_name",
+            "pick_p",
+            "pick_result",
+            "selection",
+            "should_post",
+            "skip_summary",
+            "skipped"
+          ]
+        },
+        "scoreable_locked": {
+          "has_lock_decision": false,
+          "has_saved_bytes": false,
+          "keys": [
+            "new_lineups",
+            "pick_name",
+            "pick_p",
+            "pick_result",
+            "selection",
+            "should_post",
+            "skipped"
+          ]
+        },
+        "status_locked": {
+          "has_lock_decision": false,
+          "has_saved_bytes": false,
+          "keys": [
+            "new_lineups",
+            "pick_name",
+            "pick_p",
+            "pick_result",
+            "selection",
+            "should_post",
+            "skipped"
+          ]
+        },
+        "write_error": "raised_OSError"
+      }
+    },
+    "m1_overrun": {
+      "alerts": [],
+      "committed_batter": "Synthetic Batter 101",
+      "dms": [
+        [
+          "19:00:00",
+          "Today's pick: Synthetic Batter 101 (ABC)"
+        ]
+      ],
+      "ok": true,
+      "refreshes": [
+        {
+          "action": "deliver",
+          "duration_sec": 0.0,
+          "finished": "2027-03-24T19:00:00-04:00",
+          "reason": "primary_projected_no_window",
+          "reused_check_cascade": true,
+          "started": "2027-03-24T19:00:00-04:00"
+        }
+      ],
+      "scoreable": true,
+      "starts": [
+        "16:10",
+        "17:10",
+        "18:25"
+      ]
+    },
+    "m2_audit_replacement": {
+      "committed_id": 999,
+      "dm_count": 1,
+      "dm_matches_commit": true,
+      "ok": true,
+      "reused": false,
+      "starts": [
+        "18:25",
+        "19:00"
+      ]
+    },
+    "m2_nonmatching_selection": {
+      "committed_p": 0.99,
+      "ok": true
+    },
+    "m2_replacement": {
+      "committed_id": 999,
+      "dm_count": 1,
+      "dm_matches_commit": true,
+      "ok": true,
+      "reused": false,
+      "starts": [
+        "18:25",
+        "19:00"
+      ]
+    },
+    "m2_single_runner_up": {
+      "ok": false,
+      "returncode": 1,
+      "stderr": "e to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.\n  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[18:25 ET] Fetching schedule for 2027-03-24...\n  2 games, 2 scheduled checks:\n    18:25 ET \u2014 1 game(s)\n    19:25 ET \u2014 1 game(s)\n  Morning state check skipped: first lineup check is due within 10 minutes.\n\n[18:25 ET] Running lineup check...\n  4 new confirmed lineup(s). Running predictions...\n  Pick: Synthetic Batter 101 (ABC) 99.0%, gap=14.0% vs projected 85.0% \u2192 should_lock=True\n  LOCKED (lineup) \u2014 Pick DM sent: captured-dm\n  Pick locked. Stopping lineup checks.\n  Tomorrow's wake-up: Thu 03-25 10:00 ET\n  Waiting until 19:20 ET (game start + 10min, 20 min)...\n  Day complete. Result: captured-poll\nTraceback (most recent call last):\n  File \"/Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/probe_1_contract_and_required_rows.py\", line 1084, in <module>\n    main()\n  File \"/Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/probe_1_contract_and_required_rows.py\", line 1002, in main\n    out = worker_main(sys.argv[2], sys.argv[3])\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/probe_1_contract_and_required_rows.py\", line 219, in worker_main\n    \"reused\": st.fallback_refreshes[0][\"reused_check_cascade\"],\n              ~~~~~~~~~~~~~~~~~~~~~^^^\nTypeError: 'NoneType' object is not subscriptable\n",
+      "stdout": "CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0\nObservation written at /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/p1-head-m2_single_runner_up-0awwo0kf/probe-bvfj_iw4/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=30 best=30 saver=used reason=None\ncontest_streak: 30 (best 30, saver used) for 2027-03-24, in effect today\nTRANSPORT dm 2027-03-24T19:00:00-04:00 \"Today's pick: Synthetic Batter 101 (ABC)\\nvs Synthetic Pitcher | 99.0%\\n\\nStreak: 30\"\n"
+    },
+    "m2_warmup_cache": {
+      "best_streak": 18,
+      "expected_primary": {
+        "batter_id": 601,
+        "batter_name": "Synthetic Batter 101",
+        "game_pk": 101,
+        "p_game_hit": 0.99,
+        "team": "ABC"
+      },
+      "objective": "reach57",
+      "ok": true,
+      "primary": {
+        "batter_id": 601,
+        "batter_name": "Synthetic Batter 101",
+        "game_pk": 101,
+        "p_game_hit": 0.99,
+        "team": "ABC"
+      },
+      "reused": true
+    },
+    "m2_whitespace": {
+      "committed_id": 601,
+      "dm_count": 1,
+      "dm_matches_commit": true,
+      "ok": true,
+      "reused": false,
+      "starts": [
+        "18:25",
+        "19:00"
+      ]
+    },
+    "m2_wrong_pick_date": {
+      "committed_id": 601,
+      "dm_count": 1,
+      "dm_matches_commit": true,
+      "ok": true,
+      "reused": false,
+      "starts": [
+        "18:25",
+        "19:00"
+      ]
+    },
+    "m3_defer_no_coalesce_no_inherit": {
+      "checks": [
+        "18:25",
+        "19:00"
+      ],
+      "coalesced": [],
+      "committed_pk": 102,
+      "ok": true,
+      "refreshes": [
+        {
+          "action": "defer",
+          "duration_sec": 0.0,
+          "finished": "2027-03-24T19:00:00-04:00",
+          "reason": "primary_projected_pending_window",
+          "reused_check_cascade": true,
+          "started": "2027-03-24T19:00:00-04:00"
+        },
+        {
+          "action": "deliver",
+          "duration_sec": 0.0,
+          "finished": "2027-03-24T19:00:00-04:00",
+          "reason": "dd_gate_only",
+          "reused_check_cascade": true,
+          "started": "2027-03-24T19:00:00-04:00"
+        }
+      ]
+    },
+    "m3_equality": {
+      "dm_count": 1,
+      "duration_sec": 0.0,
+      "ok": true,
+      "reused": true,
+      "starts": [
+        "18:25"
+      ]
+    },
+    "m3_sleep": {
+      "dm_count": 1,
+      "duration_sec": 0.0,
+      "ok": true,
+      "reused": false,
+      "starts": [
+        "18:25",
+        "18:35"
+      ]
+    },
+    "m4_skip_survives_warmup": {
+      "decision_action": "single",
+      "ok": true,
+      "pick_dms": 1,
+      "scoreable": true
+    },
+    "m4_skip_yields_to_genuine": {
+      "decision_action": "single",
+      "ok": true,
+      "pick_dms": 1,
+      "scoreable": true
+    },
+    "m5_marker_cutoff_dm": {
+      "archived_attempt_flag": false,
+      "archived_auto_reading": null,
+      "attempt_flags": [
+        false,
+        true,
+        false
+      ],
+      "decision": null,
+      "late_alerts": 1,
+      "ok": true,
+      "sent": 0,
+      "stale_warns": 0,
+      "starts": [
+        "18:25:00"
+      ]
+    },
+    "m5_marker_cutoff_public": {
+      "archived_attempt_flag": false,
+      "archived_auto_reading": null,
+      "attempt_flags": [
+        false,
+        true,
+        false
+      ],
+      "decision": null,
+      "late_alerts": 1,
+      "ok": true,
+      "sent": 0,
+      "stale_warns": 0,
+      "starts": [
+        "18:25:00"
+      ]
+    },
+    "m5_reload_cutoff_with_pending_window": {
+      "committed_pk": 102,
+      "deferred_archives": 0,
+      "late_alerts": 1,
+      "ok": true,
+      "refused_archives": 1,
+      "starts": [
+        "18:25",
+        "19:05"
+      ]
+    },
+    "m6_auto_to_auto": {
+      "contest_alerts": 0,
+      "decision": {
+        "action": "single",
+        "allow_double": true,
+        "best_status": "untrusted",
+        "best_streak": 2,
+        "contest_source_date": "2027-03-24",
+        "date": "2027-03-24",
+        "degraded_reason": null,
+        "delivery_status": "delivered",
+        "double_down": null,
+        "effective_best": null,
+        "finalized_at": "2027-03-24T23:00:00Z",
+        "objective": "reach57",
+        "primary": {
+          "batter_id": 601,
+          "batter_name": "Synthetic Batter 101",
+          "game_pk": 101,
+          "p_game_hit": 0.99,
+          "team": "ABC"
+        },
+        "saver_available": false,
+        "schema_version": "bts_daily_decision_v3",
+        "scoreable": true,
+        "second_candidate": null,
+        "source": "mdp",
+        "state_source": "contest",
+        "state_status": "fresh",
+        "streak": 2,
+        "tail_policy_sha256": null
+      },
+      "dms": [
+        "Today's pick: Synthetic Batter 101 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 9"
+      ],
+      "missed_alerts": 0,
+      "ok": true
+    },
+    "m6_best": {
+      "contest_alerts": 1,
+      "decision": null,
+      "dms": [],
+      "missed_alerts": 1,
+      "ok": true
+    },
+    "m6_saver": {
+      "contest_alerts": 1,
+      "decision": null,
+      "dms": [],
+      "missed_alerts": 1,
+      "ok": true
+    },
+    "m7_failed_retries": {
+      "calls": 2,
+      "ok": true,
+      "sent": 1,
+      "stale_flag": true,
+      "stale_warns": 1
+    },
+    "m7_stale_dm": {
+      "calls": 0,
+      "ok": true,
+      "sent": 1,
+      "stale_flag": true,
+      "stale_warns": 1
+    },
+    "m7_stale_public": {
+      "calls": 0,
+      "ok": true,
+      "sent": 1,
+      "stale_flag": true,
+      "stale_warns": 1
+    },
+    "m7_unconfirmed_no_warn": {
+      "calls": 1,
+      "ok": true,
+      "sent": 0,
+      "stale_flag": true,
+      "stale_warns": 0
+    },
+    "m8_partial_double": {
+      "committed_pk": 101,
+      "decision_action": "double",
+      "dms": [
+        "Today's picks (double down):\nSynthetic Batter 101 (ABC) vs Synthetic Pitcher \u2014 99.0%\nSynthetic Batter 102 (ABC) vs Synthetic Pitcher \u2014 98.0%\nP(both): 97.0%\n\nStreak: 0"
+      ],
+      "ok": true,
+      "postponed_alerts": 0,
+      "starts": [
+        "18:25"
+      ]
+    },
+    "m8_void_defer": {
+      "committed_pk": 102,
+      "decision_action": "single",
+      "dms": [
+        "Today's pick: Synthetic Batter 102 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 0"
+      ],
+      "ok": true,
+      "postponed_alerts": 0,
+      "starts": [
+        "18:25",
+        "18:50"
+      ]
+    },
+    "m8_void_deliver": {
+      "committed_pk": null,
+      "decision_action": null,
+      "dms": [],
+      "ok": true,
+      "postponed_alerts": 1,
+      "starts": [
+        "18:25"
+      ]
+    },
+    "m9_absence": {
+      "bytes_preserved": true,
+      "dm_count": 0,
+      "lexists": false,
+      "ok": true,
+      "raised": null,
+      "reused": null
+    },
+    "m9_dangling": {
+      "bytes_preserved": true,
+      "dm_count": 0,
+      "lexists": true,
+      "ok": true,
+      "raised": null,
+      "reused": null
+    },
+    "m9_directory": {
+      "bytes_preserved": true,
+      "dm_count": 0,
+      "lexists": true,
+      "ok": true,
+      "raised": "IsADirectoryError",
+      "reused": null
+    },
+    "m9_fifo": {
+      "bytes_preserved": true,
+      "dm_count": 0,
+      "lexists": true,
+      "ok": true,
+      "raised": "fifo_blocked",
+      "reused": null
+    },
+    "m9_invalid_time": {
+      "bytes_preserved": true,
+      "dm_count": 0,
+      "lexists": true,
+      "ok": true,
+      "raised": "ValueError",
+      "reused": null
+    },
+    "m9_json": {
+      "bytes_preserved": true,
+      "dm_count": 0,
+      "lexists": true,
+      "ok": true,
+      "raised": "JSONDecodeError",
+      "reused": null
+    },
+    "m9_shape": {
+      "bytes_preserved": true,
+      "dm_count": 0,
+      "lexists": true,
+      "ok": true,
+      "raised": "TypeError",
+      "reused": null
+    },
+    "m9_symlink_regular": {
+      "bytes_preserved": true,
+      "dm_count": 1,
+      "lexists": true,
+      "ok": true,
+      "raised": null,
+      "reused": true
+    },
+    "m9_unreadable": {
+      "bytes_preserved": true,
+      "dm_count": 0,
+      "lexists": true,
+      "ok": true,
+      "raised": "PermissionError",
+      "reused": null
+    },
+    "ruling1_signature": {
+      "default": false,
+      "has_kw": true,
+      "kind": "KEYWORD_ONLY",
+      "ok": true
+    },
+    "shared_budget_and_late_daemon": {
+      "committed_pk": 102,
+      "confirmed_snapshots": [
+        [
+          [
+            101,
+            "away"
+          ],
+          [
+            101,
+            "home"
+          ]
+        ],
+        [
+          [
+            101,
+            "away"
+          ],
+          [
+            101,
+            "home"
+          ],
+          [
+            102,
+            "away"
+          ]
+        ],
+        [
+          [
+            101,
+            "away"
+          ],
+          [
+            101,
+            "home"
+          ],
+          [
+            102,
+            "away"
+          ]
+        ]
+      ],
+      "elapsed_sec": 2.09,
+      "later_check_ran_before_slow_finished": true,
+      "ok": true,
+      "starts": [
+        "18:25:00",
+        "18:50:00"
+      ],
+      "state_confirmed_pks": [
+        101,
+        102
+      ]
+    }
+  }
+}
