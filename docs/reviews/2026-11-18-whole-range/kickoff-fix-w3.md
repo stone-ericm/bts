@@ -1,0 +1,49 @@
+# Change set W3: an overrunning lineup check's decision is reused by the in-loop fallback. Version 1, for a contract check
+
+Written 2026-11-22 by `bts-wr-fresh6` (kickoff `~/bts-runs/kickoff-wr-fresh6-2026-11-21.md`, task 2; Eric 2026-11-20: "build after backtests finish", done 07:41). Tier A (pick path: scheduler timing and delivery). Source: whole-range finding W3 (`FINDINGS.md`), slice 3 (`slice-3-codex/report.md`, `interactions.py::overrun_double_cascade`), and the contract check of fix set A, section A3 (`contract-check-a/contract-check.md`): **its "Replacement A3" paragraph and every bullet under it are this contract's required behaviour and tests**, quoted and made precise below. Where this file and that text differ, this file governs. If the contract check of THIS file, or a round-1 review, shows the design unsafe, the change set stops (the kickoff; Eric has twice chosen to leave a timing hazard documented rather than build an unsafe fix).
+
+## Today (on `main`)
+`scheduler.run_single_check` saves the candidate pick, computes `decision = _lock_decision_from_predictions(...)`, and returns `{"skipped", "new_lineups", "should_post", "pick_result", "pick_name", "pick_p", "selection"}` WITHOUT the decision. In `run_day`, when no later planned check starts before the fallback deadline of the pick's earliest game, the loop sleeps to that deadline (or does not sleep if it is already past) and runs the fallback. Its reuse branch (`fresh_decision = result.get("lock_decision")`, used only when it did not sleep) never finds the key, so an overrunning check (the cascade finished after the deadline) always starts a SECOND full cascade (`_refresh_pick_at_fallback_decision`), which can miss the submission cutoff (first pitch minus 5) and end the day with no pick and a late-delivery alert (slice 3: a 19:00 finish with a 19:05 cutoff; the second cascade finished 19:06). The contract check showed that returning the key alone is unsafe: the fallback reloads the pick file, and if that file was replaced between the check and the fallback, the reused decision was made for another candidate (it DM'd the replacement batter and committed the original one).
+
+## Required (the A3 replacement text, made precise)
+1. **The key.** The normal successful unlocked return of `run_single_check` (the path that saves the candidate and computes the decision) carries `"lock_decision": decision` (the exact `LockDecision` object already computed) and `"saved_pick_bytes": <the exact bytes save_pick wrote for this candidate>` (or an equivalent exact identity of what this check saved; the author names it in the handover). Every other key and every early-return shape (skipped, locked, no pick, errors) is unchanged.
+2. **Reuse only for an immediate in-loop overrun.** In `run_day`'s fallback, the reuse branch runs only when (a) the loop did NOT sleep before this fallback (`slept_to_deadline` false), (b) the result is from this same loop iteration's check, and (c) the pick file reloaded at the fallback is byte-identical to what that check saved (`picks.load_pick_bytes`; the reloaded `DailyPick` is then delivered). Never carry the key across a sleep, a different check, a restart or a re-entry of `run_day`.
+3. **Deliver the reloaded candidate as a saved pick.** The reloaded object goes through `_deliver_and_lock_pick` exactly as today's fallback delivery does, so every existing guard applies: the live cutoff (`SUBMISSION_CUTOFF_MIN`), the playable-game guard, the saved-pick state check (`picks.saved_pick_refusal` against the final contest-state read, W2/A2), the 4c stale-reading record and warning, the attempt marker and the lock. `selection` is passed ONLY when it is the selection that produced the matching candidate (it is, under (c)); otherwise the saved pick's own metadata is used.
+4. **Anything else takes today's path.** A replaced candidate (bytes differ) takes the normal guarded refresh path (`_refresh_pick_at_fallback_decision`) with its own timing and metadata. An absent candidate (no file) leaves the later checks available, as today. A delivered, attempted or scoreable-committed candidate keeps its existing recovery. An unreadable, malformed or non-regular pick file at the reload fails closed as today's fallback does (no send; the file is left in place as evidence; say in the handover exactly what today's code does with each).
+5. **Preserve the planner.** `plan_fallback_action` gets its full inputs as today (every contender, the remaining runs, confirmations, the effective budget, the operator reserve), the standing-skip rules (a genuine MDP skip, standing `final_skip_candidate`) and A2. Reuse intentionally gives up the second cascade's chance to see a new lineup or pick. A projected primary can defer under the existing planner even where a failed second cascade formerly delivered the cached pick; a later window stays available after a defer. The reuse records `reused_check_cascade: true` in `state.fallback_refreshes` as today's branch already does.
+6. **Clock.** After any sleep or I/O, the live ET clock is sampled again and judged against the original slate's absolute cutoff (as today: `submission_cutoff_et(daily)` and `_now_et()` after the reload).
+
+## Must still fire, must still fail closed (written before the author starts; each a test)
+| # | State | Must |
+|---|---|---|
+| M1 | The overrun: the 18:25 check's cascade finishes after the fallback deadline with a deliverable pick, cutoff 19:05 (slice 3) | ONE cascade at 18:25, none at 19:00; reuse recorded; one guarded send before 19:05; one commit (RED on `main`) |
+| M2 | Same, but the pick file is replaced between the check and the fallback (another batter) | no reuse; the normal refresh path runs; the batter sent equals the batter committed (or nothing is sent) |
+| M3 | The loop slept to the deadline (a check earlier in the day, nothing later before the deadline) | no reuse; today's refresh path, byte-for-byte today's behaviour |
+| M4 | A standing genuine MDP skip (this or an earlier cycle) | no cached delivery (as today) |
+| M5 | The cutoff is reached during the final contest-state read or the reload | no send; today's late-delivery alert |
+| M6 | A dated observation corrected between the check's selection read and the final read | refused by `saved_pick_refusal` (A2); today's `contest_state` alert; nothing sent |
+| M7 | A confirmed stale automatic reading | the pick goes out and the 4c warning is sent (as today) |
+| M8 | All the pick's games void or postponed | today's playable-game refusal |
+| M9 | The pick file is absent, malformed, a directory or a FIFO at the reload | no send, no crash loop beyond today's, evidence left; later checks still run where today's code runs them |
+| M10 | The pick was delivered, or a delivery attempted, before the fallback | today's recovery (no resend; DELIVERY OUTCOME UNKNOWN where today) |
+| M11 | The check returned early (skipped, locked, no pick, an error) | no key; today's behaviour |
+| M12 | The existing injected-key test (`tests/test_incident_2026_08_30.py`) and `tests/test_saved_pick_paths_cs5a.py`'s consumer test | still pass (if one asserts something this contract changes, STOP and ask, naming the test) |
+
+## Standing hostile-input rows (each tested or argued in the handover)
+- **Interrupt mid-step** (`KeyboardInterrupt`, `SystemExit`) between the check's return and the fallback's send: nothing committed; a saved pick stays uncommitted; a restart re-reads durable state and respects attempts and commits; the key is not persisted anywhere.
+- **Malformed or non-regular file** at the reload: M9.
+- **Midnight ET and the year boundary** between the check and the fallback: the cutoff is the original slate's absolute time; the final state read uses the live clock (A2's rule).
+- **A failed or unconfirmed send**: today's handling (failed send clears the marker and returns; unconfirmed leaves the attempt; C2's alert on restart).
+- **A restart mid-step**: no reuse after a restart (the key lives only in the iteration's result); the restart takes today's path.
+
+## Operator text
+No new printed line is required. If the author adds or changes any line an operator reads (journal, DM, alert), each sentence is listed in the handover with its worst state (what an operator who follows it literally does).
+
+## Tests (the author's)
+New module `tests/test_wr_w3.py`: M1 as `test_real_overrun_reuses_the_same_candidate_before_cutoff`, driving the UNMODIFIED `run_single_check` (predictions, transports and the clock are stubbed at the same seams as `slice-3-codex/interactions.py`, whose offline world may be adopted), RED on `main`; M2 to M11 as controls; adopt slice 3's `overrun_double_cascade` with its assertions inverted to the required outcome. Self-contained: pinned clocks, captured transports, no network, no module-level import of `bts.model.predict`, no process-wide state left changed; run in one process with `tests/test_lightgbm_optional.py` and `tests/test_web_saver.py`.
+
+## Author's run rules
+Worktree `~/projects/bts-work/wr-fix-w3`, branch `fix/wr-w3` from current `origin/main`. Tests first, RED on the base; then the change; focused tests; ONE commit. Every pytest through `~/bts-runs/yield_run.sh` and only after `pgrep -f yield_run.sh` shows nothing; the fast suite only on the COMMITTED tree. Patch tool for files; no pattern kill; bounded reads. **If an existing test asserts behaviour this contract changes, STOP and ask, naming the test.** Never push, never touch `deploy`.
+
+## Handover
+`HANDOVER-WR-W3.md` in the worktree root (not committed): the commit; files and lines; per row the test and its RED status; the standing rows; M9's exact today-behaviour per file kind; any operator text; what ran, with counts. Then print `WRW3-<first 8 hex characters of the sha256 of HANDOVER-WR-W3.md>` and `DONE`.
