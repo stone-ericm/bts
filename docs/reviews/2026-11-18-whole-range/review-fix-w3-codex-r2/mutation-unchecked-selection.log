@@ -1,0 +1,48 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-review-w3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 76 items / 75 deselected / 1 selected
+
+tests/test_wr_w3.py F                                                    [100%]
+
+=================================== FAILURES ===================================
+_____________ test_warmup_cached_selection_commits_saved_pick_rows _____________
+tests/test_wr_w3.py:840: in test_warmup_cached_selection_commits_saved_pick_rows
+    assert record["primary"] == scheduler._row_from_daily(cached.pick)
+E   AssertionError: assert None == {'batter_id': 601, 'batter_name': 'Synthetic Batter 101', 'game_pk': 101, 'p_game_hit': 0.99, ...}
+E    +  where {'batter_id': 601, 'batter_name': 'Synthetic Batter 101', 'game_pk': 101, 'p_game_hit': 0.99, ...} = <function _row_from_daily at 0x11051dda0>(Pick(batter_name='Synthetic Batter 101', batter_id=601, team='ABC', lineup_position=1, pitcher_name='Synthetic Pitcher....99, flags=['PROJECTED'], projected_lineup=True, game_pk=101, game_time='2027-03-24T19:10:00-04:00', pitcher_team=None))
+E    +    where <function _row_from_daily at 0x11051dda0> = scheduler._row_from_daily
+E    +    and   Pick(batter_name='Synthetic Batter 101', batter_id=601, team='ABC', lineup_position=1, pitcher_name='Synthetic Pitcher....99, flags=['PROJECTED'], projected_lineup=True, game_pk=101, game_time='2027-03-24T19:10:00-04:00', pitcher_team=None) = DailyPick(date='2027-03-24', run_time='2027-03-24T22:25:00+00:00', pick=Pick(batter_name='Synthetic Batter 101', batte...{'effective_date': '2027-03-24', 'active_streak': 0, 'best_streak': 0, 'saver_state': 'used'}}, automatic_reading=None).pick
+----------------------------- Captured stdout call -----------------------------
+CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0
+Observation written at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-124/test_warmup_cached_selection_c0/probe-154t_ch5/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=0 best=0 saver=used reason=None
+contest_streak: 0 (best 0, saver used) for 2027-03-24, in effect today
+TRANSPORT dm 2027-03-24T19:00:00-04:00 "Today's pick: Synthetic Batter 101 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 0"
+----------------------------- Captured stderr call -----------------------------
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Selected slot's game 101 is no longer available (postponed/started/missing); should_lock=False.
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK — delivering (legacy_no_window) before the 19:05 ET cutoff.
+  LOCKED (fallback) — Pick DM sent: captured-dm
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 20 min)...
+  Day complete. Result: captured-poll
+------------------------------ Captured log call -------------------------------
+ERROR    bts.strategy:strategy.py:96 MDP base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz')
+ERROR    bts.strategy:strategy.py:103 MDP tail policy not usable (base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz'): tail pairing unverifiable)
+=========================== short test summary info ============================
+FAILED tests/test_wr_w3.py::test_warmup_cached_selection_commits_saved_pick_rows
+======================= 1 failed, 75 deselected in 2.03s =======================

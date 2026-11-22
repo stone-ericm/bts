@@ -1,0 +1,20 @@
+no-byte-match            DETECTED      2.44s  ======================= 3 failed, 73 deselected in 2.03s =======================
+sleep-reuse              DETECTED      2.40s  ======================= 1 failed, 75 deselected in 1.99s =======================
+no-post-marker-cutoff    DETECTED      2.54s  ======================= 4 failed, 72 deselected in 2.03s =======================
+no-et-day-check          DETECTED      2.41s  ======================= 4 failed, 72 deselected in 2.02s =======================
+no-scoreable-check       DETECTED      2.37s  ======================= 2 failed, 74 deselected in 1.96s =======================
+apply-late-results       DETECTED      4.61s  ======================= 1 failed, 75 deselected in 4.20s =======================
+unchecked-selection      DETECTED      2.43s  ======================= 1 failed, 75 deselected in 2.03s =======================
+coalesce-reuse-defer     DETECTED      2.32s  ======================= 1 failed, 75 deselected in 1.94s =======================
+no-final-decision-read   DETECTED      2.33s  ======================= 1 failed, 75 deselected in 1.94s =======================
+separate-status-budget   DETECTED      9.82s  ================== 1 failed, 2 passed, 73 deselected in 9.42s ==================
+poll-mismatched-commit   DETECTED      2.32s  ================== 1 failed, 1 passed, 74 deselected in 1.93s ==================
+no-final-pick-read       DETECTED      2.47s  ================== 4 failed, 1 passed, 71 deselected in 2.07s ==================
+game-not-side            DETECTED      4.39s  ======================= 1 failed, 75 deselected in 3.99s =======================
+capture-from-readback    DETECTED      2.30s  ======================= 1 failed, 75 deselected in 1.91s =======================
+no-final-replan          DETECTED      2.35s  ======================= 2 failed, 74 deselected in 1.96s =======================
+no-clear-retry           DETECTED      2.40s  ======================= 2 failed, 74 deselected in 2.02s =======================
+no-locked-unconfirmed-alert DETECTED      2.34s  ======================= 1 failed, 75 deselected in 1.94s =======================
+late-before-void         DETECTED      2.37s  ================== 1 failed, 1 passed, 74 deselected in 1.95s ==================
+no-shadow-initial-commit DETECTED      2.41s  ======================= 1 failed, 75 deselected in 1.96s =======================
+reuse-log-before-rereads DETECTED      2.32s  ======================= 1 failed, 75 deselected in 1.92s =======================

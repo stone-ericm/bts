@@ -1,0 +1,79 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-review-w3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 76 items / 74 deselected / 2 selected
+
+tests/test_wr_w3.py FF                                                   [100%]
+
+=================================== FAILURES ===================================
+_______________ test_reuse_replans_gap_after_status_read[False] ________________
+tests/test_wr_w3.py:742: in test_reuse_replans_gap_after_status_read
+    assert plans[-1] == (at(18, 43, 1), "gap_no_feasible_window")
+E   AssertionError: assert (datetime.dat...dow_feasible') == (datetime.dat...sible_window')
+E     
+E     At index 0 diff: datetime.datetime(2027, 3, 24, 18, 42, 59, tzinfo=zoneinfo.ZoneInfo(key='America/New_York')) != datetime.datetime(2027, 3, 24, 18, 43, 1, tzinfo=zoneinfo.ZoneInfo(key='America/New_York'))
+E     Use -v to get more diff
+----------------------------- Captured stdout call -----------------------------
+CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0
+Observation written at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-132/test_reuse_replans_gap_after_s0/probe-8mrt9tbc/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=30 best=30 saver=used reason=None
+contest_streak: 30 (best 30, saver used) for 2027-03-24, in effect today
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-03-24...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:42 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0%, gap=1.0% vs projected 98.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK DEFERRED — gap_contender_window_feasible; window at 18:42 ET; archived deferred_fallback_20270324T184301-0400.json.
+
+[18:43 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+------------------------------ Captured log call -------------------------------
+ERROR    bts.strategy:strategy.py:96 MDP base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz')
+ERROR    bts.strategy:strategy.py:103 MDP tail policy not usable (base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz'): tail pairing unverifiable)
+________________ test_reuse_replans_gap_after_status_read[True] ________________
+tests/test_wr_w3.py:742: in test_reuse_replans_gap_after_status_read
+    assert plans[-1] == (at(18, 43, 1), "gap_no_feasible_window")
+E   AssertionError: assert (datetime.dat...dow_feasible') == (datetime.dat...sible_window')
+E     
+E     At index 0 diff: datetime.datetime(2027, 3, 24, 18, 42, 59, tzinfo=zoneinfo.ZoneInfo(key='America/New_York')) != datetime.datetime(2027, 3, 24, 18, 43, 1, tzinfo=zoneinfo.ZoneInfo(key='America/New_York'))
+E     Use -v to get more diff
+----------------------------- Captured stdout call -----------------------------
+CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0
+Observation written at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-132/test_reuse_replans_gap_after_s1/probe-snr78vo4/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=30 best=30 saver=used reason=None
+contest_streak: 30 (best 30, saver used) for 2027-03-24, in effect today
+CLI 2027-03-24T18:43:01-04:00 set-contest-streak --date: 0
+Observation written at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-132/test_reuse_replans_gap_after_s1/probe-snr78vo4/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=30 best=31 saver=used reason=None
+contest_streak: 30 (best 31, saver used) for 2027-03-24, in effect today
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-03-24...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:42 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0%, gap=1.0% vs projected 98.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK DEFERRED — gap_contender_window_feasible; window at 18:42 ET; archived deferred_fallback_20270324T184301-0400.json.
+
+[18:43 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+------------------------------ Captured log call -------------------------------
+ERROR    bts.strategy:strategy.py:96 MDP base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz')
+ERROR    bts.strategy:strategy.py:103 MDP tail policy not usable (base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz'): tail pairing unverifiable)
+=========================== short test summary info ============================
+FAILED tests/test_wr_w3.py::test_reuse_replans_gap_after_status_read[False]
+FAILED tests/test_wr_w3.py::test_reuse_replans_gap_after_status_read[True] - ...
+======================= 2 failed, 74 deselected in 1.96s =======================

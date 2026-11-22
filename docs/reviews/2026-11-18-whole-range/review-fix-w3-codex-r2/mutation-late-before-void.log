@@ -1,0 +1,45 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-review-w3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 76 items / 74 deselected / 2 selected
+
+tests/test_wr_w3.py .F                                                   [100%]
+
+=================================== FAILURES ===================================
+________ test_reused_postponed_pick_takes_void_refusal_at_cutoff[defer] ________
+tests/test_wr_w3.py:358: in test_reused_postponed_pick_takes_void_refusal_at_cutoff
+    assert refusal["reason"] == "game_not_playable"
+E   AssertionError: assert 'past_submission_cutoff' == 'game_not_playable'
+E     
+E     - game_not_playable
+E     + past_submission_cutoff
+----------------------------- Captured stdout call -----------------------------
+CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0
+Observation written at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-135/test_reused_postponed_pick_tak1/probe-o8ign3sm/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=30 best=30 saver=used reason=None
+contest_streak: 30 (best 30, saver used) for 2027-03-24, in effect today
+TRANSPORT health-dm 2027-03-24T19:05:01-04:00 'BTS health CRITICAL alert(s):\n- [late_delivery] LATE DELIVERY REFUSED: Synthetic Batter 101 would have been sent 0 min after the 19:05 ET cutoff. Nothing delivered; the scheduler will re-pick from later games if any remain. Enter a pick manually if you want one now.'
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-03-24...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:50 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0%, gap=59.0% vs projected 40.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  DELIVERY REFUSED (fallback) — Synthetic Batter 101: submission cutoff 19:05 ET passed 0.0 min ago; not delivering an unenterable pick.
+
+[19:05 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+------------------------------ Captured log call -------------------------------
+ERROR    bts.strategy:strategy.py:96 MDP base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz')
+ERROR    bts.strategy:strategy.py:103 MDP tail policy not usable (base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz'): tail pairing unverifiable)
+=========================== short test summary info ============================
+FAILED tests/test_wr_w3.py::test_reused_postponed_pick_takes_void_refusal_at_cutoff[defer]
+================== 1 failed, 1 passed, 74 deselected in 1.95s ==================

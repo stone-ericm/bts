@@ -1,0 +1,293 @@
+nice: setpriority: Operation not permitted
+/Users/eric/.matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/matplotlib-ddg2njaw because there was an issue with the default path (/Users/eric/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK — delivering (primary_projected_no_window) before the 19:05 ET cutoff.
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[19:05 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[19:05 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 15 min)...
+  Day complete. Result: captured-poll
+CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/r2/probe-ae5r8l04/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=0 best=0 saver=used reason=None
+contest_streak: 0 (best 0, saver used) for 2027-03-24, in effect today
+TRANSPORT health-dm 2027-03-24T19:05:01-04:00 "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-03-24 ET. Do not enter or change a pick based on this alert. If 2027-03-24 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+REFUSAL {"edge": "cutoff", "mode": "dm", "faults": ["OSError", "OSError"], "first_run_marker_retained": true, "first_run_alerts": [], "restart_status": "locked_unconfirmed", "restart_alerts": ["- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-03-24 ET. Do not enter or change a pick based on this alert. If 2027-03-24 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."], "pick_transport_calls": 0}
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK — delivering (primary_projected_no_window) before the 19:05 ET cutoff.
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[19:05 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[19:05 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 15 min)...
+  Day complete. Result: captured-poll
+CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/r2/probe-7s9833dv/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=0 best=0 saver=used reason=None
+contest_streak: 0 (best 0, saver used) for 2027-03-24, in effect today
+TRANSPORT health-dm 2027-03-24T19:05:01-04:00 "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-03-24 ET. Do not enter or change a pick based on this alert. If 2027-03-24 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+REFUSAL {"edge": "cutoff", "mode": "dm", "faults": ["OSError", "KeyboardInterrupt"], "first_run_marker_retained": true, "first_run_alerts": [], "restart_status": "locked_unconfirmed", "restart_alerts": ["- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-03-24 ET. Do not enter or change a pick based on this alert. If 2027-03-24 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."], "pick_transport_calls": 0}
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK — delivering (primary_projected_no_window) before the 19:05 ET cutoff.
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[19:05 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[19:05 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 15 min)...
+  Day complete. Result: captured-poll
+CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/r2/probe-8w8b7ur8/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=0 best=0 saver=used reason=None
+contest_streak: 0 (best 0, saver used) for 2027-03-24, in effect today
+TRANSPORT health-dm 2027-03-24T19:05:01-04:00 "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-03-24 ET. Do not enter or change a pick based on this alert. If 2027-03-24 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+REFUSAL {"edge": "cutoff", "mode": "dm", "faults": ["OSError", "SystemExit"], "first_run_marker_retained": true, "first_run_alerts": [], "restart_status": "locked_unconfirmed", "restart_alerts": ["- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-03-24 ET. Do not enter or change a pick based on this alert. If 2027-03-24 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."], "pick_transport_calls": 0}
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK — delivering (primary_projected_no_window) before the 19:05 ET cutoff.
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[19:05 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[19:05 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 15 min)...
+  Day complete. Result: captured-poll
+CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/r2/probe-e894ukoe/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=0 best=0 saver=used reason=None
+contest_streak: 0 (best 0, saver used) for 2027-03-24, in effect today
+TRANSPORT health-dm 2027-03-24T19:05:01-04:00 "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-03-24 ET. Do not enter or change a pick based on this alert. If 2027-03-24 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+REFUSAL {"edge": "cutoff", "mode": "dm", "faults": ["KeyboardInterrupt"], "first_run_marker_retained": true, "first_run_alerts": [], "restart_status": "locked_unconfirmed", "restart_alerts": ["- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-03-24 ET. Do not enter or change a pick based on this alert. If 2027-03-24 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."], "pick_transport_calls": 0}
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK — delivering (primary_projected_no_window) before the 19:05 ET cutoff.
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[19:05 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[19:05 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 15 min)...
+  Day complete. Result: captured-poll
+CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/r2/probe-6gqiax1p/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=0 best=0 saver=used reason=None
+contest_streak: 0 (best 0, saver used) for 2027-03-24, in effect today
+TRANSPORT health-dm 2027-03-24T19:05:01-04:00 "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-03-24 ET. Do not enter or change a pick based on this alert. If 2027-03-24 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+REFUSAL {"edge": "cutoff", "mode": "dm", "faults": ["SystemExit"], "first_run_marker_retained": true, "first_run_alerts": [], "restart_status": "locked_unconfirmed", "restart_alerts": ["- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-03-24 ET. Do not enter or change a pick based on this alert. If 2027-03-24 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."], "pick_transport_calls": 0}
+[23:20 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    23:20 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:20 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK — delivering (primary_projected_no_window) before the 00:25 ET cutoff.
+[00:00 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    23:20 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[00:00 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 00:40 ET (game start + 10min, 40 min)...
+  Day complete. Result: captured-poll
+CLI 2027-03-24T23:20:00-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/r2/probe-gp78tdeb/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=0 best=0 saver=used reason=None
+contest_streak: 0 (best 0, saver used) for 2027-03-24, in effect today
+TRANSPORT health-dm 2027-03-25T00:00:01-04:00 "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-03-24 ET. Do not enter or change a pick based on this alert. If 2027-03-24 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+REFUSAL {"edge": "midnight", "mode": "public", "faults": ["OSError", "OSError"], "first_run_marker_retained": true, "first_run_alerts": [], "restart_status": "locked_unconfirmed", "restart_alerts": ["- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-03-24 ET. Do not enter or change a pick based on this alert. If 2027-03-24 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."], "pick_transport_calls": 0}
+[23:20 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    23:20 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:20 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK — delivering (primary_projected_no_window) before the 00:25 ET cutoff.
+[00:00 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    23:20 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[00:00 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 00:40 ET (game start + 10min, 40 min)...
+  Day complete. Result: captured-poll
+CLI 2027-03-24T23:20:00-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/r2/probe-1xtyhy1e/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=0 best=0 saver=used reason=None
+contest_streak: 0 (best 0, saver used) for 2027-03-24, in effect today
+TRANSPORT health-dm 2027-03-25T00:00:01-04:00 "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-03-24 ET. Do not enter or change a pick based on this alert. If 2027-03-24 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+REFUSAL {"edge": "midnight", "mode": "public", "faults": ["OSError", "KeyboardInterrupt"], "first_run_marker_retained": true, "first_run_alerts": [], "restart_status": "locked_unconfirmed", "restart_alerts": ["- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-03-24 ET. Do not enter or change a pick based on this alert. If 2027-03-24 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."], "pick_transport_calls": 0}
+[23:20 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    23:20 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:20 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK — delivering (primary_projected_no_window) before the 00:25 ET cutoff.
+[00:00 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    23:20 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[00:00 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 00:40 ET (game start + 10min, 40 min)...
+  Day complete. Result: captured-poll
+CLI 2027-03-24T23:20:00-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/r2/probe-ykrcj3p8/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=0 best=0 saver=used reason=None
+contest_streak: 0 (best 0, saver used) for 2027-03-24, in effect today
+TRANSPORT health-dm 2027-03-25T00:00:01-04:00 "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-03-24 ET. Do not enter or change a pick based on this alert. If 2027-03-24 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+REFUSAL {"edge": "midnight", "mode": "public", "faults": ["OSError", "SystemExit"], "first_run_marker_retained": true, "first_run_alerts": [], "restart_status": "locked_unconfirmed", "restart_alerts": ["- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-03-24 ET. Do not enter or change a pick based on this alert. If 2027-03-24 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."], "pick_transport_calls": 0}
+[23:20 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    23:20 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:20 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK — delivering (primary_projected_no_window) before the 00:25 ET cutoff.
+[00:00 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    23:20 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[00:00 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 00:40 ET (game start + 10min, 40 min)...
+  Day complete. Result: captured-poll
+CLI 2027-03-24T23:20:00-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/r2/probe-22bxbce_/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=0 best=0 saver=used reason=None
+contest_streak: 0 (best 0, saver used) for 2027-03-24, in effect today
+TRANSPORT health-dm 2027-03-25T00:00:01-04:00 "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-03-24 ET. Do not enter or change a pick based on this alert. If 2027-03-24 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+REFUSAL {"edge": "midnight", "mode": "public", "faults": ["KeyboardInterrupt"], "first_run_marker_retained": true, "first_run_alerts": [], "restart_status": "locked_unconfirmed", "restart_alerts": ["- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-03-24 ET. Do not enter or change a pick based on this alert. If 2027-03-24 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."], "pick_transport_calls": 0}
+[23:20 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    23:20 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:20 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK — delivering (primary_projected_no_window) before the 00:25 ET cutoff.
+[00:00 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    23:20 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[00:00 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 00:40 ET (game start + 10min, 40 min)...
+  Day complete. Result: captured-poll
+CLI 2027-03-24T23:20:00-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/r2/probe-zr4fr1v6/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=0 best=0 saver=used reason=None
+contest_streak: 0 (best 0, saver used) for 2027-03-24, in effect today
+TRANSPORT health-dm 2027-03-25T00:00:01-04:00 "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-03-24 ET. Do not enter or change a pick based on this alert. If 2027-03-24 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+REFUSAL {"edge": "midnight", "mode": "public", "faults": ["SystemExit"], "first_run_marker_retained": true, "first_run_alerts": [], "restart_status": "locked_unconfirmed", "restart_alerts": ["- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-03-24 ET. Do not enter or change a pick based on this alert. If 2027-03-24 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."], "pick_transport_calls": 0}

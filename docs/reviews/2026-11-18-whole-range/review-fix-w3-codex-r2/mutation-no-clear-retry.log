@@ -1,0 +1,76 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-review-w3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 76 items / 74 deselected / 2 selected
+
+tests/test_wr_w3.py FF                                                   [100%]
+
+=================================== FAILURES ===================================
+________ test_reuse_checks_live_day_at_midnight[clear_error-2027-06-18] ________
+tests/test_wr_w3.py:472: in test_reuse_checks_live_day_at_midnight
+    scheduler.run_day(day, world.config)
+.codex-review/wr-w3/r2/scratch/no-clear-retry/src/bts/scheduler.py:3571: in run_day
+    _deliver_and_lock_pick(
+.codex-review/wr-w3/r2/scratch/no-clear-retry/src/bts/scheduler.py:1477: in _deliver_and_lock_pick
+    if reused_check_cascade and not allow_reused_transport():
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/wr-w3/r2/scratch/no-clear-retry/src/bts/scheduler.py:1443: in allow_reused_transport
+    save_pick(daily, picks_dir)
+.codex-review/wr-w3/r2/scratch/no-clear-retry/src/bts/picks.py:433: in save_pick
+    atomic_write_text(path, text)
+tests/test_wr_w3.py:462: in crossing_write
+    raise OSError("fixture transient marker-clear failure")
+E   OSError: fixture transient marker-clear failure
+----------------------------- Captured stdout call -----------------------------
+CLI 2027-06-18T23:20:00-04:00 set-contest-streak --date: 0
+Observation written at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-133/test_reuse_checks_live_day_at_0/probe-4byi_i2v/data/picks/account_state/contest_streak.manual.json: date=2027-06-18 streak=0 best=0 saver=used reason=None
+contest_streak: 0 (best 0, saver used) for 2027-06-18, in effect today
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:20 ET] Fetching schedule for 2027-06-18...
+  1 games, 1 scheduled checks:
+    23:20 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:20 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK — delivering (primary_projected_no_window) before the 00:25 ET cutoff.
+________ test_reuse_checks_live_day_at_midnight[clear_error-2026-12-31] ________
+tests/test_wr_w3.py:472: in test_reuse_checks_live_day_at_midnight
+    scheduler.run_day(day, world.config)
+.codex-review/wr-w3/r2/scratch/no-clear-retry/src/bts/scheduler.py:3571: in run_day
+    _deliver_and_lock_pick(
+.codex-review/wr-w3/r2/scratch/no-clear-retry/src/bts/scheduler.py:1477: in _deliver_and_lock_pick
+    if reused_check_cascade and not allow_reused_transport():
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/wr-w3/r2/scratch/no-clear-retry/src/bts/scheduler.py:1443: in allow_reused_transport
+    save_pick(daily, picks_dir)
+.codex-review/wr-w3/r2/scratch/no-clear-retry/src/bts/picks.py:433: in save_pick
+    atomic_write_text(path, text)
+tests/test_wr_w3.py:462: in crossing_write
+    raise OSError("fixture transient marker-clear failure")
+E   OSError: fixture transient marker-clear failure
+----------------------------- Captured stdout call -----------------------------
+CLI 2026-12-31T23:20:00-05:00 set-contest-streak --date: 0
+Observation written at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-133/test_reuse_checks_live_day_at_1/probe-fhsy7h4l/data/picks/account_state/contest_streak.manual.json: date=2026-12-31 streak=0 best=0 saver=used reason=None
+contest_streak: 0 (best 0, saver used) for 2026-12-31, in effect today
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:20 ET] Fetching schedule for 2026-12-31...
+  1 games, 1 scheduled checks:
+    23:20 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:20 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK — delivering (primary_projected_no_window) before the 00:25 ET cutoff.
+=========================== short test summary info ============================
+FAILED tests/test_wr_w3.py::test_reuse_checks_live_day_at_midnight[clear_error-2027-06-18]
+FAILED tests/test_wr_w3.py::test_reuse_checks_live_day_at_midnight[clear_error-2026-12-31]
+======================= 2 failed, 74 deselected in 2.02s =======================

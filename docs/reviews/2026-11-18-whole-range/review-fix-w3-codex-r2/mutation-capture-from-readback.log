@@ -1,0 +1,45 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-review-w3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 76 items / 75 deselected / 1 selected
+
+tests/test_wr_w3.py F                                                    [100%]
+
+=================================== FAILURES ===================================
+___________________ test_fallback_reload[audit_replacement] ____________________
+tests/test_wr_w3.py:286: in test_fallback_reload
+    assert refresh["reused_check_cascade"] == (case == "equality")
+E   AssertionError: assert True == ('audit_replacement' == 'equality'
+E     
+E     - equality
+E     + audit_replacement)
+----------------------------- Captured stdout call -----------------------------
+CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0
+Observation written at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-131/test_fallback_reload_audit_rep0/probe-ars28_zg/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=0 best=0 saver=used reason=None
+contest_streak: 0 (best 0, saver used) for 2027-03-24, in effect today
+TRANSPORT dm 2027-03-24T19:00:00-04:00 "Today's pick: Replacement Batter (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 0"
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK — delivering (primary_projected_no_window) before the 19:05 ET cutoff.
+  LOCKED (fallback) — Pick DM sent: captured-dm
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 20 min)...
+  Day complete. Result: None
+------------------------------ Captured log call -------------------------------
+ERROR    bts.strategy:strategy.py:96 MDP base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz')
+ERROR    bts.strategy:strategy.py:103 MDP tail policy not usable (base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz'): tail pairing unverifiable)
+=========================== short test summary info ============================
+FAILED tests/test_wr_w3.py::test_fallback_reload[audit_replacement] - Asserti...
+======================= 1 failed, 75 deselected in 1.91s =======================
