@@ -3170,6 +3170,11 @@ def run_day(
         if record.get("delivery_status") == "locked_unconfirmed":
             _alert_delivery_outcome_unknown(config, picks_dir, date)
 
+    def finish_fallback_lock(daily):
+        if shadow_model_enabled and daily:
+            _trigger_shadow_prediction_on_lock(config, date, daily.pick.batter_name)
+        print(f"  Pick locked. Stopping lineup checks.", file=sys.stderr)
+
     for run_idx, run_info in enumerate(runs):
         target = run_info["time_et"]
         now = _now_et()
@@ -3365,9 +3370,11 @@ def run_day(
                             record, _ = reuse_snapshot
                             if record is not None and record["scoreable"]:
                                 preserve_reuse_commit(record)
+                                finish_fallback_lock(daily)
                                 break
                             if pick_was_delivered(daily) or daily.delivery_attempted:
                                 _deliver_and_lock_pick(daily, config, picks_dir, state, date, "fallback")
+                                finish_fallback_lock(daily)
                                 break
                 else:
                     daily = load_pick(date, picks_dir)
@@ -3500,6 +3507,7 @@ def run_day(
                             record, _ = current_record
                             if record is not None and record["scoreable"]:
                                 preserve_reuse_commit(record)
+                                finish_fallback_lock(daily)
                                 break
                         try:
                             current, current_bytes = load_pick_bytes(
@@ -3514,6 +3522,7 @@ def run_day(
                             ):
                                 _deliver_and_lock_pick(
                                     current, config, picks_dir, state, date, "fallback")
+                                finish_fallback_lock(current)
                                 break
                         if (current_record is None or current_record[1] != reuse_snapshot[1]
                                 or current_bytes != saved_bytes):
@@ -3530,16 +3539,16 @@ def run_day(
                         "reused_check_cascade": reused_check_cascade,
                         "action": plan.action, "reason": plan.reason}]
                     save_state(state, picks_dir)
-                    if reused_check_cascade:
-                        now = _now_et()
-                        if now >= cutoff:
-                            _refuse_late_delivery(
-                                daily, config, picks_dir, state, date, "fallback", cutoff, now)
-                            continue
+                    if reused_check_cascade and plan.action == "defer":
                         if (defer_void_games
                                 and len(defer_void_games) == len(_committed_pick_game_pks(daily))):
                             _refuse_void_game_delivery(
                                 daily, config, picks_dir, state, date, "fallback", defer_void_games)
+                            continue
+                        now = _now_et()
+                        if now >= cutoff:
+                            _refuse_late_delivery(
+                                daily, config, picks_dir, state, date, "fallback", cutoff, now)
                             continue
                     if plan.action == "defer":
                         archive = _defer_pick_at_fallback(picks_dir, date, daily, reason=plan.reason)
@@ -3571,13 +3580,7 @@ def run_day(
                                                selection=refresh.selection)
 
                 if state.pick_locked:
-                    if shadow_model_enabled and daily:
-                        _trigger_shadow_prediction_on_lock(
-                            config,
-                            date,
-                            daily.pick.batter_name,
-                        )
-                    print(f"  Pick locked. Stopping lineup checks.", file=sys.stderr)
+                    finish_fallback_lock(daily)
                     break
 
     # 5. Fallback — if not yet locked, check for deadline (use earliest of

@@ -119,6 +119,11 @@ def test_fallback_reload(offline, case):
         decision_path = daily_decision.decision_path(DAY, world.picks)
         starts = []
         polled = []
+        shadow = []
+        if case == "matching_scoreable":
+            world.config["scheduler"]["shadow_model"] = True
+            mp.setattr(scheduler, "_trigger_shadow_prediction_on_lock",
+                       lambda config, date, batter: shadow.append((date, batter)))
         mp.setattr(scheduler, "run_result_polling", lambda pk, *a, **kw: polled.append(pk))
         check = scheduler.run_single_check
         append = picks.append_lineup_evolution
@@ -262,6 +267,8 @@ def test_fallback_reload(offline, case):
             assert not sends and decision_path.read_bytes() == original_record
             assert not picks.pick_was_delivered(picks.load_pick(DAY, world.picks))
             assert polled == ([101] if case == "matching_scoreable" else [])
+            if case == "matching_scoreable":
+                assert shadow == [(DAY, "Synthetic Batter 101")]
             return
         if case in {"late_read", "best", "saver", "void"}:
             code = {"late_read": "late_delivery", "void": "postponed_pick"}.get(
@@ -282,6 +289,77 @@ def test_fallback_reload(offline, case):
         assert record["primary"]["batter_name"] in sent
         if case in {"replacement", "audit_replacement"}:
             assert record["primary"]["batter_id"] == 999
+
+
+@pytest.mark.parametrize("action", ["deliver", "defer"])
+def test_reused_postponed_pick_takes_void_refusal_at_cutoff(offline, action):
+    at = lambda hour, minute: offline.instant(DAY, hour, minute)
+    with offline.offline(at(18, 25)) as (world, mp):
+        if action == "deliver":
+            world.schedule[DAY] = world.schedule[DAY][:1]
+            world.dated(0)
+        else:
+            world.dated(30)
+            world.schedule[DAY][1]["gameDate"] = at(19, 20).isoformat()
+            mp.setattr(scheduler, "plan_run_times", lambda *a, **kw: [
+                {"time_et": at(18, 25), "game_pks": [101]},
+                {"time_et": at(18, 50), "game_pks": [102]},
+            ])
+            mp.setattr(scheduler, "check_confirmed_lineups", lambda pks: {
+                pk: {"away", "home"} for pk in pks if pk == 101})
+        check = scheduler.run_single_check
+        statuses = scheduler._delivery_game_statuses
+        save_state = scheduler.save_state
+        starts = []
+        void_read = False
+        crossed_during_save = False
+
+        def forecast():
+            starts.append(world.now)
+            if len(starts) == 1:
+                world.advance(2430 if action == "deliver" else 2396)
+                n = len(world.schedule[DAY])
+                return world.frame((0.99, 0.40)[:n], (True, True)[:n])
+            return None
+
+        def postpone(*args, **kwargs):
+            result = check(*args, **kwargs)
+            if len(starts) == 1:
+                world.schedule[DAY][0]["status"].update(detailedState="Postponed", statusCode="PO")
+            return result
+
+        def read_statuses(date):
+            nonlocal void_read
+            result = statuses(date)
+            if current_thread() is not main_thread():
+                void_read = result[101]["detailed"] == "Postponed"
+            return result
+
+        def slow_state_save(state, directory):
+            nonlocal crossed_during_save
+            saved = save_state(state, directory)
+            if void_read and not crossed_during_save:
+                assert world.now < at(19, 5)
+                world.advance(5)
+                crossed_during_save = True
+            return saved
+
+        world.predictions = forecast
+        mp.setattr(scheduler, "run_single_check", postpone)
+        mp.setattr(scheduler, "_delivery_game_statuses", read_statuses)
+        mp.setattr(scheduler, "save_state", slow_state_save)
+        scheduler.run_day(DAY, world.config)
+
+        state = scheduler.load_state(DAY, world.picks)
+        row = state.fallback_refreshes[0]
+        assert row["reused_check_cascade"] and row["action"] == action
+        assert crossed_during_save == (action == "defer")
+        refusal, = state.delivery_refusals
+        assert refusal["reason"] == "game_not_playable"
+        assert not world.sends("dm")
+        alert, = world.sends("health-dm")
+        assert "[postponed_pick]" in alert and "Synthetic Batter 101" not in alert
+        assert daily_decision.load_decision(DAY, world.picks) is None
 
 
 @pytest.mark.parametrize("mode", ["dm", "public"])
@@ -425,6 +503,11 @@ def test_pending_window_replans_without_losing_later_checks(offline, case):
         mp.setattr(scheduler, "plan_run_times", lambda *args, **kwargs: [
             {"time_et": at(hour, minute), "game_pks": [pk]} for hour, minute, pk in later_runs])
         mp.setattr(scheduler, "run_result_polling", lambda *_a, **_kw: "fixture")
+        shadow = []
+        if case.startswith("attempt"):
+            world.config["scheduler"]["shadow_model"] = True
+            mp.setattr(scheduler, "_trigger_shadow_prediction_on_lock",
+                       lambda config, date, batter: shadow.append((date, batter)))
         starts = []
         replans = []
         workers = []
@@ -582,6 +665,7 @@ def test_pending_window_replans_without_losing_later_checks(offline, case):
         state = scheduler.load_state(DAY, world.picks)
         if case.startswith("attempt"):
             assert poll_changed_pick and len(starts) == 1 and not world.sends("dm")
+            assert shadow == [(DAY, "Synthetic Batter 101")]
             assert record["delivery_status"] == "locked_unconfirmed"
             assert sum("OUTCOME UNKNOWN" in text for text in world.sends("health-dm")) == 1
             if case == "attempt_scoreable":
