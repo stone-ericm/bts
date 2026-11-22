@@ -244,6 +244,8 @@ elif command == "python3":
         raise SystemExit(0)
     if op == "marker" and scenario == "marker-unwritable":
         raise SystemExit(17)
+    if op == "mark" and scenario == "legacy-unloads-markfail":
+        raise SystemExit(1)
     if op == "stamp" and scenario == "stamp-directory-sync":
         def fail_fsync(fd):
             raise OSError("simulated directory sync failure")
@@ -305,6 +307,9 @@ elif command == "systemctl":
     if user and args[0] == "restart":
         (root / "stopped").unlink(missing_ok=True)
         (root / "home/projects/bts/data/.heartbeat").write_text('{"state":"running"}')
+    if args[0] == "is-enabled" and not user and scenario == "legacy-still-enabled":
+        print("enabled")
+        raise SystemExit(0)
     if args[0] == "is-enabled":
         enabled = root / "enabled"
         state = enabled.read_text() if enabled.exists() else "enabled"
@@ -337,6 +342,36 @@ elif command == "systemctl":
             if not (root / "legacy-stopped").exists():
                 states.update(LoadState="loaded", ActiveState="active", MainPID="1234",
                               ControlGroup="" if scenario.endswith("nogroup") else "/legacy-orphan")
+        if not user and args[1] == "bts-scheduler.service" and scenario.startswith("legacy-unloads"):
+            # Carbon B2: loaded until phase 2's stop, rm and daemon-reload; then not-found and blank.
+            if not (root / "legacy-stopped").exists():
+                states.update(LoadState="loaded", ActiveState="active", MainPID="1234", ControlGroup="/legacy-orphan")
+        if not user and args[1] == "bts-scheduler.service" and scenario == "legacy-groupfail-post":
+            # Carbon N1 own1: the pre-stop group query fails; after the stop a path is reported.
+            if (root / "legacy-stopped").exists():
+                states["ControlGroup"] = "/legacy-post"
+            else:
+                states.update(LoadState="loaded", ActiveState="active", MainPID="1234")
+                if args[2:] == ["-p", "ControlGroup"]:
+                    raise SystemExit(1)
+        if not user and args[1] == "bts-scheduler.service" and scenario == "legacy-late-group":
+            # Carbon N1 own2: absent and blank at the first sample, a populated path at the proof.
+            if args[2:] == ["-p", "ControlGroup"]:
+                if (root / "legacy-group-seen").exists():
+                    states["ControlGroup"] = "/legacy-late"
+                (root / "legacy-group-seen").touch()
+        if not user and args[1] == "bts-scheduler.service" and scenario == "legacy-still-enabled":
+            # Carbon N1 own4: loaded and stopped, but its boot link stays enabled.
+            states.update(LoadState="loaded", ControlGroup="/la")
+        if not user and args[1] == "bts-scheduler.service" and scenario == "legacy-ghost-group":
+            # D3b review round 1: not-found, inactive, PID 0, no jobs, yet a cgroup is reported.
+            states["ControlGroup"] = "/legacy-group"
+        if not user and args[1] == "bts-scheduler.service" and scenario == "legacy-fragment-present":
+            # D3b review round 1: loaded, then not-found after its stop while the fragment file stays.
+            if (root / "legacy-stopped").exists():
+                states["ControlGroup"] = "/legacy-post"
+            else:
+                states.update(LoadState="loaded", ControlGroup="/legacy-pre")
         if "ControlGroup" in args and user and scenario.startswith("moved-user"):
             states["ControlGroup"] = "/b" if (root / "stopped").exists() else "/a"
         if not user and args[1] == "bts-scheduler.service" and scenario.startswith("moved-legacy"):
@@ -376,6 +411,8 @@ elif command == "systemctl":
         (root / "stopped").touch()
     if not user and args[0] == "stop":
         (root / "legacy-stopped").touch()
+        if scenario == "legacy-vanishing-stopfail":
+            raise SystemExit(17)
     if user and args[0] == "list-jobs" and scenario == "pending-job":
         print("17 bts-scheduler.service start waiting")
     if not user and args[0] == "list-jobs" and scenario == "legacy-vanishing-job" and (root / "legacy-stopped").exists():
@@ -1753,7 +1790,8 @@ def test_d3b_operator_notes():
     incident = (repo / "INCIDENT.md").read_text()
     restore = incident.split("- **Box/filesystem loss", 1)[1].split("\n- ", 1)[0]
     assert "enable + start" not in restore and "systemctl --user restart" not in restore
-    assert restore.index("Keep the scheduler stopped and its local") < restore.index("install-systemd-hetzner.sh")
+    hold = restore.index("first confirm the scheduler is stopped and its local boot link")
+    assert hold < restore.index("install restic") < restore.index("restic restore") < restore.index("install-systemd-hetzner.sh")
     assert "activate the" in restore and "scheduler through §5's checked deploy" in restore
     b8a = next(line for line in (repo / "docs/ops/2027-season-start.md").read_text().splitlines()
                if line.startswith("| B8a |"))
@@ -1868,3 +1906,166 @@ def test_d3b_surviving_commit_record_is_reported_as_a_record(box):
     assert ("DEPLOY RECOVERY — this attempt's record says committed. Check the deploy log and verify "
             "current state via INCIDENT.md §4.") in recovered.stdout
     assert not service_mutations(calls)
+
+
+# D3b review round 1 (Codex WRD3BREV1-80afbadd): three more cases of the class.
+
+@pytest.mark.parametrize("recovery", [False, True], ids=["deploy", "recovery"])
+@pytest.mark.parametrize("url", [
+    "https://checks.invalid/configured/../different-check",
+    "https://checks.invalid/a/./b",
+    "https://checks.invalid/a/..",
+    "https://checks.invalid/%2e%2e/other",
+])
+def test_d3b_r1_page_url_with_dot_segments_or_escapes_never_posts(box, recovery, url):
+    """Finding 1: curl would rewrite the path and a 2xx from another check would read as verified."""
+    scripts, _ = scripts_and_steps()
+    runtime = d3b_box(box)
+    (box / "home/projects/bts/.env").write_text(f"BTS_SCHEDULER_HEARTBEAT_PING_URL={url}\n")
+    if recovery:
+        (box / "head").write_text(TARGET)
+        (runtime / "attempt").write_text(f"bts_deploy_attempt_v1 123 1 {TARGET} {OLD} begun - - - -\n")
+        result, calls = run_box_script(box, scripts[1], "active")
+    else:
+        result, calls = run_box_script(box, scripts[0], "active", fault="reset:17")
+    assert result.returncode == 1 and not posts(calls)
+    assert "Failure ping received HTTP 2xx: unverified." in result.stdout
+    assert (runtime / "attempt").read_text().endswith(" unverified\n")
+
+
+def test_d3b_r1_failure_post_sends_the_path_as_written(box):
+    """Finding 1: every failure POST carries --path-as-is (and still --globoff)."""
+    scripts, _ = scripts_and_steps()
+    d3b_box(box)
+    result, calls = run_box_script(box, scripts[0], "active", fault="reset:17")
+    sent = posts(calls)
+    assert len(sent) == 1 and "--path-as-is" in sent[0] and "--globoff" in sent[0]
+    assert sent[0][-1] == "https://checks.invalid/d3b/fail"
+    for script in scripts:
+        assert script.count("--path-as-is") == 1
+
+
+@pytest.mark.parametrize("recovery", [False, True], ids=["deploy", "recovery"])
+@pytest.mark.parametrize(("populated", "verified"), [(1, False), (0, True)])
+def test_d3b_r1_a_cgroup_reported_by_an_absent_unit_is_checked(box, recovery, populated, verified):
+    """Finding 2a: both absence samples read the cgroup; a reported path is checked, never skipped."""
+    group = box / "sys/fs/cgroup/legacy-group"
+    group.mkdir()
+    (group / "cgroup.events").write_text(f"populated {populated}\n")
+    result, calls = d3b_run_contained(box, recovery, "legacy-ghost-group")
+    assert result.returncode == 1
+    assert any(call[0] == "python3" and call[3:4] == ["cgroup"] and call[-1] == "/legacy-group" for call in calls)
+    assert ("Scheduler stopped: verified." in result.stdout) == verified
+    assert ("Scheduler stopped: unverified." in result.stdout) == (not verified)
+
+
+@pytest.mark.parametrize("recovery", [False, True], ids=["deploy", "recovery"])
+def test_d3b_r1_not_found_with_a_fragment_is_not_a_loaded_proof(box, recovery):
+    """Finding 2b: after its stop the unit reads not-found while its fragment stays; neither proof applies."""
+    for name in ("legacy-pre", "legacy-post"):
+        group = box / "sys/fs/cgroup" / name
+        group.mkdir()
+        (group / "cgroup.events").write_text("populated 0\n")
+    units = box / "etc/systemd/system"
+    units.mkdir(parents=True)
+    (units / "bts-scheduler.service").write_text("[Service]\nType=oneshot\nExecStart=/bin/false\n")
+    result, calls = d3b_run_contained(box, recovery, "legacy-fragment-present")
+    assert result.returncode == 1
+    assert ["systemctl", "stop", "bts-scheduler.service"] in calls
+    assert "Scheduler stopped: unverified." in result.stdout
+
+
+def test_d3b_r1_final_lines_are_one_bounded_print():
+    """Finding 3: the result lines and the re-checked line leave in one print with a one-second grace."""
+    for script in scripts_and_steps()[0]:
+        proof = shell_function(script, "prove")
+        assert proof.count("timeout -k 1 1 /bin/bash") == 1
+        assert proof.count("printf") == 1
+        assert proof.index("containment re-checked") < proof.index("timeout -k 1 1 /bin/bash")
+        assert "prove recheck" not in script and "prove report" in shell_function(script, "contain")
+
+
+def test_d3b_r1_repeat_recovery_prints_recheck_with_the_results(box):
+    """Finding 3 control: the re-checked line still appears after a fully verified repeat recovery."""
+    scripts, _ = scripts_and_steps()
+    runtime = d3b_box(box)
+    (runtime / "attempt").write_text(f"bts_deploy_attempt_v1 123 1 {TARGET} {OLD} contained sync verified verified unverified\n")
+    result, calls = run_box_script(box, scripts[1], "active")
+    lines = result.stdout.splitlines()
+    assert lines[-5:] == ["Scheduler stopped: verified.", "Failure heartbeat written: verified.",
+                          "Failure ping received HTTP 2xx: verified.", "Recovery procedure: INCIDENT.md §4.",
+                          "DEPLOY RECOVERY — containment re-checked."]
+    assert len(posts(calls)) == 1
+
+
+# D3b review round 1 (Carbon WRD3BCARB1-0133d0ea): B2 and the surviving mutants N1 own1 to own5.
+
+def d3b_unloading_box(box, populated):
+    group = box / "sys/fs/cgroup/legacy-orphan"
+    group.mkdir()
+    (group / "cgroup.events").write_text(f"populated {populated}\n")
+    units = box / "etc/systemd/system"
+    units.mkdir(parents=True)
+    for unit in ("bts-scheduler.service", "bts-dashboard.service"):
+        (units / unit).write_text("[Service]\n")
+    return d3b_box(box)
+
+
+@pytest.mark.parametrize("populated", [1, 0])
+def test_d3b_r1_phase_two_legacy_cleanup_marks_the_attempt(box, populated):
+    """Carbon B2: phase 2 stops, deletes and unloads a loaded legacy scheduler, then a later step fails.
+    Neither the deploy's containment nor this attempt's recovery may call the legacy scope absent."""
+    scripts, _ = scripts_and_steps()
+    runtime = d3b_unloading_box(box, populated)
+    deployed, calls = run_box_script(box, scripts[0], "legacy-unloads", fault="restart:17")
+    assert deployed.returncode == 1
+    assert ["systemctl", "daemon-reload"] in calls
+    assert (runtime / "legacy.123.1").is_file()
+    assert "Scheduler stopped: unverified." in deployed.stdout
+    (box / "calls").unlink()
+    recovered, _ = run_box_script(box, scripts[1], "legacy-unloads")
+    assert "Scheduler stopped: unverified." in recovered.stdout
+    assert "containment re-checked" not in recovered.stdout
+
+
+def test_d3b_r1_mark_failure_contains_before_the_legacy_stop(box):
+    """Carbon B2: the mark is written and checked before any legacy mutation."""
+    scripts, _ = scripts_and_steps()
+    d3b_unloading_box(box, 0)
+    result, calls = run_box_script(box, scripts[0], "legacy-unloads-markfail")
+    assert result.returncode == 1
+    assert "DEPLOY FAILED at legacy-units" in result.stdout
+    assert ["systemctl", "daemon-reload"] not in calls
+
+
+def test_d3b_r1_a_passing_deploy_with_legacy_units_still_passes(box):
+    """Carbon B2 control: the mark changes nothing on the success path."""
+    scripts, _ = scripts_and_steps()
+    runtime = d3b_unloading_box(box, 0)
+    result, _ = run_box_script(box, scripts[0], "legacy-unloads")
+    assert result.returncode == 0 and "CANARY PASSED" in result.stdout
+    assert (runtime / "legacy.123.1").is_file()
+
+
+@pytest.mark.parametrize("recovery", [False, True], ids=["deploy", "recovery"])
+@pytest.mark.parametrize("scenario", [
+    "legacy-groupfail-post",      # own1: failed pre-stop query, empty post-stop path
+    "legacy-late-group",          # own2: blank first sample, populated path at the proof
+    "legacy-vanishing-stopfail",  # own3: the legacy stop failed
+    "legacy-still-enabled",       # own4: loaded and stopped with its boot link enabled
+])
+def test_d3b_r1_each_legacy_stop_clause_is_required(box, recovery, scenario):
+    """Carbon N1: each clause of rule 2 decides the result on its own."""
+    for name, populated in (("legacy-post", 0), ("legacy-late", 1), ("legacy-orphan", 0), ("la", 0)):
+        group = box / "sys/fs/cgroup" / name
+        group.mkdir()
+        (group / "cgroup.events").write_text(f"populated {populated}\n")
+    result, _ = d3b_run_contained(box, recovery, scenario)
+    assert result.returncode == 1
+    assert "Scheduler stopped: unverified." in result.stdout
+
+
+def test_d3b_r1_rounding_allowance_is_in_both_scripts():
+    """Carbon N1 own5: the one-second rounding allowance inside containment and the signal read."""
+    for script in scripts_and_steps()[0]:
+        assert shell_function(script, "run").count("[[ -z ${budget_start:-} ]] || available=$((available - 1))") == 1

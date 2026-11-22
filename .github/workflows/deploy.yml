@@ -255,6 +255,9 @@ jobs:
                         raise ValueError()
                     if parsed.netloc.endswith(":"):
                         raise ValueError()
+                    # A dot segment or an escape could make the request reach another check.
+                    if "%" in value or any(part in (".", "..") for part in parsed.path.split("/")):
+                        raise ValueError()
                     parsed.port
                     print(value.rstrip("/") + "/fail")
                 elif op == "cgroup":
@@ -464,6 +467,9 @@ jobs:
                 jobs_clear system_unit "$cap" "$name"
             }
             no_fragment() { [[ ! -e $legacy_dir/$scheduler && ! -L $legacy_dir/$scheduler ]]; }
+            # Phase 2 marks an attempt before it stops and unloads a loaded legacy scheduler. After that
+            # its absence proves nothing about the cgroup it left, so no containment of the attempt accepts it.
+            legacy_cleaned() { [[ -e $lock_dir/legacy.$RUN_ID.$RUN_ATTEMPT || -L $lock_dir/legacy.$RUN_ID.$RUN_ATTEMPT ]]; }
             scheduler_group() {
                 local output
                 output=$("$1" 10 normal show "$2" -p ControlGroup) || return 1
@@ -503,19 +509,21 @@ jobs:
                         if legacy_state 20 "$scheduler"; then
                             unit=$scheduler
                             if [[ $legacy == not-found ]] && no_fragment; then
-                                if [[ $legacy_absent == 0 ]]; then
-                                    # Absent at the containment's first query and now: no path needed.
-                                    system_proof=0
-                                elif (( legacy_group_status == 0 )) && post_group=$(scheduler_group system_unit "$scheduler") &&
-                                     [[ -n $legacy_group || -n $post_group ]]; then
-                                    # Seen loaded, or not seen absent: every known path must be empty.
-                                    system_proof=0
+                                if ! legacy_cleaned && post_group=$(scheduler_group system_unit "$scheduler"); then
+                                    if [[ $legacy_absent == 0 ]]; then
+                                        # Absent at the containment's first sample: no path needed, any reported one checked.
+                                        system_proof=0
+                                    elif (( legacy_group_status == 0 )) && [[ -n $legacy_group || -n $post_group ]]; then
+                                        # Seen loaded, or not seen absent: at least one path known.
+                                        system_proof=0
+                                    fi
+                                    # Every known path must be empty or absent.
                                     [[ -z $legacy_group ]] || fs 20 normal cgroup /sys/fs/cgroup "$legacy_group" || system_proof=1
                                     [[ -z $post_group || $post_group == "$legacy_group" ]] ||
                                         fs 20 normal cgroup /sys/fs/cgroup "$post_group" || system_proof=1
                                 fi
-                            elif (( legacy_group_status == 0 )) && check_stopped system_unit "$scheduler" "$legacy_group" &&
-                                 enabled disabled 20 system_unit; then
+                            elif [[ $legacy == loaded ]] && (( legacy_group_status == 0 )) &&
+                                 check_stopped system_unit "$scheduler" "$legacy_group" && enabled disabled 20 system_unit; then
                                 system_proof=0
                             fi
                         fi
@@ -541,16 +549,13 @@ jobs:
                         fi
                         ;;
                     report)
-                        # Best effort with a short grace: the last two seconds of the handler.
-                        (exec 9>&- 8>&-; timeout -k 1 1 /bin/bash -c 'printf "%s\n" "$@"' _ \
-                            "Scheduler stopped: $stop." "Failure heartbeat written: $marker." \
-                            "Failure ping received HTTP 2xx: $page." "Recovery procedure: INCIDENT.md §4.") >&8 2>/dev/null || :
-                        ;;
-                    recheck)
+                        # One bounded print with a short grace: the last two seconds of the handler.
+                        local lines=("Scheduler stopped: $stop." "Failure heartbeat written: $marker."
+                                     "Failure ping received HTTP 2xx: $page." "Recovery procedure: INCIDENT.md §4.")
                         if [[ $repeat == yes && $stop$marker$page == verifiedverifiedverified ]]; then
-                            (exec 9>&- 8>&-; timeout -k 1 1 /bin/bash -c 'printf "%s\n" "$@"' _ \
-                                'DEPLOY RECOVERY — containment re-checked.') >&8 2>/dev/null || :
+                            lines+=('DEPLOY RECOVERY — containment re-checked.')
                         fi
+                        (exec 9>&- 8>&-; timeout -k 1 1 /bin/bash -c 'printf "%s\n" "$@"' _ "${lines[@]}") >&8 2>/dev/null || :
                         ;;
                 esac
             }
@@ -560,7 +565,7 @@ jobs:
                 local stop=unverified marker=unverified page=unverified uid unit
                 local user_disabled=1 user_stopped=1 legacy_disabled=1 legacy_stopped=1 legacy_absent=1
                 local deadline containment_deadline output endpoint user_group legacy_group= post_status
-                local user_group_status=1 legacy_group_status=1
+                local user_group_status=1 legacy_group_status=1 legacy_first=1
                 local budget_start=$SECONDS budget_origin
                 # One sample anchors the handler's separate budget. Bash SECONDS also
                 # keeps that budget running when the external clock cannot be sampled.
@@ -583,10 +588,13 @@ jobs:
                 as_user 60 mutation stop bts-scheduler >/dev/null; user_stopped=$?
                 # Legacy scope stop: to 180 s.
                 deadline=$((containment_deadline - 100000))
-                if legacy_state 10 "$scheduler" && [[ $legacy == not-found ]] && no_fragment; then
+                legacy_state 10 "$scheduler"; legacy_first=$?
+                legacy_group=$(scheduler_group system_unit "$scheduler"); legacy_group_status=$?
+                if (( legacy_first == 0 && legacy_group_status == 0 )) && [[ $legacy == not-found && -z $legacy_group ]] &&
+                   no_fragment && ! legacy_cleaned; then
+                    # Absent: not-found, inactive, PID 0, no jobs, no cgroup and no fragment entry.
                     legacy_absent=0
                 else
-                    legacy_group=$(scheduler_group system_unit "$scheduler"); legacy_group_status=$?
                     system_unit 10 mutation disable "$scheduler" >/dev/null; legacy_disabled=$?
                     system_unit 60 mutation stop "$scheduler" >/dev/null; legacy_stopped=$?
                 fi
@@ -595,7 +603,7 @@ jobs:
                 deadline=$((containment_deadline - 40000))
                 as_bts 20 mutation /usr/bin/python3 -c "$fs_code" marker "$checkout/data/.heartbeat" "$step" "${TARGET_SHA:0:7}" "${old:0:7}" >/dev/null
                 prove marker "$?"
-                if [[ -n $staged ]]; then
+                if [[ $staged == "$checkout/data/.deploy."* ]]; then
                     as_bts 10 mutation rm -f -- "$staged" >/dev/null || :
                 fi
                 # Endpoint parsing to 254 s, so a valid URL leaves curl at least 10 s of TERM before 270 s.
@@ -604,7 +612,7 @@ jobs:
                     prove page carried
                 elif endpoint=$(as_bts 20 normal /usr/bin/python3 -c "$fs_code" endpoint "$checkout/.env"); then
                     deadline=$((containment_deadline - 10000))
-                    output=$(run 20 5 normal curl --disable --globoff --noproxy '*' -sS -m 10 -o /dev/null -w '%{http_code}' \
+                    output=$(run 20 5 normal curl --disable --globoff --path-as-is --noproxy '*' -sS -m 10 -o /dev/null -w '%{http_code}' \
                         --data-raw "Deploy failed at $step, requested target ${TARGET_SHA:0:7}, scheduler stop $stop. See INCIDENT.md §4." "$endpoint"
                         local status=$?; printf '\037'; exit "$status")
                     post_status=$?
@@ -617,7 +625,6 @@ jobs:
                 publish contained "$step" "$stop" "$marker" "$page" || :
                 exec 9>&-
                 prove report
-                prove recheck
                 exit 1
             }
 
@@ -729,6 +736,10 @@ jobs:
             step_status sync "$?"
             if (( ${#legacy_names[@]} )); then
                 for name in "${legacy_names[@]}"; do
+                    if [[ $name == "$scheduler" ]]; then
+                        fs 10 mutation mark "$lock_dir/legacy.$RUN_ID.$RUN_ATTEMPT" >/dev/null
+                        step_status legacy-units "$?"
+                    fi
                     system_unit 20 mutation disable "$name" >/dev/null
                     step_status legacy-units "$?"
                     system_unit 20 mutation stop "$name" >/dev/null
@@ -1016,6 +1027,9 @@ jobs:
                         raise ValueError()
                     if parsed.netloc.endswith(":"):
                         raise ValueError()
+                    # A dot segment or an escape could make the request reach another check.
+                    if "%" in value or any(part in (".", "..") for part in parsed.path.split("/")):
+                        raise ValueError()
                     parsed.port
                     print(value.rstrip("/") + "/fail")
                 elif op == "cgroup":
@@ -1225,6 +1239,9 @@ jobs:
                 jobs_clear system_unit "$cap" "$name"
             }
             no_fragment() { [[ ! -e $legacy_dir/$scheduler && ! -L $legacy_dir/$scheduler ]]; }
+            # Phase 2 marks an attempt before it stops and unloads a loaded legacy scheduler. After that
+            # its absence proves nothing about the cgroup it left, so no containment of the attempt accepts it.
+            legacy_cleaned() { [[ -e $lock_dir/legacy.$RUN_ID.$RUN_ATTEMPT || -L $lock_dir/legacy.$RUN_ID.$RUN_ATTEMPT ]]; }
             scheduler_group() {
                 local output
                 output=$("$1" 10 normal show "$2" -p ControlGroup) || return 1
@@ -1264,19 +1281,21 @@ jobs:
                         if legacy_state 20 "$scheduler"; then
                             unit=$scheduler
                             if [[ $legacy == not-found ]] && no_fragment; then
-                                if [[ $legacy_absent == 0 ]]; then
-                                    # Absent at the containment's first query and now: no path needed.
-                                    system_proof=0
-                                elif (( legacy_group_status == 0 )) && post_group=$(scheduler_group system_unit "$scheduler") &&
-                                     [[ -n $legacy_group || -n $post_group ]]; then
-                                    # Seen loaded, or not seen absent: every known path must be empty.
-                                    system_proof=0
+                                if ! legacy_cleaned && post_group=$(scheduler_group system_unit "$scheduler"); then
+                                    if [[ $legacy_absent == 0 ]]; then
+                                        # Absent at the containment's first sample: no path needed, any reported one checked.
+                                        system_proof=0
+                                    elif (( legacy_group_status == 0 )) && [[ -n $legacy_group || -n $post_group ]]; then
+                                        # Seen loaded, or not seen absent: at least one path known.
+                                        system_proof=0
+                                    fi
+                                    # Every known path must be empty or absent.
                                     [[ -z $legacy_group ]] || fs 20 normal cgroup /sys/fs/cgroup "$legacy_group" || system_proof=1
                                     [[ -z $post_group || $post_group == "$legacy_group" ]] ||
                                         fs 20 normal cgroup /sys/fs/cgroup "$post_group" || system_proof=1
                                 fi
-                            elif (( legacy_group_status == 0 )) && check_stopped system_unit "$scheduler" "$legacy_group" &&
-                                 enabled disabled 20 system_unit; then
+                            elif [[ $legacy == loaded ]] && (( legacy_group_status == 0 )) &&
+                                 check_stopped system_unit "$scheduler" "$legacy_group" && enabled disabled 20 system_unit; then
                                 system_proof=0
                             fi
                         fi
@@ -1302,16 +1321,13 @@ jobs:
                         fi
                         ;;
                     report)
-                        # Best effort with a short grace: the last two seconds of the handler.
-                        (exec 9>&- 8>&-; timeout -k 1 1 /bin/bash -c 'printf "%s\n" "$@"' _ \
-                            "Scheduler stopped: $stop." "Failure heartbeat written: $marker." \
-                            "Failure ping received HTTP 2xx: $page." "Recovery procedure: INCIDENT.md §4.") >&8 2>/dev/null || :
-                        ;;
-                    recheck)
+                        # One bounded print with a short grace: the last two seconds of the handler.
+                        local lines=("Scheduler stopped: $stop." "Failure heartbeat written: $marker."
+                                     "Failure ping received HTTP 2xx: $page." "Recovery procedure: INCIDENT.md §4.")
                         if [[ $repeat == yes && $stop$marker$page == verifiedverifiedverified ]]; then
-                            (exec 9>&- 8>&-; timeout -k 1 1 /bin/bash -c 'printf "%s\n" "$@"' _ \
-                                'DEPLOY RECOVERY — containment re-checked.') >&8 2>/dev/null || :
+                            lines+=('DEPLOY RECOVERY — containment re-checked.')
                         fi
+                        (exec 9>&- 8>&-; timeout -k 1 1 /bin/bash -c 'printf "%s\n" "$@"' _ "${lines[@]}") >&8 2>/dev/null || :
                         ;;
                 esac
             }
@@ -1321,7 +1337,7 @@ jobs:
                 local stop=unverified marker=unverified page=unverified uid unit
                 local user_disabled=1 user_stopped=1 legacy_disabled=1 legacy_stopped=1 legacy_absent=1
                 local deadline containment_deadline output endpoint user_group legacy_group= post_status
-                local user_group_status=1 legacy_group_status=1
+                local user_group_status=1 legacy_group_status=1 legacy_first=1
                 local budget_start=$SECONDS budget_origin
                 # One sample anchors the handler's separate budget. Bash SECONDS also
                 # keeps that budget running when the external clock cannot be sampled.
@@ -1344,10 +1360,13 @@ jobs:
                 as_user 60 mutation stop bts-scheduler >/dev/null; user_stopped=$?
                 # Legacy scope stop: to 180 s.
                 deadline=$((containment_deadline - 100000))
-                if legacy_state 10 "$scheduler" && [[ $legacy == not-found ]] && no_fragment; then
+                legacy_state 10 "$scheduler"; legacy_first=$?
+                legacy_group=$(scheduler_group system_unit "$scheduler"); legacy_group_status=$?
+                if (( legacy_first == 0 && legacy_group_status == 0 )) && [[ $legacy == not-found && -z $legacy_group ]] &&
+                   no_fragment && ! legacy_cleaned; then
+                    # Absent: not-found, inactive, PID 0, no jobs, no cgroup and no fragment entry.
                     legacy_absent=0
                 else
-                    legacy_group=$(scheduler_group system_unit "$scheduler"); legacy_group_status=$?
                     system_unit 10 mutation disable "$scheduler" >/dev/null; legacy_disabled=$?
                     system_unit 60 mutation stop "$scheduler" >/dev/null; legacy_stopped=$?
                 fi
@@ -1356,7 +1375,7 @@ jobs:
                 deadline=$((containment_deadline - 40000))
                 as_bts 20 mutation /usr/bin/python3 -c "$fs_code" marker "$checkout/data/.heartbeat" "$step" "${TARGET_SHA:0:7}" "${old:0:7}" >/dev/null
                 prove marker "$?"
-                if [[ -n $staged ]]; then
+                if [[ $staged == "$checkout/data/.deploy."* ]]; then
                     as_bts 10 mutation rm -f -- "$staged" >/dev/null || :
                 fi
                 # Endpoint parsing to 254 s, so a valid URL leaves curl at least 10 s of TERM before 270 s.
@@ -1365,7 +1384,7 @@ jobs:
                     prove page carried
                 elif endpoint=$(as_bts 20 normal /usr/bin/python3 -c "$fs_code" endpoint "$checkout/.env"); then
                     deadline=$((containment_deadline - 10000))
-                    output=$(run 20 5 normal curl --disable --globoff --noproxy '*' -sS -m 10 -o /dev/null -w '%{http_code}' \
+                    output=$(run 20 5 normal curl --disable --globoff --path-as-is --noproxy '*' -sS -m 10 -o /dev/null -w '%{http_code}' \
                         --data-raw "Deploy failed at $step, requested target ${TARGET_SHA:0:7}, scheduler stop $stop. See INCIDENT.md §4." "$endpoint"
                         local status=$?; printf '\037'; exit "$status")
                     post_status=$?
@@ -1378,7 +1397,6 @@ jobs:
                 publish contained "$step" "$stop" "$marker" "$page" || :
                 exec 9>&-
                 prove report
-                prove recheck
                 exit 1
             }
 

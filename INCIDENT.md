@@ -117,7 +117,8 @@ from the cloud (§3) → escalate.
 - **Box/filesystem loss — operational-state restore (audit F5, needs SSH):** encrypted restic
   backups of `data/picks` + `data/health_state` (ops set, 3h cadence) and
   leaderboard/hetzner_results/external (archive set, daily) live in the R2 bucket under
-  `restic/`. On the (re)built box: install restic (`bash scripts/install-restic-hetzner.sh`),
+  `restic/`. On the (re)built box, first confirm the scheduler is stopped and its local boot link
+  disabled, and keep it so through restore and activation checks. Then install restic (`bash scripts/install-restic-hetzner.sh`),
   put `RESTIC_PASSWORD` into `.env` (copy lives in Eric's Mac Keychain:
   `security find-generic-password -a claude-cli -s r2-bts-restic-password -w`) alongside the
   `R2_*` creds, then `bts backup restore-drill --target /tmp/restore-drill` to prove the
@@ -127,8 +128,7 @@ from the cloud (§3) → escalate.
   `last_success_snapshot_id` from the backed-up status file):
   `~/.local/bin/restic restore <SNAPSHOT_ID> --target /` — restic re-creates
   the original absolute paths (`/home/bts/projects/bts/data/...`). Parquets/models come from
-  the separate artifact sync: `bts data sync-from-r2`. Keep the scheduler stopped and its local
-  boot link disabled through restore and activation checks. `bash scripts/install-systemd-hetzner.sh`
+  the separate artifact sync: `bts data sync-from-r2`. `bash scripts/install-systemd-hetzner.sh`
   (audit F12) copies the user unit templates and reloads the user manager. Follow §4 and activate the
   scheduler through §5's checked deploy.
 
@@ -202,7 +202,7 @@ different commit.
 | Channel | When |
 |---|---|
 | GitHub failed-run notice | Depends on GitHub recording a failure and Eric's settings. A preflight failure, forced cancellation or failed SSH can leave the old process running with no page. |
-| Immediate scheduler-heartbeat `/fail` POST | During initial containment, and on recovery if the prior response was unverified. A 2xx confirms the POST response. Check the provider's history and Eric's receipt separately. |
+| Immediate scheduler-heartbeat `/fail` POST | During initial containment, and on recovery whenever the attempt record does not hold a verified 2xx (a real earlier 2xx is sent again if its record rewrite failed). A 2xx confirms the POST response. Check the provider's history and Eric's receipt separately. |
 | Heartbeat cron | Every five minutes while the failure marker remains or the heartbeat is stale, once the stock-Python line is installed. |
 | Healthchecks missed pings | The liveness check when the box, cron or egress is down. The heartbeat check when its checker cannot run. Both depend on provider schedule, grace and integration. |
 

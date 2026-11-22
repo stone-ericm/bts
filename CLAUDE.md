@@ -132,7 +132,7 @@ Source, mapping and what this supersedes: `docs/superpowers/notes/work-policies-
 - **L7.** The frozen incident-register parser interprets the new lines as `canary=absent` and `rollback=none`; the clean auto-restart line's new wording no longer matches its `clean_completion` pattern either.
 - **L8.** Other user links, dependencies, legacy units and manual starts can activate the scheduler. Stop verification covers the checked scopes at the time of the check.
 - **L9.** Power loss before disable or after enable and before commit can start the scheduler at boot. A boot clears the attempt record and cancellation mark in `/run`. If recovery never records a mark or reboot clears it, an older SSH request reaching the box late can take ownership after a newer run.
-- **L10.** The box can commit after Actions fails or cancels. Recovery reports a matching committed attempt.
+- **L10.** The box can commit after Actions fails or cancels. Recovery then reports that this attempt's record says committed.
 - **L11.** The scheduler unit reads `EnvironmentFile` and invokes `uv run`. Overrides such as `UV_PROJECT_ENVIRONMENT`, `PYTHONPATH`, `PYTHONHOME` or `PYTHONTZPATH` can alter the interpreter or semantics and produce a false green canary. A7 verifies the installed runtime.
 - **L12.** A 2xx confirms the POST response. Confirm the provider history and Eric's receipt separately.
 - **L13.** Phase 2's legacy cleanup acts on preflight's legacy snapshot, and `pkill` exit 1 is not proof that no process remains. A legacy unit started between preflight and phase 2 runs beside the candidate until containment re-observes both legacy names, or by hand (within L8).
