@@ -137,3 +137,7 @@ W15 stopped after round 2 (`STOP-W15.md`: Carbon SIGN, Codex BLOCK on two narrow
 
 ## Ruling R56 (lead, 2026-11-21 16:10): D3 continues as a small follow-up (D3b), not as accepted limits
 D3 stopped after round 2 (`STOP-D3.md`: Codex and Carbon BLOCK; every round-1 fix confirmed; three narrow findings, none can send a pick). The lead does not ask Eric to accept them: the first stops a healthy scheduler and pages falsely on a cancelled deploy, and the other two let recovery print `Scheduler stopped: verified.` where `unverified` is right, which is the line an operator relies on in an incident. They are built as D3b on top of `d57f4013` (the W15b pattern, R55) by a fresh session, `bts-wr-fresh6`, which then builds W3 and W4 once the backtests finish. Cost if wrong: another stopped round; until then `deploy.yml` on `main` is unchanged and B8b item 3 and B8c stand.
+
+## Eric, 2026-11-22 about 01:45
+- **If D3b stops (round 2 is its last, R57): "b", defer the deploy workflow to January** with the Debian 12 rehearsal and the on-box hold decision (R54). Until then `deploy.yml` on `main` stays as it is and checklist B8b item 3 and B8c carry the risk (no deploy to a restored box before the restore checklist; a failed canary must not roll back to `619abda7`). If D3b signs, it merges as usual.
+- **The Mac mini: "not unless needed".** BTS keeps running on the studio; the mini is used only when a concrete need arises (and then on terms agreed with the EoR driver).
