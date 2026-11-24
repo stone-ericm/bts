@@ -180,3 +180,9 @@ The closing test passed its own checks (harnesses consistent with this table; th
 - **Ledgered, not built:** C2-B3 (a postponed refusal pages under two sources), C2-B2b (a false "delivery failed" CRITICAL on a private-mode day: pre-existing, private only), BL-B2 (manual `bts run` and `orchestrate` can repost; no text tells anyone to run them), BL-N1, BL-N2, C3-OD2 (low), C3-B2 (W3's class, accepted). Already known: BL-B1 (W11), BL-O2, BL-O5, C2-B2a, C2-O3 (W12), C3-OD1, C3-OD3 (W18); accepted: C2-O2; note: N-test.
 - **The closing test is re-run on the head after E and F** (the parts those change sets touch, the season walk, and one blind read), as R51 requires for a moved final head.
 Cost if wrong: E and F take about three days and can stop like D and W3; the ledgered items stay as documented.
+
+## Eric, 2026-11-24 about 16:20 (answers to the closing-test questions)
+1. **SW1's policy side:** "confirm that's not indicating something more troubling under the hood", then yes: **never skip a candidate when the table would play a weaker one in the same state** (a policy change, approved). The lead investigates the cause first and reports before anything is built.
+2. **The leaderboard service after a restore (C2-O1/BL-N4): yes**, a checklist step keeps its timer disabled from first boot until the cookies are re-captured and its DM recipient is installed.
+3. **The entry watchdog's window (BL-O4): widen it to cover every game** (a 06:10 opener included). Built in change set F.
+4. **BL-O1 accepted** (R33's automatic reuse with 4c's stamp). 5. **The plan of R60 agreed** (E, F, the ledger, then the closing test re-run on the moved head).
