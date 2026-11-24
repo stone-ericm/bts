@@ -1,0 +1,18 @@
+{
+  "cs6a_live_gate": {
+    "schedule_exits_2_without_heartbeat": true,
+    "day_outcome_backstop_dms_no_decision": true
+  },
+  "corrupt_state_files": {
+    "huge_int_saver_surfaces_as_health_runner_critical_dm": true,
+    "non_dict_streak_json_surfaces_as_health_runner_critical_dm": true,
+    "corrupt_decision_json_surfaces_as_day_outcome_exit2_dm": true,
+    "web_dashboard_survives_corrupt_contest_state": true
+  },
+  "silent_paths_audit": {
+    "c3v_blocked_reconcile_eod_health_alerts": [],
+    "expired_legacy_manual_warn_never_pages_dm_even_after_3_days": true,
+    "corrupt_raw_feed_build_raises_and_trips_blend_training_dm": true,
+    "corrupt_pp_cache_surfaces_attention_and_critical_health_alert": true
+  }
+}

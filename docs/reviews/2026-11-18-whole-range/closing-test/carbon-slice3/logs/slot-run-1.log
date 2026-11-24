@@ -1,0 +1,32 @@
+M01 [KILLED] tests/test_pick_chosen_on_cs5a.py::test_pure_matcher <- src/bts/picks.py: saved_pick_refusal: drop required=False rejection (accept preview pick as live)
+M02 [KILLED] tests/test_pick_chosen_on_cs5a.py::test_invalid_record_normalized_in_all_loaders <- src/bts/picks.py: _valid_chosen_on: relax exact int check on outer streak (accept bool True/False)
+M03 [KILLED] tests/test_saved_pick_paths_cs5a.py::test_uncovered_preview_double_is_refused_then_replaced <- src/bts/scheduler.py: _deliver_and_lock_pick: bypass saved_pick_refusal in scheduler delivery
+M04 [KILLED] tests/test_saved_pick_paths_cs5a.py::test_legacy_public_reuse <- src/bts/cli.py: bts run: bypass saved_pick_refusal on locked catch-up public post
+M05 [KILLED] tests/test_saved_pick_paths_cs5a.py::test_fresh_choices_stamp_the_selection_read <- src/bts/orchestrator.py: run_and_pick: stamp required=False instead of required=required
+M06 [KILLED] tests/test_saved_pick_paths_cs5a.py::test_missed_pick_alert_copy <- src/bts/scheduler.py: _alert_missed_pick: boundary mins_to_game >= 0 -> > 0 at exact 0 min
+M07 [KILLED] tests/test_saved_pick_cs5a_review.py::test_unlocked_unavailable_reuse_reaches_lineup_delivery_and_is_checked_as_saved <- src/bts/strategy.py: select_pick: return locked=True instead of locked=False when available pool empty in Warmup
+M08 [KILLED] tests/test_stale_delivery_cs4c.py::test_attempt_snapshot_and_confirmed_warning <- src/bts/scheduler.py: _deliver_and_lock_pick (DM): omit _stamp_reading(now) before pre-send save
+M09 [KILLED] tests/test_stale_delivery_cs4c.py::test_dated_attempt_clears_seeded_record <- src/bts/scheduler.py: _stamp_reading: preserve seeded automatic_reading instead of clearing to None on dated obs
+M10 [KILLED] tests/test_stale_delivery_cs4c_carbon.py::test_send_returning_no_id_and_reentry <- src/bts/scheduler.py: _deliver_and_lock_pick (DM): warn stale reading even when send_dm returned empty/None id
+M11 [KILLED] tests/test_morning_state_cs6b1.py::test_margin_uses_earliest_planned_target <- src/bts/scheduler.py: run_day morning check: < 10 min lead boundary mutated to <= 10 min (600s case)
+M12 [KILLED] tests/test_morning_state_cs6b1.py::test_existing_commit_markers_suppress_startup_read <- src/bts/scheduler.py: _morning_state_check: drop daily.delivery_attempted commit marker suppression
+M13 [KILLED] tests/test_morning_state_cs6b1_carbon.py::test_morning_dispatches_pass_sampled_now_et_date_not_wall_clock <- src/bts/scheduler.py: _morning_state_check: omit explicit now_et_date=now.date() on CRITICAL dispatch
+M14 [SURVIVED_WHOLE_FILE] tests/test_thin_slate_checks.py::test_early_checks_already_in_the_past_are_dropped_but_the_regular_check_is_kept <- src/bts/scheduler.py: plan_run_times: boundary t <= now -> t < now ('at or before now')
+M15 [SURVIVED_TARGET_KILLED_BY_FILE] tests/test_thin_slate_checks.py::test_a_two_hour_move_still_leaves_one_check_in_time <- src/bts/scheduler.py: plan_run_times: drop 120-min early offset, leaving only 180-min
+M16 [KILLED] tests/test_thin_slate_checks.py::test_a_selected_pick_is_delivered_at_the_deadline_when_the_later_checks_produce_nothing <- src/bts/scheduler.py: run_day step 5: disable post-checks sleep until fallback deadline
+M17 [KILLED] tests/test_postponed_delivery_guard.py::test_a_postponed_double_down_leg_leaves_the_delivered_double_unchanged <- src/bts/scheduler.py: _deliver_and_lock_pick: refuse partial-void double instead of all-void only
+M18 [SURVIVED_WHOLE_FILE] tests/test_postponed_delivery_guard.py::test_a_partial_void_double_still_faces_the_original_earliest_cutoff <- src/bts/scheduler.py: _deliver_and_lock_pick: cutoff boundary >= -> > in partial-void cutoff test
+M19 [KILLED] tests/test_season_end_date.py::test_2027_last_day_and_after <- src/bts/strategy.py: strategy.SEASON_END_DATES: off-by-one on 2027 exclusive end date (09-26 vs 09-27)
+M20 [SURVIVED_WHOLE_FILE] tests/test_wr_a_calendar_replay_carbon.py::test_late_2027_shipped_policy_actions <- src/bts/strategy.py: resolve_policy_decision: clamp disallowed double to skip instead of single
+M21 [KILLED] tests/test_live_gate_cs6a.py::test_schedule_refuses_before_resource_access <- src/bts/cli.py: bts schedule: disable live_gate_problem startup refusal
+M22 [KILLED] tests/test_season_contract_cs4b1.py::test_identifier_format <- src/bts/season_contract.py: season_contract.valid_activation_id: allow uppercase hex in activation_id
+M23 [KILLED] tests/test_season_contract_cs4b2.py::test_optional_and_dated_bypass_corrupt_switch <- src/bts/contest_state.py: load_decision_streak_state: fail to bypass corrupt season switch when today's dated obs is in effect
+M24 [SURVIVED_TARGET_KILLED_BY_FILE] tests/test_contest_dated_cs4a.py::test_write_and_noop_order_output_and_isolation <- src/bts/cli.py: _write_dated_contest_observation: omit reason from idempotency identity_keys
+M25 [KILLED] tests/test_saver_cs3.py::test_policy_saver_table <- src/bts/saver_state.py: policy_saver_available: boundary streak < 10 -> streak <= 10 on not_earned
+M26 [KILLED] tests/test_streak_season_cs2.py::test_row1_readers_require_an_exact_integer_season_without_writing <- src/bts/picks.py: _load_streak_season: allow float/bool season tag instead of exact int
+M27 [SURVIVED_TARGET_KILLED_BY_FILE] tests/test_day_outcome.py::test_a_confirmation_that_does_not_bind_to_this_day_does_not_count <- src/bts/day_outcome.py: day_outcome._binds: drop rec.get('season') == int(date[:4]) check on confirmed receipt
+M28 [SURVIVED_TARGET_KILLED_BY_FILE] tests/test_wr_c1_clock.py::test_mode_sample_and_last_et_microsecond <- src/bts/health/runner.py: health.runner: < wall_date_et -> <= wall_date_et (wrongly enter historical mode on same day)
+M29 [KILLED] tests/test_bullpen_same_day.py::test_bullpen_availability_does_not_depend_on_same_day_reliever <- src/bts/features/compute.py: compute.py bullpen merge_asof: allow_exact_matches=True (re-introduce same-day leakage)
+M30 [KILLED] tests/health/test_alert_status_cs6b2.py::test_failed_count <- src/bts/health/alert.py: alert._resurface_note: isinstance(n, int) instead of type(n) is int (accepts bool True as 1)
+
+SUMMARY: 23/30 killed by target test; target survivors=['M14', 'M15', 'M18', 'M20', 'M24', 'M27', 'M28']; whole-file survivors=['M14', 'M18', 'M20']

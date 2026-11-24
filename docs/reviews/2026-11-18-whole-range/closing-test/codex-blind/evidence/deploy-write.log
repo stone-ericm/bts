@@ -1,0 +1,18 @@
+nice: setpriority: Operation not permitted
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-07-15...
+  1 games, 3 scheduled checks:
+    16:10 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    18:25 ET — 1 game(s)
+  Morning state check: automatic contest state accepted (streak 12).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Batter 1 (AWY) 99.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: offline-7
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-15T05:10:00Z, about 15.00 hours ago). Check MLB. If the streak or saver differs, use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S with the scheduler's picks directory and the values shown in MLB. Use the current ET date when you run it. Check the latest fetch status.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 190 min)...

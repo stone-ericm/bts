@@ -1,0 +1,320 @@
+{
+  "total_mutations": 30,
+  "killed_by_target_count": 23,
+  "survivors_on_target": [
+    "M14",
+    "M15",
+    "M18",
+    "M20",
+    "M24",
+    "M27",
+    "M28"
+  ],
+  "survivors_on_whole_file": [
+    "M14",
+    "M18",
+    "M20"
+  ],
+  "results": [
+    {
+      "id": "M01",
+      "test_node": "tests/test_pick_chosen_on_cs5a.py::test_pure_matcher",
+      "src_file": "src/bts/picks.py",
+      "description": "saved_pick_refusal: drop required=False rejection (accept preview pick as live)",
+      "killed_by_target_test": true,
+      "killed_by_test_file": null,
+      "pytest_rc": 1,
+      "output_tail": "========== short test summary info ============================\nFAILED tests/test_pick_chosen_on_cs5a.py::test_pure_matcher[optional-dated]\nFAILED tests/test_pick_chosen_on_cs5a.py::test_pure_matcher[optional-automatic]\n======================== 2 failed, 112 passed in 0.28s ========================="
+    },
+    {
+      "id": "M02",
+      "test_node": "tests/test_pick_chosen_on_cs5a.py::test_invalid_record_normalized_in_all_loaders",
+      "src_file": "src/bts/picks.py",
+      "description": "_valid_chosen_on: relax exact int check on outer streak (accept bool True/False)",
+      "killed_by_target_test": true,
+      "killed_by_test_file": null,
+      "pytest_rc": 1,
+      "output_tail": "ck_chosen_on_cs5a.py::test_invalid_record_normalized_in_all_loaders[automatic with Boolean streak]\nFAILED tests/test_pick_chosen_on_cs5a.py::test_invalid_record_normalized_in_all_loaders[dated with Boolean outer streak]\n========================= 2 failed, 45 passed in 0.21s ========================="
+    },
+    {
+      "id": "M03",
+      "test_node": "tests/test_saved_pick_paths_cs5a.py::test_uncovered_preview_double_is_refused_then_replaced",
+      "src_file": "src/bts/scheduler.py",
+      "description": "_deliver_and_lock_pick: bypass saved_pick_refusal in scheduler delivery",
+      "killed_by_target_test": true,
+      "killed_by_test_file": null,
+      "pytest_rc": 1,
+      "output_tail": "                                [100%]\n\n=========================== short test summary info ============================\nFAILED tests/test_saved_pick_paths_cs5a.py::test_uncovered_preview_double_is_refused_then_replaced\n============================== 1 failed in 0.74s ==============================="
+    },
+    {
+      "id": "M04",
+      "test_node": "tests/test_saved_pick_paths_cs5a.py::test_legacy_public_reuse",
+      "src_file": "src/bts/cli.py",
+      "description": "bts run: bypass saved_pick_refusal on locked catch-up public post",
+      "killed_by_target_test": true,
+      "killed_by_test_file": null,
+      "pytest_rc": 1,
+      "output_tail": "euse[mismatch-strict-failure-run]\nFAILED tests/test_saved_pick_paths_cs5a.py::test_legacy_public_reuse[missing-locked-run]\nFAILED tests/test_saved_pick_paths_cs5a.py::test_legacy_public_reuse[missing-strict-failure-run]\n=================== 6 failed, 20 passed, 4 skipped in 0.87s ===================="
+    },
+    {
+      "id": "M05",
+      "test_node": "tests/test_saved_pick_paths_cs5a.py::test_fresh_choices_stamp_the_selection_read",
+      "src_file": "src/bts/orchestrator.py",
+      "description": "run_and_pick: stamp required=False instead of required=required",
+      "killed_by_target_test": true,
+      "killed_by_test_file": null,
+      "pytest_rc": 1,
+      "output_tail": "omatic-core]\nFAILED tests/test_saved_pick_paths_cs5a.py::test_fresh_choices_stamp_the_selection_read[dated-orchestrate]\nFAILED tests/test_saved_pick_paths_cs5a.py::test_fresh_choices_stamp_the_selection_read[dated-core]\n========================= 4 failed, 4 passed in 0.80s =========================="
+    },
+    {
+      "id": "M06",
+      "test_node": "tests/test_saved_pick_paths_cs5a.py::test_missed_pick_alert_copy",
+      "src_file": "src/bts/scheduler.py",
+      "description": "_alert_missed_pick: boundary mins_to_game >= 0 -> > 0 at exact 0 min",
+      "killed_by_target_test": true,
+      "killed_by_test_file": null,
+      "pytest_rc": 1,
+      "output_tail": "est summary info ============================\nFAILED tests/test_saved_pick_paths_cs5a.py::test_missed_pick_alert_copy[0-scheduler]\nFAILED tests/test_saved_pick_paths_cs5a.py::test_missed_pick_alert_copy[0-health_checks]\n========================= 2 failed, 7 passed in 0.72s =========================="
+    },
+    {
+      "id": "M07",
+      "test_node": "tests/test_saved_pick_cs5a_review.py::test_unlocked_unavailable_reuse_reaches_lineup_delivery_and_is_checked_as_saved",
+      "src_file": "src/bts/strategy.py",
+      "description": "select_pick: return locked=True instead of locked=False when available pool empty in Warmup",
+      "killed_by_target_test": true,
+      "killed_by_test_file": null,
+      "pytest_rc": 1,
+      "output_tail": "::test_unlocked_unavailable_reuse_reaches_lineup_delivery_and_is_checked_as_saved[True]\nFAILED tests/test_saved_pick_cs5a_review.py::test_unlocked_unavailable_reuse_reaches_lineup_delivery_and_is_checked_as_saved[False]\n============================== 2 failed in 0.72s ==============================="
+    },
+    {
+      "id": "M08",
+      "test_node": "tests/test_stale_delivery_cs4c.py::test_attempt_snapshot_and_confirmed_warning",
+      "src_file": "src/bts/scheduler.py",
+      "description": "_deliver_and_lock_pick (DM): omit _stamp_reading(now) before pre-send save",
+      "killed_by_target_test": true,
+      "killed_by_test_file": null,
+      "pytest_rc": 1,
+      "output_tail": "-None-True-dm]\nFAILED tests/test_stale_delivery_cs4c.py::test_attempt_snapshot_and_confirmed_warning[20-old-False-dm]\nFAILED tests/test_stale_delivery_cs4c.py::test_attempt_snapshot_and_confirmed_warning[20-old-True-dm]\n========================= 4 failed, 4 passed in 0.76s =========================="
+    },
+    {
+      "id": "M09",
+      "test_node": "tests/test_stale_delivery_cs4c.py::test_dated_attempt_clears_seeded_record",
+      "src_file": "src/bts/scheduler.py",
+      "description": "_stamp_reading: preserve seeded automatic_reading instead of clearing to None on dated obs",
+      "killed_by_target_test": true,
+      "killed_by_test_file": null,
+      "pytest_rc": 1,
+      "output_tail": "t summary info ============================\nFAILED tests/test_stale_delivery_cs4c.py::test_dated_attempt_clears_seeded_record[dm]\nFAILED tests/test_stale_delivery_cs4c.py::test_dated_attempt_clears_seeded_record[public]\n============================== 2 failed in 0.73s ==============================="
+    },
+    {
+      "id": "M10",
+      "test_node": "tests/test_stale_delivery_cs4c_carbon.py::test_send_returning_no_id_and_reentry",
+      "src_file": "src/bts/scheduler.py",
+      "description": "_deliver_and_lock_pick (DM): warn stale reading even when send_dm returned empty/None id",
+      "killed_by_target_test": true,
+      "killed_by_test_file": null,
+      "pytest_rc": 1,
+      "output_tail": "fo ============================\nFAILED tests/test_stale_delivery_cs4c_carbon.py::test_send_returning_no_id_and_reentry[None-dm]\nFAILED tests/test_stale_delivery_cs4c_carbon.py::test_send_returning_no_id_and_reentry[-dm]\n========================= 2 failed, 2 passed in 0.20s =========================="
+    },
+    {
+      "id": "M11",
+      "test_node": "tests/test_morning_state_cs6b1.py::test_margin_uses_earliest_planned_target",
+      "src_file": "src/bts/scheduler.py",
+      "description": "run_day morning check: < 10 min lead boundary mutated to <= 10 min (600s case)",
+      "killed_by_target_test": true,
+      "killed_by_test_file": null,
+      "pytest_rc": 1,
+      "output_tail": "...F..                                 [100%]\n\n=========================== short test summary info ============================\nFAILED tests/test_morning_state_cs6b1.py::test_margin_uses_earliest_planned_target[600-run]\n========================= 1 failed, 5 passed in 0.73s =========================="
+    },
+    {
+      "id": "M12",
+      "test_node": "tests/test_morning_state_cs6b1.py::test_existing_commit_markers_suppress_startup_read",
+      "src_file": "src/bts/scheduler.py",
+      "description": "_morning_state_check: drop daily.delivery_attempted commit marker suppression",
+      "killed_by_target_test": true,
+      "killed_by_test_file": null,
+      "pytest_rc": 1,
+      "output_tail": "\nFAILED tests/test_morning_state_cs6b1.py::test_existing_commit_markers_suppress_startup_read[False-attempted]\nFAILED tests/test_morning_state_cs6b1.py::test_existing_commit_markers_suppress_startup_read[True-attempted]\n========================= 2 failed, 4 passed in 0.76s =========================="
+    },
+    {
+      "id": "M13",
+      "test_node": "tests/test_morning_state_cs6b1_carbon.py::test_morning_dispatches_pass_sampled_now_et_date_not_wall_clock",
+      "src_file": "src/bts/scheduler.py",
+      "description": "_morning_state_check: omit explicit now_et_date=now.date() on CRITICAL dispatch",
+      "killed_by_target_test": true,
+      "killed_by_test_file": null,
+      "pytest_rc": 1,
+      "output_tail": "        [100%]\n\n=========================== short test summary info ============================\nFAILED tests/test_morning_state_cs6b1_carbon.py::test_morning_dispatches_pass_sampled_now_et_date_not_wall_clock[critical]\n========================= 1 failed, 1 passed in 0.72s =========================="
+    },
+    {
+      "id": "M14",
+      "test_node": "tests/test_thin_slate_checks.py::test_early_checks_already_in_the_past_are_dropped_but_the_regular_check_is_kept",
+      "src_file": "src/bts/scheduler.py",
+      "description": "plan_run_times: boundary t <= now -> t < now ('at or before now')",
+      "killed_by_target_test": false,
+      "killed_by_test_file": false,
+      "pytest_rc": 0,
+      "output_tail": "============================= test session starts ==============================\ncollected 1 item\n\ntests/test_thin_slate_checks.py .                                        [100%]\n\n============================== 1 passed in 0.19s ==============================="
+    },
+    {
+      "id": "M15",
+      "test_node": "tests/test_thin_slate_checks.py::test_a_two_hour_move_still_leaves_one_check_in_time",
+      "src_file": "src/bts/scheduler.py",
+      "description": "plan_run_times: drop 120-min early offset, leaving only 180-min",
+      "killed_by_target_test": false,
+      "killed_by_test_file": true,
+      "pytest_rc": 0,
+      "output_tail": "============================= test session starts ==============================\ncollected 1 item\n\ntests/test_thin_slate_checks.py .                                        [100%]\n\n============================== 1 passed in 0.19s ==============================="
+    },
+    {
+      "id": "M16",
+      "test_node": "tests/test_thin_slate_checks.py::test_a_selected_pick_is_delivered_at_the_deadline_when_the_later_checks_produce_nothing",
+      "src_file": "src/bts/scheduler.py",
+      "description": "run_day step 5: disable post-checks sleep until fallback deadline",
+      "killed_by_target_test": true,
+      "killed_by_test_file": null,
+      "pytest_rc": 1,
+      "output_tail": "   [100%]\n\n=========================== short test summary info ============================\nFAILED tests/test_thin_slate_checks.py::test_a_selected_pick_is_delivered_at_the_deadline_when_the_later_checks_produce_nothing\n============================== 1 failed in 0.19s ==============================="
+    },
+    {
+      "id": "M17",
+      "test_node": "tests/test_postponed_delivery_guard.py::test_a_postponed_double_down_leg_leaves_the_delivered_double_unchanged",
+      "src_file": "src/bts/scheduler.py",
+      "description": "_deliver_and_lock_pick: refuse partial-void double instead of all-void only",
+      "killed_by_target_test": true,
+      "killed_by_test_file": null,
+      "pytest_rc": 1,
+      "output_tail": "             [100%]\n\n=========================== short test summary info ============================\nFAILED tests/test_postponed_delivery_guard.py::test_a_postponed_double_down_leg_leaves_the_delivered_double_unchanged\n============================== 1 failed in 0.19s ==============================="
+    },
+    {
+      "id": "M18",
+      "test_node": "tests/test_postponed_delivery_guard.py::test_a_partial_void_double_still_faces_the_original_earliest_cutoff",
+      "src_file": "src/bts/scheduler.py",
+      "description": "_deliver_and_lock_pick: cutoff boundary >= -> > in partial-void cutoff test",
+      "killed_by_target_test": false,
+      "killed_by_test_file": false,
+      "pytest_rc": 0,
+      "output_tail": "============================= test session starts ==============================\ncollected 1 item\n\ntests/test_postponed_delivery_guard.py .                                 [100%]\n\n============================== 1 passed in 0.19s ==============================="
+    },
+    {
+      "id": "M19",
+      "test_node": "tests/test_season_end_date.py::test_2027_last_day_and_after",
+      "src_file": "src/bts/strategy.py",
+      "description": "strategy.SEASON_END_DATES: off-by-one on 2027 exclusive end date (09-26 vs 09-27)",
+      "killed_by_target_test": true,
+      "killed_by_test_file": null,
+      "pytest_rc": 1,
+      "output_tail": "ate.py F                                          [100%]\n\n=========================== short test summary info ============================\nFAILED tests/test_season_end_date.py::test_2027_last_day_and_after - Assertio...\n============================== 1 failed in 0.18s ==============================="
+    },
+    {
+      "id": "M20",
+      "test_node": "tests/test_wr_a_calendar_replay_carbon.py::test_late_2027_shipped_policy_actions",
+      "src_file": "src/bts/strategy.py",
+      "description": "resolve_policy_decision: clamp disallowed double to skip instead of single",
+      "killed_by_target_test": false,
+      "killed_by_test_file": false,
+      "pytest_rc": 0,
+      "output_tail": "============================= test session starts ==============================\ncollected 13 items\n\ntests/test_wr_a_calendar_replay_carbon.py .............                  [100%]\n\n============================== 13 passed in 0.20s =============================="
+    },
+    {
+      "id": "M21",
+      "test_node": "tests/test_live_gate_cs6a.py::test_schedule_refuses_before_resource_access",
+      "src_file": "src/bts/cli.py",
+      "description": "bts schedule: disable live_gate_problem startup refusal",
+      "killed_by_target_test": true,
+      "killed_by_test_file": null,
+      "pytest_rc": 1,
+      "output_tail": "a.py F                                           [100%]\n\n=========================== short test summary info ============================\nFAILED tests/test_live_gate_cs6a.py::test_schedule_refuses_before_resource_access\n============================== 1 failed in 0.25s ==============================="
+    },
+    {
+      "id": "M22",
+      "test_node": "tests/test_season_contract_cs4b1.py::test_identifier_format",
+      "src_file": "src/bts/season_contract.py",
+      "description": "season_contract.valid_activation_id: allow uppercase hex in activation_id",
+      "killed_by_target_test": true,
+      "killed_by_test_file": null,
+      "pytest_rc": 1,
+      "output_tail": "F.                            [100%]\n\n=========================== short test summary info ============================\nFAILED tests/test_season_contract_cs4b1.py::test_identifier_format[AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA]\n========================= 1 failed, 8 passed in 0.25s =========================="
+    },
+    {
+      "id": "M23",
+      "test_node": "tests/test_season_contract_cs4b2.py::test_optional_and_dated_bypass_corrupt_switch",
+      "src_file": "src/bts/contest_state.py",
+      "description": "load_decision_streak_state: fail to bypass corrupt season switch when today's dated obs is in effect",
+      "killed_by_target_test": true,
+      "killed_by_test_file": null,
+      "pytest_rc": 1,
+      "output_tail": "                              [100%]\n\n=========================== short test summary info ============================\nFAILED tests/test_season_contract_cs4b2.py::test_optional_and_dated_bypass_corrupt_switch[True-True]\n========================= 1 failed, 3 passed in 0.26s =========================="
+    },
+    {
+      "id": "M24",
+      "test_node": "tests/test_contest_dated_cs4a.py::test_write_and_noop_order_output_and_isolation",
+      "src_file": "src/bts/cli.py",
+      "description": "_write_dated_contest_observation: omit reason from idempotency identity_keys",
+      "killed_by_target_test": false,
+      "killed_by_test_file": true,
+      "pytest_rc": 0,
+      "output_tail": "============================= test session starts ==============================\ncollected 3 items\n\ntests/test_contest_dated_cs4a.py ...                                     [100%]\n\n============================== 3 passed in 0.27s ==============================="
+    },
+    {
+      "id": "M25",
+      "test_node": "tests/test_saver_cs3.py::test_policy_saver_table",
+      "src_file": "src/bts/saver_state.py",
+      "description": "policy_saver_available: boundary streak < 10 -> streak <= 10 on not_earned",
+      "killed_by_target_test": true,
+      "killed_by_test_file": null,
+      "pytest_rc": 1,
+      "output_tail": " .........F..............                         [100%]\n\n=========================== short test summary info ============================\nFAILED tests/test_saver_cs3.py::test_policy_saver_table[10-not_earned] - Asse...\n========================= 1 failed, 23 passed in 0.25s ========================="
+    },
+    {
+      "id": "M26",
+      "test_node": "tests/test_streak_season_cs2.py::test_row1_readers_require_an_exact_integer_season_without_writing",
+      "src_file": "src/bts/picks.py",
+      "description": "_load_streak_season: allow float/bool season tag instead of exact int",
+      "killed_by_target_test": true,
+      "killed_by_test_file": null,
+      "pytest_rc": 1,
+      "output_tail": "                 [100%]\n\n=========================== short test summary info ============================\nFAILED tests/test_streak_season_cs2.py::test_row1_readers_require_an_exact_integer_season_without_writing[2027.0]\n========================= 1 failed, 5 passed in 0.18s =========================="
+    },
+    {
+      "id": "M27",
+      "test_node": "tests/test_day_outcome.py::test_a_confirmation_that_does_not_bind_to_this_day_does_not_count",
+      "src_file": "src/bts/day_outcome.py",
+      "description": "day_outcome._binds: drop rec.get('season') == int(date[:4]) check on confirmed receipt",
+      "killed_by_target_test": false,
+      "killed_by_test_file": true,
+      "pytest_rc": 0,
+      "output_tail": "============================= test session starts ==============================\ncollected 4 items\n\ntests/test_day_outcome.py ....                                           [100%]\n\n============================== 4 passed in 0.18s ==============================="
+    },
+    {
+      "id": "M28",
+      "test_node": "tests/test_wr_c1_clock.py::test_mode_sample_and_last_et_microsecond",
+      "src_file": "src/bts/health/runner.py",
+      "description": "health.runner: < wall_date_et -> <= wall_date_et (wrongly enter historical mode on same day)",
+      "killed_by_target_test": false,
+      "killed_by_test_file": true,
+      "pytest_rc": 0,
+      "output_tail": "============================= test session starts ==============================\ncollected 2 items\n\ntests/test_wr_c1_clock.py ..                                             [100%]\n\n============================== 2 passed in 0.19s ==============================="
+    },
+    {
+      "id": "M29",
+      "test_node": "tests/test_bullpen_same_day.py::test_bullpen_availability_does_not_depend_on_same_day_reliever",
+      "src_file": "src/bts/features/compute.py",
+      "description": "compute.py bullpen merge_asof: allow_exact_matches=True (re-introduce same-day leakage)",
+      "killed_by_target_test": true,
+      "killed_by_test_file": null,
+      "pytest_rc": 1,
+      "output_tail": "                             [100%]\n\n=========================== short test summary info ============================\nFAILED tests/test_bullpen_same_day.py::test_bullpen_availability_does_not_depend_on_same_day_reliever\n============================== 1 failed in 0.25s ==============================="
+    },
+    {
+      "id": "M30",
+      "test_node": "tests/health/test_alert_status_cs6b2.py::test_failed_count",
+      "src_file": "src/bts/health/alert.py",
+      "description": "alert._resurface_note: isinstance(n, int) instead of type(n) is int (accepts bool True as 1)",
+      "killed_by_target_test": true,
+      "killed_by_test_file": null,
+      "pytest_rc": 1,
+      "output_tail": "rt-True]\nFAILED tests/health/test_alert_status_cs6b2.py::test_failed_count[contest_morning_check-banner_only-True]\nFAILED tests/health/test_alert_status_cs6b2.py::test_failed_count[contest_morning_check-with_alert-True]\n========================= 6 failed, 36 passed in 0.20s ========================="
+    }
+  ]
+}

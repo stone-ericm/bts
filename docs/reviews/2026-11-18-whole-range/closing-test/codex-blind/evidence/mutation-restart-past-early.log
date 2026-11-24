@@ -1,0 +1,22 @@
+restart-past-early: scheduler.py :: if now is not None and t <= now: -> if False:
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-closing-blind
+configfile: pyproject.toml
+collected 1 item
+
+../../../tests/test_thin_slate_checks.py F                               [100%]
+
+=================================== FAILURES ===================================
+_ test_early_checks_already_in_the_past_are_dropped_but_the_regular_check_is_kept _
+../../../tests/test_thin_slate_checks.py:65: in test_early_checks_already_in_the_past_are_dropped_but_the_regular_check_is_kept
+    assert _times(runs) == ["17:10", "18:10"]
+E   AssertionError: assert ['16:10', '17:10', '18:10'] == ['17:10', '18:10']
+E     
+E     At index 0 diff: '16:10' != '17:10'
+E     Left contains one more item: '18:10'
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED ../../../tests/test_thin_slate_checks.py::test_early_checks_already_in_the_past_are_dropped_but_the_regular_check_is_kept
+============================== 1 failed in 0.23s ===============================
+mutation-result restart-past-early 1

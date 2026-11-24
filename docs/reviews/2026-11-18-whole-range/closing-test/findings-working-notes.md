@@ -1,0 +1,34 @@
+# Findings draft (bts-wr-fresh8)
+- SW1 (part d): in-season skip DM says the best candidate is below a bar it clears (841 of 4,599 walk runs; streaks 43-56; candidate >= 0.841; shipped table skips its top bin while playing bin 3, or every bin -> "~80%" fallback text). Proposed: new; text fix in format_skip_dm/effective_pick_bar display is small; the table's top-bin skip is a policy question for Eric (D7, folds into the longest-streak policy work).
+- C2-B1 (Carbon slice 2, reproduced): stale-reading DMs (scheduler.py:88-93, 200-204) and checklist B8a line "if the streak or saver differs, enter the day's dated observation" fix only today; the saver flag stays `active` after MLB consumed the saver; next day the automatic path reads saver in hand. No code path marks the flag used except `bts saver-state --use` and the dashboard button. Proposed: new (operator text; R57 item 5 class).
+- C2-B2 part 1: private/research and preview read last season's contest file. Proposed: already known (CLAUDE.md, B8a).
+- C2-B2 part 2 (reproduced): post_failure.check pages CRITICAL pick_delivery on a scoreable private_locked day after 22:00 ET. Pre-existing (unchanged since 619abda7); private mode only. Proposed: new (pre-existing).
+- C2-B3 (reproduced): a game_not_playable refusal pages under postponed_pick by day and again under late_delivery at EOD (different source, no dedup). In range (2db0798e). Proposed: new, low (a repeated accurate CRITICAL).
+- C2-O1 (verified by reading): bts-leaderboard.service recipient change 1ac91821 is installed by nothing (deploy, installer, unit_drift, checklist); timer Persistent=true. Proposed: new, owner decision (checklist row).
+- C2-O2: morning stale WARN at 10:00 after both overnight fetches fail: the 14 h rule as documented. Proposed: accepted (as designed).
+- C2-O3: rollback hazards: W12 (deferred to January). Proposed: already known.
+## Blind read (Codex xhigh, WRBLIND-81f2c64f)
+- BL-B1 lost DM response -> same pick DM'd twice: W11 (left on purpose). Proposed: already known/accepted. Note: CLAUDE.md C2 "The recommendation is never resent" is true only for the restart path; W11's in-process path still resends.
+- BL-B2 manual `bts run` / `bts orchestrate` public catch-up reposts a pick the scheduler already DM'd, and can post after cutoff. No operator text tells anyone to run them. Proposed: new (manual-command path).
+- BL-B3 private/research lock kept after switching to DM/enter the same slate; entry watchdog says "Fix it now!" for that pick (chosen on last season's 17). Proposed: new (activation ordering; checklist).
+- BL-B4 stale-reading DM read after midnight: "use the current ET date" installs a pre-settlement value for the new day that overrides the later fetch. Proposed: new (operator text; same class as W20, not covered by C1).
+- BL-B5 late/postponed refusal DM invites manual entry while automatic selection continues -> conflicting entry and a "Fix it now!" mismatch. Proposed: new (operator text).
+- BL-B6 checklist ordering B8a vs B8c vs deploy.yml contradicts; B4 failure-direction drill breaks a real receipt. Proposed: new (operator text); deploy parts = W12/W13 deferred.
+- BL-B7 entry watchdog sends "entry confirmed" for the right batter in the wrong doubleheader game when the units capture already shows wrong_game; later checks skip as confirmed. Proposed: new.
+- BL-O1 automatic reuse (R33) + 4c stamp hide that the pick was chosen on an older streak/saver. Proposed: owner decision (R33 accepted; combination new).
+- BL-O2 first post-enable fetch carrying last season's counters is accepted. Proposed: already known (4c: a fresh reading can be wrong; B8a's MLB comparison is the guard).
+- BL-O3 streak.json holding a JSON list: grading and reconcile fail while 08:30 reports clean. Proposed: new (visibility).
+- BL-O4 entry watchdog window 10:00-23:45 misses an early (06:10) slate; 08:30 next day pages. Proposed: new, owner (W16 accepted covers the last minutes only).
+- BL-O5 non-object contest_streak.json breaks the fetch: already known (CS1 note).
+- BL-N1 saver recovery command for the old year rewrites the new year's flag across New Year. Proposed: new, low.
+- BL-N2 day-outcome judges a past slate by the current intent. Proposed: new, low.
+- BL-N3 skip notice compares against a candidate removed by a later status update. Proposed: new; same function as SW1 (build_skip_summary over all predictions).
+- BL-N4 leaderboard unit recipient: same as C2-O1.
+- BL-text: operator-text.md table, 14 unsafe and 17 unclear. Unsafe items not covered above: INCIDENT.md:17-55 "self-healing" rollback (contradicts B8b(3); W12 deferred), INCIDENT.md:69-77 re-capture cookies on an auth stall (contradicts the CLI's back-off guidance), A7 revert text, B8a enable step on prior-season counters (BL-O2). Proposed: new (texts), deploy parts already known.
+## Carbon slice 3 (WRCARB3-00adaa93)
+- C3-B1 an MDP skip chosen at a check survives a later dated correction or revoke when the later checks return nothing; no missed-pick DM, EOD decision records skip on the old streak, 08:30 day-outcome deliberate_skip (exit 0, no DM). Design comment scheduler.py:3036-3039 ("LEAVES the captured skip unchanged"). Revoke path REPRODUCED in my window (test_item1d passed; one refusal DM at 17:10 still fires). Dated path (fully silent): Carbon's own run OK; my run queued (gap2). Proposed: new; same class as 5b/W4 (accepted: missed day), new part = 08:30 reports clean.
+- C3-B2 after a 5a refusal at the in-loop fallback, the end-of-checks fallback starts a second cascade that overruns the cutoff; the T-10 missed-pick warning is delayed past the window. Reproduction: test_item1a passed in my window; side-by-side base test queued (gap2). Proposed: already known class (W3 accepted, "an overrunning check starts a second cascade that can miss the cutoff"), new route via 5a.
+- C3-OD1 uninitialized saver under accepted automatic: CS3 documented (flag uninitialized until init; saver counts spent; daily WARN). Proposed: already known.
+- C3-OD2 selection after midnight ET for a delayed prior-slate game reads the new day's state. Proposed: new, low (a game starting after midnight ET).
+- C3-OD3 New Year reconcile vs late Dec 31 grading: W18. Proposed: already known.
+- C3 notes: same-day private->dm cutover keeps the private lock (= BL-B3); orchestrate midnight uncaught (known note); M14 plan_run_times t==now boundary untested (test gap, NOTE).

@@ -1,0 +1,56 @@
+nice: setpriority: Operation not permitted
+health check 'contest_state' raised: Exceeds the limit (4300 digits) for integer string conversion: value has 5000 digits; use sys.set_int_max_str_digits() to increase the limit
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-closing-carbon3/src/bts/health/runner.py", line 65, in _safe_run
+    return fn()
+           ^^^^
+  File "/Users/eric/projects/bts-work/wr-closing-carbon3/src/bts/health/runner.py", line 141, in <lambda>
+    contest_alerts = _safe_run("contest_state", lambda: contest_state.check(
+                                                        ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-closing-carbon3/src/bts/health/contest_state.py", line 69, in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-closing-carbon3/src/bts/health/contest_state.py", line 214, in _check
+    else load_saver_state(picks_dir, season=season))
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-closing-carbon3/src/bts/saver_state.py", line 49, in load_saver_state
+    return _read_saver_state(picks_dir, season=season, historical=False)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-closing-carbon3/src/bts/saver_state.py", line 58, in _read_saver_state
+    d = json.loads(raw)
+        ^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py", line 338, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py", line 354, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 5000 digits; use sys.set_int_max_str_digits() to increase the limit
+[health_runner CRITICAL] health check 'contest_state' crashed: ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 5000 digits; use sys.set_int_max_str_digits() to increase the limit
+[blend_training CRITICAL] missing tomorrow's blend pkl: blend_2027-07-16.pkl not found in /Users/eric/projects/bts-work/wr-closing-carbon3/data/models. 3 AM cron on 2027-07-15 likely failed; predictions on 2027-07-16 will fall back to stale blend.
+[disk_fill CRITICAL] disk usage 98.5% (912.5/926.3GB) on /Users/eric/projects/bts-work/wr-closing-carbon3/.carbon-review/whole-range/scratch_tmp_fail/tmpzcyuamke/huge_saver/data/picks
+health check 'streak_validation' raised: 'list' object has no attribute 'get'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-closing-carbon3/src/bts/health/runner.py", line 65, in _safe_run
+    return fn()
+           ^^^^
+  File "/Users/eric/projects/bts-work/wr-closing-carbon3/src/bts/health/runner.py", line 291, in <lambda>
+    alerts.extend(_safe_run("streak_validation", lambda: streak_validation.check(picks_dir)))
+                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-closing-carbon3/src/bts/health/streak_validation.py", line 46, in check
+    streak = data.get("streak")
+             ^^^^^^^^
+AttributeError: 'list' object has no attribute 'get'
+[blend_training CRITICAL] missing tomorrow's blend pkl: blend_2027-07-16.pkl not found in /Users/eric/projects/bts-work/wr-closing-carbon3/data/models. 3 AM cron on 2027-07-15 likely failed; predictions on 2027-07-16 will fall back to stale blend.
+[disk_fill CRITICAL] disk usage 98.5% (912.5/926.3GB) on /Users/eric/projects/bts-work/wr-closing-carbon3/.carbon-review/whole-range/scratch_tmp_fail/tmpzcyuamke/corrupt_streak/data/picks
+[health_runner CRITICAL] health check 'streak_validation' crashed: AttributeError: 'list' object has no attribute 'get'
+[blend_training CRITICAL] missing tomorrow's blend pkl: blend_2027-04-21.pkl not found in /Users/eric/projects/bts-work/wr-closing-carbon3/data/models. 3 AM cron on 2027-04-20 likely failed; predictions on 2027-04-21 will fall back to stale blend.
+[disk_fill CRITICAL] disk usage 98.5% (912.5/926.3GB) on /Users/eric/projects/bts-work/wr-closing-carbon3/.carbon-review/whole-range/scratch_tmp_fail/tmpuxewoqg3/c3v/data/picks
+Skipping /Users/eric/projects/bts-work/wr-closing-carbon3/.carbon-review/whole-range/scratch_tmp_fail/tmpuxewoqg3/bad_raw/2027/9999.json: missing or unreadable gameData.game.type.
+WARNING: unreadable probable-pitcher cache /Users/eric/projects/bts-work/wr-closing-carbon3/.carbon-review/whole-range/scratch_tmp_fail/tmpuxewoqg3/pp_bad/data/models/probable_pitcher_lookup.json (JSONDecodeError); rebuilding it from raw feeds
+Probable-pitcher cache was unreadable at 2026-11-24T17:18:43.189620+00:00. That run started from an empty lookup and built usable entries from raw feeds for 0 games. Keep the active cache, raw feeds, any named evidence copy and other available copies intact for review. Other games may have been missing from that run's lookup. This observation names no evidence copy. That run left the active cache unchanged. Send this alert immediately to the supervised BTS lead Claude session (bts-lead), or to Eric if the session is unavailable. Ask them to preserve and verify any usable cache copy in the current or previous R2 manifest before the next successful sync. An unreferenced content-addressed cache object can be pruned once it is at least seven days old.
+Probable-pitcher cache status unreadable: record 2026-11-24.unreadable_cache.000000000000.json. Send this alert to the supervised BTS lead Claude session (bts-lead), or to Eric if the session is unavailable.
+Probable-pitcher cache was unreadable at 2026-11-24T17:18:43.189620+00:00. That run started from an empty lookup and built usable entries from raw feeds for 0 games. Keep the active cache, raw feeds, any named evidence copy and other available copies intact for review. Other games may have been missing from that run's lookup. This observation names no evidence copy. That run left the active cache unchanged. Send this alert immediately to the supervised BTS lead Claude session (bts-lead), or to Eric if the session is unavailable. Ask them to preserve and verify any usable cache copy in the current or previous R2 manifest before the next successful sync. An unreferenced content-addressed cache object can be pruned once it is at least seven days old.

@@ -1,0 +1,36 @@
+Observation written at /Users/eric/projects/bts-work/wr-closing-carbon3/.carbon-review/whole-range/scratch_tmp_clocks/tmpx6hssnth/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=0 best=0 saver=not_earned reason='opener'
+contest_streak: 0 (best 0, saver not_earned) for 2027-03-24, in effect today
+Observation written at /Users/eric/projects/bts-work/wr-closing-carbon3/.carbon-review/whole-range/scratch_tmp_clocks/tmpm5i7y4dv/a1/data/picks/account_state/contest_streak.manual.json: date=2027-07-15 streak=2 best=30 saver=used reason='override wrong auto 30'
+contest_streak: 2 (best 30, saver used) for 2027-07-15, in effect today
+Observation written at /Users/eric/projects/bts-work/wr-closing-carbon3/.carbon-review/whole-range/scratch_tmp_clocks/tmp3ro0hxif/data/picks/account_state/contest_streak.manual.json: date=2027-12-31 streak=12 best=20 saver=active reason='nye'
+contest_streak: 12 (best 20, saver active) for 2027-12-31, in effect today
+{
+  "2027_03_24": {
+    "days_remaining": 187,
+    "thin_slate_runs": [
+      "16:10",
+      "17:10",
+      "18:10"
+    ],
+    "utc_tomorrow_et_today_ok": true
+  },
+  "midnight_et": {
+    "pre_midnight_select_post_midnight_deliver_blocked_by_5a": true,
+    "post_midnight_select_and_deliver_falls_back_from_slate_dated_to_auto": true
+  },
+  "2027_12_31": {
+    "utc_2028_et_2027_dec31_contract_and_saver_accepted": true,
+    "best_streak_trusted_across_utc_new_year": true
+  },
+  "2028_unreconfigured": {
+    "live_2028_refused_with_2027_switch": true,
+    "preview_2028_with_2027_auto_v2_file": {
+      "streak": 14,
+      "source": "contest",
+      "saver_available": false,
+      "best_streak": 25,
+      "best_status": "untrusted"
+    },
+    "tail_policy_2028_warns_and_pages_attention": true
+  }
+}

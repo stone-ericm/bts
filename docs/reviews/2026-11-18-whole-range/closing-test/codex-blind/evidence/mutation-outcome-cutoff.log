@@ -1,0 +1,19 @@
+outcome-cutoff: day_outcome.py :: in_time = [r for r in confirmed if (r.get("observation") or {}).get("before_cutoff") is True] -> in_time = confirmed
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-closing-blind
+configfile: pyproject.toml
+collected 1 item
+
+../../../tests/test_day_outcome.py F                                     [100%]
+
+=================================== FAILURES ===================================
+____________ test_a_confirmation_seen_only_after_the_cutoff_is_late ____________
+../../../tests/test_day_outcome.py:120: in test_a_confirmation_seen_only_after_the_cutoff_is_late
+    assert not out.ok and out.state == "entered_late"
+E   AssertionError: assert (not True)
+E    +  where True = DayOutcome(date='2027-04-02', state='entered', detail='The entry was confirmed in 1 of 1 checks before the cutoff.', pick='Kwan').ok
+=========================== short test summary info ============================
+FAILED ../../../tests/test_day_outcome.py::test_a_confirmation_seen_only_after_the_cutoff_is_late
+============================== 1 failed in 0.21s ===============================
+mutation-result outcome-cutoff 1

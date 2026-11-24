@@ -1,0 +1,24 @@
+automatic-age: contest_state.py :: elapsed > timedelta(hours=AUTOMATIC_READING_STALE_HOURS) -> elapsed >= timedelta(hours=AUTOMATIC_READING_STALE_HOURS)
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-closing-blind
+configfile: pyproject.toml
+collected 6 items
+
+../../../tests/test_automatic_reading_cs4c.py .F....                     [100%]
+
+=================================== FAILURES ===================================
+______________ test_strict_elapsed_thresholds[50400-0-14.0-None] _______________
+../../../tests/test_automatic_reading_cs4c.py:85: in test_strict_elapsed_thresholds
+    assert contest_state.automatic_reading_record(reading("automatic", raw), NOW) == {
+E   AssertionError: assert {'age_hours':...ding_v1', ...} == {'age_hours':...ding_v1', ...}
+E     
+E     Omitting 3 identical items, use -vv to show
+E     Differing items:
+E     {'reason': 'old'} != {'reason': None}
+E     {'stale': True} != {'stale': False}
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED ../../../tests/test_automatic_reading_cs4c.py::test_strict_elapsed_thresholds[50400-0-14.0-None]
+========================= 1 failed, 5 passed in 0.22s ==========================
+mutation-result automatic-age 1

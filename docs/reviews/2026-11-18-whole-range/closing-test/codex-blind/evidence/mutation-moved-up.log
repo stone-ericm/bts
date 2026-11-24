@@ -1,0 +1,18 @@
+moved-up: scheduler.py :: THIN_SLATE_EARLY_OFFSETS_MIN = (180, 120) -> THIN_SLATE_EARLY_OFFSETS_MIN = (120,)
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-closing-blind
+configfile: pyproject.toml
+collected 1 item
+
+../../../tests/test_thin_slate_checks.py F                               [100%]
+
+=================================== FAILURES ===================================
+_____________ test_a_two_hour_move_still_leaves_one_check_in_time ______________
+../../../tests/test_thin_slate_checks.py:46: in test_a_two_hour_move_still_leaves_one_check_in_time
+    assert [r for r in planned if r["time_et"] <= _at("17:10") - LEAD_NEEDED]
+E   assert []
+=========================== short test summary info ============================
+FAILED ../../../tests/test_thin_slate_checks.py::test_a_two_hour_move_still_leaves_one_check_in_time
+============================== 1 failed in 0.24s ===============================
+mutation-result moved-up 1
