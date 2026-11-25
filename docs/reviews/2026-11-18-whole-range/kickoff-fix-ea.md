@@ -49,3 +49,36 @@ What held: all 14 must-still-catch rows reproduce the corrected text (C4, C6 and
 Notes for round 2: the refusal JOURNAL line also says "passed 0.0 min ago" at equality (unchanged text, outside the DMs); the new tests pin the K5 streak sentence and the late headline, so they change with B1 and B2; Carbon's round-1 report (`WREACARB1`) was still running when this was written and is added to `review-fix-ea-carbon/` when it arrives.
 
 **The session's reading, for the lead and the next session (not a ruling).** Three rounds of per-sentence review at the highest effort returned 8, 7 and 6 new findings, none repeated. In this round two findings (B3, B4) can lead an operator to a wrong contest-state write; the other four are sentences that are imprecise in an edge state and ask for no harmful action (a streak shown on a no-decision notice, "0 min after", a pointer to a failure that did not happen, a record that is null on a dated day). A fresh start should change something material: the suggestion is a verdict rule written into the round-2 brief (BLOCK only when following the sentence exactly can enter a wrong pick, write wrong contest or saver state, or lose a day; anything else is SIGN WITH EDITS), and a decision by the lead on B2, which widens Ea to a sentence neither E nor Ea had changed.
+
+## Round 2 (2026-11-24, session `bts-wr-fresh10`): all six round-1 findings in scope; the verdict rule R64
+
+**What changed for this round (material):** ruling R64 (`FINDINGS.md`) sets what a reviewer may block on. Quoted in both review briefs: *a finding BLOCKs only when following the text exactly, in some ordinary state, can enter or send a wrong pick, write wrong contest, saver or streak state, suppress or lose an alert, or lose a day's pick. Any other untrue or imprecise sentence is SIGN WITH EDITS with its replacement text, and the session applies those edits before merging.* The scope is closed: the five messages on their three surfaces (DM, journal, dashboard banner) and the one B8a bullet; nothing else in the checklist or `INCIDENT.md`.
+
+**Reproduced by the session before acting (round 1 had not):** B3 (`probe_status_selection.py` re-run on `ac532ddf`: status shows a dated 3/14/used in effect beside an accepted automatic 12; the decision differs at every tested probability but one) and B4 (`probe_handoffs.py` re-run: a send at 23:59:50 confirmed at 00:00:05 prints 2027-07-16 three times for a 2027-07-15 slate).
+
+### The author's items (tests first; ONE commit; only `src/bts/scheduler.py`, `tests/test_wr_e_texts.py` and the expected-text helper in `tests/test_stale_delivery_cs4c.py`; if another existing assertion must change, STOP and ask)
+5. **B1.** `format_skip_summary` omits ` Streak used at this check: N.` when `basis == "no_decision"` (in every branch, the `Reason:` branch included). The stored `streak` field and every other case (K1 to K4) are unchanged.
+6. **B2.** The late refusal DM's first sentence becomes exactly `LATE DELIVERY REFUSED: the {cutoff} cutoff for {names} had been reached.` with `{cutoff}` as now (`%H:%M ET`) and `{names}` as now. The five following sentences, the journal line, the archive, the state record (`late_min` included), the alert level, source and status file are unchanged.
+7. **B4, the message half.** In the delivery warning `For a later date, see B8a.` becomes `For a later slate date, see B8a.` Nothing else in that message changes; its longest enveloped body stays under 900 characters (measure it).
+
+### Applied by the session to the one B8a bullet (the reviewer's texts)
+- B6: `A confirmed delivery records automatic_reading.` becomes `A confirmed delivery using an automatic contest reading normally saves its timestamp status as automatic_reading. A delivery using a dated observation has no automatic timestamp.`
+- B3: after the sentence defining the warning's terms: `When a dated manual row is in effect, compare MLB with that row's streak, best and saver. Otherwise compare with the accepted automatic streak and best and the current-season saver flag.`
+- B4: the later-date rule becomes `**For a later slate date:** For any date later than the pick's slate, including D when the warning was sent after midnight ET, wait until MLB has settled that slate's entry or confirms there was none. Then compare MLB with status and, only if they differ, file that day's dated observation (the command with that day's ET date, run on that day) before its first lineup check.` (The session's own wording in this rule: the heading now matches the message; `do not change the command's date` is replaced by the parenthesis, because on the cross-midnight warning the printed date already is the later day, and on an ordinary warning the later day's observation needs that later day's date.)
+- B5: the last sentence becomes `Read the latest fetch status in health_state/contest_streak_fetch_status.json beside the picks directory. If it reports a failure, read the fetch's error messages. If the warning says the timestamp is in the future, check the scheduler host's clock.`
+
+### Must still catch, added rows (round 1's findings; a reviewer rebuilds each state)
+| # | State | What the operator must NOT be told, and what the text says now |
+|---|---|---|
+| C15 | Round 1 B1: no decision at streak 3; a dated correction to 12 lands before the display's separate state read | no `Streak used at this check` on a no-decision notice (DM, journal, banner) |
+| C16 | Round 1 B2: the delivery guard runs at exactly the cutoff (19:05:00 for a 19:10 game) | not `0 min after`; `the 19:05 ET cutoff for {names} had been reached.` |
+| C17 | Round 1 B3: a stale morning warning; a dated 3/14/used in effect, an accepted automatic 12/14, flag active; MLB shows 12/14/active | B8a says which row to compare (the dated row while it is in effect); following it files the correction |
+| C18 | Round 1 B4: a 2027-07-15 slate pick sent 23:59:50, confirmed 00:00:05; the warning prints 2027-07-16 | `For a later slate date, see B8a.`; B8a's rule covers D itself and requires the 07-15 entry settled or absent before the 07-16 observation |
+| C19 | Round 1 B5: a successful fetch whose timestamp is in the future after a clock correction | B8a does not send the operator to a failure that did not happen; it names the host clock |
+| C20 | Round 1 B6: a confirmed delivery on a dated observation (`automatic_reading` null) | B8a does not promise an automatic record for it |
+| C21 | The tests: restore the K5 streak sentence; restore `would have been sent … min after`; restore `For a later date, see B8a.` | each is noticed by a test |
+
+Known and unchanged (noted by round 1, outside the scope): the refusal JOURNAL line says `passed 0.0 min ago` at equality.
+
+### Handover
+`HANDOVER-WR-EA2.md` in the worktree root (not committed): the commit, per item the test that was RED first, the measured lengths, the season walk result (4,599 runs, 229 K3 and 612 K4, no skip-message problem); then `WREA2-<first 8 hex of its sha256>` on its own line and `DONE`.
