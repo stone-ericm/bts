@@ -1,0 +1,2190 @@
+{
+ "bars": [
+  {
+   "emax_season_best": 4704,
+   "reach57": 19180
+  },
+  "181aa18ba07c032c4a22c655841b3c9bd0b0659e6b51adf2d97e512cf1589b46"
+ ],
+ "checks": {
+  "eligible": {
+   "new_lineups": 3,
+   "pick_name": null,
+   "pick_p": null,
+   "pick_result": null,
+   "selection": {
+    "action": "skip",
+    "allow_double": true,
+    "contest_source_date": "2027-07-15",
+    "decision": {
+     "action": "skip",
+     "best_status": "trusted",
+     "best_supplied": 10,
+     "days_effective": 74,
+     "degraded_reason": null,
+     "effective_best": null,
+     "objective": "reach57",
+     "pick_bar": 0.7959788446395174,
+     "policy_action": "skip",
+     "reason": null,
+     "source": "mdp",
+     "streak": 10,
+     "tail_sha256": null
+    },
+    "double_candidate": {
+     "batter_id": 101,
+     "batter_name": "Batter 1",
+     "game_pk": 70001,
+     "p_game_hit": 0.75,
+     "team": "T1"
+    },
+    "no_pick_reason": null,
+    "pick_result": null,
+    "primary_candidate": {
+     "batter_id": 100,
+     "batter_name": "Batter 0",
+     "game_pk": 70000,
+     "p_game_hit": 0.76,
+     "team": "T0"
+    },
+    "saver_available": false,
+    "source": "mdp",
+    "state_source": "contest",
+    "state_status": "fresh",
+    "streak": 10
+   },
+   "should_post": false,
+   "skip_summary": {
+    "bar": 0.7959788446395174,
+    "objective": "reach57",
+    "streak": 10
+   },
+   "skipped": false
+  },
+  "no_predictions": {
+   "new_lineups": 3,
+   "pick_name": null,
+   "pick_p": null,
+   "pick_result": null,
+   "selection": null,
+   "should_post": false,
+   "skip_summary": null,
+   "skipped": false
+  },
+  "no_selection": {
+   "new_lineups": 3,
+   "pick_name": null,
+   "pick_p": null,
+   "pick_result": null,
+   "selection": null,
+   "should_post": false,
+   "skip_summary": {
+    "streak": 10
+   },
+   "skipped": false
+  },
+  "none_eligible": {
+   "new_lineups": 3,
+   "pick_name": null,
+   "pick_p": null,
+   "pick_result": null,
+   "selection": {
+    "action": null,
+    "allow_double": true,
+    "contest_source_date": "2027-07-15",
+    "decision": null,
+    "double_candidate": null,
+    "no_pick_reason": "no_eligible",
+    "pick_result": null,
+    "primary_candidate": null,
+    "saver_available": null,
+    "source": null,
+    "state_source": "contest",
+    "state_status": "fresh",
+    "streak": 0
+   },
+   "should_post": false,
+   "skip_summary": {
+    "bar": 0.7959788446395174,
+    "streak": 10
+   },
+   "skipped": false
+  },
+  "pick": {
+   "new_lineups": 3,
+   "pick_name": "Batter 0",
+   "pick_p": 0.99,
+   "pick_result": {
+    "daily": {
+     "automatic_reading": null,
+     "bluesky_posted": false,
+     "bluesky_uri": null,
+     "chosen_on": {
+      "dated": {
+       "active_streak": 10,
+       "best_streak": 10,
+       "effective_date": "2027-07-15",
+       "saver_state": "used"
+      },
+      "kind": "dated",
+      "required": true,
+      "saver_available": false,
+      "schema": "bts_pick_chosen_on_v1",
+      "streak": 10
+     },
+     "date": "2027-07-15",
+     "delivered_at": null,
+     "delivery_attempted": false,
+     "double_down": null,
+     "feature_env": {
+      "BTS_LGBM_DETERMINISTIC": "0",
+      "BTS_LGBM_RANDOM_STATE": "42",
+      "BTS_PITCHER_HR_30G_MIN_PERIODS": "7",
+      "BTS_ROOKIE_GATE_K": "20",
+      "BTS_USE_CALIBRATION": "0"
+     },
+     "feature_env_hash": "fb1841abbb3f269053f4687d291405c4c08ef1c9a87eda8f4f0663804b481ebe",
+     "feature_env_schema_version": "bts_feature_env_v1",
+     "model_git_sha": "7faef25508d7b1adb77614c60f60d006e741455e",
+     "model_pickle_sha256": null,
+     "notification_channel": null,
+     "notification_id": null,
+     "notification_sent": false,
+     "pick": {
+      "batter_id": 100,
+      "batter_name": "Batter 0",
+      "flags": [],
+      "game_pk": 70000,
+      "game_time": "2027-07-15T23:05:00Z",
+      "lineup_position": 1,
+      "p_game_hit": 0.99,
+      "pitcher_id": 900,
+      "pitcher_name": "Pitcher 0",
+      "pitcher_team": "U0",
+      "projected_lineup": false,
+      "team": "T0"
+     },
+     "policy_decision": {
+      "action": "single",
+      "best_status": "trusted",
+      "best_supplied": 10,
+      "days_effective": 74,
+      "degraded_reason": null,
+      "effective_best": null,
+      "objective": "reach57",
+      "pick_bar": null,
+      "policy_action": "single",
+      "reason": null,
+      "source": "mdp",
+      "streak": 10,
+      "tail_sha256": null
+     },
+     "policy_npz_sha256": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
+     "result": null,
+     "run_time": "2027-07-15T22:35:00+00:00",
+     "runner_up": {
+      "batter_name": "Batter 1",
+      "p_game_hit": 0.98
+     },
+     "shadow_model_version": null,
+     "slot_results": null,
+     "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4"
+    },
+    "locked": false
+   },
+   "selection": {
+    "action": "single",
+    "allow_double": true,
+    "contest_source_date": "2027-07-15",
+    "decision": {
+     "action": "single",
+     "best_status": "trusted",
+     "best_supplied": 10,
+     "days_effective": 74,
+     "degraded_reason": null,
+     "effective_best": null,
+     "objective": "reach57",
+     "pick_bar": null,
+     "policy_action": "single",
+     "reason": null,
+     "source": "mdp",
+     "streak": 10,
+     "tail_sha256": null
+    },
+    "double_candidate": {
+     "batter_id": 101,
+     "batter_name": "Batter 1",
+     "game_pk": 70001,
+     "p_game_hit": 0.98,
+     "team": "T1"
+    },
+    "no_pick_reason": null,
+    "pick_result": {
+     "daily": {
+      "automatic_reading": null,
+      "bluesky_posted": false,
+      "bluesky_uri": null,
+      "chosen_on": {
+       "dated": {
+        "active_streak": 10,
+        "best_streak": 10,
+        "effective_date": "2027-07-15",
+        "saver_state": "used"
+       },
+       "kind": "dated",
+       "required": true,
+       "saver_available": false,
+       "schema": "bts_pick_chosen_on_v1",
+       "streak": 10
+      },
+      "date": "2027-07-15",
+      "delivered_at": null,
+      "delivery_attempted": false,
+      "double_down": null,
+      "feature_env": {
+       "BTS_LGBM_DETERMINISTIC": "0",
+       "BTS_LGBM_RANDOM_STATE": "42",
+       "BTS_PITCHER_HR_30G_MIN_PERIODS": "7",
+       "BTS_ROOKIE_GATE_K": "20",
+       "BTS_USE_CALIBRATION": "0"
+      },
+      "feature_env_hash": "fb1841abbb3f269053f4687d291405c4c08ef1c9a87eda8f4f0663804b481ebe",
+      "feature_env_schema_version": "bts_feature_env_v1",
+      "model_git_sha": "7faef25508d7b1adb77614c60f60d006e741455e",
+      "model_pickle_sha256": null,
+      "notification_channel": null,
+      "notification_id": null,
+      "notification_sent": false,
+      "pick": {
+       "batter_id": 100,
+       "batter_name": "Batter 0",
+       "flags": [],
+       "game_pk": 70000,
+       "game_time": "2027-07-15T23:05:00Z",
+       "lineup_position": 1,
+       "p_game_hit": 0.99,
+       "pitcher_id": 900,
+       "pitcher_name": "Pitcher 0",
+       "pitcher_team": "U0",
+       "projected_lineup": false,
+       "team": "T0"
+      },
+      "policy_decision": {
+       "action": "single",
+       "best_status": "trusted",
+       "best_supplied": 10,
+       "days_effective": 74,
+       "degraded_reason": null,
+       "effective_best": null,
+       "objective": "reach57",
+       "pick_bar": null,
+       "policy_action": "single",
+       "reason": null,
+       "source": "mdp",
+       "streak": 10,
+       "tail_sha256": null
+      },
+      "policy_npz_sha256": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
+      "result": null,
+      "run_time": "2027-07-15T22:35:00+00:00",
+      "runner_up": {
+       "batter_name": "Batter 1",
+       "p_game_hit": 0.98
+      },
+      "shadow_model_version": null,
+      "slot_results": null,
+      "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4"
+     },
+     "locked": false
+    },
+    "primary_candidate": {
+     "batter_id": 100,
+     "batter_name": "Batter 0",
+     "game_pk": 70000,
+     "p_game_hit": 0.99,
+     "team": "T0"
+    },
+    "saver_available": false,
+    "source": "mdp",
+    "state_source": "contest",
+    "state_status": "fresh",
+    "streak": 10
+   },
+   "should_post": true,
+   "skipped": false
+  },
+  "removed": {
+   "new_lineups": 3,
+   "pick_name": null,
+   "pick_p": null,
+   "pick_result": null,
+   "selection": {
+    "action": "skip",
+    "allow_double": true,
+    "contest_source_date": "2027-07-15",
+    "decision": {
+     "action": "skip",
+     "best_status": "trusted",
+     "best_supplied": 10,
+     "days_effective": 74,
+     "degraded_reason": null,
+     "effective_best": null,
+     "objective": "reach57",
+     "pick_bar": 0.7959788446395174,
+     "policy_action": "skip",
+     "reason": null,
+     "source": "mdp",
+     "streak": 10,
+     "tail_sha256": null
+    },
+    "double_candidate": {
+     "batter_id": 102,
+     "batter_name": "Batter 2",
+     "game_pk": 70002,
+     "p_game_hit": 0.71,
+     "team": "T2"
+    },
+    "no_pick_reason": null,
+    "pick_result": null,
+    "primary_candidate": {
+     "batter_id": 101,
+     "batter_name": "Batter 1",
+     "game_pk": 70001,
+     "p_game_hit": 0.75,
+     "team": "T1"
+    },
+    "saver_available": false,
+    "source": "mdp",
+    "state_source": "contest",
+    "state_status": "fresh",
+    "streak": 10
+   },
+   "should_post": false,
+   "skip_summary": {
+    "bar": 0.7959788446395174,
+    "objective": "reach57",
+    "streak": 10
+   },
+   "skipped": false
+  },
+  "tail": {
+   "new_lineups": 3,
+   "pick_name": null,
+   "pick_p": null,
+   "pick_result": null,
+   "selection": {
+    "action": "skip",
+    "allow_double": true,
+    "contest_source_date": "2026-09-18",
+    "decision": {
+     "action": "skip",
+     "best_status": "trusted",
+     "best_supplied": 18,
+     "days_effective": 9,
+     "degraded_reason": null,
+     "effective_best": 18,
+     "objective": "emax_season_best",
+     "pick_bar": null,
+     "policy_action": "skip",
+     "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+     "source": "mdp",
+     "streak": 0,
+     "tail_sha256": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt"
+    },
+    "double_candidate": {
+     "batter_id": 2,
+     "batter_name": "B2",
+     "game_pk": 11,
+     "p_game_hit": 0.72,
+     "team": "NYM"
+    },
+    "no_pick_reason": null,
+    "pick_result": null,
+    "primary_candidate": {
+     "batter_id": 1,
+     "batter_name": "B1",
+     "game_pk": 9,
+     "p_game_hit": 0.72,
+     "team": "NYM"
+    },
+    "saver_available": false,
+    "source": "mdp",
+    "state_source": "contest",
+    "state_status": "fresh",
+    "streak": 0
+   },
+   "should_post": false,
+   "skip_summary": {
+    "objective": "emax_season_best",
+    "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+    "streak": 0
+   },
+   "skipped": false
+  },
+  "unreadable": {
+   "new_lineups": 3,
+   "pick_name": null,
+   "pick_p": null,
+   "pick_result": null,
+   "selection": {
+    "action": null,
+    "allow_double": true,
+    "contest_source_date": "2027-07-15",
+    "decision": null,
+    "double_candidate": null,
+    "no_pick_reason": "status_failure",
+    "pick_result": null,
+    "primary_candidate": null,
+    "saver_available": null,
+    "source": null,
+    "state_source": "contest",
+    "state_status": "fresh",
+    "streak": 0
+   },
+   "should_post": false,
+   "skip_summary": {
+    "bar": 0.7959788446395174,
+    "streak": 10
+   },
+   "skipped": false
+  }
+ },
+ "notice_and_gate": {
+  "<class 'KeyboardInterrupt'>": [
+   "KeyboardInterrupt",
+   true,
+   false,
+   [
+    "capture.invalid",
+    "capture.invalid"
+   ],
+   "2027-07-15T18:35:00-04:00"
+  ],
+  "<class 'OSError'>": [
+   false,
+   true,
+   false,
+   [
+    "capture.invalid",
+    "capture.invalid"
+   ],
+   "2027-07-15T18:35:00-04:00"
+  ],
+  "<class 'SystemExit'>": [
+   "SystemExit",
+   true,
+   false,
+   [
+    "capture.invalid",
+    "capture.invalid"
+   ],
+   "2027-07-15T18:35:00-04:00"
+  ],
+  "None": [
+   true,
+   false,
+   false,
+   [
+    "capture.invalid"
+   ],
+   "2027-07-15T18:35:00-04:00"
+  ],
+  "dict_keys(['final_skip_candidate'])": 0,
+  "dict_keys(['skip_summary'])": 0,
+  "dict_keys([])": 1
+ },
+ "side_effects": {
+  "error": [
+   [
+    [
+     [
+      [
+       "WARN",
+       "contest_state",
+       "contest_state:stale_reading"
+      ]
+     ],
+     "capture.invalid",
+     "contest_stale_reading_dm_delivery_status.json",
+     "2027-07-15"
+    ],
+    [
+     [
+      [
+       "WARN",
+       "contest_state",
+       "contest_state:stale_reading"
+      ]
+     ],
+     "capture.invalid",
+     "contest_stale_reading_dm_delivery_status.json",
+     "2027-07-15"
+    ],
+    [
+     [
+      [
+       "WARN",
+       "contest_state",
+       "contest_state:stale_reading"
+      ]
+     ],
+     "capture.invalid",
+     "contest_stale_reading_dm_delivery_status.json",
+     "2027-07-15"
+    ],
+    [
+     [
+      [
+       "WARN",
+       "contest_state",
+       "contest_state:stale_reading"
+      ]
+     ],
+     "capture.invalid",
+     "contest_stale_reading_dm_delivery_status.json",
+     "2027-07-15"
+    ]
+   ],
+   [
+    "capture.invalid",
+    "capture.invalid",
+    "capture.invalid",
+    "capture.invalid"
+   ],
+   [
+    null,
+    null,
+    null,
+    null
+   ],
+   {
+    "health_state/contest_stale_reading_dm_delivery_status.json": {
+     "body_first_line": "BTS health WARN attention:",
+     "body_sha256": "530960cc4a44c56d8174e74252c31233035bf84c30b9fdd006a2b2e44bb0bf85",
+     "critical_count": 0,
+     "error": "capture fault",
+     "recipient": "capture.invalid",
+     "recipient_configured": true,
+     "schema_version": "bts_health_dm_delivery_status_v1",
+     "status": "failed",
+     "updated_at": "2027-07-15T22:35:00+00:00",
+     "warn_attention_count": 1
+    }
+   }
+  ],
+  "exit": [
+   [
+    [
+     [
+      [
+       "WARN",
+       "contest_state",
+       "contest_state:stale_reading"
+      ]
+     ],
+     "capture.invalid",
+     "contest_stale_reading_dm_delivery_status.json",
+     "2027-07-15"
+    ],
+    [
+     [
+      [
+       "WARN",
+       "contest_state",
+       "contest_state:stale_reading"
+      ]
+     ],
+     "capture.invalid",
+     "contest_stale_reading_dm_delivery_status.json",
+     "2027-07-15"
+    ],
+    [
+     [
+      [
+       "WARN",
+       "contest_state",
+       "contest_state:stale_reading"
+      ]
+     ],
+     "capture.invalid",
+     "contest_stale_reading_dm_delivery_status.json",
+     "2027-07-15"
+    ],
+    [
+     [
+      [
+       "WARN",
+       "contest_state",
+       "contest_state:stale_reading"
+      ]
+     ],
+     "capture.invalid",
+     "contest_stale_reading_dm_delivery_status.json",
+     "2027-07-15"
+    ]
+   ],
+   [
+    "capture.invalid",
+    "capture.invalid",
+    "capture.invalid",
+    "capture.invalid"
+   ],
+   [
+    "SystemExit",
+    null,
+    "SystemExit",
+    null
+   ],
+   {}
+  ],
+  "keyboard": [
+   [
+    [
+     [
+      [
+       "WARN",
+       "contest_state",
+       "contest_state:stale_reading"
+      ]
+     ],
+     "capture.invalid",
+     "contest_stale_reading_dm_delivery_status.json",
+     "2027-07-15"
+    ],
+    [
+     [
+      [
+       "WARN",
+       "contest_state",
+       "contest_state:stale_reading"
+      ]
+     ],
+     "capture.invalid",
+     "contest_stale_reading_dm_delivery_status.json",
+     "2027-07-15"
+    ],
+    [
+     [
+      [
+       "WARN",
+       "contest_state",
+       "contest_state:stale_reading"
+      ]
+     ],
+     "capture.invalid",
+     "contest_stale_reading_dm_delivery_status.json",
+     "2027-07-15"
+    ],
+    [
+     [
+      [
+       "WARN",
+       "contest_state",
+       "contest_state:stale_reading"
+      ]
+     ],
+     "capture.invalid",
+     "contest_stale_reading_dm_delivery_status.json",
+     "2027-07-15"
+    ]
+   ],
+   [
+    "capture.invalid",
+    "capture.invalid",
+    "capture.invalid",
+    "capture.invalid"
+   ],
+   [
+    "KeyboardInterrupt",
+    null,
+    "KeyboardInterrupt",
+    null
+   ],
+   {}
+  ],
+  "late": [
+   [
+    [
+     [
+      [
+       "CRITICAL",
+       "late_delivery",
+       null
+      ]
+     ],
+     "capture.invalid",
+     "health_dm_delivery_status.json",
+     "None"
+    ]
+   ],
+   [
+    "capture.invalid"
+   ],
+   [],
+   {
+    "health_state/health_dm_delivery_status.json": {
+     "body_first_line": "BTS health CRITICAL alert(s):",
+     "body_sha256": "bc9d42d2c63bf3c906f92031170b6007c6fad2f88b339d32ed02b98463f61730",
+     "critical_count": 1,
+     "recipient": "capture.invalid",
+     "recipient_configured": true,
+     "schema_version": "bts_health_dm_delivery_status_v1",
+     "sent_day": "2027-07-15",
+     "sent_sources": [
+      "CRITICAL:late_delivery"
+     ],
+     "status": "sent",
+     "updated_at": "2027-07-15T22:35:00+00:00",
+     "warn_attention_count": 0
+    },
+    "picks/2027-07-15/refused_delivery_20270715T183500-0400.json": {
+     "automatic_reading": null,
+     "bluesky_posted": false,
+     "bluesky_uri": null,
+     "chosen_on": null,
+     "date": "2027-07-15",
+     "delivered_at": null,
+     "delivery_attempted": false,
+     "double_down": null,
+     "feature_env": null,
+     "feature_env_hash": null,
+     "feature_env_schema_version": null,
+     "model_git_sha": null,
+     "model_pickle_sha256": null,
+     "notification_channel": null,
+     "notification_id": null,
+     "notification_sent": false,
+     "pick": {
+      "batter_id": 680757,
+      "batter_name": "Steven Kwan",
+      "flags": [],
+      "game_pk": 101,
+      "game_time": "2027-07-15T23:10:00Z",
+      "lineup_position": 1,
+      "p_game_hit": 0.82,
+      "pitcher_id": 543037,
+      "pitcher_name": "Gerrit Cole",
+      "pitcher_team": null,
+      "projected_lineup": false,
+      "team": "CLE"
+     },
+     "policy_decision": null,
+     "policy_npz_sha256": null,
+     "refused_delivery": {
+      "cutoff_et": "2027-07-15T18:34:00-04:00",
+      "label": "late",
+      "late_min": 1.0,
+      "reason": "past_submission_cutoff",
+      "refused_at": "2027-07-15T18:35:00-04:00"
+     },
+     "result": null,
+     "run_time": "2027-07-15T18:35:00-04:00",
+     "runner_up": null,
+     "shadow_model_version": null,
+     "slot_results": null,
+     "tail_policy_sha256": null
+    },
+    "picks/2027-07-15/scheduler_state.json": {
+     "analytics_jobs": null,
+     "committed_pick_written": false,
+     "confirmed_game_pks": [],
+     "date": "2027-07-15",
+     "delivery_refusals": [
+      {
+       "archive": "refused_delivery_20270715T183500-0400.json",
+       "at": "2027-07-15T18:35:00-04:00",
+       "batter": "Steven Kwan",
+       "cutoff_et": "2027-07-15T18:34:00-04:00",
+       "double_down": null,
+       "label": "late",
+       "late_min": 1.0,
+       "reason": "past_submission_cutoff"
+      }
+     ],
+     "fallback_refreshes": null,
+     "final_skip_candidate": null,
+     "games": [],
+     "next_wakeup": null,
+     "pick_locked": false,
+     "pick_locked_at": null,
+     "result_status": null,
+     "runs_completed": [],
+     "schedule_fetched_at": "pinned",
+     "skip_notified_at": null,
+     "skip_summary": null
+    }
+   }
+  ],
+  "sequence": [
+   [
+    [
+     [
+      [
+       "WARN",
+       "contest_state",
+       "contest_state:stale_reading"
+      ]
+     ],
+     "capture.invalid",
+     "contest_stale_reading_dm_delivery_status.json",
+     "2027-07-15"
+    ],
+    [
+     [
+      [
+       "WARN",
+       "contest_state",
+       "contest_state:stale_reading"
+      ]
+     ],
+     "capture.invalid",
+     "contest_stale_reading_dm_delivery_status.json",
+     "2027-07-15"
+    ],
+    [
+     [
+      [
+       "WARN",
+       "contest_state",
+       "contest_state:stale_reading"
+      ]
+     ],
+     "capture.invalid",
+     "contest_stale_reading_dm_delivery_status.json",
+     "2027-07-15"
+    ],
+    [
+     [
+      [
+       "WARN",
+       "contest_state",
+       "contest_state:stale_reading"
+      ]
+     ],
+     "capture.invalid",
+     "contest_stale_reading_dm_delivery_status.json",
+     "2027-07-15"
+    ]
+   ],
+   [
+    "capture.invalid"
+   ],
+   [
+    null,
+    null,
+    null,
+    null
+   ],
+   {
+    "health_state/contest_stale_reading_dm_delivery_status.json": {
+     "body_first_line": "BTS health WARN attention:",
+     "body_sha256": "ea2cbf772d4d6d8044ce376659beee339508058240eb70ddfec1bbaef7367d98",
+     "critical_count": 0,
+     "recipient": "capture.invalid",
+     "recipient_configured": true,
+     "schema_version": "bts_health_dm_delivery_status_v1",
+     "sent_day": "2027-07-15",
+     "sent_sources": [
+      "WARN_ATTENTION:contest_state:stale_reading"
+     ],
+     "status": "sent",
+     "updated_at": "2027-07-15T22:35:00+00:00",
+     "warn_attention_count": 1
+    }
+   }
+  ],
+  "void": [
+   [
+    [
+     [
+      [
+       "CRITICAL",
+       "postponed_pick",
+       null
+      ]
+     ],
+     "capture.invalid",
+     "health_dm_delivery_status.json",
+     "None"
+    ]
+   ],
+   [
+    "capture.invalid"
+   ],
+   [],
+   {
+    "health_state/health_dm_delivery_status.json": {
+     "body_first_line": "BTS health CRITICAL alert(s):",
+     "body_sha256": "62a0e2c4e85cdfad0fe29ae2272cddb343766d410b36102db15b5c942f14ee42",
+     "critical_count": 1,
+     "recipient": "capture.invalid",
+     "recipient_configured": true,
+     "schema_version": "bts_health_dm_delivery_status_v1",
+     "sent_day": "2027-07-15",
+     "sent_sources": [
+      "CRITICAL:postponed_pick"
+     ],
+     "status": "sent",
+     "updated_at": "2027-07-15T22:35:00+00:00",
+     "warn_attention_count": 0
+    },
+    "picks/2027-07-15/refused_delivery_20270715T183500-0400.json": {
+     "automatic_reading": null,
+     "bluesky_posted": false,
+     "bluesky_uri": null,
+     "chosen_on": null,
+     "date": "2027-07-15",
+     "delivered_at": null,
+     "delivery_attempted": false,
+     "double_down": null,
+     "feature_env": null,
+     "feature_env_hash": null,
+     "feature_env_schema_version": null,
+     "model_git_sha": null,
+     "model_pickle_sha256": null,
+     "notification_channel": null,
+     "notification_id": null,
+     "notification_sent": false,
+     "pick": {
+      "batter_id": 680757,
+      "batter_name": "Steven Kwan",
+      "flags": [],
+      "game_pk": 101,
+      "game_time": "2027-07-15T23:10:00Z",
+      "lineup_position": 1,
+      "p_game_hit": 0.82,
+      "pitcher_id": 543037,
+      "pitcher_name": "Gerrit Cole",
+      "pitcher_team": null,
+      "projected_lineup": false,
+      "team": "CLE"
+     },
+     "policy_decision": null,
+     "policy_npz_sha256": null,
+     "refused_delivery": {
+      "label": "void",
+      "reason": "game_not_playable",
+      "refused_at": "2027-07-15T18:35:00-04:00",
+      "void_games": {
+       "101": "Postponed"
+      }
+     },
+     "result": null,
+     "run_time": "2027-07-15T18:35:00-04:00",
+     "runner_up": null,
+     "shadow_model_version": null,
+     "slot_results": null,
+     "tail_policy_sha256": null
+    },
+    "picks/2027-07-15/scheduler_state.json": {
+     "analytics_jobs": null,
+     "committed_pick_written": false,
+     "confirmed_game_pks": [],
+     "date": "2027-07-15",
+     "delivery_refusals": [
+      {
+       "archive": "refused_delivery_20270715T183500-0400.json",
+       "at": "2027-07-15T18:35:00-04:00",
+       "batter": "Steven Kwan",
+       "double_down": null,
+       "label": "void",
+       "reason": "game_not_playable",
+       "void_games": {
+        "101": "Postponed"
+       }
+      }
+     ],
+     "fallback_refreshes": null,
+     "final_skip_candidate": null,
+     "games": [],
+     "next_wakeup": null,
+     "pick_locked": false,
+     "pick_locked_at": null,
+     "result_status": null,
+     "runs_completed": [],
+     "schedule_fetched_at": "pinned",
+     "skip_notified_at": null,
+     "skip_summary": null
+    }
+   }
+  ]
+ },
+ "summaries": [
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  },
+  {
+   "bar": 0.79,
+   "objective": "emax_season_best",
+   "reason": "season-best 18 can't be beaten with 9 days left (max reachable 18); no pick",
+   "streak": 10
+  }
+ ]
+}
