@@ -1,0 +1,10 @@
+nice: setpriority: Operation not permitted
+bts /Users/eric/projects/bts-work/wr-check-h2/.codex-review/wr-h-check2/base/src/bts/__init__.py
+H1–H3 34688 Counter({('skip', 'skip', 'reach57'): 34688})
+H6 shipped/no base None 0.8
+H6 raising loader 56 TypeError
+H6 raising loader 57 TypeError
+date 2027-09-26 1 ('skip', 'skip', 'reach57', 1, 'mdp', False, None, None) ('single', 'single', 'reach57', 1, 'heuristic', False, None, None)
+date 2027-09-27 0 ('skip', 'skip', 'reach57', 0, 'mdp', False, None, None) ('single', 'single', 'reach57', 0, 'heuristic', False, None, None)
+date 2027-12-31 0 ('skip', 'skip', 'reach57', 0, 'mdp', False, None, None) ('single', 'single', 'reach57', 0, 'heuristic', False, None, None)
+date 2028-01-01 271 ('skip', 'skip', 'reach57', 180, 'mdp', False, None, None) ('single', 'single', 'reach57', 180, 'heuristic', False, None, None)

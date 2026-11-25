@@ -1,0 +1,11 @@
+nice: setpriority: Operation not permitted
+tail policy: tail lookup failed (test); forced fallback -> single
+mdp_policy.npz tail-bad.npz select TypeError int() argument must be a string, a bytes-like object or a real number, not 'NoneType'
+mdp_policy.npz tail-bad.npz health TypeError int() argument must be a string, a bytes-like object or a real number, not 'NoneType'
+fifo mdp_tail_policy.npz select Deadline read still blocked
+fifo mdp_tail_policy.npz health Deadline read still blocked
+mdp_policy.npz fifo select Deadline read still blocked
+mdp_policy.npz fifo health Deadline read still blocked
+existing tail propagated KeyboardInterrupt
+existing tail propagated SystemExit
+existing tail exception ValueError ('single', 'tail lookup failed (test); forced fallback')

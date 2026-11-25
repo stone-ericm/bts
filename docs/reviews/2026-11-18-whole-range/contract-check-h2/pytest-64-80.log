@@ -1,0 +1,34 @@
+nice: setpriority: Operation not permitted
+bts=/Users/eric/projects/bts-work/wr-check-h2/.codex-review/wr-h-check2/scratch/src/bts/__init__.py
+files=['tests/test_e2_delivery_idempotency.py', 'tests/test_e3_missed_pick_alert.py', 'tests/test_entry_intent.py', 'tests/test_entry_receipt.py', 'tests/test_fallback_plan.py', 'tests/test_incident_2026_08_30.py', 'tests/test_incident_register_2026.py', 'tests/test_late_delivery_guard.py', 'tests/test_live_gate_cs6a.py', 'tests/test_live_gate_cs6a_review.py', 'tests/test_local_tier.py', 'tests/test_lock_decision.py', 'tests/test_london_series_tz.py', 'tests/test_morning_state_cs6b1.py', 'tests/test_morning_state_cs6b1_carbon.py', 'tests/test_morning_state_cs6b1_review.py', 'tests/test_orchestrator.py']
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-check-h2/.codex-review/wr-h-check2/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 385 items
+
+tests/test_e2_delivery_idempotency.py ...                                [  0%]
+tests/test_e3_missed_pick_alert.py .......                               [  2%]
+tests/test_entry_intent.py ............................................. [ 14%]
+.......                                                                  [ 16%]
+tests/test_entry_receipt.py ............................................ [ 27%]
+.....                                                                    [ 28%]
+tests/test_fallback_plan.py .............                                [ 32%]
+tests/test_incident_2026_08_30.py ....                                   [ 33%]
+tests/test_incident_register_2026.py ................................... [ 42%]
+...........................                                              [ 49%]
+tests/test_late_delivery_guard.py ........                               [ 51%]
+tests/test_live_gate_cs6a.py ........................................... [ 62%]
+.............                                                            [ 65%]
+tests/test_live_gate_cs6a_review.py ........                             [ 68%]
+tests/test_local_tier.py ....                                            [ 69%]
+tests/test_lock_decision.py .......                                      [ 70%]
+tests/test_london_series_tz.py ....                                      [ 71%]
+tests/test_morning_state_cs6b1.py ...................................... [ 81%]
+.......................                                                  [ 87%]
+tests/test_morning_state_cs6b1_carbon.py .................               [ 92%]
+tests/test_morning_state_cs6b1_review.py .................               [ 96%]
+tests/test_orchestrator.py .............                                 [100%]
+
+============================= 385 passed in 15.22s =============================

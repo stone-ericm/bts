@@ -1,0 +1,42 @@
+nice: setpriority: Operation not permitted
+bts /Users/eric/projects/bts-work/wr-check-h2/.codex-review/wr-h-check2/scratch/src/bts/__init__.py
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=single streak=57 best=57 (trusted) effective_best=None days=74 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=double streak=57 best=57 (trusted) effective_best=None days=3 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=double streak=57 best=57 (trusted) effective_best=None days=2 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=double streak=57 best=57 (trusted) effective_best=None days=1 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=single streak=57 best=57 (trusted) effective_best=None days=180 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=single streak=57 best=57 (trusted) effective_best=None days=74 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=double streak=57 best=57 (trusted) effective_best=None days=3 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=double streak=57 best=57 (trusted) effective_best=None days=2 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=double streak=57 best=57 (trusted) effective_best=None days=1 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=single streak=57 best=57 (untrusted) effective_best=None days=180 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+H5 2027-07-15 dated single True longest_streak ('longest_streak', 'dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4', None, False, True)
+H5 2027-09-24 dated double True longest_streak ('longest_streak', 'dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4', None, True, True)
+H5 2027-09-25 dated double True longest_streak ('longest_streak', 'dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4', None, True, True)
+H5 2027-09-26 dated double True longest_streak ('longest_streak', 'dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4', None, True, True)
+H5 2028-01-01 dated single True longest_streak ('longest_streak', 'dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4', None, False, True)
+H5 2027-07-15 automatic single True longest_streak ('longest_streak', 'dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4', None, False, True)
+H5 2027-09-24 automatic double True longest_streak ('longest_streak', 'dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4', None, True, True)
+H5 2027-09-25 automatic double True longest_streak ('longest_streak', 'dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4', None, True, True)
+H5 2027-09-26 automatic double True longest_streak ('longest_streak', 'dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4', None, True, True)
+H5 2028-01-01 automatic single True longest_streak ('longest_streak', 'dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4', None, False, True)

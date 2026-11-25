@@ -1,0 +1,10 @@
+nice: setpriority: Operation not permitted
+bts /Users/eric/projects/bts-work/wr-check-h2/.codex-review/wr-h-check2/scratch/src/bts/__init__.py
+H1–H3 34688 Counter({('single', 'single', 'longest_streak'): 34304, ('single', 'double', 'longest_streak'): 288, ('double', 'double', 'longest_streak'): 96})
+H6 shipped/no base 0.0 0.0
+H6 raising loader 56 None
+H6 raising loader 57 0.0
+date 2027-09-26 1 ('double', 'double', 'longest_streak', 1, 'mdp', True, None, None) ('single', 'single', 'longest_streak', 1, 'mdp', False, 'longest-streak rule unavailable (scratch); forced single', None)
+date 2027-09-27 0 ('skip', 'skip', 'reach57', 0, 'mdp', False, None, None) ('single', 'single', 'reach57', 0, 'heuristic', False, None, None)
+date 2027-12-31 0 ('skip', 'skip', 'reach57', 0, 'mdp', False, None, None) ('single', 'single', 'reach57', 0, 'heuristic', False, None, None)
+date 2028-01-01 271 ('single', 'single', 'longest_streak', 180, 'mdp', True, None, None) ('single', 'single', 'longest_streak', 180, 'mdp', False, 'longest-streak rule unavailable (scratch); forced single', None)

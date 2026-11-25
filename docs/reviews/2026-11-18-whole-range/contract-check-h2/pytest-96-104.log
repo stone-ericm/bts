@@ -1,0 +1,22 @@
+nice: setpriority: Operation not permitted
+bts=/Users/eric/projects/bts-work/wr-check-h2/.codex-review/wr-h-check2/scratch/src/bts/__init__.py
+files=['tests/test_scheduler_eve_of_break.py', 'tests/test_scheduler_fallback_deadline.py', 'tests/test_scheduler_no_games.py', 'tests/test_scheduler_skip_visibility.py', 'tests/test_scheduler_state_integrity.py', 'tests/test_scheduler_tail_objective.py', 'tests/test_scoring_lock.py', 'tests/test_season_contract_cs4b2_edges.py', 'tests/test_season_end_date.py']
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-check-h2/.codex-review/wr-h-check2/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 108 items
+
+tests/test_scheduler_eve_of_break.py ..........                          [  9%]
+tests/test_scheduler_fallback_deadline.py .......                        [ 15%]
+tests/test_scheduler_no_games.py .                                       [ 16%]
+tests/test_scheduler_skip_visibility.py ................................ [ 46%]
+.......                                                                  [ 52%]
+tests/test_scheduler_state_integrity.py .......                          [ 59%]
+tests/test_scheduler_tail_objective.py .........                         [ 67%]
+tests/test_scoring_lock.py .......                                       [ 74%]
+tests/test_season_contract_cs4b2_edges.py ....................           [ 92%]
+tests/test_season_end_date.py ........                                   [100%]
+
+============================= 108 passed in 2.63s ==============================
