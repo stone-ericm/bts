@@ -1,0 +1,10 @@
+bts=/Users/eric/projects/bts-work/wr-check-h/.codex-review/wr-h-check/scratch/src/bts/__init__.py
+files=['tests/scripts/c1_r4b/test_solvers.py', 'tests/scripts/season_ledger/test_day_records.py', 'tests/scripts/season_ledger/test_pick_files.py', 'tests/scripts/season_walk/test_season_walk.py']
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-check-h/.codex-review/wr-h-check/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 44 items
+
+tests/scripts/c1_r4b/test_solvers.py .

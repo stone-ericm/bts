@@ -1,0 +1,14 @@
+bts=/Users/eric/projects/bts-work/wr-check-h/.codex-review/wr-h-check/scratch/src/bts/__init__.py
+files=['tests/test_scoring_lock.py', 'tests/test_season_contract_cs4b2_edges.py', 'tests/test_season_end_date.py', 'tests/test_shadow_predict_once.py', 'tests/test_shadow_scheduler.py', 'tests/test_skip_policy_shadow.py', 'tests/test_stale_delivery_cs4c.py', 'tests/test_stale_delivery_cs4c_carbon.py', 'tests/test_stale_delivery_cs4c_review.py', 'tests/test_strategy.py', 'tests/test_streak_season_cs2.py', 'tests/test_streak_season_cs2_review.py']
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-check-h/.codex-review/wr-h-check/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 524 items
+
+tests/test_scoring_lock.py .......                                       [  1%]
+tests/test_season_contract_cs4b2_edges.py ....................           [  5%]
+tests/test_season_end_date.py ........                                   [  6%]
+tests/test_shadow_predict_once.py ....                                   [  7%]
+tests/test_shadow_scheduler.py 
