@@ -252,3 +252,6 @@ Q1: R33's automatic reuse across the new 57 boundary stays (a pick chosen at aut
 - **G (R61) is on `main`:** merge `f3afc02f` of `fix/wr-g` (round 2's code `d6141728` and `cfc62745`; the head `7b61bcea` adds only review records). Gate on `7b61bcea`, 00:56 to 01:21: 10,826 passed, failing set exactly the pinned 53. On the merged tree: G's focused tests, the decision and delivery caller files and the season-walk tests pass (544 tests in three short runs).
 - Accepted with it (Eric 2026-11-25): the two decision-record cases of Codex round 2 (`WRGREV2-005a099e`) are known limits, written in `CLAUDE.md`. Carbon's round 2 was a SIGN (`WRGCARB2-1f53b815`).
 - SW1's policy side is closed: the table no longer skips a bin while a weaker bin plays. Still as on `main` before: the 612 all-skip runs at streak 56 (Eric 2026-11-25: kept), and SW1's TEXT (the skip notice's "below"), which is in change set Ea (not merged).
+
+## Lead, 2026-11-25 01:45: H2's cap
+The 57 caps H2 raises become one constant, `MAX_SEASON_STREAK = 400` (a 2027 season can reach 374; an added digit is still refused); no date-aware cap (a wrong season table would refuse a true reading). Given up: a typo between 58 and 400 is no longer refused.
