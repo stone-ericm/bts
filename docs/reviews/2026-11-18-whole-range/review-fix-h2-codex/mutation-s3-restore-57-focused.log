@@ -1,0 +1,21 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-h2c-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 16 items
+
+tests/test_wr_h2_caps.py .F
+
+=================================== FAILURES ===================================
+___________________ test_m2_switched_fetch_trusts_high_best ____________________
+tests/test_wr_h2_caps.py:97: in test_m2_switched_fetch_trusts_high_best
+    assert (current.streak, current.best_streak, current.best_status) == (58, 58, "trusted")
+E   AssertionError: assert (58, 58, 'untrusted') == (58, 58, 'trusted')
+E     
+E     At index 2 diff: 'untrusted' != 'trusted'
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/test_wr_h2_caps.py::test_m2_switched_fetch_trusts_high_best - As...
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+========================= 1 failed, 1 passed in 0.94s ==========================

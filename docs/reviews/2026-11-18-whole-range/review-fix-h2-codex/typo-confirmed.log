@@ -1,0 +1,46 @@
+nice: setpriority: Operation not permitted
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=double streak=57 best=57 (trusted) effective_best=None days=1 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=double streak=75 best=75 (trusted) effective_best=None days=1 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+  LOCKED (review probe) — Pick DM sent: captured-id
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=emax_season_best action=skip streak=12 best=57 (trusted) effective_best=57 days=1 tail=dc5d0c992443
+  SKIP — Candidate used in the decision: Batter 0 (T0) 96.0%. Reason: season-best 57 can't be beaten with 1 days left (max reachable 14); no pick. Streak used at this check: 12.
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=emax_season_best action=skip streak=12 best=157 (trusted) effective_best=57 days=1 tail=dc5d0c992443
+  SKIP — Candidate used in the decision: Batter 0 (T0) 96.0%. Reason: season-best 57 can't be beaten with 1 days left (max reachable 14); no pick. Streak used at this check: 12.
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=emax_season_best action=double streak=12 best=12 (trusted) effective_best=12 days=1 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=emax_season_best action=skip streak=12 best=157 (trusted) effective_best=57 days=1 tail=dc5d0c992443
+  SKIP — Candidate used in the decision: Batter 0 (T0) 96.0%. Reason: season-best 57 can't be beaten with 1 days left (max reachable 14); no pick. Streak used at this check: 12.
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=emax_season_best action=double streak=5 best=5 (trusted) effective_best=5 days=1 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=emax_season_best action=skip streak=5 best=157 (trusted) effective_best=57 days=1 tail=dc5d0c992443
+  SKIP — Candidate used in the decision: Batter 0 (T0) 96.0%. Reason: season-best 57 can't be beaten with 1 days left (max reachable 7); no pick. Streak used at this check: 5.
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=emax_season_best action=skip streak=0 best=57 (trusted) effective_best=57 days=1 tail=dc5d0c992443
+  SKIP — Candidate used in the decision: Batter 0 (T0) 96.0%. Reason: season-best 57 can't be beaten with 1 days left (max reachable 2); no pick. Streak used at this check: 0.
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=double streak=75 best=75 (trusted) effective_best=None days=1 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+  LOCKED (review probe) — Pick DM sent: captured-id
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=emax_season_best action=double streak=5 best=5 (trusted) effective_best=5 days=1 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=emax_season_best action=double streak=5 best=400 (untrusted) effective_best=5 days=1 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+  LOCKED (review probe) — Pick DM sent: captured-id
+typo dated (75, 75) actual (57, 57) coverage True action double -> double trust trusted saver used DM count 1 journal   Morning state check: dated contest state accepted (streak 75). record {"streak": 75, "best_streak": 75, "action": "double", "effective_best": null}
+typo dated (12, 157) actual (12, 57) coverage True action skip -> skip trust trusted saver used DM count 0 journal   Morning state check: dated contest state accepted (streak 12). record {"streak": 12, "best_streak": 157, "action": "skip", "effective_best": 57}
+typo dated (12, 157) actual (12, 12) coverage True action double -> skip trust trusted saver used DM count 0 journal   Morning state check: dated contest state accepted (streak 12). record {"streak": 12, "best_streak": 157, "action": "skip", "effective_best": 57}
+typo automatic (5, 157) actual (5, 5) coverage True action double -> skip trust trusted saver active DM count 0 journal   Morning state check: automatic contest state accepted (streak 5). record {"streak": 5, "best_streak": 157, "action": "skip", "effective_best": 57}
+typo dated (75, 75) actual (0, 57) coverage True action skip -> double trust trusted saver used DM count 1 journal   Morning state check: dated contest state accepted (streak 75). record {"streak": 75, "best_streak": 75, "action": "double", "effective_best": null}
+typo automatic (5, 400) actual (5, 5) coverage False action double -> double trust untrusted saver not_earned DM count 1 journal   Morning state check: automatic contest state accepted (streak 5). Health separately reports missing coverage. record {"streak": 5, "best_streak": 400, "action": "double", "effective_best": 5}

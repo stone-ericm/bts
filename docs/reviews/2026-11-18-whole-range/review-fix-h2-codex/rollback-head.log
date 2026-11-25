@@ -1,0 +1,17 @@
+nice: setpriority: Operation not permitted
+/Users/eric/projects/bts-work/wr-rev-h2c-cx/src/bts/contest_state.py
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=double streak=58 best=58 (trusted) effective_best=None days=1 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=double streak=58 best=58 (trusted) effective_best=None days=1 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=emax_season_best action=skip streak=12 best=58 (trusted) effective_best=57 days=1 tail=dc5d0c992443
+  SKIP — Candidate used in the decision: Batter 0 (T0) 96.0%. Reason: season-best 57 can't be beaten with 1 days left (max reachable 14); no pick. Streak used at this check: 12.
+  6 new confirmed lineup(s). Running predictions...
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=double streak=58 best=58 (trusted) effective_best=None days=1 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+  LOCKED (review probe) — Pick DM sent: captured-id

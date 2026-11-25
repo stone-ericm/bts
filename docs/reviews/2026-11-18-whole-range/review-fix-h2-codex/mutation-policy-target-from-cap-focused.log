@@ -1,0 +1,23 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-h2c-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 16 items
+
+tests/test_wr_h2_caps.py ......F
+
+=================================== FAILURES ===================================
+________________________ test_m5_walk_high_dated_state _________________________
+tests/test_wr_h2_caps.py:154: in test_m5_walk_high_dated_state
+    assert [row["action"] for row in rows] == ["double", "skip"]
+E   AssertionError: assert ['single', 'skip'] == ['double', 'skip']
+E     
+E     At index 0 diff: 'single' != 'double'
+E     Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+ERROR    bts.strategy:strategy.py:406 longest-streak policy: longest-streak rule unavailable (target 57 != 400); forced single -> single
+=========================== short test summary info ============================
+FAILED tests/test_wr_h2_caps.py::test_m5_walk_high_dated_state - AssertionErr...
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+========================= 1 failed, 6 passed in 0.98s ==========================

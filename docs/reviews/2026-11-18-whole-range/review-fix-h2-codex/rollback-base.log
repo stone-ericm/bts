@@ -1,0 +1,6 @@
+nice: setpriority: Operation not permitted
+/Users/eric/projects/bts-work/wr-rev-h2c-cx/.codex-review/wr-h2c/base/src/bts/contest_state.py
+rollback automatic automatic contest streak invalid in .codex-review/wr-h2c/rollback-fixtures/automatic/picks/account_state/contest_streak.json: active_streak=58, best_streak=58 pending metadata absent, scoreable False
+rollback dated dated contest observation invalid at .codex-review/wr-h2c/rollback-fixtures/dated/picks/account_state/contest_streak.manual.json: check 5, active_streak: must be an integer from 0 to 57 pending metadata absent, scoreable False
+rollback best-only dated contest observation invalid at .codex-review/wr-h2c/rollback-fixtures/best-only/picks/account_state/contest_streak.manual.json: check 6, best_streak: must be an integer from active_streak to 57 pending metadata absent, scoreable False
+rollback committed automatic contest streak invalid in .codex-review/wr-h2c/rollback-fixtures/committed/picks/account_state/contest_streak.json: active_streak=58, best_streak=58 pending metadata absent, scoreable True

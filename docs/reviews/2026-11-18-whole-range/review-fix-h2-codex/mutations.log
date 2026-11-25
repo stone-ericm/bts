@@ -1,0 +1,15 @@
+nice: setpriority: Operation not permitted
+s1-restore-57 focused CAUGHT ============================== 1 failed in 0.90s ===============================
+s2-restore-57 focused CAUGHT ========================= 1 failed, 1 passed in 0.95s ==========================
+s3-restore-57 focused CAUGHT ========================= 1 failed, 1 passed in 0.94s ==========================
+s4-restore-57 focused CAUGHT ========================= 1 failed, 1 passed in 0.94s ==========================
+s5-restore-57 focused CAUGHT ============================== 1 failed in 0.91s ===============================
+s6-restore-57 focused CAUGHT ============================== 1 failed in 0.93s ===============================
+s4-cap-401 focused CAUGHT ========================= 1 failed, 7 passed in 1.01s ==========================
+s4-cap-399 focused CAUGHT ========================= 1 failed, 11 passed in 1.03s =========================
+s2-no-active-cap focused CAUGHT ========================= 1 failed, 9 passed in 1.02s ==========================
+s4-no-cap focused CAUGHT ========================= 1 failed, 7 passed in 1.01s ==========================
+s4-no-order focused CAUGHT ========================= 1 failed, 11 passed in 1.03s =========================
+s6-dated-outer-cap-401 focused SURVIVED ============================== 16 passed in 1.04s ==============================
+policy-target-from-cap focused CAUGHT ========================= 1 failed, 6 passed in 0.98s ==========================
+contest-target-from-cap focused SURVIVED ============================== 16 passed in 1.04s ==============================
