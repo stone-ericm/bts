@@ -59,9 +59,12 @@ class TestObjectiveSwitch:
         assert mdp_objective(streak, days) == expected
 
     def test_no_days_or_finished_streak_stay_with_base_policy(self):
-        # lookup_action already returns skip for these; the base table owns them.
+        from bts.simulate import tail_policy
+
+        boundary = getattr(tail_policy, "LONGEST_STREAK_FROM", 57)
         assert mdp_objective(0, 0) == OBJECTIVE_REACH57
-        assert mdp_objective(57, 10) == OBJECTIVE_REACH57
+        assert mdp_objective(boundary, 0) == OBJECTIVE_REACH57
+        assert mdp_objective(boundary, 10) == "longest_streak"
 
     def test_days_are_clamped_before_the_predicate(self):
         # 500 raw days clamps to the 180-day horizon, which is reachable.

@@ -1,0 +1,42 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-h2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 71 items / 1 deselected / 70 selected
+
+tests/test_wr_h_longest.py ...........................F
+
+=================================== FAILURES ===================================
+___________________ test_rule_error_or_interrupt[ValueError] ___________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10f8131d0>
+artifact = {'base_error': None, 'base_sha256': '66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4', 'boundaries': ...     [0, 0, 0, 0, 0]],
+
+        [[0, 0, 0, 0, 0],
+         [0, 0, 0, 0, 0]]]], shape=(58, 181, 2, 5), dtype=int8), ...}
+error = <class 'ValueError'>
+caplog = <_pytest.logging.LogCaptureFixture object at 0x1108f8b90>
+
+    @pytest.mark.parametrize("error", [ValueError, KeyboardInterrupt, SystemExit])
+    def test_rule_error_or_interrupt(monkeypatch, artifact, error, caplog):
+        def fail(*args):
+            raise error("test interruption")
+    
+        monkeypatch.setattr(strategy, "longest_streak_action", fail)
+        ctx = strategy.DecisionContext(.01, None, False, "2027-09-26", True, artifact)
+        if error is ValueError:
+            outcome = strategy.resolve_policy_decision(ctx, BOUNDARY, False)
+>           assert outcome.action == "single"
+E           AssertionError: assert 'skip' == 'single'
+E             
+E             - single
+E             + skip
+
+tests/test_wr_h_longest.py:184: AssertionError
+------------------------------ Captured log call -------------------------------
+ERROR    bts.strategy:strategy.py:397 longest-streak policy: longest-streak rule unavailable (test interruption); forced single -> single
+=========================== short test summary info ============================
+FAILED tests/test_wr_h_longest.py::test_rule_error_or_interrupt[ValueError]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+================== 1 failed, 27 passed, 1 deselected in 1.63s ==================

@@ -1,0 +1,23 @@
+import /Users/eric/projects/bts-work/wr-rev-h-cx/.codex-review/wr-h/use-base-horizon-u9g0fl5b/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-h-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 261 items / 1 deselected / 260 selected
+
+tests/test_wr_h_longest.py ............................................. [ 17%]
+........                                                                 [ 20%]
+tests/simulate/test_tail_policy.py ..................................... [ 34%]
+.                                                                        [ 35%]
+tests/test_wr_g_guard.py ............................................    [ 51%]
+tests/test_strategy.py ................................................  [ 70%]
+tests/test_decide_action.py .............                                [ 75%]
+tests/test_scheduler_tail_objective.py .........                         [ 78%]
+tests/test_daily_decision_v3.py ...                                      [ 80%]
+tests/test_scheduler_decision_record.py .........                        [ 83%]
+tests/test_scheduler_decision_record_integration.py .................... [ 91%]
+....                                                                     [ 92%]
+tests/scripts/season_walk/test_season_walk.py ...................        [100%]
+
+====================== 260 passed, 1 deselected in 5.62s =======================

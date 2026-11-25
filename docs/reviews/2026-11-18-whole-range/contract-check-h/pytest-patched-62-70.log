@@ -1,0 +1,23 @@
+bts=/Users/eric/projects/bts-work/wr-check-h/.codex-review/wr-h-check/scratch/src/bts/__init__.py
+files=['tests/test_scheduler.py', 'tests/test_scheduler_decision_record.py', 'tests/test_scheduler_decision_record_integration.py', 'tests/test_scheduler_eve_of_break.py', 'tests/test_scheduler_fallback_deadline.py', 'tests/test_scheduler_no_games.py', 'tests/test_scheduler_skip_visibility.py', 'tests/test_scheduler_state_integrity.py', 'tests/test_scheduler_tail_objective.py']
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-check-h/.codex-review/wr-h-check/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 182 items
+
+tests/test_scheduler.py ................................................ [ 26%]
+............................                                             [ 41%]
+tests/test_scheduler_decision_record.py .........                        [ 46%]
+tests/test_scheduler_decision_record_integration.py .................... [ 57%]
+....                                                                     [ 59%]
+tests/test_scheduler_eve_of_break.py ..........                          [ 65%]
+tests/test_scheduler_fallback_deadline.py .......                        [ 69%]
+tests/test_scheduler_no_games.py .                                       [ 69%]
+tests/test_scheduler_skip_visibility.py ................................ [ 87%]
+.......                                                                  [ 91%]
+tests/test_scheduler_state_integrity.py .......                          [ 95%]
+tests/test_scheduler_tail_objective.py .........                         [100%]
+
+============================= 182 passed in 1.97s ==============================

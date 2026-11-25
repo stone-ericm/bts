@@ -1,0 +1,12 @@
+{
+  "readers": {
+    "readers_verified": 11,
+    "graded_streak_after_single_and_double": 60,
+    "tail_sha_prefix": "dc5d0c992443"
+  },
+  "standing_rows": {
+    "standing_sequences_verified": 7,
+    "rollback_read_ok": true,
+    "rollback_write_rejected_as_documented": true
+  }
+}

@@ -1,0 +1,14 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-h2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 109 items
+
+tests/test_wr_h_longest.py ............................................. [ 41%]
+..........................                                               [ 65%]
+tests/simulate/test_tail_policy.py ..................................... [ 99%]
+.                                                                        [100%]
+
+============================= 109 passed in 19.63s =============================

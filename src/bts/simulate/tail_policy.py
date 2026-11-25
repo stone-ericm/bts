@@ -49,6 +49,9 @@ TARGET = 57
 MAX_TAIL_DAYS = (TARGET - 1) // 2   # 28: the largest d with 0 + 2d < TARGET
 OBJECTIVE_REACH57 = "reach57"
 OBJECTIVE_TAIL = "emax_season_best"
+OBJECTIVE_LONGEST = "longest_streak"
+LONGEST_STREAK_FROM = 57
+LONGEST_STREAK_HORIZON = 180
 TAIL_SCHEMA = "bts_tail_policy_v1"
 DEFAULT_TAIL_POLICY_PATH = Path("data/models/mdp_tail_policy.npz")
 # A small compressed npz can declare a huge table; bound the bytes BEFORE parsing
@@ -99,12 +102,26 @@ def mdp_objective(streak: int, days_remaining: int, season_length: int = 180,
     """Which objective governs this state. Exact within the MDP model: every action
     consumes one day, the largest increment is 2, and the saver never adds hits, so
     57 is reachable iff ``streak + 2*d >= target`` (equality is NOT degenerate: the
-    all-double path has positive probability). d <= 0 and streak >= target stay with
-    the base table, whose lookup already returns skip for them."""
+    all-double path has positive probability). At the longest-streak boundary,
+    positive raw days switch to extending the current run."""
+    if streak >= LONGEST_STREAK_FROM and days_remaining > 0:
+        return OBJECTIVE_LONGEST
     d = effective_days(days_remaining, season_length)
     if d <= 0 or streak >= target:
         return OBJECTIVE_REACH57
     return OBJECTIVE_REACH57 if streak + 2 * d >= target else OBJECTIVE_TAIL
+
+
+def longest_streak_action(days: int, p_hit: float, p_both: float) -> str:
+    """Maximize expected additional hits before a miss or the end of the season."""
+    if days <= 0:
+        return "skip"
+
+    gain = 0.0
+    for _ in range(days):
+        values = (p_hit * (1.0 + gain), p_both * (2.0 + gain), gain)
+        gain = max(values)
+    return ("single", "double", "skip")[values.index(gain)]
 
 
 def effective_best(streak: int, best: int | None, target: int = TARGET) -> int:

@@ -1,0 +1,18 @@
+nice: setpriority: Operation not permitted
+bts.__file__ /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpk9s_ekot/src/bts/__init__.py
+H commit unknown scoreable; H write False
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-h2-cx/.codex-review/wr-h2/probe_parity.py", line 141, in <module>
+    main()
+  File "/Users/eric/projects/bts-work/wr-rev-h2-cx/.codex-review/wr-h2/probe_parity.py", line 134, in main
+    assert result.returncode == 0, result.stderr
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-h2-cx/.codex-review/wr-h2/probe_parity.py", line 143, in <module>
+    worker(Path(sys.argv[1]), Path(sys.argv[2]), bool(int(sys.argv[3])))
+  File "/Users/eric/projects/bts-work/wr-rev-h2-cx/.codex-review/wr-h2/probe_parity.py", line 41, in worker
+    tp.validate_tail_policy(two, expected_base_sha=shipped['base_sha256'])
+  File "/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpk9s_ekot/src/bts/simulate/tail_policy.py", line 339, in validate_tail_policy
+    raise TailPolicyError(
+bts.simulate.tail_policy.TailPolicyError: policy_table is not the exact E[season-best] policy for its embedded rates (61672 cells differ; first (s, m, d, saver, q) = (1, 0, 1, 0, 0))
+

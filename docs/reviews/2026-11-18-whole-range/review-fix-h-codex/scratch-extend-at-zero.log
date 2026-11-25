@@ -1,0 +1,24 @@
+import /Users/eric/projects/bts-work/wr-rev-h-cx/.codex-review/wr-h/extend-at-zero-ebj2wqn3/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-h-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 261 items / 1 deselected / 260 selected
+
+tests/test_wr_h_longest.py ............................................. [ 17%]
+........                                                                 [ 20%]
+tests/simulate/test_tail_policy.py ......F
+
+=================================== FAILURES ===================================
+__ TestObjectiveSwitch.test_no_days_or_finished_streak_stay_with_base_policy ___
+tests/simulate/test_tail_policy.py:66: in test_no_days_or_finished_streak_stay_with_base_policy
+    assert mdp_objective(boundary, 0) == OBJECTIVE_REACH57
+E   AssertionError: assert 'longest_streak' == 'reach57'
+E     
+E     - reach57
+E     + longest_streak
+=========================== short test summary info ============================
+FAILED tests/simulate/test_tail_policy.py::TestObjectiveSwitch::test_no_days_or_finished_streak_stay_with_base_policy
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+================== 1 failed, 59 passed, 1 deselected in 1.88s ==================

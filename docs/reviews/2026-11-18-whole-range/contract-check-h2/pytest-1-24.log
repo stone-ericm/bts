@@ -1,0 +1,109 @@
+nice: setpriority: Operation not permitted
+bts=/Users/eric/projects/bts-work/wr-check-h2/.codex-review/wr-h-check2/scratch/src/bts/__init__.py
+files=['tests/experiment/test_cli_candidate_artifacts.py', 'tests/experiment/test_cli_screen_nested_split.py', 'tests/experiment/test_cli_screen_pooled.py', 'tests/experiment/test_cli_select_nested_split.py', 'tests/experiment/test_cli_select_pooled.py', 'tests/health/test_analytics_artifacts_missing.py', 'tests/health/test_mdp_policy_alignment.py', 'tests/health/test_post_failure.py', 'tests/health/test_tail_policy_health.py', 'tests/scripts/c1_r4b/test_run_logic.py', 'tests/scripts/c1_r4b/test_solvers.py', 'tests/scripts/incident_register/test_records.py', 'tests/scripts/season_ledger/test_acquire.py', 'tests/scripts/season_ledger/test_bundle_io.py', 'tests/scripts/season_ledger/test_compile.py', 'tests/scripts/season_ledger/test_contest.py', 'tests/scripts/season_ledger/test_day_records.py', 'tests/scripts/season_ledger/test_matching.py', 'tests/scripts/season_ledger/test_outcomes.py', 'tests/scripts/season_ledger/test_pick_files.py', 'tests/scripts/season_ledger/test_reconcile.py', 'tests/scripts/season_ledger/test_rows.py', 'tests/scripts/season_ledger/test_static.py', 'tests/scripts/season_walk/test_season_walk.py']
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-check-h2/.codex-review/wr-h-check2/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 296 items / 1 skipped
+
+tests/experiment/test_cli_candidate_artifacts.py .......                 [  2%]
+tests/experiment/test_cli_screen_nested_split.py ...                     [  3%]
+tests/experiment/test_cli_screen_pooled.py .......                       [  5%]
+tests/experiment/test_cli_select_nested_split.py ..                      [  6%]
+tests/experiment/test_cli_select_pooled.py ......                        [  8%]
+tests/health/test_analytics_artifacts_missing.py .............           [ 12%]
+tests/health/test_mdp_policy_alignment.py ........                       [ 15%]
+tests/health/test_post_failure.py ................                       [ 20%]
+tests/health/test_tail_policy_health.py .....                            [ 22%]
+tests/scripts/c1_r4b/test_run_logic.py ...................EEEEEEE....... [ 33%]
+.......                                                                  [ 36%]
+tests/scripts/c1_r4b/test_solvers.py .........                           [ 39%]
+tests/scripts/season_ledger/test_acquire.py ..                           [ 39%]
+tests/scripts/season_ledger/test_bundle_io.py .............              [ 44%]
+tests/scripts/season_ledger/test_compile.py .....................        [ 51%]
+tests/scripts/season_ledger/test_contest.py .........                    [ 54%]
+tests/scripts/season_ledger/test_day_records.py ........                 [ 57%]
+tests/scripts/season_ledger/test_matching.py ...........                 [ 60%]
+tests/scripts/season_ledger/test_outcomes.py ......                      [ 62%]
+tests/scripts/season_ledger/test_pick_files.py ...........               [ 66%]
+tests/scripts/season_ledger/test_reconcile.py .......................... [ 75%]
+..................                                                       [ 81%]
+tests/scripts/season_ledger/test_rows.py ..............................  [ 91%]
+tests/scripts/season_ledger/test_static.py .........                     [ 94%]
+tests/scripts/season_walk/test_season_walk.py ................           [100%]
+
+==================================== ERRORS ====================================
+_ ERROR at setup of test_admission_passes_with_only_the_registered_post_review_edits _
+tests/scripts/c1_r4b/test_run_logic.py:98: in repo
+    _git(r, "init", "-q")
+tests/scripts/c1_r4b/test_run_logic.py:78: in _git
+    return subprocess.run(["git", "-C", str(repo), *a], capture_output=True, text=True, check=True).stdout.strip()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:571: in run
+    raise CalledProcessError(retcode, process.args,
+E   subprocess.CalledProcessError: Command '['git', '-C', '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1141/test_admission_passes_with_onl0/repo', 'init', '-q']' returned non-zero exit status 128.
+_________ ERROR at setup of test_admission_refuses_unset_or_short_ids __________
+tests/scripts/c1_r4b/test_run_logic.py:98: in repo
+    _git(r, "init", "-q")
+tests/scripts/c1_r4b/test_run_logic.py:78: in _git
+    return subprocess.run(["git", "-C", str(repo), *a], capture_output=True, text=True, check=True).stdout.strip()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:571: in run
+    raise CalledProcessError(retcode, process.args,
+E   subprocess.CalledProcessError: Command '['git', '-C', '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1141/test_admission_refuses_unset_o0/repo', 'init', '-q']' returned non-zero exit status 128.
+__ ERROR at setup of test_admission_refuses_an_executable_change_after_review __
+tests/scripts/c1_r4b/test_run_logic.py:98: in repo
+    _git(r, "init", "-q")
+tests/scripts/c1_r4b/test_run_logic.py:78: in _git
+    return subprocess.run(["git", "-C", str(repo), *a], capture_output=True, text=True, check=True).stdout.strip()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:571: in run
+    raise CalledProcessError(retcode, process.args,
+E   subprocess.CalledProcessError: Command '['git', '-C', '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1141/test_admission_refuses_an_exec0/repo', 'init', '-q']' returned non-zero exit status 128.
+_____ ERROR at setup of test_admission_refuses_an_untracked_import_source ______
+tests/scripts/c1_r4b/test_run_logic.py:98: in repo
+    _git(r, "init", "-q")
+tests/scripts/c1_r4b/test_run_logic.py:78: in _git
+    return subprocess.run(["git", "-C", str(repo), *a], capture_output=True, text=True, check=True).stdout.strip()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:571: in run
+    raise CalledProcessError(retcode, process.args,
+E   subprocess.CalledProcessError: Command '['git', '-C', '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1141/test_admission_refuses_an_untr0/repo', 'init', '-q']' returned non-zero exit status 128.
+_ ERROR at setup of test_admission_refuses_an_x31_row_edited_after_publication _
+tests/scripts/c1_r4b/test_run_logic.py:98: in repo
+    _git(r, "init", "-q")
+tests/scripts/c1_r4b/test_run_logic.py:78: in _git
+    return subprocess.run(["git", "-C", str(repo), *a], capture_output=True, text=True, check=True).stdout.strip()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:571: in run
+    raise CalledProcessError(retcode, process.args,
+E   subprocess.CalledProcessError: Command '['git', '-C', '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1141/test_admission_refuses_an_x31_0/repo', 'init', '-q']' returned non-zero exit status 128.
+_ ERROR at setup of test_admission_refuses_an_x31_commit_that_did_not_publish_the_row _
+tests/scripts/c1_r4b/test_run_logic.py:98: in repo
+    _git(r, "init", "-q")
+tests/scripts/c1_r4b/test_run_logic.py:78: in _git
+    return subprocess.run(["git", "-C", str(repo), *a], capture_output=True, text=True, check=True).stdout.strip()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:571: in run
+    raise CalledProcessError(retcode, process.args,
+E   subprocess.CalledProcessError: Command '['git', '-C', '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1141/test_admission_refuses_an_x31_1/repo', 'init', '-q']' returned non-zero exit status 128.
+_____ ERROR at setup of test_admission_refuses_a_reviewed_commit_after_x31 _____
+tests/scripts/c1_r4b/test_run_logic.py:98: in repo
+    _git(r, "init", "-q")
+tests/scripts/c1_r4b/test_run_logic.py:78: in _git
+    return subprocess.run(["git", "-C", str(repo), *a], capture_output=True, text=True, check=True).stdout.strip()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:571: in run
+    raise CalledProcessError(retcode, process.args,
+E   subprocess.CalledProcessError: Command '['git', '-C', '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1141/test_admission_refuses_a_revie0/repo', 'init', '-q']' returned non-zero exit status 128.
+=========================== short test summary info ============================
+ERROR tests/scripts/c1_r4b/test_run_logic.py::test_admission_passes_with_only_the_registered_post_review_edits
+ERROR tests/scripts/c1_r4b/test_run_logic.py::test_admission_refuses_unset_or_short_ids
+ERROR tests/scripts/c1_r4b/test_run_logic.py::test_admission_refuses_an_executable_change_after_review
+ERROR tests/scripts/c1_r4b/test_run_logic.py::test_admission_refuses_an_untracked_import_source
+ERROR tests/scripts/c1_r4b/test_run_logic.py::test_admission_refuses_an_x31_row_edited_after_publication
+ERROR tests/scripts/c1_r4b/test_run_logic.py::test_admission_refuses_an_x31_commit_that_did_not_publish_the_row
+ERROR tests/scripts/c1_r4b/test_run_logic.py::test_admission_refuses_a_reviewed_commit_after_x31
+================== 289 passed, 1 skipped, 7 errors in 22.33s ===================

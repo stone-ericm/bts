@@ -40,6 +40,8 @@ from types import SimpleNamespace
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
+from bts.simulate.tail_policy import LONGEST_STREAK_FROM, LONGEST_STREAK_HORIZON, OBJECTIVE_LONGEST
+
 ET = ZoneInfo("America/New_York")
 REAL_DATETIME = _dtmod.datetime
 REPO = Path(__file__).resolve().parents[3]
@@ -75,6 +77,7 @@ DEFAULT_STATES = tuple(
      for p in (0.96, 0.72)]
     + [State("automatic", s, b, v, 0.96)
        for (s, b, v) in ((12, 12, "active"), (43, 56, "used"), (56, 56, "used"))]
+    + [State("dated", LONGEST_STREAK_FROM, LONGEST_STREAK_FROM, "used", 0.96)]
 )
 
 
@@ -272,6 +275,11 @@ def walk_one(day: date, state: State) -> dict:
         rec["batter"] = daily.pick.batter_name
         rec["double"] = daily.double_down.batter_name if daily.double_down else None
         rec["chosen_on_kind"] = (daily.chosen_on or {}).get("kind")
+        if state.streak >= LONGEST_STREAK_FROM and rec["days_left"] > 0:
+            chosen = picks_module._valid_chosen_on(daily.chosen_on)
+            rec["chosen_on_valid"] = bool(
+                chosen and chosen["required"] and chosen["kind"] == state.kind
+                and (state.kind != "dated" or chosen["dated"]["effective_date"] == rec["day"]))
     return rec
 
 
@@ -287,21 +295,35 @@ def check(records: list[dict]) -> list[str]:
         expected = r.get("expected_days_left", expected_days_left(date.fromisoformat(r["day"])))
         if r.get("days_left") != expected:
             problems.append(f"{where}: days left {r.get('days_left')}, expected {expected}")
-        if r.get("days_effective") is not None and r["days_effective"] != min(expected, SEASON_LENGTH):
-            problems.append(f"{where}: effective days {r['days_effective']}, expected "
-                            f"{min(expected, SEASON_LENGTH)}")
+        state = r["state"].split("/")
+        longest = int(state[1]) >= LONGEST_STREAK_FROM and expected > 0
+        horizon = LONGEST_STREAK_HORIZON if longest else SEASON_LENGTH
+        days_effective = r.get("days_effective")
+        if (longest or days_effective is not None) and days_effective != min(expected, horizon):
+            problems.append(f"{where}: effective days {days_effective}, expected "
+                            f"{min(expected, horizon)}")
         picked = r.get("action") in {"single", "double"} and r.get("batter") is not None
         named_skip = r.get("action") == "skip" and r.get("named") is True
         if not (picked or named_skip):
             problems.append(f"{where}: unnamed empty (action={r.get('action')!r}, "
                             f"no_pick_reason={r.get('no_pick_reason')!r})")
-        if r.get("source") not in (None, "mdp"):
-            problems.append(f"{where}: decision source {r.get('source')!r} (shipped policy not used)")
+        source = r.get("source")
+        if source != "mdp" and (longest or source is not None):
+            problems.append(f"{where}: decision source {source!r} (shipped policy not used)")
         art = r.get("artifacts")
         if art and (not art["base"].startswith(BASE_SHA_PREFIX) or not art["tail"].startswith(TAIL_SHA_PREFIX)
                     or art["base_error"] or art["tail_error"]):
             problems.append(f"{where}: policy artifacts not the shipped ones: {art}")
-        state = r["state"].split("/")
+        if longest:
+            if not art:
+                problems.append(f"{where}: policy artifacts missing")
+            want_action = "double" if expected <= 3 else "single"
+            if r.get("action") != want_action:
+                problems.append(f"{where}: longest-streak action {r.get('action')!r}, expected {want_action!r}")
+            if r.get("objective") != OBJECTIVE_LONGEST:
+                problems.append(f"{where}: longest-streak objective {r.get('objective')!r}")
+            if picked and (not r.get("chosen_on_valid") or bool(r.get("double")) != (r["action"] == "double")):
+                problems.append(f"{where}: longest-streak choice has invalid chosen_on or selected slots")
         if state[0] in {"dated", "automatic"} and r.get("saver_available") is not None:
             want = expected_saver_in_hand(State(state[0], int(state[1]), int(state[2]), state[3], float(state[4])))
             if r["saver_available"] is not want:

@@ -1,0 +1,22 @@
+bts=/Users/eric/projects/bts-work/wr-check-h/.codex-review/wr-h-check/scratch/src/bts/__init__.py
+files=['tests/test_wr_b_contract.py', 'tests/test_wr_b_edges.py', 'tests/test_wr_c1_history.py', 'tests/test_wr_c2_carbon_v2.py', 'tests/test_wr_c2_r2_carbon.py', 'tests/test_wr_c2_receipt_identity.py', 'tests/test_wr_c2_recovery.py']
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-check-h/.codex-review/wr-h-check/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 421 items
+
+tests/test_wr_b_contract.py ........................                     [  5%]
+tests/test_wr_b_edges.py ............................................... [ 16%]
+..........................                                               [ 23%]
+tests/test_wr_c1_history.py .........................................    [ 32%]
+tests/test_wr_c2_carbon_v2.py .....................                      [ 37%]
+tests/test_wr_c2_r2_carbon.py ..................                         [ 42%]
+tests/test_wr_c2_receipt_identity.py ................................... [ 50%]
+........................................................................ [ 67%]
+....................................                                     [ 76%]
+tests/test_wr_c2_recovery.py ........................................... [ 86%]
+..........................................................               [100%]
+
+============================= 421 passed in 14.13s =============================

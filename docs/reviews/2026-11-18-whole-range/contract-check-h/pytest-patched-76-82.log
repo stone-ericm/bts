@@ -1,0 +1,23 @@
+bts=/Users/eric/projects/bts-work/wr-check-h/.codex-review/wr-h-check/scratch/src/bts/__init__.py
+files=['tests/test_skip_policy_shadow.py', 'tests/test_stale_delivery_cs4c.py', 'tests/test_stale_delivery_cs4c_carbon.py', 'tests/test_stale_delivery_cs4c_review.py', 'tests/test_strategy.py', 'tests/test_streak_season_cs2.py', 'tests/test_streak_season_cs2_review.py']
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-check-h/.codex-review/wr-h-check/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 477 items
+
+tests/test_skip_policy_shadow.py ...................................     [  7%]
+tests/test_stale_delivery_cs4c.py ...................................... [ 15%]
+........................                                                 [ 20%]
+tests/test_stale_delivery_cs4c_carbon.py ....................            [ 24%]
+tests/test_stale_delivery_cs4c_review.py ............................... [ 31%]
+................                                                         [ 34%]
+tests/test_strategy.py ................................................  [ 44%]
+tests/test_streak_season_cs2.py ........................................ [ 52%]
+........................................................................ [ 67%]
+........................................................................ [ 83%]
+.................................................................        [ 96%]
+tests/test_streak_season_cs2_review.py ................                  [100%]
+
+============================= 477 passed in 3.45s ==============================

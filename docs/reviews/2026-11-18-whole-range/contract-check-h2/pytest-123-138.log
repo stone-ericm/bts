@@ -1,0 +1,41 @@
+nice: setpriority: Operation not permitted
+bts=/Users/eric/projects/bts-work/wr-check-h2/.codex-review/wr-h-check2/scratch/src/bts/__init__.py
+files=['tests/test_wr_a_calendar.py', 'tests/test_wr_a_calendar_replay_carbon.py', 'tests/test_wr_a_pick.py', 'tests/test_wr_a_review_carbon.py', 'tests/test_wr_a_schedule.py', 'tests/test_wr_b_contract.py', 'tests/test_wr_b_edges.py', 'tests/test_wr_c1_history.py', 'tests/test_wr_c2_carbon_v2.py', 'tests/test_wr_c2_r2_carbon.py', 'tests/test_wr_c2_receipt_identity.py', 'tests/test_wr_c2_recovery.py', 'tests/test_wr_c3_r2_entered_pick_blockers.py', 'tests/test_wr_c3v_corpus.py', 'tests/test_wr_c3v_delivery.py', 'tests/test_wr_c3v_reconcile.py']
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-check-h2/.codex-review/wr-h-check2/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1185 items
+
+tests/test_wr_a_calendar.py ........                                     [  0%]
+tests/test_wr_a_calendar_replay_carbon.py ..............                 [  1%]
+tests/test_wr_a_pick.py ...............................                  [  4%]
+tests/test_wr_a_review_carbon.py .........................               [  6%]
+tests/test_wr_a_schedule.py ........................                     [  8%]
+tests/test_wr_b_contract.py ........................                     [ 10%]
+tests/test_wr_b_edges.py ............................................... [ 14%]
+..........................                                               [ 16%]
+tests/test_wr_c1_history.py .........................................    [ 20%]
+tests/test_wr_c2_carbon_v2.py .....................                      [ 22%]
+tests/test_wr_c2_r2_carbon.py ..................                         [ 23%]
+tests/test_wr_c2_receipt_identity.py ................................... [ 26%]
+........................................................................ [ 32%]
+....................................                                     [ 35%]
+tests/test_wr_c2_recovery.py ........................................... [ 39%]
+..........................................................               [ 44%]
+tests/test_wr_c3_r2_entered_pick_blockers.py .........                   [ 44%]
+tests/test_wr_c3v_corpus.py ............................................ [ 48%]
+........................................................................ [ 54%]
+........................................................................ [ 60%]
+........................................................................ [ 66%]
+........................................................................ [ 72%]
+........................................................................ [ 78%]
+........................................................................ [ 85%]
+........................................................................ [ 91%]
+........................................................................ [ 97%]
+..........                                                               [ 98%]
+tests/test_wr_c3v_delivery.py .........                                  [ 98%]
+tests/test_wr_c3v_reconcile.py ..............                            [100%]
+
+============================ 1185 passed in 17.30s =============================

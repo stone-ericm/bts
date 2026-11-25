@@ -1,0 +1,6 @@
+nice: setpriority: Operation not permitted
+OK: longest_streak_action verified on 26000 (day, rate) pairs; tie start day=116
+OK: mdp_objective, _regime, and resolve_policy_decision verified across boundary/extreme/boolean streaks
+Added lines containing literal 57: [('src/bts/simulate/tail_policy.py', 'LONGEST_STREAK_FROM = 57'), ('src/bts/strategy.py', '"""Require a decoded table that covers every reach-57 lookup."""'), ('src/bts/strategy.py', 'if table.shape[0] < 57 or table.shape[1:] != (horizon + 1, 2, len(boundaries) + 1):'), ('tests/scripts/season_walk/test_season_walk.py', 'boundary = getattr(tail_policy, "LONGEST_STREAK_FROM", 57)'), ('tests/scripts/season_walk/test_season_walk.py', 'boundary = getattr(tail_policy, "LONGEST_STREAK_FROM", 57)'), ('tests/simulate/test_tail_policy.py', 'boundary = getattr(tail_policy, "LONGEST_STREAK_FROM", 57)'), ('tests/test_wr_h_longest.py', 'BOUNDARY = getattr(tail_policy, "LONGEST_STREAK_FROM", 57)')]
+OK: Patched LONGEST_STREAK_FROM=56 verified
+OK: Patched LONGEST_STREAK_FROM=58 verified

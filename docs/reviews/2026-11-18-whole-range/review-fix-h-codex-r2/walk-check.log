@@ -1,0 +1,11 @@
+nice: setpriority: Operation not permitted
+original records 4599 existing warnings 612 warning streaks Counter({'56': 314, '55': 157, '50': 141})
+added Counter({'single': 207, 'skip': 9, 'double': 3}) 23 preseason singles, 210 validated choices; H match 1bd04d1eef0ba76efda4566171a4fb40fba8b2b1e411c8e37c832fe684b96e72
+planted {'action': 'skip', 'batter': None, 'named': True, 'objective': 'reach57'} ["2027-07-15 dated/57/57/used/0.96: longest-streak action 'skip', expected 'single'", "2027-07-15 dated/57/57/used/0.96: longest-streak objective 'reach57'"]
+planted {'action': 'single', 'double': None, 'objective': 'reach57'} ["2027-09-26 dated/57/57/used/0.96: longest-streak action 'single', expected 'double'", "2027-09-26 dated/57/57/used/0.96: longest-streak objective 'reach57'"]
+planted {'days_effective': None} ['2027-09-26 dated/57/57/used/0.96: effective days None, expected 1']
+planted {'source': None} ['2027-09-26 dated/57/57/used/0.96: decision source None (shipped policy not used)']
+planted {'artifacts': None} ['2027-09-26 dated/57/57/used/0.96: policy artifacts missing']
+planted {'chosen_on_valid': False} ['2027-09-26 dated/57/57/used/0.96: longest-streak choice has invalid chosen_on or selected slots']
+planted {'double': None} ['2027-09-26 dated/57/57/used/0.96: longest-streak choice has invalid chosen_on or selected slots']
+checker trusts planted calendar reference True

@@ -1,0 +1,27 @@
+bts=/Users/eric/projects/bts-work/wr-check-h/.codex-review/wr-h-check/scratch/src/bts/__init__.py
+files=['tests/simulate/test_exact.py', 'tests/simulate/test_mdp.py', 'tests/simulate/test_mdp_save_atomic.py', 'tests/simulate/test_pooled_policy.py', 'tests/simulate/test_tail_policy.py']
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-check-h/.codex-review/wr-h-check/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 98 items
+
+tests/simulate/test_exact.py .............                               [ 13%]
+tests/simulate/test_mdp.py .................                             [ 30%]
+tests/simulate/test_mdp_save_atomic.py .....                             [ 35%]
+tests/simulate/test_pooled_policy.py .........................           [ 61%]
+tests/simulate/test_tail_policy.py ......F.............................. [ 98%]
+.                                                                        [100%]
+
+=================================== FAILURES ===================================
+__ TestObjectiveSwitch.test_no_days_or_finished_streak_stay_with_base_policy ___
+tests/simulate/test_tail_policy.py:64: in test_no_days_or_finished_streak_stay_with_base_policy
+    assert mdp_objective(57, 10) == OBJECTIVE_REACH57
+E   AssertionError: assert 'longest_streak' == 'reach57'
+E     
+E     - reach57
+E     + longest_streak
+=========================== short test summary info ============================
+FAILED tests/simulate/test_tail_policy.py::TestObjectiveSwitch::test_no_days_or_finished_streak_stay_with_base_policy
+========================= 1 failed, 97 passed in 4.13s =========================

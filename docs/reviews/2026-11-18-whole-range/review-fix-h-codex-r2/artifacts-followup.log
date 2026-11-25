@@ -1,0 +1,20 @@
+nice: setpriority: Operation not permitted
+longest-streak policy: longest-streak rule unavailable (tail policy must have one quality bin); forced single -> single
+two-bin longest-streak rule unavailable (tail policy must have one quality bin); forced single
+longest-streak policy: longest-streak rule unavailable (TypeError: int() argument must be a string, a bytes-like object or a real number, not 'NoneType'); forced single -> single
+invalid-count longest-streak rule unavailable (TypeError: int() argument must be a string, a bytes-like object or a real number, not 'NoneType'); forced single
+MDP tail policy unavailable (need 0 <= p_both <= p_hit <= 1 (p_hit=[0.7336111111111111], p_both=[2.0]))
+longest-streak policy: longest-streak rule unavailable (need 0 <= p_both <= p_hit <= 1 (p_hit=[0.7336111111111111], p_both=[2.0])); forced single -> single
+invalid-rate longest-streak rule unavailable (need 0 <= p_both <= p_hit <= 1 (p_hit=[0.7336111111111111], p_both=[2.0])); forced single
+MDP base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpoivqz4py/neither/base.npz')
+MDP tail policy not usable (base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpoivqz4py/neither/base.npz'): tail pairing unverifiable)
+longest-streak policy: longest-streak rule unavailable (decoded base policy or sha unavailable); forced single -> single
+neither longest-streak rule unavailable (decoded base policy or sha unavailable); forced single
+MDP base policy unavailable (ValueError: base policy artifact too large (2052 bytes))
+MDP tail policy not usable (base policy unavailable (ValueError: base policy artifact too large (2052 bytes)): tail pairing unverifiable)
+longest-streak policy: longest-streak rule unavailable (ValueError: base policy artifact too large (2052 bytes)); forced single -> single
+oversize longest-streak rule unavailable (ValueError: base policy artifact too large (2052 bytes)); forced single
+longest-streak policy: longest-streak rule unavailable (ValueError: probe failure); forced single -> single
+longest-streak policy: longest-streak rule unavailable (probe failure); forced single -> single
+longest-streak policy: longest-streak rule unavailable (probe failure); forced single -> single
+ordinary errors degrade and both interrupts propagate at loader, validator and rule
