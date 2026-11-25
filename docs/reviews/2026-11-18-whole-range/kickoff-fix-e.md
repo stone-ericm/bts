@@ -154,7 +154,7 @@ New file `tests/test_wr_e_texts.py`: every sentence in the tables above asserted
 
 ## E3, composed
 - **Late:** `LATE DELIVERY REFUSED: {names} would have been sent {m} min after the {cutoff} cutoff. This pick was withheld. A later check may produce another recommendation. Use a later official pick message only while the entry window is open. A manual entry can differ from a later recommendation. The entry check may report a mismatch if it verifies the entry in time.`
-- **Postponed:** `DELIVERY REFUSED for {date}: {games}. ` followed by the same four sentences.
+- **Postponed:** `DELIVERY REFUSED for {date}: {games}. This pick was withheld. A later check may produce another recommendation. Use a later official pick message only while the entry window is open. A manual entry can differ from a later recommendation. The entry check may report a mismatch if it verifies the entry in time.` (Corrected 19:31: version 2 first said "the same four sentences"; there are five, the same five as in the late message.)
 
 ## Scope and tests
 - Files the author may change: `src/bts/scheduler.py` (the functions named in E1 to E3 and the one call site), `src/bts/web.py` (`render_skip_banner`), `scripts/audit/season_walk/walk.py` (pass `candidate=`; the K3 and K4 counts) and its test file, the new `tests/test_wr_e_texts.py`, and text-only expectations in `tests/test_scheduler_skip_visibility.py`, `tests/test_scheduler_tail_objective.py`, `tests/test_stale_delivery_cs4c.py`, `tests/test_morning_state_cs6b1.py` as the check's last paragraph permits. `src/bts/strategy.py` has no diff.
