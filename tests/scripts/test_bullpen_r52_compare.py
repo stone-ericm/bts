@@ -400,3 +400,48 @@ def test_a_malformed_receipt_is_rule_unmet(tmp_path):
     _log(tmp_path)
     with pytest.raises(r52.Incomplete, match="receipt"):
         _cmp(tmp_path)
+
+
+
+def test_an_empty_marker_passes_for_an_original_seed(tmp_path, monkeypatch):
+    _grid(tmp_path, lambda s, y: 150, lambda s, y: 150)
+    monkeypatch.setattr(r52, "LEGACY_SEEDS", r52.LEGACY_SEEDS + (3,))
+    for arm in r52.ARMS:
+        (tmp_path / "out" / arm / "seed_3" / "DONE").write_text("")
+    _log(tmp_path)
+    assert _cmp(tmp_path)["verdict"] == "PASS"
+
+
+@pytest.mark.parametrize("extra", ["garbage line\n", "{sha}  backtest_2021.parquet\n", "{sha}  backtest_2099.parquet\n"])
+def test_a_complete_receipt_with_an_extra_line_is_rule_unmet(tmp_path, extra):
+    _grid(tmp_path, lambda s, y: 150, lambda s, y: 150)
+    done = tmp_path / "out" / "new" / "seed_1" / "DONE"
+    done.write_text(done.read_text() + extra.format(sha="0" * 64))
+    _log(tmp_path)
+    with pytest.raises(r52.Incomplete, match="receipt"):
+        _cmp(tmp_path)
+
+
+def test_receipt_marker_time_allowance(tmp_path):
+    _grid(tmp_path, lambda s, y: 150, lambda s, y: 150)
+    done = tmp_path / "out" / "new" / "seed_4" / "DONE"
+    end = r52.run_windows(tmp_path / "progress.log")[("new", 4)][1]
+    for secs, ok in ((10, True), (40, False)):
+        t = (end + timedelta(seconds=secs)).timestamp()
+        os.utime(done, (t, t))
+        if ok:
+            assert _cmp(tmp_path)["verdict"] == "PASS"
+        else:
+            with pytest.raises(r52.Incomplete, match="DONE written"):
+                _cmp(tmp_path)
+
+
+def test_a_receipt_repeating_a_correct_line_is_rule_unmet(tmp_path):
+    # only the duplicate rule can catch this: the repeated digest is the right one
+    _grid(tmp_path, lambda s, y: 150, lambda s, y: 150)
+    done = tmp_path / "out" / "old" / "seed_2" / "DONE"
+    first = done.read_text().splitlines()[0]
+    done.write_text(done.read_text() + first + "\n")
+    _log(tmp_path)
+    with pytest.raises(r52.Incomplete, match="listed twice"):
+        _cmp(tmp_path)

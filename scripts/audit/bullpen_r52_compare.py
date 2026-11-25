@@ -19,7 +19,7 @@ supersede an unfinished start of the SAME run, which is how this serial queue re
 last start followed by ``end ... rc=0``, and every season file was written after that start and no
 later than the DONE marker, which is itself no later than the logged end (+2 s: the end line is
 stamped to the whole second and DONE is touched just after it). Each file is read once; the bytes scored are hashed into the result. Every season's day set
-must be identical across all runs. Since R59 a run's DONE marker holds the runner's sha256 of its
+must be identical across all 48 runs. Since R59 a run's DONE marker holds the runner's sha256 of its
 five files: for every seed except R52's original 8 (whose markers are empty) the bytes scored must
 match that receipt. Any unexpected input is "rule unmet", never a verdict.
 
@@ -53,6 +53,7 @@ ARMS = ("old", "new")
 LOWER_BOUND_FLOOR = Fraction(-1, 200)  # the lower bound must be strictly above
 SEASON_FLOOR = Fraction(-1, 100)  # a season mean below this fails; equal passes
 DEFAULT_ROOT = Path.home() / "bts-runs" / "bullpen-bt" / "out"
+RECEIPT_SLACK_S = 30  # a receipt-bearing DONE is written after hashing the five files (real gaps under 1 s)
 WINDOW_SLACK_S = 2  # DONE is touched just after the end line, which is stamped to the whole second (real gaps 0.03 to 0.97 s)
 _LINE = re.compile(r"^(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d) (start|end) +arm=(\w+) seed=(\d+)(?: rc=(\d+))?\s*$")
 
@@ -106,7 +107,7 @@ def run_windows(progress: Path) -> dict[tuple[str, int], tuple[datetime, datetim
     return done
 
 
-def _cell(root: Path, arm: str, seed: int, season: int, window):
+def _cell(root: Path, arm: str, seed: int, season: int, window, seasons=SEASONS):
     tag = f"{arm} seed {seed} {season}"
     run = root / arm / f"seed_{seed}"
     if window is None:
@@ -114,27 +115,31 @@ def _cell(root: Path, arm: str, seed: int, season: int, window):
     start, end = window
     try:
         done_mtime = datetime.fromtimestamp((run / "DONE").stat().st_mtime)
-    except OSError as exc:
-        raise Incomplete(f"{arm} seed {seed}: no DONE marker") from exc
-    if not (start <= done_mtime <= end + timedelta(seconds=WINDOW_SLACK_S)):
+        receipt = (run / "DONE").read_bytes().decode("utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise Incomplete(f"{arm} seed {seed}: no readable DONE marker") from exc
+    recorded = {}
+    for line in receipt.splitlines():
+        parts = line.split()
+        if len(parts) != 2 or len(parts[0]) != 64 or parts[1] in recorded:
+            raise Incomplete(f"{arm} seed {seed}: DONE receipt line not '<sha256>  <file>' (or a file listed twice)")
+        recorded[parts[1]] = parts[0]
+    if recorded and set(recorded) != {f"backtest_{y}.parquet" for y in seasons}:
+        raise Incomplete(f"{arm} seed {seed}: DONE receipt does not list exactly the season files compared")
+    if not recorded and seed not in LEGACY_SEEDS:
+        raise Incomplete(f"{arm} seed {seed}: no receipt in DONE (required for every seed but R52's original 8)")
+    slack = RECEIPT_SLACK_S if recorded else WINDOW_SLACK_S
+    if not (start <= done_mtime <= end + timedelta(seconds=slack)):
         raise Incomplete(f"{arm} seed {seed}: DONE written {done_mtime:%F %T}, outside its run {start:%F %T} to {end:%F %T}")
     path = run / f"backtest_{season}.parquet"
     try:
         mtime = datetime.fromtimestamp(path.stat().st_mtime)
         data = path.read_bytes()
-        receipt = (run / "DONE").read_bytes().decode("utf-8")
         df = pd.read_parquet(io.BytesIO(data))
     except Exception as exc:  # missing, unreadable or not parquet
         raise Incomplete(f"{tag}: cannot read {path.name} ({type(exc).__name__})") from exc
-    recorded = {}
-    for line in receipt.splitlines():
-        parts = line.split()
-        if len(parts) != 2 or len(parts[0]) != 64:
-            raise Incomplete(f"{arm} seed {seed}: DONE receipt line not '<sha256>  <file>'")
-        recorded[parts[1]] = parts[0]
-    if recorded or seed not in LEGACY_SEEDS:
-        if recorded.get(path.name) != hashlib.sha256(data).hexdigest():
-            raise Incomplete(f"{tag}: bytes differ from the runner's receipt in DONE (or no receipt)")
+    if recorded and recorded[path.name] != hashlib.sha256(data).hexdigest():
+        raise Incomplete(f"{tag}: bytes differ from the runner's receipt in DONE")
     if not (start <= mtime <= done_mtime):
         raise Incomplete(f"{tag}: file written {mtime:%F %T}, outside its run {start:%F %T} to its DONE {done_mtime:%F %T}")
     for col in ("date", "rank", "actual_hit"):
@@ -180,7 +185,7 @@ def compare(root: Path, seeds=SEEDS, seasons=SEASONS, progress: Path | None = No
             got = {}
             for arm in ARMS:
                 try:
-                    got[arm] = _cell(root, arm, seed, season, windows.get((arm, seed)))
+                    got[arm] = _cell(root, arm, seed, season, windows.get((arm, seed)), seasons)
                 except Incomplete:
                     raise
                 except Exception as exc:  # anything unexpected is unmet, never a verdict
