@@ -1,0 +1,11 @@
+nice: setpriority: Operation not permitted
+pass_204 0 TARGET restart attempted at TARGET ['CANARY PASSED — TARGET is live and healthy']
+pass_clean_exit 0 TARGET restart attempted at TARGET ['bts-scheduler.service completed cleanly and is waiting for Restart=always relaunch', 'CANARY PASSED — TARGET is live and healthy']
+sync 9 TARGET stopped []
+restart 3 TARGET restart attempted at TARGET []
+stamp 5 TARGET restart attempted at TARGET ['CANARY PASSED — TARGET is live and healthy']
+fail/ok 1 619abda7aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa restart attempted at 619abda7aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ['CANARY FAILED — rolling back to 619abda', 'Rolled back cleanly to 619abda']
+fail/unhealthy 1 619abda7aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa restart attempted at 619abda7aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ['CANARY FAILED — rolling back to 619abda', 'CRITICAL: rollback also unhealthy — manual intervention required']
+fail/reset 1 TARGET restart attempted at TARGET ['CANARY FAILED — rolling back to 619abda', 'Rolled back cleanly to 619abda']
+fail/sync 1 619abda7aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa restart attempted at 619abda7aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ['CANARY FAILED — rolling back to 619abda', 'Rolled back cleanly to 619abda']
+fail/restart 1 619abda7aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa restart attempted at 619abda7aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ['CANARY FAILED — rolling back to 619abda', 'Rolled back cleanly to 619abda']

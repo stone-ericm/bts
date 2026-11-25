@@ -1,0 +1,5 @@
+nice: setpriority: Operation not permitted
+B4 {"date": "2027-07-15", "state": "no_decision", "ok": false, "detail": "1 games were scheduled and the day has no decision record: no pick was committed and no skip was decided.", "pick": null}
+day-outcome: DM failed: RuntimeError
+ {"date": "2027-07-15", "state": "no_decision", "ok": false, "detail": "1 games were scheduled and the day has no decision record: no pick was committed and no skip was decided.", "pick": null}
+ DRILL DM captured; live decision bytes retained.

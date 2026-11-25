@@ -1,0 +1,136 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-e-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 291 items
+
+tests/test_wr_e_texts.py ....FFFFFFFFF...........FFF......               [ 11%]
+tests/test_scheduler_skip_visibility.py ................................ [ 22%]
+.......                                                                  [ 24%]
+tests/test_scheduler_tail_objective.py .........                         [ 27%]
+tests/test_stale_delivery_cs4c.py ...................................... [ 40%]
+........................                                                 [ 49%]
+tests/test_morning_state_cs6b1.py ...................................... [ 62%]
+.......................                                                  [ 70%]
+tests/test_late_delivery_guard.py ........                               [ 72%]
+tests/test_postponed_delivery_guard.py ........................          [ 81%]
+tests/test_wr_b_contract.py ........................                     [ 89%]
+tests/scripts/season_walk/test_season_walk.py ..................         [ 95%]
+tests/test_lightgbm_optional.py .                                        [ 95%]
+tests/test_web_saver.py ............                                     [100%]
+
+=================================== FAILURES ===================================
+_ test_skip_surfaces[fields4-No candidate was chosen. Top model prediction (eligibility unverified): A (T) 75.0%.] _
+tests/test_wr_e_texts.py:41: in test_skip_surfaces
+    assert scheduler.format_skip_dm("2027-07-15", summary) == "BTS 2027-07-15: No pick at this check. " + body
+E   AssertionError: assert 'BTS 2027-07-...his check: 8.' == 'BTS 2027-07-...his check: 8.'
+E     
+E     Skipping 74 identical leading characters in diff, use -v to show
+E     - prediction (eligibility unverified): A (T) 75.0%. Streak used at this check: 8.
+E     ?           -------------------------
+E     + prediction: A (T) 75.0%. Streak used at this check: 8.
+____________________ test_malformed_persisted_fields[None] _____________________
+tests/test_wr_e_texts.py:54: in test_malformed_persisted_fields
+    assert scheduler.format_skip_dm("day", summary) == "BTS day: No pick at this check. " + body
+E   AssertionError: assert 'BTS day: No ...r this check.' == 'BTS day: No ...r this check.'
+E     
+E     Skipping 42 identical leading characters in diff, use -v to show
+E     - prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.
+E     ?           -------------------------
+E     + prediction: <A> B (?) ?. No probability comparison is available for this check.
+____________________ test_malformed_persisted_fields[0.99] _____________________
+tests/test_wr_e_texts.py:54: in test_malformed_persisted_fields
+    assert scheduler.format_skip_dm("day", summary) == "BTS day: No pick at this check. " + body
+E   AssertionError: assert 'BTS day: No ...r this check.' == 'BTS day: No ...r this check.'
+E     
+E     Skipping 42 identical leading characters in diff, use -v to show
+E     - prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.
+E     ?           -------------------------
+E     + prediction: <A> B (?) ?. No probability comparison is available for this check.
+____________________ test_malformed_persisted_fields[bad2] _____________________
+tests/test_wr_e_texts.py:54: in test_malformed_persisted_fields
+    assert scheduler.format_skip_dm("day", summary) == "BTS day: No pick at this check. " + body
+E   AssertionError: assert 'BTS day: No ...r this check.' == 'BTS day: No ...r this check.'
+E     
+E     Skipping 42 identical leading characters in diff, use -v to show
+E     - prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.
+E     ?           -------------------------
+E     + prediction: <A> B (?) ?. No probability comparison is available for this check.
+____________________ test_malformed_persisted_fields[bad3] _____________________
+tests/test_wr_e_texts.py:54: in test_malformed_persisted_fields
+    assert scheduler.format_skip_dm("day", summary) == "BTS day: No pick at this check. " + body
+E   AssertionError: assert 'BTS day: No ...r this check.' == 'BTS day: No ...r this check.'
+E     
+E     Skipping 42 identical leading characters in diff, use -v to show
+E     - prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.
+E     ?           -------------------------
+E     + prediction: <A> B (?) ?. No probability comparison is available for this check.
+____________________ test_malformed_persisted_fields[True] _____________________
+tests/test_wr_e_texts.py:54: in test_malformed_persisted_fields
+    assert scheduler.format_skip_dm("day", summary) == "BTS day: No pick at this check. " + body
+E   AssertionError: assert 'BTS day: No ...r this check.' == 'BTS day: No ...r this check.'
+E     
+E     Skipping 42 identical leading characters in diff, use -v to show
+E     - prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.
+E     ?           -------------------------
+E     + prediction: <A> B (?) ?. No probability comparison is available for this check.
+_____________________ test_malformed_persisted_fields[nan] _____________________
+tests/test_wr_e_texts.py:54: in test_malformed_persisted_fields
+    assert scheduler.format_skip_dm("day", summary) == "BTS day: No pick at this check. " + body
+E   AssertionError: assert 'BTS day: No ...r this check.' == 'BTS day: No ...r this check.'
+E     
+E     Skipping 42 identical leading characters in diff, use -v to show
+E     - prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.
+E     ?           -------------------------
+E     + prediction: <A> B (?) ?. No probability comparison is available for this check.
+_____________________ test_malformed_persisted_fields[inf] _____________________
+tests/test_wr_e_texts.py:54: in test_malformed_persisted_fields
+    assert scheduler.format_skip_dm("day", summary) == "BTS day: No pick at this check. " + body
+E   AssertionError: assert 'BTS day: No ...r this check.' == 'BTS day: No ...r this check.'
+E     
+E     Skipping 42 identical leading characters in diff, use -v to show
+E     - prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.
+E     ?           -------------------------
+E     + prediction: <A> B (?) ?. No probability comparison is available for this check.
+_ test_malformed_persisted_fields[10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000] _
+tests/test_wr_e_texts.py:54: in test_malformed_persisted_fields
+    assert scheduler.format_skip_dm("day", summary) == "BTS day: No pick at this check. " + body
+E   AssertionError: assert 'BTS day: No ...r this check.' == 'BTS day: No ...r this check.'
+E     
+E     Skipping 42 identical leading characters in diff, use -v to show
+E     - prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.
+E     ?           -------------------------
+E     + prediction: <A> B (?) ?. No probability comparison is available for this check.
+___________ test_real_lineup_skip_return_against_base[none_eligible] ___________
+tests/test_wr_e_texts.py:265: in test_real_lineup_skip_return_against_base
+    assert ("  SKIP — No candidate was chosen. Top model prediction (eligibility unverified): "
+E   AssertionError: assert '  SKIP — No candidate was chosen. Top model prediction (eligibility unverified): Batter 0 (T0) 99.9%. Streak used at this check: 10.' in ['  0 new confirmed lineup(s). Running predictions...', '  SKIP — No candidate was chosen. Top model prediction: Batter 0 (T0) 99.9%. Streak used at this check: 10.']
+E    +  where ['  0 new confirmed lineup(s). Running predictions...', '  SKIP — No candidate was chosen. Top model prediction: Batter 0 (T0) 99.9%. Streak used at this check: 10.'] = <built-in method splitlines of str object at 0x110fc9fb0>()
+E    +    where <built-in method splitlines of str object at 0x110fc9fb0> = '  0 new confirmed lineup(s). Running predictions...\n  SKIP — No candidate was chosen. Top model prediction: Batter 0 (T0) 99.9%. Streak used at this check: 10.\n'.splitlines
+__________ test_real_lineup_skip_return_against_base[status_failure] ___________
+tests/test_wr_e_texts.py:265: in test_real_lineup_skip_return_against_base
+    assert ("  SKIP — No candidate was chosen. Top model prediction (eligibility unverified): "
+E   AssertionError: assert '  SKIP — No candidate was chosen. Top model prediction (eligibility unverified): Batter 0 (T0) 99.9%. Streak used at this check: 10.' in ['  0 new confirmed lineup(s). Running predictions...', '  SKIP — No candidate was chosen. Top model prediction: Batter 0 (T0) 99.9%. Streak used at this check: 10.']
+E    +  where ['  0 new confirmed lineup(s). Running predictions...', '  SKIP — No candidate was chosen. Top model prediction: Batter 0 (T0) 99.9%. Streak used at this check: 10.'] = <built-in method splitlines of str object at 0x110fc9230>()
+E    +    where <built-in method splitlines of str object at 0x110fc9230> = '  0 new confirmed lineup(s). Running predictions...\n  SKIP — No candidate was chosen. Top model prediction: Batter 0 (T0) 99.9%. Streak used at this check: 10.\n'.splitlines
+_____________ test_real_lineup_skip_return_against_base[sel_none] ______________
+tests/test_wr_e_texts.py:265: in test_real_lineup_skip_return_against_base
+    assert ("  SKIP — No candidate was chosen. Top model prediction (eligibility unverified): "
+E   AssertionError: assert '  SKIP — No candidate was chosen. Top model prediction (eligibility unverified): Batter 0 (T0) 99.9%. Streak used at this check: 10.' in ['  0 new confirmed lineup(s). Running predictions...', '  SKIP — No candidate was chosen. Top model prediction: Batter 0 (T0) 99.9%. Streak used at this check: 10.']
+E    +  where ['  0 new confirmed lineup(s). Running predictions...', '  SKIP — No candidate was chosen. Top model prediction: Batter 0 (T0) 99.9%. Streak used at this check: 10.'] = <built-in method splitlines of str object at 0x110fcad30>()
+E    +    where <built-in method splitlines of str object at 0x110fcad30> = '  0 new confirmed lineup(s). Running predictions...\n  SKIP — No candidate was chosen. Top model prediction: Batter 0 (T0) 99.9%. Streak used at this check: 10.\n'.splitlines
+=========================== short test summary info ============================
+FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields4-No candidate was chosen. Top model prediction (eligibility unverified): A (T) 75.0%.]
+FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[None] - Asse...
+FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[0.99] - Asse...
+FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[bad2] - Asse...
+FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[bad3] - Asse...
+FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[True] - Asse...
+FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[nan] - Asser...
+FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[inf] - Asser...
+FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000]
+FAILED tests/test_wr_e_texts.py::test_real_lineup_skip_return_against_base[none_eligible]
+FAILED tests/test_wr_e_texts.py::test_real_lineup_skip_return_against_base[status_failure]
+FAILED tests/test_wr_e_texts.py::test_real_lineup_skip_return_against_base[sel_none]
+======================= 12 failed, 279 passed in 43.03s ========================

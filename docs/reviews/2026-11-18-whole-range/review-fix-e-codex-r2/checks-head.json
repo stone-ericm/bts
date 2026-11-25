@@ -1,0 +1,550 @@
+{
+  "above_bar": {
+    "new_lineups": 0,
+    "pick_name": null,
+    "pick_p": null,
+    "pick_result": null,
+    "selection": {
+      "action": "skip",
+      "allow_double": true,
+      "contest_source_date": "2027-08-30",
+      "decision": {
+        "action": "skip",
+        "best_status": "trusted",
+        "best_supplied": 56,
+        "days_effective": 28,
+        "degraded_reason": null,
+        "effective_best": null,
+        "objective": "reach57",
+        "pick_bar": 0.8252474190317034,
+        "policy_action": "skip",
+        "reason": null,
+        "source": "mdp",
+        "streak": 56,
+        "tail_sha256": null
+      },
+      "double_candidate": {
+        "batter_id": 101,
+        "batter_name": "Batter 1",
+        "game_pk": 70001,
+        "p_game_hit": 0.98,
+        "team": "T1"
+      },
+      "no_pick_reason": null,
+      "pick_result": null,
+      "primary_candidate": {
+        "batter_id": 100,
+        "batter_name": "Batter 0",
+        "game_pk": 70000,
+        "p_game_hit": 0.99,
+        "team": "T0"
+      },
+      "saver_available": false,
+      "source": "mdp",
+      "state_source": "contest",
+      "state_status": "fresh",
+      "streak": 56
+    },
+    "should_post": false,
+    "skip_summary": {
+      "bar": 0.8252474190317034,
+      "objective": "reach57",
+      "streak": 56
+    },
+    "skipped": false
+  },
+  "clamped_double": {
+    "new_lineups": 0,
+    "pick_name": "Batter 0",
+    "pick_p": 0.9,
+    "pick_result": {
+      "daily": {
+        "automatic_reading": null,
+        "bluesky_posted": false,
+        "bluesky_uri": null,
+        "chosen_on": {
+          "dated": {
+            "active_streak": 0,
+            "best_streak": 0,
+            "effective_date": "2027-07-15",
+            "saver_state": "used"
+          },
+          "kind": "dated",
+          "required": true,
+          "saver_available": false,
+          "schema": "bts_pick_chosen_on_v1",
+          "streak": 0
+        },
+        "date": "2027-07-15",
+        "delivered_at": null,
+        "delivery_attempted": false,
+        "double_down": null,
+        "feature_env": {
+          "BTS_LGBM_DETERMINISTIC": "0",
+          "BTS_LGBM_RANDOM_STATE": "42",
+          "BTS_PITCHER_HR_30G_MIN_PERIODS": "7",
+          "BTS_ROOKIE_GATE_K": "20",
+          "BTS_USE_CALIBRATION": "0"
+        },
+        "feature_env_hash": "fb1841abbb3f269053f4687d291405c4c08ef1c9a87eda8f4f0663804b481ebe",
+        "feature_env_schema_version": "bts_feature_env_v1",
+        "model_git_sha": "256ac9580d32546628945b9a8f0053ca8c89f80e",
+        "model_pickle_sha256": null,
+        "notification_channel": null,
+        "notification_id": null,
+        "notification_sent": false,
+        "pick": {
+          "batter_id": 100,
+          "batter_name": "Batter 0",
+          "flags": [],
+          "game_pk": 70000,
+          "game_time": "2027-07-15T23:05:00Z",
+          "lineup_position": 1,
+          "p_game_hit": 0.9,
+          "pitcher_id": 900,
+          "pitcher_name": "Pitcher 0",
+          "pitcher_team": "U0",
+          "projected_lineup": false,
+          "team": "T0"
+        },
+        "policy_decision": {
+          "action": "single",
+          "best_status": "trusted",
+          "best_supplied": 0,
+          "days_effective": 74,
+          "degraded_reason": null,
+          "effective_best": null,
+          "objective": "reach57",
+          "pick_bar": null,
+          "policy_action": "double",
+          "reason": null,
+          "source": "mdp",
+          "streak": 0,
+          "tail_sha256": null
+        },
+        "policy_npz_sha256": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
+        "result": null,
+        "run_time": "2027-07-15T16:00:00+00:00",
+        "runner_up": {
+          "batter_name": "Batter 1",
+          "p_game_hit": 0.89
+        },
+        "shadow_model_version": null,
+        "slot_results": null,
+        "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4"
+      },
+      "locked": false
+    },
+    "selection": {
+      "action": "single",
+      "allow_double": false,
+      "contest_source_date": "2027-07-15",
+      "decision": {
+        "action": "single",
+        "best_status": "trusted",
+        "best_supplied": 0,
+        "days_effective": 74,
+        "degraded_reason": null,
+        "effective_best": null,
+        "objective": "reach57",
+        "pick_bar": null,
+        "policy_action": "double",
+        "reason": null,
+        "source": "mdp",
+        "streak": 0,
+        "tail_sha256": null
+      },
+      "double_candidate": {
+        "batter_id": 101,
+        "batter_name": "Batter 1",
+        "game_pk": 70001,
+        "p_game_hit": 0.89,
+        "team": "T1"
+      },
+      "no_pick_reason": null,
+      "pick_result": {
+        "daily": {
+          "automatic_reading": null,
+          "bluesky_posted": false,
+          "bluesky_uri": null,
+          "chosen_on": {
+            "dated": {
+              "active_streak": 0,
+              "best_streak": 0,
+              "effective_date": "2027-07-15",
+              "saver_state": "used"
+            },
+            "kind": "dated",
+            "required": true,
+            "saver_available": false,
+            "schema": "bts_pick_chosen_on_v1",
+            "streak": 0
+          },
+          "date": "2027-07-15",
+          "delivered_at": null,
+          "delivery_attempted": false,
+          "double_down": null,
+          "feature_env": {
+            "BTS_LGBM_DETERMINISTIC": "0",
+            "BTS_LGBM_RANDOM_STATE": "42",
+            "BTS_PITCHER_HR_30G_MIN_PERIODS": "7",
+            "BTS_ROOKIE_GATE_K": "20",
+            "BTS_USE_CALIBRATION": "0"
+          },
+          "feature_env_hash": "fb1841abbb3f269053f4687d291405c4c08ef1c9a87eda8f4f0663804b481ebe",
+          "feature_env_schema_version": "bts_feature_env_v1",
+          "model_git_sha": "256ac9580d32546628945b9a8f0053ca8c89f80e",
+          "model_pickle_sha256": null,
+          "notification_channel": null,
+          "notification_id": null,
+          "notification_sent": false,
+          "pick": {
+            "batter_id": 100,
+            "batter_name": "Batter 0",
+            "flags": [],
+            "game_pk": 70000,
+            "game_time": "2027-07-15T23:05:00Z",
+            "lineup_position": 1,
+            "p_game_hit": 0.9,
+            "pitcher_id": 900,
+            "pitcher_name": "Pitcher 0",
+            "pitcher_team": "U0",
+            "projected_lineup": false,
+            "team": "T0"
+          },
+          "policy_decision": {
+            "action": "single",
+            "best_status": "trusted",
+            "best_supplied": 0,
+            "days_effective": 74,
+            "degraded_reason": null,
+            "effective_best": null,
+            "objective": "reach57",
+            "pick_bar": null,
+            "policy_action": "double",
+            "reason": null,
+            "source": "mdp",
+            "streak": 0,
+            "tail_sha256": null
+          },
+          "policy_npz_sha256": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
+          "result": null,
+          "run_time": "2027-07-15T16:00:00+00:00",
+          "runner_up": {
+            "batter_name": "Batter 1",
+            "p_game_hit": 0.89
+          },
+          "shadow_model_version": null,
+          "slot_results": null,
+          "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4"
+        },
+        "locked": false
+      },
+      "primary_candidate": {
+        "batter_id": 100,
+        "batter_name": "Batter 0",
+        "game_pk": 70000,
+        "p_game_hit": 0.9,
+        "team": "T0"
+      },
+      "saver_available": false,
+      "source": "mdp",
+      "state_source": "contest",
+      "state_status": "fresh",
+      "streak": 0
+    },
+    "should_post": true,
+    "skipped": false
+  },
+  "empty": {
+    "new_lineups": 0,
+    "pick_name": null,
+    "pick_p": null,
+    "pick_result": null,
+    "selection": null,
+    "should_post": false,
+    "skip_summary": null,
+    "skipped": false
+  },
+  "heuristic": {
+    "new_lineups": 0,
+    "pick_name": null,
+    "pick_p": null,
+    "pick_result": null,
+    "selection": {
+      "action": "skip",
+      "allow_double": true,
+      "contest_source_date": "2027-07-15",
+      "decision": {
+        "action": "skip",
+        "best_status": "trusted",
+        "best_supplied": 10,
+        "days_effective": 74,
+        "degraded_reason": null,
+        "effective_best": null,
+        "objective": "reach57",
+        "pick_bar": 0.8,
+        "policy_action": "skip",
+        "reason": null,
+        "source": "heuristic",
+        "streak": 10,
+        "tail_sha256": null
+      },
+      "double_candidate": {
+        "batter_id": 101,
+        "batter_name": "Batter 1",
+        "game_pk": 70001,
+        "p_game_hit": 0.74,
+        "team": "T1"
+      },
+      "no_pick_reason": null,
+      "pick_result": null,
+      "primary_candidate": {
+        "batter_id": 100,
+        "batter_name": "Batter 0",
+        "game_pk": 70000,
+        "p_game_hit": 0.75,
+        "team": "T0"
+      },
+      "saver_available": false,
+      "source": "heuristic",
+      "state_source": "contest",
+      "state_status": "fresh",
+      "streak": 10
+    },
+    "should_post": false,
+    "skip_summary": {
+      "bar": 0.8,
+      "objective": "reach57",
+      "streak": 10
+    },
+    "skipped": false
+  },
+  "no_bar": {
+    "new_lineups": 0,
+    "pick_name": null,
+    "pick_p": null,
+    "pick_result": null,
+    "selection": {
+      "action": "skip",
+      "allow_double": true,
+      "contest_source_date": "2027-07-15",
+      "decision": {
+        "action": "skip",
+        "best_status": "trusted",
+        "best_supplied": 56,
+        "days_effective": 74,
+        "degraded_reason": null,
+        "effective_best": null,
+        "objective": "reach57",
+        "pick_bar": null,
+        "policy_action": "skip",
+        "reason": null,
+        "source": "mdp",
+        "streak": 56,
+        "tail_sha256": null
+      },
+      "double_candidate": {
+        "batter_id": 101,
+        "batter_name": "Batter 1",
+        "game_pk": 70001,
+        "p_game_hit": 0.98,
+        "team": "T1"
+      },
+      "no_pick_reason": null,
+      "pick_result": null,
+      "primary_candidate": {
+        "batter_id": 100,
+        "batter_name": "Batter 0",
+        "game_pk": 70000,
+        "p_game_hit": 0.99,
+        "team": "T0"
+      },
+      "saver_available": false,
+      "source": "mdp",
+      "state_source": "contest",
+      "state_status": "fresh",
+      "streak": 56
+    },
+    "should_post": false,
+    "skip_summary": {
+      "objective": "reach57",
+      "streak": 56
+    },
+    "skipped": false
+  },
+  "no_selection": {
+    "new_lineups": 0,
+    "pick_name": null,
+    "pick_p": null,
+    "pick_result": null,
+    "selection": null,
+    "should_post": false,
+    "skip_summary": {
+      "streak": 10
+    },
+    "skipped": false
+  },
+  "none_eligible": {
+    "new_lineups": 0,
+    "pick_name": null,
+    "pick_p": null,
+    "pick_result": null,
+    "selection": {
+      "action": null,
+      "allow_double": true,
+      "contest_source_date": "2027-07-15",
+      "decision": null,
+      "double_candidate": null,
+      "no_pick_reason": "no_eligible",
+      "pick_result": null,
+      "primary_candidate": null,
+      "saver_available": null,
+      "source": null,
+      "state_source": "contest",
+      "state_status": "fresh",
+      "streak": 0
+    },
+    "should_post": false,
+    "skip_summary": {
+      "bar": 0.7959788446395174,
+      "streak": 10
+    },
+    "skipped": false
+  },
+  "removed_top": {
+    "new_lineups": 0,
+    "pick_name": null,
+    "pick_p": null,
+    "pick_result": null,
+    "selection": {
+      "action": "skip",
+      "allow_double": true,
+      "contest_source_date": "2027-07-15",
+      "decision": {
+        "action": "skip",
+        "best_status": "trusted",
+        "best_supplied": 10,
+        "days_effective": 74,
+        "degraded_reason": null,
+        "effective_best": null,
+        "objective": "reach57",
+        "pick_bar": 0.7959788446395174,
+        "policy_action": "skip",
+        "reason": null,
+        "source": "mdp",
+        "streak": 10,
+        "tail_sha256": null
+      },
+      "double_candidate": {
+        "batter_id": 102,
+        "batter_name": "Batter 2",
+        "game_pk": 70002,
+        "p_game_hit": 0.7,
+        "team": "T2"
+      },
+      "no_pick_reason": null,
+      "pick_result": null,
+      "primary_candidate": {
+        "batter_id": 101,
+        "batter_name": "Batter 1",
+        "game_pk": 70001,
+        "p_game_hit": 0.74,
+        "team": "T1"
+      },
+      "saver_available": false,
+      "source": "mdp",
+      "state_source": "contest",
+      "state_status": "fresh",
+      "streak": 10
+    },
+    "should_post": false,
+    "skip_summary": {
+      "bar": 0.7959788446395174,
+      "objective": "reach57",
+      "streak": 10
+    },
+    "skipped": false
+  },
+  "status_failure": {
+    "new_lineups": 0,
+    "pick_name": null,
+    "pick_p": null,
+    "pick_result": null,
+    "selection": {
+      "action": null,
+      "allow_double": true,
+      "contest_source_date": "2027-07-15",
+      "decision": null,
+      "double_candidate": null,
+      "no_pick_reason": "status_failure",
+      "pick_result": null,
+      "primary_candidate": null,
+      "saver_available": null,
+      "source": null,
+      "state_source": "contest",
+      "state_status": "fresh",
+      "streak": 0
+    },
+    "should_post": false,
+    "skip_summary": {
+      "bar": 0.7959788446395174,
+      "streak": 10
+    },
+    "skipped": false
+  },
+  "terminal_tail": {
+    "new_lineups": 0,
+    "pick_name": null,
+    "pick_p": null,
+    "pick_result": null,
+    "selection": {
+      "action": "skip",
+      "allow_double": true,
+      "contest_source_date": "2027-09-19",
+      "decision": {
+        "action": "skip",
+        "best_status": "trusted",
+        "best_supplied": 18,
+        "days_effective": 8,
+        "degraded_reason": null,
+        "effective_best": 18,
+        "objective": "emax_season_best",
+        "pick_bar": null,
+        "policy_action": "skip",
+        "reason": "season-best 18 can't be beaten with 8 days left (max reachable 16); no pick",
+        "source": "mdp",
+        "streak": 0,
+        "tail_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4"
+      },
+      "double_candidate": {
+        "batter_id": 101,
+        "batter_name": "Batter 1",
+        "game_pk": 70001,
+        "p_game_hit": 0.71,
+        "team": "T1"
+      },
+      "no_pick_reason": null,
+      "pick_result": null,
+      "primary_candidate": {
+        "batter_id": 100,
+        "batter_name": "Batter 0",
+        "game_pk": 70000,
+        "p_game_hit": 0.72,
+        "team": "T0"
+      },
+      "saver_available": false,
+      "source": "mdp",
+      "state_source": "contest",
+      "state_status": "fresh",
+      "streak": 0
+    },
+    "should_post": false,
+    "skip_summary": {
+      "objective": "emax_season_best",
+      "reason": "season-best 18 can't be beaten with 8 days left (max reachable 16); no pick",
+      "streak": 0
+    },
+    "skipped": false
+  }
+}

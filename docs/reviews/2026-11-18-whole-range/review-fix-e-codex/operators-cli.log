@@ -1,0 +1,11 @@
+nice: setpriority: Operation not permitted
+revoke before 2027 2 Usage: cli season-contract revoke [OPTIONS]
+Try 'cli season-contract revoke --help' for help.
+
+Error: --season must equal the current ET year 2026
+revoke after midnight 0 ['switch: revoked', '  season: 2027', '  status: revoked', '  activation_id: 14dd53abff3f4a7e88850925aa6e0319']
+status revoked 0 ['ET date: 2027-01-01; year: 2027; inspected season: 2027', 'switch: revoked', '  season: 2027', '  status: revoked', '  activation_id: 14dd53abff3f4a7e88850925aa6e0319', '  switched_at: None']
+enable 0 ['switch: automatic', '  season: 2027', '  status: automatic', '  activation_id: 0fc76d46fb704fc1a5d811b477837d84']
+RateLimitedLoginError 2 fetch-contest-streak: auth/login RATE-LIMITED — back off: do not re-run manually and do not re-capture cookies; investigate request volume if it persists. (429)
+TransientAuthError 2 fetch-contest-streak: auth/login transient upstream failure — cookie refresh NOT indicated unless this persists across runs. (upstream)
+AuthError 2 fetch-contest-streak: auth/cookie error — refresh via capture_bts_cookies.py on Mac. (login error)

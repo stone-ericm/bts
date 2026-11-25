@@ -1,0 +1,9 @@
+nice: setpriority: Operation not permitted
+clean synced dependencies: 1 Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev2-e-codex/scripts/capture_bts_cookies.py", line 23, in <module>
+    from playwright.sync_api import sync_playwright
+ModuleNotFoundError: No module named 'playwright'
+capture [] stdout bytes 0 Keychain actions 2
+capture ['--print'] stdout bytes 58 Keychain actions 2
+fresh default file, usable pass entry -> loaded expired pass entry
+fresh default file, configured override -> loaded expired override

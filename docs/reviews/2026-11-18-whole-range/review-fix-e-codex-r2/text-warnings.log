@@ -1,0 +1,16 @@
+nice: setpriority: Operation not permitted
+/Users/eric/.matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/matplotlib-cxgd9j9k because there was an issue with the default path (/Users/eric/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+After a delivery 881 "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 0002-01-01T00:00:00.111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111+00:00, about 17759548.98 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-12-31 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-12-31. For a later date, follow B8b(1). On 2027-12-31 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status." "  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 0002-01-01T00:00:00.111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111+00:00, about 17759548.98 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-12-31 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-12-31. For a later date, follow B8b(1). On 2027-12-31 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.\n"
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev2-e-codex/.codex-review/wr-e-r2/probe_text.py", line 69, in <module>
+    main(sys.argv[1])
+  File "/Users/eric/projects/bts-work/wr-rev2-e-codex/.codex-review/wr-e-r2/probe_text.py", line 64, in main
+    actions[action](Path(name), mp)
+  File "/Users/eric/projects/bts-work/wr-rev2-e-codex/docs/reviews/2026-11-18-whole-range/review-fix-e-codex/probe_operators.py", line 123, in warnings_and_refusals
+    expected = exact_body(route, D=day, detail=detail)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev2-e-codex/.codex-review/wr-e-r2/probe_text.py", line 20, in corrected_contract
+    original, replacement = re.findall(r"`([^`]+)`", next(
+    ^^^^^^^^^^^^^^^^^^^^^
+ValueError: too many values to unpack (expected 2)

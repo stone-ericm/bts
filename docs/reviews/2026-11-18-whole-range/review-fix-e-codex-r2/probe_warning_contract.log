@@ -1,0 +1,7 @@
+nice: setpriority: Operation not permitted
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev2-e-codex/.codex-review/wr-e-r2/probe_warning_contract.py", line 29, in <module>
+    mp.setattr(socket.socket, "create_connection", archived.offline)
+  File "/Users/eric/projects/bts-work/wr-rev2-e-codex/.venv/lib/python3.12/site-packages/_pytest/monkeypatch.py", line 247, in setattr
+    raise AttributeError(f"{target!r} has no attribute {name!r}")
+AttributeError: <class 'socket.socket'> has no attribute 'create_connection'
