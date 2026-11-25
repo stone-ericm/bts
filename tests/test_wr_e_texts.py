@@ -71,14 +71,18 @@ def test_skip_streak_basis(basis, suffix):
     )
 
 
-def test_skip_stored_text_surfaces():
+@pytest.mark.parametrize(("reason", "displayed_reason"), [
+    ("Observations below the expected count", "Observations under the expected count"),
+    ("Model ID below themodel", "Model ID below themodel"),
+], ids=["whole-words", "longer-word"])
+def test_skip_stored_text_surfaces(reason, displayed_reason):
     summary = dict(
         best_batter="Batter below the line", best_team="Team below the line", best_p=0.75,
-        reason="Observations below the expected count",
+        reason=reason,
     )
     body = (
         "Top model prediction (eligibility unverified): Batter under the line "
-        "(Team under the line) 75.0%. Reason: Observations under the expected count."
+        f"(Team under the line) 75.0%. Reason: {displayed_reason}."
     )
     assert scheduler.format_skip_summary(summary) == body
     assert scheduler.format_skip_dm("2027-07-15", summary) == "BTS 2027-07-15: No pick at this check. " + body
@@ -93,16 +97,19 @@ def test_b8a_follow_up():
         "and the other delivery checks pass."
     ) in row
     assert (
-        "On a warning after a delivery:** write that command only on D ET for the D slate, "
-        "after MLB has settled all prior entries or confirmed their absence after their entry windows closed."
+        "On a warning after a delivery:** use the warning's command only if the delivered pick's "
+        "slate and today's ET date both equal D, and MLB has settled every prior entry "
+        "or confirmed its absence after its entry window closed."
     ) in row
     assert (
         "For any date later than the pick's slate, including D when the warning was sent after midnight ET, "
         "wait until MLB has settled all prior entries or confirmed their absence after their entry windows closed. "
-        "Then compare MLB with status and, only if they differ, run "
+        "Then compare MLB with status and, if they differ, run "
         "`bts set-contest-streak --date TODAY --streak N --best-streak B --saver S --picks-dir DIR` "
-        "(with TODAY set to the current ET date) on TODAY ET before its first lineup check, or if its first "
-        "lineup check has started, have Eric verify any pending or delivered pick against MLB before acting on it."
+        "with TODAY set to the current ET date before its first lineup check. If that check has started, "
+        "have Eric verify MLB and any pending or delivered pick before acting on the pick. "
+        "If the state differs while the slate is unlocked and a later lineup check or fallback refresh remains, "
+        "have Eric run the same command between checks."
     ) in row
     assert "In D's ET year away from midnight, if MLB shows this season's saver used" in row
 
@@ -144,7 +151,8 @@ def test_skip_number_edges_are_valid(edge):
     ("Observations below the expected count", 0.9, ". Reason: Observations under the expected count."),
     (None, 0.7, ", at or above the streak-0 bar (70.0%)."),
     (None, None, ". No probability comparison is available for this check."),
-], ids=["K1", "stored-reason", "K3", "K4"])
+    ("Model ID below themodel", 0.9, ". Reason: Model ID below themodel."),
+], ids=["K1", "stored-reason", "K3", "K4", "longer-word"])
 def test_run_single_check_skip_journal(reason, bar, ending, tmp_path, monkeypatch, capsys):
     day = datetime(2027, 7, 15).date()
     frame = walk._predictions(day, 0.75)
@@ -223,7 +231,7 @@ def test_stale_warning_maximum_detail(route, tmp_path, monkeypatch, capsys):
     picks_dir = tmp_path / "picks"
     if route == "delivery":
         scheduler._warn_stale_contest_reading(record, config, picks_dir)
-        expected, length = envelope(day=DAY, detail=detail), 892
+        expected, length = envelope(day=DAY, detail=detail), 896
         assert "  STALE CONTEST READING — " + expected.split("- [contest_state] ")[1] in capsys.readouterr().err
     else:
         scheduler._morning_state_check(config, picks_dir, DAY, now, now + timedelta(hours=1))

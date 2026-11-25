@@ -7,6 +7,7 @@ and commits picks only when confirmed lineup + gap threshold met.
 
 import json
 import math
+import re
 import shlex
 import subprocess
 import sys
@@ -92,7 +93,7 @@ def _warn_stale_contest_reading(record: dict | None, config: dict, picks_dir: Pa
             "MLB. If MLB differs from status (B8a), use bts set-contest-streak --date "
             f"{warning_day.isoformat()} --streak N --best-streak B --saver S --picks-dir DIR. DIR is the "
             "absolute scheduler picks path. The sent pick and saver flag stay as they were. "
-            f"Write for the {warning_day.isoformat()} slate only on that ET date, with prior entries settled or absent. "
+            "Write only on the pick's ET slate date once prior entries settle or their windows close empty. "
             "For a later slate date, see B8a. "
             f"In {warning_day.year:04d} ET away from midnight, if MLB shows this season's "
             "saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts "
@@ -1764,7 +1765,7 @@ def _skip_display_number(value: object) -> float | None:
 def format_skip_summary(summary: object) -> str:
     """Render one shared skip description from a persisted summary."""
     def display_string(value: object) -> str:
-        return " ".join(value.splitlines()).replace("below the", "under the") if isinstance(value, str) else "?"
+        return re.sub(r"\bbelow the\b", "under the", " ".join(value.splitlines())) if isinstance(value, str) else "?"
 
     fields = summary if isinstance(summary, dict) else {}
     name = display_string(fields.get("best_batter"))
