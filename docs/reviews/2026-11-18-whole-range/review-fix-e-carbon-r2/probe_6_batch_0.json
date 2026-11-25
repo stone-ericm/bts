@@ -1,0 +1,56 @@
+[
+  {
+    "id": "M1_highest_prediction",
+    "description": "Use highest prediction instead of decided candidate",
+    "killed_by_count": 7,
+    "counts": {
+      "passed": 305,
+      "failed": 7,
+      "errors": 0,
+      "deselected": 1
+    },
+    "sample_failures": [
+      "FAILED tests/test_wr_e_texts.py::test_run_single_check_skip_journal[K1] - Ass...",
+      "FAILED tests/test_wr_e_texts.py::test_run_single_check_skip_journal[K3] - Ass...",
+      "FAILED tests/test_wr_e_texts.py::test_run_single_check_skip_journal[K4] - Ass...",
+      "FAILED tests/test_wr_e_texts.py::test_candidate_override - AssertionError: as...",
+      "FAILED tests/test_wr_e_texts.py::test_base_summary_gates - AssertionError: as..."
+    ]
+  },
+  {
+    "id": "M2_below_at_bar",
+    "description": "Say 'below' when candidate is at the bar (probability == bar)",
+    "killed_by_count": 5,
+    "counts": {
+      "passed": 307,
+      "failed": 5,
+      "errors": 0,
+      "deselected": 1
+    },
+    "sample_failures": [
+      "FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields2-Candidate used in the decision: A (T) 75.0%, at or above the streak-8 bar (75.0%).]",
+      "FAILED tests/test_wr_e_texts.py::test_skip_number_edges_are_valid[0] - Assert...",
+      "FAILED tests/test_wr_e_texts.py::test_skip_number_edges_are_valid[0.0] - Asse...",
+      "FAILED tests/test_wr_e_texts.py::test_skip_number_edges_are_valid[1] - Assert...",
+      "FAILED tests/test_wr_e_texts.py::test_skip_number_edges_are_valid[1.0] - Asse..."
+    ]
+  },
+  {
+    "id": "M3a_drop_unverified_global",
+    "description": "Drop '(eligibility unverified)' globally",
+    "killed_by_count": 27,
+    "counts": {
+      "passed": 285,
+      "failed": 27,
+      "errors": 0,
+      "deselected": 1
+    },
+    "sample_failures": [
+      "FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields4-No candidate was chosen. Top model prediction (eligibility unverified): A (T) 75.0%.]",
+      "FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields7-Top model prediction (eligibility unverified): A (T) 75.0%, below the streak-8 bar (80.0%) using unrounded values.]",
+      "FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[None] - Asse...",
+      "FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[0.99] - Asse...",
+      "FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[bad2] - Asse..."
+    ]
+  }
+]

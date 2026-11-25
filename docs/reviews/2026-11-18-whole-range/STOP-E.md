@@ -43,3 +43,5 @@ Round 2's seven fixes as written above; a gate on the final commit (none was run
 
 ## Carbon, round 2
 Still running when this record was written (21:09); its verdict is appended when it reports. It cannot change the stop: Codex's verdict is the gate.
+
+**22:07: Carbon High, round 2 on `256ac958`: BLOCK** `WRECARB2-fab09611` (`review-fix-e-carbon-r2/`; not reproduced by the session). The runtime code matched the contract with no change beyond text; three findings, all in `INCIDENT.md` and the checklist (the unit installer and the masks, as Codex B1; the cookie instructions against a synced Mac checkout and checklist A4, as Codex B2; and one more runbook instruction). It agrees with the assessment above: the code rows held, the documents did not converge.

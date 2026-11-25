@@ -1,0 +1,54 @@
+[
+  {
+    "id": "M4c_swap_k5_k2k3",
+    "description": "Swap K5 and K2/K3 precedence",
+    "killed_by_count": 4,
+    "counts": {
+      "passed": 308,
+      "failed": 4,
+      "errors": 0,
+      "deselected": 1
+    },
+    "sample_failures": [
+      "FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields4-No candidate was chosen. Top model prediction (eligibility unverified): A (T) 75.0%.]",
+      "FAILED tests/test_wr_e_texts.py::test_real_lineup_skip_return_against_base[none_eligible]",
+      "FAILED tests/test_wr_e_texts.py::test_real_lineup_skip_return_against_base[status_failure]",
+      "FAILED tests/test_scheduler_tail_objective.py::test_skip_summary_without_decision_is_unchanged"
+    ]
+  },
+  {
+    "id": "M5a_old_k3_journal",
+    "description": "Leave old SKIP sentence on K3 journal surface only",
+    "killed_by_count": 4,
+    "counts": {
+      "passed": 308,
+      "failed": 4,
+      "errors": 0,
+      "deselected": 1
+    },
+    "sample_failures": [
+      "FAILED tests/test_wr_e_texts.py::test_run_single_check_skip_journal[K3] - Ass...",
+      "FAILED tests/test_wr_e_texts.py::test_real_lineup_skip_return_against_base[none_eligible]",
+      "FAILED tests/test_wr_e_texts.py::test_real_lineup_skip_return_against_base[status_failure]",
+      "FAILED tests/test_wr_e_texts.py::test_operator_text_scan - assert False"
+    ]
+  },
+  {
+    "id": "M5b_old_k4_banner",
+    "description": "Leave old sentence in K4 banner surface only",
+    "killed_by_count": 6,
+    "counts": {
+      "passed": 306,
+      "failed": 6,
+      "errors": 0,
+      "deselected": 1
+    },
+    "sample_failures": [
+      "FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields3-Candidate used in the decision: A (T) 75.0%. No probability comparison is available for this check.]",
+      "FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[None] - asse...",
+      "FAILED tests/test_wr_e_texts.py::test_operator_text_scan - assert False",
+      "FAILED tests/test_scheduler_skip_visibility.py::test_render_skip_banner_shows_best_and_streak",
+      "FAILED tests/test_scheduler_skip_visibility.py::test_render_page_shows_skip_banner_on_skip_day"
+    ]
+  }
+]

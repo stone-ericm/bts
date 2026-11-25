@@ -1,0 +1,325 @@
+{
+  "baseline_full_11_targets": {
+    "returncode": 1,
+    "counts": {
+      "passed": 312,
+      "failed": 1,
+      "errors": 0,
+      "deselected": 0
+    },
+    "failed_lines": [
+      "E               PermissionError: [Errno 1] Operation not permitted",
+      "../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/socket.py:850: PermissionError",
+      "FAILED tests/test_web_saver.py::test_do_post_saver_transition_socket_wiring"
+    ]
+  },
+  "baseline_clean": {
+    "returncode": 0,
+    "counts": {
+      "passed": 312,
+      "failed": 0,
+      "errors": 0,
+      "deselected": 1
+    },
+    "failed_lines": []
+  },
+  "changed_test_files": [
+    "tests/scripts/season_walk/test_season_walk.py",
+    "tests/test_morning_state_cs6b1.py",
+    "tests/test_scheduler_skip_visibility.py",
+    "tests/test_scheduler_tail_objective.py",
+    "tests/test_stale_delivery_cs4c.py",
+    "tests/test_wr_e_texts.py"
+  ],
+  "mutations": [
+    {
+      "id": "M1_highest_prediction",
+      "description": "Use highest prediction instead of decided candidate",
+      "killed_by_count": 7,
+      "counts": {
+        "passed": 305,
+        "failed": 7,
+        "errors": 0,
+        "deselected": 1
+      },
+      "sample_failures": [
+        "FAILED tests/test_wr_e_texts.py::test_run_single_check_skip_journal[K1] - Ass...",
+        "FAILED tests/test_wr_e_texts.py::test_run_single_check_skip_journal[K3] - Ass...",
+        "FAILED tests/test_wr_e_texts.py::test_run_single_check_skip_journal[K4] - Ass...",
+        "FAILED tests/test_wr_e_texts.py::test_candidate_override - AssertionError: as...",
+        "FAILED tests/test_wr_e_texts.py::test_base_summary_gates - AssertionError: as..."
+      ]
+    },
+    {
+      "id": "M2_below_at_bar",
+      "description": "Say 'below' when candidate is at the bar (probability == bar)",
+      "killed_by_count": 5,
+      "counts": {
+        "passed": 307,
+        "failed": 5,
+        "errors": 0,
+        "deselected": 1
+      },
+      "sample_failures": [
+        "FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields2-Candidate used in the decision: A (T) 75.0%, at or above the streak-8 bar (75.0%).]",
+        "FAILED tests/test_wr_e_texts.py::test_skip_number_edges_are_valid[0] - Assert...",
+        "FAILED tests/test_wr_e_texts.py::test_skip_number_edges_are_valid[0.0] - Asse...",
+        "FAILED tests/test_wr_e_texts.py::test_skip_number_edges_are_valid[1] - Assert...",
+        "FAILED tests/test_wr_e_texts.py::test_skip_number_edges_are_valid[1.0] - Asse..."
+      ]
+    },
+    {
+      "id": "M3a_drop_unverified_global",
+      "description": "Drop '(eligibility unverified)' globally",
+      "killed_by_count": 27,
+      "counts": {
+        "passed": 285,
+        "failed": 27,
+        "errors": 0,
+        "deselected": 1
+      },
+      "sample_failures": [
+        "FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields4-No candidate was chosen. Top model prediction (eligibility unverified): A (T) 75.0%.]",
+        "FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields7-Top model prediction (eligibility unverified): A (T) 75.0%, below the streak-8 bar (80.0%) using unrounded values.]",
+        "FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[None] - Asse...",
+        "FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[0.99] - Asse...",
+        "FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[bad2] - Asse..."
+      ]
+    },
+    {
+      "id": "M3b_drop_unverified_k1_only",
+      "description": "Drop unverified eligibility wording in K1 (reason branch) only",
+      "killed_by_count": 0,
+      "counts": {
+        "passed": 312,
+        "failed": 0,
+        "errors": 0,
+        "deselected": 1
+      },
+      "sample_failures": []
+    },
+    {
+      "id": "M4a_swap_k1_k5",
+      "description": "Swap K1 and K5 precedence",
+      "killed_by_count": 1,
+      "counts": {
+        "passed": 311,
+        "failed": 1,
+        "errors": 0,
+        "deselected": 1
+      },
+      "sample_failures": [
+        "FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields5-Candidate used in the decision: A (<T&>) 75.0%. Reason: <stop & check>.]"
+      ]
+    },
+    {
+      "id": "M4b_swap_k1_k2k3",
+      "description": "Drop K1 precedence before K2/K3 (move K1 to fallback)",
+      "killed_by_count": 7,
+      "counts": {
+        "passed": 305,
+        "failed": 7,
+        "errors": 0,
+        "deselected": 1
+      },
+      "sample_failures": [
+        "FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields0-Candidate used in the decision: A (T) 75.0%. Reason: Stopped!]",
+        "FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields5-Candidate used in the decision: A (<T&>) 75.0%. Reason: <stop & check>.]",
+        "FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields6-Candidate used in the decision: A (T) 75.0%. Reason: Stopped!]",
+        "FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields9-Candidate used in the decision: A (T) 75.0%. Reason: Stop  here!]",
+        "FAILED tests/test_wr_e_texts.py::test_run_single_check_skip_journal[K1] - Ass..."
+      ]
+    },
+    {
+      "id": "M4c_swap_k5_k2k3",
+      "description": "Swap K5 and K2/K3 precedence",
+      "killed_by_count": 4,
+      "counts": {
+        "passed": 308,
+        "failed": 4,
+        "errors": 0,
+        "deselected": 1
+      },
+      "sample_failures": [
+        "FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields4-No candidate was chosen. Top model prediction (eligibility unverified): A (T) 75.0%.]",
+        "FAILED tests/test_wr_e_texts.py::test_real_lineup_skip_return_against_base[none_eligible]",
+        "FAILED tests/test_wr_e_texts.py::test_real_lineup_skip_return_against_base[status_failure]",
+        "FAILED tests/test_scheduler_tail_objective.py::test_skip_summary_without_decision_is_unchanged"
+      ]
+    },
+    {
+      "id": "M5a_old_k3_journal",
+      "description": "Leave old SKIP sentence on K3 journal surface only",
+      "killed_by_count": 4,
+      "counts": {
+        "passed": 308,
+        "failed": 4,
+        "errors": 0,
+        "deselected": 1
+      },
+      "sample_failures": [
+        "FAILED tests/test_wr_e_texts.py::test_run_single_check_skip_journal[K3] - Ass...",
+        "FAILED tests/test_wr_e_texts.py::test_real_lineup_skip_return_against_base[none_eligible]",
+        "FAILED tests/test_wr_e_texts.py::test_real_lineup_skip_return_against_base[status_failure]",
+        "FAILED tests/test_wr_e_texts.py::test_operator_text_scan - assert False"
+      ]
+    },
+    {
+      "id": "M5b_old_k4_banner",
+      "description": "Leave old sentence in K4 banner surface only",
+      "killed_by_count": 6,
+      "counts": {
+        "passed": 306,
+        "failed": 6,
+        "errors": 0,
+        "deselected": 1
+      },
+      "sample_failures": [
+        "FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields3-Candidate used in the decision: A (T) 75.0%. No probability comparison is available for this check.]",
+        "FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[None] - asse...",
+        "FAILED tests/test_wr_e_texts.py::test_operator_text_scan - assert False",
+        "FAILED tests/test_scheduler_skip_visibility.py::test_render_skip_banner_shows_best_and_streak",
+        "FAILED tests/test_scheduler_skip_visibility.py::test_render_page_shows_skip_banner_on_skip_day"
+      ]
+    },
+    {
+      "id": "M6a_unescape_banner_name",
+      "description": "Drop HTML escaping of best_batter in banner",
+      "killed_by_count": 8,
+      "counts": {
+        "passed": 304,
+        "failed": 8,
+        "errors": 0,
+        "deselected": 1
+      },
+      "sample_failures": [
+        "FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[None] - asse...",
+        "FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[0.99] - asse...",
+        "FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[bad2] - asse...",
+        "FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[bad3] - asse...",
+        "FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[True] - asse..."
+      ]
+    },
+    {
+      "id": "M6b_unescape_banner_team",
+      "description": "Drop HTML escaping of best_team in banner",
+      "killed_by_count": 1,
+      "counts": {
+        "passed": 311,
+        "failed": 1,
+        "errors": 0,
+        "deselected": 1
+      },
+      "sample_failures": [
+        "FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields5-Candidate used in the decision: A (<T&>) 75.0%. Reason: <stop & check>.]"
+      ]
+    },
+    {
+      "id": "M6c_unescape_banner_quotes",
+      "description": "Drop HTML escaping of quotes (quote=False) in banner",
+      "killed_by_count": 0,
+      "counts": {
+        "passed": 312,
+        "failed": 0,
+        "errors": 0,
+        "deselected": 1
+      },
+      "sample_failures": []
+    },
+    {
+      "id": "M7a_drop_saver_delivery",
+      "description": "Drop saver sentences from delivery stale warning",
+      "killed_by_count": 25,
+      "counts": {
+        "passed": 287,
+        "failed": 25,
+        "errors": 0,
+        "deselected": 1
+      },
+      "sample_failures": [
+        "FAILED tests/test_wr_e_texts.py::test_stale_warning_maximum_detail[delivery]",
+        "FAILED tests/test_stale_delivery_cs4c.py::test_attempt_snapshot_and_confirmed_warning[20-old-False-dm]",
+        "FAILED tests/test_stale_delivery_cs4c.py::test_attempt_snapshot_and_confirmed_warning[20-old-False-public]",
+        "FAILED tests/test_stale_delivery_cs4c.py::test_attempt_snapshot_and_confirmed_warning[20-old-True-dm]",
+        "FAILED tests/test_stale_delivery_cs4c.py::test_attempt_snapshot_and_confirmed_warning[20-old-True-public]"
+      ]
+    },
+    {
+      "id": "M7b_drop_saver_morning",
+      "description": "Drop saver sentences from morning stale warning",
+      "killed_by_count": 3,
+      "counts": {
+        "passed": 309,
+        "failed": 3,
+        "errors": 0,
+        "deselected": 1
+      },
+      "sample_failures": [
+        "FAILED tests/test_wr_e_texts.py::test_stale_warning_maximum_detail[morning]",
+        "FAILED tests/test_morning_state_cs6b1.py::test_stale_warning_uses_each_snapshot[sent]",
+        "FAILED tests/test_morning_state_cs6b1.py::test_stale_warning_uses_each_snapshot[failed]"
+      ]
+    },
+    {
+      "id": "M8a_old_late_refusal",
+      "description": "Restore old last sentence of late refusal",
+      "killed_by_count": 2,
+      "counts": {
+        "passed": 310,
+        "failed": 2,
+        "errors": 0,
+        "deselected": 1
+      },
+      "sample_failures": [
+        "FAILED tests/test_wr_e_texts.py::test_refusal_message_and_record[late] - Asse...",
+        "FAILED tests/test_wr_e_texts.py::test_operator_text_scan - assert False"
+      ]
+    },
+    {
+      "id": "M8b_old_void_refusal",
+      "description": "Restore old last sentence of postponed/void refusal",
+      "killed_by_count": 2,
+      "counts": {
+        "passed": 310,
+        "failed": 2,
+        "errors": 0,
+        "deselected": 1
+      },
+      "sample_failures": [
+        "FAILED tests/test_wr_e_texts.py::test_refusal_message_and_record[postponed]",
+        "FAILED tests/test_wr_e_texts.py::test_operator_text_scan - assert False"
+      ]
+    },
+    {
+      "id": "M9a_raise_str_prob",
+      "description": "Raise TypeError on string probability/bar in _skip_display_number",
+      "killed_by_count": 1,
+      "counts": {
+        "passed": 311,
+        "failed": 1,
+        "errors": 0,
+        "deselected": 1
+      },
+      "sample_failures": [
+        "FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[0.99] - Type..."
+      ]
+    },
+    {
+      "id": "M9b_raise_str_prob_with_valid_bar",
+      "description": "Raise TypeError on string best_p only when bar is a valid float in format_skip_dm",
+      "killed_by_count": 0,
+      "counts": {
+        "passed": 312,
+        "failed": 0,
+        "errors": 0,
+        "deselected": 1
+      },
+      "sample_failures": []
+    }
+  ],
+  "surviving_mutations": [
+    "M3b_drop_unverified_k1_only",
+    "M6c_unescape_banner_quotes",
+    "M9b_raise_str_prob_with_valid_bar"
+  ]
+}
