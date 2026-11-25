@@ -4,12 +4,13 @@ Ruling R52 (docs/reviews/2026-11-18-whole-range/FINDINGS.md, written 2026-11-20 
 result was read): for each arm, seed and season, P@1 is
 ``bts.validate.scorecard.compute_precision_at_k(..., k=1)`` on
 ``<root>/<arm>/seed_<seed>/backtest_<season>.parquet``. Per seed, d = (new minus old) P@1
-averaged with equal weight over 2021 to 2025, giving 8 paired values. PASS when both hold:
-(1) the one-sided 95% lower bound mean(d) - t(0.95, 7) * sd(d) / sqrt(8) is above -0.5
-percentage points; (2) no season's 8-seed mean difference is below -1.0 percentage points.
+averaged with equal weight over 2021 to 2025, giving one paired value per seed (R52: 8 seeds;
+extended by R59 to 24, the final test). PASS when both hold: (1) the one-sided 95% lower bound
+mean(d) - t(0.95, n-1) * sd(d) / sqrt(n) is above -0.5 percentage points; (2) no season's mean
+difference over the seeds is below -1.0 percentage points.
 The rule is unmet until all 16 runs finish. Streak metrics are reported, not ruled on.
 
-The verdict path uses the fixed grid (the queue's 8 seeds, 2021 to 2025); there is no option to
+The verdict path uses the fixed grid (the queue's 24 seeds, 2021 to 2025); there is no option to
 change it. P@1 is carried as an exact fraction (one validated rank-1 pick per day, binary
 outcome) and checked equal to the scorecard's float; both floors are compared exactly.
 A run counts only when its DONE marker exists, ``progress.log`` (read strictly: every end pairs
@@ -18,7 +19,9 @@ supersede an unfinished start of the SAME run, which is how this serial queue re
 last start followed by ``end ... rc=0``, and every season file was written after that start and no
 later than the DONE marker, which is itself no later than the logged end (+2 s: the end line is
 stamped to the whole second and DONE is touched just after it). Each file is read once; the bytes scored are hashed into the result. Every season's day set
-must be identical across all 16 runs. Any unexpected input is "rule unmet", never a verdict.
+must be identical across all runs. Since R59 a run's DONE marker holds the runner's sha256 of its
+five files: for every seed except R52's original 8 (whose markers are empty) the bytes scored must
+match that receipt. Any unexpected input is "rule unmet", never a verdict.
 
 Exit codes: 0 PASS, 1 FAIL, 2 rule unmet (incomplete, unreadable or invalid inputs, or the
 result could not be written).
@@ -41,7 +44,10 @@ from pathlib import Path
 
 import pandas as pd
 
-SEEDS = (2273360, 260991262, 1746737973, 2048, 3629294338, 1277948386, 3219332220, 2207587974)
+# R52's 8 seeds, then R59's 16 more (Eric 2026-11-22: "3"); the final test runs once on all 24.
+LEGACY_SEEDS = (2273360, 260991262, 1746737973, 2048, 3629294338, 1277948386, 3219332220, 2207587974)
+SEEDS = LEGACY_SEEDS + (1, 7, 137, 1024, 8192, 65536, 524288, 999983, 2041769, 3167584, 3911096,
+                        6426836, 6762547, 6992150, 7777777, 7886470)
 SEASONS = (2021, 2022, 2023, 2024, 2025)
 ARMS = ("old", "new")
 LOWER_BOUND_FLOOR = Fraction(-1, 200)  # the lower bound must be strictly above
@@ -116,9 +122,19 @@ def _cell(root: Path, arm: str, seed: int, season: int, window):
     try:
         mtime = datetime.fromtimestamp(path.stat().st_mtime)
         data = path.read_bytes()
+        receipt = (run / "DONE").read_bytes().decode("utf-8")
         df = pd.read_parquet(io.BytesIO(data))
     except Exception as exc:  # missing, unreadable or not parquet
         raise Incomplete(f"{tag}: cannot read {path.name} ({type(exc).__name__})") from exc
+    recorded = {}
+    for line in receipt.splitlines():
+        parts = line.split()
+        if len(parts) != 2 or len(parts[0]) != 64:
+            raise Incomplete(f"{arm} seed {seed}: DONE receipt line not '<sha256>  <file>'")
+        recorded[parts[1]] = parts[0]
+    if recorded or seed not in LEGACY_SEEDS:
+        if recorded.get(path.name) != hashlib.sha256(data).hexdigest():
+            raise Incomplete(f"{tag}: bytes differ from the runner's receipt in DONE (or no receipt)")
     if not (start <= mtime <= done_mtime):
         raise Incomplete(f"{tag}: file written {mtime:%F %T}, outside its run {start:%F %T} to its DONE {done_mtime:%F %T}")
     for col in ("date", "rank", "actual_hit"):

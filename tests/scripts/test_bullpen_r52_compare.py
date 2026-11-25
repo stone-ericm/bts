@@ -25,8 +25,10 @@ def _write(root, arm, seed, season, hits, *, done=True, year=None, days=DAYS):
         rows.append({"date": d, "rank": 1, "batter_id": 1, "p_game_hit": 0.8, "actual_hit": int(i < hits), "n_pas": 4})
         rows.append({"date": d, "rank": 2, "batter_id": 2, "p_game_hit": 0.7, "actual_hit": 1, "n_pas": 4})
     pd.DataFrame(rows).to_parquet(run / f"backtest_{season}.parquet")
-    if done:
-        (run / "DONE").touch()
+    if done:  # the runner's receipt since R59: sha256 of every season file
+        import hashlib
+        (run / "DONE").write_text("".join(
+            f"{hashlib.sha256(f.read_bytes()).hexdigest()}  {f.name}\n" for f in sorted(run.glob("backtest_*.parquet"))))
 
 
 BASE = datetime.now().replace(microsecond=0) - timedelta(days=2)
@@ -367,4 +369,34 @@ def test_done_marker_touched_after_its_run_is_rule_unmet(tmp_path):
     _grid(tmp_path, lambda s, y: 150, lambda s, y: 150)
     (tmp_path / "out" / "old" / "seed_4" / "DONE").touch()  # now: long after the logged end
     with pytest.raises(r52.Incomplete, match="DONE written"):
+        _cmp(tmp_path)
+
+
+
+def test_bytes_differing_from_the_receipt_are_rule_unmet(tmp_path):
+    _grid(tmp_path, lambda s, y: 150, lambda s, y: 150)
+    path = tmp_path / "out" / "new" / "seed_2" / "backtest_2021.parquet"
+    df = pd.read_parquet(path)
+    df.loc[0, "actual_hit"] = 1 - int(df.loc[0, "actual_hit"])
+    df.to_parquet(path)
+    _log(tmp_path)  # times back inside the run: only the receipt can catch it
+    with pytest.raises(r52.Incomplete, match="receipt"):
+        _cmp(tmp_path)
+
+
+def test_an_empty_marker_is_accepted_only_for_the_original_eight_seeds(tmp_path):
+    _grid(tmp_path, lambda s, y: 150, lambda s, y: 150)
+    for arm in r52.ARMS:
+        (tmp_path / "out" / arm / "seed_3" / "DONE").write_text("")
+    _log(tmp_path)
+    with pytest.raises(r52.Incomplete, match="receipt"):
+        _cmp(tmp_path)
+    assert 3 not in r52.LEGACY_SEEDS and 2048 in r52.LEGACY_SEEDS and len(r52.SEEDS) == 24 == len(set(r52.SEEDS))
+
+
+def test_a_malformed_receipt_is_rule_unmet(tmp_path):
+    _grid(tmp_path, lambda s, y: 150, lambda s, y: 150)
+    (tmp_path / "out" / "old" / "seed_1" / "DONE").write_text("not a receipt\n")
+    _log(tmp_path)
+    with pytest.raises(r52.Incomplete, match="receipt"):
         _cmp(tmp_path)
