@@ -1,0 +1,43 @@
+{
+  "status": "PASS",
+  "item_5": {
+    "tail_boundary_cases": 25200,
+    "tail_boundary_reach57_csv_hits": 630,
+    "degraded_and_heuristic_cases": 6400,
+    "degraded_tail_intact_reach57_cases": 2560,
+    "shape_cases": 12,
+    "non_bool_saver_cases": 48
+  },
+  "item_6": {
+    "atomic_pick_interrupt": "preserved_exact_bytes",
+    "corrupt_oversize_dir_fifo": "verified_and_bounded",
+    "year_boundary_and_midnight_et": "PASS",
+    "delivery_failures_interrupts_empty_dm": "PASS"
+  },
+  "item_7": {
+    "unguarded_single": [],
+    "all_skip": [],
+    "tail_play": [
+      "  Policy: objective=emax_season_best action=double streak=10 best=20 (trusted) effective_best=20 days=7 tail=dc5d0c992443"
+    ],
+    "heuristic_play": [],
+    "guarded_b4_b3_saver_unavail": [
+      "  POLICY GUARD \u2014 At streak 50 with 180 policy days left and saver input unavailable, the table skips bin 4. Bin 3 supplies single. Selected action is single."
+    ],
+    "guarded_b4_b3_saver_avail": [
+      "  POLICY GUARD \u2014 At streak 53 with 26 policy days left and saver input available, the table skips bin 4. Bin 3 supplies single. Selected action is single."
+    ],
+    "guarded_b1_b0_single_saver_avail": [
+      "  POLICY GUARD \u2014 At streak 7 with 29 policy days left and saver input available, the table skips bin 1. Bin 0 supplies single. Selected action is single."
+    ],
+    "guarded_double_exec": [
+      "  POLICY GUARD \u2014 At streak 1 with 29 policy days left and saver input unavailable, the table skips bin 1. Bin 0 supplies double. Selected action is double."
+    ],
+    "guarded_double_clamp_allow": [
+      "  POLICY GUARD \u2014 At streak 1 with 29 policy days left and saver input unavailable, the table skips bin 1. Bin 0 supplies double. Selected action is single."
+    ],
+    "guarded_double_clamp_nodiff": [
+      "  POLICY GUARD \u2014 At streak 1 with 29 policy days left and saver input unavailable, the table skips bin 1. Bin 0 supplies double. Selected action is single."
+    ]
+  }
+}
