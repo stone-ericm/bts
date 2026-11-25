@@ -298,21 +298,25 @@ def check(records: list[dict]) -> list[str]:
         state = r["state"].split("/")
         longest = int(state[1]) >= LONGEST_STREAK_FROM and expected > 0
         horizon = LONGEST_STREAK_HORIZON if longest else SEASON_LENGTH
-        if r.get("days_effective") is not None and r["days_effective"] != min(expected, horizon):
-            problems.append(f"{where}: effective days {r['days_effective']}, expected "
+        days_effective = r.get("days_effective")
+        if (longest or days_effective is not None) and days_effective != min(expected, horizon):
+            problems.append(f"{where}: effective days {days_effective}, expected "
                             f"{min(expected, horizon)}")
         picked = r.get("action") in {"single", "double"} and r.get("batter") is not None
         named_skip = r.get("action") == "skip" and r.get("named") is True
         if not (picked or named_skip):
             problems.append(f"{where}: unnamed empty (action={r.get('action')!r}, "
                             f"no_pick_reason={r.get('no_pick_reason')!r})")
-        if r.get("source") not in (None, "mdp"):
-            problems.append(f"{where}: decision source {r.get('source')!r} (shipped policy not used)")
+        source = r.get("source")
+        if source != "mdp" and (longest or source is not None):
+            problems.append(f"{where}: decision source {source!r} (shipped policy not used)")
         art = r.get("artifacts")
         if art and (not art["base"].startswith(BASE_SHA_PREFIX) or not art["tail"].startswith(TAIL_SHA_PREFIX)
                     or art["base_error"] or art["tail_error"]):
             problems.append(f"{where}: policy artifacts not the shipped ones: {art}")
         if longest:
+            if not art:
+                problems.append(f"{where}: policy artifacts missing")
             want_action = "double" if expected <= 3 else "single"
             if r.get("action") != want_action:
                 problems.append(f"{where}: longest-streak action {r.get('action')!r}, expected {want_action!r}")

@@ -169,3 +169,18 @@ def test_longest_walk_records_the_actual_choice():
         "longest_streak", "double", "Batter 1")
     assert record["chosen_on_valid"] is True
     assert walk.check([record]) == []
+
+
+@pytest.mark.parametrize("field,value,message", [
+    ("days_effective", None, "effective days"),
+    ("source", None, "decision source"),
+    ("source", "heuristic", "decision source"),
+    ("artifacts", None, "policy artifacts"),
+])
+def test_r4_longest_walk_flags_incomplete_policy_fields(field, value, message):
+    from bts.simulate.tail_policy import LONGEST_STREAK_FROM
+
+    boundary = LONGEST_STREAK_FROM
+    record = walk.walk_one(date(2027, 9, 26), walk.State("dated", boundary, boundary, "used", .96))
+    assert walk.check([record]) == []
+    assert any(message in problem for problem in walk.check([record | {field: value}]))

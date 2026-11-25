@@ -1,12 +1,16 @@
 from contextlib import nullcontext
+from dataclasses import replace
 from datetime import date, datetime, time, timedelta
+from hashlib import sha256
 from itertools import product
 from pathlib import Path
 import json
 import os
 import subprocess
 import sys
+from unittest.mock import Mock
 
+import numpy as np
 import pytest
 
 from bts import daily_decision, orchestrator, picks, scheduler, strategy
@@ -275,6 +279,139 @@ def test_h4_bad_artifacts_force_single(tmp_path, monkeypatch, artifact, mode):
     assert decision.tail_sha256 is None and decision.days_effective == 1
     assert decision.degraded_reason.startswith("longest-streak rule unavailable (")
     assert decision.degraded_reason.endswith("); forced single")
+
+
+@pytest.fixture
+def rebound_policy(tmp_path, monkeypatch, artifact):
+    def prepare(**changes):
+        base_path, tail_path = tmp_path / "base.npz", tmp_path / "tail.npz"
+        with np.load(mdp.DEFAULT_POLICY_PATH) as arrays:
+            base = dict(arrays)
+        np.savez_compressed(base_path, **(base | changes))
+        sha = sha256(base_path.read_bytes()).hexdigest()
+        tail_policy.save_tail_policy(replace(artifact["tail"], base_policy_sha256=sha), tail_path)
+        monkeypatch.setattr(mdp, "DEFAULT_POLICY_PATH", base_path)
+        monkeypatch.setattr(tail_policy, "DEFAULT_TAIL_POLICY_PATH", tail_path)
+        monkeypatch.setattr(strategy, "_mdp_cache", None)
+        policy = strategy._load_mdp()
+        assert policy["tail"].base_policy_sha256 == policy["base_sha256"] == sha
+        return policy
+    return prepare
+
+
+@pytest.mark.parametrize("malformation", [
+    "scalar", "1d", "3d", "saver-axis", "bin-axis", "day-axis", "streak-axis",
+    "float", "action-3", "action-minus-1", "boundaries", "bool-horizon",
+])
+def test_r1_malformed_paired_base_forces_single(artifact, rebound_policy, malformation):
+    table = artifact["policy_table"]
+    if malformation in {"action-3", "action-minus-1"}:
+        broken = table.copy()
+        broken[0, 0, 0, 0] = 3 if malformation == "action-3" else -1
+        policy = rebound_policy(policy_table=broken)
+    elif malformation == "boundaries":
+        policy = rebound_policy(boundaries=np.array(.5))
+    elif malformation == "bool-horizon":
+        policy = rebound_policy(season_length=np.array(True), policy_table=table[:, :2])
+        # The loader normalizes the horizon to int. Exercise the decoded-context
+        # contract by supplying the boolean to the resolver directly.
+        policy = policy | {"season_length": True}
+    else:
+        broken = {
+            "scalar": np.array(0, dtype=table.dtype),
+            "1d": table[0, 0, 0],
+            "3d": table[0],
+            "saver-axis": np.concatenate((table, table[:, :, :1]), axis=2),
+            "bin-axis": table[:, :, :, :-1],
+            "day-axis": table[:, :-1],
+            "streak-axis": table[:BOUNDARY - 1],
+            "float": table.astype(float),
+        }[malformation]
+        policy = rebound_policy(policy_table=broken)
+    ctx = strategy.DecisionContext(.84, .83, True, "2027-09-26", True, policy,
+                                   BOUNDARY, "trusted")
+    decision = strategy.resolve_policy_decision(ctx, BOUNDARY, False)
+    assert (decision.action, decision.policy_action, decision.objective) == ("single", "single", OBJECTIVE)
+    assert decision.tail_sha256 is None
+    assert decision.degraded_reason.startswith("longest-streak rule unavailable (")
+    assert decision.degraded_reason.endswith("); forced single")
+
+
+@pytest.mark.parametrize("horizon", [1, 180])
+def test_r1_healthy_paired_base_can_double(artifact, rebound_policy, horizon):
+    policy = rebound_policy(season_length=np.array(horizon),
+                            policy_table=artifact["policy_table"][:, :horizon + 1])
+    ctx = strategy.DecisionContext(.84, .83, True, "2027-09-26", True, policy,
+                                   BOUNDARY, "trusted")
+    decision = strategy.resolve_policy_decision(ctx, BOUNDARY, False)
+    assert (decision.action, decision.tail_sha256, decision.degraded_reason) == (
+        "double", policy["tail"].sha256, None)
+
+
+def test_r1_scheduler_delivers_single_for_paired_scalar(tmp_path, monkeypatch, live_case, rebound_policy):
+    rebound_policy(policy_table=np.array(0, dtype=np.int8))
+    monkeypatch.setattr(strategy, "_mdp_cache", None)
+    day = date(2027, 9, 26)
+    text = str(day)
+    send = Mock(return_value="local-id")
+    monkeypatch.setattr("bts.dm.send_dm", send)
+    monkeypatch.setattr(scheduler, "_trigger_live_forward_capture_on_lock", Mock())
+    monkeypatch.setattr(scheduler, "_void_committed_games", lambda *args: {})
+    with walk.offline(datetime.combine(day, time(12), walk.ET)):
+        cfg, games = live_case(day)
+        cfg["bluesky"] = {"dm_recipient": "synthetic"}
+        result = scheduler.run_single_check(text, games, set(), cfg, .01)
+        saved = picks.load_pick(text, tmp_path)
+        scheduler._deliver_and_lock_pick(saved, cfg, tmp_path, scheduler_state(text), text,
+                                         "final fallback", selection=result["selection"])
+    assert send.call_count == 1
+    assert saved.double_down is None
+    message = send.call_args.args[1]
+    assert "Batter 0" in message and "Batter 1" not in message
+    record = daily_decision.load_decision(text, tmp_path)
+    assert (record["delivery_status"], record["action"], record["objective"]) == (
+        "delivered", "single", OBJECTIVE)
+    assert record["tail_policy_sha256"] is None
+    assert record["degraded_reason"] == saved.policy_decision["degraded_reason"]
+    assert record["degraded_reason"].endswith("); forced single")
+
+
+def test_r2_fresh_selection_uses_fixed_horizon(tmp_path, artifact, rebound_policy):
+    policy = rebound_policy(season_length=np.array(1), policy_table=artifact["policy_table"][:, :2])
+    selection = fresh_longest_selection(date(2027, 9, 23), tmp_path)
+    decision = selection.decision
+    assert (decision.action, decision.days_effective, decision.tail_sha256, decision.degraded_reason) == (
+        "single", 4, policy["tail"].sha256, None)
+
+
+def test_r3_fresh_selection_dispatch_precedes_loader(tmp_path, monkeypatch):
+    calls = []
+    regime = strategy._regime
+
+    def record_regime(*args):
+        calls.append("regime")
+        return regime(*args)
+
+    def fail_loader():
+        calls.append("load")
+        raise TypeError("broken loader")
+
+    monkeypatch.setattr(strategy, "_regime", record_regime)
+    monkeypatch.setattr(strategy, "_load_mdp", fail_loader)
+    selection = fresh_longest_selection(date(2027, 9, 26), tmp_path)
+    assert calls[0] == "regime"
+    assert "load" in calls
+    assert selection.action == "single"
+    assert selection.decision.tail_sha256 is None
+    assert "broken loader" in selection.decision.degraded_reason
+
+
+def fresh_longest_selection(day, tmp_path):
+    frame = walk._predictions(day, .96)
+    statuses = {int(pk): {"abstract": "P", "detailed": "Scheduled"} for pk in frame["game_pk"]}
+    with walk.offline(datetime.combine(day, time(12), walk.ET)):
+        return strategy.select_pick(frame, str(day), tmp_path, streak=BOUNDARY,
+                                    saver_available=False, game_statuses_detailed=statuses)
 
 
 def rewrite_npz(path, **changes):

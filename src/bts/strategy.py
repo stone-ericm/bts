@@ -357,6 +357,26 @@ def resolve_policy_decision(ctx: DecisionContext, streak: int, saver: bool) -> P
     )
 
 
+def _validate_longest_base(policy: dict) -> None:
+    """Require a decoded table that covers every reach-57 lookup."""
+    table = policy["policy_table"]
+    horizon = policy["season_length"]
+    boundaries = policy["boundaries"]
+    if not isinstance(horizon, int) or isinstance(horizon, bool) or horizon < 1:
+        raise ValueError("base policy season length must be a positive integer")
+    if not isinstance(boundaries, list):
+        raise ValueError("base policy boundaries must be a list")
+    if not isinstance(table, np.ndarray) or table.ndim != 4:
+        raise ValueError("base policy table must be a four-dimensional array")
+    if table.dtype.kind not in {"i", "u"}:
+        raise ValueError("base policy table must have an integer dtype")
+    # Reach-57 lookups index streaks 0 through 56.
+    if table.shape[0] < 57 or table.shape[1:] != (horizon + 1, 2, len(boundaries) + 1):
+        raise ValueError("base policy table shape does not cover the lookup")
+    if table.min() < 0 or table.max() > 2:
+        raise ValueError("base policy table contains an invalid action")
+
+
 def _longest_action(mdp: dict | None, days: int) -> tuple[str, str | None, str | None]:
     policy = mdp or {}
     tail = policy.get("tail")
@@ -364,8 +384,7 @@ def _longest_action(mdp: dict | None, days: int) -> tuple[str, str | None, str |
     try:
         if policy.get("policy_table") is None or not sha:
             raise ValueError(policy.get("base_error") or "decoded base policy or sha unavailable")
-        if int(policy["season_length"]) <= 0:
-            raise ValueError("base policy season length must be positive")
+        _validate_longest_base(policy)
         if tail is None:
             raise ValueError(policy.get("tail_error") or "tail policy missing")
         if sha != tail.base_policy_sha256:
