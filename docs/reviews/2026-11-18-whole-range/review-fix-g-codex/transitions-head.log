@@ -1,0 +1,75 @@
+nice: setpriority: Operation not permitted
+head /Users/eric/projects/bts-work/wr-rev-g-codex/src/bts/__init__.py
+  DELIVERY OUTCOME UNKNOWN (review) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+  LOCKED (review) — Pick DM sent: confirmed-dm
+head confirmed_after_recovery: committed=('single', 100, 'delivered'), recorded=('single', 100, 'locked_unconfirmed', None), same_bytes=True
+  [PRIVATE] LOCKED (review) — Fixture batter 100 (T0) 83.0% — NOT delivered
+  LOCKED (review) — Pick DM sent: dm-ok
+head private_to_dm: committed=('single', 100, 'delivered'), recorded=('single', 100, 'private_locked', None), same_bytes=True
+  [PRIVATE] LOCKED (review) — Fixture batter 100 (T0) 83.0% — NOT delivered
+  DELIVERY REFUSED (review) — Fixture batter 100: submission cutoff 18:17 ET passed 15.0 min ago; not delivering an unenterable pick.
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:32 ET] Fetching schedule for 2027-03-24...
+  3 games, 1 scheduled checks:
+    18:20 ET — 3 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:32 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Pick: Fixture batter 200 (T0) 83.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: dm-ok
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake (10:00 ET) already passed with a real slate scheduled — immediate handoff.
+  Tomorrow's wake-up: Wed 03-24 18:33 ET
+  Waiting until 19:15 ET (game start + 10min, 43 min)...
+  Day complete. Result: hit
+head refused_then_repicked: committed=('single', 200, 'delivered'), recorded=('single', 100, 'private_locked', None), same_bytes=True
+  [PRIVATE] LOCKED (review) — Fixture batter 100 (T0) 83.0% — NOT delivered
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:32 ET] Fetching schedule for 2027-03-24...
+  3 games, 1 scheduled checks:
+    18:20 ET — 3 game(s)
+
+[18:32 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Pick: Fixture batter 200 (T0) 83.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: dm-ok
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake (10:00 ET) already passed with a real slate scheduled — immediate handoff.
+  Tomorrow's wake-up: Wed 03-24 18:33 ET
+  Waiting until 19:15 ET (game start + 10min, 43 min)...
+  Day complete. Result: hit
+head prior_process_missing_pick: committed=('single', 200, 'delivered'), recorded=('single', 100, 'private_locked', None), same_bytes=True
+  [PRIVATE] LOCKED (review) — Fixture batter 100 (T0) 83.0% — NOT delivered
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:32 ET] Fetching schedule for 2027-03-24...
+  3 games, 1 scheduled checks:
+    18:20 ET — 3 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:32 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Pick: Fixture batter 200 (T0) 83.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: dm-ok
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake (10:00 ET) already passed with a real slate scheduled — immediate handoff.
+  Tomorrow's wake-up: Wed 03-24 18:33 ET
+  Waiting until 19:15 ET (game start + 10min, 43 min)...
+  Day complete. Result: hit
+head earlier_same_date_run: committed=('single', 200, 'delivered'), recorded=('single', 100, 'private_locked', None), same_bytes=True
+  LOCKED (corrupt) — Pick DM sent: confirmed-dm
+head non-UTF-8 existing record: delivered, committed_pick_written= False
+  LOCKED (review) — Pick DM sent: fixture-transport-id
+dm saved/current ids 100 100 record: ('single', 100, 'delivered', {'rule': 'monotone_skip_v1', 'bin': 4, 'from_bin': 3, 'table_action': 'skip'})
+  LOCKED (review) — Posted to Bluesky: fixture-transport-id
+public saved/current ids 100 100 record: ('single', 100, 'delivered', {'rule': 'monotone_skip_v1', 'bin': 4, 'from_bin': 3, 'table_action': 'skip'})
+  [PRIVATE] LOCKED (review) — Fixture batter 100 (T0) 96.0% — NOT delivered
+private saved/current ids 100 100 record: ('single', 100, 'private_locked', {'rule': 'monotone_skip_v1', 'bin': 4, 'from_bin': 3, 'table_action': 'skip'})
+  FALLBACK REFRESH: re-predict failed (fixture cascade failure), using cached pick
+  LOCKED (review) — Pick DM sent: fixture-transport-id
+cached_failed saved/current ids 100 100 record: ('single', 100, 'delivered', {'rule': 'monotone_skip_v1', 'bin': 4, 'from_bin': 3, 'table_action': 'skip'})
+  FALLBACK REFRESH: pick unchanged (Fixture batter 100 96.0%)
+  Selected slot's game 70000 is no longer available (postponed/started/missing); should_lock=False.
+  FALLBACK REFRESH: should_lock=False, block=slot_unavailable
+  LOCKED (review) — Pick DM sent: fixture-transport-id
+cached_warmup saved/current ids 100 None record: ('single', None, 'delivered', {'rule': 'monotone_skip_v1', 'bin': 4, 'from_bin': 3, 'table_action': 'skip'})
