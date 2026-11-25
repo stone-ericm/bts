@@ -1,0 +1,6 @@
+nice: setpriority: Operation not permitted
+K1 BTS 2027-09-19: No pick at this check. Candidate used in the decision: Steven Kwan (CLE) 72.0%. Reason: season-best 18 can't be beaten with 8 days left (max reachable 16); no pick. Streak used at this check: 0.
+K2 BTS 2027-07-15: No pick at this check. Candidate used in the decision: Juan Soto (NYM) 75.0%, below the streak-10 bar (79.6%) using unrounded values. Streak used at this check: 10.
+K3 BTS 2027-08-30: No pick at this check. Candidate used in the decision: Steven Kwan (CLE) 99.0%, at or above the streak-56 bar (82.5%). Streak used at this check: 56.
+K4 BTS 2027-07-15: No pick at this check. Candidate used in the decision: Steven Kwan (CLE) 99.0%. No probability comparison is available for this check. Streak used at this check: 56.
+K5 BTS 2027-07-15: No pick at this check. No candidate was chosen. Top model prediction (eligibility unverified): Steven Kwan (CLE) 99.9%. Streak used at this check: 10.

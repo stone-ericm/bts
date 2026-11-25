@@ -1,0 +1,22 @@
+[
+  {
+    "mutation": "8a_restore_old_last_sentence_of_late_refusal",
+    "killed": true,
+    "detail": "E   AssertionError: assert [('late_deliv...nt one now.')] == [('late_deliv...ry in time.')]"
+  },
+  {
+    "mutation": "8b_restore_old_last_sentence_of_postponed_refusal",
+    "killed": true,
+    "detail": "E   AssertionError: assert [('postponed_... one today.')] == [('postponed_...ry in time.')]"
+  },
+  {
+    "mutation": "9a_renderer_raises_on_numeric_string_probability",
+    "killed": true,
+    "detail": "E   ValueError: string prob"
+  },
+  {
+    "mutation": "9b_renderer_accepts_numeric_string_raises_on_non_numeric_string",
+    "killed": true,
+    "detail": "E   AssertionError: assert 'BTS day: No ... bar (99.0%).' == 'BTS day: No ...r this check.'"
+  }
+]
