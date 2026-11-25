@@ -91,10 +91,10 @@ def _warn_stale_contest_reading(record: dict | None, config: dict, picks_dir: Pa
             f"The pick was delivered using an automatic contest reading flagged stale ({detail}). Check "
             "MLB. If MLB differs from status (B8a), use bts set-contest-streak --date "
             f"{warning_day.isoformat()} --streak N --best-streak B --saver S --picks-dir DIR. DIR is the "
-            "absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if "
-            f"the pick's slate and today's ET date both equal {warning_day.isoformat()}. "
+            "absolute scheduler picks path. The sent pick and saver flag stay as they were. "
+            f"Write for the {warning_day.isoformat()} slate only on that ET date, with prior entries settled or absent. "
             "For a later slate date, see B8a. "
-            f"On {warning_day.isoformat()} ET away from midnight, if MLB shows this season's "
+            f"In {warning_day.year:04d} ET away from midnight, if MLB shows this season's "
             "saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts "
             "saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status."
         )
@@ -209,7 +209,7 @@ def _morning_state_check(
             "and MLB differs from status (B8a), use "
             f"bts set-contest-streak --date {date} --streak N --best-streak B --saver S --picks-dir DIR on "
             f"{date} ET only. DIR is the absolute scheduler picks path. This leaves the saver flag "
-            f"unchanged. On {date} ET away from midnight, if MLB shows this season's saver used, check bts "
+            f"unchanged. In {date[:4]} ET away from midnight, if MLB shows this season's saver used, check bts "
             "saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir "
             "DIR. For uninitialized, see B8a. Check the latest fetch status."
         )
@@ -1764,7 +1764,7 @@ def _skip_display_number(value: object) -> float | None:
 def format_skip_summary(summary: object) -> str:
     """Render one shared skip description from a persisted summary."""
     def display_string(value: object) -> str:
-        return " ".join(value.splitlines()) if isinstance(value, str) else "?"
+        return " ".join(value.splitlines()).replace("below the", "under the") if isinstance(value, str) else "?"
 
     fields = summary if isinstance(summary, dict) else {}
     name = display_string(fields.get("best_batter"))
@@ -1774,7 +1774,8 @@ def format_skip_summary(summary: object) -> str:
     streak = fields.get("streak")
     if type(streak) is not int or streak < 0:
         streak = None
-    no_decision = fields.get("basis") == "no_decision"
+    basis = fields.get("basis")
+    no_decision = basis == "no_decision"
     raw_reason = fields.get("reason")
     reason = display_string(raw_reason).strip() if isinstance(raw_reason, str) else ""
     label = "Top model prediction (eligibility unverified)"
@@ -1800,7 +1801,10 @@ def format_skip_summary(summary: object) -> str:
     else:
         sentence = f"{description}. No probability comparison is available for this check."
     if streak is not None and not no_decision:
-        sentence += f" Streak used at this check: {streak}."
+        if basis == "decision":
+            sentence += f" Streak used at this check: {streak}."
+        else:
+            sentence += f" Streak recorded with this check: {streak}."
     return sentence
 
 

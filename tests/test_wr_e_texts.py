@@ -50,12 +50,61 @@ def test_skip_surfaces(fields, sentence):
                    candidate_verified=True) | fields
     body = sentence
     if fields.get("basis") != "no_decision":
-        body += " Streak used at this check: 8."
+        body += " Streak recorded with this check: 8."
     assert scheduler.format_skip_dm("2027-07-15", summary) == "BTS 2027-07-15: No pick at this check. " + body
     assert web.render_skip_banner(summary) == (
         '<div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>'
         + html.escape(body) + "</span></div>"
     )
+
+
+@pytest.mark.parametrize(("basis", "suffix"), [
+    ({}, " Streak recorded with this check: 8."),
+    ({"basis": "legacy"}, " Streak recorded with this check: 8."),
+    ({"basis": "decision"}, " Streak used at this check: 8."),
+    ({"basis": "no_decision"}, ""),
+], ids=["missing", "unknown", "decision", "no_decision"])
+def test_skip_streak_basis(basis, suffix):
+    summary = dict(best_batter="A", best_team="T", best_p=0.75, streak=8, reason="Stopped!") | basis
+    assert scheduler.format_skip_summary(summary) == (
+        "Top model prediction (eligibility unverified): A (T) 75.0%. Reason: Stopped!" + suffix
+    )
+
+
+def test_skip_stored_text_surfaces():
+    summary = dict(
+        best_batter="Batter below the line", best_team="Team below the line", best_p=0.75,
+        reason="Observations below the expected count",
+    )
+    body = (
+        "Top model prediction (eligibility unverified): Batter under the line "
+        "(Team under the line) 75.0%. Reason: Observations under the expected count."
+    )
+    assert scheduler.format_skip_summary(summary) == body
+    assert scheduler.format_skip_dm("2027-07-15", summary) == "BTS 2027-07-15: No pick at this check. " + body
+    assert f"<span>{body}</span>" in web.render_skip_banner(summary)
+
+
+def test_b8a_follow_up():
+    checklist = Path("docs/ops/2027-season-start.md").read_text()
+    row = next(line for line in checklist.splitlines() if line.startswith("| B8a |"))
+    assert (
+        "After the switch, live delivery remains eligible when the automatic timestamp is stale "
+        "and the other delivery checks pass."
+    ) in row
+    assert (
+        "On a warning after a delivery:** write that command only on D ET for the D slate, "
+        "after MLB has settled all prior entries or confirmed their absence after their entry windows closed."
+    ) in row
+    assert (
+        "For any date later than the pick's slate, including D when the warning was sent after midnight ET, "
+        "wait until MLB has settled all prior entries or confirmed their absence after their entry windows closed. "
+        "Then compare MLB with status and, only if they differ, run "
+        "`bts set-contest-streak --date TODAY --streak N --best-streak B --saver S --picks-dir DIR` "
+        "(with TODAY set to the current ET date) on TODAY ET before its first lineup check, or if its first "
+        "lineup check has started, have Eric verify any pending or delivered pick against MLB before acting on it."
+    ) in row
+    assert "In D's ET year away from midnight, if MLB shows this season's saver used" in row
 
 
 @pytest.mark.parametrize("bad", [None, "0.99", {}, [], True, float("nan"), float("inf"), 10**400])
@@ -92,9 +141,10 @@ def test_skip_number_edges_are_valid(edge):
 
 @pytest.mark.parametrize(("reason", "bar", "ending"), [
     ("Stopped!", 0.9, ". Reason: Stopped!"),
+    ("Observations below the expected count", 0.9, ". Reason: Observations under the expected count."),
     (None, 0.7, ", at or above the streak-0 bar (70.0%)."),
     (None, None, ". No probability comparison is available for this check."),
-], ids=["K1", "K3", "K4"])
+], ids=["K1", "stored-reason", "K3", "K4"])
 def test_run_single_check_skip_journal(reason, bar, ending, tmp_path, monkeypatch, capsys):
     day = datetime(2027, 7, 15).date()
     frame = walk._predictions(day, 0.75)
@@ -173,11 +223,11 @@ def test_stale_warning_maximum_detail(route, tmp_path, monkeypatch, capsys):
     picks_dir = tmp_path / "picks"
     if route == "delivery":
         scheduler._warn_stale_contest_reading(record, config, picks_dir)
-        expected, length = envelope(day=DAY, detail=detail), 881
+        expected, length = envelope(day=DAY, detail=detail), 892
         assert "  STALE CONTEST READING — " + expected.split("- [contest_state] ")[1] in capsys.readouterr().err
     else:
         scheduler._morning_state_check(config, picks_dir, DAY, now, now + timedelta(hours=1))
-        expected, length = warning(detail), 895
+        expected, length = warning(detail), 889
     assert sent == [expected]
     assert len(sent[0]) == length < 900
 
