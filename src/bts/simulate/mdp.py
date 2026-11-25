@@ -228,9 +228,9 @@ def lookup_action_guarded(
     action = ACTIONS[policy_table[indices]]
     if action == "skip":
         for j in range(q - 1, -1, -1):
-            lower_action = ACTIONS[policy_table[s, d, v, j]]
-            if lower_action in ("single", "double"):
-                return lower_action, {
+            donor_code = policy_table[s, d, v, j]
+            if donor_code in (1, 2):
+                return ACTIONS[int(donor_code)], {
                     "rule": "monotone_skip_v1", "bin": int(q),
                     "from_bin": int(j), "table_action": "skip",
                 }

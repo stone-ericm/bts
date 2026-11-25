@@ -336,19 +336,21 @@ def run_census(*, picks_dir: Path, ledger_path: Path, policy_path: Path,
             and guard.keys() == {"rule", "bin", "from_bin", "table_action"}
             and guard["rule"] == "monotone_skip_v1" and guard["table_action"] == "skip"
             and type(guard["from_bin"]) is int and type(guard["bin"]) is int
-            and 0 <= guard["from_bin"] < guard["bin"]
+            and 0 <= guard["from_bin"] < guard["bin"] < policy_table.shape[-1]
         )
-        if guarded_play:
-            row["parity"] = "guarded_play_excluded"
 
         if src == "unknown":
+            if guarded_play:
+                row["parity"] = "guarded_play_excluded"
             row["diffs"] = {}
             rows.append(row)
             continue
 
         raw_deployed = raw(deployed_bounds, streak, saver, p, dstr)
         row["raw_deployed"] = raw_deployed
-        if not guarded_play:
+        if guarded_play and raw_deployed == "skip":
+            row["parity"] = "guarded_play_excluded"
+        else:
             row["parity"] = attribution(raw_deployed, rec.get("action"))
         row["band"] = _band(streak)
         row["diffs"] = {}

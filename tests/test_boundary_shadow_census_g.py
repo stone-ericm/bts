@@ -1,8 +1,32 @@
 import json
 from datetime import datetime
 
+import pytest
+
 from bts import daily_decision, skip_policy_shadow
-from scripts.audit.boundary_shadow_census import run_census
+from scripts.audit.boundary_shadow_census import CensusHalt, run_census
+
+
+@pytest.mark.parametrize("bin_index,donor,p,recorded,raw", [
+    (999, 998, 0.96, "double", "skip"),
+    (4, 3, 0.83, "double", "single"),
+])
+def test_invalid_guard_keeps_raw_parity_check(tmp_path, bin_index, donor, p, recorded, raw):
+    day = "2026-03-25"
+    ledger = tmp_path / "ledger.jsonl"
+    ledger.write_text(json.dumps(dict(recorded_at=f"{day}T00:00:00Z", active_streak=50)))
+    daily_decision.write_decision(
+        day, tmp_path, action=recorded, source="mdp", objective="reach57",
+        primary=dict(batter_id=100, p_game_hit=p),
+        double_down=dict(batter_id=101, p_game_hit=0.95), streak=50,
+        saver_available=False, now=datetime.fromisoformat(f"{day}T22:00:00Z"),
+        delivery_status="delivered", scoreable=True,
+        policy_guard=dict(rule="monotone_skip_v1", bin=bin_index,
+                          from_bin=donor, table_action="skip"))
+    with pytest.raises(CensusHalt, match=f"raw={raw} recorded={recorded}"):
+        run_census(picks_dir=tmp_path, ledger_path=ledger,
+                   policy_path="data/models/mdp_policy.npz", saver_active=False,
+                   start=day, end=day, as_of=day, output=tmp_path / "census.json")
 
 
 def test_guarded_play_and_unchanged_skip_share_census(tmp_path):

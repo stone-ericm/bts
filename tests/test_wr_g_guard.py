@@ -1,6 +1,7 @@
 """Change set G against the shipped artifacts and the unmodified base."""
 import csv
 from collections import Counter
+from contextlib import nullcontext
 from dataclasses import fields, replace
 from datetime import date, timedelta
 from functools import cache
@@ -10,11 +11,12 @@ from pathlib import Path
 import subprocess
 import sys
 from types import ModuleType, SimpleNamespace
+from unittest.mock import Mock
 
 import numpy as np
 import pytest
 
-from bts import daily_decision, picks, scheduler, strategy
+from bts import daily_decision, dm, orchestrator, picks, posting, scheduler, strategy
 from bts.simulate import mdp
 from scripts.audit.season_walk import walk
 
@@ -207,7 +209,53 @@ def test_guard_journal(artifact, probabilities, capsys, s, d, p, saver, allow, s
     ]
 
 
-def test_decision_round_trip_and_shadow(tmp_path):
+@pytest.mark.parametrize("donor, expected", [
+    (1, ("single", dict(GUARD, bin=2, from_bin=0))),
+    (3, ("skip", None)),
+])
+def test_malformed_donor_cells(donor, expected):
+    table = np.array([donor, 3, 0], dtype=np.int8).reshape(1, 1, 1, 3)
+    table = np.broadcast_to(table, (11, 101, 2, 3))
+    args = (table, [0.7, 0.8], 10, 100, False)
+    assert mdp.lookup_action_guarded(*args, 0.8) == expected
+
+
+def test_malformed_queried_cell():
+    table = np.full((11, 101, 2, 3), 3, dtype=np.int8)
+    args = (table, [0.7, 0.8], 10, 100, False, 0.75)
+    with pytest.raises(IndexError) as raw:
+        mdp.lookup_action(*args)
+    with pytest.raises(type(raw.value)):
+        mdp.lookup_action_guarded(*args)
+
+
+@pytest.mark.parametrize("s,d,saver,label", [
+    (50, 180, False, "unavailable"), (42, 38, True, "available"),
+    (50, 180, 0, "unavailable"), (42, 38, 1, "available"),
+    (50, 180, "0", "unavailable"), (42, 38, "1", "available"),
+])
+def test_guard_journal_saver_index(artifact, capsys, s, d, saver, label):
+    ctx = context(0.96, (END - timedelta(days=d)).isoformat(), artifact, s)
+    dec = strategy.resolve_policy_decision(ctx, s, saver)
+    scheduler._log_policy_decision(SimpleNamespace(decision=dec, saver_available=saver))
+    assert capsys.readouterr().err.splitlines() == [
+        f"  POLICY GUARD — At streak {s} with {d} policy days left and saver input {label}, "
+        "the table skips bin 4. Bin 3 supplies single. Selected action is single."
+    ]
+
+
+def test_tail_ignores_reach57_donor(artifact):
+    table = artifact["policy_table"].copy()
+    table[44, 6, 0] = [0, 0, 0, 1, 0]
+    ctx = context(0.96, "2027-09-21", dict(artifact, policy_table=table), 56)
+    assert mdp.lookup_action_guarded(table, artifact["boundaries"], 44, 6, False, 0.96) == (
+        "single", GUARD)
+    result = strategy.resolve_policy_decision(ctx, 44, False)
+    assert result == strategy.resolve_policy_decision(replace(ctx, mdp=artifact), 44, False)
+    assert (result.objective, result.action, result.guard) == ("emax_season_best", "skip", None)
+
+
+def test_decision_round_trip_and_skip_predicate(tmp_path):
     day = "2027-03-24"
     primary = {"batter_id": 100, "game_pk": 1, "p_game_hit": 0.96}
     for action, guard, expected in (("single", GUARD, GUARD), ("single", None, None),
@@ -336,6 +384,141 @@ def local_delivery(monkeypatch):
     monkeypatch.setattr(scheduler, "_now_et", lambda: NOW)
 
 
+@pytest.fixture
+def scheduler_commit(tmp_path, monkeypatch, local_delivery):
+    now = NOW.replace(hour=18, minute=32)
+    frame = walk._predictions(date.fromisoformat(DAY), 0.83)
+    statuses = {pk: {"abstract": "P", "detailed": "Scheduled"} for pk in frame.game_pk}
+    with walk.offline(now):
+        assert not walk.install_state(tmp_path, date.fromisoformat(DAY),
+                                      walk.State("dated", 50, 50, "used", 0.83))
+        config = walk._config(tmp_path)
+        config["orchestrator"]["heartbeat_path"] = str(tmp_path / "heartbeat")
+        config["scheduler"].update(pick_delivery="dm", live_forward_capture_on_lock=False)
+        config["bluesky"] = {"dm_recipient": "probe"}
+        config["health_checks"]["enabled"] = False
+        monkeypatch.setattr(picks, "get_game_statuses_detailed", lambda *_: statuses)
+        monkeypatch.setattr(orchestrator, "run_cascade", lambda *_: (frame, "probe"))
+        monkeypatch.setattr(scheduler, "_now_et", lambda: now)
+        monkeypatch.setattr(scheduler, "heartbeat_watchdog", lambda *a, **k: nullcontext())
+        monkeypatch.setattr(scheduler, "_delivery_game_statuses", lambda *_: statuses)
+        for name in ("_idle_until_next_wakeup", "_watchdog_ping_sleep", "_morning_state_check"):
+            monkeypatch.setattr(scheduler, name, Mock())
+        monkeypatch.setattr(scheduler, "run_result_polling", Mock(return_value="hit"))
+        monkeypatch.setattr(scheduler, "count_new_confirmations", lambda *_: 0)
+        games = [
+            {"gamePk": pk, "gameDate": gt, "doubleHeader": "N",
+             "status": {"detailedState": "Scheduled"},
+             "teams": {side: {"team": {"name": f"{side}-{pk}"}} for side in ("home", "away")}}
+            for pk, gt in zip(frame.game_pk, frame.game_time)
+        ]
+        monkeypatch.setattr(scheduler, "fetch_schedule", lambda *_: games)
+        send = Mock(return_value="confirmed-dm")
+        monkeypatch.setattr(dm, "send_dm", send)
+        yield config, frame, statuses, send, now
+
+
+@pytest.mark.parametrize("scenario", [
+    "confirmed_after_recovery", "private_to_dm", "refused_then_repicked",
+    "prior_process_missing_pick", "earlier_same_date_run", "undecodable",
+])
+def test_real_commit_replaces_prior_decision(tmp_path, monkeypatch, scheduler_commit, scenario):
+    config, frame, _, send, now = scheduler_commit
+    _, selection, _ = orchestrator.run_and_pick(config, DAY)
+    daily = selection.pick_result.daily
+    current = state(schedule_fetched_at=now.isoformat())
+    path = daily_decision.decision_path(DAY, tmp_path)
+
+    def deliver(pick, selection=None):
+        return scheduler._deliver_and_lock_pick(
+            pick, config, tmp_path, current, DAY, "probe", selection=selection)
+
+    def record():
+        return daily_decision.load_decision(DAY, tmp_path)
+
+    expected = 100
+    if scenario == "confirmed_after_recovery":
+        def confirm(*_):
+            pending = picks.load_pick(DAY, tmp_path)
+            assert pending.delivery_attempted
+            assert not deliver(pending)
+            assert record()["delivery_status"] == "locked_unconfirmed"
+            return "confirmed-dm"
+
+        send.side_effect = confirm
+        assert deliver(daily, selection)
+    elif scenario == "undecodable":
+        path.parent.mkdir(exist_ok=True)
+        path.write_bytes(b"\xff")
+        assert deliver(daily, selection)
+        assert current.committed_pick_written
+    else:
+        config["scheduler"]["pick_delivery"] = "private"
+        assert deliver(daily, selection)
+        assert record()["delivery_status"] == "private_locked"
+        config["scheduler"]["pick_delivery"] = "dm"
+        if scenario == "private_to_dm":
+            assert deliver(picks.load_pick(DAY, tmp_path))
+        else:
+            if scenario == "refused_then_repicked":
+                from bts.health import alert
+                monkeypatch.setattr(alert, "dispatch_dm_for_health_alerts", Mock())
+                stale = picks.load_pick(DAY, tmp_path)
+                stale.pick.game_time = (now - timedelta(minutes=10)).isoformat()
+                picks.save_pick(stale, tmp_path)
+                assert not deliver(stale)
+                assert list(path.parent.glob("refused_delivery_*.json"))
+            else:
+                (tmp_path / f"{DAY}.json").rename(tmp_path / "archived.json")
+            assert picks.load_pick(DAY, tmp_path) is None
+            if scenario == "earlier_same_date_run":
+                (path.parent / "scheduler_state.json").unlink()
+            frame["batter_id"] += 100
+            frame["batter_name"] = [f"Fixture batter {batter}" for batter in frame.batter_id]
+            scheduler.run_day(DAY, config)
+            expected = 200
+
+    send.assert_called_once()
+    saved = picks.load_pick(DAY, tmp_path)
+    assert saved.pick.batter_id == expected and picks.pick_was_delivered(saved)
+    after = record()
+    assert (after["action"], after["primary"]["batter_id"], after["delivery_status"],
+            after["scoreable"], after["policy_guard"]) == ("single", expected, "delivered", True, None)
+
+
+@pytest.mark.parametrize("mode", ["warmup", "dm", "public"])
+def test_guarded_delivery_records_selected_batter(tmp_path, monkeypatch, scheduler_commit, mode):
+    config, frame, statuses, send, _ = scheduler_commit
+    frame["p_game_hit"] = 0.96
+    _, selection, _ = orchestrator.run_and_pick(config, DAY)
+    daily = selection.pick_result.daily
+    assert selection.decision.guard == GUARD
+    if mode == "warmup":
+        picks.save_pick(daily, tmp_path)
+        for pk in statuses:
+            statuses[pk] = {"abstract": "P", "detailed": "Warmup"}
+        refresh = scheduler._refresh_pick_at_fallback_decision(config, DAY, daily, 0.03)
+        daily, selection = refresh.daily, refresh.selection
+        assert selection is not None and selection.decision is None
+        assert selection.primary_candidate is None
+    if mode == "public":
+        config["scheduler"]["pick_delivery"] = "public"
+        monkeypatch.setattr(posting, "post_to_bluesky", send)
+    assert scheduler._deliver_and_lock_pick(
+        daily, config, tmp_path, state(), DAY, "probe", selection=selection)
+    send.assert_called_once()
+    if mode != "public":
+        assert daily.pick.batter_name in send.call_args.args[1]
+    record = decision(tmp_path, "delivered")
+    assert record["action"] == "single"
+    if mode == "warmup":
+        assert record["primary"] == scheduler._row_from_daily(daily.pick)
+        assert record["double_down"] is None
+    else:
+        assert record["primary"] == selection.primary_candidate
+        assert record["double_down"] == selection.double_candidate
+
+
 @pytest.mark.parametrize("recovery", ["direct", "classify", "empty_dm", "cached", "private_interrupt"])
 def test_delivery_and_restart(tmp_path, monkeypatch, local_delivery, recovery):
     from contextlib import nullcontext
@@ -419,10 +602,6 @@ def test_restart_after_decision_before_flag_save(tmp_path, monkeypatch):
             tmp_path, DAY, state(final_skip_candidate={"source": "mdp"}))
         assert path.read_bytes() == before
         classify(tmp_path, picks.load_pick(DAY, tmp_path), delivered=True)
-        assert path.read_bytes() == before
-        scheduler._commit_decision_for_pick(
-            tmp_path, DAY, daily, selection=None,
-            delivery_status="locked_unconfirmed", state=state())
         assert path.read_bytes() == before
         decision(tmp_path, "delivered")
 

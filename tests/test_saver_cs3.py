@@ -85,19 +85,19 @@ def test_model_decision_uses_its_returned_streak(tmp_path, flag, streak):
 def test_reserved_saver_changes_the_real_policy_action(tmp_path):
     from bts.simulate.mdp import load_policy
     from bts.strategy import DecisionContext, resolve_policy_decision
-    _contest(tmp_path, 3)
+    _contest(tmp_path, 9)
     _flag(tmp_path, "not_earned")
     state = load_decision_streak_state(tmp_path, now=NOW)
     table, boundaries, length = load_policy("data/models/mdp_policy.npz")
     # Whole-range fix set A contract A1 preserves this fixture's policy day count.
-    ctx = DecisionContext(.80, .80, True, "2027-08-30", True, {
+    ctx = DecisionContext(.79, .80, True, "2027-08-20", True, {
         "policy_table": table, "boundaries": boundaries, "season_length": length,
     })
     old = resolve_policy_decision(ctx, state.streak, load_saver_state(tmp_path, season=2027).is_available)
     new = resolve_policy_decision(ctx, state.streak, state.saver_available)
     assert old.source == new.source == "mdp"
     assert old.action == "skip"
-    assert new.action == "double"
+    assert new.action == "single"
 
 
 @pytest.mark.parametrize("flag", ["missing", "stale", "not_earned", "active", "used"])

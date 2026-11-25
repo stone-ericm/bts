@@ -859,7 +859,7 @@ def _log_policy_decision(sel) -> None:
         return
     guard = getattr(dec, "guard", None)
     if guard is not None:
-        saver = "available" if sel.saver_available else "unavailable"
+        saver = "available" if bool(int(sel.saver_available)) else "unavailable"
         print(f"  POLICY GUARD — At streak {dec.streak} with {dec.days_effective} policy days "
               f"left and saver input {saver}, the table skips bin {guard['bin']}. "
               f"Bin {guard['from_bin']} supplies {dec.policy_action}. "
@@ -920,12 +920,7 @@ def _write_commit_decision(picks_dir, date, *, action, source, primary, double_d
     every ordering leaves the EOD skip non-clobbering (the decision.json record
     backstops the flag even if this save fails).
     """
-    from bts.daily_decision import load_decision, write_decision
-    existing = load_decision(date, picks_dir)
-    if existing is not None and existing.get("scoreable"):
-        state.committed_pick_written = True
-        save_state(state, picks_dir)
-        return
+    from bts.daily_decision import write_decision
     record = write_decision(date, picks_dir, action=action, source=(source or "unknown"),
                             primary=primary, double_down=double_down,
                             streak=streak, saver_available=saver_available,
@@ -944,19 +939,21 @@ def _write_commit_decision(picks_dir, date, *, action, source, primary, double_d
 
 
 def _commit_decision_for_pick(picks_dir, date, daily, *, selection, delivery_status, state) -> None:
-    """Write the scoreable commit record for ``daily``. Source/candidate/objective
-    metadata come from the captured SelectionResult when this cycle made one;
-    otherwise (cached-pick safety net, selection=None) from the decision persisted
-    on the DailyPick — never re-read from current contest state (Codex r3 P1)."""
+    """Write the scoreable commit record for ``daily``.
+
+    Use the saved pick's slots and policy metadata when the refresh made no
+    decision. Selection state metadata still comes from the captured result.
+    """
     meta = _selection_decision_meta(selection, daily)
     source = meta.pop("source", None) or "unknown"
+    has_decision = getattr(selection, "decision", None) is not None
     _write_commit_decision(
         picks_dir, date,
         action=("double" if daily.double_down else "single"),
         source=source,
-        primary=(selection.primary_candidate if selection is not None
+        primary=(selection.primary_candidate if has_decision
                  else _row_from_daily(daily.pick)),
-        double_down=(selection.double_candidate if selection is not None
+        double_down=(selection.double_candidate if has_decision
                      else _row_from_daily(daily.double_down)),
         streak=(selection.streak if selection is not None else None),
         saver_available=(selection.saver_available if selection is not None else None),
