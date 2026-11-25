@@ -59,3 +59,6 @@ Run the whole walk, compare all 4,599 records by date and state with `results/wa
 
 ## Handover
 `HANDOVER-WR-G.md` in the worktree root (not committed), with: the commit, per contract section the test that was RED first, the grid sizes actually run, the walk's three counts; then `WRG-<first 8 hex of its sha256>` on its own line and `DONE`.
+
+## Amendment 1 (2026-11-24 22:18; the author stopped before editing)
+The must-change paragraph's words "covering every table day 1–180" are wrong as a requirement on the CSV-driven test: the 1,511 rows have 175 distinct `days_left` values (days 1, 2, 3, 4 and 31 have no affected state). **Ruling:** the CSV-driven must-change test covers every one of the 1,511 rows on its own date (`2027-09-27` minus `days_left`), plus the day-180 rows on March 24 to 30; every table day 1 to 180 (and 0) is covered by row 2's full resolver grid, which must show NO change on the days with no CSV row. Nothing else in the paragraph changes.
