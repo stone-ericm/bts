@@ -1,0 +1,13 @@
+nice: setpriority: Operation not permitted
+/Users/eric/projects/bts-work/wr-rev-h-cx/src/bts/__init__.py
+original ['dispatch', 'load', 'dispatch']
+original short valid base, raw 4, effective 4 action single
+/Users/eric/projects/bts-work/wr-rev-h-cx/.codex-review/wr-h/read-before-regime-xgau61kt/src/bts/__init__.py
+read-before-regime ['load', 'dispatch']
+/Users/eric/projects/bts-work/wr-rev-h-cx/.codex-review/wr-h/use-base-horizon-dy28afe1/src/bts/__init__.py
+use-base-horizon ['dispatch', 'load', 'dispatch']
+use-base-horizon short valid base, raw 4, effective 1 action double
+short 2027-09-23 base table shape (58, 2, 2, 5) state 57/57/used days 4 delivered single slots Batter 0 None decision tail sha 84aa404b5ee4ffe6420c474b591af82813ca73898253aaa168444f0c69ec8e91
+scalar array cannot supply an actual reach-57 policy lookup
+scalar 2027-09-26 base table shape () state 57/57/used days 1 delivered single slots Batter 0 None decision tail sha None
+H1–H3 19512 resolutions over every positive raw day 1–271
