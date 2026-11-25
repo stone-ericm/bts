@@ -1,0 +1,6 @@
+base bts.__file__=/Users/eric/projects/bts-work/wr-rev-h2c-cb/.carbon-review/wr-h2c/base_tree/src/bts/__init__.py MAX_SEASON_STREAK=None
+head bts.__file__=/Users/eric/projects/bts-work/wr-rev-h2c-cb/src/bts/__init__.py MAX_SEASON_STREAK=400
+counts: s1=2450 (changed=430), s2=984 (changed=140), s3=1002 (changed=220), s4=1225+44 (changed=55), s5=24 (changed=4), s6=3966 (changed=124)
+problems=2
+PROBLEM: S1 order mismatch at huge,contest_streak.manual.json,0: base=['err', 'ContestStateError', 'contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/h2c-item1-base-gsatwbcp/huge/account_'] head=['err', 'ContestStateError', 'contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/h2c-item1-head-mh0__gsb/huge/account_']
+PROBLEM: S1 order mismatch at huge,contest_streak.json,0: base=['err', 'ContestStateError', 'contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/h2c-item1-base-gsatwbcp/huge/account_'] head=['err', 'ContestStateError', 'contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/h2c-item1-head-mh0__gsb/huge/account_']

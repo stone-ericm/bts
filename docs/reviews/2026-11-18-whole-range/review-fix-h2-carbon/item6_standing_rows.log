@@ -1,0 +1,10 @@
+1. Fetch interrupts verified (atomic obs; separate status, ledger, saver).
+2. Malformed, directory, and FIFO paths verified (historical non-blocking; live FIFO bounded).
+3. Dec 31 / Jan 1 year rollover at 58/60 verified (both automatic and dated).
+4. Failed send, unconfirmed send, and restart at 58 verified.
+5. Rollback to base verified (12/58 best check, expired dated blocking auto, pending chosen_on=None refusal, committed pick still scoreable 58->59).
+problems=4
+PROBLEM: 1a expected KeyboardInterrupt: 1
+PROBLEM: 1b expected KeyboardInterrupt: 1
+PROBLEM: 1c expected KeyboardInterrupt: 1
+PROBLEM: 4b unconfirmed restart unexpected: ok=False rec={'schema_version': 'bts_daily_decision_v3', 'date': '2027-07-15', 'action': 'single', 'source': 'mdp', 'primary': {'batter_id': 100, 'batter_name': 'Batter 0', 'team': 'T0', 'game_pk': 70000, 'p_game_hit': 0.96}, 'double_down': None, 'second_candidate': None, 'streak': None, 'saver_available': None, 'state_source': None, 'state_status': None, 'allow_double': None, 'contest_source_date': None, 'delivery_status': 'locked_unconfirmed', 'scoreable': True, 'objective': 'longest_streak', 'best_streak': 58, 'best_status': 'trusted', 'effective_best': None, 'tail_policy_sha256': 'dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4', 'degraded_reason': None, 'policy_guard': None, 'finalized_at': '2027-07-15T16:00:00Z'} dms=[]
