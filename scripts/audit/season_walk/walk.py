@@ -78,6 +78,7 @@ DEFAULT_STATES = tuple(
     + [State("automatic", s, b, v, 0.96)
        for (s, b, v) in ((12, 12, "active"), (43, 56, "used"), (56, 56, "used"))]
     + [State("dated", LONGEST_STREAK_FROM, LONGEST_STREAK_FROM, "used", 0.96)]
+    + [State("dated", 58, 60, "used", 0.96)]
 )
 
 

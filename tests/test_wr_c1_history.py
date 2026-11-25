@@ -118,7 +118,7 @@ def more_cases(probe, root):
 
     for field, invalid in [
         ("effective_date", "20270324"), ("season", False), ("expires_at", None),
-        ("active_streak", 58), ("best_streak", -1), ("saver_state", []),
+        ("active_streak", 401), ("best_streak", -1), ("saver_state", []),
         ("recorded_at", None), ("source", []), ("reason", []),
     ]:
         path = picks(f"dated_{field}")

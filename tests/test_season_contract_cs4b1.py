@@ -287,7 +287,7 @@ def test_fetch_switch_paths_order_and_spies(tmp_path, monkeypatch, state, dry):
 def test_response_validation_and_alerts(tmp_path, monkeypatch, bad, dry):
     prior = put(tmp_path, "contest_streak.json", {"active_streak": 4})
     before = prior.read_bytes()
-    profile = {"activeStreak": 7, "seasonBestStreak": 58 if bad == "best58" else 9}
+    profile = {"activeStreak": 7, "seasonBestStreak": 401 if bad == "best58" else 9}
     if bad != "missing":
         profile["predictions"] = [{"roundId": 1, "result": "hit"}] if bad in ("rounds", "best58") else bad
     monkeypatch.setattr(cf, "fetch_profile", lambda *_: profile)

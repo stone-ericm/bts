@@ -121,7 +121,7 @@ REJECTIONS = [
     (['--saver-available'],'--saver'),(['--saver-unavailable'],'--saver'),
     (['--date','2027-07-14'],'--date'),(['--date','2027-07-16'],'--date'),
     (['--streak','-1'],'--streak'),(['--best-streak','11'],'--best-streak'),
-    (['--best-streak','58'],'--best-streak'),
+    (['--best-streak','401'],'--best-streak'),
 ])
 @pytest.mark.parametrize('existing',[False,True])
 def test_rejections_before_reads_and_writes(tmp_path, monkeypatch, extra, option,existing):
@@ -181,8 +181,8 @@ def test_unpadded_date_and_reason_only_correction(tmp_path,monkeypatch):
 
 INVALID = [(2,'effective_date','20270715'),(2,'effective_date',None),(3,'season',True),
     (3,'season',2026),(4,'expires_at','2027-07-15T23:59:59.999999'),
-    (4,'expires_at','2027-07-16T03:59:59Z'),(5,'active_streak',True),(5,'active_streak',58),
-    (5,'active_streak',-1),(6,'best_streak',11),(6,'best_streak',True),(6,'best_streak',58),
+    (4,'expires_at','2027-07-16T03:59:59Z'),(5,'active_streak',True),(5,'active_streak',401),
+    (5,'active_streak',-1),(6,'best_streak',11),(6,'best_streak',True),(6,'best_streak',401),
     (7,'saver_state',[]),(7,'saver_state','uninitialized'),(8,'recorded_at','2027-07-15'),
     (9,'source',None),(10,'reason',None)]
 @pytest.mark.parametrize('number,field,value',INVALID)
@@ -255,7 +255,7 @@ def test_out_of_date_is_absent_even_with_legacy_expiry(tmp_path,day,auto):
 
 
 @pytest.mark.parametrize('required',[False,True])
-@pytest.mark.parametrize('auto',[None,{},dict(active_streak=58),'{'])
+@pytest.mark.parametrize('auto',[None,{},dict(active_streak=401),'{'])
 @pytest.mark.parametrize('saver',['not_earned','active','used'])
 @pytest.mark.parametrize('streak',[0,9,10,15,16])
 @pytest.mark.parametrize('flag',[None,'active','used','corrupt'])

@@ -5,6 +5,7 @@ from typing import Any
 
 import httpx
 
+from bts.contest_state import MAX_SEASON_STREAK
 from bts.leaderboard.endpoints import (
     PREDICTIONS_URL_TEMPLATE,
     USER_PROFILE_URL_TEMPLATE,
@@ -194,8 +195,8 @@ def validate_fetch(success: dict) -> None:
     best_streak = _require_streak_int(success, "seasonBestStreak")
     if best_streak < active_streak:
         raise ContestFetchError("seasonBestStreak must be >= activeStreak")
-    if best_streak > 57:
-        raise ContestFetchError("seasonBestStreak must be <= 57")
+    if best_streak > MAX_SEASON_STREAK:
+        raise ContestFetchError(f"seasonBestStreak must be <= {MAX_SEASON_STREAK}")
 
 
 def _format_recorded_at(recorded_at: datetime) -> str:

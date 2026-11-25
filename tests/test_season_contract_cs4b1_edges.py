@@ -180,8 +180,8 @@ def test_best_bound_and_builder_v1_control():
         obs = cf.build_observation({"activeStreak": 0, "seasonBestStreak": value}, None, 1, "offline", NOW)
         assert obs["schema_version"] == "bts_contest_streak_auto_v1"
         assert "season" not in obs and "activation_id" not in obs
-    with pytest.raises(cf.ContestFetchError, match="57"):
-        cf.validate_fetch({"activeStreak": 0, "seasonBestStreak": 58})
+    with pytest.raises(cf.ContestFetchError, match="400"):
+        cf.validate_fetch({"activeStreak": 0, "seasonBestStreak": 401})
 
 
 def test_enable_entry_clock_and_next_operation_other_season(tmp_path, monkeypatch):

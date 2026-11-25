@@ -198,7 +198,7 @@ def test_dashboard_survives_contest_files_and_post_never_reads_them(tmp_path, mo
         path.mkdir()
     else:
         path.write_bytes({"non_utf8": b"\xff", "non_object": b"[]", "malformed": b"{",
-                          "refused": b'{"active_streak":58,"best_streak":58}'}[bad])
+                          "refused": b'{"active_streak":401,"best_streak":401}'}[bad])
     try:
         ctx = web.saver_dashboard_context(tmp_path, now=NOW)
         assert ctx.state == "active" and ctx.warning is False and ctx.nudge is False

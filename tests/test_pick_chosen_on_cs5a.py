@@ -82,7 +82,7 @@ INVALID = [
     (("dated", "effective_date"), "20270715"),
     (("dated", "active_streak"), True), (("dated", "active_streak"), 8),
     (("dated", "active_streak"), -1), (("dated", "best_streak"), 6),
-    (("dated", "best_streak"), 58), (("dated", "best_streak"), None),
+    (("dated", "best_streak"), 401), (("dated", "best_streak"), None),
     (("dated", "best_streak"), False), (("dated", "saver_state"), []),
     (("dated", "saver_state"), "inactive"),
 ]
@@ -103,7 +103,7 @@ def invalid_records():
         target.pop(path[-1])
         yield f"omit {'.'.join(path)}", src
     yield "non-dated with identity", dict(record(), kind="automatic")
-    yield "automatic at 58", dict(record("automatic"), streak=58)
+    yield "automatic at 401", dict(record("automatic"), streak=401)
     # Round-1 review (Codex): a Boolean outer streak with nothing else wrong.
     # ``False == 0`` and ``True == 1``, so only an exact-int check rejects these.
     yield "automatic with Boolean streak", dict(record("automatic"), streak=False)

@@ -128,7 +128,7 @@ def test_chmod000_unreadable_files_across_rows_1_2_5_6_7(tmp_path: Path, covered
         model_path.chmod(0o644)
 
 
-@pytest.mark.parametrize("active,best", [(58, None), (0, -1), (13, 10), (13, 58), (58, 60)])
+@pytest.mark.parametrize("active,best", [(401, None), (0, -1), (13, 10), (13, 401), (401, 401)])
 def test_row3_auto_additional_bounds_rejected_in_both_modes(tmp_path: Path, active, best):
     path = _auto(tmp_path, active=active, best=best)
     for req in (False, True):
@@ -148,8 +148,8 @@ def test_row3_auto_exact_boundaries_accepted(tmp_path: Path, active, best, cover
 
 @pytest.mark.parametrize("active,best,expected_status", [
     (13, 10, "untrusted"),
-    (58, 58, "untrusted"),
-    (13, 58, "untrusted"),
+    (401, 401, "untrusted"),
+    (13, 401, "untrusted"),
     (0, -1, "untrusted"),
     (58, None, "missing"),
 ])
@@ -189,19 +189,19 @@ def test_fetch_writer_out_of_bounds_best_rejected_and_manual_override_recovers(t
     from tests.test_season_contract_cs4b1 import pin
     pin(monkeypatch, NOW)
 
-    profile = {"activeStreak": 0, "seasonBestStreak": 58}
-    with pytest.raises(ContestFetchError, match="57"):
+    profile = {"activeStreak": 0, "seasonBestStreak": 401}
+    with pytest.raises(ContestFetchError, match="400"):
         validate_fetch(profile)
-    with pytest.raises(ContestFetchError, match="57"):
+    with pytest.raises(ContestFetchError, match="400"):
         build_observation(profile, source_date=dt.date(2027, 3, 24), user_id=1, username="u", recorded_at=NOW)
     obs = {"schema_version": "bts_contest_streak_auto_v1", "active_streak": 0,
-           "best_streak": 58, "source_date": "2027-03-24", "source": "mlb_bts_profile"}
+           "best_streak": 401, "source_date": "2027-03-24", "source": "mlb_bts_profile"}
     sd = tmp_path / "account_state"
     sd.mkdir(parents=True, exist_ok=True)
     auto_path = sd / "contest_streak.json"
     auto_path.write_text(json.dumps(obs), encoding="utf-8")
 
-    with pytest.raises(ContestStateError, match="active_streak=0, best_streak=58"):
+    with pytest.raises(ContestStateError, match="active_streak=0, best_streak=401"):
         load_decision_streak_state(tmp_path, require_contest_state=True, now=NOW)
 
     res = CliRunner().invoke(cli, [

@@ -107,7 +107,7 @@ _PAIR_FAILURES = {
     2: ("effective_date", "20270715"),
     3: ("season", 2026),
     4: ("expires_at", "2027-07-15T23:59:59.999999"),
-    5: ("active_streak", 58),
+    5: ("active_streak", 401),
     6: ("best_streak", 11),
     7: ("saver_state", "uninitialized"),
     8: ("recorded_at", "2027-07-15T16:00:00"),
@@ -141,7 +141,7 @@ def test_unmocked_overlong_saver_flag_never_read_through_orchestrator_scheduler_
     sdir.mkdir(parents=True)
     (sdir / "saver_state.json").write_text('{"state":"used","season":' + ("9" * 5000) + "}", encoding="utf-8")
     (sdir / "contest_streak.json").write_text(
-        json.dumps({"active_streak": 58, "source_date": "2027-07-14"}), encoding="utf-8"
+        json.dumps({"active_streak": 401, "source_date": "2027-07-14"}), encoding="utf-8"
     )
     (tmp_path / "streak.json").write_text("{corrupt", encoding="utf-8")
     (sdir / "contest_streak.manual.json").write_text(

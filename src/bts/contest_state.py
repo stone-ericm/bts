@@ -88,6 +88,7 @@ class DecisionStreakState:
 
 
 TARGET_STREAK = 57
+MAX_SEASON_STREAK = 400
 AUTOMATIC_READING_STALE_HOURS = 14
 _AUTOMATIC_READING_SCHEMA = "bts_pick_automatic_reading_v1"
 _AUTOMATIC_READING_KEYS = ("schema", "recorded_at", "age_hours", "stale", "reason")
@@ -235,11 +236,11 @@ def _validate_dated_observation(data: object, path: Path, *, historical: bool) -
     if expires_at != end_of_day:
         invalid(4, "expires_at", "must equal the last microsecond of effective_date in America/New_York")
     active = data.get("active_streak")
-    if type(active) is not int or not 0 <= active <= TARGET_STREAK:
-        invalid(5, "active_streak", "must be an integer from 0 to 57")
+    if type(active) is not int or not 0 <= active <= MAX_SEASON_STREAK:
+        invalid(5, "active_streak", f"must be an integer from 0 to {MAX_SEASON_STREAK}")
     best = data.get("best_streak")
-    if type(best) is not int or not active <= best <= TARGET_STREAK:
-        invalid(6, "best_streak", "must be an integer from active_streak to 57")
+    if type(best) is not int or not active <= best <= MAX_SEASON_STREAK:
+        invalid(6, "best_streak", f"must be an integer from active_streak to {MAX_SEASON_STREAK}")
     saver = data.get("saver_state")
     if not isinstance(saver, str) or saver not in {"not_earned", "active", "used"}:
         invalid(7, "saver_state", "must be not_earned, active or used")
@@ -260,22 +261,17 @@ def classify_best_streak(contest: "ContestStreakState | None", *, now: datetime,
                          now_year: int) -> tuple[int | None, str]:
     """(best_streak as supplied, trust status) for the selected observation.
 
-    Trusted iff: an integer; ``streak <= best <= 57`` (the auto fetch enforces
-    best >= active, a hand-written manual file may not; >57 is impossible without
-    having won, so it is a typo); the observation carries a source_date in the
-    CURRENT season and not in the future (ET); and its CONTENTS prove provenance —
-    the auto schema + the profile source, a dated manual observation in effect,
-    or a legacy manual schema whose override is unexpired (an explicit operator
-    statement). Provenance is never inferred from
-    the filename (Codex r3: copied/symlinked files are trust-elevating boundaries
-    otherwise). (Codex r2 P0: ``max(streak, best)`` is an algebraic clamp, not a
-    trust boundary — an inflated best would otherwise stop the account for the
-    rest of the season.)
+    A parsed best is trusted when it is nonnegative and within
+    ``streak <= best <= MAX_SEASON_STREAK`` (400), with current provenance
+    established by the observation's contents. An in-effect dated observation
+    qualifies. Other observations require a source date in the current season
+    through today ET and either the automatic schema and profile source or a
+    legacy manual schema with an unexpired override.
     """
     if contest is None or contest.best_streak is None:
         return None, "missing"
     best = int(contest.best_streak)
-    if best < 0 or best < contest.streak or best > TARGET_STREAK:
+    if best < 0 or best < contest.streak or best > MAX_SEASON_STREAK:
         return best, "untrusted"
     if dated_observation_in_effect(contest, now):
         return best, "trusted"
@@ -356,8 +352,8 @@ def _read_state_file(path: Path, *, require_dated: bool, historical: bool) -> Co
         best = None
 
     if path.name == "contest_streak.json" and (
-        streak > TARGET_STREAK
-        or (best is not None and (best < streak or best > TARGET_STREAK))
+        streak > MAX_SEASON_STREAK
+        or (best is not None and (best < streak or best > MAX_SEASON_STREAK))
     ):
         if historical:
             raise _HistoricalContestStateError("The automatic contest streak file has an invalid streak or best streak.")

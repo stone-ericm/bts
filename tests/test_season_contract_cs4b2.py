@@ -59,7 +59,7 @@ AUTOS = {"absent": None, "covered": automatic(),
          "null_schema": automatic(schema_version=None), "number_schema": automatic(schema_version=3),
          "unknown_schema": automatic(schema_version="unknown"),
          "other_season": automatic(season=2026), "other_id": automatic(activation_id="b" * 32),
-         "refused": automatic(active_streak=58, best_streak=58), "corrupt": b"\xff",
+         "refused": automatic(active_streak=401, best_streak=401), "corrupt": b"\xff",
          "undated": automatic(source_date=None, recorded_at=None),
          "timestamp_only": automatic(source_date=None)}
 
