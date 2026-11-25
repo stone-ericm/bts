@@ -1,0 +1,236 @@
+nice: setpriority: Operation not permitted
+/Users/eric/projects/bts-work/wr-check-h2b/.codex-review/wr-h2-check/scratch/src/bts/contest_state.py cap 400
+K1-3 5 active_streak -1 ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 5, active_streak: must be an integer from 0 to 400
+K1-3 5 active_streak True ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 5, active_streak: must be an integer from 0 to 400
+K1-3 5 active_streak '12' ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 5, active_streak: must be an integer from 0 to 400
+K1-3 5 active_streak 12.0 ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 5, active_streak: must be an integer from 0 to 400
+K1-3 5 active_streak None ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 5, active_streak: must be an integer from 0 to 400
+K1-3 5 active_streak <missing> ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 5, active_streak: must be an integer from 0 to 400
+K1-3 5 active_streak [] ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 5, active_streak: must be an integer from 0 to 400
+K1-3 5 active_streak {} ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 5, active_streak: must be an integer from 0 to 400
+K1-3 5 active_streak 58 ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 6, best_streak: must be an integer from active_streak to 400
+K1-3 5 active_streak 400 ContestStreakState(streak=400, saver_available=None, source='manual_cli', source_date=datetime.date(2027, 7, 15), recorded_at='2027-07-15T12:00:00-04:00', path=PosixPath('/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json'), best_streak=400, override_expires_at=_Clock(2027, 7, 15, 23, 59, 59, 999999, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=72000))), schema_version='bts_contest_streak_manual_v3', effective_date=datetime.date(2027, 7, 15), saver_state='used', season=None, activation_id=None)
+K1-3 5 active_streak 401 ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 5, active_streak: must be an integer from 0 to 400
+K1-3 5 active_streak 570 ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 5, active_streak: must be an integer from 0 to 400
+K1-3 6 best_streak -1 ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 6, best_streak: must be an integer from active_streak to 400
+K1-3 6 best_streak 11 ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 6, best_streak: must be an integer from active_streak to 400
+K1-3 6 best_streak True ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 6, best_streak: must be an integer from active_streak to 400
+K1-3 6 best_streak '12' ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 6, best_streak: must be an integer from active_streak to 400
+K1-3 6 best_streak 12.0 ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 6, best_streak: must be an integer from active_streak to 400
+K1-3 6 best_streak None ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 6, best_streak: must be an integer from active_streak to 400
+K1-3 6 best_streak <missing> ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 6, best_streak: must be an integer from active_streak to 400
+K1-3 6 best_streak [] ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 6, best_streak: must be an integer from active_streak to 400
+K1-3 6 best_streak {} ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 6, best_streak: must be an integer from active_streak to 400
+K1-3 6 best_streak 58 ContestStreakState(streak=12, saver_available=None, source='manual_cli', source_date=datetime.date(2027, 7, 15), recorded_at='2027-07-15T12:00:00-04:00', path=PosixPath('/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json'), best_streak=58, override_expires_at=_Clock(2027, 7, 15, 23, 59, 59, 999999, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=72000))), schema_version='bts_contest_streak_manual_v3', effective_date=datetime.date(2027, 7, 15), saver_state='used', season=None, activation_id=None)
+K1-3 6 best_streak 400 ContestStreakState(streak=12, saver_available=None, source='manual_cli', source_date=datetime.date(2027, 7, 15), recorded_at='2027-07-15T12:00:00-04:00', path=PosixPath('/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json'), best_streak=400, override_expires_at=_Clock(2027, 7, 15, 23, 59, 59, 999999, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=72000))), schema_version='bts_contest_streak_manual_v3', effective_date=datetime.date(2027, 7, 15), saver_state='used', season=None, activation_id=None)
+K1-3 6 best_streak 401 ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 6, best_streak: must be an integer from active_streak to 400
+K1-3 6 best_streak 1570 ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 6, best_streak: must be an integer from active_streak to 400
+K9 dated 1 ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 1, file: expected a JSON object
+K9 dated 2 ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 2, effective_date: must be a padded YYYY-MM-DD string
+K9 dated 3 ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 3, season: must be an integer equal to effective_date's year
+K9 dated 4 ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 4, expires_at: must equal the last microsecond of effective_date in America/New_York
+K9 dated 7 ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 7, saver_state: must be not_earned, active or used
+K9 dated 8 ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 8, recorded_at: must be a timezone-aware ISO timestamp
+K9 dated 9 ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 9, source: must be a string
+K9 dated 10 ContestStateError: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.manual.json: check 10, reason: must be a string when present
+K4 False active_streak -1 ContestStateError: contest streak invalid in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.json: -1
+K4 True active_streak -1 _HistoricalContestStateError: The automatic contest streak file has an invalid streak.
+K4 False active_streak True ContestStateError: contest streak invalid in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.json: True
+K4 True active_streak True _HistoricalContestStateError: The automatic contest streak file has an invalid streak.
+K4 False active_streak '12' ContestStateError: contest streak invalid in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.json: '12'
+K4 True active_streak '12' _HistoricalContestStateError: The automatic contest streak file has an invalid streak.
+K4 False active_streak 12.0 ContestStateError: contest streak invalid in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.json: 12.0
+K4 True active_streak 12.0 _HistoricalContestStateError: The automatic contest streak file has an invalid streak.
+K4 False active_streak None ContestStateError: contest streak invalid in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.json: None
+K4 True active_streak None _HistoricalContestStateError: The automatic contest streak file has an invalid streak.
+K4 False active_streak <missing> ContestStateError: contest streak invalid in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.json: None
+K4 True active_streak <missing> _HistoricalContestStateError: The automatic contest streak file has an invalid streak.
+K4 False active_streak [] ContestStateError: contest streak invalid in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.json: []
+K4 True active_streak [] _HistoricalContestStateError: The automatic contest streak file has an invalid streak.
+K4 False active_streak {} ContestStateError: contest streak invalid in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.json: {}
+K4 True active_streak {} _HistoricalContestStateError: The automatic contest streak file has an invalid streak.
+K4 False active_streak 58 ('accepted', 58, None)
+K4 True active_streak 58 ('accepted', 58, None)
+K4 False active_streak 400 ('accepted', 400, None)
+K4 True active_streak 400 ('accepted', 400, None)
+K4 False active_streak 401 ContestStateError: automatic contest streak invalid in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.json: active_streak=401, best_streak=None
+K4 True active_streak 401 _HistoricalContestStateError: The automatic contest streak file has an invalid streak or best streak.
+K4 False active_streak 570 ContestStateError: automatic contest streak invalid in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.json: active_streak=570, best_streak=None
+K4 True active_streak 570 _HistoricalContestStateError: The automatic contest streak file has an invalid streak or best streak.
+K4 False best_streak -1 ContestStateError: automatic contest streak invalid in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.json: active_streak=12, best_streak=-1
+K4 True best_streak -1 _HistoricalContestStateError: The automatic contest streak file has an invalid streak or best streak.
+K4 False best_streak 11 ContestStateError: automatic contest streak invalid in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.json: active_streak=12, best_streak=11
+K4 True best_streak 11 _HistoricalContestStateError: The automatic contest streak file has an invalid streak or best streak.
+K4 False best_streak True ('accepted', 12, None)
+K4 True best_streak True ('accepted', 12, None)
+K4 False best_streak '12' ('accepted', 12, None)
+K4 True best_streak '12' ('accepted', 12, None)
+K4 False best_streak 12.0 ('accepted', 12, None)
+K4 True best_streak 12.0 ('accepted', 12, None)
+K4 False best_streak None ('accepted', 12, None)
+K4 True best_streak None ('accepted', 12, None)
+K4 False best_streak <missing> ('accepted', 12, None)
+K4 True best_streak <missing> ('accepted', 12, None)
+K4 False best_streak [] ('accepted', 12, None)
+K4 True best_streak [] ('accepted', 12, None)
+K4 False best_streak {} ('accepted', 12, None)
+K4 True best_streak {} ('accepted', 12, None)
+K4 False best_streak 58 ('accepted', 12, 58)
+K4 True best_streak 58 ('accepted', 12, 58)
+K4 False best_streak 400 ('accepted', 12, 400)
+K4 True best_streak 400 ('accepted', 12, 400)
+K4 False best_streak 401 ContestStateError: automatic contest streak invalid in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.json: active_streak=12, best_streak=401
+K4 True best_streak 401 _HistoricalContestStateError: The automatic contest streak file has an invalid streak or best streak.
+K4 False best_streak 1570 ContestStateError: automatic contest streak invalid in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.json: active_streak=12, best_streak=1570
+K4 True best_streak 1570 _HistoricalContestStateError: The automatic contest streak file has an invalid streak or best streak.
+K4 False saver_available 1 ContestStateError: contest saver_available invalid in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.json: 1
+K4 True saver_available 1 _HistoricalContestStateError: The automatic contest streak file has an invalid saver value.
+K4 False saver_available 'true' ContestStateError: contest saver_available invalid in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.json: 'true'
+K4 True saver_available 'true' _HistoricalContestStateError: The automatic contest streak file has an invalid saver value.
+K4 False season True ContestStateError: automatic contest season invalid in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.json: must be an integer
+K4 True season True _HistoricalContestStateError: The automatic contest streak file failed validation for season.
+K4 False season <missing> ContestStateError: automatic contest season invalid in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.json: must be an integer
+K4 True season <missing> _HistoricalContestStateError: The automatic contest streak file failed validation for season.
+K4 False activation_id None ContestStateError: automatic contest activation_id invalid in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.json: must be 32 lowercase hexadecimal characters
+K4 True activation_id None _HistoricalContestStateError: The automatic contest streak file failed validation for activation_id.
+K4 False activation_id 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' ContestStateError: automatic contest activation_id invalid in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.json: must be 32 lowercase hexadecimal characters
+K4 True activation_id 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' _HistoricalContestStateError: The automatic contest streak file failed validation for activation_id.
+K4 high below active ContestStateError: automatic contest streak invalid in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/contest_streak.json: active_streak=400, best_streak=399
+K5 activeStreak -1 ContestFetchError: activeStreak must be non-negative (2, 'SystemExit', 'fetch-contest-streak: profile/rounds shape or fetch error: activeStreak must be non-negative') ['health_state/contest_streak_fetch_status.json'] ['BTS fetch-contest-streak failed: profile/rounds shape or fetch error: activeStreak must be non-negative']
+K5 activeStreak True ContestFetchError: activeStreak must be an integer (2, 'SystemExit', 'fetch-contest-streak: profile/rounds shape or fetch error: activeStreak must be an integer') ['health_state/contest_streak_fetch_status.json'] ['BTS fetch-contest-streak failed: profile/rounds shape or fetch error: activeStreak must be an integer']
+K5 activeStreak '12' ContestFetchError: activeStreak must be an integer (2, 'SystemExit', 'fetch-contest-streak: profile/rounds shape or fetch error: activeStreak must be an integer') ['health_state/contest_streak_fetch_status.json'] ['BTS fetch-contest-streak failed: profile/rounds shape or fetch error: activeStreak must be an integer']
+K5 activeStreak 12.0 ContestFetchError: activeStreak must be an integer (2, 'SystemExit', 'fetch-contest-streak: profile/rounds shape or fetch error: activeStreak must be an integer') ['health_state/contest_streak_fetch_status.json'] ['BTS fetch-contest-streak failed: profile/rounds shape or fetch error: activeStreak must be an integer']
+K5 activeStreak None ContestFetchError: activeStreak must be an integer (2, 'SystemExit', 'fetch-contest-streak: profile/rounds shape or fetch error: activeStreak must be an integer') ['health_state/contest_streak_fetch_status.json'] ['BTS fetch-contest-streak failed: profile/rounds shape or fetch error: activeStreak must be an integer']
+K5 activeStreak <missing> ContestFetchError: activeStreak must be an integer (2, 'SystemExit', 'fetch-contest-streak: profile/rounds shape or fetch error: activeStreak must be an integer') ['health_state/contest_streak_fetch_status.json'] ['BTS fetch-contest-streak failed: profile/rounds shape or fetch error: activeStreak must be an integer']
+K5 activeStreak [] ContestFetchError: activeStreak must be an integer (2, 'SystemExit', 'fetch-contest-streak: profile/rounds shape or fetch error: activeStreak must be an integer') ['health_state/contest_streak_fetch_status.json'] ['BTS fetch-contest-streak failed: profile/rounds shape or fetch error: activeStreak must be an integer']
+K5 activeStreak {} ContestFetchError: activeStreak must be an integer (2, 'SystemExit', 'fetch-contest-streak: profile/rounds shape or fetch error: activeStreak must be an integer') ['health_state/contest_streak_fetch_status.json'] ['BTS fetch-contest-streak failed: profile/rounds shape or fetch error: activeStreak must be an integer']
+K5 activeStreak 58 ContestFetchError: seasonBestStreak must be >= activeStreak (2, 'SystemExit', 'fetch-contest-streak: profile/rounds shape or fetch error: seasonBestStreak must be >= activeStreak') ['health_state/contest_streak_fetch_status.json'] ['BTS fetch-contest-streak failed: profile/rounds shape or fetch error: seasonBestStreak must be >= activeStreak']
+K5 activeStreak 401 ContestFetchError: seasonBestStreak must be >= activeStreak (2, 'SystemExit', 'fetch-contest-streak: profile/rounds shape or fetch error: seasonBestStreak must be >= activeStreak') ['health_state/contest_streak_fetch_status.json'] ['BTS fetch-contest-streak failed: profile/rounds shape or fetch error: seasonBestStreak must be >= activeStreak']
+K5 seasonBestStreak -1 ContestFetchError: seasonBestStreak must be non-negative (2, 'SystemExit', 'fetch-contest-streak: profile/rounds shape or fetch error: seasonBestStreak must be non-negative') ['health_state/contest_streak_fetch_status.json'] ['BTS fetch-contest-streak failed: profile/rounds shape or fetch error: seasonBestStreak must be non-negative']
+K5 seasonBestStreak 11 ContestFetchError: seasonBestStreak must be >= activeStreak (2, 'SystemExit', 'fetch-contest-streak: profile/rounds shape or fetch error: seasonBestStreak must be >= activeStreak') ['health_state/contest_streak_fetch_status.json'] ['BTS fetch-contest-streak failed: profile/rounds shape or fetch error: seasonBestStreak must be >= activeStreak']
+K5 seasonBestStreak True ContestFetchError: seasonBestStreak must be an integer (2, 'SystemExit', 'fetch-contest-streak: profile/rounds shape or fetch error: seasonBestStreak must be an integer') ['health_state/contest_streak_fetch_status.json'] ['BTS fetch-contest-streak failed: profile/rounds shape or fetch error: seasonBestStreak must be an integer']
+K5 seasonBestStreak '12' ContestFetchError: seasonBestStreak must be an integer (2, 'SystemExit', 'fetch-contest-streak: profile/rounds shape or fetch error: seasonBestStreak must be an integer') ['health_state/contest_streak_fetch_status.json'] ['BTS fetch-contest-streak failed: profile/rounds shape or fetch error: seasonBestStreak must be an integer']
+K5 seasonBestStreak 12.0 ContestFetchError: seasonBestStreak must be an integer (2, 'SystemExit', 'fetch-contest-streak: profile/rounds shape or fetch error: seasonBestStreak must be an integer') ['health_state/contest_streak_fetch_status.json'] ['BTS fetch-contest-streak failed: profile/rounds shape or fetch error: seasonBestStreak must be an integer']
+K5 seasonBestStreak None ContestFetchError: seasonBestStreak must be an integer (2, 'SystemExit', 'fetch-contest-streak: profile/rounds shape or fetch error: seasonBestStreak must be an integer') ['health_state/contest_streak_fetch_status.json'] ['BTS fetch-contest-streak failed: profile/rounds shape or fetch error: seasonBestStreak must be an integer']
+K5 seasonBestStreak <missing> ContestFetchError: seasonBestStreak must be an integer (2, 'SystemExit', 'fetch-contest-streak: profile/rounds shape or fetch error: seasonBestStreak must be an integer') ['health_state/contest_streak_fetch_status.json'] ['BTS fetch-contest-streak failed: profile/rounds shape or fetch error: seasonBestStreak must be an integer']
+K5 seasonBestStreak [] ContestFetchError: seasonBestStreak must be an integer (2, 'SystemExit', 'fetch-contest-streak: profile/rounds shape or fetch error: seasonBestStreak must be an integer') ['health_state/contest_streak_fetch_status.json'] ['BTS fetch-contest-streak failed: profile/rounds shape or fetch error: seasonBestStreak must be an integer']
+K5 seasonBestStreak {} ContestFetchError: seasonBestStreak must be an integer (2, 'SystemExit', 'fetch-contest-streak: profile/rounds shape or fetch error: seasonBestStreak must be an integer') ['health_state/contest_streak_fetch_status.json'] ['BTS fetch-contest-streak failed: profile/rounds shape or fetch error: seasonBestStreak must be an integer']
+K5 seasonBestStreak 58 None (0, 'NoneType', 'season 2027 is not switched to automatic; reading recorded in the ledger and the fetch status: active_streak=12 best_streak=58 source_date=2027-07-15') ['health_state/contest_streak_fetch_status.json', 'picks/account_state/contest_ledger.jsonl'] []
+K5 seasonBestStreak 400 None (0, 'NoneType', 'season 2027 is not switched to automatic; reading recorded in the ledger and the fetch status: active_streak=12 best_streak=400 source_date=2027-07-15') ['health_state/contest_streak_fetch_status.json', 'picks/account_state/contest_ledger.jsonl'] []
+K5 seasonBestStreak 401 ContestFetchError: seasonBestStreak must be <= 400 (2, 'SystemExit', 'fetch-contest-streak: profile/rounds shape or fetch error: seasonBestStreak must be <= 400') ['health_state/contest_streak_fetch_status.json'] ['BTS fetch-contest-streak failed: profile/rounds shape or fetch error: seasonBestStreak must be <= 400']
+K5 seasonBestStreak 570 ContestFetchError: seasonBestStreak must be <= 400 (2, 'SystemExit', 'fetch-contest-streak: profile/rounds shape or fetch error: seasonBestStreak must be <= 400') ['health_state/contest_streak_fetch_status.json'] ['BTS fetch-contest-streak failed: profile/rounds shape or fetch error: seasonBestStreak must be <= 400']
+K5 seasonBestStreak 1570 ContestFetchError: seasonBestStreak must be <= 400 (2, 'SystemExit', 'fetch-contest-streak: profile/rounds shape or fetch error: seasonBestStreak must be <= 400') ['health_state/contest_streak_fetch_status.json'] ['BTS fetch-contest-streak failed: profile/rounds shape or fetch error: seasonBestStreak must be <= 400']
+K6 below (2, 'SystemExit', "Usage: cli set-contest-streak [OPTIONS]\nTry 'cli set-contest-streak --help' for help.\n\nError: Invalid value for --best-streak: best streak must be at least the active streak") (1, 'BadParameter', 'best streak must be at least the active streak') []
+K6 negative (2, 'SystemExit', "Usage: cli set-contest-streak [OPTIONS]\nTry 'cli set-contest-streak --help' for help.\n\nError: Invalid value for --streak: streak must be non-negative") (1, 'BadParameter', 'streak must be non-negative') []
+K6 bound (2, 'SystemExit', "Usage: cli set-contest-streak [OPTIONS]\nTry 'cli set-contest-streak --help' for help.\n\nError: Invalid value for --best-streak: best streak must be at most 400") (1, 'BadParameter', 'best streak must be at most 400') []
+K6 active above best and cap (2, 'SystemExit', "Usage: cli set-contest-streak [OPTIONS]\nTry 'cli set-contest-streak --help' for help.\n\nError: Invalid value for --best-streak: best streak must be at least the active streak") (1, 'BadParameter', 'best streak must be at least the active streak') []
+K6 date (2, 'SystemExit', "Usage: cli set-contest-streak [OPTIONS]\nTry 'cli set-contest-streak --help' for help.\n\nError: Invalid value for --date: must be today (2027-07-15)") (1, 'BadParameter', 'must be today (2027-07-15)') []
+K6 text (2, 'SystemExit', "Usage: cli set-contest-streak [OPTIONS]\nTry 'cli set-contest-streak --help' for help.\n\nError: Invalid value for '--best-streak': '12.0' is not a valid integer.") (1, 'BadParameter', "'12.0' is not a valid integer.") []
+K6 bad saver (2, 'SystemExit', "Usage: cli set-contest-streak [OPTIONS]\nTry 'cli set-contest-streak --help' for help.\n\nError: Invalid value for '--saver': 'bad' is not one of 'not_earned', 'active', 'used'.") (1, 'BadParameter', "'bad' is not one of 'not_earned', 'active', 'used'.") []
+K6 legacy option (2, 'SystemExit', "Usage: cli set-contest-streak [OPTIONS]\nTry 'cli set-contest-streak --help' for help.\n\nError: Invalid value for --ttl-hours: cannot be used with --date") (1, 'BadParameter', 'cannot be used with --date') []
+K6 new cap (0, 'NoneType', 'Observation written at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/cli-8/account_state/contest_streak.manual.json: date=2027-07-15 streak=400 best=400 saver=used reason=None\ncontest_streak: 400 (best 400, saver used) for 2027-07-15, in effect today') None ['account_state/contest_manual_requests.jsonl', 'account_state/contest_streak.manual.json']
+K6 old cap (0, 'NoneType', 'Observation written at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/cli-9/account_state/contest_streak.manual.json: date=2027-07-15 streak=58 best=58 saver=used reason=None\ncontest_streak: 58 (best 58, saver used) for 2027-07-15, in effect today') None ['account_state/contest_manual_requests.jsonl', 'account_state/contest_streak.manual.json']
+K6 missing best (2, 'SystemExit', "Usage: cli set-contest-streak [OPTIONS]\nTry 'cli set-contest-streak --help' for help.\n\nError: Invalid value for --best-streak: required with --date") (1, 'BadParameter', 'required with --date') []
+K6 missing saver (2, 'SystemExit', "Usage: cli set-contest-streak [OPTIONS]\nTry 'cli set-contest-streak --help' for help.\n\nError: Invalid value for --saver: required with --date") (1, 'BadParameter', 'required with --date') []
+legacy 401 (0, 'NoneType', 'Wrote /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp40rs883h/legacy-cli/account_state/contest_streak.manual.json: active_streak=401 source_date=2027-07-15 override_expires_at=2027-07-16T16:00:00Z') ['account_state/contest_streak.manual.json']
+K7 outer streak -1 None
+K7 outer streak True None
+K7 outer streak '12' None
+K7 outer streak 12.0 None
+K7 outer streak None None
+K7 outer streak <missing> None
+K7 outer streak 58 None
+K7 outer streak 401 None
+K7 outer kind 'unknown' None
+K7 outer kind [] None
+K7 outer kind None None
+K7 outer kind <missing> None
+K7 outer kind 'automatic' None
+K7 outer required 1 None
+K7 outer required None None
+K7 outer required <missing> None
+K7 outer saver_available 1 None
+K7 outer saver_available True None
+K7 outer saver_available None None
+K7 outer saver_available <missing> None
+K7 outer schema 'invalid' None
+K7 outer schema <missing> None
+K7 outer dated None None
+K7 outer dated [] None
+K7 outer dated <missing> None
+K7 identity active_streak -1 None
+K7 identity active_streak 11 None
+K7 identity active_streak True None
+K7 identity active_streak '12' None
+K7 identity active_streak 12.0 None
+K7 identity active_streak None None
+K7 identity active_streak <missing> None
+K7 identity active_streak [] None
+K7 identity active_streak {} None
+K7 identity active_streak 58 None
+K7 identity active_streak 401 None
+K7 identity best_streak -1 None
+K7 identity best_streak 11 None
+K7 identity best_streak True None
+K7 identity best_streak '12' None
+K7 identity best_streak 12.0 None
+K7 identity best_streak None None
+K7 identity best_streak <missing> None
+K7 identity best_streak [] None
+K7 identity best_streak {} None
+K7 identity best_streak 58 {'schema': 'bts_pick_chosen_on_v1', 'required': True, 'kind': 'dated', 'streak': 12, 'saver_available': False, 'dated': {'effective_date': '2027-07-15', 'active_streak': 12, 'best_streak': 58, 'saver_state': 'used'}}
+K7 identity best_streak 400 {'schema': 'bts_pick_chosen_on_v1', 'required': True, 'kind': 'dated', 'streak': 12, 'saver_available': False, 'dated': {'effective_date': '2027-07-15', 'active_streak': 12, 'best_streak': 400, 'saver_state': 'used'}}
+K7 identity best_streak 401 None
+K7 identity effective_date '20270715' None
+K7 identity effective_date '2027-02-30' None
+K7 identity effective_date True None
+K7 identity effective_date '12' None
+K7 identity effective_date 12.0 None
+K7 identity effective_date None None
+K7 identity effective_date <missing> None
+K7 identity effective_date [] None
+K7 identity effective_date {} None
+K7 identity saver_state 'bad' None
+K7 identity saver_state True None
+K7 identity saver_state '12' None
+K7 identity saver_state 12.0 None
+K7 identity saver_state None None
+K7 identity saver_state <missing> None
+K7 identity saver_state [] None
+K7 identity saver_state {} None
+K7 matching count 58 automatic True
+K7 matching count 58 dated True
+K7 matching count 58 legacy_manual True
+K7 matching count 58 model True
+K7 matching count 100 automatic True
+K7 matching count 100 dated True
+K7 matching count 100 legacy_manual True
+K7 matching count 100 model True
+K7 matching count 400 automatic True
+K7 matching count 400 dated True
+K7 matching count 400 legacy_manual True
+K7 matching count 400 model True
+K7 matching count 401 automatic False
+K7 matching count 401 dated False
+K7 matching count 401 legacy_manual True
+K7 matching count 401 model True
+K8 best -1 (-1, 'untrusted')
+K8 best 58 (58, 'trusted')
+K8 best 100 (100, 'trusted')
+K8 best 400 (400, 'trusted')
+K8 best 401 (401, 'untrusted')
+K8 best 570 (570, 'untrusted')
+K8 best None (None, 'missing')
+K8 best True (1, 'trusted')
+K8 best 12.5 (12, 'trusted')
+K8 best 12 (12, 'trusted')
+K8 best x ValueError: invalid literal for int() with base 10: 'x'
+K8 provenance {'streak': 58} (57, 'untrusted')
+K8 provenance {'source_date': None} (57, 'untrusted')
+K8 provenance {'source_date': datetime.date(2026, 7, 15)} (57, 'untrusted')
+K8 provenance {'source_date': datetime.date(2027, 7, 16)} (57, 'untrusted')
+K8 provenance {'source': 'unknown'} (57, 'untrusted')
+K8 provenance {'schema_version': None} (57, 'untrusted')
+K8 provenance {'schema_version': 'bts_contest_streak_manual_v2'} (57, 'untrusted')
+K8 provenance {'schema_version': 'bts_contest_streak_manual_v2', 'override_expires_at': datetime.datetime(2027, 7, 15, 12, 0, tzinfo=zoneinfo.ZoneInfo(key='America/New_York'))} (57, 'untrusted')
+K8 provenance {'schema_version': 'bts_contest_streak_manual_v2', 'override_expires_at': datetime.datetime(2027, 7, 15, 12, 0, 1, tzinfo=zoneinfo.ZoneInfo(key='America/New_York'))} (57, 'trusted')

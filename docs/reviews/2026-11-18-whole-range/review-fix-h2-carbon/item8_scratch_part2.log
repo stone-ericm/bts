@@ -1,0 +1,22 @@
+s1_check5_drop_upper: CAUGHT by tests/test_wr_h2_caps.py
+s1_check6_drop_upper: CAUGHT by tests/test_wr_h2_caps.py
+s2_active_drop_upper: CAUGHT by tests/test_wr_h2_caps.py
+s2_best_drop_upper: CAUGHT by tests/test_wr_h2_caps.py
+s3_classify_drop_upper: CAUGHT by tests/test_wr_h2_caps.py
+s4_fetch_drop_upper: CAUGHT by tests/test_wr_h2_caps.py
+s5_cli_drop_upper: CAUGHT by tests/test_wr_h2_caps.py
+s6_outer_drop_upper: CAUGHT by tests/test_wr_h2_caps.py
+s6_dated_drop_upper: CAUGHT by tests/test_wr_h2_caps.py
+s4_drop_best_ge_active: CAUGHT by tests/test_wr_h2_caps.py
+s1_drop_best_ge_active: CAUGHT by tests/test_wr_h2_caps.py
+s2_drop_best_ge_active: CAUGHT by tests/test_wr_h2_caps.py
+s5_drop_best_ge_active: CAUGHT by tests/test_wr_h2_caps.py
+policy_tail_target_400: CAUGHT by tests/test_wr_h2_caps.py
+policy_longest_from_400: CAUGHT by tests/test_wr_h2_caps.py
+policy_effective_best_400: UNNOTICED
+policy_skip_reason_400: UNNOTICED
+msg1_dated_check5_57: CAUGHT by tests/test_wr_h2_caps.py
+msg2_dated_check6_57: CAUGHT by tests/test_wr_h2_caps.py
+msg3_fetch_57: CAUGHT by tests/test_wr_h2_caps.py
+msg4_cli_57: UNNOTICED
+total=21 unnoticed=3: ['policy_effective_best_400', 'policy_skip_reason_400', 'msg4_cli_57']

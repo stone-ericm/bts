@@ -20,7 +20,7 @@ _ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 from bts.util import atomic_write_text, retry_urlopen
 from bts.data.schema import HIT_EVENTS, PA_ENDING_EVENTS  # pandas-free constants
-from bts.contest_state import DecisionStreakState, TARGET_STREAK, valid_automatic_reading
+from bts.contest_state import DecisionStreakState, MAX_SEASON_STREAK, valid_automatic_reading
 from bts.saver_state import SaverState, policy_saver_available
 
 API_BASE = "https://statsapi.mlb.com"
@@ -269,7 +269,7 @@ def _valid_chosen_on(value: object) -> dict | None:
         or type(value["saver_available"]) is not bool
     ):
         return None
-    if kind in {"dated", "automatic"} and streak > TARGET_STREAK:
+    if kind in {"dated", "automatic"} and streak > MAX_SEASON_STREAK:
         return None
     dated = value["dated"]
     if kind != "dated":
@@ -282,7 +282,7 @@ def _valid_chosen_on(value: object) -> dict | None:
     if (
         type(effective) is not str
         or type(active) is not int or type(best) is not int
-        or active != streak or not 0 <= active <= best <= TARGET_STREAK
+        or active != streak or not 0 <= active <= best <= MAX_SEASON_STREAK
         or type(saver) is not str or saver not in {"not_earned", "active", "used"}
     ):
         return None

@@ -210,6 +210,28 @@ def test_longest_walk_records_the_actual_choice():
     assert walk.check([record]) == []
 
 
+def test_saved_h2_walk_adds_one_state_and_preserves_the_baseline():
+    results = Path(walk.__file__).with_name("results")
+    with gzip.open(results / "walk-ea-g-h.json.gz", "rt") as file:
+        baseline = json.load(file)
+    with gzip.open(results / "walk-h2.json.gz", "rt") as file:
+        updated = json.load(file)
+    high = "dated/58/60/used/0.96"
+    assert updated["states"] == [state.label() for state in walk.DEFAULT_STATES]
+    assert updated["states"] == [*baseline["states"], high]
+    existing = [row for row in updated["records"] if row["state"] != high]
+    added = [row for row in updated["records"] if row["state"] == high]
+    assert len(existing) == 4818 and existing == baseline["records"]
+    assert updated["boundary"] == baseline["boundary"]
+    assert updated["runs"] == len(updated["records"]) == 5037
+    assert updated["problems"] == [] and walk.check(updated["records"]) == []
+    assert [row["day"] for row in added] == list(baseline["by_day"])
+    assert Counter(row["action"] for row in added) == {"single": 207, "double": 3, "skip": 9}
+    assert [row["day"] for row in added if row["action"] == "double"] == [
+        "2027-09-24", "2027-09-25", "2027-09-26"]
+    assert all(row["day"] > "2027-09-26" for row in added if row["action"] == "skip")
+
+
 @pytest.mark.parametrize("field,value,message", [
     ("days_effective", None, "effective days"),
     ("source", None, "decision source"),

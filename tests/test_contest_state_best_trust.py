@@ -58,7 +58,7 @@ def test_auto_best_below_streak_is_rejected(tmp_path):
 
 
 def test_auto_best_above_target_is_rejected(tmp_path):
-    _auto(tmp_path, best=99)
+    _auto(tmp_path, best=401)
     with pytest.raises(ContestStateError):
         load_decision_streak_state(tmp_path, now=NOW)
 

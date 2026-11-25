@@ -1,0 +1,8 @@
+nice: setpriority: Operation not permitted
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=double streak=57 best=57 (trusted) effective_best=None days=1 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+K5 216 refusals through real fetch, dry-run/recipient/cooldown, cap 57
+K10 base refused 58 and kept 57; dry-run failure wrote status and sent DM
+K7 four pick loaders and required matcher 14 cases
+K8 parsed trust controls; switched high best with no coverage installs but stays untrusted

@@ -1,0 +1,10 @@
+Part A (Item 3): all 12 full-day scenarios + bts run/preview at 58, 100, 400 passed.
+Part B (Item 5): 5.1b, 5.2a/b, and 5.5 refusal alert DM verified.
+Part C (Item 6): KeyboardInterrupt propagation and unconfirmed-send alert DM verified.
+Part D (policy_effective_best_400_all_tail_tests): UNNOTICED across tests/test_wr_h2_caps.py,tests/simulate/test_tail_policy.py,tests/test_tail_policy_strategy.py,tests/test_scheduler_tail_objective.py
+Part D (policy_skip_reason_400_all_tail_tests): UNNOTICED across tests/test_wr_h2_caps.py,tests/simulate/test_tail_policy.py,tests/test_tail_policy_strategy.py,tests/test_scheduler_tail_objective.py
+Part D (s6_outer_drop_dated): UNNOTICED across tests/test_wr_h2_caps.py,tests/test_pick_chosen_on_cs5a.py
+problems=3
+PROBLEM: bts run 58 failed
+PROBLEM: bts run 400 failed
+PROBLEM: 6.1a standalone_mode=False exc: Abort()

@@ -1,0 +1,13 @@
+2027-03-01
+2027-04-01
+2027-05-01
+2027-06-01
+2027-07-01
+2027-08-01
+2027-09-01
+2027-10-01
+runs=5037 problems=0
+
+All 4,818 existing records and the year boundary results equal walk-ea-g-h.json.gz.
+The 219 dated/58/60/used/0.96 records contain 207 singles, three doubles on
+2027-09-24 through 2027-09-26, and nine post-finale skips. No findings.

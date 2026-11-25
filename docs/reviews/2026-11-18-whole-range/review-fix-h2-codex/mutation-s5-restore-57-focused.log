@@ -1,0 +1,23 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-h2c-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 16 items
+
+tests/test_wr_h2_caps.py F
+
+=================================== FAILURES ===================================
+________________ test_m1_dated_cli_selects_delivers_and_commits ________________
+tests/test_wr_h2_caps.py:78: in test_m1_dated_cli_selects_delivers_and_commits
+    install(directory, "dated", 58, 58)
+tests/test_wr_h2_caps.py:53: in install
+    assert walk.install_state(directory, DAY, walk.State(kind, active, best, "used", .96)) == []
+E   assert ['set-contest... at most 400'] == []
+E     
+E     Left contains one more item: "set-contest-streak exit 2: Usage: cli set-contest-streak [OPTIONS]\nTry 'cli set-contest-streak --help' for help.\n\nError: Invalid value for --best-streak: best streak must be at most 400"
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/test_wr_h2_caps.py::test_m1_dated_cli_selects_delivers_and_commits
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+============================== 1 failed in 0.91s ===============================

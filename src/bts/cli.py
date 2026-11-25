@@ -1526,8 +1526,11 @@ def set_contest_streak(
         if best_streak < streak:
             raise click.BadParameter("best streak must be at least the active streak",
                                      param_hint="--best-streak")
-        if best_streak > 57:
-            raise click.BadParameter("best streak must be at most 57", param_hint="--best-streak")
+        from bts.contest_state import MAX_SEASON_STREAK
+
+        if best_streak > MAX_SEASON_STREAK:
+            raise click.BadParameter(f"best streak must be at most {MAX_SEASON_STREAK}",
+                                     param_hint="--best-streak")
         _write_dated_contest_observation(
             picks_dir, effective_date=observed_date, streak=streak, best_streak=best_streak,
             saver=saver, reason=reason, now=now)

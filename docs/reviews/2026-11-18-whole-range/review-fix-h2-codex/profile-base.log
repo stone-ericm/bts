@@ -1,0 +1,5 @@
+nice: setpriority: Operation not permitted
+57 2 fetch-contest-streak: profile/rounds shape or fetch error: seasonBestStreak must be <= 57
+57 2 fetch-contest-streak: profile/rounds shape or fetch error: seasonBestStreak must be <= 57
+57 2 fetch-contest-streak: profile/rounds shape or fetch error: profile predictions must be a list
+57 2 fetch-contest-streak: profile/rounds shape or fetch error: int() argument must be a string, a bytes-like object or a real number, not 'list'

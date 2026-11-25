@@ -120,7 +120,7 @@ def test_manual_precedes_corrupt_auto(tmp_path, contents, pinned_clock):
         tmp_path, require_contest_state=True, now=NOW).streak == 0
 
 
-@pytest.mark.parametrize("streak,best", [(13, 10), (58, 58), (13, 58)])
+@pytest.mark.parametrize("streak,best", [(13, 10), (401, 401), (13, 401)])
 def test_u1_bad_best_reachable_after_corruption(tmp_path, streak, best, covered_automatic):
     """Row 3 / U1: mutate a valid producer artifact AFTER successful loading."""
     path = _covered(tmp_path, covered_automatic)
@@ -135,7 +135,7 @@ def test_u1_bad_best_reachable_after_corruption(tmp_path, streak, best, covered_
     assert all(value in str(exc.value) for value in (str(path), str(streak), str(best)))
 
 
-@pytest.mark.parametrize("streak,best", [(13, 10), (58, 58), (13, 58)])
+@pytest.mark.parametrize("streak,best", [(13, 10), (401, 401), (13, 401)])
 def test_manual_bounds_unchanged_in_cs1(tmp_path, streak, best):
     path = _auto(tmp_path, active_streak=streak, best_streak=best)
     path.rename(path.with_name("contest_streak.manual.json"))

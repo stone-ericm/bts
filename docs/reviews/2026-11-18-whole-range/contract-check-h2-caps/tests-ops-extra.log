@@ -1,0 +1,23 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-check-h2b/.codex-review/wr-h2-check/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 437 items
+
+tests/test_alert_status_callers_cs6b2.py ......................          [  5%]
+tests/test_alert_status_cs6b2_carbon.py ............................     [ 11%]
+tests/test_incident_2026_08_30.py ....                                   [ 12%]
+tests/test_live_gate_cs6a.py ........................................... [ 22%]
+.............                                                            [ 25%]
+tests/test_live_gate_cs6a_review.py ........                             [ 27%]
+tests/test_wr_a_calendar.py ........                                     [ 28%]
+tests/test_wr_a_pick.py ...............................                  [ 35%]
+tests/test_wr_a_review_carbon.py .........................               [ 41%]
+tests/test_wr_b_contract.py ........................                     [ 47%]
+tests/test_wr_b_edges.py ............................................... [ 57%]
+..........................                                               [ 63%]
+tests/test_wr_b_r2_review_adopt.py ...........                           [ 66%]
+tests/test_wr_e_texts.py ............................................... [ 77%]
+..........
