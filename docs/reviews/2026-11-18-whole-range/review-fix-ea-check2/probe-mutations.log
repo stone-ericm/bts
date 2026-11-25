@@ -1,0 +1,58 @@
+nice: setpriority: Operation not permitted
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-chk-ea4/.codex-review/wr-ea4/probe_mutations.py", line 60, in <module>
+    run_one(*case)
+  File "/Users/eric/projects/bts-work/wr-chk-ea4/.codex-review/wr-ea4/probe_mutations.py", line 54, in run_one
+    assert result.returncode == 1 and "1 failed" in output and expected in output, output
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-ea4
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_wr_e_texts.py F                                               [100%]
+
+=================================== FAILURES ===================================
+_________________ test_stale_warning_maximum_detail[delivery] __________________
+
+route = 'delivery'
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1130/test_stale_warning_maximum_det0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c7fd7f0>
+capsys = <_pytest.capture.CaptureFixture object at 0x10c915580>
+
+    @pytest.mark.parametrize("route", ["delivery", "morning"])
+    def test_stale_warning_maximum_detail(route, tmp_path, monkeypatch, capsys):
+        from tests.test_morning_state_cs6b1 import DAY
+    
+        now = datetime.fromisoformat(DAY + "T10:00:00-04:00")
+        stamp = "0001-01-01T00:00:00." + "0" * 102 + "+00:00"
+        state = contest_state.DecisionStreakState(
+            10, False, False, "contest", "fresh", None, None, observation_kind="automatic",
+            contest_recorded_at=stamp,
+        )
+        record = contest_state.automatic_reading_record(state, now)
+        detail = f"last accepted fetch {stamp}, about {record['age_hours']:.2f} hours ago"
+        assert len(stamp) == 128 and len(detail) == 177
+        monkeypatch.setattr(contest_state, "load_decision_streak_state", lambda *a, **kw: state)
+        monkeypatch.setattr(scheduler, "_now_et", lambda: now)
+        sent = []
+        monkeypatch.setattr(alert, "send_dm", lambda recipient, body: sent.append(body))
+        config = {"bluesky": {"dm_recipient": "offline.test"}}
+        picks_dir = tmp_path / "picks"
+        if route == "delivery":
+            scheduler._warn_stale_contest_reading(record, config, picks_dir)
+            expected, length = envelope(day=DAY, detail=detail), 896
+>           assert "  STALE CONTEST READING — " + expected.split("- [contest_state] ")[1] in capsys.readouterr().err
+E           assert ('  STALE CONTEST READING — ' + 'The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 0001-01-01T00:00:00.0000...e or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.') in '  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetc...or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.\n'
+E            +  where '  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetc...or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.\n' = CaptureResult(out='', err="  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged...r not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.\n").err
+E            +    where CaptureResult(out='', err="  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged...r not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.\n") = readouterr()
+E            +      where readouterr = <_pytest.capture.CaptureFixture object at 0x10c915580>.readouterr
+
+tests/test_wr_e_texts.py:235: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_e_texts.py::test_stale_warning_maximum_detail[delivery]
+============================== 1 failed in 0.40s ===============================
+nice: setpriority: Operation not permitted
+
