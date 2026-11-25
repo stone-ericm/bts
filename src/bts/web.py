@@ -264,32 +264,15 @@ def load_scheduler_state(date_str: str) -> dict:
         return {}
 
 
-def render_skip_banner(summary: dict | None) -> str:
-    """Dashboard banner for a skip day (no pick). Empty string when not a skip.
-    Reads the scheduler's persisted skip_summary; see the 2026-06-18 incident."""
-    if not summary:
+def render_skip_banner(summary: object) -> str:
+    """Render the last skip check using its persisted summary."""
+    if not isinstance(summary, dict) or not summary:
         return ""
-    name = html_lib.escape(str(summary.get("best_batter", "?")))
-    team = html_lib.escape(str(summary.get("best_team", "")))
-    import math
-    p = summary.get("best_p")
-    streak = summary.get("streak")
-    bar = summary.get("bar")
-    if summary.get("reason"):
-        # Tail regime (2026-09-03): the stop rule, not a bar.
-        pct = f"{p:.1%}" if isinstance(p, (int, float)) and math.isfinite(p) else "?"
-        below = html_lib.escape(str(summary["reason"]))
-    elif isinstance(bar, (int, float)) and math.isfinite(bar) and streak is not None:
-        # The bar is streak-dependent and can sit within 0.2pp of best_p (2026-07-01:
-        # 81.0% vs 81.2%) — show both at 0.1% precision so the margin is visible.
-        pct = f"{p:.1%}" if isinstance(p, (int, float)) and math.isfinite(p) else "?"
-        below = f"below the streak-{streak} bar ({bar:.1%})"
-    else:
-        pct = f"{p:.0%}" if isinstance(p, (int, float)) and math.isfinite(p) else "?"
-        below = "below the pick bar"
-    return ('<div class="skip-banner"><strong>SKIP TODAY</strong>'
-            f"<span>No pick — model's best is {name} ({team}) {pct}, {below}. "
-            f"Streak holds at {streak}.</span></div>")
+    from bts.scheduler import format_skip_summary
+
+    body = html_lib.escape(format_skip_summary(summary))
+    return ('<div class="skip-banner"><strong>NO PICK AT LAST CHECK</strong>'
+            f"<span>{body}</span></div>")
 
 
 def _decision_action(date: str) -> str | None:
