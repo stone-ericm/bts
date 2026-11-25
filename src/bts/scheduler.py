@@ -6,12 +6,16 @@ and commits picks only when confirmed lineup + gap threshold met.
 """
 
 import json
+import math
+import re
 import shlex
 import subprocess
 import sys
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta, timezone, date as date_type
+from numbers import Real
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -85,11 +89,15 @@ def _warn_stale_contest_reading(record: dict | None, config: dict, picks_dir: Pa
         else:
             detail = "it has no usable recorded_at"
         message = (
-            f"The pick was delivered using an automatic contest reading flagged stale ({detail}). "
-            "Check MLB. If the streak or saver differs, use bts set-contest-streak "
-            f"--date {warning_day.isoformat()} --streak N --best-streak B --saver S with the "
-            "scheduler's picks directory and the values shown in MLB. "
-            "Use the current ET date when you run it. Check the latest fetch status."
+            f"The pick was delivered using an automatic contest reading flagged stale ({detail}). Check "
+            "MLB. If MLB differs from status (B8a), use bts set-contest-streak --date "
+            f"{warning_day.isoformat()} --streak N --best-streak B --saver S --picks-dir DIR. DIR is the "
+            "absolute scheduler picks path. The sent pick and saver flag stay as they were. "
+            "Write only on the pick's ET slate date once prior entries settle or their windows close empty. "
+            "For a later slate date, see B8a. "
+            f"In {warning_day.year:04d} ET away from midnight, if MLB shows this season's "
+            "saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts "
+            "saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status."
         )
         try:
             print(f"  STALE CONTEST READING — {message}", file=sys.stderr)
@@ -197,10 +205,14 @@ def _morning_state_check(
     _print_morning_check(f"  MORNING STATE CHECK — stale contest reading: {detail}")
     if recipient:
         message = (
-            f"Morning check for {date}: the automatic contest reading was stale at startup ({detail}). "
-            "This reading is eligible if it remains in use. Check MLB. If state still differs, "
-            f"use bts set-contest-streak --date {date} --streak N --best-streak B --saver S with "
-            "the scheduler's picks directory and the values shown in MLB. Check the latest fetch status."
+            f"Morning check for {date}: the automatic contest reading was stale at startup ({detail}). This "
+            "reading is eligible if it remains in use. Before the first check, if prior entries are settled or absent "
+            "and MLB differs from status (B8a), use "
+            f"bts set-contest-streak --date {date} --streak N --best-streak B --saver S --picks-dir DIR on "
+            f"{date} ET only. DIR is the absolute scheduler picks path. This leaves the saver flag "
+            f"unchanged. In {date[:4]} ET away from midnight, if MLB shows this season's saver used, check bts "
+            "saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir "
+            "DIR. For uninitialized, see B8a. Check the latest fetch status."
         )
         dispatch_dm_for_health_alerts(
             [],
@@ -1701,12 +1713,8 @@ def _has_pending_future_confirmation_window(
 
 
 def build_skip_summary(predictions, streak, pick_bar: float | None = None,
-                       decision=None) -> dict | None:
-    """Summarize a skip for log/DM/dashboard: the model's best candidate today and
-    the streak being protected. Returns None on unusable data — this runs in the
-    daemon loop and must never raise. Emits JSON-native types only (no NaN/numpy).
-    ``pick_bar`` (strategy.effective_pick_bar) is carried as ``bar`` when finite so
-    downstream messages can name the streak-dependent bar instead of "~80%"."""
+                       decision=None, candidate=None) -> dict | None:
+    """Keep the prediction gate and prefer the policy's candidate for display."""
     try:
         cols = getattr(predictions, "columns", [])
         if "p_game_hit" not in cols or "batter_name" not in cols:
@@ -1725,7 +1733,6 @@ def build_skip_summary(predictions, streak, pick_bar: float | None = None,
             "best_p": float(finite.loc[idx]),
             "streak": int(streak) if streak is not None else None,
         }
-        import math
         if isinstance(pick_bar, (int, float)) and math.isfinite(float(pick_bar)):
             summary["bar"] = float(pick_bar)
         if decision is not None:
@@ -1733,36 +1740,92 @@ def build_skip_summary(predictions, streak, pick_bar: float | None = None,
             summary["objective"] = getattr(decision, "objective", None)
             if getattr(decision, "reason", None):
                 summary["reason"] = str(decision.reason)
-        return summary
     except Exception:
         return None
 
+    summary["basis"] = "decision" if decision is not None else "no_decision"
+    summary["candidate_verified"] = False
+    if decision is not None:
+        try:
+            if not isinstance(candidate, Mapping):
+                return summary
+            probability = candidate.get("p_game_hit")
+            if isinstance(probability, bool) or not isinstance(probability, Real):
+                return summary
+            probability = float(probability)
+            if not math.isfinite(probability):
+                return summary
+            name, team = candidate.get("batter_name"), candidate.get("team")
+            summary.update(
+                best_batter=name if isinstance(name, str) else "?",
+                best_team=team if isinstance(team, str) else "?",
+                best_p=probability,
+                candidate_verified=True,
+            )
+        except Exception:
+            pass
+    return summary
 
-def format_skip_dm(date: str, summary: dict) -> str:
-    """One-line operator notice for a skip. Phrased tentatively — an early cycle's
-    skip may still flip to a pick if a confirmed lineup clears the bar, and a DM
-    can't be retracted, so it must not claim a finality it doesn't have."""
-    bar = summary.get("bar")
-    import math
-    if summary.get("reason"):
-        return (
-            f"BTS {date}: No pick — model's best is {summary['best_batter']} "
-            f"({summary['best_team']}) {summary['best_p']:.1%}; {summary['reason']}. "
-            f"Streak holds at {summary['streak']}."
-        )
-    if isinstance(bar, (int, float)) and math.isfinite(bar):
-        # 0.1% precision: the streak-dependent bar can sit within 0.2pp of best_p.
-        return (
-            f"BTS {date}: No pick yet — model's best is {summary['best_batter']} "
-            f"({summary['best_team']}) {summary['best_p']:.1%}, below the "
-            f"streak-{summary['streak']} bar of {bar:.1%} (streak holds at "
-            f"{summary['streak']}). Will pick if a confirmed lineup clears it."
-        )
-    return (
-        f"BTS {date}: No pick yet — model's best is {summary['best_batter']} "
-        f"({summary['best_team']}) {summary['best_p']:.0%}, below the ~80% bar "
-        f"(streak holds at {summary['streak']}). Will pick if a confirmed lineup clears it."
-    )
+
+def _skip_display_number(value: object) -> float | None:
+    if type(value) not in (int, float):
+        return None
+    try:
+        number = float(value)
+    except OverflowError:
+        return None
+    return number if 0 <= number <= 1 else None
+
+
+def format_skip_summary(summary: object) -> str:
+    """Render one shared skip description from a persisted summary."""
+    def display_string(value: object) -> str:
+        return re.sub(r"\bbelow the\b", "under the", " ".join(value.splitlines())) if isinstance(value, str) else "?"
+
+    fields = summary if isinstance(summary, dict) else {}
+    name = display_string(fields.get("best_batter"))
+    team = display_string(fields.get("best_team"))
+    probability = _skip_display_number(fields.get("best_p"))
+    bar = _skip_display_number(fields.get("bar"))
+    streak = fields.get("streak")
+    if type(streak) is not int or streak < 0:
+        streak = None
+    basis = fields.get("basis")
+    no_decision = basis == "no_decision"
+    raw_reason = fields.get("reason")
+    reason = display_string(raw_reason).strip() if isinstance(raw_reason, str) else ""
+    label = "Top model prediction (eligibility unverified)"
+    pct = f"{probability:.1%}" if probability is not None else "?"
+    candidate = f"{name} ({team}) {pct}"
+    if fields.get("candidate_verified") is True:
+        description = f"Candidate used in the decision: {candidate}"
+    else:
+        description = f"{label}: {candidate}"
+
+    if reason:
+        ending = "" if reason.endswith((".", "!", "?")) else "."
+        sentence = f"{description}. Reason: {reason}{ending}"
+    elif no_decision:
+        sentence = f"No candidate was chosen. {label}: {candidate}."
+    elif bar is not None and probability is not None:
+        bar_label = f"the streak-{streak} bar" if streak is not None else "the bar"
+        bar_text = f"{bar_label} ({bar:.1%})"
+        if probability < bar:
+            sentence = f"{description}, below {bar_text} using unrounded values."
+        else:
+            sentence = f"{description}, at or above {bar_text}."
+    else:
+        sentence = f"{description}. No probability comparison is available for this check."
+    if streak is not None and not no_decision:
+        if basis == "decision":
+            sentence += f" Streak used at this check: {streak}."
+        else:
+            sentence += f" Streak recorded with this check: {streak}."
+    return sentence
+
+
+def format_skip_dm(date: str, summary: object) -> str:
+    return f"BTS {date}: No pick at this check. {format_skip_summary(summary)}"
 
 
 def maybe_notify_skip(
@@ -1938,9 +2001,8 @@ def run_single_check(
     if predictions is None or pick_result is None:
         skip_summary = None
         if predictions is not None and not predictions.empty:
-            # Skip day: predictions ran but the policy declined to pick (best
-            # candidate below the pick bar). Surface it instead of staying silent
-            # — the 2026-06-18 incident, where a legit skip looked like a hang.
+            # Surface checks that produced predictions without a pick, including
+            # checks where no candidate could be chosen.
             dec = getattr(sel, "decision", None) if sel is not None else None
             if dec is not None:
                 # The selection that made the decision is the display authority
@@ -1960,17 +2022,12 @@ def run_single_check(
                         skip_bar = effective_pick_bar(streak, date, bool(sel.saver_available))
                 except Exception:
                     skip_bar = None
-            skip_summary = build_skip_summary(predictions, streak, pick_bar=skip_bar, decision=dec)
+            skip_summary = build_skip_summary(
+                predictions, streak, pick_bar=skip_bar, decision=dec,
+                candidate=sel.primary_candidate if sel is not None else None,
+            )
             if skip_summary is not None:
-                bar = skip_summary.get("bar")
-                if skip_summary.get("reason"):
-                    below = skip_summary["reason"]
-                else:
-                    below = (f"below the streak-{skip_summary['streak']} bar ({bar:.1%})"
-                             if bar is not None else "below the pick bar")
-                print(f"  SKIP — best {skip_summary['best_batter']} "
-                      f"({skip_summary['best_team']}) {skip_summary['best_p']:.1%} {below}; "
-                      f"streak holds at {skip_summary['streak']}.", file=sys.stderr)
+                print(f"  SKIP — {format_skip_summary(skip_summary)}", file=sys.stderr)
             else:
                 print("  No pick this cycle (no usable candidate in predictions).",
                       file=sys.stderr)
@@ -2470,9 +2527,11 @@ def _refuse_late_delivery(daily, config: dict, picks_dir: Path, state: Scheduler
         "double_down": daily.double_down.batter_name if daily.double_down else None,
         "cutoff_et": cutoff.isoformat(), "late_min": late_min, "archive": archive.name}]
     save_state(state, picks_dir)
-    msg = (f"LATE DELIVERY REFUSED: {names} would have been sent {late_min:.0f} min after the "
-           f"{cutoff.strftime('%H:%M ET')} cutoff. Nothing delivered; the scheduler will re-pick "
-           f"from later games if any remain. Enter a pick manually if you want one now.")
+    msg = (f"LATE DELIVERY REFUSED: the {cutoff.strftime('%H:%M ET')} cutoff for {names} had been reached. "
+           "This pick was withheld. A later check may produce another recommendation. "
+           "Use a later official pick message only while the entry window is open. "
+           "A manual entry can differ from a later recommendation. "
+           "The entry check may report a mismatch if it verifies the entry in time.")
     dispatch_dm_for_health_alerts(
         [Alert("CRITICAL", "late_delivery", msg)],
         config.get("bluesky", {}).get("dm_recipient"),
@@ -2525,8 +2584,11 @@ def _refuse_void_game_delivery(daily, config: dict, picks_dir: Path, state: Sche
         "double_down": daily.double_down.batter_name if daily.double_down else None,
         "void_games": {str(k): v for k, v in void_games.items()}, "archive": archive.name}]
     save_state(state, picks_dir)
-    msg = (f"DELIVERY REFUSED for {date}: {games}. Nothing delivered; the scheduler will re-pick from "
-           f"other games if any remain. Enter a pick manually if you want one today.")
+    msg = (f"DELIVERY REFUSED for {date}: {games}. "
+           "This pick was withheld. A later check may produce another recommendation. "
+           "Use a later official pick message only while the entry window is open. "
+           "A manual entry can differ from a later recommendation. "
+           "The entry check may report a mismatch if it verifies the entry in time.")
     dispatch_dm_for_health_alerts(
         [Alert("CRITICAL", "postponed_pick", msg)],
         config.get("bluesky", {}).get("dm_recipient"),

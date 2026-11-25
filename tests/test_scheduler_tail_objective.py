@@ -118,7 +118,7 @@ def test_skip_summary_without_decision_is_unchanged():
     preds = pd.DataFrame([{"batter_name": "Steven Kwan", "team": "CLE", "p_game_hit": 0.738}])
     s = build_skip_summary(preds, 8, pick_bar=0.796)
     assert "reason" not in s and s["bar"] == 0.796
-    assert "streak-8 bar" in format_skip_dm("2026-08-01", s)
+    assert "No candidate was chosen." in format_skip_dm("2026-08-01", s)
 
 
 def test_run_single_check_skip_summary_comes_from_the_selection(tmp_path, monkeypatch):
@@ -143,7 +143,7 @@ def test_run_single_check_skip_summary_comes_from_the_selection(tmp_path, monkey
     result = sch.run_single_check(date="2026-09-19", all_game_pks=[1, 2], confirmed_sides=set(),
                                   config=config, early_lock_gap=0.03)
     s = result["skip_summary"]
-    assert s["best_batter"] == "Steven Kwan" and s["streak"] == 0
+    assert s["best_batter"] == "B1" and s["streak"] == 0
     assert s["reason"].startswith("season-best 18") and s.get("bar") is None
 
 

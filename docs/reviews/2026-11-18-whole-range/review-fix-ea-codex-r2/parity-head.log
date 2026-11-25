@@ -1,0 +1,5 @@
+nice: setpriority: Operation not permitted
+Package: /Users/eric/projects/bts-work/wr-rev-ea2-codex/src/bts/__init__.py
+Prediction/candidate combinations: 600
+Compared complete check fields in: eligible, removed, none_eligible, unreadable, no_selection, no_predictions, tail, pick
+Policy lookups: {'reach57': 19180, 'emax_season_best': 4704}

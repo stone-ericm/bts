@@ -22,11 +22,16 @@ PREFIX = "  STALE CONTEST READING — "
 
 def message(day=DAY, detail=f"last accepted fetch {RECORDED}, about 20.00 hours ago"):
     return (
-        f"The pick was delivered using an automatic contest reading flagged stale ({detail}). "
-        "Check MLB. If the streak or saver differs, use bts set-contest-streak "
-        f"--date {day} --streak N --best-streak B --saver S with the scheduler's picks directory "
-        "and the values shown in MLB. Use the current ET date when you run it. "
-        "Check the latest fetch status."
+        f"The pick was delivered using an automatic contest reading flagged stale ({detail}). Check "
+        f"MLB. If MLB differs from status (B8a), use bts set-contest-streak --date {day} --streak N "
+        "--best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent "
+        "pick and saver flag stay as they were. Write only on the pick's ET slate date once prior "
+        "entries settle or their windows close empty. "
+        f"For a later slate date, see B8a. In {day[:4]} ET away "
+        "from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. "
+        "For active or "
+        "not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the "
+        "latest fetch status."
     )
 
 

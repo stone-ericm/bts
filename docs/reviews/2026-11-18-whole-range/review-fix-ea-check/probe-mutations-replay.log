@@ -1,0 +1,21 @@
+nice: setpriority: Operation not permitted
+delivery-slate detected 5 failed assertions
+delivery-saver-year detected 5 failed assertions
+morning-saver-year detected 3 failed assertions
+legacy-streak-used
+detected
+FAILED tests/test_wr_e_texts.py::test_skip_streak_basis[missing] - AssertionE...
+FAILED tests/test_wr_e_texts.py::test_skip_streak_basis[unknown] - AssertionE...
+FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields0-Candidate used in the decision: A (T) 75.0%. Reason: Stopped!]
+FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields1-Candidate used in the decision: A (T) 75.0%, below the streak-8 bar (75.0%) using unrounded values.]
+FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields2-Candidate used in the decision: A (T) 75.0%, at or above the streak-8 bar (75.0%).]
+FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields3-Candidate used in the decision: A (T) 75.0%. No probability comparison is available for this check.]
+FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields6-Candidate used in the decision: A (T) 75.0%. Reason: Stopped!]
+FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields7-Top model prediction (eligibility unverified): A (T) 75.0%, below the streak-8 bar (80.0%) using unrounded values.]
+FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields8-Candidate used in the decision: A (T) 75.0%. No probability comparison is available for this check.]
+FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields9-Candidate used in the decision: A (T) 75.0%. Reason: Stop  here!]
+legacy-streak-used detected 10 failed assertions
+stored-text-unchanged
+detected
+FAILED tests/test_wr_e_texts.py::test_skip_stored_text_surfaces - AssertionEr...
+stored-text-unchanged detected 1 failed assertions

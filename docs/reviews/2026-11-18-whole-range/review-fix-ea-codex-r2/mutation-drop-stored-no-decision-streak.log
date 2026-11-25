@@ -1,0 +1,23 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-ea2-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 56 items
+
+tests/test_wr_e_texts.py ............................................F
+
+=================================== FAILURES ===================================
+___________________________ test_base_summary_gates ____________________________
+tests/test_wr_e_texts.py:264: in test_base_summary_gates
+    assert current == (old | dict(best_batter="Kept", best_team="T", best_p=0.75)
+E   AssertionError: assert {'bar': 0.8, ...st_team': 'X'} == {'bar': 0.8, ...am': 'X', ...}
+E     
+E     Omitting 4 identical items, use -vv to show
+E     Right contains 1 more item:
+E     {'streak': 0}
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/test_wr_e_texts.py::test_base_summary_gates - AssertionError: as...
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+========================= 1 failed, 44 passed in 1.15s =========================
