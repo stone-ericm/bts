@@ -1,0 +1,48 @@
+nice: setpriority: Operation not permitted
+  LOCKED (probe) — Pick DM sent: pick
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later slate date, see B8a. On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+B8a: For any date later than the pick's slate, including D when the warning was sent after midnight ET, wait until MLB has settled that slate's entry or confirms there was none.
+BTS health WARN attention:
+- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later slate date, see B8a. On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+ET date: 2027-07-17; year: 2027; inspected season: 2027
+switch: automatic
+  season: 2027
+  status: automatic
+  activation_id: 7d2275eb3b40408d8a4dbcf09ecc5351
+  switched_at: 2027-07-15T13:00:00Z
+  revoked_at: None
+  note: None
+manual: absent
+automatic: parsed schema='bts_contest_streak_auto_v2' streak=12 best=14 source date=2027-07-14 recorded time=2027-07-14T22:35:00-04:00
+  season: 2027; activation_id: 7d2275eb3b40408d8a4dbcf09ecc5351
+  identifier matches switch: True (comparison only)
+saver: active; season: 2027
+live decision now: accepted; source=contest; streak=12; status=fresh; saver=active
+automatic path alone: accepted (streak 12, recorded 2027-07-14T22:35:00-04:00)
+ledger: readable; rows: 1; bad lines: 0
+  recorded_at=2027-07-15T13:00:00Z; active_streak=12; best_streak=14; source_date=2027-07-14; season=2027; switched=True; activation_id=7d2275eb3b40408d8a4dbcf09ecc5351; settled_by_year={'2027': 1}; settled_unmapped=0; unsettled=0
+MLB snapshot on July 17: July 15 hit, July 16 entry pending, 13/14/active.
+Observation written at /Users/eric/projects/bts-work/wr-rev-ea2-codex/.codex-review/wr-ea2/tmpmrh2bw75/scheduler/picks/account_state/contest_streak.manual.json: date=2027-07-17 streak=13 best=14 saver=active reason=None
+contest_streak: 13 (best 14, saver active) for 2027-07-17, in effect today
+wrote /Users/eric/projects/bts-work/wr-rev-ea2-codex/.codex-review/wr-ea2/tmpmrh2bw75/scheduler/picks/account_state/contest_streak.json for season 2027: active_streak=14 best_streak=14 source_date=2027-07-16
+wrote /Users/eric/projects/bts-work/wr-rev-ea2-codex/.codex-review/wr-ea2/tmpmrh2bw75/control/picks/account_state/contest_streak.json for season 2027: active_streak=14 best_streak=14 source_date=2027-07-16
+ET date: 2027-07-17; year: 2027; inspected season: 2027
+switch: automatic
+  season: 2027
+  status: automatic
+  activation_id: 7d2275eb3b40408d8a4dbcf09ecc5351
+  switched_at: 2027-07-15T13:00:00Z
+  revoked_at: None
+  note: None
+manual: dated date=2027-07-17 streak=13 best=14 saver=active in effect=True
+automatic: parsed schema='bts_contest_streak_auto_v2' streak=14 best=14 source date=2027-07-16 recorded time=2027-07-17T14:30:00Z
+  season: 2027; activation_id: 7d2275eb3b40408d8a4dbcf09ecc5351
+  identifier matches switch: True (comparison only)
+saver: active; season: 2027
+live decision now: accepted; source=contest; streak=13; status=fresh; saver=active
+automatic path alone: accepted (streak 14, recorded 2027-07-17T14:30:00Z)
+ledger: readable; rows: 2; bad lines: 0
+  recorded_at=2027-07-15T13:00:00Z; active_streak=12; best_streak=14; source_date=2027-07-14; season=2027; switched=True; activation_id=7d2275eb3b40408d8a4dbcf09ecc5351; settled_by_year={'2027': 1}; settled_unmapped=0; unsettled=0
+  recorded_at=2027-07-17T14:30:00Z; active_streak=14; best_streak=14; source_date=2027-07-16; season=2027; switched=True; activation_id=7d2275eb3b40408d8a4dbcf09ecc5351; settled_by_year={'2027': 1}; settled_unmapped=0; unsettled=0
+Real selection used 13, action single.
+Real selection used 14, action single.

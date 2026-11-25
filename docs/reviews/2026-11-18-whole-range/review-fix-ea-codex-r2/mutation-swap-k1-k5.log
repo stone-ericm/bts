@@ -1,0 +1,21 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-ea2-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 56 items
+
+tests/test_wr_e_texts.py .....F
+
+=================================== FAILURES ===================================
+_ test_skip_surfaces[fields5-Candidate used in the decision: A (<T&>) 75.0%. Reason: <stop & check>.] _
+tests/test_wr_e_texts.py:54: in test_skip_surfaces
+    assert scheduler.format_skip_dm("2027-07-15", summary) == "BTS 2027-07-15: No pick at this check. " + body
+E   AssertionError: assert 'BTS 2027-07-...(<T&>) 75.0%.' == 'BTS 2027-07-...top & check>.'
+E     
+E     - BTS 2027-07-15: No pick at this check. Candidate used in the decision: A (<T&>) 75.0%. Reason: <stop & check>.
+E     + BTS 2027-07-15: No pick at this check. No candidate was chosen. Top model prediction (eligibility unverified): A (<T&>) 75.0%.
+=========================== short test summary info ============================
+FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields5-Candidate used in the decision: A (<T&>) 75.0%. Reason: <stop & check>.]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+========================= 1 failed, 5 passed in 1.06s ==========================
