@@ -1,0 +1,3 @@
+nice: setpriority: Operation not permitted
+/Users/eric/projects/bts-work/wr-check-h2b/.codex-review/wr-h2-check/scratch/src/bts/contest_state.py
+grid 15 30 243000 {'reach57': 220410, 'emax_season_best': 22590, 'longest_streak': 0} d6bfb4f1e38377cbd7ef4b5fadefa85b868f0acfae13abd0155ef6a9813749f5
