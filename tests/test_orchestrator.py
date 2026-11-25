@@ -145,7 +145,7 @@ class TestRunAndPick:
         778899: {"abstract": "P", "detailed": "Pre-Game"},
     })
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
-    @patch("bts.strategy._mdp_action_from", return_value="single")
+    @patch("bts.strategy._mdp_action_from", return_value=("single", None))
     @patch("bts.strategy._load_mdp", return_value=None)
     def test_returns_predictions_and_result(
         self, _load_mdp_mock, _mdp, _statuses, _detailed_statuses, mock_cascade, tmp_path
@@ -174,7 +174,7 @@ class TestRunAndPick:
         778899: {"abstract": "P", "detailed": "Pre-Game"},
     })
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
-    @patch("bts.strategy._mdp_action_from", return_value="single")
+    @patch("bts.strategy._mdp_action_from", return_value=("single", None))
     @patch("bts.strategy._load_mdp", return_value=None)
     def test_persists_full_slate(
         self, _load_mdp_mock, _mdp, _statuses, _detailed_statuses, mock_cascade, tmp_path
@@ -204,7 +204,7 @@ class TestRunAndPick:
         778899: {"abstract": "P", "detailed": "Pre-Game"},
     })
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
-    @patch("bts.strategy._mdp_action_from", return_value="single")
+    @patch("bts.strategy._mdp_action_from", return_value=("single", None))
     @patch("bts.strategy._load_mdp", return_value=None)
     def test_emits_progress_marks(
         self, _load_mdp_mock, _mdp, _statuses, _detailed_statuses, mock_cascade, tmp_path
@@ -268,7 +268,7 @@ class TestRunAndPick:
         def action(_mdp, _p, streak, _date, saver):
             assert streak == 7
             assert saver is False
-            return "skip"
+            return "skip", None
 
         mock_mdp.side_effect = action
         (tmp_path / "streak.json").write_text(json.dumps({

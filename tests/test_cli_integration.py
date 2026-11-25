@@ -221,7 +221,7 @@ class TestBtsRun:
         def action(_mdp, _p, streak, _date, saver):
             assert streak == 7
             assert saver is False
-            return "skip"
+            return "skip", None
 
         mock_pipeline.return_value = _mock_predictions()
         mock_mdp.side_effect = action
@@ -261,7 +261,7 @@ class TestBtsPreview:
         def action(_mdp, _p, streak, _date, saver):
             assert streak == 7
             assert saver is False
-            return "skip"
+            return "skip", None
 
         mock_pipeline.return_value = _mock_predictions()
         mock_mdp.side_effect = action

@@ -329,6 +329,18 @@ def run_census(*, picks_dir: Path, ledger_path: Path, policy_path: Path,
                     {"date": dstr, "recorded": streak,
                      "ledger_asof": (obs.active_streak if obs else None)})
 
+        guard = rec.get("policy_guard")
+        guarded_play = (
+            rec.get("scoreable") is True and rec.get("action") in ("single", "double")
+            and isinstance(guard, dict)
+            and guard.keys() == {"rule", "bin", "from_bin", "table_action"}
+            and guard["rule"] == "monotone_skip_v1" and guard["table_action"] == "skip"
+            and type(guard["from_bin"]) is int and type(guard["bin"]) is int
+            and 0 <= guard["from_bin"] < guard["bin"]
+        )
+        if guarded_play:
+            row["parity"] = "guarded_play_excluded"
+
         if src == "unknown":
             row["diffs"] = {}
             rows.append(row)
@@ -336,7 +348,8 @@ def run_census(*, picks_dir: Path, ledger_path: Path, policy_path: Path,
 
         raw_deployed = raw(deployed_bounds, streak, saver, p, dstr)
         row["raw_deployed"] = raw_deployed
-        row["parity"] = attribution(raw_deployed, rec.get("action"))
+        if not guarded_play:
+            row["parity"] = attribution(raw_deployed, rec.get("action"))
         row["band"] = _band(streak)
         row["diffs"] = {}
         for name in diff_variants:
@@ -377,7 +390,10 @@ def run_census(*, picks_dir: Path, ledger_path: Path, policy_path: Path,
                 if cand != r["raw_deployed"]:
                     n_diff += 1
         svar["n_diff"] = n_diff
-    primary_dates_set = set(summaries.get("primary", {}).get("diff_dates", []))
+    primary_dates_set = {
+        row["date"] for row in rows
+        if "primary" in row.get("diffs", {}) and row.get("parity") != "guarded_play_excluded"
+    }
     all_sets = [set(s["diff_dates"]) for s in summaries.values()]
     coverage = {
         "rows_total": len(rows),

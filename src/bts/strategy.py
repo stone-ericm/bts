@@ -119,22 +119,23 @@ def _load_mdp():
     return cache
 
 
-def _mdp_action_from(mdp: dict | None, p_game_hit: float, streak: int, date: str, saver: bool) -> str | None:
+def _mdp_action_from(mdp: dict | None, p_game_hit: float, streak: int, date: str,
+                     saver: bool) -> tuple[str | None, dict | None]:
     """Look up the optimal MDP action from an *injected* policy.
 
-    Returns None when there is no policy, so the caller falls back to the heuristic.
+    Returns (None, None) when there is no policy, so the caller falls back to the heuristic.
     Pure given ``mdp`` — the policy is resolved once into the DecisionContext rather
     than loaded here, so ``decide_action`` can be evaluated repeatedly (Phase 2b)
     without re-doing IO.
     """
     if not mdp or mdp.get("policy_table") is None:
-        return None
+        return None, None
 
-    from bts.simulate.mdp import lookup_action
+    from bts.simulate.mdp import lookup_action_guarded
 
     days_remaining = _days_remaining(date)
 
-    return lookup_action(
+    return lookup_action_guarded(
         mdp["policy_table"], mdp["boundaries"],
         streak, days_remaining, saver, p_game_hit, mdp["season_length"],
     )
@@ -175,7 +176,8 @@ def effective_pick_bar(streak: int, date: str, saver: bool, mdp=_UNSET,
         reps = ([boundaries[0] - 1e-9] if boundaries else [0.0]) + boundaries
         floors = [0.0] + boundaries
         for rep_p, floor in zip(reps, floors):
-            if _mdp_action_from(mdp, rep_p, streak, date, saver) != "skip":
+            action, _ = _mdp_action_from(mdp, rep_p, streak, date, saver)
+            if action != "skip":
                 return floor
         return None
     except Exception:
@@ -227,7 +229,7 @@ class PolicyDecision:
     and reused by the log line, skip summary/DM/dashboard, fallback classification
     and decision.json — never re-derived from a second state read (Codex r2)."""
     action: str                  # executed action after the operational clamps
-    policy_action: str           # the policy's raw action before the clamps
+    policy_action: str           # the policy action before the clamps
     source: str                  # "mdp" | "heuristic"
     objective: str               # OBJECTIVE_REACH57 | OBJECTIVE_TAIL
     streak: int
@@ -239,6 +241,7 @@ class PolicyDecision:
     degraded_reason: str | None  # set when the tail resolved via the forced rule
     reason: str | None           # human-readable skip explanation (tail stop rule)
     pick_bar: float | None       # display-only bar when the action is a skip
+    guard: dict | None = None
 
 
 def _days_remaining(date: str) -> int:
@@ -306,6 +309,7 @@ def resolve_policy_decision(ctx: DecisionContext, streak: int, saver: bool) -> P
     effective_m = None
     tail_sha = None
     reason = None
+    guard = None
     if objective == OBJECTIVE_TAIL:
         effective_m = effective_best(streak, best_for_lookup)
         policy_action, degraded = _tail_action(
@@ -318,7 +322,7 @@ def resolve_policy_decision(ctx: DecisionContext, streak: int, saver: bool) -> P
             reason = (f"season-best {effective_m} can't be beaten with {d_eff} days left "
                       f"(max reachable {min(57, streak + 2 * d_eff)}); no pick")
     else:
-        mdp_action = _mdp_action_from(ctx.mdp, ctx.primary_p, streak, ctx.date, saver)
+        mdp_action, guard = _mdp_action_from(ctx.mdp, ctx.primary_p, streak, ctx.date, saver)
         if mdp_action is not None:
             policy_action, source = mdp_action, "mdp"
         else:
@@ -343,7 +347,7 @@ def resolve_policy_decision(ctx: DecisionContext, streak: int, saver: bool) -> P
         action=action, policy_action=policy_action, source=source, objective=objective,
         streak=int(streak), days_effective=d_eff, best_supplied=ctx.best_streak,
         best_status=best_status, effective_best=effective_m, tail_sha256=tail_sha,
-        degraded_reason=degraded, reason=reason, pick_bar=pick_bar,
+        degraded_reason=degraded, reason=reason, pick_bar=pick_bar, guard=guard,
     )
 
 

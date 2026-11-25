@@ -822,20 +822,26 @@ def _selection_decision_meta(sel, daily=None) -> dict:
     Tolerates a legacy selection/pick without a decision and None."""
     dec = getattr(sel, "decision", None) if sel is not None else None
     if dec is not None:
-        return {
+        meta = {
             "source": getattr(sel, "source", None) or "mdp",
             "objective": dec.objective, "best_streak": dec.best_supplied,
             "best_status": dec.best_status, "effective_best": dec.effective_best,
             "tail_policy_sha256": dec.tail_sha256, "degraded_reason": dec.degraded_reason,
         }
+        if getattr(dec, "guard", None) is not None:
+            meta["policy_guard"] = dec.guard
+        return meta
     saved = getattr(daily, "policy_decision", None) if daily is not None else None
     if isinstance(saved, dict) and saved.get("objective"):
-        return {
+        meta = {
             "source": saved.get("source") or "mdp",
             "objective": saved.get("objective"), "best_streak": saved.get("best_supplied"),
             "best_status": saved.get("best_status"), "effective_best": saved.get("effective_best"),
             "tail_policy_sha256": saved.get("tail_sha256"), "degraded_reason": saved.get("degraded_reason"),
         }
+        if saved.get("guard") is not None:
+            meta["policy_guard"] = saved["guard"]
+        return meta
     if sel is None:
         return {}
     return {"source": getattr(sel, "source", None) or "mdp"}
@@ -851,6 +857,13 @@ def _log_policy_decision(sel) -> None:
     dec = getattr(sel, "decision", None) if sel is not None else None
     if dec is None:
         return
+    guard = getattr(dec, "guard", None)
+    if guard is not None:
+        saver = "available" if sel.saver_available else "unavailable"
+        print(f"  POLICY GUARD — At streak {dec.streak} with {dec.days_effective} policy days "
+              f"left and saver input {saver}, the table skips bin {guard['bin']}. "
+              f"Bin {guard['from_bin']} supplies {dec.policy_action}. "
+              f"Selected action is {dec.action}.", file=sys.stderr)
     if dec.objective == "reach57" and not dec.degraded_reason:
         return
     sha = (dec.tail_sha256 or "")[:12] or "-"
@@ -897,7 +910,7 @@ def _write_commit_decision(picks_dir, date, *, action, source, primary, double_d
                            streak=None, saver_available=None, state_source=None,
                            state_status=None, allow_double=None, contest_source_date=None,
                            objective=None, best_streak=None, best_status=None, effective_best=None,
-                           tail_policy_sha256=None, degraded_reason=None):
+                           tail_policy_sha256=None, degraded_reason=None, policy_guard=None):
     """Record an authoritative, scoreable decision at a real commit/lock point.
 
     Sets ``state.committed_pick_written`` and persists state AFTER the decision
@@ -907,7 +920,12 @@ def _write_commit_decision(picks_dir, date, *, action, source, primary, double_d
     every ordering leaves the EOD skip non-clobbering (the decision.json record
     backstops the flag even if this save fails).
     """
-    from bts.daily_decision import write_decision
+    from bts.daily_decision import load_decision, write_decision
+    existing = load_decision(date, picks_dir)
+    if existing is not None and existing.get("scoreable"):
+        state.committed_pick_written = True
+        save_state(state, picks_dir)
+        return
     record = write_decision(date, picks_dir, action=action, source=(source or "unknown"),
                             primary=primary, double_down=double_down,
                             streak=streak, saver_available=saver_available,
@@ -916,7 +934,7 @@ def _write_commit_decision(picks_dir, date, *, action, source, primary, double_d
                             delivery_status=delivery_status, scoreable=True,
                             objective=objective, best_streak=best_streak, best_status=best_status,
                             effective_best=effective_best, tail_policy_sha256=tail_policy_sha256,
-                            degraded_reason=degraded_reason)
+                            degraded_reason=degraded_reason, policy_guard=policy_guard)
     if record is not None:
         # write_decision is best-effort (None on failure). The flag must track
         # the on-disk truth: a flag set with no record behind it suppresses the

@@ -88,7 +88,7 @@ class TestSelectPick:
         preds = _predictions([{"batter_name": "Weak", "p_game_hit": 0.50}])
         mdp_stub = {"policy_table": object(), "boundaries": [0.796], "season_length": 180}
         with p2("bts.strategy._load_mdp", return_value=mdp_stub), \
-             p2("bts.simulate.mdp.lookup_action", return_value="skip"):
+             p2("bts.simulate.mdp.lookup_action_guarded", return_value=("skip", None)):
             sel = select_pick(preds, "2026-04-01", tmp_path, streak=10)
         assert isinstance(sel, SelectionResult)
         assert sel.pick_result is None
@@ -784,7 +784,7 @@ def test_no_double_for_same_game_mixed_type_game_pk(mock_statuses, tmp_path):
     assert result.pick_result.daily.runner_up is None
 
 
-@patch("bts.strategy._mdp_action_from", return_value="double")
+@patch("bts.strategy._mdp_action_from", return_value=("double", None))
 @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
 def test_mdp_double_with_single_game_yields_safe_single(mock_statuses, mock_mdp, tmp_path):
     """MDP can return 'double' even when only one game is available; with no

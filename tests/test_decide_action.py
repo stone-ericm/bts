@@ -50,24 +50,24 @@ def test_sprint_streak_never_doubles():
 #     proves the MDP action was actually used. ---
 
 def test_mdp_double_passes_through_when_executable(monkeypatch):
-    monkeypatch.setattr("bts.strategy._mdp_action_from", lambda *a, **k: "double")
+    monkeypatch.setattr("bts.strategy._mdp_action_from", lambda *a, **k: ("double", None))
     assert decide_action(_ctx(0.50, second_p=0.50, mdp={"x": 1}), streak=12, saver=True)[0] == "double"
 
 
 def test_mdp_skip_overrides_strong_candidates(monkeypatch):
-    monkeypatch.setattr("bts.strategy._mdp_action_from", lambda *a, **k: "skip")
+    monkeypatch.setattr("bts.strategy._mdp_action_from", lambda *a, **k: ("skip", None))
     # MDP authority: skip even though p=0.95 would heuristically double, never skip
     assert decide_action(_ctx(0.95, second_p=0.95, mdp={"x": 1}), streak=12, saver=True)[0] == "skip"
 
 
 def test_mdp_double_downgraded_when_no_diff_game(monkeypatch):
-    monkeypatch.setattr("bts.strategy._mdp_action_from", lambda *a, **k: "double")
+    monkeypatch.setattr("bts.strategy._mdp_action_from", lambda *a, **k: ("double", None))
     # post-MDP "double must be executable" guard -> single (heuristic would skip at 0.50)
     assert decide_action(_ctx(0.50, has_diff=False, second_p=None, mdp={"x": 1}), streak=12, saver=True)[0] == "single"
 
 
 def test_mdp_double_downgraded_when_allow_double_false(monkeypatch):
-    monkeypatch.setattr("bts.strategy._mdp_action_from", lambda *a, **k: "double")
+    monkeypatch.setattr("bts.strategy._mdp_action_from", lambda *a, **k: ("double", None))
     # allow_double operational clamp applies to MDP doubles too (heuristic would skip at 0.50)
     assert decide_action(_ctx(0.50, second_p=0.50, allow_double=False, mdp={"x": 1}), streak=12, saver=True)[0] == "single"
 

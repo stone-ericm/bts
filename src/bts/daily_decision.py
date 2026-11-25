@@ -63,7 +63,7 @@ def write_decision(date, picks_dir, *, action, source, primary=None, double_down
                    second_candidate=None, state_source=None, state_status=None,
                    allow_double=None, contest_source_date=None, now=None,
                    objective=None, best_streak=None, best_status=None, effective_best=None,
-                   tail_policy_sha256=None, degraded_reason=None) -> dict | None:
+                   tail_policy_sha256=None, degraded_reason=None, policy_guard=None) -> dict | None:
     """Best-effort atomic write of the day's decision record. Returns the record, or None on any
     failure (must never raise into the live pick path).
 
@@ -96,6 +96,7 @@ def write_decision(date, picks_dir, *, action, source, primary=None, double_down
             "objective": objective, "best_streak": best_streak, "best_status": best_status,
             "effective_best": effective_best, "tail_policy_sha256": tail_policy_sha256,
             "degraded_reason": degraded_reason,
+            "policy_guard": policy_guard if action != "skip" else None,
             "finalized_at": _utc_iso(now),
         }
         path = decision_path(date, picks_dir)
