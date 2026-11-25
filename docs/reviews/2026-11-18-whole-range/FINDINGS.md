@@ -261,3 +261,6 @@ The 57 caps H2 raises become one constant, `MAX_SEASON_STREAK = 400` (a 2027 sea
 - No gate has run on H (queued 01:52 behind a backtest, cancelled 02:15 before it started; the hold delayed nothing). Carbon's round-1 review is still running and is archived when it reports. Round 2 is H's last and is for a fresh session; its obligations are listed in `kickoff-fix-h.md`, "Round 1".
 - **H2** (raise the 57 caps; R65) is not started: a draft contract with the must-still-catch table K1 to K10 is at `~/bts-runs/draft-kickoff-fix-h2.md`; the lead ruled the cap as ONE constant `MAX_SEASON_STREAK = 400` (2026-11-25 01:45; a typo between 58 and 400 is no longer refused: a known limit).
 - The session's three BLOCKs: Ea's two sentence-limited checks (`WREACHK3`, `WREACHK4`) and H round 1.
+
+## Lead, 2026-11-25 02:17: what counts toward a session's three BLOCKs
+A BLOCK on a check of text the REVIEWERS wrote, applied verbatim at Eric's direction (Ea's option 1 and option 2 checks, `WREACHK3-f254bd86`, `WREACHK4-0f926650`), does not count toward the session's three: the session's judgment is not what blocked (the same ruling as for `bts-wr-fresh10`). `bts-wr-fresh11` is at one BLOCK (H round 1, `WRHREV1-afc700cf`) and runs H's round 2.
