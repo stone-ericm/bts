@@ -7,6 +7,7 @@ import json
 import subprocess
 import sys
 from contextlib import nullcontext
+from dataclasses import replace
 from datetime import datetime, timedelta
 from pathlib import Path
 from types import ModuleType
@@ -18,7 +19,7 @@ from bts import contest_state, orchestrator, picks, scheduler, strategy, web
 from bts.health import alert
 from scripts.audit.season_walk import walk
 from tests.test_morning_state_cs6b1 import warning
-from tests.test_scheduler_tail_objective import _state, _tail_skip_decision
+from tests.test_scheduler_tail_objective import _sel, _state, _tail_skip_decision
 from tests.test_stale_delivery_cs4c import envelope
 from tests.test_stale_delivery_cs4c_carbon import _make_pick
 
@@ -33,6 +34,16 @@ from tests.test_stale_delivery_cs4c_carbon import _make_pick
     ({}, "Candidate used in the decision: A (T) 75.0%. No probability comparison is available for this check."),
     ({"basis": "no_decision", "bar": 0.8},
      "No candidate was chosen. Top model prediction (eligibility unverified): A (T) 75.0%."),
+    ({"reason": "<stop & check>", "basis": "no_decision", "best_team": "<T&>"},
+     "Candidate used in the decision: A (<T&>) 75.0%. Reason: <stop & check>."),
+    ({"reason": "Stopped!", "bar": 0.8},
+     "Candidate used in the decision: A (T) 75.0%. Reason: Stopped!"),
+    ({"bar": 0.8, "candidate_verified": False},
+     "Top model prediction (eligibility unverified): A (T) 75.0%, below the streak-8 bar (80.0%) using unrounded values."),
+    ({"reason": " \r\n\t "},
+     "Candidate used in the decision: A (T) 75.0%. No probability comparison is available for this check."),
+    ({"reason": "  Stop\n here!  "},
+     "Candidate used in the decision: A (T) 75.0%. Reason: Stop  here!"),
 ])
 def test_skip_surfaces(fields, sentence):
     summary = dict(best_batter="A", best_team="T", best_p=0.75, streak=8,
@@ -54,6 +65,50 @@ def test_malformed_persisted_fields(bad):
     assert scheduler.format_skip_dm("day", summary) == "BTS day: No pick at this check. " + body
     assert "<span>" + html.escape(body) + "</span>" in web.render_skip_banner(summary)
     assert web.render_skip_banner(["not an object"]) == ""
+
+
+@pytest.mark.parametrize("bad", [1e308, 1.5e308, -0.1, 1.0000001, 2])
+@pytest.mark.parametrize("field", ["best_p", "bar"])
+def test_out_of_range_skip_numbers_are_missing(bad, field):
+    summary = dict(best_batter="A", best_team="T", best_p=0.75, bar=0.8)
+    summary[field] = bad
+    pct = "?" if field == "best_p" else "75.0%"
+    assert scheduler.format_skip_summary(summary) == (
+        f"Top model prediction (eligibility unverified): A (T) {pct}. "
+        "No probability comparison is available for this check."
+    )
+
+
+@pytest.mark.parametrize("edge", [0, 0.0, 1, 1.0])
+def test_skip_number_edges_are_valid(edge):
+    summary = dict(best_batter="A", best_team="T", best_p=edge, bar=edge)
+    assert scheduler.format_skip_summary(summary) == (
+        f"Top model prediction (eligibility unverified): A (T) {edge:.1%}, "
+        f"at or above the bar ({edge:.1%})."
+    )
+
+
+@pytest.mark.parametrize(("reason", "bar", "ending"), [
+    ("Stopped!", 0.9, ". Reason: Stopped!"),
+    (None, 0.7, ", at or above the streak-0 bar (70.0%)."),
+    (None, None, ". No probability comparison is available for this check."),
+], ids=["K1", "K3", "K4"])
+def test_run_single_check_skip_journal(reason, bar, ending, tmp_path, monkeypatch, capsys):
+    day = datetime(2027, 7, 15).date()
+    frame = walk._predictions(day, 0.75)
+    selection = _sel(replace(_tail_skip_decision(), reason=reason, pick_bar=bar))
+    selection.primary_candidate.update(batter_name="Kept", team="T", p_game_hit=0.75)
+    monkeypatch.setattr(orchestrator, "run_and_pick", lambda *a, **kw: (frame, selection, "test"))
+    monkeypatch.setattr(scheduler, "count_new_confirmations", lambda *a, **kw: 0)
+    monkeypatch.setattr(scheduler, "heartbeat_watchdog", lambda *a, **kw: nullcontext())
+    scheduler.run_single_check(
+        date=day.isoformat(), all_game_pks=[70000], confirmed_sides=set(),
+        config=walk._config(tmp_path), early_lock_gap=0.03,
+    )
+    assert [line for line in capsys.readouterr().err.splitlines() if line.startswith("  SKIP —")] == [
+        "  SKIP — Candidate used in the decision: Kept (T) 75.0%"
+        + ending + " Streak used at this check: 0."
+    ]
 
 
 def test_candidate_override():
@@ -104,7 +159,7 @@ def test_stale_warning_maximum_detail(route, tmp_path, monkeypatch, capsys):
         assert "  STALE CONTEST READING — " + expected.split("- [contest_state] ")[1] in capsys.readouterr().err
     else:
         scheduler._morning_state_check(config, picks_dir, DAY, now, now + timedelta(hours=1))
-        expected, length = warning(detail), 842
+        expected, length = warning(detail), 882
     assert sent == [expected]
     assert len(sent[0]) == length < 900
 

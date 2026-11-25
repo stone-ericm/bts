@@ -204,7 +204,8 @@ def _morning_state_check(
     if recipient:
         message = (
             f"Morning check for {date}: the automatic contest reading was stale at startup ({detail}). This "
-            "reading is eligible if it remains in use. Check MLB. If MLB differs from status (B8a), use "
+            "reading is eligible if it remains in use. Check MLB. If prior entries are settled or absent "
+            "and MLB differs from status (B8a), use "
             f"bts set-contest-streak --date {date} --streak N --best-streak B --saver S --picks-dir DIR on "
             f"{date} ET only. DIR is the absolute scheduler picks path. This leaves the saver flag "
             f"unchanged. On {date} ET away from midnight, if MLB shows this season's saver used, check bts "
@@ -1754,7 +1755,7 @@ def _skip_display_number(value: object) -> float | None:
         number = float(value)
     except OverflowError:
         return None
-    return number if math.isfinite(number) else None
+    return number if 0 <= number <= 1 else None
 
 
 def format_skip_summary(summary: object) -> str:
@@ -1770,7 +1771,8 @@ def format_skip_summary(summary: object) -> str:
     streak = fields.get("streak")
     if type(streak) is not int or streak < 0:
         streak = None
-    reason = fields.get("reason")
+    raw_reason = fields.get("reason")
+    reason = display_string(raw_reason).strip() if isinstance(raw_reason, str) else ""
     label = "Top model prediction (eligibility unverified)"
     pct = f"{probability:.1%}" if probability is not None else "?"
     candidate = f"{name} ({team}) {pct}"
@@ -1779,8 +1781,7 @@ def format_skip_summary(summary: object) -> str:
     else:
         description = f"{label}: {candidate}"
 
-    if isinstance(reason, str) and reason:
-        reason = display_string(reason)
+    if reason:
         ending = "" if reason.endswith((".", "!", "?")) else "."
         sentence = f"{description}. Reason: {reason}{ending}"
     elif fields.get("basis") == "no_decision":
@@ -1976,9 +1977,8 @@ def run_single_check(
     if predictions is None or pick_result is None:
         skip_summary = None
         if predictions is not None and not predictions.empty:
-            # Skip day: predictions ran but the policy declined to pick (best
-            # candidate below the pick bar). Surface it instead of staying silent
-            # — the 2026-06-18 incident, where a legit skip looked like a hang.
+            # Surface checks that produced predictions without a pick, including
+            # checks where no candidate could be chosen.
             dec = getattr(sel, "decision", None) if sel is not None else None
             if dec is not None:
                 # The selection that made the decision is the display authority
