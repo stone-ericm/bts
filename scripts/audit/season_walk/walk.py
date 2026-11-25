@@ -263,7 +263,7 @@ def walk_one(day: date, state: State) -> dict:
             # The operator's skip notice, built as run_single_check builds it from this decision.
             from bts.scheduler import build_skip_summary, format_skip_dm
             summary = build_skip_summary(frame, decision.streak, pick_bar=decision.pick_bar,
-                                         decision=decision)
+                                         decision=decision, candidate=sel.primary_candidate)
             if summary is not None:
                 rec["skip_dm"] = format_skip_dm(day.isoformat(), summary)
                 rec["skip_bar"], rec["best_p"] = summary.get("bar"), summary["best_p"]

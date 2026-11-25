@@ -136,9 +136,9 @@ def test_render_page_shows_skip_banner_on_skip_day(tmp_path, monkeypatch):
 
     html = web.render_page()
 
-    assert "SKIP TODAY" in html
+    assert "LAST RECORDED NO-PICK SUMMARY" in html
     assert "Bo Bichette" in html
-    assert "75%" in html
+    assert "75.0%" in html
 
 
 def test_run_single_check_surfaces_skip_instead_of_silent_none(tmp_path, monkeypatch):
@@ -236,7 +236,7 @@ def test_skip_dm_is_tentative_not_a_finality_claim():
     assert "Bo Bichette" in text and "75" in text
     low = text.lower()
     assert "no pick today" not in low          # an early cycle may still flip to a pick
-    assert "will pick" in low or "yet" in low   # tentative, not a finality claim
+    assert "no pick at this check" in low
 
 
 def test_carry_forward_skip_state_ignores_different_date():
@@ -351,19 +351,19 @@ def _flip_day_page(tmp_path, monkeypatch, *, delivered, decision=None):
 def test_banner_shows_over_stale_provisional_pick_file(tmp_path, monkeypatch):
     """The flip day: an undelivered provisional pick file must NOT suppress the banner."""
     html = _flip_day_page(tmp_path, monkeypatch, delivered=False)
-    assert "SKIP TODAY" in html
+    assert "LAST RECORDED NO-PICK SUMMARY" in html
 
 
 def test_banner_suppressed_when_pick_actually_delivered(tmp_path, monkeypatch):
     html = _flip_day_page(tmp_path, monkeypatch, delivered=True)
-    assert "SKIP TODAY" not in html
+    assert "LAST RECORDED NO-PICK SUMMARY" not in html
 
 
 def test_banner_shows_when_decision_says_skip(tmp_path, monkeypatch):
     html = _flip_day_page(tmp_path, monkeypatch, delivered=False,
                           decision={"action": "skip", "source": "mdp", "scoreable": False,
                                     "delivery_status": "not_applicable"})
-    assert "SKIP TODAY" in html
+    assert "LAST RECORDED NO-PICK SUMMARY" in html
 
 
 def test_banner_suppressed_when_decision_scoreable(tmp_path, monkeypatch):
@@ -372,7 +372,7 @@ def test_banner_suppressed_when_decision_scoreable(tmp_path, monkeypatch):
     html = _flip_day_page(tmp_path, monkeypatch, delivered=False,
                           decision={"action": "single", "source": "mdp", "scoreable": True,
                                     "delivery_status": "delivered"})
-    assert "SKIP TODAY" not in html
+    assert "LAST RECORDED NO-PICK SUMMARY" not in html
 
 
 # --- streak-dependent pick bar surfaced in skip messages (2026-07-01) ---
@@ -394,12 +394,12 @@ def test_render_skip_banner_shows_streak_bar_when_present():
     assert "81.0%" in html          # best_p at matching precision
 
 
-def test_render_skip_banner_legacy_summary_keeps_old_wording():
+def test_render_skip_banner_legacy_summary_has_no_probability_comparison():
     from bts.web import render_skip_banner
     html = render_skip_banner({"best_batter": "Bo Bichette", "best_team": "NYM",
                                "best_p": 0.75, "streak": 10})
-    assert "below the" in html and "pick bar" in html
-    assert "75%" in html
+    assert "No probability comparison is available for this check." in html
+    assert "75.0%" in html
 
 
 def test_format_skip_dm_shows_streak_bar_when_present():
@@ -410,11 +410,11 @@ def test_format_skip_dm_shows_streak_bar_when_present():
     assert "~80%" not in msg
 
 
-def test_format_skip_dm_legacy_summary_keeps_old_wording():
+def test_format_skip_dm_legacy_summary_has_no_probability_comparison():
     from bts.scheduler import format_skip_dm
     msg = format_skip_dm("2026-06-18", {"best_batter": "Bo Bichette", "best_team": "NYM",
                                         "best_p": 0.75, "streak": 10})
-    assert "~80% bar" in msg
+    assert "No probability comparison is available for this check." in msg
 
 
 # --- skip-day rendering completeness (2026-07-02): history rows, hero card,
@@ -458,21 +458,21 @@ def _render_skip_page(tmp_path, monkeypatch, *, pick_date=None, write_pick=True,
 
 def test_skip_day_no_waiting_placeholder(tmp_path, monkeypatch):
     html = _render_skip_page(tmp_path, monkeypatch, write_pick=False)
-    assert "SKIP TODAY" in html
+    assert "LAST RECORDED NO-PICK SUMMARY" in html
     assert "Waiting for lineups" not in html
 
 
 def test_waiting_placeholder_still_shows_before_any_skip(tmp_path, monkeypatch):
     html = _render_skip_page(tmp_path, monkeypatch, write_pick=False, skip_summary=False)
     assert "Waiting for lineups" in html
-    assert "SKIP TODAY" not in html
+    assert "LAST RECORDED NO-PICK SUMMARY" not in html
 
 
 def test_flip_day_hero_card_suppressed(tmp_path, monkeypatch):
     """Standing skip + stale provisional today-file: no hero pick card (the banner
     is the day's status), no live-game fetch."""
     html = _render_skip_page(tmp_path, monkeypatch, write_pick=True, poison_scorecard=True)
-    assert "SKIP TODAY" in html
+    assert "LAST RECORDED NO-PICK SUMMARY" in html
     assert 'class="hero-pct"' not in html   # rendered card, not the CSS rule
     assert "Waiting for lineups" not in html
 
@@ -481,7 +481,7 @@ def test_delivered_day_hero_unchanged(tmp_path, monkeypatch):
     html = _render_skip_page(tmp_path, monkeypatch, write_pick=True, delivered=True,
                              skip_summary=False)
     assert 'class="hero-pct"' in html
-    assert "SKIP TODAY" not in html
+    assert "LAST RECORDED NO-PICK SUMMARY" not in html
 
 
 def test_history_row_shows_skip_not_pending_for_finalized_skip(tmp_path, monkeypatch):

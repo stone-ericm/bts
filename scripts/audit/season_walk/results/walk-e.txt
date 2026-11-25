@@ -1,0 +1,11 @@
+2027-03-01
+2027-04-01
+2027-05-01
+2027-06-01
+2027-07-01
+2027-08-01
+2027-09-01
+2027-10-01
+runs=4599 problems=0
+4599 records match the fixture in day, state, action, bar, and day counts.
+841 former skip-message problems: 229 K3, 612 K4.

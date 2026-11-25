@@ -38,10 +38,14 @@ def refusal(day=DAY, first="16:10"):
 def warning(detail):
     return (
         "BTS health WARN attention:\n- [contest_state] "
-        f"Morning check for {DAY}: the automatic contest reading was stale at startup ({detail}). "
-        "This reading is eligible if it remains in use. Check MLB. If state still differs, "
-        f"use bts set-contest-streak --date {DAY} --streak N --best-streak B --saver S with "
-        "the scheduler's picks directory and the values shown in MLB. Check the latest fetch status."
+        f"Morning check for {DAY}: the automatic contest reading was stale at startup ({detail}). This "
+        "reading is eligible if it remains in use. Before the first check, if prior entries are settled or absent "
+        "and MLB differs from status (B8a), use "
+        f"bts set-contest-streak --date {DAY} --streak N --best-streak B --saver S --picks-dir DIR on "
+        f"{DAY} ET only. DIR is the absolute scheduler picks path. This leaves the saver flag "
+        f"unchanged. In {DAY[:4]} ET away from midnight, if MLB shows this season's saver used, check bts "
+        "saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir "
+        "DIR. For uninitialized, see B8a. Check the latest fetch status."
     )
 
 

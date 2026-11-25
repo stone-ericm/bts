@@ -1,0 +1,43 @@
+nice: setpriority: Operation not permitted
+  LOCKED (late slate) — Pick DM sent: pick-id
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-15T13:00:00Z, about 15.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-16 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-16. For a later slate date, see B8a. On 2027-07-16 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  [00:38 ET] Games: 101: live
+  [03:10 ET] Games: 101: final
+  Result: hit. Streak: 1.
+  DELIVERY REFUSED (late) — Steven Kwan: submission cutoff 19:05 ET passed 0.0 min ago; not delivering an unenterable pick.
+  LOCKED (later check) — Pick DM sent: pick-id
+  DELIVERY REFUSED (void) — game 101 is Postponed; not delivering a pick on it.
+  LOCKED (later check) — Pick DM sent: pick-id
+B8a conflict for MLB streak 12, best 14, saver active: matches automatic/flag, differs from live dated.
+ET date: 2027-07-15; year: 2027; inspected season: 2027
+switch: automatic
+  season: 2027
+  status: automatic
+  activation_id: 41f8aade07c94ca38f135b3282703b14
+  switched_at: 2027-07-15T13:00:00Z
+  revoked_at: None
+  note: None
+manual: dated date=2027-07-15 streak=3 best=14 saver=used in effect=True
+automatic: parsed schema='bts_contest_streak_auto_v2' streak=12 best=14 source date=2027-07-14 recorded time=2027-07-15T13:00:00Z
+  season: 2027; activation_id: 41f8aade07c94ca38f135b3282703b14
+  identifier matches switch: True (comparison only)
+saver: active; season: 2027
+live decision now: accepted; source=contest; streak=3; status=fresh; saver=used
+automatic path alone: accepted (streak 12, recorded 2027-07-15T13:00:00Z)
+ledger: readable; rows: 1; bad lines: 0
+  recorded_at=2027-07-15T13:00:00Z; active_streak=12; best_streak=14; source_date=2027-07-14; season=2027; switched=True; activation_id=41f8aade07c94ca38f135b3282703b14; settled_by_year={'2027': 1}; settled_unmapped=0; unsettled=0
+
+C15 stored 12 after decision returned None: BTS 2027-07-15: No pick at this check. No candidate was chosen. Top model prediction (eligibility unverified): Batter 0 (T0) 99.9%.
+Delivery crosses midnight. Pick slate: 2027-07-15 warning: BTS health WARN attention:
+- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-15T13:00:00Z, about 15.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-16 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-16. For a later slate date, see B8a. On 2027-07-16 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+Live and grading pending: 2027-07-15 2027-07-16T00:35:00-04:00
+Local grading complete 03:10. MLB now synthetically exposes settled streak 13.
+Replacement would permit the correction to 13 on the later slate date: 2027-07-16
+After late later recommendation: Today's pick: Later Batter (CLE)
+vs Gerrit Cole | 82.0%
+
+Streak: 12 | ⚠️ BTS entry does NOT match the recommended pick in MLB app: Later Batter — first pitch 8:30 PM ET (55 min to submit). Fix it now! | check-pick-entered: outside window (5 min to pitch)
+After void later recommendation: Today's pick: Later Batter (CLE)
+vs Gerrit Cole | 82.0%
+
+Streak: 12 | ⚠️ BTS entry does NOT match the recommended pick in MLB app: Later Batter — first pitch 8:30 PM ET (55 min to submit). Fix it now! | check-pick-entered: outside window (5 min to pitch)

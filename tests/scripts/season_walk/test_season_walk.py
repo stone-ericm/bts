@@ -4,7 +4,11 @@ Each case drives one date through the real decision path (orchestrator.run_and_p
 with the shipped policy artifacts) via the harness in scripts/audit/season_walk/.
 """
 import datetime as dt
+import gzip
+import json
+from collections import Counter
 from datetime import date
+from pathlib import Path
 
 import pytest
 
@@ -145,3 +149,38 @@ def test_check_flags_a_skip_message_that_calls_a_clearing_best_below_its_bar():
     assert any("skip message" in p for p in walk.check([wrong]))
     right = base | {"best_p": 0.70, "skip_bar": None, "skip_dm": wrong["skip_dm"].replace("96%", "70%")}
     assert not any("skip message" in p for p in walk.check([right]))
+
+
+def test_real_k2_dm_uses_the_below_bar_comparison():
+    rec = walk.walk_one(date(2027, 7, 15), walk.State("dated", 12, 12, "used", 0.72))
+    assert rec["action"] == "skip" and rec["best_p"] < rec["skip_bar"]
+    assert "below the" in rec["skip_dm"] and "using unrounded values." in rec["skip_dm"]
+    assert walk.check([rec]) == []
+
+
+def test_saved_e_walk_agrees_with_baseline():
+    results = Path(walk.__file__).with_name("results")
+    with gzip.open(results / "walk-bc143131.json.gz", "rt") as file:
+        baseline = json.load(file)
+    with gzip.open(results / "walk-e.json.gz", "rt") as file:
+        updated = json.load(file)
+    assert baseline["runs"] == updated["runs"] == 4599
+    assert baseline["by_day"] == updated["by_day"]
+    assert baseline["boundary"] == updated["boundary"]
+    assert updated["problems"] == [] and walk.check(updated["records"]) == []
+    flags = {
+        entry.split(": skip message", 1)[0] for entry in baseline["problems"]
+        if ": skip message" in entry
+    }
+    assert len(flags) == 841
+    counts = Counter()
+    fields = ("day", "state", "action", "pick_bar", "expected_days_left", "days_left", "days_effective")
+    for before, after in zip(baseline["records"], updated["records"], strict=True):
+        assert [before[key] for key in fields] == [after[key] for key in fields]
+        if f"{before['day']} {before['state']}" in flags:
+            case = "K4" if before["skip_bar"] is None else "K3"
+            phrase = {"K4": "No probability comparison is available for this check.",
+                      "K3": "at or above the"}[case]
+            assert phrase in after["skip_dm"] and "below the" not in after["skip_dm"]
+            counts[case] += 1
+    assert counts == {"K3": 229, "K4": 612}
