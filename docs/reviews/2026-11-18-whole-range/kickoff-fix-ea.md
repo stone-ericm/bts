@@ -1,4 +1,4 @@
-# Kickoff: change set Ea, the operator messages only (2026-11-24 21:15)
+# Kickoff: change set Ea, the operator messages only (2026-11-24 21:12)
 
 Ruling R63 (`FINDINGS.md`): E's one follow-up after `STOP-E.md`. Tier A. **Defect class: operator text that is untrue in some ordinary state** (a sentence an operator can read that is false there, unsafe if followed exactly, or cannot be followed).
 
