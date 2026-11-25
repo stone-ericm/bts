@@ -264,3 +264,8 @@ The 57 caps H2 raises become one constant, `MAX_SEASON_STREAK = 400` (a 2027 sea
 
 ## Lead, 2026-11-25 02:17: what counts toward a session's three BLOCKs
 A BLOCK on a check of text the REVIEWERS wrote, applied verbatim at Eric's direction (Ea's option 1 and option 2 checks, `WREACHK3-f254bd86`, `WREACHK4-0f926650`), does not count toward the session's three: the session's judgment is not what blocked (the same ruling as for `bts-wr-fresh10`). `bts-wr-fresh11` is at one BLOCK (H round 1, `WRHREV1-afc700cf`) and runs H's round 2.
+
+## 2026-11-25 02:41 (`bts-wr-fresh11`): change set H is STOPPED after round 2 (Codex BLOCK)
+- **H** on `fix/wr-h` (pushed, head `4a28e521`; code `813935bc` and `84805852`; not merged). Round 2 Codex xhigh: **BLOCK** `WRHREV2-97dcc5b0`: round 1's finding closed; ONE new finding of the same class (a base file whose bin edges are strings passes the new base check; with a tail re-bound to it the rule's double goes out with no degradation where the contract promises a forced single for a corrupt base). Reproduced by the session. Everything Eric asked for held in both rounds (the rule, the one constant, nothing moving below 57, the real scheduler path, grading, the readers, the walk).
+- `STOP-H.md` gives four ways forward (recommended: Eric's acceptance with the reviewer's one-line edit on a green gate; or a follow-up that changes the mechanism). No gate has run on any H commit. H2 not started.
+- The session's counted BLOCKs: H round 1 and H round 2 (two; it stops at a third).
