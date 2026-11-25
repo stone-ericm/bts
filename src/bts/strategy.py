@@ -636,7 +636,13 @@ def select_pick(
     saver = (load_saver_available(picks_dir, season=season_of_date(date))
              if saver_available is None else saver_available)
     second_row = diff_game.iloc[0] if len(diff_game) >= 1 else None
-    if _regime(None, streak, date)[0] == OBJECTIVE_LONGEST:
+    try:
+        longest = _regime(None, streak, date)[0] == OBJECTIVE_LONGEST
+    except Exception:
+        # A date the day count rejects is reported where it always was: by the
+        # decision itself, after the saver read (the legacy path below).
+        longest = False
+    if longest:
         try:
             mdp = _load_mdp()
         except Exception as exc:
