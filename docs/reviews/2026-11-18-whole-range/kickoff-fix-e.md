@@ -131,7 +131,7 @@ New file `tests/test_wr_e_texts.py`: every sentence in the tables above asserted
 ## Handover
 `HANDOVER-WR-E.md` in the worktree root (not committed): the commit; files and lines; for each sentence the test that pins it and whether it was RED on the base; the must-still-happen rows with what was run and the counts; the standing rows; anything that could not be met as written (then STOP and say so). Then print `WRE-<first 8 hex characters of the sha256 of HANDOVER-WR-E.md>` on its own line and `DONE`.
 
-# Version 2 (2026-11-24 19:40, after the contract check `contract-check-e/contract-check.md`, `WRCHKE-2dd1d06c`: BUILD WITH THESE EDITS)
+# Version 2 (2026-11-24 19:28, after the contract check `contract-check-e/contract-check.md`, `WRCHKE-2dd1d06c`: BUILD WITH THESE EDITS)
 
 **The check's replacement texts ARE the contract.** Every paragraph of `contract-check-e/contract-check.md` marked MUST FIX replaces the matching part of version 1 above (the E1 summary rules, case rules, surface rules and K1 to K5; S3, S4, S6, M4, M6 and the E2 scope and length rule; L2, L3, P2, P3; must-still-happen rows 1 to 6 and 8; the permitted test changes and the operator-text scan). Version 1 remains for the "old" column, the worst-state reasoning and everything the check did not replace (row 7, the standing rows, the ledger, the handover). The documentation rows (D1 to D12 and the check's additions for checklist A4 and B8) are already applied in commit 2 of the branch with the check's texts; the author does not touch `docs/ops/2027-season-start.md` or `INCIDENT.md`. Where the check leaves a composition open, this section decides:
 
