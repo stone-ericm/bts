@@ -1,0 +1,8 @@
+nice: setpriority: Operation not permitted
+base /Users/eric/projects/bts-work/wr-rev-g2-codex/.codex-review/wr-g2/base/src/bts/__init__.py
+rollback /Users/eric/projects/bts-work/wr-rev-g2-codex/.codex-review/wr-g2/rollback/src/bts/__init__.py
+Census raw/parity: [('skip', 'guarded_play_excluded'), ('single', 'parity'), ('skip', 'parity')]
+Skip membership 2 → 1
+2026-03-25 day-outcome research_commit grading calls 1 shadow False
+2026-03-26 day-outcome research_commit grading calls 1 shadow False
+2026-03-27 day-outcome deliberate_skip grading calls 0 shadow True

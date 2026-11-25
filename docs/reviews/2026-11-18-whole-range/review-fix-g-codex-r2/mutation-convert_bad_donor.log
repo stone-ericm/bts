@@ -1,0 +1,23 @@
+/Users/eric/projects/bts-work/wr-rev-g2-codex/.codex-review/wr-g2/scratch/convert_bad_donor/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-g2-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 2 items
+
+tests/test_wr_g_guard.py F
+
+=================================== FAILURES ===================================
+___________________ test_malformed_donor_cells[1-expected0] ____________________
+tests/test_wr_g_guard.py:220: in test_malformed_donor_cells
+    assert mdp.lookup_action_guarded(*args, 0.8) == expected
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/wr-g2/scratch/convert_bad_donor/src/bts/simulate/mdp.py:232: in lookup_action_guarded
+    if ACTIONS[donor_code] in ("single", "double"):
+       ^^^^^^^^^^^^^^^^^^^
+E   IndexError: tuple index out of range
+=========================== short test summary info ============================
+FAILED tests/test_wr_g_guard.py::test_malformed_donor_cells[1-expected0] - In...
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+============================== 1 failed in 0.70s ===============================
