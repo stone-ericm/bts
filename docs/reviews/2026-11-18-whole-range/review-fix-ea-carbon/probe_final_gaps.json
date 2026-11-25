@@ -1,0 +1,48 @@
+{
+  "interrupt_containment": {
+    "base": {
+      "bts_file": "/Users/eric/projects/bts-work/wr-rev-ea-carbon/.carbon-review/wr-ea/base_63669c42/src/bts/__init__.py",
+      "cases": {
+        "RuntimeError": {
+          "delivery_escaped": null,
+          "morning_run_day_escaped": null
+        },
+        "KeyboardInterrupt": {
+          "delivery_escaped": null,
+          "morning_run_day_escaped": "KeyboardInterrupt"
+        },
+        "SystemExit": {
+          "delivery_escaped": null,
+          "morning_run_day_escaped": "SystemExit"
+        }
+      }
+    },
+    "head": {
+      "bts_file": "/Users/eric/projects/bts-work/wr-rev-ea-carbon/src/bts/__init__.py",
+      "cases": {
+        "RuntimeError": {
+          "delivery_escaped": null,
+          "morning_run_day_escaped": null
+        },
+        "KeyboardInterrupt": {
+          "delivery_escaped": null,
+          "morning_run_day_escaped": "KeyboardInterrupt"
+        },
+        "SystemExit": {
+          "delivery_escaped": null,
+          "morning_run_day_escaped": "SystemExit"
+        }
+      }
+    }
+  },
+  "streak_guard_mutations": {
+    "bool_streak_accepted": {
+      "returncode": 0,
+      "survived_all_skip_suites": true
+    },
+    "negative_streak_accepted": {
+      "returncode": 0,
+      "survived_all_skip_suites": true
+    }
+  }
+}

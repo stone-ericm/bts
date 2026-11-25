@@ -1,0 +1,106 @@
+{
+  "exact_contract": {
+    "skip_cases_verified": [
+      "K1",
+      "K1_punct",
+      "K2",
+      "K2_nostreak",
+      "K3",
+      "K4",
+      "K5"
+    ],
+    "stale_warnings": {
+      "old_max": {
+        "delivery_len": 875,
+        "morning_len": 895
+      },
+      "future_max": {
+        "delivery_len": 859,
+        "morning_len": 879
+      },
+      "unreadable": {
+        "delivery_len": 726,
+        "morning_len": 746
+      }
+    },
+    "refusals_verified": true
+  },
+  "c1_c13": {
+    "C1": {
+      "dm": "BTS 2027-08-30: No pick at this check. Candidate used in the decision: Batter 0 (T0) 99.0%, at or above the streak-56 bar (82.5%). Streak used at this check: 56.",
+      "raw_bar": 0.8252474190317034
+    },
+    "C2": "BTS 2027-07-15: No pick at this check. Candidate used in the decision: Batter 0 (T0) 96.0%. No probability comparison is available for this check. Streak used at this check: 56.",
+    "C3": {
+      "dm": "BTS 2027-07-15: No pick at this check. Candidate used in the decision: Batter 1 (T1) 75.0%, below the streak-10 bar (79.6%) using unrounded values. Streak used at this check: 10.",
+      "journal": "  SKIP \u2014 Candidate used in the decision: Batter 1 (T1) 75.0%, below the streak-10 bar (79.6%) using unrounded values. Streak used at this check: 10."
+    },
+    "C4": {
+      "no_eligible": "BTS 2027-07-15: No pick at this check. No candidate was chosen. Top model prediction (eligibility unverified): Batter 0 (T0) 99.9%. Streak used at this check: 10.",
+      "status_failure": "BTS 2027-07-15: No pick at this check. No candidate was chosen. Top model prediction (eligibility unverified): Batter 0 (T0) 99.9%. Streak used at this check: 10.",
+      "no_valid_predictions": "BTS 2027-07-15: No pick at this check. No candidate was chosen. Top model prediction (eligibility unverified): Batter 0 (T0) 99.9%. Streak used at this check: 10.",
+      "sel_none": "BTS 2027-07-15: No pick at this check. No candidate was chosen. Top model prediction (eligibility unverified): Batter 0 (T0) 99.9%. Streak used at this check: 10."
+    },
+    "C5_same_day": {
+      "saver_after_use": "used",
+      "next_day_action": "skip",
+      "next_day_bar": 0.8114907020399261
+    },
+    "BLOCK_CANDIDATE_1_later_date_saver": {
+      "warning_date_D": "2027-07-14",
+      "read_at": "2027-07-15T08:30:00-04:00",
+      "saver_flag_on_2027_07_16": "active",
+      "morning_alerts_2027_07_16": [],
+      "health_warn_crit_2027_07_16": [],
+      "action_on_2027_07_16_with_phantom_saver": "single",
+      "action_on_2027_07_16_with_spent_saver": "skip",
+      "bar_with_spent_saver": 0.8114907020399261
+    },
+    "C6_and_BLOCK_CANDIDATE_2_wrong_cwd": {
+      "old_date_exit": 2,
+      "b8a_bullet4_without_picks_dir_exit": 0,
+      "scheduler_action_after_wrong_cwd": "double",
+      "scheduler_action_with_explicit_picks_dir": "skip"
+    },
+    "saver_matrix_jan1_grading": {
+      "saver_cases": {
+        "active": {
+          "exit": 0,
+          "final_state": "used",
+          "out_first": "Marked saver used."
+        },
+        "not_earned": {
+          "exit": 0,
+          "final_state": "used",
+          "out_first": "Marked saver used (it was not_earned). To take this back run `bts saver-state --init not_earned --force --season 2027`."
+        },
+        "used": {
+          "exit": 0,
+          "final_state": "used",
+          "out_first": "saver_state: used (season 2027)"
+        },
+        "uninitialized": {
+          "exit": 0,
+          "final_state": "used",
+          "out_first": "Initialized saver flag: used (season 2027)"
+        }
+      },
+      "grading_exit": 0,
+      "grading_out": "Checking Steven Kwan (game 70001)...\nHIT! Steven Kwan. Streak: 1"
+    },
+    "C7": {
+      "refusal_dm": "BTS health CRITICAL alert(s):\n- [late_delivery] LATE DELIVERY REFUSED: Player Late would have been sent 2 min after the 19:05 ET cutoff. This pick was withheld. A later check may produce another recommendation. Use a later official pick message only while the entry window is open. A manual entry can differ from a later recommendation. The entry check may report a mismatch if it verifies the entry in time.",
+      "entry_mismatch_dm": "\u26a0\ufe0f BTS entry does NOT match the recommended pick in MLB app: Player Later \u2014 first pitch 10:10 PM ET (35 min to submit). Fix it now!"
+    },
+    "C8": "BTS health WARN attention:\n- [contest_state] Morning check for 2027-07-15: the automatic contest reading was stale at startup (last accepted fetch 2027-07-14T01:00:00Z, about 27.33 hours ago). This reading is eligible if it remains in use. Before the first check, if prior entries are settled or absent and MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR on 2027-07-15 ET only. DIR is the absolute scheduler picks path. This leaves the saver flag unchanged. On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.",
+    "C9": {
+      "stale_action": "double",
+      "withheld_before_guard": true,
+      "delivered_during_send": true
+    },
+    "C10": "BTS 2027-07-15: No pick at this check. Candidate used in the decision: A (T) ?. No probability comparison is available for this check. Streak used at this check: 10.",
+    "C11": "LAST RECORDED NO-PICK SUMMARY present; NO PICK AT LAST CHECK absent",
+    "C12": "Top model prediction (eligibility unverified): Top (NYY) 75.0%. No probability comparison is available for this check. Streak used at this check: 0.",
+    "C13": "<div class=\"skip-banner\"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Top model prediction (eligibility unverified): &lt;b&gt;X&lt;/b&gt; Y (&lt;script&gt;) ?. No probability comparison is available for this check.</span></div>"
+  }
+}
