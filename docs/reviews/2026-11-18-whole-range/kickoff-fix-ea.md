@@ -135,7 +135,7 @@ Author commit `988708df` (handover `handover-fix-ea-followup.md`, `WREA3-615152f
 
 New findings per round of this text: 8, 7, 6, 5 (2 blocking), then 3 (1 blocking). The blocking one is in a sentence written to fix the previous round's blocking finding.
 
-## Second follow-up (2026-11-25 00:50): Eric chose option 2 of the `STOP-EA.md` addendum (`FINDINGS.md`, "Eric, 2026-11-25")
+## Second follow-up (2026-11-25 00:47): Eric chose option 2 of the `STOP-EA.md` addendum (`FINDINGS.md`, "Eric, 2026-11-25")
 Apply the check's three texts (`WREACHK3-f254bd86`) as the reviewer wrote them, then ONE more fresh Codex xhigh check limited to those three texts under R64, then the gate; SIGN or SIGN WITH EDITS merges; a BLOCK goes back to Eric.
 
 ### Applied by the session to the one B8a bullet
