@@ -25,8 +25,10 @@ def _write(root, arm, seed, season, hits, *, done=True, year=None, days=DAYS):
         rows.append({"date": d, "rank": 1, "batter_id": 1, "p_game_hit": 0.8, "actual_hit": int(i < hits), "n_pas": 4})
         rows.append({"date": d, "rank": 2, "batter_id": 2, "p_game_hit": 0.7, "actual_hit": 1, "n_pas": 4})
     pd.DataFrame(rows).to_parquet(run / f"backtest_{season}.parquet")
-    if done:
-        (run / "DONE").touch()
+    if done:  # the runner's receipt since R59: sha256 of every season file
+        import hashlib
+        (run / "DONE").write_text("".join(
+            f"{hashlib.sha256(f.read_bytes()).hexdigest()}  {f.name}\n" for f in sorted(run.glob("backtest_*.parquet"))))
 
 
 BASE = datetime.now().replace(microsecond=0) - timedelta(days=2)
@@ -367,4 +369,131 @@ def test_done_marker_touched_after_its_run_is_rule_unmet(tmp_path):
     _grid(tmp_path, lambda s, y: 150, lambda s, y: 150)
     (tmp_path / "out" / "old" / "seed_4" / "DONE").touch()  # now: long after the logged end
     with pytest.raises(r52.Incomplete, match="DONE written"):
+        _cmp(tmp_path)
+
+
+
+def test_bytes_differing_from_the_receipt_are_rule_unmet(tmp_path):
+    _grid(tmp_path, lambda s, y: 150, lambda s, y: 150)
+    path = tmp_path / "out" / "new" / "seed_2" / "backtest_2021.parquet"
+    df = pd.read_parquet(path)
+    df.loc[0, "actual_hit"] = 1 - int(df.loc[0, "actual_hit"])
+    df.to_parquet(path)
+    _log(tmp_path)  # times back inside the run: only the receipt can catch it
+    with pytest.raises(r52.Incomplete, match="receipt"):
+        _cmp(tmp_path)
+
+
+def test_an_empty_marker_is_accepted_only_for_the_original_eight_seeds(tmp_path):
+    _grid(tmp_path, lambda s, y: 150, lambda s, y: 150)
+    for arm in r52.ARMS:
+        (tmp_path / "out" / arm / "seed_3" / "DONE").write_text("")
+    _log(tmp_path)
+    with pytest.raises(r52.Incomplete, match="receipt"):
+        _cmp(tmp_path)
+    assert 3 not in r52.LEGACY_SEEDS and 2048 in r52.LEGACY_SEEDS and len(r52.SEEDS) == 24 == len(set(r52.SEEDS))
+
+
+def test_a_malformed_receipt_is_rule_unmet(tmp_path):
+    _grid(tmp_path, lambda s, y: 150, lambda s, y: 150)
+    (tmp_path / "out" / "old" / "seed_1" / "DONE").write_text("not a receipt\n")
+    _log(tmp_path)
+    with pytest.raises(r52.Incomplete, match="receipt"):
+        _cmp(tmp_path)
+
+
+
+def test_an_empty_marker_passes_for_an_original_seed(tmp_path, monkeypatch):
+    _grid(tmp_path, lambda s, y: 150, lambda s, y: 150)
+    monkeypatch.setattr(r52, "LEGACY_SEEDS", r52.LEGACY_SEEDS + (3,))
+    for arm in r52.ARMS:
+        (tmp_path / "out" / arm / "seed_3" / "DONE").write_text("")
+    _log(tmp_path)
+    assert _cmp(tmp_path)["verdict"] == "PASS"
+
+
+@pytest.mark.parametrize("extra", ["garbage line\n", "{sha}  backtest_2021.parquet\n", "{sha}  backtest_2099.parquet\n"])
+def test_a_complete_receipt_with_an_extra_line_is_rule_unmet(tmp_path, extra):
+    _grid(tmp_path, lambda s, y: 150, lambda s, y: 150)
+    done = tmp_path / "out" / "new" / "seed_1" / "DONE"
+    done.write_text(done.read_text() + extra.format(sha="0" * 64))
+    _log(tmp_path)
+    with pytest.raises(r52.Incomplete, match="receipt"):
+        _cmp(tmp_path)
+
+
+def test_receipt_marker_time_allowance(tmp_path):
+    _grid(tmp_path, lambda s, y: 150, lambda s, y: 150)
+    done = tmp_path / "out" / "new" / "seed_4" / "DONE"
+    end = r52.run_windows(tmp_path / "progress.log")[("new", 4)][1]
+    for secs, ok in ((10, True), (40, False)):
+        t = (end + timedelta(seconds=secs)).timestamp()
+        os.utime(done, (t, t))
+        if ok:
+            assert _cmp(tmp_path)["verdict"] == "PASS"
+        else:
+            with pytest.raises(r52.Incomplete, match="DONE written"):
+                _cmp(tmp_path)
+
+
+def test_a_receipt_repeating_a_correct_line_is_rule_unmet(tmp_path):
+    # only the duplicate rule can catch this: the repeated digest is the right one
+    _grid(tmp_path, lambda s, y: 150, lambda s, y: 150)
+    done = tmp_path / "out" / "old" / "seed_2" / "DONE"
+    first = done.read_text().splitlines()[0]
+    done.write_text(done.read_text() + first + "\n")
+    _log(tmp_path)
+    with pytest.raises(r52.Incomplete, match="listed twice"):
+        _cmp(tmp_path)
+
+
+
+def test_a_season_file_written_after_the_logged_end_is_rule_unmet_even_with_a_genuine_receipt(tmp_path):
+    # round 2 of the 24-seed review: a write at end + 10 s, then the runner's hash at + 11 s
+    import hashlib
+    _grid(tmp_path, lambda s, y: 150, lambda s, y: 150)
+    run = tmp_path / "out" / "new" / "seed_1"
+    end = r52.run_windows(tmp_path / "progress.log")[("new", 1)][1]
+    path = run / "backtest_2021.parquet"
+    df = pd.read_parquet(path)
+    df.loc[0, "actual_hit"] = 1 - int(df.loc[0, "actual_hit"])
+    df.to_parquet(path)
+    (run / "DONE").write_text("".join(f"{hashlib.sha256(f.read_bytes()).hexdigest()}  {f.name}\n" for f in sorted(run.glob("backtest_*.parquet"))))
+    for f, secs in ((path, 10), (run / "DONE", 11)):
+        t = (end + timedelta(seconds=secs)).timestamp()
+        os.utime(f, (t, t))
+    with pytest.raises(r52.Incomplete, match="outside its run"):
+        _cmp(tmp_path)
+
+
+def test_a_tab_separated_receipt_is_rule_unmet(tmp_path):
+    _grid(tmp_path, lambda s, y: 150, lambda s, y: 150)
+    done = tmp_path / "out" / "old" / "seed_3" / "DONE"
+    done.write_text(done.read_text().replace("  ", "\t"))
+    _log(tmp_path)
+    with pytest.raises(r52.Incomplete, match="receipt"):
+        _cmp(tmp_path)
+
+
+
+def test_a_season_file_rewritten_within_the_logged_end_second_is_rule_unmet(tmp_path):
+    _grid(tmp_path, lambda s, y: 150, lambda s, y: 150)
+    end = r52.run_windows(tmp_path / "progress.log")[("old", 2)][1]
+    path = tmp_path / "out" / "old" / "seed_2" / "backtest_2022.parquet"
+    t = (end + timedelta(milliseconds=150)).timestamp()
+    os.utime(path, (t, t))
+    with pytest.raises(r52.Incomplete, match="outside its run"):
+        _cmp(tmp_path)
+
+
+@pytest.mark.parametrize("damage", ["crlf", "no_final_lf", "vertical_tab"])
+def test_a_receipt_not_in_the_runner_s_exact_lines_is_rule_unmet(tmp_path, damage):
+    _grid(tmp_path, lambda s, y: 150, lambda s, y: 150)
+    done = tmp_path / "out" / "new" / "seed_3" / "DONE"
+    text = done.read_text()
+    text = {"crlf": text.replace("\n", "\r\n"), "no_final_lf": text.rstrip("\n"),
+            "vertical_tab": text.replace("\n", "\v", 1)}[damage]
+    done.write_bytes(text.encode())
+    _log(tmp_path)
+    with pytest.raises(r52.Incomplete, match="receipt"):
         _cmp(tmp_path)
