@@ -11,6 +11,7 @@ share the same decision logic.
 
 import io
 import logging
+import math
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -366,8 +367,16 @@ def _validate_longest_base(policy: dict) -> None:
         raise ValueError("base policy season length must be a positive integer")
     if not isinstance(boundaries, list):
         raise ValueError("base policy boundaries must be a list")
+    for edge in boundaries:
+        if (not isinstance(edge, (int, float)) or isinstance(edge, bool)
+                or (isinstance(edge, float) and not math.isfinite(edge))):
+            raise ValueError("base policy boundaries must be finite numbers")
+    if any(left >= right for left, right in zip(boundaries, boundaries[1:])):
+        raise ValueError("base policy boundaries must be strictly increasing")
     if not isinstance(table, np.ndarray) or table.ndim != 4:
         raise ValueError("base policy table must be a four-dimensional array")
+    if np.ma.isMaskedArray(table):
+        raise ValueError("base policy table must not be a masked array")
     if table.dtype.kind not in {"i", "u"}:
         raise ValueError("base policy table must have an integer dtype")
     # Reach-57 lookups index streaks 0 through 56.

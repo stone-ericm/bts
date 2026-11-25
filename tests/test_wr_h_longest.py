@@ -8,6 +8,7 @@ import json
 import os
 import subprocess
 import sys
+from types import SimpleNamespace
 from unittest.mock import Mock
 
 import numpy as np
@@ -348,8 +349,14 @@ def test_r1_healthy_paired_base_can_double(artifact, rebound_policy, horizon):
         "double", policy["tail"].sha256, None)
 
 
-def test_r1_scheduler_delivers_single_for_paired_scalar(tmp_path, monkeypatch, live_case, rebound_policy):
-    rebound_policy(policy_table=np.array(0, dtype=np.int8))
+@pytest.mark.parametrize("base_changes", [
+    pytest.param({"policy_table": np.array(0, dtype=np.int8)}, id="scalar"),
+    pytest.param({"boundaries": np.array([".76", ".78", ".80", ".82"])}, id="string-edges"),
+])
+def test_scheduler_delivers_single_for_malformed_pair(
+    tmp_path, monkeypatch, live_case, rebound_policy, base_changes,
+):
+    rebound_policy(**base_changes)
     monkeypatch.setattr(strategy, "_mdp_cache", None)
     day = date(2027, 9, 26)
     text = str(day)
@@ -374,6 +381,78 @@ def test_r1_scheduler_delivers_single_for_paired_scalar(tmp_path, monkeypatch, l
     assert record["tail_policy_sha256"] is None
     assert record["degraded_reason"] == saved.policy_decision["degraded_reason"]
     assert record["degraded_reason"].endswith("); forced single")
+
+
+def finale_decision(policy):
+    ctx = strategy.DecisionContext(.84, .83, True, "2027-09-26", True, policy,
+                                   BOUNDARY, "trusted")
+    return strategy.resolve_policy_decision(ctx, BOUNDARY, False)
+
+
+def assert_degraded_finale(policy):
+    decision = finale_decision(policy)
+    assert (decision.action, decision.policy_action, decision.objective, decision.source) == (
+        "single", "single", OBJECTIVE, "mdp")
+    assert decision.days_effective == 1
+    assert decision.tail_sha256 is None
+    assert decision.degraded_reason.startswith("longest-streak rule unavailable (")
+    assert decision.degraded_reason.endswith("); forced single")
+
+
+@pytest.mark.parametrize("edges", [
+    pytest.param([".76", ".78", ".80", ".82"], id="strings"),
+    pytest.param([[.76], [.78], [.80], [.82]], id="nested"),
+    pytest.param([.76 + 1j, .78 + 1j, .80 + 1j, .82 + 1j], id="complex"),
+    pytest.param([.76, .78, np.nan, .82], id="nan"),
+    pytest.param([.76, .78, .80, np.inf], id="infinity"),
+    pytest.param([True], id="boolean"),
+    pytest.param([.76, .78, .78, .82], id="equal"),
+    pytest.param([.76, .80, .78, .82], id="decreasing"),
+])
+def test_f2_malformed_edges_force_single(artifact, rebound_policy, edges):
+    table = artifact["policy_table"][..., :len(edges) + 1]
+    policy = rebound_policy(boundaries=np.asarray(edges), policy_table=table)
+    assert_degraded_finale(policy)
+
+
+def test_f2_masked_table_forces_single(rebound_policy):
+    policy = rebound_policy()
+    # NPZ preserves the underlying values but drops the mask.
+    table = np.ma.array(policy["policy_table"], mask=False)
+    table[0, 0, 0, 0] = np.ma.masked
+    assert_degraded_finale(policy | {"policy_table": table})
+
+
+@pytest.mark.parametrize("mode", ["shipped", "short", "one-bin", "one-edge"])
+def test_f2_healthy_base_can_double(artifact, rebound_policy, mode):
+    table = artifact["policy_table"]
+    if mode == "shipped":
+        policy = artifact
+    elif mode == "short":
+        policy = rebound_policy(season_length=1, policy_table=table[:, :2])
+    else:
+        edges = [] if mode == "one-bin" else [.80]
+        policy = rebound_policy(boundaries=np.array(edges), policy_table=table[..., :len(edges) + 1])
+    decision = finale_decision(policy)
+    assert (decision.action, decision.tail_sha256, decision.degraded_reason) == (
+        "double", policy["tail"].sha256, None)
+
+
+@pytest.mark.parametrize("clause", ["integer-horizon", "positive-horizon", "boundary-list", "ndarray"])
+def test_f3_decoded_base_clause_forces_single(artifact, rebound_policy, clause):
+    if clause == "positive-horizon":
+        policy = rebound_policy(season_length=0, policy_table=artifact["policy_table"][:, :1])
+    else:
+        policy = rebound_policy()
+        table = policy["policy_table"]
+        changes = {
+            "integer-horizon": {"season_length": 180.0},
+            "boundary-list": {"boundaries": tuple(policy["boundaries"])},
+            "ndarray": {"policy_table": SimpleNamespace(
+                ndim=table.ndim, shape=table.shape, dtype=table.dtype, min=table.min, max=table.max)},
+        }
+        policy = policy | changes[clause]
+    assert_degraded_finale(policy)
 
 
 def test_r2_fresh_selection_uses_fixed_horizon(tmp_path, artifact, rebound_policy):
