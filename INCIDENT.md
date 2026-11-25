@@ -24,23 +24,15 @@ or `ssh root@bts-hetzner`, you're in a **cloud sandbox** — stay inside the §2
   GitHub-hosted runner and SSHes into the box using a key stored in **GitHub Actions secrets**
   (`HETZNER_SSH_KEY`) — *not* on anyone's laptop. **That's why you can deploy from a cloud
   sandbox with zero SSH access of your own.**
-- The workflow hard-resets the box to the pushed commit, runs `uv sync --extra model`, restarts
-  both services, waits 30s, then runs a **canary**: scheduler healthy + dashboard active +
-  dashboard HTTP 200. **If the canary fails it resets the box to the commit that was checked
-  out before the deploy and restarts both services again.** That is NOT a guarantee that the
-  box is healthy afterwards (whole-range review W12, W13, W17; the workflow change is deferred
-  to January 2027):
-  - the earlier commit must itself be able to serve the current season. The October 2026 code
-    (`619abda7`, what a restored offseason snapshot boots with) cannot serve 2027 and damages
-    state the current code then refuses. The first deploy onto a restored box follows
-    `docs/ops/2027-season-start.md` row B8c, nothing else;
-  - if the sync or the first restart fails, the job stops BEFORE the canary and nothing is
-    rolled back: the new code is checked out and the services are in whatever state the
-    failure left them;
-  - the canary passes when the scheduler merely runs. It does not show that a pick can be made
-    (a scheduler with no usable contest state starts, pages and idles).
-  After any failed deploy, find out which commit the box has and whether both services run
-  (§3: that needs SSH) before doing anything else.
+- The workflow hard-resets to the run's tested SHA, runs `uv sync --locked --extra model`, and
+  restarts both services. The canary accepts an active scheduler or a clean exit awaiting
+  restart, an active dashboard unit and dashboard HTTP 2xx. A failed canary attempts reset to
+  pre-deploy HEAD, dependency sync and another restart. Early fetch, reset, sync or restart
+  failure can bypass rollback, and a passed canary can be followed by job failure. The canary
+  does not exercise a live pick. After any failed job verify actual HEAD, sync and unit states
+  via SSH. October `619abda7` is unsafe for 2027, so use `docs/ops/2027-season-start.md` row
+  B8c for restored boxes. (Whole-range review W12, W13, W17: the workflow change is deferred to
+  January 2027.)
 - **Do NOT** `systemctl restart` on the box after pushing — the workflow already does it.
 - `origin/main` and `origin/deploy` are **independent**. Deploy ships *whatever ref you push
   to `deploy`*. Normal path is `git push origin main:deploy`; you can also push a branch with
@@ -50,17 +42,18 @@ or `ssh root@bts-hetzner`, you're in a **cloud sandbox** — stay inside the §2
 
 - ✅ Diagnose a **code bug** against the repo + tests.
 - ✅ Write a fix on a branch.
-- ✅ **Ship it** by pushing to `deploy`. The canary and the automatic rollback catch a service
-  that will not start; they do not make a bad deploy safe (§1). Every deploy restarts the
-  scheduler: in season, do not deploy while a pick is being chosen or sent, or during grading.
+- ✅ **Ship it:** ship to `deploy` only in a verified scheduler sleep window with no lineup
+  check, send, grading or entry check in flight or due during the deploy. Use B8c on an
+  offseason restore. The canary checks the two services as described in §1; re-runs and
+  dispatches restart both as well.
 - ✅ **Roll back / revert** (§5).
 - ✅ **Re-run a deploy** with no code change: GitHub → Actions → "Deploy to Hetzner" →
   **Run workflow** (`workflow_dispatch`) — **select the `deploy` branch in the dropdown**
   (defaults to `main`, which fails at the environment gate: the root SSH key lives in the
   `production` environment whose branch policy allows only `deploy`; rotated 2026-07-10).
   Restarts services off the current `deploy` ref.
-- ✅ **Read the last deploy's Actions log** — the canary prints exactly which check failed.
-  This is your best remote diagnostic.
+- ✅ **Read the last deploy's Actions log:** read the Actions log for the stage and any canary
+  reason; verify actual on-box state after failure.
 
 Run tests before shipping:
 
@@ -87,20 +80,18 @@ SSH + Tailscale. Don't burn turns trying to reach the box; you can't.
 | Inspect/repair on-box data under `/home/bts/...` | on the box |
 
 **The cookie case is the big one.** If picks have frozen and the signal points at leaderboard
-auth / login / cookies, that is **not a code bug**, and there is no cloud fix. What to do
-depends on what the failure message itself says, because the contest account is Eric's real
-one and extra login traffic can get it blocked:
+auth / login / cookies, that is **not a code bug**, and there is no cloud fix. Read the exact
+account failure before acting. On RATE-LIMITED or an account-request 403/429, stop manual
+retries and cookie capture and ask Eric when to resume. On transient, outage-shaped, network,
+or cookie-refresh-not-indicated errors, wait for the next scheduled attempt; escalate repeated
+failures for diagnosis before changing cookies. For `auth/cookie error — refresh via
+capture_bts_cookies.py on Mac`, have Eric verify the cookie file/login and re-capture on his
+Mac if absent or expired. For shape, identity or ambiguous errors, preserve the diagnostic and
+escalate without recapture. Example for the auth/cookie case:
 
-- **"RATE-LIMITED" (a 403 or 429 anywhere):** back off. Do NOT re-run the command, do NOT
-  re-capture cookies. Tell Eric; it is his decision when anything runs again.
-- **"transient" / "outage-shaped" / "cookie refresh NOT indicated":** wait for the next
-  scheduled run. Re-capture only if the same failure persists across runs.
-- **"auth/cookie error — refresh via capture_bts_cookies.py":** the login has expired
-  (`~/.bts-leaderboard-cookies.json`). Only then escalate with a ready-to-run instruction, e.g.:
-
-> "BTS reports an expired contest login (auth/cookie error) — this needs Eric: the cookies are
-> re-captured interactively on his Mac with `python scripts/capture_bts_cookies.py` and copied
-> to the box. I can't do that from the cloud sandbox."
+> "The contest fetch reported an auth/cookie error. Eric, please verify the cookie file and
+> login on your Mac, re-capture with `python scripts/capture_bts_cookies.py` if necessary, and
+> copy the result to the box."
 
 ## 4. Playbook by symptom
 
@@ -108,24 +99,19 @@ one and extra login traffic can get it blocked:
 *Is it about the box's runtime, auth/cookies, config files, or network?* → you can't reach it
 from the cloud (§3) → escalate.
 
-- **A deploy failed / canary rolled back:** open Actions → last "Deploy to Hetzner" run; the
-  log names the failed check, or shows that the job stopped before the canary (then nothing
-  was rolled back, §1). Either way **tell Eric which commit the box is now on** (the log's
-  `Pre-deploy SHA` line is where a rollback lands) before shipping anything else. Code error
-  in a recent commit → fix forward. If it says *"rollback also unhealthy — manual intervention
-  required"*, or the pre-deploy commit is from before the current season, the box needs a
-  person → **escalate** (needs SSH).
+- **A deploy failed / canary rolled back:** open Actions → last "Deploy to Hetzner" run. Use
+  `Pre-deploy SHA` as the attempted rollback target only. Have the SSH operator verify and
+  report the actual checked-out SHA, sync and service states to Eric before shipping a fix.
+  Escalate an unhealthy or unverifiable rollback and any incompatible pre-deploy revision.
 - **Picks frozen / none posted:** check the health DM Eric received and the Actions log. A code
   exception in a recent change → fix forward. Auth / cookie / box → **escalate** (§3).
 - **Bad pick logic, service otherwise up:** code fix → redeploy, but **respect the leakage
   safety rules in `CLAUDE.md`** — never ship feature changes without the `shift(1)` guards +
   `scripts/leakage_audit.py`. A wrong-but-running model is not an emergency; don't make it
   worse with a rushed change.
-- **Dashboard down, picks fine:** leave it until the scheduler is asleep. A redeploy (or
-  `workflow_dispatch`) restarts `bts-dashboard` but also restarts the scheduler, and a failed
-  canary then resets the code (§1): never use it as a dashboard restart while a pick is being
-  chosen or sent, or during grading. On-box, `systemctl --user restart bts-dashboard` touches
-  only the dashboard → escalate for that.
+- **Dashboard down, picks fine:** have the on-box operator run
+  `systemctl --user restart bts-dashboard`. If using a deploy or dispatch, follow §2's
+  quiet-window rule; both units restart and a failed canary can attempt a code rollback.
 - **Box/filesystem loss — operational-state restore (audit F5, needs SSH):** encrypted restic
   backups of `data/picks` + `data/health_state` (ops set, 3h cadence) and
   leaderboard/hetzner_results/external (archive set, daily) live in the R2 bucket under
@@ -140,10 +126,9 @@ from the cloud (§3) → escalate.
   `~/.local/bin/restic restore <SNAPSHOT_ID> --target /` — restic re-creates
   the original absolute paths (`/home/bts/projects/bts/data/...`). Parquets/models come from
   the separate artifact sync: `bts data sync-from-r2`. Systemd units: repo templates via
-  `bash scripts/install-systemd-hetzner.sh` (audit F12), then enable + start deliberately:
-  on a box rebuilt from the offseason snapshot, "deliberately" means the order of
-  `docs/ops/2027-season-start.md` row B8c (old code, old crontab and the leaderboard timer are
-  dealt with before anything is started).
+  `bash scripts/install-systemd-hetzner.sh` (audit F12). If using the offseason snapshot, apply
+  B8c's hold before normal boot. Install or refresh the standard unit files while the jobs are
+  held, then follow B8c's deploy and activation order.
 
 ## 5. Deploy / rollback commands
 
@@ -156,7 +141,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest
 git commit -am "fix: <what and why>"
 git push origin fix/<short-desc>     # open a PR so Eric can eyeball it from his phone
 # after it's merged to main:
-git push origin main:deploy          # ship — restarts the scheduler; read §1 on what the canary does not cover
+git push origin main:deploy          # ship in the §2 quiet window; see §1 for canary limits
 ```
 
 **Emergency lane** (picks actively broken, fix is small + obvious, Eric ok'd it in chat) —
@@ -182,11 +167,10 @@ git push origin main            # keep main canonical
 git push origin main:deploy     # ship the revert
 ```
 
-**Blunt rollback** to a known-good SHA (stopgap — get prod healthy now, fix `main` after).
-"Known-good" means a commit that has already served picks IN THE CURRENT SEASON: never a
-commit from before the season's first deploy (the October 2026 code rewrites 2027 state the
-current code then refuses, §1). The same holds for the revert flow above: revert the bad
-change, do not go back past the season's first deploy.
+**Blunt rollback** (stopgap). Use only an approved target verified compatible with the current
+season and present state, and follow the §2 quiet-window rule. A commit that served this season
+is only a candidate. If none qualifies, keep outward delivery held and fix forward. A revert
+must retain the current-season guards.
 
 ```bash
 git push origin <good-sha>:deploy --force   # workflow hard-resets the box to this ref
@@ -199,8 +183,8 @@ git push origin <good-sha>:deploy --force   # workflow hard-resets the box to th
 > force-push → re-enable. 30 seconds, and a deliberate speed bump before hard-resetting prod.
 > Prefer the revert flow above whenever there's time.
 
-**Just restart services** off the current `deploy` ref, no code change: GitHub → Actions →
-"Deploy to Hetzner" → **Run workflow** (`workflow_dispatch`).
+**Just restart services:** dispatch on `deploy` during the §2 quiet window (GitHub → Actions →
+"Deploy to Hetzner" → **Run workflow**). Both services restart and the workflow may roll back.
 
 ## 6. Where signal comes from when you're remote
 

@@ -130,3 +130,33 @@ New file `tests/test_wr_e_texts.py`: every sentence in the tables above asserted
 
 ## Handover
 `HANDOVER-WR-E.md` in the worktree root (not committed): the commit; files and lines; for each sentence the test that pins it and whether it was RED on the base; the must-still-happen rows with what was run and the counts; the standing rows; anything that could not be met as written (then STOP and say so). Then print `WRE-<first 8 hex characters of the sha256 of HANDOVER-WR-E.md>` on its own line and `DONE`.
+
+# Version 2 (2026-11-24 19:40, after the contract check `contract-check-e/contract-check.md`, `WRCHKE-2dd1d06c`: BUILD WITH THESE EDITS)
+
+**The check's replacement texts ARE the contract.** Every paragraph of `contract-check-e/contract-check.md` marked MUST FIX replaces the matching part of version 1 above (the E1 summary rules, case rules, surface rules and K1 to K5; S3, S4, S6, M4, M6 and the E2 scope and length rule; L2, L3, P2, P3; must-still-happen rows 1 to 6 and 8; the permitted test changes and the operator-text scan). Version 1 remains for the "old" column, the worst-state reasoning and everything the check did not replace (row 7, the standing rows, the ledger, the handover). The documentation rows (D1 to D12 and the check's additions for checklist A4 and B8) are already applied in commit 2 of the branch with the check's texts; the author does not touch `docs/ops/2027-season-start.md` or `INCIDENT.md`. Where the check leaves a composition open, this section decides:
+
+## E1, composed
+- **Summary** (`build_skip_summary(predictions, streak, pick_bar=None, decision=None, candidate=None)`): the check's first E1 paragraph, verbatim. Keys added: `basis` (`"decision"` or `"no_decision"`) and `candidate_verified` (bool). `run_single_check` passes `candidate=sel.primary_candidate` when `sel` is not None.
+- **Case order** K1, K5, K2, K3, K4, with the check's display parser (second E1 paragraph).
+- **Sentences** (`{candidate}` is `Candidate used in the decision` when `candidate_verified` is true, else `Top model prediction (eligibility unverified)`; `{p}` is the probability to one decimal as a percentage, or `?`; `{bar_text}` is `the streak-{s} bar ({bar:.1%})` with a valid streak, else `the bar ({bar:.1%})`):
+  - K1 `{candidate}: {b} ({t}) {p}. Reason: {reason}.` (exactly one terminal period: none is added when the reason already ends with `.`, `!` or `?`)
+  - K2 `{candidate}: {b} ({t}) {p}, below {bar_text} using unrounded values.`
+  - K3 `{candidate}: {b} ({t}) {p}, at or above {bar_text}.`
+  - K4 `{candidate}: {b} ({t}) {p}. No probability comparison is available for this check.`
+  - K5 `No candidate was chosen. Top model prediction (eligibility unverified): {b} ({t}) {p}.`
+- **Surfaces.** DM: `BTS {date}: No pick at this check. ` + sentence + suffix. Journal: `  SKIP — ` + sentence + suffix, one line. Banner: `<div class="skip-banner"><strong>NO PICK AT LAST CHECK</strong><span>` + sentence + suffix + `</span></div>`, every interpolated value HTML-escaped. Suffix: ` Streak used at this check: {s}.` only for a valid streak (a JSON integer, not a boolean, not negative). Line breaks inside a displayed string become single spaces on all three surfaces.
+
+## E2, composed
+`DIR` is a literal placeholder in the messages. The delivery warning's body is used for both its DM and its `STALE CONTEST READING` journal line.
+- **After a delivery:** `The pick was delivered using an automatic contest reading flagged stale ({detail}). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date {D} --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal {D}. For a later date, follow B8b(1). On {D} ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.`
+- **In the morning:** `Morning check for {D}: the automatic contest reading was stale at startup ({detail}). This reading is eligible if it remains in use. Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date {D} --streak N --best-streak B --saver S --picks-dir DIR on {D} ET only. DIR is the absolute scheduler picks path. This leaves the saver flag unchanged. On {D} ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.`
+- Each dispatched body with its real envelope is under 900 Unicode characters at the longest detail the code can produce (the check measured 881 and 842); if your measurement differs, STOP and say so, do not shorten a sentence yourself.
+
+## E3, composed
+- **Late:** `LATE DELIVERY REFUSED: {names} would have been sent {m} min after the {cutoff} cutoff. This pick was withheld. A later check may produce another recommendation. Use a later official pick message only while the entry window is open. A manual entry can differ from a later recommendation. The entry check may report a mismatch if it verifies the entry in time.`
+- **Postponed:** `DELIVERY REFUSED for {date}: {games}. ` followed by the same four sentences.
+
+## Scope and tests
+- Files the author may change: `src/bts/scheduler.py` (the functions named in E1 to E3 and the one call site), `src/bts/web.py` (`render_skip_banner`), `scripts/audit/season_walk/walk.py` (pass `candidate=`; the K3 and K4 counts) and its test file, the new `tests/test_wr_e_texts.py`, and text-only expectations in `tests/test_scheduler_skip_visibility.py`, `tests/test_scheduler_tail_objective.py`, `tests/test_stale_delivery_cs4c.py`, `tests/test_morning_state_cs6b1.py` as the check's last paragraph permits. `src/bts/strategy.py` has no diff.
+- The season walk on the commit: 4,599 runs equal to the saved records in action, bar and day counts; no skip-message problem; 229 K3 and 612 K4 among the 841 formerly flagged runs. Save the result as `scripts/audit/season_walk/results/walk-e.txt` and `.json.gz` (the commit id is not known before the commit).
+- The must-still-happen and standing rows as the check rewrote them; say for each what was run.
