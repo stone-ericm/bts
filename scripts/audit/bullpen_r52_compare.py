@@ -8,7 +8,7 @@ averaged with equal weight over 2021 to 2025, giving one paired value per seed (
 extended by R59 to 24, the final test). PASS when both hold: (1) the one-sided 95% lower bound
 mean(d) - t(0.95, n-1) * sd(d) / sqrt(n) is above -0.5 percentage points; (2) no season's mean
 difference over the seeds is below -1.0 percentage points.
-The rule is unmet until all 16 runs finish. Streak metrics are reported, not ruled on.
+The rule is unmet until all 48 runs finish. Streak metrics are reported, not ruled on.
 
 The verdict path uses the fixed grid (the queue's 24 seeds, 2021 to 2025); there is no option to
 change it. P@1 is carried as an exact fraction (one validated rank-1 pick per day, binary
@@ -16,9 +16,10 @@ outcome) and checked equal to the scorecard's float; both floors are compared ex
 A run counts only when its DONE marker exists, ``progress.log`` (read strictly: every end pairs
 with the one open start of the same run, no two different runs are open at once, a start may
 supersede an unfinished start of the SAME run, which is how this serial queue restarts) has its
-last start followed by ``end ... rc=0``, and every season file was written after that start and no
-later than the DONE marker, which is itself no later than the logged end (+2 s: the end line is
-stamped to the whole second and DONE is touched just after it). Each file is read once; the bytes scored are hashed into the result. Every season's day set
+last start followed by ``end ... rc=0``, every season file was written after that start, before the
+second following the logged end (the end line is stamped to the whole second) and no later than the
+DONE marker, and the DONE marker is no later than the logged end + 2 s (empty, R52's 8 seeds) or
++ 30 s (a receipt, written after hashing the five files). Each file is read once; the bytes scored are hashed into the result. Every season's day set
 must be identical across all 48 runs. Since R59 a run's DONE marker holds the runner's sha256 of its
 five files: for every seed except R52's original 8 (whose markers are empty) the bytes scored must
 match that receipt. Any unexpected input is "rule unmet", never a verdict.
@@ -120,8 +121,9 @@ def _cell(root: Path, arm: str, seed: int, season: int, window, seasons=SEASONS)
         raise Incomplete(f"{arm} seed {seed}: no readable DONE marker") from exc
     recorded = {}
     for line in receipt.splitlines():
-        parts = line.split()
-        if len(parts) != 2 or len(parts[0]) != 64 or parts[1] in recorded:
+        m = re.fullmatch(r"([0-9a-f]{64})  (\S+)", line)  # exactly the runner's shasum line
+        parts = m.groups() if m else ()
+        if not m or parts[1] in recorded:
             raise Incomplete(f"{arm} seed {seed}: DONE receipt line not '<sha256>  <file>' (or a file listed twice)")
         recorded[parts[1]] = parts[0]
     if recorded and set(recorded) != {f"backtest_{y}.parquet" for y in seasons}:
@@ -140,7 +142,7 @@ def _cell(root: Path, arm: str, seed: int, season: int, window, seasons=SEASONS)
         raise Incomplete(f"{tag}: cannot read {path.name} ({type(exc).__name__})") from exc
     if recorded and recorded[path.name] != hashlib.sha256(data).hexdigest():
         raise Incomplete(f"{tag}: bytes differ from the runner's receipt in DONE")
-    if not (start <= mtime <= done_mtime):
+    if not (start <= mtime <= done_mtime and mtime < end + timedelta(seconds=1)):
         raise Incomplete(f"{tag}: file written {mtime:%F %T}, outside its run {start:%F %T} to its DONE {done_mtime:%F %T}")
     for col in ("date", "rank", "actual_hit"):
         if col not in df.columns:

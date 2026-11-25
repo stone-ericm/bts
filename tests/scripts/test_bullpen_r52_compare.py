@@ -445,3 +445,31 @@ def test_a_receipt_repeating_a_correct_line_is_rule_unmet(tmp_path):
     _log(tmp_path)
     with pytest.raises(r52.Incomplete, match="listed twice"):
         _cmp(tmp_path)
+
+
+
+def test_a_season_file_written_after_the_logged_end_is_rule_unmet_even_with_a_genuine_receipt(tmp_path):
+    # round 2 of the 24-seed review: a write at end + 10 s, then the runner's hash at + 11 s
+    import hashlib
+    _grid(tmp_path, lambda s, y: 150, lambda s, y: 150)
+    run = tmp_path / "out" / "new" / "seed_1"
+    end = r52.run_windows(tmp_path / "progress.log")[("new", 1)][1]
+    path = run / "backtest_2021.parquet"
+    df = pd.read_parquet(path)
+    df.loc[0, "actual_hit"] = 1 - int(df.loc[0, "actual_hit"])
+    df.to_parquet(path)
+    (run / "DONE").write_text("".join(f"{hashlib.sha256(f.read_bytes()).hexdigest()}  {f.name}\n" for f in sorted(run.glob("backtest_*.parquet"))))
+    for f, secs in ((path, 10), (run / "DONE", 11)):
+        t = (end + timedelta(seconds=secs)).timestamp()
+        os.utime(f, (t, t))
+    with pytest.raises(r52.Incomplete, match="outside its run"):
+        _cmp(tmp_path)
+
+
+def test_a_tab_separated_receipt_is_rule_unmet(tmp_path):
+    _grid(tmp_path, lambda s, y: 150, lambda s, y: 150)
+    done = tmp_path / "out" / "old" / "seed_3" / "DONE"
+    done.write_text(done.read_text().replace("  ", "\t"))
+    _log(tmp_path)
+    with pytest.raises(r52.Incomplete, match="receipt"):
+        _cmp(tmp_path)
