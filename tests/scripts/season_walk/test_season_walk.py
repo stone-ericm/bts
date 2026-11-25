@@ -145,3 +145,27 @@ def test_check_flags_a_skip_message_that_calls_a_clearing_best_below_its_bar():
     assert any("skip message" in p for p in walk.check([wrong]))
     right = base | {"best_p": 0.70, "skip_bar": None, "skip_dm": wrong["skip_dm"].replace("96%", "70%")}
     assert not any("skip message" in p for p in walk.check([right]))
+
+
+@pytest.mark.parametrize("action", ["skip", "single"])
+def test_longest_walk_flags_wrong_action_even_with_legacy_objective(action):
+    from bts.simulate import tail_policy
+
+    boundary = getattr(tail_policy, "LONGEST_STREAK_FROM", 57)
+    record = dict(day="2027-09-26", state=f"dated/{boundary}/{boundary}/used/0.96",
+                  action=action, named=action == "skip", in_season=True,
+                  batter="Batter 0" if action == "single" else None,
+                  days_left=1, days_effective=1, objective="reach57", source="mdp")
+    assert any(f"action {action!r}, expected 'double'" in problem
+               for problem in walk.check([record]))
+
+
+def test_longest_walk_records_the_actual_choice():
+    from bts.simulate import tail_policy
+
+    boundary = getattr(tail_policy, "LONGEST_STREAK_FROM", 57)
+    record = walk.walk_one(date(2027, 9, 26), walk.State("dated", boundary, boundary, "used", .96))
+    assert (record["objective"], record["action"], record["double"]) == (
+        "longest_streak", "double", "Batter 1")
+    assert record["chosen_on_valid"] is True
+    assert walk.check([record]) == []
