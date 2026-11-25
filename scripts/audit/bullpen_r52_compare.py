@@ -17,8 +17,8 @@ A run counts only when its DONE marker exists, ``progress.log`` (read strictly: 
 with the one open start of the same run, no two different runs are open at once, a start may
 supersede an unfinished start of the SAME run, which is how this serial queue restarts) has its
 last start followed by ``end ... rc=0``, every season file was written after that start, before the
-second following the logged end (the end line is stamped to the whole second) and no later than the
-DONE marker, and the DONE marker is no later than the logged end + 2 s (empty, R52's 8 seeds) or
+logged end's whole second (real files precede it by at least 4.3 s) and no later than the DONE
+marker, and the DONE marker is no later than the logged end + 2 s (empty, R52's 8 seeds) or
 + 30 s (a receipt, written after hashing the five files). Each file is read once; the bytes scored are hashed into the result. Every season's day set
 must be identical across all 48 runs. Since R59 a run's DONE marker holds the runner's sha256 of its
 five files: for every seed except R52's original 8 (whose markers are empty) the bytes scored must
@@ -120,8 +120,10 @@ def _cell(root: Path, arm: str, seed: int, season: int, window, seasons=SEASONS)
     except (OSError, UnicodeDecodeError) as exc:
         raise Incomplete(f"{arm} seed {seed}: no readable DONE marker") from exc
     recorded = {}
-    for line in receipt.splitlines():
-        m = re.fullmatch(r"([0-9a-f]{64})  (\S+)", line)  # exactly the runner's shasum line
+    if receipt and not receipt.endswith("\n"):
+        raise Incomplete(f"{arm} seed {seed}: DONE receipt not the runner's LF-terminated shasum lines")
+    for line in receipt.split("\n")[:-1] if receipt else []:
+        m = re.fullmatch(r"([0-9a-f]{64})  ([A-Za-z0-9_.]+)", line)  # exactly the runner's shasum line
         parts = m.groups() if m else ()
         if not m or parts[1] in recorded:
             raise Incomplete(f"{arm} seed {seed}: DONE receipt line not '<sha256>  <file>' (or a file listed twice)")
@@ -142,7 +144,7 @@ def _cell(root: Path, arm: str, seed: int, season: int, window, seasons=SEASONS)
         raise Incomplete(f"{tag}: cannot read {path.name} ({type(exc).__name__})") from exc
     if recorded and recorded[path.name] != hashlib.sha256(data).hexdigest():
         raise Incomplete(f"{tag}: bytes differ from the runner's receipt in DONE")
-    if not (start <= mtime <= done_mtime and mtime < end + timedelta(seconds=1)):
+    if not (start <= mtime <= done_mtime and mtime < end):
         raise Incomplete(f"{tag}: file written {mtime:%F %T}, outside its run {start:%F %T} to its DONE {done_mtime:%F %T}")
     for col in ("date", "rank", "actual_hit"):
         if col not in df.columns:

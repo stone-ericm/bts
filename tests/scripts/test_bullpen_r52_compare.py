@@ -473,3 +473,27 @@ def test_a_tab_separated_receipt_is_rule_unmet(tmp_path):
     _log(tmp_path)
     with pytest.raises(r52.Incomplete, match="receipt"):
         _cmp(tmp_path)
+
+
+
+def test_a_season_file_rewritten_within_the_logged_end_second_is_rule_unmet(tmp_path):
+    _grid(tmp_path, lambda s, y: 150, lambda s, y: 150)
+    end = r52.run_windows(tmp_path / "progress.log")[("old", 2)][1]
+    path = tmp_path / "out" / "old" / "seed_2" / "backtest_2022.parquet"
+    t = (end + timedelta(milliseconds=150)).timestamp()
+    os.utime(path, (t, t))
+    with pytest.raises(r52.Incomplete, match="outside its run"):
+        _cmp(tmp_path)
+
+
+@pytest.mark.parametrize("damage", ["crlf", "no_final_lf", "vertical_tab"])
+def test_a_receipt_not_in_the_runner_s_exact_lines_is_rule_unmet(tmp_path, damage):
+    _grid(tmp_path, lambda s, y: 150, lambda s, y: 150)
+    done = tmp_path / "out" / "new" / "seed_3" / "DONE"
+    text = done.read_text()
+    text = {"crlf": text.replace("\n", "\r\n"), "no_final_lf": text.rstrip("\n"),
+            "vertical_tab": text.replace("\n", "\v", 1)}[damage]
+    done.write_bytes(text.encode())
+    _log(tmp_path)
+    with pytest.raises(r52.Incomplete, match="receipt"):
+        _cmp(tmp_path)
