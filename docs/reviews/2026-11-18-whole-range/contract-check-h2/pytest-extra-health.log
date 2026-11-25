@@ -1,0 +1,15 @@
+nice: setpriority: Operation not permitted
+bts=/Users/eric/projects/bts-work/wr-check-h2/.codex-review/wr-h-check2/scratch/src/bts/__init__.py
+files=['tests/health/test_f4_exception_propagation.py', 'tests/health/test_late_delivery.py', 'tests/health/test_runner.py', 'tests/scripts/c2_framing/test_screen.py']
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-check-h2/.codex-review/wr-h-check2/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 340 items
+
+tests/health/test_f4_exception_propagation.py .........                  [  2%]
+tests/health/test_late_delivery.py ............                          [  6%]
+tests/health/test_runner.py .....................                        [ 12%]
+tests/scripts/c2_framing/test_screen.py ................................ [ 21%]
+..............F..

@@ -117,15 +117,19 @@ def test_affected_rows_and_independent_clamps(artifact, affected, probabilities)
 
 @pytest.mark.parametrize("start,stop", [(0, 46), (46, 93), (93, 140), (140, 188)])
 def test_resolver_and_direct_bar_grid(start, stop, artifact, affected, probabilities, monkeypatch):
+    from bts.simulate.tail_policy import LONGEST_STREAK_FROM
+
     base = base_module("strategy")
     for module in (strategy, base):
         monkeypatch.setattr(module, "_days_remaining", cache(module._days_remaining))
     field_names = [field.name for field in fields(base.PolicyDecision)]
     seen, days = set(), set()
-    calls, changed = 0, 0
+    calls, changed, streak_counts = 0, 0, 0
     for offset in range(start, stop):
         day = (date(2027, 3, 24) + timedelta(days=offset)).isoformat()
-        for s, saver in product(range(58), (False, True)):
+        count = LONGEST_STREAK_FROM + (strategy._days_remaining(day) == 0)
+        streak_counts += count
+        for s, saver in product(range(count), (False, True)):
             bar = strategy.effective_pick_bar(s, day, saver, artifact, s, "trusted")
             old_bar = base.effective_pick_bar(s, day, saver, artifact, s, "trusted")
             assert bar == old_bar
@@ -159,7 +163,7 @@ def test_resolver_and_direct_bar_grid(start, stop, artifact, affected, probabili
     effective_days = {min(180, 187 - offset) for offset in range(start, stop)}
     assert days == effective_days
     assert seen == {key for key in affected if key[1] in effective_days}
-    assert calls == (stop - start) * 58 * 2 * 5 * 3
+    assert calls == streak_counts * 2 * 5 * 3
     repeats = 56 if start == 0 else 0
     assert changed == 3 * (len(seen) + repeats)
 

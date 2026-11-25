@@ -1,0 +1,43 @@
+nice: setpriority: Operation not permitted
+longest-streak policy: longest-streak rule unavailable (tail policy must have one quality bin); forced single -> single
+longest-streak policy: longest-streak rule unavailable (TypeError: int() argument must be a string, a bytes-like object or a real number, not 'NoneType'); forced single -> single
+MDP base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp2dabhft6/base.npz')
+MDP tail policy not usable (base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp2dabhft6/base.npz'): tail pairing unverifiable)
+longest-streak policy: longest-streak rule unavailable (FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp2dabhft6/base.npz'); forced single -> single
+MDP base policy unavailable (ValueError: This file contains pickled (object) data. If you trust the file you can load it unsafely using the `allow_pickle=` keyword argument or `pickle.load()`.)
+MDP tail policy not usable (base policy unavailable (ValueError: This file contains pickled (object) data. If you trust the file you can load it unsafely using the `allow_pickle=` keyword argument or `pickle.load()`.): tail pairing unverifiable)
+longest-streak policy: longest-streak rule unavailable (ValueError: This file contains pickled (object) data. If you trust the file you can load it unsafely using the `allow_pickle=` keyword argument or `pickle.load()`.); forced single -> single
+MDP base policy unavailable (IsADirectoryError: [Errno 21] Is a directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp4dmi5v7n/base.npz')
+MDP tail policy not usable (base policy unavailable (IsADirectoryError: [Errno 21] Is a directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp4dmi5v7n/base.npz'): tail pairing unverifiable)
+longest-streak policy: longest-streak rule unavailable (IsADirectoryError: [Errno 21] Is a directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp4dmi5v7n/base.npz'); forced single -> single
+MDP base policy unavailable (KeyError: 'policy_table is not a file in the archive')
+MDP tail policy not usable (base policy unavailable (KeyError: 'policy_table is not a file in the archive'): tail pairing unverifiable)
+longest-streak policy: longest-streak rule unavailable (KeyError: 'policy_table is not a file in the archive'); forced single -> single
+MDP base policy unavailable (ValueError: base policy artifact too large (2097153 bytes))
+MDP tail policy not usable (base policy unavailable (ValueError: base policy artifact too large (2097153 bytes)): tail pairing unverifiable)
+longest-streak policy: longest-streak rule unavailable (ValueError: base policy artifact too large (2097153 bytes)); forced single -> single
+longest-streak policy: longest-streak rule unavailable (base policy season length must be positive); forced single -> single
+longest-streak policy: longest-streak rule unavailable (base policy season length must be positive); forced single -> single
+MDP base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp2ujc5u8h/base.npz')
+MDP tail policy not usable (base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp2ujc5u8h/base.npz'): tail pairing unverifiable)
+longest-streak policy: longest-streak rule unavailable (decoded base policy or sha unavailable); forced single -> single
+longest-streak policy: longest-streak rule unavailable (RuntimeError: artificial reader failure); forced single -> single
+longest-streak policy: longest-streak rule unavailable (simulated rule error); forced single -> single
+tail-two-bin longest-streak rule unavailable (tail policy must have one quality bin); forced single
+tail-malformed-manifest longest-streak rule unavailable (TypeError: int() argument must be a string, a bytes-like object or a real number, not 'NoneType'); forced single
+malformed manifest raises from artifact health, as A9 says
+base-missing longest-streak rule unavailable (FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp2dabhft6/base.npz'); forced single
+base-corrupt longest-streak rule unavailable (ValueError: This file contains pickled (object) data. If you trust the file you can load it unsafely using the `allow_pickle=` keyword argument or `pickle.load()`.); forced single
+base-directory longest-streak rule unavailable (IsADirectoryError: [Errno 21] Is a directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp4dmi5v7n/base.npz'); forced single
+base-missing-table longest-streak rule unavailable (KeyError: 'policy_table is not a file in the archive'); forced single
+base-oversize longest-streak rule unavailable (ValueError: base policy artifact too large (2097153 bytes)); forced single
+base-zero longest-streak rule unavailable (base policy season length must be positive); forced single
+base-negative longest-streak rule unavailable (base policy season length must be positive); forced single
+both-absent longest-streak rule unavailable (decoded base policy or sha unavailable); forced single
+loader-error longest-streak rule unavailable (RuntimeError: artificial reader failure); forced single
+rule-error longest-streak rule unavailable (simulated rule error); forced single
+matched-shapeless-table shape () health alerts 0 committed choice double sha 3475402f39b3178870a72ae08fffffcf83943d3c7a871dc90a9f6831163714cc
+_load_mdp KeyboardInterrupt propagated
+longest_streak_action KeyboardInterrupt propagated
+_load_mdp SystemExit propagated
+longest_streak_action SystemExit propagated

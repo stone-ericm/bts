@@ -1,0 +1,44 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-h2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 71 items / 1 deselected / 70 selected
+
+tests/test_wr_h_longest.py ............................................. [ 64%]
+....................F
+
+=================================== FAILURES ===================================
+_______________ test_r3_fresh_selection_dispatch_precedes_loader _______________
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1202/test_r3_fresh_selection_dispat0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10ee72840>
+
+    def test_r3_fresh_selection_dispatch_precedes_loader(tmp_path, monkeypatch):
+        calls = []
+        regime = strategy._regime
+    
+        def record_regime(*args):
+            calls.append("regime")
+            return regime(*args)
+    
+        def fail_loader():
+            calls.append("load")
+            raise TypeError("broken loader")
+    
+        monkeypatch.setattr(strategy, "_regime", record_regime)
+        monkeypatch.setattr(strategy, "_load_mdp", fail_loader)
+        selection = fresh_longest_selection(date(2027, 9, 26), tmp_path)
+>       assert calls[0] == "regime"
+E       AssertionError: assert 'load' == 'regime'
+E         
+E         - regime
+E         + load
+
+tests/test_wr_h_longest.py:402: AssertionError
+------------------------------ Captured log call -------------------------------
+ERROR    bts.strategy:strategy.py:397 longest-streak policy: longest-streak rule unavailable (TypeError: broken loader); forced single -> single
+=========================== short test summary info ============================
+FAILED tests/test_wr_h_longest.py::test_r3_fresh_selection_dispatch_precedes_loader
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+================== 1 failed, 65 passed, 1 deselected in 1.85s ==================

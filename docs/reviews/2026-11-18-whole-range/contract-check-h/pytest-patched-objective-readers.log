@@ -1,0 +1,17 @@
+bts=/Users/eric/projects/bts-work/wr-check-h/.codex-review/wr-h-check/scratch/src/bts/__init__.py
+files=['tests/test_boundary_shadow_census.py', 'tests/test_tail_provenance.py', 'tests/scripts/test_bin_collapse_read.py', 'tests/scripts/test_p05_tail_policy_audit.py', 'tests/scripts/season_ledger/test_compile.py', 'tests/scripts/season_ledger/test_rows.py']
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-check-h/.codex-review/wr-h-check/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 69 items
+
+tests/test_boundary_shadow_census.py ..........                          [ 14%]
+tests/test_tail_provenance.py ...                                        [ 18%]
+tests/scripts/test_bin_collapse_read.py ..                               [ 21%]
+tests/scripts/test_p05_tail_policy_audit.py ...                          [ 26%]
+tests/scripts/season_ledger/test_compile.py .....................        [ 56%]
+tests/scripts/season_ledger/test_rows.py ..............................  [100%]
+
+============================== 69 passed in 2.31s ==============================

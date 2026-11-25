@@ -1,0 +1,81 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-h2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 71 items / 1 deselected / 70 selected
+
+tests/test_wr_h_longest.py ...........................................F
+
+=================================== FAILURES ===================================
+_______________ test_h4_bad_artifacts_force_single[tail-two-bin] _______________
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1197/test_h4_bad_artifacts_force_si5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10e6b1670>
+artifact = {'base_error': None, 'base_sha256': '66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4', 'boundaries': ...     [0, 0, 0, 0, 0]],
+
+        [[0, 0, 0, 0, 0],
+         [0, 0, 0, 0, 0]]]], shape=(58, 181, 2, 5), dtype=int8), ...}
+mode = 'tail-two-bin'
+
+    @pytest.mark.parametrize("mode", [
+        "tail-missing", "tail-corrupt", "tail-truncated", "tail-directory", "tail-mismatch",
+        "tail-two-bin", "base-missing", "base-corrupt", "base-negative", "all-missing",
+        "tail-malformed-manifest",
+    ])
+    def test_h4_bad_artifacts_force_single(tmp_path, monkeypatch, artifact, mode):
+        import hashlib
+        import json
+        import shutil
+        from dataclasses import replace
+    
+        import numpy as np
+    
+        base_path, tail_path = tmp_path / "base.npz", tmp_path / "tail.npz"
+        shutil.copyfile(mdp.DEFAULT_POLICY_PATH, base_path)
+        shutil.copyfile(tail_policy.DEFAULT_TAIL_POLICY_PATH, tail_path)
+        path = base_path if mode.startswith("base") else tail_path
+        if mode == "all-missing":
+            base_path.unlink()
+            tail_path.unlink()
+        elif mode.endswith("missing"):
+            path.unlink()
+        elif mode.endswith("corrupt"):
+            path.write_bytes(b"damaged")
+        elif mode.endswith("truncated"):
+            path.write_bytes(path.read_bytes()[:70])
+        elif mode.endswith("directory"):
+            path.unlink()
+            path.mkdir()
+        elif mode.endswith("mismatch"):
+            with base_path.open("ab") as output:
+                output.write(b"trailer")
+        elif mode.endswith("negative"):
+            rewrite_npz(base_path, season_length=np.array(-1))
+            sha = hashlib.sha256(base_path.read_bytes()).hexdigest()
+            tail_policy.save_tail_policy(replace(artifact["tail"], base_policy_sha256=sha), tail_path)
+        elif mode.endswith("two-bin"):
+            tail_policy.save_tail_policy(two_bin_tail(artifact), tail_path)
+        elif mode.endswith("manifest"):
+            manifest = artifact["tail"].manifest | {"bin_counts": [None]}
+            rewrite_npz(tail_path, manifest=np.array(json.dumps(manifest)))
+        monkeypatch.setattr(mdp, "DEFAULT_POLICY_PATH", base_path)
+        monkeypatch.setattr(tail_policy, "DEFAULT_TAIL_POLICY_PATH", tail_path)
+        monkeypatch.setattr(strategy, "_mdp_cache", None)
+        day = date(2027, 9, 26)
+        frame = walk._predictions(day, .99)
+        statuses = {int(pk): {"abstract": "P", "detailed": "Scheduled"} for pk in frame["game_pk"]}
+        with walk.offline(datetime.combine(day, time(12), walk.ET)):
+            sel = strategy.select_pick(frame, str(day), tmp_path, streak=BOUNDARY,
+                                       saver_available=False, game_statuses_detailed=statuses)
+>       assert sel.action == "single"
+E       AssertionError: assert 'double' == 'single'
+E         
+E         - single
+E         + double
+
+tests/test_wr_h_longest.py:276: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_h_longest.py::test_h4_bad_artifacts_force_single[tail-two-bin]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+================== 1 failed, 43 passed, 1 deselected in 1.69s ==================

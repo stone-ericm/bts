@@ -20,7 +20,7 @@ DECISION_SCHEMA = "bts_daily_decision_v3"
 # was decided under reach57 (the only objective before v3).
 ACCEPTED_SCHEMAS = ("bts_daily_decision_v1", "bts_daily_decision_v2", "bts_daily_decision_v3")
 OBJECTIVE_REACH57 = "reach57"
-OBJECTIVES = ("reach57", "emax_season_best")
+OBJECTIVES = ("reach57", "emax_season_best", "longest_streak")
 _LEGACY_SCHEMAS = ("bts_daily_decision_v1", "bts_daily_decision_v2")
 _RANK_FIELDS = ("batter_id", "batter_name", "team", "game_pk", "p_game_hit")
 
@@ -73,7 +73,7 @@ def write_decision(date, picks_dir, *, action, source, primary=None, double_down
     the action — and second_candidate, the executable different-game runner-up
     at skip time. All default None so legacy call paths stay valid.
 
-    v3 fields (2026-09-03, tail policy): objective ("reach57" | "emax_season_best"),
+    v3 fields: objective ("reach57" | "emax_season_best" | "longest_streak"),
     best_streak (as supplied) + best_status (trust), effective_best (the m the tail
     lookup used), tail_policy_sha256 (the artifact that chose the action) and
     degraded_reason (set when the forced fallback decided). An action is not

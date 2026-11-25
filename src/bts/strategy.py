@@ -11,6 +11,7 @@ share the same decision logic.
 
 import io
 import logging
+import math
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -26,8 +27,9 @@ from bts.picks import (
     pick_candidate_status_is_available, season_of_date,
 )
 from bts.simulate.tail_policy import (
-    OBJECTIVE_REACH57, OBJECTIVE_TAIL, effective_best, effective_days,
-    forced_tail_action, lookup_tail_action, mdp_objective,
+    LONGEST_STREAK_HORIZON, OBJECTIVE_LONGEST, OBJECTIVE_REACH57, OBJECTIVE_TAIL,
+    effective_best, effective_days, forced_tail_action, longest_streak_action,
+    lookup_tail_action, mdp_objective,
 )
 
 log = logging.getLogger(__name__)
@@ -150,12 +152,13 @@ def effective_pick_bar(streak: int, date: str, saver: bool, mdp=_UNSET,
     lower edge of the first non-skip quality bin (0.0 when even the bottom bin
     plays). Heuristic path (no base policy while 57 is reachable) -> SKIP_THRESHOLD.
     In the tail regime the bins are the TAIL's (one bin in production: 0.0 while
-    the season best is beatable, None at the terminal stop). None when every bin
-    skips or the policy is unreadable. Display-only (skip messages) — never
-    raises and never feeds the pick path."""
-    if mdp is _UNSET:
-        mdp = _load_mdp()
+    the season best is beatable, None at the terminal stop). The longest-streak
+    bar is 0.0. Returns None when every bin skips or the display calculation fails."""
     try:
+        if _regime(None, streak, date)[0] == OBJECTIVE_LONGEST:
+            return 0.0
+        if mdp is _UNSET:
+            mdp = _load_mdp()
         objective, d_eff = _regime(mdp, streak, date)
         if objective == OBJECTIVE_TAIL:
             _, best_for_lookup = _normalize_best(best_streak, best_status)
@@ -231,7 +234,7 @@ class PolicyDecision:
     action: str                  # executed action after the operational clamps
     policy_action: str           # the policy action before the clamps
     source: str                  # "mdp" | "heuristic"
-    objective: str               # OBJECTIVE_REACH57 | OBJECTIVE_TAIL
+    objective: str               # reach57, emax_season_best, or longest_streak
     streak: int
     days_effective: int
     best_supplied: int | None
@@ -251,11 +254,11 @@ def _days_remaining(date: str) -> int:
 
 
 def _regime(mdp: dict | None, streak: int, date: str) -> tuple[str, int]:
-    """(objective, effective days) from STATE ALONE — resolved before any artifact
-    is consulted, so an artifact failure can never fall through to the 0.80
-    heuristic once 57 is unreachable (Codex r2 P0)."""
-    season_length = int((mdp or {}).get("season_length") or 180)
+    """Resolve the objective and its effective days from the raw slate date."""
     days = _days_remaining(date)
+    if mdp_objective(streak, days) == OBJECTIVE_LONGEST:
+        return OBJECTIVE_LONGEST, min(days, LONGEST_STREAK_HORIZON)
+    season_length = int((mdp or {}).get("season_length") or 180)
     return mdp_objective(streak, days, season_length), effective_days(days, season_length)
 
 
@@ -300,6 +303,7 @@ def resolve_policy_decision(ctx: DecisionContext, streak: int, saver: bool) -> P
     Regime first: while 57 is reachable this is the shipped reach-57 table (or the
     heuristic when no base policy loaded); once it is not, the tail policy — exact
     E[season-best] with the account's best carried as state — or its forced rule.
+    At the longest-streak boundary with days left, extend the current run.
     Then the ``allow_double`` clamp and the "double must be executable (a
     different-game second pick exists)" guard. No IO.
     """
@@ -310,7 +314,10 @@ def resolve_policy_decision(ctx: DecisionContext, streak: int, saver: bool) -> P
     tail_sha = None
     reason = None
     guard = None
-    if objective == OBJECTIVE_TAIL:
+    if objective == OBJECTIVE_LONGEST:
+        policy_action, degraded, tail_sha = _longest_action(ctx.mdp, d_eff)
+        source = "mdp"
+    elif objective == OBJECTIVE_TAIL:
         effective_m = effective_best(streak, best_for_lookup)
         policy_action, degraded = _tail_action(
             ctx.mdp, ctx.primary_p, streak, d_eff, saver, best_for_lookup)
@@ -349,6 +356,55 @@ def resolve_policy_decision(ctx: DecisionContext, streak: int, saver: bool) -> P
         best_status=best_status, effective_best=effective_m, tail_sha256=tail_sha,
         degraded_reason=degraded, reason=reason, pick_bar=pick_bar, guard=guard,
     )
+
+
+def _validate_longest_base(policy: dict) -> None:
+    """Require a decoded table that covers every reach-57 lookup."""
+    table = policy["policy_table"]
+    horizon = policy["season_length"]
+    boundaries = policy["boundaries"]
+    if not isinstance(horizon, int) or isinstance(horizon, bool) or horizon < 1:
+        raise ValueError("base policy season length must be a positive integer")
+    if not isinstance(boundaries, list):
+        raise ValueError("base policy boundaries must be a list")
+    for edge in boundaries:
+        if (not isinstance(edge, (int, float)) or isinstance(edge, bool)
+                or (isinstance(edge, float) and not math.isfinite(edge))):
+            raise ValueError("base policy boundaries must be finite numbers")
+    if any(left >= right for left, right in zip(boundaries, boundaries[1:])):
+        raise ValueError("base policy boundaries must be strictly increasing")
+    if not isinstance(table, np.ndarray) or table.ndim != 4:
+        raise ValueError("base policy table must be a four-dimensional array")
+    if np.ma.isMaskedArray(table):
+        raise ValueError("base policy table must not be a masked array")
+    if table.dtype.kind not in {"i", "u"}:
+        raise ValueError("base policy table must have an integer dtype")
+    # Reach-57 lookups index streaks 0 through 56.
+    if table.shape[0] < 57 or table.shape[1:] != (horizon + 1, 2, len(boundaries) + 1):
+        raise ValueError("base policy table shape does not cover the lookup")
+    if table.min() < 0 or table.max() > 2:
+        raise ValueError("base policy table contains an invalid action")
+
+
+def _longest_action(mdp: dict | None, days: int) -> tuple[str, str | None, str | None]:
+    policy = mdp or {}
+    tail = policy.get("tail")
+    sha = policy.get("base_sha256")
+    try:
+        if policy.get("policy_table") is None or not sha:
+            raise ValueError(policy.get("base_error") or "decoded base policy or sha unavailable")
+        _validate_longest_base(policy)
+        if tail is None:
+            raise ValueError(policy.get("tail_error") or "tail policy missing")
+        if sha != tail.base_policy_sha256:
+            raise ValueError("tail pairing unverifiable: base policy sha mismatch")
+        if tail.n_bins != 1:
+            raise ValueError("tail policy must have one quality bin")
+        return longest_streak_action(days, tail.bin_p_hit[0], tail.bin_p_both[0]), None, tail.sha256
+    except Exception as exc:
+        reason = f"longest-streak rule unavailable ({exc}); forced single"
+        log.error("longest-streak policy: %s -> single", reason)
+        return "single", reason, None
 
 
 def decide_action(ctx: DecisionContext, streak: int, saver: bool) -> tuple[str, str]:
@@ -580,13 +636,26 @@ def select_pick(
     saver = (load_saver_available(picks_dir, season=season_of_date(date))
              if saver_available is None else saver_available)
     second_row = diff_game.iloc[0] if len(diff_game) >= 1 else None
+    try:
+        longest = _regime(None, streak, date)[0] == OBJECTIVE_LONGEST
+    except Exception:
+        # A date the day count rejects is reported where it always was: by the
+        # decision itself, after the saver read (the legacy path below).
+        longest = False
+    if longest:
+        try:
+            mdp = _load_mdp()
+        except Exception as exc:
+            mdp = {"base_error": f"{type(exc).__name__}: {exc}"}
+    else:
+        mdp = _load_mdp()
     ctx = DecisionContext(
         primary_p=best_row["p_game_hit"],
         second_p=second_row["p_game_hit"] if second_row is not None else None,
         has_diff_game=len(diff_game) >= 1,
         date=date,
         allow_double=allow_double,
-        mdp=_load_mdp(),
+        mdp=mdp,
         best_streak=best_streak,
         best_status=best_status,
     )

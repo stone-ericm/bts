@@ -1,0 +1,24 @@
+import /Users/eric/projects/bts-work/wr-rev-h-cx/.codex-review/wr-h/skip-when-degraded-o_oxg4g4/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-h-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 261 items / 1 deselected / 260 selected
+
+tests/test_wr_h_longest.py ...........................F
+
+=================================== FAILURES ===================================
+___________________ test_rule_error_or_interrupt[ValueError] ___________________
+tests/test_wr_h_longest.py:180: in test_rule_error_or_interrupt
+    assert outcome.action == "single"
+E   AssertionError: assert 'skip' == 'single'
+E     
+E     - single
+E     + skip
+------------------------------ Captured log call -------------------------------
+ERROR    bts.strategy:strategy.py:378 longest-streak policy: longest-streak rule unavailable (test interruption); forced single -> single
+=========================== short test summary info ============================
+FAILED tests/test_wr_h_longest.py::test_rule_error_or_interrupt[ValueError]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+================== 1 failed, 27 passed, 1 deselected in 1.77s ==================

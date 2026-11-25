@@ -1,0 +1,24 @@
+{
+  "mdp_py_untouched": true,
+  "base_bts_file": "/Users/eric/projects/bts-work/wr-rev-h-cb/.carbon-review/wr-h/scratch/p3b/archived_0a2bec10/src/bts/__init__.py",
+  "head_bts_file": "/Users/eric/projects/bts-work/wr-rev-h-cb/src/bts/__init__.py",
+  "counts": {
+    "shipped_grid": 682176,
+    "guard_cells": 6044,
+    "heuristic_edges": 3072,
+    "tail_cells": 2793,
+    "horizons_years_zero_days": 6624,
+    "bar_edge_inputs": 75,
+    "live_select_save_commit": 6
+  },
+  "total_cases": 700790,
+  "raw_days": [
+    0,
+    271
+  ],
+  "eff_days": [
+    0,
+    180
+  ],
+  "digest": "75b4a36501c951a5c6f877eac571cb21b29b5f6ab6a4fba226a057654f889035"
+}

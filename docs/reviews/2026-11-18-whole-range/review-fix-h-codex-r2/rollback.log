@@ -1,0 +1,19 @@
+nice: setpriority: Operation not permitted
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=single streak=57 best=57 (trusted) effective_best=None days=74 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 84.0% → should_lock=True
+  LOCKED (review delivery) — Pick DM sent: rollback-capture
+Traceback (most recent call last):
+  File "<string>", line 7, in <module>
+  File "/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmplab86y4p/src/bts/picks.py", line 559, in load_pick
+    path = picks_dir / f"{date}.json"
+           ~~~~~~~~~~^~~~~~~~~~~~~~~~
+TypeError: unsupported operand type(s) for /: 'str' and 'str'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-h2-cx/.codex-review/wr-h2/probe_rollback.py", line 51, in <module>
+    rollback(root, folder)
+  File "/Users/eric/projects/bts-work/wr-rev-h2-cx/.codex-review/wr-h2/probe_rollback.py", line 36, in rollback
+    subprocess.run([sys.executable, '-c', script, str(picks_dir), str(DAY), str(src / 'bts/__init__.py')],
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/Users/eric/projects/bts-work/wr-rev-h2-cx/.venv/bin/python', '-c', "from pathlib import Path\nimport sys\nimport bts\nfrom bts import daily_decision as dd, picks\nfolder, day, imported = sys.argv[1:]\nassert Path(bts.__file__).resolve() == Path(imported)\nsaved = picks.load_pick(day, folder)\nrecord = dd.load_decision(day, folder)\nassert record['objective'] == saved.policy_decision['objective'] == 'longest_streak'\nassert dd.decision_objective(record) == 'unknown'\nassert dd.is_scoreable_commit(day, folder, saved) and saved.double_down is None\nprint(bts.__file__, 'parsed the actual delivery, normalized unknown, single remains scoreable')\n", '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmplab86y4p/picks', '2027-07-15', '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmplab86y4p/src/bts/__init__.py']' returned non-zero exit status 1.

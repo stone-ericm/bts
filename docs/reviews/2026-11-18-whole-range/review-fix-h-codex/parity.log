@@ -1,0 +1,27 @@
+nice: setpriority: Operation not permitted
+/Users/eric/projects/bts-work/wr-rev-h-cx/.codex-review/wr-h/archive-zx8saf7s/src/bts/__init__.py
+rollback unknown scoreable
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-h-cx/.codex-review/wr-h/probe_parity.py", line 159, in <module>
+    main()
+  File "/Users/eric/projects/bts-work/wr-rev-h-cx/.codex-review/wr-h/probe_parity.py", line 149, in main
+    raise RuntimeError(result.stderr)
+RuntimeError: Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-h-cx/.codex-review/wr-h/probe_parity.py", line 157, in <module>
+    worker(sys.argv[2], Path(sys.argv[3]), bool(int(sys.argv[4])))
+  File "/Users/eric/projects/bts-work/wr-rev-h-cx/.codex-review/wr-h/probe_parity.py", line 83, in worker
+    check("artifact", d, s, saver, .87, .81, best, status, True, mode)
+  File "/Users/eric/projects/bts-work/wr-rev-h-cx/.codex-review/wr-h/probe_parity.py", line 64, in check
+    dec = strategy.resolve_policy_decision(ctx, s, saver)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-h-cx/.codex-review/wr-h/archive-zx8saf7s/src/bts/strategy.py", line 325, in resolve_policy_decision
+    mdp_action, guard = _mdp_action_from(ctx.mdp, ctx.primary_p, streak, ctx.date, saver)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-h-cx/.codex-review/wr-h/archive-zx8saf7s/src/bts/strategy.py", line 138, in _mdp_action_from
+    return lookup_action_guarded(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-h-cx/.codex-review/wr-h/archive-zx8saf7s/src/bts/simulate/mdp.py", line 228, in lookup_action_guarded
+    action = ACTIONS[policy_table[indices]]
+                     ~~~~~~~~~~~~^^^^^^^^^
+IndexError: index 181 is out of bounds for axis 1 with size 181
+

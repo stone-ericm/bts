@@ -1,0 +1,29 @@
+nice: setpriority: Operation not permitted
+bts=/Users/eric/projects/bts-work/wr-check-h2/.codex-review/wr-h-check2/scratch/src/bts/__init__.py
+files=['tests/test_park_drag_feature.py', 'tests/test_pickpath_review_pp1.py', 'tests/test_pickpath_review_pp2.py', 'tests/test_postponed_delivery_guard.py', 'tests/test_predict_json.py', 'tests/test_private_mode_transport.py', 'tests/test_reconcile_receipt.py', 'tests/test_refresh_memo.py', 'tests/test_saved_pick_cs5a_review.py', 'tests/test_saved_pick_paths_cs5a.py', 'tests/test_saver_cs3.py', 'tests/test_saver_cs3_review.py']
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-check-h2/.codex-review/wr-h-check2/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 544 items
+
+tests/test_park_drag_feature.py ..................................       [  6%]
+tests/test_pickpath_review_pp1.py ....                                   [  6%]
+tests/test_pickpath_review_pp2.py ...................................... [ 13%]
+ss....ss....ss....ss.........                                            [ 19%]
+tests/test_postponed_delivery_guard.py ........................          [ 23%]
+tests/test_predict_json.py ....                                          [ 24%]
+tests/test_private_mode_transport.py ........                            [ 25%]
+tests/test_reconcile_receipt.py ......................................   [ 32%]
+tests/test_refresh_memo.py ..........                                    [ 34%]
+tests/test_saved_pick_cs5a_review.py ................................... [ 41%]
+.............                                                            [ 43%]
+tests/test_saved_pick_paths_cs5a.py .................................... [ 50%]
+..ss..ss.........................................................        [ 62%]
+tests/test_saver_cs3.py ................................................ [ 70%]
+........................................................................ [ 84%]
+................................................................         [ 95%]
+tests/test_saver_cs3_review.py ......................                    [100%]
+
+======================= 532 passed, 12 skipped in 4.52s ========================

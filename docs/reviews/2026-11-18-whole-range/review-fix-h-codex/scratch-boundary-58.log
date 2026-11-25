@@ -1,0 +1,3 @@
+import /Users/eric/projects/bts-work/wr-rev-h-cx/.codex-review/wr-h/boundary-58-j2f713ld/src/bts/__init__.py
+constant 58: dispatch, resolver, fresh selection and walk input follow the constant
+walk run None setup ["set-contest-streak exit 2: Usage: cli set-contest-streak [OPTIONS]\nTry 'cli set-contest-streak --help' for help.\n\nError: Invalid value for --best-streak: best streak must be at most 57"]

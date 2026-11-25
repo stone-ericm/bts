@@ -1,0 +1,12 @@
+bts=/Users/eric/projects/bts-work/wr-check-h/.codex-review/wr-h-check/scratch/src/bts/__init__.py
+files=['tests/scripts/c1_r4b/test_solvers.py', '-k', 'test_values_equal_brute_force_optimum_and_the_policy_achieves_it']
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-check-h/.codex-review/wr-h-check/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 9 items / 7 deselected / 2 selected
+
+tests/scripts/c1_r4b/test_solvers.py ..                                  [100%]
+
+======================= 2 passed, 7 deselected in 20.96s =======================

@@ -1,0 +1,147 @@
+nice: setpriority: Operation not permitted
+longest-streak policy: longest-streak rule unavailable (base policy table must be a four-dimensional array); forced single -> single
+longest-streak policy: longest-streak rule unavailable (base policy table must be a four-dimensional array); forced single -> single
+  6 new confirmed lineup(s). Running predictions...
+longest-streak policy: longest-streak rule unavailable (base policy table must be a four-dimensional array); forced single -> single
+  Policy: objective=longest_streak action=single streak=57 best=57 (trusted) effective_best=None days=1 tail=- DEGRADED: longest-streak rule unavailable (base policy table must be a four-dimensional array); forced single
+  Pick: Batter 0 (T0) 84.0% → should_lock=True
+  LOCKED (review delivery) — Pick DM sent: captured-pair
+captured scalar single tail SHA None degraded longest-streak rule unavailable (base policy table must be a four-dimensional array); forced single
+paired scalar single longest-streak rule unavailable (base policy table must be a four-dimensional array); forced single
+longest-streak policy: longest-streak rule unavailable (base policy table must be a four-dimensional array); forced single -> single
+paired rank1 single longest-streak rule unavailable (base policy table must be a four-dimensional array); forced single
+longest-streak policy: longest-streak rule unavailable (base policy table must be a four-dimensional array); forced single -> single
+paired rank3 single longest-streak rule unavailable (base policy table must be a four-dimensional array); forced single
+longest-streak policy: longest-streak rule unavailable (base policy table must be a four-dimensional array); forced single -> single
+paired rank5 single longest-streak rule unavailable (base policy table must be a four-dimensional array); forced single
+longest-streak policy: longest-streak rule unavailable (base policy table shape does not cover the lookup); forced single -> single
+paired empty-streak single longest-streak rule unavailable (base policy table shape does not cover the lookup); forced single
+longest-streak policy: longest-streak rule unavailable (base policy table shape does not cover the lookup); forced single -> single
+paired empty-days single longest-streak rule unavailable (base policy table shape does not cover the lookup); forced single
+longest-streak policy: longest-streak rule unavailable (base policy table shape does not cover the lookup); forced single -> single
+paired empty-saver single longest-streak rule unavailable (base policy table shape does not cover the lookup); forced single
+longest-streak policy: longest-streak rule unavailable (base policy table shape does not cover the lookup); forced single -> single
+paired empty-bin single longest-streak rule unavailable (base policy table shape does not cover the lookup); forced single
+longest-streak policy: longest-streak rule unavailable (base policy table shape does not cover the lookup); forced single -> single
+paired saver-size3 single longest-streak rule unavailable (base policy table shape does not cover the lookup); forced single
+longest-streak policy: longest-streak rule unavailable (base policy table shape does not cover the lookup); forced single -> single
+paired streak-rows56 single longest-streak rule unavailable (base policy table shape does not cover the lookup); forced single
+longest-streak policy: longest-streak rule unavailable (base policy table shape does not cover the lookup); forced single -> single
+paired days-off-by-one single longest-streak rule unavailable (base policy table shape does not cover the lookup); forced single
+longest-streak policy: longest-streak rule unavailable (base policy table shape does not cover the lookup); forced single -> single
+paired bins-off-by-one single longest-streak rule unavailable (base policy table shape does not cover the lookup); forced single
+longest-streak policy: longest-streak rule unavailable (base policy table must have an integer dtype); forced single -> single
+paired float16 single longest-streak rule unavailable (base policy table must have an integer dtype); forced single
+longest-streak policy: longest-streak rule unavailable (base policy table must have an integer dtype); forced single -> single
+paired complex64 single longest-streak rule unavailable (base policy table must have an integer dtype); forced single
+longest-streak policy: longest-streak rule unavailable (base policy table must have an integer dtype); forced single -> single
+paired bool-table single longest-streak rule unavailable (base policy table must have an integer dtype); forced single
+longest-streak policy: longest-streak rule unavailable (base policy table must have an integer dtype); forced single -> single
+paired structured-table single longest-streak rule unavailable (base policy table must have an integer dtype); forced single
+longest-streak policy: longest-streak rule unavailable (base policy table contains an invalid action); forced single -> single
+paired uint-overflow-action single longest-streak rule unavailable (base policy table contains an invalid action); forced single
+longest-streak policy: longest-streak rule unavailable (base policy table contains an invalid action); forced single -> single
+paired negative-action single longest-streak rule unavailable (base policy table contains an invalid action); forced single
+longest-streak policy: longest-streak rule unavailable (base policy table must have an integer dtype); forced single -> single
+paired text-action single longest-streak rule unavailable (base policy table must have an integer dtype); forced single
+longest-streak policy: longest-streak rule unavailable (base policy season length must be a positive integer); forced single -> single
+paired horizon0 single longest-streak rule unavailable (base policy season length must be a positive integer); forced single
+longest-streak policy: longest-streak rule unavailable (base policy season length must be a positive integer); forced single -> single
+paired negative-horizon single longest-streak rule unavailable (base policy season length must be a positive integer); forced single
+longest-streak policy: longest-streak rule unavailable (base policy table shape does not cover the lookup); forced single -> single
+paired huge-horizon single longest-streak rule unavailable (base policy table shape does not cover the lookup); forced single
+MDP base policy unavailable (ValueError: invalid literal for int() with base 10: 'not a number')
+MDP tail policy not usable (base policy unavailable (ValueError: invalid literal for int() with base 10: 'not a number'): tail pairing unverifiable)
+longest-streak policy: longest-streak rule unavailable (ValueError: invalid literal for int() with base 10: 'not a number'); forced single -> single
+paired text-horizon-invalid single longest-streak rule unavailable (ValueError: invalid literal for int() with base 10: 'not a number'); forced single
+MDP base policy unavailable (TypeError: only 0-dimensional arrays can be converted to Python scalars)
+MDP tail policy not usable (base policy unavailable (TypeError: only 0-dimensional arrays can be converted to Python scalars): tail pairing unverifiable)
+longest-streak policy: longest-streak rule unavailable (TypeError: only 0-dimensional arrays can be converted to Python scalars); forced single -> single
+paired vector-horizon single longest-streak rule unavailable (TypeError: only 0-dimensional arrays can be converted to Python scalars); forced single
+longest-streak policy: longest-streak rule unavailable (base policy boundaries must be a list); forced single -> single
+paired scalar-boundaries single longest-streak rule unavailable (base policy boundaries must be a list); forced single
+MDP base policy unavailable (ValueError: Object arrays cannot be loaded when allow_pickle=False)
+MDP tail policy not usable (base policy unavailable (ValueError: Object arrays cannot be loaded when allow_pickle=False): tail pairing unverifiable)
+longest-streak policy: longest-streak rule unavailable (ValueError: Object arrays cannot be loaded when allow_pickle=False); forced single -> single
+paired object-boundaries single longest-streak rule unavailable (ValueError: Object arrays cannot be loaded when allow_pickle=False); forced single
+longest-streak policy: longest-streak rule unavailable (base policy boundaries must be a list); forced single -> single
+longest-streak policy: longest-streak rule unavailable (base policy boundaries must be a list); forced single -> single
+longest-streak policy: longest-streak rule unavailable (base policy season length must be a positive integer); forced single -> single
+longest-streak policy: longest-streak rule unavailable (base policy season length must be a positive integer); forced single -> single
+longest-streak policy: longest-streak rule unavailable (base policy season length must be a positive integer); forced single -> single
+longest-streak policy: longest-streak rule unavailable (base policy season length must be a positive integer); forced single -> single
+longest-streak policy: longest-streak rule unavailable (decoded base policy or sha unavailable); forced single -> single
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=double streak=57 best=57 (trusted) effective_best=None days=1 tail=84aa404b5ee4
+  Pick: Batter 0 (T0) 84.0% → should_lock=True
+  LOCKED (review delivery) — Pick DM sent: captured-pair
+captured healthy-short double tail SHA 84aa404b5ee4ffe6420c474b591af82813ca73898253aaa168444f0c69ec8e91 degraded None
+paired healthy-short double None
+longest-streak policy: longest-streak rule unavailable (base policy boundaries must be a list); forced single -> single
+longest-streak policy: longest-streak rule unavailable (base policy boundaries must be a list); forced single -> single
+longest-streak policy: longest-streak rule unavailable (base policy season length must be a positive integer); forced single -> single
+longest-streak policy: longest-streak rule unavailable (base policy season length must be a positive integer); forced single -> single
+longest-streak policy: longest-streak rule unavailable (base policy season length must be a positive integer); forced single -> single
+longest-streak policy: longest-streak rule unavailable (base policy season length must be a positive integer); forced single -> single
+longest-streak policy: longest-streak rule unavailable (decoded base policy or sha unavailable); forced single -> single
+paired usable-bool-horizon-on-disk double None
+longest-streak policy: longest-streak rule unavailable (base policy boundaries must be a list); forced single -> single
+longest-streak policy: longest-streak rule unavailable (base policy boundaries must be a list); forced single -> single
+longest-streak policy: longest-streak rule unavailable (base policy season length must be a positive integer); forced single -> single
+longest-streak policy: longest-streak rule unavailable (base policy season length must be a positive integer); forced single -> single
+longest-streak policy: longest-streak rule unavailable (base policy season length must be a positive integer); forced single -> single
+longest-streak policy: longest-streak rule unavailable (base policy season length must be a positive integer); forced single -> single
+longest-streak policy: longest-streak rule unavailable (decoded base policy or sha unavailable); forced single -> single
+paired usable-text-horizon-on-disk double None
+failed reach-57 lookup unicode-boundaries '>=' not supported between instances of 'float' and 'str'
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=double streak=57 best=57 (trusted) effective_best=None days=1 tail=0f81ee9fa398
+  Pick: Batter 0 (T0) 84.0% → should_lock=True
+  LOCKED (review delivery) — Pick DM sent: captured-pair
+captured unicode-boundaries double tail SHA 0f81ee9fa398248bed3e2d2df0efcc773186a83fcdb4c04d182dbfcb0a8918a7 degraded None
+paired unicode-boundaries double None
+failed reach-57 lookup nested-boundaries '>=' not supported between instances of 'float' and 'list'
+paired nested-boundaries double None
+failed reach-57 lookup complex-boundaries '>=' not supported between instances of 'float' and 'complex'
+paired complex-boundaries double None
+MDP base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpg2d_j5pw/base-missing/base.npz')
+MDP tail policy not usable (base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpg2d_j5pw/base-missing/base.npz'): tail pairing unverifiable)
+longest-streak policy: longest-streak rule unavailable (FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpg2d_j5pw/base-missing/base.npz'); forced single -> single
+on disk base-missing longest-streak rule unavailable (FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpg2d_j5pw/base-missing/base.npz'); forced single
+MDP base policy unavailable (ValueError: This file contains pickled (object) data. If you trust the file you can load it unsafely using the `allow_pickle=` keyword argument or `pickle.load()`.)
+MDP tail policy not usable (base policy unavailable (ValueError: This file contains pickled (object) data. If you trust the file you can load it unsafely using the `allow_pickle=` keyword argument or `pickle.load()`.): tail pairing unverifiable)
+longest-streak policy: longest-streak rule unavailable (ValueError: This file contains pickled (object) data. If you trust the file you can load it unsafely using the `allow_pickle=` keyword argument or `pickle.load()`.); forced single -> single
+on disk base-corrupt longest-streak rule unavailable (ValueError: This file contains pickled (object) data. If you trust the file you can load it unsafely using the `allow_pickle=` keyword argument or `pickle.load()`.); forced single
+MDP base policy unavailable (IsADirectoryError: [Errno 21] Is a directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpg2d_j5pw/base-directory/base.npz')
+MDP tail policy not usable (base policy unavailable (IsADirectoryError: [Errno 21] Is a directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpg2d_j5pw/base-directory/base.npz'): tail pairing unverifiable)
+longest-streak policy: longest-streak rule unavailable (IsADirectoryError: [Errno 21] Is a directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpg2d_j5pw/base-directory/base.npz'); forced single -> single
+on disk base-directory longest-streak rule unavailable (IsADirectoryError: [Errno 21] Is a directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpg2d_j5pw/base-directory/base.npz'); forced single
+MDP base policy unavailable (BadZipFile: File is not a zip file)
+MDP tail policy not usable (base policy unavailable (BadZipFile: File is not a zip file): tail pairing unverifiable)
+longest-streak policy: longest-streak rule unavailable (BadZipFile: File is not a zip file); forced single -> single
+on disk base-truncated longest-streak rule unavailable (BadZipFile: File is not a zip file); forced single
+MDP tail policy unavailable (tail policy artifact missing: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpg2d_j5pw/tail-missing/tail.npz)
+longest-streak policy: longest-streak rule unavailable (tail policy artifact missing: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpg2d_j5pw/tail-missing/tail.npz); forced single -> single
+on disk tail-missing longest-streak rule unavailable (tail policy artifact missing: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpg2d_j5pw/tail-missing/tail.npz); forced single
+MDP tail policy unavailable (tail policy artifact unreadable at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpg2d_j5pw/tail-corrupt/tail.npz: ValueError('This file contains pickled (object) data. If you trust the file you can load it unsafely using the `allow_pickle=` keyword argument or `pickle.load()`.'))
+longest-streak policy: longest-streak rule unavailable (tail policy artifact unreadable at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpg2d_j5pw/tail-corrupt/tail.npz: ValueError('This file contains pickled (object) data. If you trust the file you can load it unsafely using the `allow_pickle=` keyword argument or `pickle.load()`.')); forced single -> single
+on disk tail-corrupt longest-streak rule unavailable (tail policy artifact unreadable at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpg2d_j5pw/tail-corrupt/tail.npz: ValueError('This file contains pickled (object) data. If you trust the file you can load it unsafely using the `allow_pickle=` keyword argument or `pickle.load()`.')); forced single
+MDP tail policy unavailable (tail policy artifact unreadable at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpg2d_j5pw/tail-truncated/tail.npz: BadZipFile('File is not a zip file'))
+longest-streak policy: longest-streak rule unavailable (tail policy artifact unreadable at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpg2d_j5pw/tail-truncated/tail.npz: BadZipFile('File is not a zip file')); forced single -> single
+on disk tail-truncated longest-streak rule unavailable (tail policy artifact unreadable at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpg2d_j5pw/tail-truncated/tail.npz: BadZipFile('File is not a zip file')); forced single
+MDP tail policy unavailable (tail policy artifact unreadable at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpg2d_j5pw/tail-directory/tail.npz: IsADirectoryError(21, 'Is a directory'))
+longest-streak policy: longest-streak rule unavailable (tail policy artifact unreadable at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpg2d_j5pw/tail-directory/tail.npz: IsADirectoryError(21, 'Is a directory')); forced single -> single
+on disk tail-directory longest-streak rule unavailable (tail policy artifact unreadable at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpg2d_j5pw/tail-directory/tail.npz: IsADirectoryError(21, 'Is a directory')); forced single
+MDP tail policy unavailable (base policy sha256 mismatch: artifact pairs with aaaaaaaaaaaa, current base policy is 66d154717ae5 — rebuild the tail)
+longest-streak policy: longest-streak rule unavailable (base policy sha256 mismatch: artifact pairs with aaaaaaaaaaaa, current base policy is 66d154717ae5 — rebuild the tail); forced single -> single
+on disk tail-mismatch longest-streak rule unavailable (base policy sha256 mismatch: artifact pairs with aaaaaaaaaaaa, current base policy is 66d154717ae5 — rebuild the tail); forced single
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-h2-cx/.codex-review/wr-h2/probe_artifacts.py", line 230, in <module>
+    check_file_failures(root, fixture, artifact['tail'])
+  File "/Users/eric/projects/bts-work/wr-rev-h2-cx/.codex-review/wr-h2/probe_artifacts.py", line 186, in check_file_failures
+    tp.save_tail_policy(replace(two, base_policy_sha256=sha256(base.read_bytes()).hexdigest()), tail_path)
+  File "/Users/eric/projects/bts-work/wr-rev-h2-cx/src/bts/simulate/tail_policy.py", line 381, in save_tail_policy
+    validate_tail_policy(tp)
+  File "/Users/eric/projects/bts-work/wr-rev-h2-cx/src/bts/simulate/tail_policy.py", line 348, in validate_tail_policy
+    raise TailPolicyError(
+bts.simulate.tail_policy.TailPolicyError: stop rule violated at 2898 consulted cells (first (s, m, d, saver, q) = (8, 9, 12, 0, 0)): skip iff min(target, s + 2d) <= m

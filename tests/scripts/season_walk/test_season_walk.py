@@ -184,3 +184,42 @@ def test_saved_e_walk_agrees_with_baseline():
             assert phrase in after["skip_dm"] and "below the" not in after["skip_dm"]
             counts[case] += 1
     assert counts == {"K3": 229, "K4": 612}
+
+
+@pytest.mark.parametrize("action", ["skip", "single"])
+def test_longest_walk_flags_wrong_action_even_with_legacy_objective(action):
+    from bts.simulate import tail_policy
+
+    boundary = getattr(tail_policy, "LONGEST_STREAK_FROM", 57)
+    record = dict(day="2027-09-26", state=f"dated/{boundary}/{boundary}/used/0.96",
+                  action=action, named=action == "skip", in_season=True,
+                  batter="Batter 0" if action == "single" else None,
+                  days_left=1, days_effective=1, objective="reach57", source="mdp")
+    assert any(f"action {action!r}, expected 'double'" in problem
+               for problem in walk.check([record]))
+
+
+def test_longest_walk_records_the_actual_choice():
+    from bts.simulate import tail_policy
+
+    boundary = getattr(tail_policy, "LONGEST_STREAK_FROM", 57)
+    record = walk.walk_one(date(2027, 9, 26), walk.State("dated", boundary, boundary, "used", .96))
+    assert (record["objective"], record["action"], record["double"]) == (
+        "longest_streak", "double", "Batter 1")
+    assert record["chosen_on_valid"] is True
+    assert walk.check([record]) == []
+
+
+@pytest.mark.parametrize("field,value,message", [
+    ("days_effective", None, "effective days"),
+    ("source", None, "decision source"),
+    ("source", "heuristic", "decision source"),
+    ("artifacts", None, "policy artifacts"),
+])
+def test_r4_longest_walk_flags_incomplete_policy_fields(field, value, message):
+    from bts.simulate.tail_policy import LONGEST_STREAK_FROM
+
+    boundary = LONGEST_STREAK_FROM
+    record = walk.walk_one(date(2027, 9, 26), walk.State("dated", boundary, boundary, "used", .96))
+    assert walk.check([record]) == []
+    assert any(message in problem for problem in walk.check([record | {field: value}]))
