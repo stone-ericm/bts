@@ -1,0 +1,23 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-ea-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 56 items / 54 deselected / 2 selected
+
+tests/test_wr_e_texts.py .F                                              [100%]
+
+=================================== FAILURES ===================================
+__________________ test_refusal_message_and_record[postponed] __________________
+tests/test_wr_e_texts.py:201: in test_refusal_message_and_record
+    assert [(item.source, item.message) for item in sent] == [(source, prefix + (
+E   AssertionError: assert [('postponed_... one today.')] == [('postponed_...ry in time.')]
+E     
+E     At index 0 diff: ('postponed_pick', 'DELIVERY REFUSED for 2027-07-15: game 101 is Postponed. This pick was withheld. A later check may produce another recommendation. Use a later official pick message only while the entry window is open. A manual entry can differ from a later recommendation. Enter a pick manually if you want one today.') != ('postponed_pick', 'DELIVERY REFUSED for 2027-07-15: game 101 is Postponed. This pick was withheld. A later check may produce another recommendation. Use a later official pick message only while the entry window is open. A manual ent...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY REFUSED (test) — game 101 is Postponed; not delivering a pick on it.
+=========================== short test summary info ============================
+FAILED tests/test_wr_e_texts.py::test_refusal_message_and_record[postponed]
+================== 1 failed, 1 passed, 54 deselected in 1.07s ==================

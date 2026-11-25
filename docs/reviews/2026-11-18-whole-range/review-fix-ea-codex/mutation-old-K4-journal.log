@@ -1,0 +1,20 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-ea-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 56 items / 53 deselected / 3 selected
+
+tests/test_wr_e_texts.py ..F                                             [100%]
+
+=================================== FAILURES ===================================
+____________________ test_run_single_check_skip_journal[K4] ____________________
+tests/test_wr_e_texts.py:108: in test_run_single_check_skip_journal
+    assert [line for line in capsys.readouterr().err.splitlines() if line.startswith("  SKIP —")] == [
+E   AssertionError: assert ['  SKIP — be...he pick bar.'] == ['  SKIP — Ca...is check: 0.']
+E     
+E     At index 0 diff: '  SKIP — below the pick bar.' != '  SKIP — Candidate used in the decision: Kept (T) 75.0%. No probability comparison is available for this check. Streak used at this check: 0.'
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/test_wr_e_texts.py::test_run_single_check_skip_journal[K4] - Ass...
+================== 1 failed, 2 passed, 53 deselected in 1.07s ==================

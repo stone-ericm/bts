@@ -1,0 +1,84 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-ea-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 56 items / 48 deselected / 8 selected
+
+tests/test_wr_e_texts.py FFFFFFFF                                        [100%]
+
+=================================== FAILURES ===================================
+____________________ test_malformed_persisted_fields[None] _____________________
+tests/test_wr_e_texts.py:66: in test_malformed_persisted_fields
+    assert "<span>" + html.escape(body) + "</span>" in web.render_skip_banner(summary)
+E   assert (('<span>' + 'Top model prediction (eligibility unverified): &lt;A&gt; B (?) ?. No probability comparison is available for this check.') + '</span>') in '<div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.</span></div>'
+E    +  where 'Top model prediction (eligibility unverified): &lt;A&gt; B (?) ?. No probability comparison is available for this check.' = <function escape at 0x10b14d580>('Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.')
+E    +    where <function escape at 0x10b14d580> = html.escape
+E    +  and   '<div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.</span></div>' = <function render_skip_banner at 0x110704540>({'bar': None, 'best_batter': '<A>\r\nB', 'best_p': None, 'best_team': [], ...})
+E    +    where <function render_skip_banner at 0x110704540> = web.render_skip_banner
+____________________ test_malformed_persisted_fields[0.99] _____________________
+tests/test_wr_e_texts.py:66: in test_malformed_persisted_fields
+    assert "<span>" + html.escape(body) + "</span>" in web.render_skip_banner(summary)
+E   assert (('<span>' + 'Top model prediction (eligibility unverified): &lt;A&gt; B (?) ?. No probability comparison is available for this check.') + '</span>') in '<div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.</span></div>'
+E    +  where 'Top model prediction (eligibility unverified): &lt;A&gt; B (?) ?. No probability comparison is available for this check.' = <function escape at 0x10b14d580>('Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.')
+E    +    where <function escape at 0x10b14d580> = html.escape
+E    +  and   '<div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.</span></div>' = <function render_skip_banner at 0x110704540>({'bar': '0.99', 'best_batter': '<A>\r\nB', 'best_p': '0.99', 'best_team': [], ...})
+E    +    where <function render_skip_banner at 0x110704540> = web.render_skip_banner
+____________________ test_malformed_persisted_fields[bad2] _____________________
+tests/test_wr_e_texts.py:66: in test_malformed_persisted_fields
+    assert "<span>" + html.escape(body) + "</span>" in web.render_skip_banner(summary)
+E   assert (('<span>' + 'Top model prediction (eligibility unverified): &lt;A&gt; B (?) ?. No probability comparison is available for this check.') + '</span>') in '<div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.</span></div>'
+E    +  where 'Top model prediction (eligibility unverified): &lt;A&gt; B (?) ?. No probability comparison is available for this check.' = <function escape at 0x10b14d580>('Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.')
+E    +    where <function escape at 0x10b14d580> = html.escape
+E    +  and   '<div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.</span></div>' = <function render_skip_banner at 0x110704540>({'bar': {}, 'best_batter': '<A>\r\nB', 'best_p': {}, 'best_team': [], ...})
+E    +    where <function render_skip_banner at 0x110704540> = web.render_skip_banner
+____________________ test_malformed_persisted_fields[bad3] _____________________
+tests/test_wr_e_texts.py:66: in test_malformed_persisted_fields
+    assert "<span>" + html.escape(body) + "</span>" in web.render_skip_banner(summary)
+E   assert (('<span>' + 'Top model prediction (eligibility unverified): &lt;A&gt; B (?) ?. No probability comparison is available for this check.') + '</span>') in '<div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.</span></div>'
+E    +  where 'Top model prediction (eligibility unverified): &lt;A&gt; B (?) ?. No probability comparison is available for this check.' = <function escape at 0x10b14d580>('Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.')
+E    +    where <function escape at 0x10b14d580> = html.escape
+E    +  and   '<div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.</span></div>' = <function render_skip_banner at 0x110704540>({'bar': [], 'best_batter': '<A>\r\nB', 'best_p': [], 'best_team': [], ...})
+E    +    where <function render_skip_banner at 0x110704540> = web.render_skip_banner
+____________________ test_malformed_persisted_fields[True] _____________________
+tests/test_wr_e_texts.py:66: in test_malformed_persisted_fields
+    assert "<span>" + html.escape(body) + "</span>" in web.render_skip_banner(summary)
+E   assert (('<span>' + 'Top model prediction (eligibility unverified): &lt;A&gt; B (?) ?. No probability comparison is available for this check.') + '</span>') in '<div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.</span></div>'
+E    +  where 'Top model prediction (eligibility unverified): &lt;A&gt; B (?) ?. No probability comparison is available for this check.' = <function escape at 0x10b14d580>('Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.')
+E    +    where <function escape at 0x10b14d580> = html.escape
+E    +  and   '<div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.</span></div>' = <function render_skip_banner at 0x110704540>({'bar': True, 'best_batter': '<A>\r\nB', 'best_p': True, 'best_team': [], ...})
+E    +    where <function render_skip_banner at 0x110704540> = web.render_skip_banner
+_____________________ test_malformed_persisted_fields[nan] _____________________
+tests/test_wr_e_texts.py:66: in test_malformed_persisted_fields
+    assert "<span>" + html.escape(body) + "</span>" in web.render_skip_banner(summary)
+E   assert (('<span>' + 'Top model prediction (eligibility unverified): &lt;A&gt; B (?) ?. No probability comparison is available for this check.') + '</span>') in '<div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.</span></div>'
+E    +  where 'Top model prediction (eligibility unverified): &lt;A&gt; B (?) ?. No probability comparison is available for this check.' = <function escape at 0x10b14d580>('Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.')
+E    +    where <function escape at 0x10b14d580> = html.escape
+E    +  and   '<div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.</span></div>' = <function render_skip_banner at 0x110704540>({'bar': nan, 'best_batter': '<A>\r\nB', 'best_p': nan, 'best_team': [], ...})
+E    +    where <function render_skip_banner at 0x110704540> = web.render_skip_banner
+_____________________ test_malformed_persisted_fields[inf] _____________________
+tests/test_wr_e_texts.py:66: in test_malformed_persisted_fields
+    assert "<span>" + html.escape(body) + "</span>" in web.render_skip_banner(summary)
+E   assert (('<span>' + 'Top model prediction (eligibility unverified): &lt;A&gt; B (?) ?. No probability comparison is available for this check.') + '</span>') in '<div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.</span></div>'
+E    +  where 'Top model prediction (eligibility unverified): &lt;A&gt; B (?) ?. No probability comparison is available for this check.' = <function escape at 0x10b14d580>('Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.')
+E    +    where <function escape at 0x10b14d580> = html.escape
+E    +  and   '<div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.</span></div>' = <function render_skip_banner at 0x110704540>({'bar': inf, 'best_batter': '<A>\r\nB', 'best_p': inf, 'best_team': [], ...})
+E    +    where <function render_skip_banner at 0x110704540> = web.render_skip_banner
+_ test_malformed_persisted_fields[10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000] _
+tests/test_wr_e_texts.py:66: in test_malformed_persisted_fields
+    assert "<span>" + html.escape(body) + "</span>" in web.render_skip_banner(summary)
+E   assert (('<span>' + 'Top model prediction (eligibility unverified): &lt;A&gt; B (?) ?. No probability comparison is available for this check.') + '</span>') in '<div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.</span></div>'
+E    +  where 'Top model prediction (eligibility unverified): &lt;A&gt; B (?) ?. No probability comparison is available for this check.' = <function escape at 0x10b14d580>('Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.')
+E    +    where <function escape at 0x10b14d580> = html.escape
+E    +  and   '<div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.</span></div>' = <function render_skip_banner at 0x110704540>({'bar': 100000000000000000...0000000000000000000, 'best_batter': '<A>\r\nB', 'best_p': 100000000000000000...0000000000000000000, 'best_team': [], ...})
+E    +    where <function render_skip_banner at 0x110704540> = web.render_skip_banner
+=========================== short test summary info ============================
+FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[None] - asse...
+FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[0.99] - asse...
+FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[bad2] - asse...
+FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[bad3] - asse...
+FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[True] - asse...
+FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[nan] - asser...
+FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[inf] - asser...
+FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000]
+======================= 8 failed, 48 deselected in 1.09s =======================

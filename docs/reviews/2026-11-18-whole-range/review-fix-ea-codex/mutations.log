@@ -1,0 +1,20 @@
+nice: setpriority: Operation not permitted
+top-prediction caught
+below-on-equality caught
+unlabeled-K2 caught
+K5-before-K1 caught
+K2-before-K1 caught
+old-K1-journal caught
+old-K3-journal caught
+old-K4-journal caught
+unescaped-name caught
+unescaped-team caught
+unescaped-reason caught
+missing-delivery-saver caught
+missing-morning-saver caught
+old-late-refusal caught
+old-void-refusal caught
+string-number-raises caught
+old-heading caught
+old-pointer caught
+no-first-check-guard caught
