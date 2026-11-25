@@ -108,8 +108,11 @@ def test_b8a_follow_up():
         "`bts set-contest-streak --date TODAY --streak N --best-streak B --saver S --picks-dir DIR` "
         "with TODAY set to the current ET date before its first lineup check. If that check has started, "
         "have Eric verify MLB and any pending or delivered pick before acting on the pick. "
-        "If the state differs while the slate is unlocked and a later lineup check or fallback refresh remains, "
-        "have Eric run the same command between checks."
+        "While the slate is unlocked, if MLB differs from status and a later lineup check or fallback refresh "
+        "remains, have Eric run the same command when no lineup check, fallback refresh or send is in progress, "
+        "unless only the season best differs and Eric verifies that the policy would choose the same saved, "
+        "unsent pick using MLB's state. In that case, wait for confirmed delivery and file only if it is still "
+        "TODAY ET and MLB still differs from status."
     ) in row
     assert "In D's ET year away from midnight, if MLB shows this season's saver used" in row
 
