@@ -89,3 +89,7 @@ Must still happen in round 2: everything in version 2; the season walk again (25
 
 ### Round-2 handover
 `HANDOVER-WR-G2.md` in the worktree root (not committed): the commit, per amendment item the test that was RED first, the state chosen for item 7 with both actions, the walk's counts, anything that could not be built as written; then `WRG2-<first 8 hex of its sha256>` on its own line and `DONE`.
+
+## Amendment 3 (2026-11-24 23:02; the round-2 author stopped before editing)
+- **Item 6:** its three tests already pass on the head (the behaviour is right; the tests were missing). They need not be RED on the head: each must fail on its own scratch change (apply the guard in the tail regime; always print the saver as unavailable; drop the guard on a public commit), shown by a scratch change that is undone. Items 1 to 5 and 7 keep the tests-first rule.
+- **Item 7:** no state below streak 10 outside the CSV keeps skip against double. **Ruling:** the test moves to streak 9 with 38 policy days left (2027-08-20) and a bin-0 probability, a state outside the CSV for both saver values, where the table gives skip without the saver and single with it; the two assertions become `old.action == "skip"` and `new.action == "single"`. The fixture's contest streak becomes 9 (the flag `not_earned` still reads as available below 10). Nothing else in that file changes.
