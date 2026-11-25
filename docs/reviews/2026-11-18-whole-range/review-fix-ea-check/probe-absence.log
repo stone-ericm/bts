@@ -1,0 +1,73 @@
+nice: setpriority: Operation not permitted
+  LOCKED (review) — Pick DM sent: sent-pick
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T03:59:55-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write for the 2027-07-15 slate only on that ET date, with prior entries settled or absent. For a later slate date, see B8a. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+CAPTURED
+BTS health WARN attention:
+- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T03:59:55-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write for the 2027-07-15 slate only on that ET date, with prior entries settled or absent. For a later slate date, see B8a. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+CLI
+0
+('season-contract', 'status')
+ET date: 2027-07-15; year: 2027; inspected season: 2027
+switch: automatic
+  season: 2027
+  status: automatic
+  activation_id: 29246f5c55f549ddadad28f85a2d28e5
+  switched_at: 2027-07-14T13:00:00Z
+  revoked_at: None
+  note: None
+manual: absent
+automatic: parsed schema='bts_contest_streak_auto_v2' streak=12 best=14 source date=2027-07-13 recorded time=2027-07-14T03:59:55-04:00
+  season: 2027; activation_id: 29246f5c55f549ddadad28f85a2d28e5
+  identifier matches switch: True (comparison only)
+saver: active; season: 2027
+live decision now: accepted; source=contest; streak=12; status=fresh; saver=active
+automatic path alone: accepted (streak 12, recorded 2027-07-14T03:59:55-04:00)
+ledger: readable; rows: 1; bad lines: 0
+  recorded_at=2027-07-14T13:00:00Z; active_streak=12; best_streak=14; source_date=2027-07-13; season=2027; switched=True; activation_id=29246f5c55f549ddadad28f85a2d28e5; settled_by_year={'2027': 1}; settled_unmapped=0; unsettled=0
+Open prior entry window ends 2027-07-15T01:24:55-04:00 so B8a rules out a dated write at 00:05.
+CLI
+0
+('season-contract', 'status')
+ET date: 2027-07-15; year: 2027; inspected season: 2027
+switch: automatic
+  season: 2027
+  status: automatic
+  activation_id: 29246f5c55f549ddadad28f85a2d28e5
+  switched_at: 2027-07-14T13:00:00Z
+  revoked_at: None
+  note: None
+manual: absent
+automatic: parsed schema='bts_contest_streak_auto_v2' streak=12 best=14 source date=2027-07-13 recorded time=2027-07-14T03:59:55-04:00
+  season: 2027; activation_id: 29246f5c55f549ddadad28f85a2d28e5
+  identifier matches switch: True (comparison only)
+saver: active; season: 2027
+live decision now: accepted; source=contest; streak=12; status=fresh; saver=active
+automatic path alone: accepted (streak 12, recorded 2027-07-14T03:59:55-04:00)
+ledger: readable; rows: 1; bad lines: 0
+  recorded_at=2027-07-14T13:00:00Z; active_streak=12; best_streak=14; source_date=2027-07-13; season=2027; switched=True; activation_id=29246f5c55f549ddadad28f85a2d28e5; settled_by_year={'2027': 1}; settled_unmapped=0; unsettled=0
+CLI
+0
+('set-contest-streak', '--date', '2027-07-15', '--streak', 13, '--best-streak', 14, '--saver', 'active')
+Observation written at /Users/eric/projects/bts-work/wr-chk-ea3/.codex-review/wr-ea3/tmpvgx1zwb7/picks/account_state/contest_streak.manual.json: date=2027-07-15 streak=13 best=14 saver=active reason=None
+contest_streak: 13 (best 14, saver active) for 2027-07-15, in effect today
+CLI
+0
+('season-contract', 'status')
+ET date: 2027-07-15; year: 2027; inspected season: 2027
+switch: automatic
+  season: 2027
+  status: automatic
+  activation_id: 29246f5c55f549ddadad28f85a2d28e5
+  switched_at: 2027-07-14T13:00:00Z
+  revoked_at: None
+  note: None
+manual: dated date=2027-07-15 streak=13 best=14 saver=active in effect=True
+automatic: parsed schema='bts_contest_streak_auto_v2' streak=12 best=14 source date=2027-07-13 recorded time=2027-07-14T03:59:55-04:00
+  season: 2027; activation_id: 29246f5c55f549ddadad28f85a2d28e5
+  identifier matches switch: True (comparison only)
+saver: active; season: 2027
+live decision now: accepted; source=contest; streak=13; status=fresh; saver=active
+automatic path alone: accepted (streak 12, recorded 2027-07-14T03:59:55-04:00)
+ledger: readable; rows: 1; bad lines: 0
+  recorded_at=2027-07-14T13:00:00Z; active_streak=12; best_streak=14; source_date=2027-07-13; season=2027; switched=True; activation_id=29246f5c55f549ddadad28f85a2d28e5; settled_by_year={'2027': 1}; settled_unmapped=0; unsettled=0
+Confirmed absence allows TODAY write. MLB 13/14/active now matches dated status, so no second write.

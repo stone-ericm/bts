@@ -1,0 +1,15 @@
+nice: setpriority: Operation not permitted
+Skip exact copy: Top model prediction (eligibility unverified): Batter under the line (Team under the line) 75.0%, below the streak-10 bar (79.6%) using unrounded values. Streak recorded with this check: 10.
+Skip exact copy: Top model prediction (eligibility unverified): Batter under the line (Team under the line) 75.0%, below the streak-10 bar (79.6%) using unrounded values. Streak recorded with this check: 10.
+Skip exact copy: Top model prediction (eligibility unverified): Batter under the line (Team under the line) 75.0%, below the streak-10 bar (79.6%) using unrounded values. Streak recorded with this check: 10.
+Skip exact copy: Top model prediction (eligibility unverified): Batter under the line (Team under the line) 75.0%, below the streak-10 bar (79.6%) using unrounded values. Streak recorded with this check: 10.
+Skip exact copy: Top model prediction (eligibility unverified): Batter under the line (Team under the line) 75.0%, below the streak-10 bar (79.6%) using unrounded values. Streak used at this check: 10.
+Skip exact copy: No candidate was chosen. Top model prediction (eligibility unverified): Batter under the line (Team under the line) 75.0%.
+Skip exact copy: Top model prediction (eligibility unverified): Batter under the line (Team under the line) 75.0%, below the bar (79.6%) using unrounded values.
+Skip exact copy: Top model prediction (eligibility unverified): Batter under the line (Team under the line) 75.0%, below the bar (79.6%) using unrounded values.
+Skip exact copy: Top model prediction (eligibility unverified): Batter under the line (Team under the line) 75.0%, below the bar (79.6%) using unrounded values.
+Skip exact copy: Top model prediction (eligibility unverified): Batter under the line (Team under the line) 75.0%, below the bar (79.6%) using unrounded values.
+Skip exact copy: Candidate used in the decision: Batter under the line (Team under the line) 75.0%. Reason: Observations under the expected count. Streak used at this check: 10.
+K2 retains exactly one comparison: Candidate used in the decision: Batter under the line (Team under the line) 75.0%, below the streak-10 bar (79.6%) using unrounded values. Streak used at this check: 10.
+Substring inside a longer word is also replaced: Candidate used in the decision: Batter under the line (Team under the line) 75.0%. Reason: Counts under theoretical minimum. Streak used at this check: 10.
+Stored identifier mutation: Candidate used in the decision: Batter under the line (Team under the line) 75.0%. Reason: Model ID under themodel. Streak used at this check: 10.

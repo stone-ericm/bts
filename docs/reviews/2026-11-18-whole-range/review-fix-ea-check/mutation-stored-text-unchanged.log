@@ -1,0 +1,23 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-ea3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_wr_e_texts.py F                                               [100%]
+
+=================================== FAILURES ===================================
+________________________ test_skip_stored_text_surfaces ________________________
+tests/test_wr_e_texts.py:83: in test_skip_stored_text_surfaces
+    assert scheduler.format_skip_summary(summary) == body
+E   AssertionError: assert 'Top model pr...pected count.' == 'Top model pr...pected count.'
+E     
+E     Skipping 44 identical leading characters in diff, use -v to show
+E     - ): Batter under the line (Team under the line) 75.0%. Reason: Observations under the expected count.
+E     ?           ^^^ ^                ^^^ ^                                       ^^^ ^
+E     + ): Batter below the line (Team below the line) 75.0%. Reason: Observations below the expected count.
+E     ?           ^ ^^^                ^ ^^^                                       ^ ^^^
+=========================== short test summary info ============================
+FAILED tests/test_wr_e_texts.py::test_skip_stored_text_surfaces - AssertionEr...
+============================== 1 failed in 0.44s ===============================
