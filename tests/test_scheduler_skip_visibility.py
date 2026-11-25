@@ -394,7 +394,7 @@ def test_render_skip_banner_shows_streak_bar_when_present():
     assert "81.0%" in html          # best_p at matching precision
 
 
-def test_render_skip_banner_legacy_summary_keeps_old_wording():
+def test_render_skip_banner_legacy_summary_has_no_probability_comparison():
     from bts.web import render_skip_banner
     html = render_skip_banner({"best_batter": "Bo Bichette", "best_team": "NYM",
                                "best_p": 0.75, "streak": 10})
@@ -410,7 +410,7 @@ def test_format_skip_dm_shows_streak_bar_when_present():
     assert "~80%" not in msg
 
 
-def test_format_skip_dm_legacy_summary_keeps_old_wording():
+def test_format_skip_dm_legacy_summary_has_no_probability_comparison():
     from bts.scheduler import format_skip_dm
     msg = format_skip_dm("2026-06-18", {"best_batter": "Bo Bichette", "best_team": "NYM",
                                         "best_p": 0.75, "streak": 10})
