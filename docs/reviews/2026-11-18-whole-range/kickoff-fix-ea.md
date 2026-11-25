@@ -1,0 +1,35 @@
+# Kickoff: change set Ea, the operator messages only (2026-11-24 21:15)
+
+Ruling R63 (`FINDINGS.md`): E's one follow-up after `STOP-E.md`. Tier A. **Defect class: operator text that is untrue in some ordinary state** (a sentence an operator can read that is false there, unsafe if followed exactly, or cannot be followed).
+
+**What Ea is.** Branch `fix/wr-ea`, cut from `main` at `b1abc2bf`, carrying change set E's two code commits unchanged by cherry-pick (`a15d6856` is `db52bd02`, `81d07a2d` is `256ac958`), then this document commit (this contract, and ONE bullet of checklist row B8a: the bullet that restates the stale-reading warnings), then the author's ONE commit with items 1 to 4 below. `INCIDENT.md` and every other checklist sentence are exactly `main`'s: E's document rewrite is not part of Ea (it waits for January, R63). The contract for everything already built is `kickoff-fix-e.md` (version 2, amendments 1 and 2), with one change of composition: wherever that contract or a message referred to checklist row B8b(1), the reference is now row B8a (item 4).
+
+## The author's items (tests first; ONE commit; only `src/bts/scheduler.py`, `src/bts/web.py`, `tests/test_wr_e_texts.py`, and the expected-text helpers in `tests/test_stale_delivery_cs4c.py`, `tests/test_morning_state_cs6b1.py` and the banner heading expectations in `tests/test_scheduler_skip_visibility.py` and `tests/test_scheduler_tail_objective.py`)
+1. **Round 2 B4, the morning warning.** The message becomes exactly: `Morning check for {D}: the automatic contest reading was stale at startup ({detail}). This reading is eligible if it remains in use. Before the first check, if prior entries are settled or absent and MLB differs from status (B8a), use bts set-contest-streak --date {D} --streak N --best-streak B --saver S --picks-dir DIR on {D} ET only. DIR is the absolute scheduler picks path. This leaves the saver flag unchanged. On {D} ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.` (The sentence `Check MLB.` is replaced together with the conditional sentence, as the reviewer wrote; the new sentence names MLB itself.) With its envelope and the longest detail the body stays under 900 characters: measure it; if it does not, STOP.
+2. **Round 2 B5, the dashboard heading.** `NO PICK AT LAST CHECK` becomes `LAST RECORDED NO-PICK SUMMARY`. The stored summary, its lifetime and the alert gates are not changed.
+3. **Round 2 B6.** In `build_skip_summary` the `isinstance(candidate, Mapping)` test moves inside the candidate `try`, so a candidate object that raises on any access leaves the base summary with `candidate_verified` false. Test with an object whose `__class__` property raises.
+4. **The pointer.** In the delivery warning `For a later date, follow B8b(1).` becomes `For a later date, see B8a.` Nothing else in that message changes. (Row B8b(1) on `main` still describes the after-midnight health alert as it was before change set C1; the later-date rule the message needs is in the B8a bullet of this branch.)
+
+## Must still catch (every message finding of E's two rounds and of the closing test; a reviewer rebuilds each state)
+| # | State | What the operator must NOT be told, and what the text says now |
+|---|---|---|
+| C1 | SW1: streak 56 on 2027-08-30, a 99% candidate, the shipped table skips its top bin (bar 82.5%) | not "below" the bar; `…, at or above the streak-56 bar (82.5%).` |
+| C2 | SW1: streak 56 with 74 or more days left, every bin skips | not "below the ~80% bar"; `No probability comparison is available for this check.` |
+| C3 | BL-N3: a status update removes a 99.9% batter, the policy skips a 75% candidate against 79.6% | the 75% candidate is named, as `Candidate used in the decision`; the removed batter is not |
+| C4 | No decision was made (no eligible candidate, statuses unreadable, a `sel` of None) | not a comparison with a bar; `No candidate was chosen. Top model prediction (eligibility unverified): …` |
+| C5 | C2-B1: MLB used the saver, the flag says `active`, a stale warning arrives | the saver sentences name `bts saver-state --use`; following them makes the next automatic day count the saver as spent |
+| C6 | BL-B4: the delivery warning read at 00:05 ET while the slate's game is live | no instruction to use the current date; `Write only if the pick's slate and today's ET date both equal {D}. For a later date, see B8a.` and B8a's later-date rule requires settlement first |
+| C7 | BL-B5: a late or postponed refusal while a later game can still be picked | no invitation to enter a pick by hand; the five sentences of E3 |
+| C8 | Round 1 Codex B1: the morning warning read at 00:20 ET with the previous slate's entry unsettled | the command is conditioned on `prior entries are settled or absent` |
+| C9 | Round 2 Codex B4: the morning command filed after the first lineup check has started (before the delivery guard it withholds the pick; during the send the pick goes out on the old state) | the command is offered only `Before the first check`; B8a says what to do afterwards |
+| C10 | Round 1 Codex B2, Carbon B6: a stored summary with `best_p` 1e308 and `bar` 1.5e308 (or any number outside 0 to 1) | never `inf%` or a comparison; `?` and the no-comparison sentence |
+| C11 | Round 2 Codex B5: a skip at 18:35, then a check at 18:55 with no predictions; the dashboard still shows the 18:35 summary | the heading does not say "last check"; `LAST RECORDED NO-PICK SUMMARY` |
+| C12 | Round 2 Codex B6, Carbon N4: a candidate object whose class lookup raises; a reason that is only a line break | no exception leaves `build_skip_summary`; no `Reason: .` |
+| C13 | Any summary read back from `scheduler_state.json` with wrong types, HTML or line breaks | no renderer raises; the banner is escaped; only case K2 contains `below the` |
+| C14 | The tests: each of the 16 scratch changes of round 2 (`review-fix-e-codex-r2/report.md`, section 6) plus: restore `NO PICK AT LAST CHECK`; restore `follow B8b(1)`; drop `Before the first check, ` | each is noticed by a test |
+
+## Must still happen
+Everything in `kickoff-fix-e.md`'s must-still-happen list as the contract check rewrote it: words only against `63669c42` (summary existence, every other field of `run_single_check`'s return, the notice, the missed-pick gate, the warnings' level, source, key, status file, date, dedup and interrupt boundaries, the refusals' archive, record and sources, `effective_pick_bar` over the whole shipped table, no diff in `strategy.py`); the season walk on the final commit (4,599 runs equal to the saved records in action, bar and day counts, no skip-message problem, 229 K3 and 612 K4), saved again as `results/walk-e.txt` and `.json.gz` only if they change.
+
+## Handover
+`HANDOVER-WR-EA.md` in the worktree root (not committed): the commit, per item the test that was RED first, the measured lengths, the walk result; then `WREA-<first 8 hex of its sha256>` on its own line and `DONE`.
