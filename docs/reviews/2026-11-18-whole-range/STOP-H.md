@@ -25,3 +25,7 @@ The promise makes H decide, by a hand-written list of checks, whether a base fil
 - H2 is not started: draft contract `~/bts-runs/draft-kickoff-fix-h2.md`, cap ruled (one constant, 400).
 - Carbon's reviews of both rounds were still running at 02:41; each is archived to the branch when it reports.
 - Work copy `~/projects/bts-work/wr-fix-h` and gate copy `wr-gate-h` (at `84805852`, synced) are kept until the lead rules.
+
+## Carbon (added 2026-11-25 03:00)
+- Round 1 on `813935bc`: **SIGN** `WRHCARB1-9093c1f2` (`review-fix-h-carbon/` on the branch), no findings; it noted the fixed-horizon test gap that round 2 closed.
+- Round 2 on `84805852`: **BLOCK** `WRHCARB2-97f55ca9` (`review-fix-h-carbon-r2/`), found independently: the same class as Codex's finding (bin edges that are strings, or a two-dimensional array of edges, with a tail rebuilt against the file: the rule's double with no degradation note), and it lists more members no check covers: edges that are NaN, infinite, booleans or not increasing, and a masked array as the table. Its fix is three more clauses. Not reproduced by the session beyond Codex's case. It supports the reading above: a longer list of checks keeps meeting another counterexample.
