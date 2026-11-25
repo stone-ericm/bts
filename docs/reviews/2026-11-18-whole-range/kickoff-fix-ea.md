@@ -134,3 +134,28 @@ Author commit `988708df` (handover `handover-fix-ea-followup.md`, `WREA3-615152f
 | E2 (edit) | `below themodel` in stored text renders `under themodel` (the replacement matches a prefix of a longer word) | `format_skip_summary`, `display_string` | `re.sub(r"\bbelow the\b", "under the", …)` with `import re` |
 
 New findings per round of this text: 8, 7, 6, 5 (2 blocking), then 3 (1 blocking). The blocking one is in a sentence written to fix the previous round's blocking finding.
+
+## Second follow-up (2026-11-25 00:50): Eric chose option 2 of the `STOP-EA.md` addendum (`FINDINGS.md`, "Eric, 2026-11-25")
+Apply the check's three texts (`WREACHK3-f254bd86`) as the reviewer wrote them, then ONE more fresh Codex xhigh check limited to those three texts under R64, then the gate; SIGN or SIGN WITH EDITS merges; a BLOCK goes back to Eric.
+
+### Applied by the session to the one B8a bullet
+| Source | Old sentence | New text |
+|---|---|---|
+| Check B1 | `Then compare MLB with status and, only if they differ, run bts set-contest-streak --date TODAY --streak N --best-streak B --saver S --picks-dir DIR (with TODAY set to the current ET date) on TODAY ET before its first lineup check, or if its first lineup check has started, have Eric verify any pending or delivered pick against MLB before acting on it.` | `Then compare MLB with status and, if they differ, run bts set-contest-streak --date TODAY --streak N --best-streak B --saver S --picks-dir DIR with TODAY set to the current ET date before its first lineup check. If that check has started, have Eric verify MLB and any pending or delivered pick before acting on the pick. If the state differs while the slate is unlocked and a later lineup check or fallback refresh remains, have Eric run the same command between checks.` |
+| Check E1 (B8a half) | `On a warning after a delivery: write that command only on D ET for the D slate, after MLB has settled all prior entries or confirmed their absence after their entry windows closed.` | `On a warning after a delivery: use the warning's command only if the delivered pick's slate and today's ET date both equal D, and MLB has settled every prior entry or confirmed its absence after its entry window closed.` |
+
+### The author's items (tests first; ONE commit; only `src/bts/scheduler.py`, `tests/test_wr_e_texts.py` and the expected-text helper in `tests/test_stale_delivery_cs4c.py`; if another existing assertion must change, STOP and ask)
+12. **Check E1, the delivery warning.** `Write for the {D} slate only on that ET date, with prior entries settled or absent.` becomes `Write only on the pick's ET slate date once prior entries settle or their windows close empty.` Nothing else in the message changes; its longest enveloped body stays under 900 characters (the reviewer projects 896): measure it; if it does not, STOP.
+13. **Check E2.** In `format_skip_summary`'s `display_string`, the replacement of `below the` matches whole words only: `re.sub(r"\bbelow the\b", "under the", " ".join(value.splitlines()))` with `import re` at the top of the module if it is not there. Test: a stored reason `Model ID below themodel` renders unchanged; `Observations below the expected count` still renders `under the`.
+14. `tests/test_wr_e_texts.py::test_b8a_follow_up` pins the two B8a sentences the session replaced above: update it to the new texts (both new sentences in full).
+
+### Must still catch, added rows
+| # | State | What the text says now |
+|---|---|---|
+| C28 | Check B1: a 07-15 warning read 07-17 at 09:30, the 07-16 entry pending in a suspended game; the 16:05 check makes no pick; the entry settles as a Pass at 16:08 | B8a tells Eric to run the same command between checks while the slate is unlocked and a later check or fallback remains; following it, the 17:05 check decides on MLB's streak |
+| C29 | Check E1: a send that crosses midnight (the warning prints the next day's date) | the message names the pick's ET slate date; B8a requires the delivered pick's slate and today's date both to equal D, and prior entries settled or confirmed absent after their windows closed |
+| C30 | Check E2: stored text `Model ID below themodel` | rendered unchanged on every surface |
+| C31 | The tests: restore `Write for the {D} slate only on that ET date`; restore the plain `.replace("below the", "under the")` | each is noticed by a test |
+
+### Handover
+`HANDOVER-WR-EA4.md` in the worktree root (not committed): the commit, per item the test that was RED first, the measured delivery length, the season walk result; then `WREA4-<first 8 hex of its sha256>` on its own line and `DONE`.
