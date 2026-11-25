@@ -1,0 +1,22 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-h2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 282 items / 1 deselected / 281 selected
+
+tests/test_wr_h_longest.py ............................................. [ 16%]
+.........................                                                [ 24%]
+tests/simulate/test_tail_policy.py ..................................... [ 38%]
+.                                                                        [ 38%]
+tests/test_wr_g_guard.py ............................................    [ 54%]
+tests/test_strategy.py ................................................  [ 71%]
+tests/test_decide_action.py .............                                [ 75%]
+tests/test_scheduler_tail_objective.py .........                         [ 79%]
+tests/test_daily_decision_v3.py ...                                      [ 80%]
+tests/test_scheduler_decision_record.py .........                        [ 83%]
+tests/test_scheduler_decision_record_integration.py .................... [ 90%]
+....                                                                     [ 91%]
+tests/scripts/season_walk/test_season_walk.py .......................    [100%]
+
+====================== 281 passed, 1 deselected in 5.77s =======================

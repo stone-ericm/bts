@@ -1,0 +1,34 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-h2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 71 items / 1 deselected / 70 selected
+
+tests/test_wr_h_longest.py ...............................F
+
+=================================== FAILURES ===================================
+_________ test_positive_day_rule_selects_a_play_at_exact_ties[0.0-0.0] _________
+
+p_hit = 0.0, p_both = 0.0
+
+    @pytest.mark.parametrize("p_hit,p_both", [(0., 0.), (1., 0.), (1., 1.), (.5, .25), (.75, .50)])
+    def test_positive_day_rule_selects_a_play_at_exact_ties(p_hit, p_both):
+        actions = {tail_policy.longest_streak_action(days, p_hit, p_both)
+                   for days in range(1, tail_policy.LONGEST_STREAK_HORIZON + 1)}
+        assert actions <= {"single", "double"}
+        if p_both == 0.0 or (p_hit, p_both) == (.5, .25):
+>           assert actions == {"single"}
+E           AssertionError: assert {'double'} == {'single'}
+E             
+E             Extra items in the left set:
+E             'double'
+E             Extra items in the right set:
+E             'single'
+E             Use -v to get more diff
+
+tests/test_wr_h_longest.py:207: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_h_longest.py::test_positive_day_rule_selects_a_play_at_exact_ties[0.0-0.0]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+================== 1 failed, 31 passed, 1 deselected in 1.62s ==================

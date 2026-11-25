@@ -1,0 +1,13 @@
+nice: setpriority: Operation not permitted
+longest-streak policy: longest-streak rule unavailable (base policy season length must be a positive integer); forced single -> single
+drop-positive-base-horizon reviewed single longest-streak rule unavailable (base policy season length must be a positive integer); forced single
+drop-positive-base-horizon mutated double None
+longest-streak policy: longest-streak rule unavailable (base policy boundaries must be a list); forced single -> single
+drop-list-type reviewed single longest-streak rule unavailable (base policy boundaries must be a list); forced single
+drop-list-type mutated double None
+longest-streak policy: longest-streak rule unavailable (base policy season length must be a positive integer); forced single -> single
+drop-int-horizon-type reviewed single longest-streak rule unavailable (base policy season length must be a positive integer); forced single
+drop-int-horizon-type mutated double None
+longest-streak policy: longest-streak rule unavailable (base policy table must be a four-dimensional array); forced single -> single
+drop-array-type reviewed single longest-streak rule unavailable (base policy table must be a four-dimensional array); forced single
+drop-array-type mutated double None
