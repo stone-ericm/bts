@@ -1,0 +1,24 @@
+nice: setpriority: Operation not permitted
+head /Users/eric/projects/bts-work/wr-rev-g-codex/src/bts/__init__.py
+  DELIVERY OUTCOME UNKNOWN (review) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+  LOCKED (review) — Pick DM sent: confirmed-dm
+head confirmed_after_recovery: committed=('single', 100, 'delivered'), recorded=('single', 100, 'locked_unconfirmed', None), same_bytes=True
+  [PRIVATE] LOCKED (review) — Fixture batter 100 (T0) 83.0% — NOT delivered
+  LOCKED (review) — Pick DM sent: dm-ok
+head private_to_dm: committed=('single', 100, 'delivered'), recorded=('single', 100, 'private_locked', None), same_bytes=True
+  [PRIVATE] LOCKED (review) — Fixture batter 100 (T0) 83.0% — NOT delivered
+  DELIVERY REFUSED (review) — Fixture batter 100: submission cutoff 18:17 ET passed 15.0 min ago; not delivering an unenterable pick.
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:32 ET] Fetching schedule for 2027-03-24...
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-g-codex/.codex-review/wr-g/commit_paths.py", line 207, in <module>
+    lifecycle(side)
+  File "/Users/eric/projects/bts-work/wr-rev-g-codex/.codex-review/wr-g/commit_paths.py", line 131, in lifecycle
+    scheduler.run_day(DAY, cfg)
+  File "/Users/eric/projects/bts-work/wr-rev-g-codex/src/bts/scheduler.py", line 2945, in run_day
+    dh_game2s = detect_doubleheader_game2s(games)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-g-codex/src/bts/scheduler.py", line 425, in detect_doubleheader_game2s
+    away = g["teams"]["away"]["team"]["name"]
+           ~^^^^^^^^^
+KeyError: 'teams'

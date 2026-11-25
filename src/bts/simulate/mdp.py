@@ -171,21 +171,16 @@ def load_policy(path: Path | str = DEFAULT_POLICY_PATH) -> tuple[np.ndarray, lis
     )
 
 
-def lookup_action(
-    policy_table: np.ndarray,
+def _lookup_indices(
     boundaries: list[float],
     streak: int,
     days_remaining: int,
     saver: bool,
     top_pick_confidence: float,
-    season_length: int = 180,
-) -> str:
-    """Look up the optimal action from a saved MDP policy.
-
-    This is the production entry point — called from strategy.py.
-    """
+    season_length: int,
+) -> tuple[int, int, int, int] | None:
     if streak >= 57 or days_remaining <= 0:
-        return "skip"
+        return None
 
     # Classify quality bin
     q = 0
@@ -197,7 +192,49 @@ def lookup_action(
 
     d = min(days_remaining, season_length)
     s = min(streak, 56)
-    return ACTIONS[policy_table[s, d, int(saver), q]]
+    return s, d, int(saver), q
+
+
+def lookup_action(
+    policy_table: np.ndarray,
+    boundaries: list[float],
+    streak: int,
+    days_remaining: int,
+    saver: bool,
+    top_pick_confidence: float,
+    season_length: int = 180,
+) -> str:
+    """Look up the action stored in a saved MDP policy."""
+    indices = _lookup_indices(boundaries, streak, days_remaining, saver,
+                              top_pick_confidence, season_length)
+    return "skip" if indices is None else ACTIONS[policy_table[indices]]
+
+
+def lookup_action_guarded(
+    policy_table: np.ndarray,
+    boundaries: list[float],
+    streak: int,
+    days_remaining: int,
+    saver: bool,
+    top_pick_confidence: float,
+    season_length: int = 180,
+) -> tuple[str, dict | None]:
+    """Apply the reach-57 skip guard and return provenance for any override."""
+    indices = _lookup_indices(boundaries, streak, days_remaining, saver,
+                              top_pick_confidence, season_length)
+    if indices is None:
+        return "skip", None
+    s, d, v, q = indices
+    action = ACTIONS[policy_table[indices]]
+    if action == "skip":
+        for j in range(q - 1, -1, -1):
+            donor_code = policy_table[s, d, v, j]
+            if donor_code in (1, 2):
+                return ACTIONS[int(donor_code)], {
+                    "rule": "monotone_skip_v1", "bin": int(q),
+                    "from_bin": int(j), "table_action": "skip",
+                }
+    return action, None
 
 
 def solve_mdp(

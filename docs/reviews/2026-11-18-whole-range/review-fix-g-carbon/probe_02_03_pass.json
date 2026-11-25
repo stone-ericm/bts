@@ -1,0 +1,53 @@
+{
+  "status": "PASS",
+  "item_2": {
+    "callers": {
+      "lookup_action": [
+        "scripts/audit/boundary_shadow_census.py:243",
+        "scripts/audit_mdp_live_aggressiveness.py:125",
+        "scripts/evaluate_mdp_dd_guardrail.py:348",
+        "scripts/evaluate_mdp_dd_guardrail.py:492",
+        "scripts/gate_b_production_metric_rebaseline.py:290",
+        "scripts/gate_b_production_metric_rebaseline.py:299",
+        "scripts/oos_validation.py:31",
+        "scripts/validation/compare_policies.py:13",
+        "scripts/validation/compare_policies.py:19",
+        "scripts/validation/compare_policies.py:20"
+      ],
+      "lookup_action_guarded": [
+        "src/bts/strategy.py:138"
+      ]
+    },
+    "paths": {
+      "select_pick_and_run_and_pick": "single",
+      "scheduler_check_shadow_dashboard": "single",
+      "fallback_in_loop": "single",
+      "fallback_post_loop": "single",
+      "cli_run": "single",
+      "cli_preview": "single",
+      "cli_orchestrate": "single"
+    }
+  },
+  "item_3": {
+    "clamp_allow_double_off": {
+      "policy_action": "double",
+      "action": "single",
+      "legs": 1,
+      "record_action": "single",
+      "journal": "POLICY GUARD \u2014 At streak 1 with 29 policy days left and saver input unavailable, the table skips bin 1. Bin 0 supplies double. Selected action is single."
+    },
+    "clamp_no_diff_game": {
+      "policy_action": "double",
+      "action": "single",
+      "legs": 1,
+      "record_action": "single",
+      "journal": "POLICY GUARD \u2014 At streak 1 with 29 policy days left and saver input unavailable, the table skips bin 1. Bin 0 supplies double. Selected action is single."
+    },
+    "executable_double": {
+      "primary": "Primary Star",
+      "double_down": "DiffGame Second",
+      "matches_ordinary_double": true,
+      "journal": "POLICY GUARD \u2014 At streak 1 with 29 policy days left and saver input unavailable, the table skips bin 1. Bin 0 supplies double. Selected action is double."
+    }
+  }
+}

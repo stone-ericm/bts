@@ -1,0 +1,22 @@
+/Users/eric/projects/bts-work/wr-rev-g2-codex/.codex-review/wr-g2/scratch/clamp/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-g2-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_wr_g_guard.py F
+
+=================================== FAILURES ===================================
+__________________ test_affected_rows_and_independent_clamps ___________________
+tests/test_wr_g_guard.py:113: in test_affected_rows_and_independent_clamps
+    assert (actual.action, actual.policy_action, actual.guard) == ("single", "double", guard)
+E   AssertionError: assert ('single', 'double', None) == ('single', 'd...ion': 'skip'})
+E     
+E     At index 2 diff: None != {'rule': 'monotone_skip_v1', 'bin': 1, 'from_bin': 0, 'table_action': 'skip'}
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/test_wr_g_guard.py::test_affected_rows_and_independent_clamps - ...
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+============================== 1 failed in 0.70s ===============================

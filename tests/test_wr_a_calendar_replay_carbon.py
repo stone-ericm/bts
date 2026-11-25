@@ -42,10 +42,10 @@ def test_calendar_parity_across_2026_2027_and_leap_year_2028():
 @pytest.mark.parametrize(
     "day,streak,p,expected_days,expected_action,expected_obj",
     [
-        ("2027-09-17", 55, 0.96, 10, "skip", OBJECTIVE_REACH57),
+        ("2027-09-17", 55, 0.96, 10, "single", OBJECTIVE_REACH57),
         ("2027-09-17", 55, 0.83, 10, "single", OBJECTIVE_REACH57),
         ("2027-09-18", 40, 0.96, 9, "double", OBJECTIVE_REACH57),
-        ("2027-09-21", 56, 0.96, 6, "skip", OBJECTIVE_REACH57),
+        ("2027-09-21", 56, 0.96, 6, "single", OBJECTIVE_REACH57),
         ("2027-09-21", 56, 0.83, 6, "single", OBJECTIVE_REACH57),
         ("2027-09-22", 48, 0.96, 5, "double", OBJECTIVE_REACH57),
         ("2027-09-23", 45, 0.96, 4, "single", OBJECTIVE_TAIL),

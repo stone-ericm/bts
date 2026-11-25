@@ -1,0 +1,24 @@
+/Users/eric/projects/bts-work/wr-rev-g2-codex/.codex-review/wr-g2/scratch/allow_voided_clamp_slots/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-g2-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 464 items / 1 deselected / 463 selected
+
+tests/test_wr_g_guard.py ................................F
+
+=================================== FAILURES ===================================
+____________ test_guarded_delivery_records_selected_batter[warmup] _____________
+tests/test_wr_g_guard.py:516: in test_guarded_delivery_records_selected_batter
+    assert record["double_down"] is None
+E   AssertionError: assert {'batter_id': 100, 'batter_name': 'Batter 0', 'game_pk': 70000, 'p_game_hit': 0.96, ...} is None
+----------------------------- Captured stderr call -----------------------------
+  FALLBACK REFRESH: pick unchanged (Batter 0 96.0%)
+  Selected slot's game 70000 is no longer available (postponed/started/missing); should_lock=False.
+  FALLBACK REFRESH: should_lock=False, block=slot_unavailable
+  LOCKED (probe) — Pick DM sent: confirmed-dm
+=========================== short test summary info ============================
+FAILED tests/test_wr_g_guard.py::test_guarded_delivery_records_selected_batter[warmup]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+================== 1 failed, 32 passed, 1 deselected in 4.23s ==================

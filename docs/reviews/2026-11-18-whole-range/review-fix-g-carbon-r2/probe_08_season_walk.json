@@ -1,0 +1,17 @@
+{
+  "exit_code": 1,
+  "records_total": 4599,
+  "matches_saved_walk_g_json": true,
+  "matches_saved_walk_g_txt": true,
+  "changed_skip_to_single": 252,
+  "formerly_flagged_in_season": 229,
+  "unflagged_preseason": 23,
+  "unchanged_records": 4347,
+  "remaining_warnings": 612,
+  "remaining_warnings_by_streak": {
+    "55": 157,
+    "56": 314,
+    "50": 141
+  },
+  "boundary_checks_equal": true
+}

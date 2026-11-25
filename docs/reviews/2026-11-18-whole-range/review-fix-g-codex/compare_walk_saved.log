@@ -1,0 +1,3 @@
+nice: setpriority: Operation not permitted
+4,599 records, 252 skip-to-single, 612 all-skip warnings, zero other diffs. Counter({'all-skip warning': 612, 'flagged': 229, 'preseason': 23})
+Fresh JSON matches the decompressed bytes; stdout matches the saved transcript before its appended summary.

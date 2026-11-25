@@ -1,0 +1,13 @@
+nice: setpriority: Operation not permitted
+Input -2 indexes saver plane 0. Actual journal follows:
+  POLICY GUARD — At streak 50 with 180 policy days left and saver input available, the table skips bin 4. Bin 3 supplies single. Selected action is single.
+POLICY GUARD — At streak 50 with 180 policy days left and saver input unavailable, the table skips bin 4. Bin 3 supplies single. Selected action is single.
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-g2-codex/.codex-review/wr-g2/audit_controls.py", line 65, in <module>
+    saver_alias(root)
+  File "/Users/eric/projects/bts-work/wr-rev-g2-codex/.codex-review/wr-g2/audit_controls.py", line 53, in saver_alias
+    check_journal(sel, 50, 187, 0, .96, "single", "single")
+  File "/Users/eric/projects/bts-work/wr-rev-g2-codex/.codex-review/wr-g2/slots_and_journal.py", line 53, in check_journal
+    assert buffer.getvalue() == line
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

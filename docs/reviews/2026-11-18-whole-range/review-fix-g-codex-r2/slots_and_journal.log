@@ -1,0 +1,55 @@
+nice: setpriority: Operation not permitted
+  LOCKED (probe) — Pick DM sent: captured
+  LOCKED (probe) — Pick DM sent: captured
+  LOCKED (probe) — Posted to Bluesky: captured
+  LOCKED (probe) — Posted to Bluesky: captured
+  [PRIVATE] LOCKED (probe) — Batter 0 (T0) 80.4% — NOT delivered
+  [PRIVATE] LOCKED (probe) — Batter 0 (T0) 80.4% — NOT delivered
+  LOCKED (probe) — Pick DM sent: captured
+  LOCKED (probe) — Pick DM sent: captured
+  LOCKED (probe) — Posted to Bluesky: captured
+  LOCKED (probe) — Posted to Bluesky: captured
+  [PRIVATE] LOCKED (probe) — Batter 0 (T0) 80.4% — NOT delivered
+  [PRIVATE] LOCKED (probe) — Batter 0 (T0) 80.4% — NOT delivered
+  LOCKED (probe) — Pick DM sent: captured
+  LOCKED (probe) — Pick DM sent: captured
+  LOCKED (probe) — Posted to Bluesky: captured
+  LOCKED (probe) — Posted to Bluesky: captured
+  [PRIVATE] LOCKED (probe) — Batter 0 (T0) 80.4% — NOT delivered
+  [PRIVATE] LOCKED (probe) — Batter 0 (T0) 80.4% — NOT delivered
+  LOCKED (probe) — Pick DM sent: captured
+  LOCKED (probe) — Pick DM sent: captured
+POLICY GUARD — At streak 1 with 29 policy days left and saver input unavailable, the table skips bin 1. Bin 0 supplies double. Selected action is double.
+dm fresh 2027-08-29 double double saved_second 101 record_second 101
+dm restart 2027-08-29 double double saved_second 101 record_second 101
+public fresh 2027-08-29 double double saved_second 101 record_second 101
+public restart 2027-08-29 double double saved_second 101 record_second 101
+private fresh 2027-08-29 double double saved_second 101 record_second 101
+private restart 2027-08-29 double double saved_second 101 record_second 101
+POLICY GUARD — At streak 1 with 29 policy days left and saver input unavailable, the table skips bin 1. Bin 0 supplies double. Selected action is single.
+dm fresh 2027-08-29 double single saved_second None record_second 101
+dm restart 2027-08-29 double single saved_second None record_second None
+public fresh 2027-08-29 double single saved_second None record_second 101
+public restart 2027-08-29 double single saved_second None record_second None
+private fresh 2027-08-29 double single saved_second None record_second 101
+private restart 2027-08-29 double single saved_second None record_second None
+POLICY GUARD — At streak 1 with 29 policy days left and saver input unavailable, the table skips bin 1. Bin 0 supplies double. Selected action is single.
+dm fresh 2027-08-29 double single saved_second None record_second None
+dm restart 2027-08-29 double single saved_second None record_second None
+public fresh 2027-08-29 double single saved_second None record_second None
+public restart 2027-08-29 double single saved_second None record_second None
+private fresh 2027-08-29 double single saved_second None record_second None
+private restart 2027-08-29 double single saved_second None record_second None
+POLICY GUARD — At streak 50 with 180 policy days left and saver input unavailable, the table skips bin 4. Bin 3 supplies single. Selected action is single.
+dm fresh 2027-03-24 single single saved_second None record_second 101
+POLICY GUARD — At streak 50 with 180 policy days left and saver input unavailable, the table skips bin 4. Bin 3 supplies single. Selected action is single.
+dm fresh 2027-03-24 single single saved_second None record_second 101
+POLICY GUARD — At streak 50 with 180 policy days left and saver input unavailable, the table skips bin 4. Bin 3 supplies single. Selected action is single.
+POLICY GUARD — At streak 42 with 38 policy days left and saver input available, the table skips bin 4. Bin 3 supplies single. Selected action is single.
+POLICY GUARD — At streak 42 with 38 policy days left and saver input available, the table skips bin 4. Bin 3 supplies single. Selected action is single.
+Unexpected committed legs: [(False, True, 'dm', False, 101, None), (False, True, 'public', False, 101, None), (False, True, 'private', False, 101, None), ('guarded single', 101, None), ('guarded single', 101, None)]
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-g2-codex/.codex-review/wr-g2/slots_and_journal.py", line 144, in <module>
+    assert not wrong, wrong
+           ^^^^^^^^^
+AssertionError: [(False, True, 'dm', False, 101, None), (False, True, 'public', False, 101, None), (False, True, 'private', False, 101, None), ('guarded single', 101, None), ('guarded single', 101, None)]

@@ -1,0 +1,21 @@
+/Users/eric/projects/bts-work/wr-rev-g2-codex/.codex-review/wr-g2/scratch/numpy/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-g2-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_wr_g_guard.py F
+
+=================================== FAILURES ===================================
+__________________ test_affected_rows_and_independent_clamps ___________________
+tests/test_wr_g_guard.py:107: in test_affected_rows_and_independent_clamps
+    assert type(actual.guard["bin"]) is type(actual.guard["from_bin"]) is int
+E   AssertionError: assert <class 'numpy.int64'> is <class 'int'>
+E    +  where <class 'numpy.int64'> = type(np.int64(1))
+E    +  and   <class 'int'> = type(0)
+=========================== short test summary info ============================
+FAILED tests/test_wr_g_guard.py::test_affected_rows_and_independent_clamps - ...
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+============================== 1 failed in 0.71s ===============================

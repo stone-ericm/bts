@@ -1,0 +1,9 @@
+nice: setpriority: Operation not permitted
+regime/edge controls: [('emax_season_best', 'skip', 'skip', None, False, None), ('reach57', 'double', 'double', None, False, None), ('reach57', 'single', 'single', None, False, None), ('reach57', 'single', 'single', None, False, None), ('reach57', 'skip', 'skip', None, False, None), ('reach57', 'skip', 'skip', None, False, None), ('reach57', 'skip', 'skip', None, False, None)]
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-g-codex/.codex-review/wr-g/controls.py", line 162, in <module>
+    variants()
+  File "/Users/eric/projects/bts-work/wr-rev-g-codex/.codex-review/wr-g/controls.py", line 54, in variants
+    assert snap(tail_control) == snap(resolve(44, 6)) and tail_control.action == 'skip'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
