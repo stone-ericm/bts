@@ -48,7 +48,9 @@ from tests.test_stale_delivery_cs4c_carbon import _make_pick
 def test_skip_surfaces(fields, sentence):
     summary = dict(best_batter="A", best_team="T", best_p=0.75, streak=8,
                    candidate_verified=True) | fields
-    body = sentence + " Streak used at this check: 8."
+    body = sentence
+    if fields.get("basis") != "no_decision":
+        body += " Streak used at this check: 8."
     assert scheduler.format_skip_dm("2027-07-15", summary) == "BTS 2027-07-15: No pick at this check. " + body
     assert web.render_skip_banner(summary) == (
         '<div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>'
@@ -171,7 +173,7 @@ def test_stale_warning_maximum_detail(route, tmp_path, monkeypatch, capsys):
     picks_dir = tmp_path / "picks"
     if route == "delivery":
         scheduler._warn_stale_contest_reading(record, config, picks_dir)
-        expected, length = envelope(day=DAY, detail=detail), 875
+        expected, length = envelope(day=DAY, detail=detail), 881
         assert "  STALE CONTEST READING — " + expected.split("- [contest_state] ")[1] in capsys.readouterr().err
     else:
         scheduler._morning_state_check(config, picks_dir, DAY, now, now + timedelta(hours=1))
@@ -190,9 +192,9 @@ def test_refusal_message_and_record(kind, tmp_path, monkeypatch):
     monkeypatch.setattr(scheduler, "_now_et", lambda: now)
     picks.save_pick(daily, tmp_path)
     if kind == "late":
-        cutoff = now - timedelta(minutes=10)
+        cutoff = now
         scheduler._refuse_late_delivery(daily, {}, tmp_path, state, daily.date, "test", cutoff, now)
-        prefix = f"LATE DELIVERY REFUSED: Steven Kwan would have been sent 10 min after the {cutoff:%H:%M} ET cutoff. "
+        prefix = f"LATE DELIVERY REFUSED: the {cutoff:%H:%M} ET cutoff for Steven Kwan had been reached. "
         source = "late_delivery"
     else:
         scheduler._refuse_void_game_delivery(daily, {}, tmp_path, state, daily.date, "test", {101: "Postponed"})
@@ -206,6 +208,8 @@ def test_refusal_message_and_record(kind, tmp_path, monkeypatch):
     ))]
     saved = scheduler.load_state(daily.date, tmp_path)
     assert saved.delivery_refusals == state.delivery_refusals and not saved.pick_locked
+    if kind == "late":
+        assert saved.delivery_refusals[0]["late_min"] == 0.0
     assert picks.load_pick(daily.date, tmp_path) is None
     assert (tmp_path / daily.date / saved.delivery_refusals[0]["archive"]).is_file()
 
@@ -333,8 +337,9 @@ def test_real_lineup_skip_return_against_base(status_case, base_scheduler, tmp_p
         ) == 1
     else:
         assert summary["basis"] == "no_decision" and summary["candidate_verified"] is False
+        assert summary["streak"] == 10
         assert ("  SKIP — No candidate was chosen. Top model prediction (eligibility unverified): "
-                "Batter 0 (T0) 99.9%. Streak used at this check: 10.") in journal.splitlines()
+                "Batter 0 (T0) 99.9%.") in journal.splitlines()
 
 
 def test_operator_text_scan():

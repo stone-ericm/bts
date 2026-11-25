@@ -92,8 +92,9 @@ def _warn_stale_contest_reading(record: dict | None, config: dict, picks_dir: Pa
             "MLB. If MLB differs from status (B8a), use bts set-contest-streak --date "
             f"{warning_day.isoformat()} --streak N --best-streak B --saver S --picks-dir DIR. DIR is the "
             "absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if "
-            f"the pick's slate and today's ET date both equal {warning_day.isoformat()}. For a later date, "
-            f"see B8a. On {warning_day.isoformat()} ET away from midnight, if MLB shows this season's "
+            f"the pick's slate and today's ET date both equal {warning_day.isoformat()}. "
+            "For a later slate date, see B8a. "
+            f"On {warning_day.isoformat()} ET away from midnight, if MLB shows this season's "
             "saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts "
             "saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status."
         )
@@ -1773,6 +1774,7 @@ def format_skip_summary(summary: object) -> str:
     streak = fields.get("streak")
     if type(streak) is not int or streak < 0:
         streak = None
+    no_decision = fields.get("basis") == "no_decision"
     raw_reason = fields.get("reason")
     reason = display_string(raw_reason).strip() if isinstance(raw_reason, str) else ""
     label = "Top model prediction (eligibility unverified)"
@@ -1786,7 +1788,7 @@ def format_skip_summary(summary: object) -> str:
     if reason:
         ending = "" if reason.endswith((".", "!", "?")) else "."
         sentence = f"{description}. Reason: {reason}{ending}"
-    elif fields.get("basis") == "no_decision":
+    elif no_decision:
         sentence = f"No candidate was chosen. {label}: {candidate}."
     elif bar is not None and probability is not None:
         bar_label = f"the streak-{streak} bar" if streak is not None else "the bar"
@@ -1797,7 +1799,7 @@ def format_skip_summary(summary: object) -> str:
             sentence = f"{description}, at or above {bar_text}."
     else:
         sentence = f"{description}. No probability comparison is available for this check."
-    if streak is not None:
+    if streak is not None and not no_decision:
         sentence += f" Streak used at this check: {streak}."
     return sentence
 
@@ -2505,8 +2507,7 @@ def _refuse_late_delivery(daily, config: dict, picks_dir: Path, state: Scheduler
         "double_down": daily.double_down.batter_name if daily.double_down else None,
         "cutoff_et": cutoff.isoformat(), "late_min": late_min, "archive": archive.name}]
     save_state(state, picks_dir)
-    msg = (f"LATE DELIVERY REFUSED: {names} would have been sent {late_min:.0f} min after the "
-           f"{cutoff.strftime('%H:%M ET')} cutoff. "
+    msg = (f"LATE DELIVERY REFUSED: the {cutoff.strftime('%H:%M ET')} cutoff for {names} had been reached. "
            "This pick was withheld. A later check may produce another recommendation. "
            "Use a later official pick message only while the entry window is open. "
            "A manual entry can differ from a later recommendation. "
