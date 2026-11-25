@@ -26,7 +26,7 @@ def message(day=DAY, detail=f"last accepted fetch {RECORDED}, about 20.00 hours 
         f"MLB. If MLB differs from status (B8a), use bts set-contest-streak --date {day} --streak N "
         "--best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent "
         "pick and saver flag stay as they were. Write only if the pick's slate and today's ET date "
-        f"both equal {day}. For a later date, follow B8b(1). On {day} ET away from midnight, if MLB "
+        f"both equal {day}. For a later date, see B8a. On {day} ET away from midnight, if MLB "
         "shows this season's saver used, check bts saver-state --picks-dir DIR. For active or "
         "not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the "
         "latest fetch status."

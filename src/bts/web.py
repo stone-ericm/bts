@@ -271,7 +271,7 @@ def render_skip_banner(summary: object) -> str:
     from bts.scheduler import format_skip_summary
 
     body = html_lib.escape(format_skip_summary(summary))
-    return ('<div class="skip-banner"><strong>NO PICK AT LAST CHECK</strong>'
+    return ('<div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong>'
             f"<span>{body}</span></div>")
 
 

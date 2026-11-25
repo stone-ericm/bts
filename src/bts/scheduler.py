@@ -93,7 +93,7 @@ def _warn_stale_contest_reading(record: dict | None, config: dict, picks_dir: Pa
             f"{warning_day.isoformat()} --streak N --best-streak B --saver S --picks-dir DIR. DIR is the "
             "absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if "
             f"the pick's slate and today's ET date both equal {warning_day.isoformat()}. For a later date, "
-            f"follow B8b(1). On {warning_day.isoformat()} ET away from midnight, if MLB shows this season's "
+            f"see B8a. On {warning_day.isoformat()} ET away from midnight, if MLB shows this season's "
             "saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts "
             "saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status."
         )
@@ -204,7 +204,7 @@ def _morning_state_check(
     if recipient:
         message = (
             f"Morning check for {date}: the automatic contest reading was stale at startup ({detail}). This "
-            "reading is eligible if it remains in use. Check MLB. If prior entries are settled or absent "
+            "reading is eligible if it remains in use. Before the first check, if prior entries are settled or absent "
             "and MLB differs from status (B8a), use "
             f"bts set-contest-streak --date {date} --streak N --best-streak B --saver S --picks-dir DIR on "
             f"{date} ET only. DIR is the absolute scheduler picks path. This leaves the saver flag "
@@ -1728,8 +1728,10 @@ def build_skip_summary(predictions, streak, pick_bar: float | None = None,
 
     summary["basis"] = "decision" if decision is not None else "no_decision"
     summary["candidate_verified"] = False
-    if decision is not None and isinstance(candidate, Mapping):
+    if decision is not None:
         try:
+            if not isinstance(candidate, Mapping):
+                return summary
             probability = candidate.get("p_game_hit")
             if isinstance(probability, bool) or not isinstance(probability, Real):
                 return summary

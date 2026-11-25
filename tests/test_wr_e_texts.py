@@ -51,7 +51,7 @@ def test_skip_surfaces(fields, sentence):
     body = sentence + " Streak used at this check: 8."
     assert scheduler.format_skip_dm("2027-07-15", summary) == "BTS 2027-07-15: No pick at this check. " + body
     assert web.render_skip_banner(summary) == (
-        '<div class="skip-banner"><strong>NO PICK AT LAST CHECK</strong><span>'
+        '<div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>'
         + html.escape(body) + "</span></div>"
     )
 
@@ -111,6 +111,22 @@ def test_run_single_check_skip_journal(reason, bar, ending, tmp_path, monkeypatc
     ]
 
 
+def test_candidate_with_raising_class_lookup_preserves_base_summary():
+    class UnreadableCandidate:
+        @property
+        def __class__(self):
+            raise RuntimeError("candidate class is unreadable")
+
+    predictions = pd.DataFrame([dict(batter_name="Top", team="T", p_game_hit=0.75)])
+    decision = _tail_skip_decision()
+    expected = scheduler.build_skip_summary(predictions, 8, decision=decision)
+    summary = scheduler.build_skip_summary(
+        predictions, 8, decision=decision, candidate=UnreadableCandidate(),
+    )
+    assert summary == expected
+    assert summary["candidate_verified"] is False
+
+
 def test_candidate_override():
     predictions = pd.DataFrame([dict(batter_name="Removed", team="X", p_game_hit=0.999)])
     summary = scheduler.build_skip_summary(
@@ -155,11 +171,11 @@ def test_stale_warning_maximum_detail(route, tmp_path, monkeypatch, capsys):
     picks_dir = tmp_path / "picks"
     if route == "delivery":
         scheduler._warn_stale_contest_reading(record, config, picks_dir)
-        expected, length = envelope(day=DAY, detail=detail), 881
+        expected, length = envelope(day=DAY, detail=detail), 875
         assert "  STALE CONTEST READING — " + expected.split("- [contest_state] ")[1] in capsys.readouterr().err
     else:
         scheduler._morning_state_check(config, picks_dir, DAY, now, now + timedelta(hours=1))
-        expected, length = warning(detail), 882
+        expected, length = warning(detail), 895
     assert sent == [expected]
     assert len(sent[0]) == length < 900
 
