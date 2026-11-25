@@ -1,0 +1,27 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev2-e-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 55 items
+
+tests/test_wr_e_texts.py .........................................F
+
+=================================== FAILURES ===================================
+____________________ test_refusal_message_and_record[late] _____________________
+tests/test_wr_e_texts.py:185: in test_refusal_message_and_record
+    assert [(item.source, item.message) for item in sent] == [(source, prefix + (
+E   AssertionError: assert [('late_deliv...nt one now.')] == [('late_deliv...ry in time.')]
+E     
+E     At index 0 diff: ('late_delivery', 'LATE DELIVERY REFUSED: Steven Kwan would have been sent 10 min after the 18:25 ET cutoff. This pick was withheld. A later check may produce another recommendation. Use a later official pick message only while the entry window is open. A manual entry can differ from a later recommendation. Enter a pick manually if you want one now.') != ('late_delivery', 'LATE DELIVERY REFUSED: Steven Kwan would have been sent 10 min after the 18:25 ET cutoff. This pick was withheld. A later check may produce another recommendation. Use a later officia...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY REFUSED (test) — Steven Kwan: submission cutoff 18:25 ET passed 10.0 min ago; not delivering an unenterable pick.
+=========================== short test summary info ============================
+FAILED tests/test_wr_e_texts.py::test_refusal_message_and_record[late] - Asse...
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+========================= 1 failed, 41 passed in 1.09s =========================
+ 
+old-refusal-late DETECTED

@@ -1,0 +1,7 @@
+nice: setpriority: Operation not permitted
+  0 new confirmed lineup(s). Running predictions...
+  Pick: Steven Kwan (CLE) 80.0% → should_lock=True
+  0 new confirmed lineup(s). Running predictions...
+  SKIP — Candidate used in the decision: Steven Kwan (CLE) 80.0%, below the streak-15 bar (81.1%) using unrounded values. Streak used at this check: 15.
+CONTEST STATE ERROR — pick delivery blocked: Saved pick for 2027-07-15 was not delivered because it was chosen on automatic. The live state is dated (effective date 2027-07-15, active streak 15, best streak 15, saver used). A later scheduled check or fallback refresh may choose a replacement, if one remains.
+Timing before original double corrected skip delivered False transport calls 0

@@ -1,0 +1,4 @@
+nice: setpriority: Operation not permitted
+base: {'best_batter': 'Usable', 'best_team': 'A', 'best_p': 0.75, 'streak': 10, 'bar': 0.8, 'objective': 'fixture'}
+head control: {'best_batter': 'Usable', 'best_team': 'A', 'best_p': 0.75, 'streak': 10, 'bar': 0.8, 'objective': 'fixture', 'basis': 'decision', 'candidate_verified': False}
+HEAD RAISED: candidate type unavailable

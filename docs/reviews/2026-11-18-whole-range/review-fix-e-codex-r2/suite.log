@@ -1,0 +1,45 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev2-e-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 313 items
+
+tests/test_wr_e_texts.py ............................................... [ 15%]
+........                                                                 [ 17%]
+tests/test_scheduler_skip_visibility.py ................................ [ 27%]
+.......                                                                  [ 30%]
+tests/test_scheduler_tail_objective.py .........                         [ 32%]
+tests/test_stale_delivery_cs4c.py ...................................... [ 45%]
+........................                                                 [ 52%]
+tests/test_morning_state_cs6b1.py ...................................... [ 64%]
+.......................                                                  [ 72%]
+tests/test_late_delivery_guard.py ........                               [ 74%]
+tests/test_postponed_delivery_guard.py ........................          [ 82%]
+tests/test_wr_b_contract.py ........................                     [ 90%]
+tests/scripts/season_walk/test_season_walk.py ..................         [ 95%]
+tests/test_lightgbm_optional.py .                                        [ 96%]
+tests/test_web_saver.py .........F..                                     [100%]
+
+=================================== FAILURES ===================================
+_________________ test_do_post_saver_transition_socket_wiring __________________
+tests/test_web_saver.py:139: in test_do_post_saver_transition_socket_wiring
+    srv = _serve(tmp_path, monkeypatch)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_web_saver.py:107: in _serve
+    srv = HTTPServer(("127.0.0.1", 0), web.Handler)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/socketserver.py:457: in __init__
+    self.server_bind()
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/http/server.py:140: in server_bind
+    socketserver.TCPServer.server_bind(self)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/socketserver.py:478: in server_bind
+    self.socket.bind(self.server_address)
+docs/reviews/2026-11-18-whole-range/review-fix-e-codex/run_suite.py:34: in checked
+    return method(sock, *args)
+           ^^^^^^^^^^^^^^^^^^^
+E   PermissionError: [Errno 1] Operation not permitted
+=========================== short test summary info ============================
+FAILED tests/test_web_saver.py::test_do_post_saver_transition_socket_wiring
+======================== 1 failed, 312 passed in 45.08s ========================
