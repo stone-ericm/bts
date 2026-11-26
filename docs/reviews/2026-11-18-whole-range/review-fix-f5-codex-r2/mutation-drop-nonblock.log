@@ -1,0 +1,31 @@
+nice: setpriority: Operation not permitted
+drop-nonblock /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpwx7v6_gd/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpwx7v6_gd
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 41 items / 40 deselected / 1 selected
+
+tests/test_wr_f5_watchdog_window.py F
+
+=================================== FAILURES ===================================
+___________________ test_health_does_not_block_on_live_fifo ____________________
+tests/test_wr_f5_watchdog_window.py:476: in test_health_does_not_block_on_live_fifo
+    result = subprocess.run(
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:550: in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:1209: in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:2116: in _communicate
+    self._check_timeout(endtime, orig_timeout, stdout, stderr)
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:1253: in _check_timeout
+    raise TimeoutExpired(
+E   subprocess.TimeoutExpired: Command '['/Users/eric/projects/bts-work/wr-rev-f5b-cx/.venv/bin/python', '-c', 'from pathlib import Path; import sys; from bts.health.pick_entry import check; assert check(Path(sys.argv[1])) == []', '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2068/test_health_does_not_block_on_0/picks']' timed out after 15 seconds
+=========================== short test summary info ============================
+FAILED tests/test_wr_f5_watchdog_window.py::test_health_does_not_block_on_live_fifo
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+====================== 1 failed, 40 deselected in 15.82s =======================
+drop-nonblock DETECTED

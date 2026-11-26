@@ -1,0 +1,25 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5b-cx/src/bts/__init__.py
+exact bytes; auth failure unchanged; interrupt before marker; existing copy inode kept; two CRITICALs
+health live absent + valid copy: []
+health live malformed + valid copy: []
+health live list + valid copy: ['AttributeError']
+health live fifo + valid copy: []
+health live directory + valid copy: []
+health live same_confirmed + valid copy: []
+health live other + valid copy: ['CRITICAL']
+health copy absent + other date live: []
+health copy malformed + other date live: []
+health copy list + other date live: []
+health copy fifo + other date live: []
+health copy directory + other date live: []
+health copy wrong_day + other date live: []
+health copy invalid_encoding + other date live: []
+write live malformed None True
+write live list AttributeError False
+write live fifo None True
+write live directory IsADirectoryError True
+write copy malformed None True
+write copy list None True
+write copy fifo None True
+write copy directory None True

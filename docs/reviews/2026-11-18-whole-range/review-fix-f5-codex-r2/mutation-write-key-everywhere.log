@@ -1,0 +1,21 @@
+nice: setpriority: Operation not permitted
+write-key-everywhere /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpzhoe4tfr/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpzhoe4tfr
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 41 items / 40 deselected / 1 selected
+
+tests/test_wr_f5_watchdog_window.py F
+
+=================================== FAILURES ===================================
+____________________ test_manual_early_check_still_confirms ____________________
+tests/test_wr_f5_watchdog_window.py:283: in test_manual_early_check_still_confirms
+    assert "early_cron_run" not in receipt
+E   AssertionError: assert 'early_cron_run' not in {'account': {'expected_username': 'stonehengee', 'user_id': 'test', 'username': 'stonehengee'}, 'attempt_id': '7371447e2a46431f8cffb1eb28477250', 'cutoff_at': '2027-03-24T10:45:00-04:00', 'degraded': [], ...}
+=========================== short test summary info ============================
+FAILED tests/test_wr_f5_watchdog_window.py::test_manual_early_check_still_confirms
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+======================= 1 failed, 40 deselected in 0.80s =======================
+write-key-everywhere DETECTED

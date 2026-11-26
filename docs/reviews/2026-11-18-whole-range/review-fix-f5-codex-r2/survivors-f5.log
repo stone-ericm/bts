@@ -1,0 +1,4 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5b-cx/src/bts/__init__.py
+10:00 manual f5 already_confirmed []
+current live confirmed marker took precedence over same-date dm_failed copy

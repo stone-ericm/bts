@@ -1,0 +1,10 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5b-cx/src/bts/__init__.py
+invalid UTF-8, health runner: []
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f5b-cx/.codex-review/wr-f5-r2/marker_health.py", line 158, in <module>
+    rollover(root / "rollover")
+  File "/Users/eric/projects/bts-work/wr-rev-f5b-cx/.codex-review/wr-f5-r2/marker_health.py", line 73, in rollover
+    assert result["exception"] == "KeyboardInterrupt" and dated(world).read_bytes() == world.marker.read_bytes() == RAW
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

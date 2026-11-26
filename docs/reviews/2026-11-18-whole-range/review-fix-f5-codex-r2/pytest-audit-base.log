@@ -1,0 +1,497 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f5b-cx/.codex-review/wr-f5-r2/base
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 49 items
+
+tests/test_audit_driver.py FFFFFFFFFFFFFFFFFFFFFFFFFFFEEEEEEEEEEEFFFEEEE [ 91%]
+EFFF                                                                     [100%]
+
+==================================== ERRORS ====================================
+__ ERROR at setup of TestTeardownRetrieved.test_all_ok_tears_down_everything ___
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ ERROR at setup of TestTeardownRetrieved.test_one_partial_preserves_only_that_box _
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+____ ERROR at setup of TestTeardownRetrieved.test_all_partial_preserves_all ____
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ ERROR at setup of TestTeardownRetrieved.test_missing_key_defaults_to_preserve _
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+___ ERROR at setup of TestTeardownRetrieved.test_empty_results_preserves_all ___
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+______ ERROR at setup of TestTeardownRetrieved.test_empty_boxes_list_noop ______
+tests/test_audit_driver.py:564: in captured_log
+    from audit_driver import log as _original_log  # noqa: F401 — force import first
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+____ ERROR at setup of TestTeardownRetrieved.test_malformed_values_preserve ____
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ ERROR at setup of TestTeardownRetrieved.test_provider_delete_raises_on_one_box _
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ ERROR at setup of TestTeardownRetrieved.test_retrieve_results_none_raises_typeerror _
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+____ ERROR at setup of TestTeardownRetrieved.test_stray_key_logged_no_crash ____
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ ERROR at setup of TestTeardownAllReturn.test_teardown_all_returns_count_of_successful_deletes _
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ ERROR at setup of TestAuditAttachRetrieveMode.test_select_boxes_for_attach_preserves_original_order _
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ ERROR at setup of TestAuditAttachRetrieveMode.test_select_boxes_for_attach_rejects_unknown_box _
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+____ ERROR at setup of TestPollResilience.test_one_timeout_doesnt_kill_poll ____
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ ERROR at setup of TestPollResilience.test_one_generic_exception_doesnt_kill_poll _
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+____ ERROR at setup of TestPollResilience.test_done_marker_still_recognized ____
+tests/test_audit_driver.py:573: in boxes
+    from audit_driver import Box
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+=================================== FAILURES ===================================
+______ TestKeychainFallback.test_fallback_to_env_var_when_keychain_misses ______
+tests/test_audit_driver.py:23: in test_fallback_to_env_var_when_keychain_misses
+    from audit_driver import _keychain
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+__ TestKeychainFallback.test_raises_when_neither_keychain_nor_env_has_secret ___
+tests/test_audit_driver.py:33: in test_raises_when_neither_keychain_nor_env_has_secret
+    from audit_driver import _keychain
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+___ TestKeychainFallback.test_fallback_to_env_alias_when_primary_env_misses ____
+tests/test_audit_driver.py:43: in test_fallback_to_env_alias_when_primary_env_misses
+    from audit_driver import _keychain
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_____________ TestKeychainFallback.test_error_mentions_env_aliases _____________
+tests/test_audit_driver.py:54: in test_error_mentions_env_aliases
+    from audit_driver import _keychain
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+________ TestOCIReadinessHelpers.test_ad_order_rotates_from_next_cursor ________
+tests/test_audit_driver.py:79: in test_ad_order_rotates_from_next_cursor
+    provider = self._provider(["AD-1", "AD-2", "AD-3"], cursor=1)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_audit_driver.py:71: in _provider
+    from audit_driver import OCIProvider
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+________ TestOCIReadinessHelpers.test_mark_ad_used_advances_next_cursor ________
+tests/test_audit_driver.py:84: in test_mark_ad_used_advances_next_cursor
+    provider = self._provider(["AD-1", "AD-2", "AD-3"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_audit_driver.py:71: in _provider
+    from audit_driver import OCIProvider
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ TestOCIReadinessHelpers.test_service_error_classification_for_next_ad[error0-True] _
+tests/test_audit_driver.py:101: in test_service_error_classification_for_next_ad
+    from audit_driver import OCIProvider
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ TestOCIReadinessHelpers.test_service_error_classification_for_next_ad[error1-True] _
+tests/test_audit_driver.py:101: in test_service_error_classification_for_next_ad
+    from audit_driver import OCIProvider
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ TestOCIReadinessHelpers.test_service_error_classification_for_next_ad[error2-True] _
+tests/test_audit_driver.py:101: in test_service_error_classification_for_next_ad
+    from audit_driver import OCIProvider
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ TestOCIReadinessHelpers.test_service_error_classification_for_next_ad[error3-False] _
+tests/test_audit_driver.py:101: in test_service_error_classification_for_next_ad
+    from audit_driver import OCIProvider
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+____ TestOCIReadinessHelpers.test_create_tries_next_ad_after_limit_exceeded ____
+tests/test_audit_driver.py:108: in test_create_tries_next_ad_after_limit_exceeded
+    import audit_driver
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+______ TestValidationSplit.test_default_legacy_split_renders_test_seasons ______
+tests/test_audit_driver.py:182: in test_default_legacy_split_renders_test_seasons
+    from audit_driver import render_screen_command, resolve_validation_split
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+___ TestValidationSplit.test_split_flags_render_without_legacy_test_seasons ____
+tests/test_audit_driver.py:197: in test_split_flags_render_without_legacy_test_seasons
+    from audit_driver import render_screen_command, resolve_validation_split
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ TestValidationSplit.test_profile_seasons_default_to_full_surface_for_legacy_split _
+tests/test_audit_driver.py:213: in test_profile_seasons_default_to_full_surface_for_legacy_split
+    from audit_driver import resolve_profile_seasons, resolve_validation_split
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ TestValidationSplit.test_profile_seasons_default_to_full_surface_plus_split_seasons _
+tests/test_audit_driver.py:230: in test_profile_seasons_default_to_full_surface_plus_split_seasons
+    from audit_driver import resolve_profile_seasons, resolve_validation_split
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_____ TestValidationSplit.test_profile_seasons_reject_missing_split_season _____
+tests/test_audit_driver.py:248: in test_profile_seasons_reject_missing_split_season
+    from audit_driver import resolve_profile_seasons, resolve_validation_split
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+________ TestValidationSplit.test_rejects_mixed_legacy_and_split_flags _________
+tests/test_audit_driver.py:260: in test_rejects_mixed_legacy_and_split_flags
+    from audit_driver import resolve_validation_split
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_________ TestValidationSplit.test_rejects_half_specified_split_flags __________
+tests/test_audit_driver.py:270: in test_rejects_half_specified_split_flags
+    from audit_driver import resolve_validation_split
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+___________ TestValidationSplit.test_rejects_overlapping_split_flags ___________
+tests/test_audit_driver.py:286: in test_rejects_overlapping_split_flags
+    from audit_driver import resolve_validation_split
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_____________ TestValidationSplit.test_writes_local_split_metadata _____________
+tests/test_audit_driver.py:296: in test_writes_local_split_metadata
+    from audit_driver import _write_validation_split_metadata, resolve_validation_split
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ TestValidationSplit.test_seed_metadata_records_provider_box_and_determinism __
+tests/test_audit_driver.py:326: in test_seed_metadata_records_provider_box_and_determinism
+    from audit_driver import Box, _seed_audit_metadata, resolve_validation_split
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ TestValidationSplit.test_audit_driver_provenance_base_records_determinism_intent _
+tests/test_audit_driver.py:365: in test_audit_driver_provenance_base_records_determinism_intent
+    from audit_driver import _audit_driver_provenance_base
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ TestValidationSplit.test_launch_queue_command_uses_split_flags_and_seed_metadata _
+tests/test_audit_driver.py:379: in test_launch_queue_command_uses_split_flags_and_seed_metadata
+    import audit_driver
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_____ TestValidationSplit.test_render_profile_command_logs_pa_predictions ______
+tests/test_audit_driver.py:430: in test_render_profile_command_logs_pa_predictions
+    from audit_driver import render_profile_command
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+__ TestValidationSplit.test_render_profile_command_threads_estimated_pa_mode ___
+tests/test_audit_driver.py:446: in test_render_profile_command_threads_estimated_pa_mode
+    from audit_driver import render_profile_command
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ TestValidationSplit.test_launch_profile_queue_command_uses_profile_artifacts_and_metadata _
+tests/test_audit_driver.py:459: in test_launch_profile_queue_command_uses_profile_artifacts_and_metadata
+    import audit_driver
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+__ TestValidationSplit.test_retrieve_profile_one_fetches_simulation_seed_dirs __
+tests/test_audit_driver.py:513: in test_retrieve_profile_one_fetches_simulation_seed_dirs
+    import audit_driver
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+______ TestAuditAttachRetrieveMode.test_screen_mode_uses_phase1_retrieve _______
+tests/test_audit_driver.py:720: in test_screen_mode_uses_phase1_retrieve
+    import audit_attach
+E   ModuleNotFoundError: No module named 'audit_attach'
+_ TestAuditAttachRetrieveMode.test_profiles_mode_uses_simulation_seed_retrieve _
+tests/test_audit_driver.py:726: in test_profiles_mode_uses_simulation_seed_retrieve
+    import audit_attach
+E   ModuleNotFoundError: No module named 'audit_attach'
+_____________ TestAuditAttachRetrieveMode.test_unknown_mode_raises _____________
+tests/test_audit_driver.py:735: in test_unknown_mode_raises
+    import audit_attach
+E   ModuleNotFoundError: No module named 'audit_attach'
+______ TestStage1SeedDirsViaSymlinks.test_stage1_seed_dirs_clean_creation ______
+tests/test_audit_driver.py:852: in test_stage1_seed_dirs_clean_creation
+    from audit_driver import _stage1_seed_dirs_via_symlinks
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+________ TestStage1SeedDirsViaSymlinks.test_stage1_seed_dirs_idempotent ________
+tests/test_audit_driver.py:874: in test_stage1_seed_dirs_idempotent
+    from audit_driver import _stage1_seed_dirs_via_symlinks
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+_ TestStage1SeedDirsViaSymlinks.test_stage1_seed_dirs_integration_with_aggregate _
+tests/test_audit_driver.py:891: in test_stage1_seed_dirs_integration_with_aggregate
+    from audit_driver import _stage1_seed_dirs_via_symlinks
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+scripts/audit_driver.py:124: in _resolve_rsync_bin
+    raise RuntimeError(
+E   RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+=========================== short test summary info ============================
+FAILED tests/test_audit_driver.py::TestKeychainFallback::test_fallback_to_env_var_when_keychain_misses
+FAILED tests/test_audit_driver.py::TestKeychainFallback::test_raises_when_neither_keychain_nor_env_has_secret
+FAILED tests/test_audit_driver.py::TestKeychainFallback::test_fallback_to_env_alias_when_primary_env_misses
+FAILED tests/test_audit_driver.py::TestKeychainFallback::test_error_mentions_env_aliases
+FAILED tests/test_audit_driver.py::TestOCIReadinessHelpers::test_ad_order_rotates_from_next_cursor
+FAILED tests/test_audit_driver.py::TestOCIReadinessHelpers::test_mark_ad_used_advances_next_cursor
+FAILED tests/test_audit_driver.py::TestOCIReadinessHelpers::test_service_error_classification_for_next_ad[error0-True]
+FAILED tests/test_audit_driver.py::TestOCIReadinessHelpers::test_service_error_classification_for_next_ad[error1-True]
+FAILED tests/test_audit_driver.py::TestOCIReadinessHelpers::test_service_error_classification_for_next_ad[error2-True]
+FAILED tests/test_audit_driver.py::TestOCIReadinessHelpers::test_service_error_classification_for_next_ad[error3-False]
+FAILED tests/test_audit_driver.py::TestOCIReadinessHelpers::test_create_tries_next_ad_after_limit_exceeded
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_default_legacy_split_renders_test_seasons
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_split_flags_render_without_legacy_test_seasons
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_profile_seasons_default_to_full_surface_for_legacy_split
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_profile_seasons_default_to_full_surface_plus_split_seasons
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_profile_seasons_reject_missing_split_season
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_rejects_mixed_legacy_and_split_flags
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_rejects_half_specified_split_flags
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_rejects_overlapping_split_flags
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_writes_local_split_metadata
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_seed_metadata_records_provider_box_and_determinism
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_audit_driver_provenance_base_records_determinism_intent
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_launch_queue_command_uses_split_flags_and_seed_metadata
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_render_profile_command_logs_pa_predictions
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_render_profile_command_threads_estimated_pa_mode
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_launch_profile_queue_command_uses_profile_artifacts_and_metadata
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_retrieve_profile_one_fetches_simulation_seed_dirs
+FAILED tests/test_audit_driver.py::TestAuditAttachRetrieveMode::test_screen_mode_uses_phase1_retrieve
+FAILED tests/test_audit_driver.py::TestAuditAttachRetrieveMode::test_profiles_mode_uses_simulation_seed_retrieve
+FAILED tests/test_audit_driver.py::TestAuditAttachRetrieveMode::test_unknown_mode_raises
+FAILED tests/test_audit_driver.py::TestStage1SeedDirsViaSymlinks::test_stage1_seed_dirs_clean_creation
+FAILED tests/test_audit_driver.py::TestStage1SeedDirsViaSymlinks::test_stage1_seed_dirs_idempotent
+FAILED tests/test_audit_driver.py::TestStage1SeedDirsViaSymlinks::test_stage1_seed_dirs_integration_with_aggregate
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_all_ok_tears_down_everything
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_one_partial_preserves_only_that_box
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_all_partial_preserves_all
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_missing_key_defaults_to_preserve
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_empty_results_preserves_all
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_empty_boxes_list_noop
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_malformed_values_preserve
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_provider_delete_raises_on_one_box
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_retrieve_results_none_raises_typeerror
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_stray_key_logged_no_crash
+ERROR tests/test_audit_driver.py::TestTeardownAllReturn::test_teardown_all_returns_count_of_successful_deletes
+ERROR tests/test_audit_driver.py::TestAuditAttachRetrieveMode::test_select_boxes_for_attach_preserves_original_order
+ERROR tests/test_audit_driver.py::TestAuditAttachRetrieveMode::test_select_boxes_for_attach_rejects_unknown_box
+ERROR tests/test_audit_driver.py::TestPollResilience::test_one_timeout_doesnt_kill_poll
+ERROR tests/test_audit_driver.py::TestPollResilience::test_one_generic_exception_doesnt_kill_poll
+ERROR tests/test_audit_driver.py::TestPollResilience::test_done_marker_still_recognized
+======================== 33 failed, 16 errors in 1.29s =========================

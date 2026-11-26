@@ -1,0 +1,4 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5b-cx/.codex-review/wr-f5-r2/base/src/bts/__init__.py
+10:00 manual base observed ['⚠️ BTS entry game needs verification. pick Batter 1010: recommended game 101 (first pitch 10:50 AM ET), the entry is recorded in game 102. Check the delivered pick and the game shown in MLB for each listed leg. Change only a leg whose correct game you can verify and that MLB still lets you edit. Keep any correct leg as entered.']
+current live confirmed marker took precedence over same-date dm_failed copy

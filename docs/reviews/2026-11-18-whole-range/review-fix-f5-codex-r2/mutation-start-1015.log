@@ -1,0 +1,45 @@
+nice: setpriority: Operation not permitted
+start-1015 /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpe3ho8in7/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpe3ho8in7
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 41 items / 38 deselected / 3 selected
+
+tests/test_wr_f5_watchdog_window.py F
+
+=================================== FAILURES ===================================
+_____________________ test_r5_r6_sole_original_slot[10:06] _____________________
+tests/test_wr_f5_watchdog_window.py:367: in test_r5_r6_sole_original_slot
+    assert replay.check("09:45") == ("base_slot_available", [], [], False)
+E   AssertionError: assert ('observed', ...s'], [], True) == ('base_slot_a...[], [], False)
+E     
+E     At index 0 diff: 'observed' != 'base_slot_available'
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/test_wr_f5_watchdog_window.py::test_r5_r6_sole_original_slot[10:06]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+======================= 1 failed, 38 deselected in 1.79s =======================
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpe3ho8in7
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 6 items
+
+tests/probe_07_extra_regressions.py F
+
+=================================== FAILURES ===================================
+_ test_sole_1000_base_slot_defers_early_runs_and_preserves_1000_warning[wrong-game-10:06-08:45-deferred_early0] _
+tests/probe_07_extra_regressions.py:100: in test_sole_1000_base_slot_defers_early_runs_and_preserves_1000_warning
+    assert rec["outcome"] == "base_slot_available"
+E   AssertionError: assert 'observed' == 'base_slot_available'
+E     
+E     - base_slot_available
+E     + observed
+=========================== short test summary info ============================
+FAILED tests/probe_07_extra_regressions.py::test_sole_1000_base_slot_defers_early_runs_and_preserves_1000_warning[wrong-game-10:06-08:45-deferred_early0]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+============================== 1 failed in 0.84s ===============================
+start-1015 DETECTED

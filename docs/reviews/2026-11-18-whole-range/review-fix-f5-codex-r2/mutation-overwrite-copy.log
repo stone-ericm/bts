@@ -1,0 +1,23 @@
+nice: setpriority: Operation not permitted
+overwrite-copy /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpzueu_h1j/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpzueu_h1j
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 41 items / 40 deselected / 1 selected
+
+tests/test_wr_f5_watchdog_window.py F
+
+=================================== FAILURES ===================================
+____________ test_displaced_copy_survives_interrupted_marker_write _____________
+tests/test_wr_f5_watchdog_window.py:445: in test_displaced_copy_survives_interrupted_marker_write
+    assert copy.read_bytes() == original
+E   assert b'{"date": "2... "alerted"}\n' == b'{"date": "2...": "alerted"}'
+E     
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/test_wr_f5_watchdog_window.py::test_displaced_copy_survives_interrupted_marker_write
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+======================= 1 failed, 40 deselected in 0.79s =======================
+overwrite-copy DETECTED

@@ -1,0 +1,19 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5b-cx/.codex-review/wr-f5-r2/base/src/bts/__init__.py
+health check 'pick_entry' raised: 'utf-8' codec can't decode byte 0xff in position 11: invalid start byte
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f5b-cx/.codex-review/wr-f5-r2/base/src/bts/health/runner.py", line 65, in _safe_run
+    return fn()
+           ^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f5b-cx/.codex-review/wr-f5-r2/marker_health.py", line 53, in <lambda>
+    alerts = runner._safe_run("pick_entry", lambda: pick_entry.check(world.picks, date.fromisoformat(CURRENT), NOW))
+                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f5b-cx/.codex-review/wr-f5-r2/base/src/bts/health/pick_entry.py", line 68, in check
+    marker = json.loads(marker_path.read_text())
+                        ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 1028, in read_text
+    return f.read()
+           ^^^^^^^^
+  File "<frozen codecs>", line 322, in decode
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 11: invalid start byte
+invalid UTF-8, health runner: [('CRITICAL', "health check 'pick_entry' crashed: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 11: invalid start byte")]

@@ -1,0 +1,14 @@
+nice: setpriority: Operation not permitted
+control /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpjgyii4ry/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpjgyii4ry
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 41 items
+
+tests/test_wr_f5_watchdog_window.py .................................... [ 87%]
+.....                                                                    [100%]
+
+============================= 41 passed in 19.05s ==============================
+control SURVIVED

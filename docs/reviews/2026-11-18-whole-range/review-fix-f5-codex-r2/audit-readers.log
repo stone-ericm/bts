@@ -1,0 +1,3 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5b-cx/src/bts/__init__.py
+Season-ledger acquisition and bootstrap CSV reader were unchanged with a sealed early receipt and dated marker present.

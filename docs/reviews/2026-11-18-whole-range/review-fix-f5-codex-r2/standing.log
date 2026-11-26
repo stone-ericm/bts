@@ -1,0 +1,11 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5b-cx/src/bts/__init__.py
+Interrupted installation left the original crontab in both versions. Reinstall published the staged text.
+Dec 31 next-midnight pitch ignored on Jan 1; a Jan 1 pick was read as season 2028
+pick input malformed JSONDecodeError identical CLI behavior with and without --cron
+pick input directory IsADirectoryError identical CLI behavior with and without --cron
+pick input fifo TimeoutError identical CLI behavior with and without --cron
+interrupted send left no marker; uncertain send wrote dm_failed; restart retried and EOD retained WARN
+--cron Before 10:00 ET, defer if a nominal 10:00–23:45 ET quarter-hour is inside today’s entry window. --help Show this message and exit.
+check-pick-entered: early check deferred because a nominal 10:00–23:45 ET quarter-hour is inside this pick's entry window
+check-pick-entered: outside window (5 min to pitch)

@@ -1,0 +1,22 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5b-cx/src/bts/__init__.py
+1005 08:49 outside_window calls=False dm=False write=False
+1005 08:50 observed calls=True dm=True write=True
+1005 10:00 outside_window calls=False dm=False write=False
+1006 09:45 base_slot_available calls=False dm=False write=False
+1006 10:00 observed calls=True dm=True write=True
+1115 09:45 outside_window calls=False dm=False write=False
+1115 10:00 observed calls=True dm=True write=True
+1116 10:00 outside_window calls=False dm=False write=False
+1116 10:15 observed calls=True dm=True write=True
+late-primary 09:45 outside_window calls=False dm=False write=False
+late-primary 09:46 observed calls=True dm=True write=True
+absent {'no_pick_file': 96} zero calls/DMs/marker writes
+ops backup includes all JSONs and seals; retention command leaves local files intact
+uncommitted {'not_committed': 40} zero calls/DMs/marker writes
+evening {'outside_window': 40} zero calls/DMs/marker writes
+terminal {'outside_window': 35, 'already_confirmed': 5} zero calls/DMs/marker writes
+shared {'outside_window': 39, 'base_slot_available': 1} zero calls/DMs/marker writes
+2027-03-14 92 projected slots with 900-second intervals Counter({1: 4})
+2027-03-24 96 projected slots with 900-second intervals Counter({1: 4, 2: 4})
+2027-11-07 100 projected slots with 900-second intervals Counter({1: 8, 2: 4})

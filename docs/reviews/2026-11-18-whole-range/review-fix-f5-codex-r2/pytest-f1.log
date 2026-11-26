@@ -1,0 +1,13 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f5b-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 83 items
+
+tests/test_wr_f1_wrong_game.py ......................................... [ 49%]
+.............................                                            [ 84%]
+tests/test_wr_f1_review.py .............                                 [100%]
+
+======================== 83 passed in 65.15s (0:01:05) =========================

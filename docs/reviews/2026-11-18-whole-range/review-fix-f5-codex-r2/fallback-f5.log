@@ -1,0 +1,5 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5b-cx/src/bts/__init__.py
+[pick_entry CRITICAL] 2027-12-31: committed pick entry never confirmed AND the not-entered alert DM failed to send — the operator was never reached (reason=no_pick)
+after D confirmed during recovery: f5 ['CRITICAL'] ['BTS health CRITICAL alert(s):\n- [pick_entry] 2027-12-31: committed pick entry never confirmed AND the not-entered alert DM failed to send — the operator was never reached (reason=no_pick)']
+live marker with invalid encoding: f5 [] []

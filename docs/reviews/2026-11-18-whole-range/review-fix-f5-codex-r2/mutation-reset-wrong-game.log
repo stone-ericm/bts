@@ -1,0 +1,22 @@
+nice: setpriority: Operation not permitted
+reset-wrong-game /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpfniqm08p/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpfniqm08p
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 41 items / 40 deselected / 1 selected
+
+tests/test_wr_f5_watchdog_window.py F
+
+=================================== FAILURES ===================================
+____________ test_original_slot_keeps_early_wrong_game_observation _____________
+tests/test_wr_f5_watchdog_window.py:384: in test_original_slot_keeps_early_wrong_game_observation
+    assert marker["game_unresolved"] is True and marker["reason"] == "wrong_game"
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'game_unresolved'
+=========================== short test summary info ============================
+FAILED tests/test_wr_f5_watchdog_window.py::test_original_slot_keeps_early_wrong_game_observation
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+======================= 1 failed, 40 deselected in 0.82s =======================
+reset-wrong-game DETECTED

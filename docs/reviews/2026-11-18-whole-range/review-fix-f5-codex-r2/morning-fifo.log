@@ -1,0 +1,5 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5b-cx/.codex-review/wr-f5-r2/base/src/bts/__init__.py
+morning on FIFO: 1 not_entered ['BTS day check 2027-03-24: NOT ENTERED. Not entered: 1 successful account checks saw no matching entry and none confirmed one. Pick: Batter 1010.']
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5b-cx/src/bts/__init__.py
+morning on FIFO: blocked before output or the NOT ENTERED DM
