@@ -1,0 +1,320 @@
+nice: setpriority: Operation not permitted
+/Users/eric/.matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/matplotlib-x3td25lx because there was an issue with the default path (/Users/eric/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+data/health_state/reconcile_receipts/2027-03-25/20270325T020000000000-12584ae684254897ab6ec0ed7f00882a.json {"corrections": [], "days": [{"cutoff_at": "2027-03-25T08:00:00-04:00", "date": "2027-03-24", "detail": {"result": null}, "selection": null, "slots": [], "state": "not_graded", "status_source": null, "write": null}, {"cutoff_at": "2027-03-24T08:00:00-04:00", "date": "2027-03-23", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}, {"cutoff_at": "2027-03-23T08:00:00-04:00", "date": "2027-03-22", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}, {"cutoff_at": "2027-03-22T08:00:00-04:00", "date": "2027-03-21", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}, {"cutoff_at": "2027-03-21T08:00:00-04:00", "date": "2027-03-20", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}, {"cutoff_at": "2027-03-20T08:00:00-04:00", "date": "2027-03-19", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}, {"cutoff_at": "2027-03-19T08:00:00-04:00", "date": "2027-03-18", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}, {"cutoff_at": "2027-03-18T08:00:00-04:00", "date": "2027-03-17", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}], "degraded": [], "error": null, "finished_at": "2027-03-25T02:00:00-04:00", "lookback_days": 8, "outcome": "completed", "producer": {"command": "reconcile", "revision": "9beca2d690ab1c8cb2e2c934449954ec0188209f"}, "published_at": "2027-03-25T02:00:00-04:00", "replay": {"blocked_date": "2027-03-24", "reason": "no final result on the pick", "state": "unavailable"}, "run_id": "12584ae684254897ab6ec0ed7f00882a", "schema": "bts_reconcile_receipt_v1", "started_at": "2027-03-25T02:00:00-04:00"}
+data/health_state/reconcile_receipts/2027-03-25/20270325T074000000000-a182b627640240fdb0791b3bba2f6d7f.json {"corrections": [], "days": [{"cutoff_at": "2027-03-25T08:00:00-04:00", "date": "2027-03-24", "detail": {"result": null}, "selection": null, "slots": [], "state": "not_graded", "status_source": null, "write": null}, {"cutoff_at": "2027-03-24T08:00:00-04:00", "date": "2027-03-23", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}, {"cutoff_at": "2027-03-23T08:00:00-04:00", "date": "2027-03-22", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}, {"cutoff_at": "2027-03-22T08:00:00-04:00", "date": "2027-03-21", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}, {"cutoff_at": "2027-03-21T08:00:00-04:00", "date": "2027-03-20", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}, {"cutoff_at": "2027-03-20T08:00:00-04:00", "date": "2027-03-19", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}, {"cutoff_at": "2027-03-19T08:00:00-04:00", "date": "2027-03-18", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}, {"cutoff_at": "2027-03-18T08:00:00-04:00", "date": "2027-03-17", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}], "degraded": [], "error": null, "finished_at": "2027-03-25T07:40:00-04:00", "lookback_days": 8, "outcome": "completed", "producer": {"command": "reconcile", "revision": "9beca2d690ab1c8cb2e2c934449954ec0188209f"}, "published_at": "2027-03-25T07:40:00-04:00", "replay": {"blocked_date": "2027-03-24", "reason": "no final result on the pick", "state": "unavailable"}, "run_id": "a182b627640240fdb0791b3bba2f6d7f", "schema": "bts_reconcile_receipt_v1", "started_at": "2027-03-25T07:40:00-04:00"}
+bind_game: False receipt slots: [{'all_confirmed': False, 'slots': [{'batter_id': 100001, 'game_pk': 101, 'role': 'pick', 'row': {'number': None, 'playerId': 1, 'roundId': 1, 'unitId': None}, 'state': 'unit_unverified'}]}]
+events: [
+  [
+    "2027-03-24T10:00:00-04:00",
+    "cli",
+    [
+      "set-contest-streak",
+      "--date",
+      "2027-03-24",
+      "--streak",
+      "0",
+      "--best-streak",
+      "0",
+      "--saver",
+      "not_earned"
+    ],
+    0,
+    "Observation written at data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=0 best=0 saver=not_earned reason=None\ncontest_streak: 0 (best 0, saver not_earned) for 2027-03-24, in effect today\n",
+    null
+  ],
+  [
+    "2027-03-24T16:10:00-04:00",
+    "send",
+    "offline.test",
+    "Today's pick: Batter 1 (AWY)\nvs Fixture Pitcher | 99.0%\n\nStreak: 0"
+  ],
+  [
+    "2027-03-24T18:45:00-04:00",
+    "cli",
+    [
+      "check-pick-entered",
+      "--expected-username",
+      "offline",
+      "--dm-recipient",
+      "offline.test"
+    ],
+    0,
+    "check-pick-entered: 2027-03-24 pick entered (match)\n",
+    null
+  ],
+  [
+    "2027-03-24T22:05:00-04:00",
+    "cli",
+    [
+      "schedule",
+      "--date",
+      "2027-03-24",
+      "--config",
+      "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpikit6qpt/config.toml"
+    ],
+    1,
+    "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[10:00 ET] Fetching schedule for 2027-03-24...\n  1 games, 3 scheduled checks:\n    16:10 ET \u2014 1 game(s)\n    17:10 ET \u2014 1 game(s)\n    18:25 ET \u2014 1 game(s)\nmodel_state_corrupt: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpikit6qpt/data/picks/streak.json: TypeError: expected object\n  Morning state check: dated contest state accepted (streak 0).\n  Sleeping until 16:10 ET (370 min)...\n\n[16:10 ET] Running lineup check...\n  2 new confirmed lineup(s). Running predictions...\nmodel_state_corrupt: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpikit6qpt/data/picks/streak.json: TypeError: expected object\n  Pick: Batter 1 (AWY) 99.0% \u2192 should_lock=True\nmodel_state_corrupt: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpikit6qpt/data/picks/streak.json: TypeError: expected object\n  LOCKED (lineup) \u2014 Pick DM sent: offline-4\n  Pick locked. Stopping lineup checks.\n  Tomorrow's wake-up: Thu 03-25 10:00 ET\n  Waiting until 19:20 ET (game start + 10min, 190 min)...\n  [19:20 ET] Games: 101: live\n  [19:35 ET] Games: 101: live\n  [19:50 ET] Games: 101: live\n  [20:05 ET] Games: 101: live\n  [20:20 ET] Games: 101: live\n  [20:35 ET] Games: 101: live\n  [20:50 ET] Games: 101: live\n  [21:05 ET] Games: 101: live\n  [21:20 ET] Games: 101: live\n  [21:35 ET] Games: 101: live\n  [21:50 ET] Games: 101: live\n  [22:05 ET] Games: 101: final\n",
+    "AttributeError(\"'list' object has no attribute 'get'\")"
+  ],
+  [
+    "2027-03-24T18:45:00-04:00",
+    "cli",
+    [
+      "check-pick-entered",
+      "--expected-username",
+      "offline",
+      "--dm-recipient",
+      "offline.test"
+    ],
+    0,
+    "check-pick-entered: already confirmed for 2027-03-24\n",
+    null
+  ],
+  [
+    "2027-03-24T22:05:00-04:00",
+    "cli",
+    [
+      "schedule",
+      "--date",
+      "2027-03-24",
+      "--config",
+      "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpikit6qpt/config.toml"
+    ],
+    1,
+    "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[10:01 ET] Fetching schedule for 2027-03-24...\n  1 games, 3 scheduled checks:\n    16:10 ET \u2014 1 game(s)\n    17:10 ET \u2014 1 game(s)\n    18:25 ET \u2014 1 game(s)\n  Sleeping until 16:10 ET (369 min)...\n\n[16:10 ET] Running lineup check...\n  Pick already committed (scoreable decision on disk) \u2014 skipping cascade.\n  Pick already locked (game started or previously delivered).\n  Pick locked. Stopping lineup checks.\n  Tomorrow's wake-up: Thu 03-25 10:00 ET\n  Waiting until 19:20 ET (game start + 10min, 190 min)...\n  [19:20 ET] Games: 101: live\n  [19:35 ET] Games: 101: live\n  [19:50 ET] Games: 101: live\n  [20:05 ET] Games: 101: live\n  [20:20 ET] Games: 101: live\n  [20:35 ET] Games: 101: live\n  [20:50 ET] Games: 101: live\n  [21:05 ET] Games: 101: live\n  [21:20 ET] Games: 101: live\n  [21:35 ET] Games: 101: live\n  [21:50 ET] Games: 101: live\n  [22:05 ET] Games: 101: final\n",
+    "AttributeError(\"'list' object has no attribute 'get'\")"
+  ],
+  [
+    "2027-03-25T01:00:00-04:00",
+    "cli",
+    [
+      "check-results",
+      "--date",
+      "2027-03-24",
+      "--wait-deadline-et",
+      "06:00"
+    ],
+    1,
+    "Checking Batter 1 (game 101)...\n",
+    "AttributeError(\"'list' object has no attribute 'get'\")"
+  ],
+  [
+    "2027-03-25T02:00:00-04:00",
+    "cli",
+    [
+      "reconcile"
+    ],
+    1,
+    "Reconciling last 8 days of picks...\nSeason replay unavailable for 2027-03-24 (no final result on the pick); streak retained, not recalculated.\n",
+    "AttributeError(\"'list' object has no attribute 'get'\")"
+  ],
+  [
+    "2027-03-25T07:40:00-04:00",
+    "cli",
+    [
+      "reconcile"
+    ],
+    1,
+    "Reconciling last 8 days of picks...\nSeason replay unavailable for 2027-03-24 (no final result on the pick); streak retained, not recalculated.\n",
+    "AttributeError(\"'list' object has no attribute 'get'\")"
+  ],
+  [
+    "2027-03-25T08:30:00-04:00",
+    "cli",
+    [
+      "day-outcome",
+      "--date",
+      "2027-03-24",
+      "--config",
+      "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpikit6qpt/config.toml",
+      "--expected-username",
+      "offline",
+      "--dm-recipient",
+      "offline.test"
+    ],
+    0,
+    "{\"date\": \"2027-03-24\", \"state\": \"entered_game_unverified\", \"ok\": true, \"detail\": \"The batter entry matched before the cutoff; the game was not verified.\", \"pick\": \"Batter 1\"}\n",
+    null
+  ]
+]health check 'streak_validation' raised: 'list' object has no attribute 'get'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-chk-f4/src/bts/health/runner.py", line 65, in _safe_run
+    return fn()
+           ^^^^
+  File "/Users/eric/projects/bts-work/wr-chk-f4/.codex-review/wr-f4-check/probe_base.py", line 72, in <lambda>
+    streak_alerts = runner._safe_run('streak_validation', lambda: streak_validation.check(world.directory))
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-chk-f4/src/bts/health/streak_validation.py", line 46, in check
+    streak = data.get("streak")
+             ^^^^^^^^
+AttributeError: 'list' object has no attribute 'get'
+
+forced staggered health, streak check alone: [Alert(level='CRITICAL', source='health_runner', message="health check 'streak_validation' crashed: AttributeError: 'list' object has no attribute 'get'", incident_key='health_runner:streak_validation')]
+data/health_state/reconcile_receipts/2027-03-25/20270325T020000000000-17c8940153204e6e94b5420fdf487f70.json {"corrections": [], "days": [{"cutoff_at": "2027-03-25T08:00:00-04:00", "date": "2027-03-24", "detail": {"result": null}, "selection": null, "slots": [], "state": "not_graded", "status_source": null, "write": null}, {"cutoff_at": "2027-03-24T08:00:00-04:00", "date": "2027-03-23", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}, {"cutoff_at": "2027-03-23T08:00:00-04:00", "date": "2027-03-22", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}, {"cutoff_at": "2027-03-22T08:00:00-04:00", "date": "2027-03-21", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}, {"cutoff_at": "2027-03-21T08:00:00-04:00", "date": "2027-03-20", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}, {"cutoff_at": "2027-03-20T08:00:00-04:00", "date": "2027-03-19", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}, {"cutoff_at": "2027-03-19T08:00:00-04:00", "date": "2027-03-18", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}, {"cutoff_at": "2027-03-18T08:00:00-04:00", "date": "2027-03-17", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}], "degraded": [], "error": null, "finished_at": "2027-03-25T02:00:00-04:00", "lookback_days": 8, "outcome": "completed", "producer": {"command": "reconcile", "revision": "9beca2d690ab1c8cb2e2c934449954ec0188209f"}, "published_at": "2027-03-25T02:00:00-04:00", "replay": {"blocked_date": "2027-03-24", "reason": "no final result on the pick", "state": "unavailable"}, "run_id": "17c8940153204e6e94b5420fdf487f70", "schema": "bts_reconcile_receipt_v1", "started_at": "2027-03-25T02:00:00-04:00"}
+data/health_state/reconcile_receipts/2027-03-25/20270325T074000000000-0e32a94991194f789dc371b05bba4f0c.json {"corrections": [], "days": [{"cutoff_at": "2027-03-25T08:00:00-04:00", "date": "2027-03-24", "detail": {"result": null}, "selection": null, "slots": [], "state": "not_graded", "status_source": null, "write": null}, {"cutoff_at": "2027-03-24T08:00:00-04:00", "date": "2027-03-23", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}, {"cutoff_at": "2027-03-23T08:00:00-04:00", "date": "2027-03-22", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}, {"cutoff_at": "2027-03-22T08:00:00-04:00", "date": "2027-03-21", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}, {"cutoff_at": "2027-03-21T08:00:00-04:00", "date": "2027-03-20", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}, {"cutoff_at": "2027-03-20T08:00:00-04:00", "date": "2027-03-19", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}, {"cutoff_at": "2027-03-19T08:00:00-04:00", "date": "2027-03-18", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}, {"cutoff_at": "2027-03-18T08:00:00-04:00", "date": "2027-03-17", "detail": null, "selection": null, "slots": [], "state": "past_cutoff", "status_source": null, "write": null}], "degraded": [], "error": null, "finished_at": "2027-03-25T07:40:00-04:00", "lookback_days": 8, "outcome": "completed", "producer": {"command": "reconcile", "revision": "9beca2d690ab1c8cb2e2c934449954ec0188209f"}, "published_at": "2027-03-25T07:40:00-04:00", "replay": {"blocked_date": "2027-03-24", "reason": "no final result on the pick", "state": "unavailable"}, "run_id": "0e32a94991194f789dc371b05bba4f0c", "schema": "bts_reconcile_receipt_v1", "started_at": "2027-03-25T07:40:00-04:00"}
+bind_game: True receipt slots: [{'all_confirmed': True, 'slots': [{'batter_id': 100001, 'game_pk': 101, 'role': 'pick', 'row': {'number': None, 'playerId': 1, 'roundId': 1, 'unitId': 700}, 'state': 'confirmed'}]}]
+events: [
+  [
+    "2027-03-24T10:00:00-04:00",
+    "cli",
+    [
+      "set-contest-streak",
+      "--date",
+      "2027-03-24",
+      "--streak",
+      "0",
+      "--best-streak",
+      "0",
+      "--saver",
+      "not_earned"
+    ],
+    0,
+    "Observation written at data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=0 best=0 saver=not_earned reason=None\ncontest_streak: 0 (best 0, saver not_earned) for 2027-03-24, in effect today\n",
+    null
+  ],
+  [
+    "2027-03-24T16:10:00-04:00",
+    "send",
+    "offline.test",
+    "Today's pick: Batter 1 (AWY)\nvs Fixture Pitcher | 99.0%\n\nStreak: 0"
+  ],
+  [
+    "2027-03-24T18:45:00-04:00",
+    "cli",
+    [
+      "check-pick-entered",
+      "--expected-username",
+      "offline",
+      "--dm-recipient",
+      "offline.test"
+    ],
+    0,
+    "check-pick-entered: 2027-03-24 pick entered (match)\n",
+    null
+  ],
+  [
+    "2027-03-24T22:05:00-04:00",
+    "cli",
+    [
+      "schedule",
+      "--date",
+      "2027-03-24",
+      "--config",
+      "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpqi2826vh/config.toml"
+    ],
+    1,
+    "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[10:00 ET] Fetching schedule for 2027-03-24...\n  1 games, 3 scheduled checks:\n    16:10 ET \u2014 1 game(s)\n    17:10 ET \u2014 1 game(s)\n    18:25 ET \u2014 1 game(s)\nmodel_state_corrupt: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpqi2826vh/data/picks/streak.json: TypeError: expected object\n  Morning state check: dated contest state accepted (streak 0).\n  Sleeping until 16:10 ET (370 min)...\n\n[16:10 ET] Running lineup check...\n  2 new confirmed lineup(s). Running predictions...\nmodel_state_corrupt: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpqi2826vh/data/picks/streak.json: TypeError: expected object\n  Pick: Batter 1 (AWY) 99.0% \u2192 should_lock=True\nmodel_state_corrupt: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpqi2826vh/data/picks/streak.json: TypeError: expected object\n  LOCKED (lineup) \u2014 Pick DM sent: offline-4\n  Pick locked. Stopping lineup checks.\n  Tomorrow's wake-up: Thu 03-25 10:00 ET\n  Waiting until 19:20 ET (game start + 10min, 190 min)...\n  [19:20 ET] Games: 101: live\n  [19:35 ET] Games: 101: live\n  [19:50 ET] Games: 101: live\n  [20:05 ET] Games: 101: live\n  [20:20 ET] Games: 101: live\n  [20:35 ET] Games: 101: live\n  [20:50 ET] Games: 101: live\n  [21:05 ET] Games: 101: live\n  [21:20 ET] Games: 101: live\n  [21:35 ET] Games: 101: live\n  [21:50 ET] Games: 101: live\n  [22:05 ET] Games: 101: final\n",
+    "AttributeError(\"'list' object has no attribute 'get'\")"
+  ],
+  [
+    "2027-03-24T18:45:00-04:00",
+    "cli",
+    [
+      "check-pick-entered",
+      "--expected-username",
+      "offline",
+      "--dm-recipient",
+      "offline.test"
+    ],
+    0,
+    "check-pick-entered: already confirmed for 2027-03-24\n",
+    null
+  ],
+  [
+    "2027-03-24T22:05:00-04:00",
+    "cli",
+    [
+      "schedule",
+      "--date",
+      "2027-03-24",
+      "--config",
+      "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpqi2826vh/config.toml"
+    ],
+    1,
+    "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[10:01 ET] Fetching schedule for 2027-03-24...\n  1 games, 3 scheduled checks:\n    16:10 ET \u2014 1 game(s)\n    17:10 ET \u2014 1 game(s)\n    18:25 ET \u2014 1 game(s)\n  Sleeping until 16:10 ET (369 min)...\n\n[16:10 ET] Running lineup check...\n  Pick already committed (scoreable decision on disk) \u2014 skipping cascade.\n  Pick already locked (game started or previously delivered).\n  Pick locked. Stopping lineup checks.\n  Tomorrow's wake-up: Thu 03-25 10:00 ET\n  Waiting until 19:20 ET (game start + 10min, 190 min)...\n  [19:20 ET] Games: 101: live\n  [19:35 ET] Games: 101: live\n  [19:50 ET] Games: 101: live\n  [20:05 ET] Games: 101: live\n  [20:20 ET] Games: 101: live\n  [20:35 ET] Games: 101: live\n  [20:50 ET] Games: 101: live\n  [21:05 ET] Games: 101: live\n  [21:20 ET] Games: 101: live\n  [21:35 ET] Games: 101: live\n  [21:50 ET] Games: 101: live\n  [22:05 ET] Games: 101: final\n",
+    "AttributeError(\"'list' object has no attribute 'get'\")"
+  ],
+  [
+    "2027-03-25T01:00:00-04:00",
+    "cli",
+    [
+      "check-results",
+      "--date",
+      "2027-03-24",
+      "--wait-deadline-et",
+      "06:00"
+    ],
+    1,
+    "Checking Batter 1 (game 101)...\n",
+    "AttributeError(\"'list' object has no attribute 'get'\")"
+  ],
+  [
+    "2027-03-25T02:00:00-04:00",
+    "cli",
+    [
+      "reconcile"
+    ],
+    1,
+    "Reconciling last 8 days of picks...\nSeason replay unavailable for 2027-03-24 (no final result on the pick); streak retained, not recalculated.\n",
+    "AttributeError(\"'list' object has no attribute 'get'\")"
+  ],
+  [
+    "2027-03-25T07:40:00-04:00",
+    "cli",
+    [
+      "reconcile"
+    ],
+    1,
+    "Reconciling last 8 days of picks...\nSeason replay unavailable for 2027-03-24 (no final result on the pick); streak retained, not recalculated.\n",
+    "AttributeError(\"'list' object has no attribute 'get'\")"
+  ],
+  [
+    "2027-03-25T08:30:00-04:00",
+    "cli",
+    [
+      "day-outcome",
+      "--date",
+      "2027-03-24",
+      "--config",
+      "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpqi2826vh/config.toml",
+      "--expected-username",
+      "offline",
+      "--dm-recipient",
+      "offline.test"
+    ],
+    0,
+    "{\"date\": \"2027-03-24\", \"state\": \"entered\", \"ok\": true, \"detail\": \"The entry was confirmed in 1 of 2 checks before the cutoff.\", \"pick\": \"Batter 1\"}\n",
+    null
+  ]
+]health check 'streak_validation' raised: 'list' object has no attribute 'get'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-chk-f4/src/bts/health/runner.py", line 65, in _safe_run
+    return fn()
+           ^^^^
+  File "/Users/eric/projects/bts-work/wr-chk-f4/.codex-review/wr-f4-check/probe_base.py", line 72, in <lambda>
+    streak_alerts = runner._safe_run('streak_validation', lambda: streak_validation.check(world.directory))
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-chk-f4/src/bts/health/streak_validation.py", line 46, in check
+    streak = data.get("streak")
+             ^^^^^^^^
+AttributeError: 'list' object has no attribute 'get'
+health check 'streak_validation' raised: 'list' object has no attribute 'get'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-chk-f4/src/bts/health/runner.py", line 65, in _safe_run
+    return fn()
+           ^^^^
+  File "/Users/eric/projects/bts-work/wr-chk-f4/src/bts/health/runner.py", line 291, in <lambda>
+    alerts.extend(_safe_run("streak_validation", lambda: streak_validation.check(picks_dir)))
+                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-chk-f4/src/bts/health/streak_validation.py", line 46, in check
+    streak = data.get("streak")
+             ^^^^^^^^
+AttributeError: 'list' object has no attribute 'get'
+[blend_training CRITICAL] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpqi2826vh/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.
+[disk_fill CRITICAL] disk usage 95.5% (884.7/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpqi2826vh/data/picks
+[health_runner CRITICAL] health check 'streak_validation' crashed: AttributeError: 'list' object has no attribute 'get'
+
+forced staggered health, streak check alone: [Alert(level='CRITICAL', source='health_runner', message="health check 'streak_validation' crashed: AttributeError: 'list' object has no attribute 'get'", incident_key='health_runner:streak_validation')]
+forced full health CRITICAL: ["missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpqi2826vh/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.", 'disk usage 95.5% (884.7/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpqi2826vh/data/picks', "health check 'streak_validation' crashed: AttributeError: 'list' object has no attribute 'get'"]
+forced full health sends: [('2027-03-24T16:10:00-04:00', 'send', 'offline.test', "Today's pick: Batter 1 (AWY)\nvs Fixture Pitcher | 99.0%\n\nStreak: 0"), ('2027-03-25T08:30:00-04:00', 'send', 'offline.test', "BTS health CRITICAL alert(s):\n- [blend_training] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpqi2826vh/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n- [disk_fill] disk usage 95.5% (884.7/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpqi2826vh/data/picks\n- [health_runner] health check 'streak_validation' crashed: AttributeError: 'list' object has no attribute 'get'")]

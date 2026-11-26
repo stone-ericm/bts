@@ -1,0 +1,8 @@
+nice: setpriority: Operation not permitted
+  [22:05 ET] Games: 101: final
+daemon: RecursionError
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-chk-f4/.codex-review/wr-f4-check/probe_deep_scoring.py", line 35, in <module>
+    assert isinstance(result.exception, RecursionError) and path.read_text() == content
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
