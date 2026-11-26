@@ -1,0 +1,19 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-k2b-cx/src/bts/__init__.py
+SEASON BOUNDARY BEHIND SCHEDULE — 2027-09-27 ET: 1 regular-season game(s) with that official date and a reported status other than postponed or canceled. The configured exclusive boundary is 2027-09-27, giving a raw count of zero.
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-k2b-cx/docs/reviews/2026-11-18-whole-range/review-fix-k2-codex/probe_journal_pipe.py", line 98, in <module>
+    check()
+  File "/Users/eric/projects/bts-work/wr-rev-k2b-cx/docs/reviews/2026-11-18-whole-range/review-fix-k2-codex/probe_journal_pipe.py", line 86, in check
+    assert bool(journal.blocked_write) is HAS_WARNING, output
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError:   [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.
+[10:05 ET] Fetching schedule for 2027-09-27...
+  1 games, 3 scheduled checks:
+    10:15 ET — 1 game(s)
+    11:15 ET — 1 game(s)
+    12:30 ET — 1 game(s)
+  Sleeping until 10:15 ET (10 min)...
+
+[10:15 ET] Running lineup check...
+

@@ -1,0 +1,27 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /private/tmp/wr-k2-r2-floor-vna7aq76/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k2b-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 90 items / 88 deselected / 2 selected
+
+tests/test_wr_h_longest.py .F                                            [100%]
+
+=================================== FAILURES ===================================
+____________ test_r3_fresh_selection_dispatch_precedes_loader[day1] ____________
+tests/test_wr_h_longest.py:481: in test_r3_fresh_selection_dispatch_precedes_loader
+    selection = fresh_longest_selection(day, tmp_path)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_wr_h_longest.py:493: in fresh_longest_selection
+    return strategy.select_pick(frame, str(day), tmp_path, streak=BOUNDARY,
+/private/tmp/wr-k2-r2-floor-vna7aq76/src/bts/strategy.py:656: in select_pick
+    mdp = _load_mdp()
+          ^^^^^^^^^^^
+tests/test_wr_h_longest.py:477: in fail_loader
+    raise TypeError("broken loader")
+E   TypeError: broken loader
+=========================== short test summary info ============================
+FAILED tests/test_wr_h_longest.py::test_r3_fresh_selection_dispatch_precedes_loader[day1]
+================== 1 failed, 1 passed, 88 deselected in 0.96s ==================

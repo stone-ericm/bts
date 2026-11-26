@@ -1,0 +1,5 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-k2b-cx/src/bts/__init__.py
+two deadline expirations in one process retain ['dispatch', 'dispatch', 'write_journal', 'write_journal']
+all four workers stop when their dispatches return
+full nonblocking journal errno 35 only observation dropped before drain [('2027-09-27T18:59:59-04:00', [])]

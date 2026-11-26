@@ -1,0 +1,22 @@
+nice: setpriority: Operation not permitted
+blocked-send exited before journal drain True exit code 0
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-k2b-cx/src/bts/__init__.py
+  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.
+[10:05 ET] Fetching schedule for 2027-09-27...
+  1 games, 3 scheduled checks:
+    10:15 ET — 1 game(s)
+    11:15 ET — 1 game(s)
+    12:30 ET — 1 game(s)
+SEASON BOUNDARY BEHIND SCHEDULE — 2027-09-27 ET: 1 regular-season game(s) with that official date and a reported status other than postponed or canceled. The configured exclusive boundary is 2027-09-27, giving a raw count of zero.
+x
+failed-send exited before journal drain False exit code 0
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-k2b-cx/src/bts/__init__.py
+  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.
+[10:05 ET] Fetching schedule for 2027-09-27...
+  1 games, 3 scheduled checks:
+    10:15 ET — 1 game(s)
+    11:15 ET — 1 game(s)
+    12:30 ET — 1 game(s)
+SEASON BOUNDARY BEHIND SCHEDULE — 2027-09-27 ET: 1 regular-season game(s) with that official date and a reported status other than postponed or canceled. The configured exclusive boundary is 2027-09-27, giving a raw count of zero.
+xUnknown-outcome alert failed: transport: offline transport failed
+

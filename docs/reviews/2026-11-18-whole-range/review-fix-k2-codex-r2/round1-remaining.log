@@ -1,0 +1,21 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-k2b-cx/src/bts/__init__.py
+SEASON BOUNDARY BEHIND SCHEDULE — 2027-09-27 ET: 1 regular-season game(s) with that official date and a reported status other than postponed or canceled. The configured exclusive boundary is 2027-09-27, giving a raw count of zero.
+SEASON BOUNDARY BEHIND SCHEDULE — 2027-09-27 ET: 1 regular-season game(s) with that official date and a reported status other than postponed or canceled. The configured exclusive boundary is 2027-09-27, giving a raw count of zero. Season boundary warning not sent: first lineup check is due within 10 minutes.
+SEASON BOUNDARY BEHIND SCHEDULE — 2027-09-27 ET: 1 regular-season game(s) with that official date and a reported status other than postponed or canceled. The configured exclusive boundary is 2027-09-27, giving a raw count of zero.
+SEASON BOUNDARY BEHIND SCHEDULE — 2027-09-27 ET: 1 regular-season game(s) with that official date and a reported status other than postponed or canceled. The configured exclusive boundary is 2027-09-27, giving a raw count of zero. Season boundary warning not sent: first lineup check is due within 10 minutes.
+SEASON BOUNDARY BEHIND SCHEDULE — 2027-09-27 ET: 1 regular-season game(s) with that official date and a reported status other than postponed or canceled. The configured exclusive boundary is 2027-09-27, giving a raw count of zero. Season boundary warning not sent: The first planned lineup check is due now or has already passed.
+stale+fresh [[3, "15:54:55", [["2027-09-27T16:05:00-04:00", []]], []], [3, "15:55:01", [["2027-09-27T16:05:00-04:00", []]], []], [20, "15:54:55", [["2027-09-27T16:05:00-04:00", []]], ["BTS health WARN attention:\n- [contest_state] Morning check for 2027-09-27: the automatic contest reading was stale at startup (last accepted fetch 2027-09-26T19:54:55-04:00, about 20.00 hours ago). This reading is eligible if it remains in use. Before the first check, if prior entries are settled or absent and MLB differs from status (B8a), use bts set-contest-streak --date 2027-09-27 --streak N --best-streak B --saver S --picks-dir DIR on 2027-09-27 ET only. DIR is the absolute scheduler picks path. This leaves the saver flag unchanged. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status."]], [20, "15:55:01", [["2027-09-27T16:05:00-04:00", []]], []]]
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-k2b-cx/docs/reviews/2026-11-18-whole-range/review-fix-k2-codex/probe_remaining.py", line 84, in <module>
+    pipe_at_cutoff(root)
+  File "/Users/eric/projects/bts-work/wr-rev-k2b-cx/docs/reviews/2026-11-18-whole-range/review-fix-k2-codex/probe_remaining.py", line 45, in pipe_at_cutoff
+    assert bool(journal.blocked_write) is HAS_WARNING, output
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError:   [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.
+[18:59 ET] Fetching schedule for 2027-09-27...
+  1 games, 1 scheduled checks:
+    18:20 ET — 1 game(s)
+
+[18:59 ET] Running lineup check...
+

@@ -1,0 +1,5 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-k2b-cx/src/bts/__init__.py
+shared pipe 510 warning False [('2027-09-27T18:59:59-04:00', [])] blocked line None
+shared pipe 510 warning True [('2027-09-27T19:00:01-04:00', [301])] blocked line '\n[18:59 ET] Running lineup check...'
+empty plan one journal-only line
