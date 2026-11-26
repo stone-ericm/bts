@@ -73,3 +73,53 @@ Gate on `0f14c380` (22:59 to 23:28): 11,153 passed, failing set exactly the pinn
 **Edits (R64, not blocking):** see the report's "Edits" (cron header and ARCHITECTURE cadence sentence; receipt guide's per-invocation sentence and "nominal"; the `--cron` help and the deferral stdout line). **Test gap:** a gate whose slot search starts at 10:15 is not noticed; the report's `mutation_witness.py` case (a 10:20 pitch) catches it.
 **For round 2 (the lead rules):** both findings are one class, "state written by an early run is read by a later base run as if it were the base's own": the marker (B1, B2) and the receipts the morning report reads (B1). Carbon's round-1 review was still running when this was written.
 - Carbon High round 1 on `5a80f0cc`: **SIGN** `WRF5CARB1-d381588b` (`review-fix-f5-carbon/`), no blocking finding, no edits; it did not find Codex's B1 or B2 (its state transitions kept the saved pick fixed after the commit and had no previous-date marker outstanding). Its notes: two scratch changes to the slot range that no test notices (starting at 10:15; stopping at 23:30), with `probe_07_extra_regressions.py` (10:06, 10:15, 10:20 pitches) catching the first. Codex's BLOCK is the gate: F5 stays unmerged.
+
+## Amendment 2 (2026-11-26, `bts-wr-fresh13`, round 2, F5's last round; after the round-1 Codex BLOCK `WRF5REV1-2b64c6ac`, `review-fix-f5-codex/`). It overrides the text above wherever they differ.
+
+Round 1 held for the gate itself (418,848 branch checks; every base slot kept), manual-run parity (201 invocations), traffic, F1b's wrapper and the clock changes. It found two ways the extra early runs lose something the base has. Both are closed here; nothing else changes.
+
+### B1: an early run's state must not stand in for the original schedule's checks
+An early run (a `--cron` start before 10:00 ET that passed the early gate because the selection had no 10:00 to 23:45 quarter-hour in its window) can write terminal `confirmed` (a batter-only match before the game is bound) or spend the alert tiers. If the saved pick is then corrected or replaced so that the selection gains an original-schedule slot, the base's checks at those slots are lost (`already confirmed`, or the alert tiers already spent), and the next morning reads the early batter-only receipt as `entered_game_unverified` (clean).
+
+1. **Marking.** A run with `--cron` that starts before 10:00 ET and goes past the early gate records `"early_cron_run": true` in every marker it writes and in its receipt (the receipt key is `false` for every other run of the command, so readers can tell). Manual runs (no `--cron`) write neither key's `true` value and behave exactly as on the base.
+2. **The marker read.** For a `--cron` start at or after 10:00 ET that is inside the window (past the window gate), a marker for today with `"early_cron_run": true`:
+   (a) is not terminal: `confirmed` from an early run does not return `already confirmed`; this run verifies;
+   (b) its escalation tiers do not count: this run sends exactly the alerts the base sends for its time with no prior marker;
+   (c) its wrong-game observation still counts (F1: `game_unresolved`, `reason == "wrong_game"`, `wrong_game` in its escalations: an unresolved wrong-game observation survives every later marker, including this one);
+   (d) if it records that an alert reached the operator (`alerted`), a confirmation by this run sends the base's one-time all-clear, and it is not taken as "the initial alert was already sent" for (b).
+   Once this run writes its own marker (without the key), later runs read it as on the base. An early run that reads an earlier early run's marker reads it as on round 1 (stable retries inside an early-only window).
+3. **The morning report** (`day_outcome`): when the day's final saved selection has an original-schedule slot (a 10:00 to 23:45 ET quarter-hour on the slate date inside `(first pitch − 75 min, first pitch − 5 min]`, the generated line's default window and `picks.SUBMISSION_CUTOFF_MIN`), receipts with `"early_cron_run": true` are not evidence for `entered`, `entered_game_unverified` or `not_entered` (they still appear in the count of checks and in the "seen" list). Without such a slot, every receipt is used as on the base and round 1.
+
+### B2: an early run must not erase another date's unresolved marker
+A `--cron` run that replaces a marker for ANOTHER date whose status is `alerted` or `dm_failed` first writes that marker, byte for byte, to `health_state/pick_entry_check.<its date>.json` (atomic; if that file already exists it is left as it is), then writes its own. `health.pick_entry.check` for processed date D: when the live marker's date is not D, it reads `pick_entry_check.<D>.json` instead and applies exactly the base's rules to it; an absent, unreadable or malformed copy, or a copy for another date, gives the base's result (no alert). A live marker for D is read exactly as on the base. Manual runs never write the copy.
+
+### Edits from round 1 (R64; adopted verbatim from `review-fix-f5-codex/report.md` "Edits")
+The cron header and `ARCHITECTURE.md:355` cadence sentence; the receipt guide's per-invocation sentence and "nominal" in the `base_slot_available` row; the `--cron` help and the deferral stdout line. The receipt guide also documents `early_cron_run`; the health and day-outcome docstrings name the copy and the rule.
+
+### Must still catch: round 1's findings (each must now behave as the base does)
+| # | Round-1 case | Must happen |
+|---|---|---|
+| R1 | B1: 09:40 commit, batter 1010, game 101 at 10:05; 09:45 batter match, no units binding (receipt `unit_unverified`, early `confirmed`); before 10:00 the pick is saved with a corrected 10:50 pitch, decision kept; 10:00 capture binds game 102 | the 10:00, 10:15 and 10:30 runs read the account and warn as the base's line does; the next morning pages `ENTRY UNVERIFIABLE` as on the base (not `entered_game_unverified`) |
+| R2 | B1, replacement commit instead of a corrected pitch | as R1 |
+| R3 | B1, missing entry: an early run spent the tiers; revised 10:06 pitch | the 10:00 run sends the base's DM for the revised window |
+| R4 | B2: March 23's `dm_failed` marker on disk; March 24 committed at 04:55 for a 06:10 pitch; the 05:00 (or 05:15) run confirms and replaces the marker; March 23's end-of-day health at 05:01 or later | the base's March 23 CRITICAL is sent |
+| R5 | the round-1 testing gap: a gate written to start at 10:15 | noticed (a test fails) |
+| R6 | `mutation_witness.py`: a 10:20 pitch, 09:45 batter match, binding at 10:00 | the 09:45 run defers (`base_slot_available`); the 10:00 run warns |
+
+### Must still happen (unchanged from round 1)
+N1 to N8, M1 to M7 and the standing rows as Amendment 1 states them; manual runs (no `--cron`) byte for byte the base's, including marker and receipt files apart from the receipt's `early_cron_run: false`; every run outside the window or with no committed pick makes no account request, no DM and no marker write; F1's wrong-game invariant; F1b's lock and limit.
+
+### Standing rows for the new parts
+- **An interrupt mid-step:** the copy is written before the marker; an interrupt between them leaves the copy and the old marker (the next run redoes the replacement; the copy is left as it is).
+- **A malformed or non-regular file:** a malformed live marker is read as on the base (no prior status) and is not copied; a non-regular or malformed copy gives the base's health result; a named pipe at either path never blocks the health run (bounded, regular-file read).
+- **Midnight ET and the year boundary:** "before 10:00 ET" and the slot test use the run's ET date and the slate date; the copy is named by the displaced marker's own date (December 31's copy on January 1).
+- **A failed or unconfirmed send:** `dm_failed` stays retryable as on the base; a `dm_failed` early marker is bypassed under 2(b) like any early tier.
+- **A restart mid-step:** the command is one cron run; F1b's lock serialises runs.
+
+### Known and not fixed (added)
+6. A copy is never pruned (it is written only for a displaced `alerted` or `dm_failed` marker).
+7. Under 2(b) an operator who got an early alert and then a corrected pick can get the base's alerts again for the revised window.
+8. The morning report's slot test assumes the generated line's 75-minute window.
+
+### The author's work (tests first; ONE commit on `fix/wr-f5`)
+`src/bts/cli.py` (`_check_pick_entered`: marking, the marker read, the copy), `src/bts/entry_receipt.py` (the receipt key), `src/bts/health/pick_entry.py` (the copy read), `src/bts/day_outcome.py` (the slot rule), the texts above, `tests/test_wr_f5_watchdog_window.py` (R1 to R6 and the new standing rows, RED on `5a80f0cc` first). Every existing test file found by `grep -rlE "check_pick_entered|check-pick-entered|_check_pick_entered|pick_entry_status|entry_receipt|EntryReceipt|qualify\(|load_units|target_rows|pick_entry_check|cron-setup-hetzner|BTS-HETZNER|day_outcome|pick_entry" tests scripts` stays green unchanged, except an assertion that compares a whole receipt dict, which may gain `"early_cron_run": false` (list each in the handover); anything else is a STOP.
