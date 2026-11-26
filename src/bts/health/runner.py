@@ -351,6 +351,15 @@ def run_all_checks(
             mismatch_status = (
                 picks_dir.parent / "health_state" / ("health_dm_delivery_status.json" + suffix)
             )
+        attention_path = _path(warn_attention_path)
+        if os.path.realpath(mismatch_status) == os.path.realpath(attention_path):
+            mismatch_status = None
+        else:
+            try:
+                if os.path.samefile(mismatch_status, attention_path):
+                    mismatch_status = None
+            except OSError:
+                pass  # A receipt or attention file may not exist yet.
         dispatch_dm_for_health_alerts(
             [],
             dm_recipient,

@@ -14,7 +14,7 @@ from zoneinfo import ZoneInfo
 import pytest
 from click.testing import CliRunner
 
-from bts import cli, contest_state
+from bts import cli, contest_state, web
 from bts.health import alert, contest_state as health, runner
 from bts.saver_state import load_saver_state
 from tests.test_season_contract_cs4b1 import contract, put
@@ -28,6 +28,17 @@ INCIDENT = "saver_state:dated_used_mismatch"
 STATUS = "health_dm_delivery_status.json"
 MISMATCH_STATUS = STATUS + ".dated_used_mismatch.json"
 RECIPIENT = "offline.test"
+OLD_B8A = (
+    "If MLB shows it not used, the dated observation was the mistaken side and the "
+    "flag is right: leave the flag as it is (a dated observation applies only on its own date)."
+)
+NEW_B8A = (
+    "If MLB shows the saver has not been used, compare the current flag and any still-effective "
+    "dated observation independently with MLB. Leave the flag as it is only if it agrees with MLB. "
+    "If it differs, have Eric verify the current ET season and prior entries and reconcile the "
+    "flag before the next automatic pick. For a wrong dated observation still in effect, use "
+    "B8a's prior-entry and pick-timing checks before correcting it."
+)
 
 # SHA-256 of the ordered alerts, captured transport calls and status JSON
 # from the unchanged base. Each pair is (live, historical).
@@ -424,9 +435,125 @@ def test_b8a_saver_reconciliation_text():
         "says the saver was used.`** (change set F2): D is the ET date the warning prints. Run "
         "`bts season-contract status --picks-dir DIR` (DIR as above) and compare the dated row's saver "
         "and the saver flag with MLB. If MLB shows this season's saver used, follow **The saver** "
-        "in the bullet above. If MLB shows it not used, the dated observation was the mistaken side "
-        "and the flag is right: leave the flag as it is (a dated observation applies only on its own date).</li>"
+        f"in the bullet above. {NEW_B8A}</li>"
     )
+
+
+@pytest.mark.parametrize("spelling", ["identical", "dot", "relative", "symlink", "hardlink"])
+def test_e1_e2_mismatch_preserves_attention(tmp_path, monkeypatch, spelling):
+    monkeypatch.chdir(tmp_path)
+    picks = tmp_path / "picks"
+    observation(monkeypatch, picks)
+    flag(picks, "active")
+    digest = status_path(picks, "digest.json")
+    receipt = digest.with_name(digest.name + ".dated_used_mismatch.json")
+    attention = receipt
+    configured = str(attention)
+    if spelling == "dot":
+        configured = f"{attention.parent}/./{attention.name}"
+    elif spelling == "relative":
+        configured = str(attention.relative_to(tmp_path))
+    elif spelling in {"symlink", "hardlink"}:
+        attention = status_path(picks, "attention.json")
+        attention.parent.mkdir()
+        if spelling == "symlink":
+            receipt.symlink_to(attention)
+        else:
+            # Seed the state for the day before the replay so both links exist.
+            attention.write_text("{}")
+            os.link(attention, receipt)
+        configured = str(attention)
+    overrides = {"health_dm_delivery_status": str(digest), "warn_attention_state": configured}
+    repeated = alert.Alert("WARN", "calibration_drift", "Calibration drift in both slates")
+    dispatch = Mock(wraps=runner.dispatch_dm_for_health_alerts)
+    monkeypatch.setattr(runner, "dispatch_dm_for_health_alerts", dispatch)
+    alerts, sends = eod(monkeypatch, picks, existing=[repeated], overrides=overrides)
+    warning, = mismatch(alerts)
+    assert len(sends) == 1 and warning.message in sends[0][1]
+    day_one = json.loads(attention.read_text())
+    assert day_one["sources"]["calibration_drift"]["streak"] == 1
+    assert dispatch.call_args.kwargs["status_path"] is None
+    assert eod(monkeypatch, picks, existing=[repeated], overrides=overrides)[1] == sends
+
+    tomorrow = DAY + dt.timedelta(days=1)
+    observation(monkeypatch, picks, tomorrow, state="active")
+    alerts, sends = eod(monkeypatch, picks, day=tomorrow, existing=[repeated], overrides=overrides)
+    assert alerts == [repeated]
+    assert json.loads(attention.read_text())["sources"]["calibration_drift"]["streak"] == 2
+    assert len(sends) == 1 and f"{repeated.message} (2nd consecutive day)" in sends[0][1]
+
+
+@pytest.mark.parametrize("custom_attention", [False, True])
+def test_e3_e4_separate_attention_preserves_receipt(tmp_path, monkeypatch, custom_attention):
+    picks = tmp_path / "picks"
+    observation(monkeypatch, picks)
+    flag(picks, "active")
+    attention = status_path(picks, "elsewhere.json" if custom_attention else "warn_attention_state.json")
+    overrides = {"warn_attention_state": str(attention)} if custom_attention else None
+    _, sends = eod(monkeypatch, picks, overrides=overrides)
+    assert len(sends) == 1
+    receipt = status_path(picks, MISMATCH_STATUS)
+    before = receipt.read_bytes()
+    assert json.loads(before)["message_id"] == "sent"
+    assert json.loads(attention.read_text())["sources"][INCIDENT]["streak"] == 1
+    assert eod(monkeypatch, picks, overrides=overrides)[1] == []
+    assert receipt.read_bytes() == before
+
+
+def test_e6_b8a_rechecks_flag_after_dashboard_change(tmp_path, monkeypatch):
+    picks = tmp_path / "picks"
+    day = DAY.replace(month=8, day=19)
+    observation(monkeypatch, picks, day, streak=9)
+    flag(picks, "active")
+    assert "read active" in eod(monkeypatch, picks, day=day)[1][0][1]
+    code, details = web.saver_transition_response(
+        picks, expected_prior="active", new_state="used", same_origin=True, now=day,
+    )
+    assert code == 200, details
+    with clock(monkeypatch, day):
+        status = CliRunner().invoke(cli.cli, ["season-contract", "status", "--picks-dir", str(picks)])
+    assert status.exit_code == 0, status.output
+    assert "saver=used" in status.output and "saver: used" in status.output
+
+    # MLB shows the saver is available while both local records say used.
+    checklist = Path(__file__).resolve().parents[1] / "docs/ops/2027-season-start.md"
+    row, = (line for line in checklist.read_text().splitlines() if line.startswith("| B8a |"))
+    assert NEW_B8A in row and OLD_B8A not in row
+    code, details = web.saver_transition_response(
+        picks, expected_prior="used", new_state="active", same_origin=True, now=day,
+    )
+    assert code == 200, details
+    tomorrow = day + dt.timedelta(days=1)
+    auto(picks, tomorrow, streak=9)
+    assert contest_state.load_decision_streak_state(
+        picks, now=tomorrow, require_contest_state=True,
+    ).saver_available
+
+
+def test_e7_other_b8a_text_matches_round_two():
+    checklist = Path(__file__).resolve().parents[1] / "docs/ops/2027-season-start.md"
+    row, = (line for line in checklist.read_bytes().splitlines() if line.startswith(b"| B8a |"))
+    original = row.replace(NEW_B8A.encode(), OLD_B8A.encode())
+    assert hashlib.sha256(original).hexdigest() == (
+        "21b6dd612d9019555a4436b0b3f68b5493d5751d466bda8a32dfabf5a156739d"
+    )
+
+
+@pytest.mark.parametrize("historical", [False, True])
+def test_e7_rendered_mismatch_matches_round_two(tmp_path, monkeypatch, historical):
+    picks = tmp_path / "picks"
+    observation(monkeypatch, picks)
+    flag(picks, "active")
+    wall = DAY + dt.timedelta(hours=3) if historical else None
+    _, sends = eod(monkeypatch, picks, wall=wall)
+    text = live_message(DAY, "active") + " (1st observed day)"
+    if historical:
+        text = (
+            "Prior slate 2027-07-15 ET. The dated observation recorded the saver as used. "
+            "At this check the flag for season 2027 read active. (1st observed day) "
+            + health.HISTORICAL_POINTER
+        )
+    assert sends == [(RECIPIENT, f"BTS health WARN attention:\n- [saver_state] {text}")]
 
 
 @pytest.mark.parametrize("scenario", ["expired", "automatic", "legacy", "missing",
