@@ -355,3 +355,6 @@ K1 stopped after round 2 (`WRK1REV2-2ea27ed3`: round 1's findings fixed; two new
 
 ## Ruling R74 (lead, 2026-11-26 14:46): K2b
 K2 stopped after round 2 (`WRK2REV2-17651cb0`): the day-count floor holds (a makeup day after the stored finale plays; every positive-day decision equals the base); the BLOCK is in K2's new boundary-WARN DM (after a failed send with a full stderr pipe the dispatcher's failure line can hold the process past an interrupt). **K2b** is K2's one follow-up: the DM is dropped (no change to the shared dispatcher), the journal line and the floor stay; one fresh Codex check limited to that; a BLOCK goes to Eric. Cost: the stale-boundary notice is in the journal only, not a DM (the makeup day plays either way).
+
+## Lead, 2026-11-26 16:03: R71 widened
+K2b's gate hit two further `test_screen.py` tests with the same "files changed during the run" message (each clean five times alone and once in file order). R71 now covers any `test_screen.py` test failing with that message in its own scratch repository; every other extra gate failure keeps R70 item 6's repeats.
