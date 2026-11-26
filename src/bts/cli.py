@@ -1840,12 +1840,12 @@ def entry_intent(config_path):
               help="Orchestrator TOML (the box uses ~/.bts-orchestrator.toml)")
 @click.option("--picks-dir", default="data/picks", help="Picks directory")
 @click.option("--expected-username", default=None, help="The contest account an entry must be confirmed on")
-@click.option("--dm-recipient", default=None, help="Bluesky handle to DM when the day did not end in a clean state")
+@click.option("--dm-recipient", default=None, help="Bluesky handle to DM when the report finds a problem")
 def day_outcome(date_str, config_path, picks_dir, expected_username, dm_recipient):
-    """Name the day's end state from its decision record and entry receipts; exit 1 (and DM) unless it is clean.
+    """Report the day's end state and flag problems with the local model streak file (streak.json).
 
     Read-only and stateless (bts.day_outcome): it repeats an alert only as often as cron runs it. Exit codes:
-    0 clean, 1 a problem state, 2 the check itself could not run.
+    0 clean, 1 a day or model streak file problem (and DM if configured), 2 the check itself could not run.
     """
     import json as _json
     import tomllib

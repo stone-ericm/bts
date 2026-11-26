@@ -10,12 +10,34 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 
-def read_regular_file_text(path: Path) -> str:
-    """Read UTF-8 from a regular file without waiting on a special file."""
+class NotRegularFileError(OSError):
+    """The target or opened descriptor is not a regular file."""
+
+
+class FileReadLimitError(OSError):
+    """The file contains more bytes than the caller's read limit."""
+
+
+def read_regular_file_text(path: Path, *, max_bytes: int | None = None) -> str:
+    """Read UTF-8 from a regular file, optionally rejecting inputs above a byte limit."""
+    if max_bytes is not None and not stat.S_ISREG(path.stat().st_mode):
+        raise NotRegularFileError(f"{path}: not a regular file")
     fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
     try:
         if not stat.S_ISREG(os.fstat(fd).st_mode):
+            if max_bytes is not None:
+                raise NotRegularFileError(f"{path}: not a regular file")
             raise OSError(f"{path}: not a regular file")
+        if max_bytes is not None:
+            data = bytearray()
+            while len(data) <= max_bytes:
+                chunk = os.read(fd, max_bytes + 1 - len(data))
+                if not chunk:
+                    break
+                data.extend(chunk)
+            if len(data) > max_bytes:
+                raise FileReadLimitError(f"{path}: exceeds read limit")
+            return data.decode("utf-8")
         with io.open(fd, "r", encoding="utf-8", closefd=False) as handle:
             return handle.read()
     finally:

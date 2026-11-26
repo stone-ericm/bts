@@ -605,6 +605,10 @@ def test_unchanged_comparison_grid(world, case):
     from hashlib import sha256
 
     runs = comparison_case(world, case)
-    actual = normalized([runs, [world.morning(), world.health()]], world.picks)
+    morning = world.morning()
+    morning_reports = [runs[1], morning] if case == "N11" else [morning]
+    for report in morning_reports:
+        assert report["outcome"].pop("streak_problem") is None
+    actual = normalized([runs, [morning, world.health()]], world.picks)
     digest = sha256(json.dumps(actual, sort_keys=True).encode()).hexdigest()
     assert digest == BASE_COMPARISON[case], json.dumps(actual, indent=2, sort_keys=True)

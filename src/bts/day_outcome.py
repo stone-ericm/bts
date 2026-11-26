@@ -29,17 +29,20 @@ from __future__ import annotations
 import json
 import os
 import stat
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date as Date, datetime
 from pathlib import Path
 
 from bts.contest_state import DATED_MANUAL_SCHEMA, ContestStateError, validate_dated_observation
 from bts.saver_state import SaverState, policy_saver_available
 from bts.season_contract import ET, InvalidContract, validate_contract
+from bts.util import FileReadLimitError, NotRegularFileError, read_regular_file_text
 
 OK_STATES = frozenset({"no_games", "deliberate_skip", "entered", "entered_game_unverified", "research_commit"})
 ABSENT_REASONS = frozenset({"no_pick", "mismatch"})
 EVIDENCE_MAX_BYTES = 64 * 1024
+STREAK_MAX_BYTES = 1024 * 1024
+DM_MAX_CODE_POINTS = 1000
 
 
 @dataclass(frozen=True)
@@ -48,18 +51,66 @@ class DayOutcome:
     state: str
     detail: str
     pick: str | None = None
+    streak_problem: str | None = None
 
     @property
     def ok(self) -> bool:
-        return self.state in OK_STATES
+        return self.state in OK_STATES and self.streak_problem is None
 
     def message(self) -> str:
-        head = f"BTS day check {self.date}: {self.state.replace('_', ' ').upper()}"
+        title = self.state.replace("_", " ").upper()
+        if self.streak_problem is not None and self.state in OK_STATES:
+            title = "MODEL STREAK FILE NEEDS REVIEW"
+        head = f"BTS day check {self.date}: {title}"
         pick = f" Pick: {self.pick}." if self.pick else ""
-        return f"{head}. {self.detail}{pick}"
+        body = f"{head}. {self.detail}{pick}"
+        if self.streak_problem is None:
+            return body
+        body += (
+            f" Also: The local model streak file (streak.json) needs review ({self.streak_problem}). "
+            "Grading or replay may be affected. Preserve the files in place during triage. Follow B8b item 2 "
+            "in docs/ops/2027-season-start.md before the next affected job. Give the BTS lead this alert, "
+            "the host and ET run time, and any grading or reconcile errors, receipt paths and health alerts. "
+            "If the lead session is unavailable, escalate through Eric. The 08:00 ET correction cutoff still applies."
+        )
+        if len(body) > DM_MAX_CODE_POINTS:
+            return (
+                f"{head}. Local model streak file needs review ({self.streak_problem}). Preserve the files. "
+                "See day-outcome JSON in cron.log and B8b item 2 in docs/ops/2027-season-start.md before the "
+                "next affected job. Escalate through Eric if needed."
+            )
+        return body
 
     def as_dict(self) -> dict:
-        return {"date": self.date, "state": self.state, "ok": self.ok, "detail": self.detail, "pick": self.pick}
+        return {"date": self.date, "state": self.state, "ok": self.ok, "detail": self.detail, "pick": self.pick,
+                "streak_problem": self.streak_problem}
+
+
+def _streak_problem(path: Path) -> str | None:
+    try:
+        text = read_regular_file_text(path, max_bytes=STREAK_MAX_BYTES)
+    except FileNotFoundError:
+        return None
+    except NotRegularFileError:
+        return "not a regular file"
+    except FileReadLimitError:
+        return "exceeds 1 MiB"
+    except (OSError, UnicodeDecodeError) as exc:
+        return f"cannot be read ({type(exc).__name__})"
+
+    try:
+        record = json.loads(text)
+    except json.JSONDecodeError:
+        return "not valid JSON"
+    except (ValueError, RecursionError) as exc:
+        return f"JSON exceeds decoder limits ({type(exc).__name__})"
+
+    if not isinstance(record, dict):
+        return "not a JSON object"
+    streak = record.get("streak", 0)
+    if type(streak) is not int or streak < 0:
+        return "streak is not a non-negative integer"
+    return None
 
 
 def _pick_text(decision: dict) -> str | None:
@@ -283,7 +334,8 @@ def _skip_review(date: str, picks_dir, decision: dict, intent: str) -> DayOutcom
 
 def gather(date: str, picks_dir, config: dict, *, expected_username: str | None, fetch_schedule=None) -> DayOutcome:
     """Read the day's evidence and classify it. Read-only: the schedule (one public request), the decision record and
-    the sealed entry receipts. A deliberate skip may also use contest state on file.
+    the sealed entry receipts. A deliberate skip may also use contest state on file. Check the local model streak file
+    after classifying the day.
     A schedule failure is reported as unverifiable, not raised."""
     from bts import entry_receipt
     from bts.daily_decision import load_decision_bytes
@@ -305,5 +357,5 @@ def gather(date: str, picks_dir, config: dict, *, expected_username: str | None,
                            receipts=entry_receipt.discover(picks_dir, date),
                            intent=intent.intent if intent.ok else None, expected_username=expected_username)
     if outcome.state == "deliberate_skip":
-        return _skip_review(date, picks_dir, decision, intent.intent) or outcome
-    return outcome
+        outcome = _skip_review(date, picks_dir, decision, intent.intent) or outcome
+    return replace(outcome, streak_problem=_streak_problem(Path(picks_dir) / "streak.json"))
