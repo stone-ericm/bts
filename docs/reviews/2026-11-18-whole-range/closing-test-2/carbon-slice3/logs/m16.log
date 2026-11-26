@@ -1,0 +1,31 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-carbon3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_wr_f1_wrong_game.py F                                         [100%]
+
+=================================== FAILURES ===================================
+___________________ test_m2_first_observation_is_wrong_game ____________________
+
+wrong = <tests.test_wr_f1_wrong_game.World object at 0x10ee984a0>
+
+    def test_m2_first_observation_is_wrong_game(wrong):
+        result = wrong.check("18:30", MATCH)
+>       assert_wrong(result, escalation=["wrong_game"])
+
+tests/test_wr_f1_wrong_game.py:203: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+result = {'attempted_dm': [], 'dm': [], 'exception': None, 'exit': 0, ...}
+
+    def assert_wrong(result, *, escalation, status="alerted"):
+>       assert result["exit"] == 1
+E       assert 0 == 1
+
+tests/test_wr_f1_wrong_game.py:176: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_f1_wrong_game.py::test_m2_first_observation_is_wrong_game
+============================== 1 failed in 0.34s ===============================

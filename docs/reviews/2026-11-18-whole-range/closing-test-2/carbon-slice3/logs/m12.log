@@ -1,0 +1,62 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-carbon3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_wr_h2_caps.py F                                               [100%]
+
+=================================== FAILURES ===================================
+___________________________ test_k5_fetch_validation ___________________________
+
+live = (PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2634/test_k5_fetch_validati...t_state_required': True, 'entry_intent': 'enter', 'pick_delivery': 'dm'}, ...}, [70000, 70001], <Mock id='4572573536'>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1108305c0>
+
+    def test_k5_fetch_validation(live, monkeypatch):
+        directory, _, _, send = live
+        install(directory, "automatic", 57, 57)
+        paths = [directory / "account_state" / name for name in (
+            "contest_streak.json", "contest_ledger.jsonl", "saver_state.json")]
+        prior = [path.read_bytes() for path in paths]
+        status = directory.parent / "health_state/contest_streak_fetch_status.json"
+    
+        def refuse(payload, message):
+            with pytest.raises(contest_fetch.ContestFetchError, match=f"^{message}$"):
+                contest_fetch.validate_fetch(payload)
+            profile = dict(payload, predictions=[{"roundId": 1, "result": "hit"}])
+            with walk._fetch_stubs(57, 57, DAY - timedelta(days=1)), monkeypatch.context() as patch:
+                patch.setattr(contest_fetch, "fetch_profile", lambda *args: profile)
+                code, output = walk._invoke("fetch-contest-streak", "--picks-dir", directory,
+                                            "--expected-username", walk.ACCOUNT,
+                                            "--dm-recipient", "synthetic")
+            assert code == 2 and message in output
+            assert [path.read_bytes() for path in paths] == prior
+            failure = json.loads(status.read_text())
+            assert failure["last_error_category"] == "actionable"
+            assert failure["last_error"].endswith(message)
+    
+        body = {"activeStreak": 12, "seasonBestStreak": 57}
+        for field in body:
+            for value in INVALID_TYPES:
+                refuse(with_field(body, field, value), f"{field} must be an integer")
+            refuse(with_field(body, field, -1), f"{field} must be non-negative")
+        for active, best, message in ((12, 11, ">= activeStreak"), (401, 400, ">= activeStreak"),
+                                      (401, 401, "<= 400"), (57, 401, "<= 400")):
+>           refuse({"activeStreak": active, "seasonBestStreak": best}, f"seasonBestStreak must be {message}")
+
+tests/test_wr_h2_caps.py:264: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+payload = {'activeStreak': 401, 'seasonBestStreak': 401}
+message = 'seasonBestStreak must be <= 400'
+
+    def refuse(payload, message):
+>       with pytest.raises(contest_fetch.ContestFetchError, match=f"^{message}$"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'bts.contest_fetch.ContestFetchError'>
+
+tests/test_wr_h2_caps.py:243: Failed
+=========================== short test summary info ============================
+FAILED tests/test_wr_h2_caps.py::test_k5_fetch_validation - Failed: DID NOT R...
+============================== 1 failed in 0.34s ===============================

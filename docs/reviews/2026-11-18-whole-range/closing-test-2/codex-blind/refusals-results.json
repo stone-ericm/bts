@@ -1,0 +1,2259 @@
+[
+  {
+    "case": "corrupt_switch",
+    "events": [
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS health CRITICAL alert(s):\n- [contest_state] Live decision refused: corrupt season switch, check 1: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks/account_state/season_contract.json: Expecting property name enclosed in double quotes: line 1 column 2 (char 1).\nAlternative dated path \u2014 TEMPLATE: `bts set-contest-streak --date 2027-03-24 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`; deliberately repair or remove the corrupt file, or replace it with enable. None of these verifies the endpoints or installs an observation, and doing so can reveal another blocker. Stop the scheduler and wait for any fetch before a changing enable. For current-season evidence, first repair or remove the corrupt switch to a nonautomatic state, run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` (ledger only while not switched), inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`, then `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows."
+      },
+      {
+        "at": "2027-03-24T17:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-25"
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS health CRITICAL alert(s):\n- [contest_state] contest-account streak state expected but missing at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks/account_state\n- [contest_state] Live decision refused: corrupt season switch, check 1: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks/account_state/season_contract.json: Expecting property name enclosed in double quotes: line 1 column 2 (char 1).\nAlternative dated path \u2014 TEMPLATE: `bts set-contest-streak --date 2027-03-24 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`; deliberately repair or remove the corrupt file, or replace it with enable. None of these verifies the endpoints or installs an observation, and doing so can reveal another blocker. Stop the scheduler and wait for any fetch before a changing enable. For current-season evidence, first repair or remove the corrupt switch to a nonautomatic state, run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` (ledger only while not switched), inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`, then `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n- [blend_training] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n- [disk_fill] disk usage 95.6% (885.5/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks\n- [streak_validation] streak.json missing at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks/streak.json"
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "idle",
+        "until": "2027-03-25T10:00:00-04:00"
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/orchestrator.toml"
+        ],
+        "code": 0,
+        "text": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[16:01 ET] Fetching schedule for 2027-03-24...\n  1 games, 3 scheduled checks:\n    16:05 ET \u2014 1 game(s)\n    17:05 ET \u2014 1 game(s)\n    18:05 ET \u2014 1 game(s)\n  Morning state check skipped: first lineup check is due within 10 minutes.\n  Sleeping until 16:05 ET (4 min)...\n\n[16:05 ET] Running lineup check...\n  2 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR \u2014 no pick made: Live decision refused: corrupt season switch, check 1: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks/account_state/season_contract.json: Expecting property name enclosed in double quotes: line 1 column 2 (char 1).\nAlternative dated path \u2014 TEMPLATE: `bts set-contest-streak --date 2027-03-24 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`; deliberately repair or remove the corrupt file, or replace it with enable. None of these verifies the endpoints or installs an observation, and doing so can reveal another blocker. Stop the scheduler and wait for any fetch before a changing enable. For current-season evidence, first repair or remove the corrupt switch to a nonautomatic state, run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` (ledger only while not switched), inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`, then `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n  Sleeping until 17:05 ET (60 min)...\n\n[17:05 ET] Running lineup check...\n  0 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR \u2014 no pick made: Live decision refused: corrupt season switch, check 1: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks/account_state/season_contract.json: Expecting property name enclosed in double quotes: line 1 column 2 (char 1).\nAlternative dated path \u2014 TEMPLATE: `bts set-contest-streak --date 2027-03-24 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`; deliberately repair or remove the corrupt file, or replace it with enable. None of these verifies the endpoints or installs an observation, and doing so can reveal another blocker. Stop the scheduler and wait for any fetch before a changing enable. For current-season evidence, first repair or remove the corrupt switch to a nonautomatic state, run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` (ledger only while not switched), inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`, then `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n  Sleeping until 18:05 ET (60 min)...\n\n[18:05 ET] Running lineup check...\n  0 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR \u2014 no pick made: Live decision refused: corrupt season switch, check 1: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks/account_state/season_contract.json: Expecting property name enclosed in double quotes: line 1 column 2 (char 1).\nAlternative dated path \u2014 TEMPLATE: `bts set-contest-streak --date 2027-03-24 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`; deliberately repair or remove the corrupt file, or replace it with enable. None of these verifies the endpoints or installs an observation, and doing so can reveal another blocker. Stop the scheduler and wait for any fetch before a changing enable. For current-season evidence, first repair or remove the corrupt switch to a nonautomatic state, run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` (ledger only while not switched), inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`, then `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n  Tomorrow's wake-up: Thu 03-25 10:00 ET\n[contest_state CRITICAL] contest-account streak state expected but missing at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks/account_state\n[contest_state CRITICAL] Live decision refused: corrupt season switch, check 1: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks/account_state/season_contract.json: Expecting property name enclosed in double quotes: line 1 column 2 (char 1).\nAlternative dated path \u2014 TEMPLATE: `bts set-contest-streak --date 2027-03-24 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`; deliberately repair or remove the corrupt file, or replace it with enable. None of these verifies the endpoints or installs an observation, and doing so can reveal another blocker. Stop the scheduler and wait for any fetch before a changing enable. For current-season evidence, first repair or remove the corrupt switch to a nonautomatic state, run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` (ledger only while not switched), inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`, then `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n[blend_training CRITICAL] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n[disk_fill CRITICAL] disk usage 95.6% (885.5/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks\n[streak_validation CRITICAL] streak.json missing at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks/streak.json\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-24T17:01:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T17:01:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-24T17:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-25"
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "idle",
+        "until": "2027-03-25T10:00:00-04:00"
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/orchestrator.toml"
+        ],
+        "code": 0,
+        "text": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[17:01 ET] Fetching schedule for 2027-03-24...\n  1 games, 2 scheduled checks:\n    17:05 ET \u2014 1 game(s)\n    18:05 ET \u2014 1 game(s)\n  Morning state check skipped: first lineup check is due within 10 minutes.\n  Sleeping until 17:05 ET (4 min)...\n\n[17:05 ET] Running lineup check...\n  2 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR \u2014 no pick made: Live decision refused: corrupt season switch, check 1: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks/account_state/season_contract.json: Expecting property name enclosed in double quotes: line 1 column 2 (char 1).\nAlternative dated path \u2014 TEMPLATE: `bts set-contest-streak --date 2027-03-24 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`; deliberately repair or remove the corrupt file, or replace it with enable. None of these verifies the endpoints or installs an observation, and doing so can reveal another blocker. Stop the scheduler and wait for any fetch before a changing enable. For current-season evidence, first repair or remove the corrupt switch to a nonautomatic state, run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` (ledger only while not switched), inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`, then `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n  Sleeping until 18:05 ET (60 min)...\n\n[18:05 ET] Running lineup check...\n  0 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR \u2014 no pick made: Live decision refused: corrupt season switch, check 1: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks/account_state/season_contract.json: Expecting property name enclosed in double quotes: line 1 column 2 (char 1).\nAlternative dated path \u2014 TEMPLATE: `bts set-contest-streak --date 2027-03-24 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`; deliberately repair or remove the corrupt file, or replace it with enable. None of these verifies the endpoints or installs an observation, and doing so can reveal another blocker. Stop the scheduler and wait for any fetch before a changing enable. For current-season evidence, first repair or remove the corrupt switch to a nonautomatic state, run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` (ledger only while not switched), inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`, then `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n  Tomorrow's wake-up: Thu 03-25 10:00 ET\n[contest_state CRITICAL] contest-account streak state expected but missing at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks/account_state\n[contest_state CRITICAL] Live decision refused: corrupt season switch, check 1: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks/account_state/season_contract.json: Expecting property name enclosed in double quotes: line 1 column 2 (char 1).\nAlternative dated path \u2014 TEMPLATE: `bts set-contest-streak --date 2027-03-24 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`; deliberately repair or remove the corrupt file, or replace it with enable. None of these verifies the endpoints or installs an observation, and doing so can reveal another blocker. Stop the scheduler and wait for any fetch before a changing enable. For current-season evidence, first repair or remove the corrupt switch to a nonautomatic state, run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` (ledger only while not switched), inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks`, then `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n[blend_training CRITICAL] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n[disk_fill CRITICAL] disk usage 95.6% (885.5/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks\n[streak_validation CRITICAL] streak.json missing at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks/streak.json\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS day check 2027-03-24: NO DECISION. 1 games were scheduled and the day has no decision record: no pick was committed and no skip was decided."
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "cli",
+        "args": [
+          "day-outcome",
+          "--date",
+          "2027-03-24",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/orchestrator.toml",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-1f48n2lb/data/picks",
+          "--expected-username",
+          "offline-account",
+          "--dm-recipient",
+          "offline-recipient.example"
+        ],
+        "code": 1,
+        "text": "{\"date\": \"2027-03-24\", \"state\": \"no_decision\", \"ok\": false, \"detail\": \"1 games were scheduled and the day has no decision record: no pick was committed and no skip was decided.\", \"pick\": null, \"streak_problem\": null}\n",
+        "error": null
+      }
+    ],
+    "snapshot": {
+      "data/health_state/health_dm_delivery_status.json": {
+        "body_first_line": "BTS health CRITICAL alert(s):",
+        "body_sha256": "45d1d59f6aeb9e839381150edb92a9e2d44abc85c629b61d35fd2c64101832c9",
+        "critical_count": 5,
+        "recipient": "offline-recipient.example",
+        "recipient_configured": true,
+        "schema_version": "bts_health_dm_delivery_status_v1",
+        "sent_day": "2027-03-24",
+        "sent_sources": [
+          "CRITICAL:blend_training",
+          "CRITICAL:contest_state",
+          "CRITICAL:disk_fill",
+          "CRITICAL:streak_validation"
+        ],
+        "status": "sent",
+        "updated_at": "2027-03-24T22:05:00+00:00",
+        "warn_attention_count": 0
+      },
+      "data/health_state/slate_auc_status.json": {
+        "computed_at": "2027-03-24",
+        "window_days": 60,
+        "n_days": 0,
+        "n_rows": 0,
+        "auc": null,
+        "reason": "insufficient_days"
+      },
+      "data/health_state/warn_attention_state.json": {
+        "schema_version": "bts_warn_attention_state_v1",
+        "sources": {}
+      },
+      "data/picks/2027-03-24/scheduler_state.json": {
+        "date": "2027-03-24",
+        "schedule_fetched_at": "2027-03-24T17:01:00-04:00",
+        "games": [
+          {
+            "game_pk": 700,
+            "game_time_et": "2027-03-24T19:05:00-04:00",
+            "lineup_confirmed": true,
+            "is_doubleheader_game2": false
+          }
+        ],
+        "confirmed_game_pks": [
+          700
+        ],
+        "runs_completed": [
+          {
+            "time": "2027-03-24T17:05:00-04:00",
+            "new_lineups": 2,
+            "skipped": false,
+            "pick_name": null,
+            "pick_p": null,
+            "duration_sec": 0.0
+          },
+          {
+            "time": "2027-03-24T18:05:00-04:00",
+            "new_lineups": 0,
+            "skipped": false,
+            "pick_name": null,
+            "pick_p": null,
+            "duration_sec": 0.0
+          }
+        ],
+        "pick_locked": false,
+        "pick_locked_at": null,
+        "result_status": null,
+        "next_wakeup": "2027-03-25T10:00:00-04:00",
+        "analytics_jobs": null,
+        "skip_summary": null,
+        "skip_notified_at": null,
+        "final_skip_candidate": null,
+        "committed_pick_written": false,
+        "delivery_refusals": null,
+        "fallback_refreshes": null
+      },
+      "data/picks/account_state/season_contract.json": {
+        "fixture_read_error": "Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+      }
+    }
+  },
+  {
+    "case": "bad_loadable_dated",
+    "events": [
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS health CRITICAL alert(s):\n- [contest_state] dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-dpeq01de/data/picks/account_state/contest_streak.manual.json: check 3, season: must be an integer equal to effective_date's year"
+      },
+      {
+        "at": "2027-03-24T17:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-25"
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS health CRITICAL alert(s):\n- [contest_state] dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-dpeq01de/data/picks/account_state/contest_streak.manual.json: check 3, season: must be an integer equal to effective_date's year\n- [blend_training] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-dpeq01de/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n- [disk_fill] disk usage 95.6% (885.5/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-dpeq01de/data/picks\n- [streak_validation] streak.json missing at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-dpeq01de/data/picks/streak.json"
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "idle",
+        "until": "2027-03-25T10:00:00-04:00"
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-dpeq01de/orchestrator.toml"
+        ],
+        "code": 0,
+        "text": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[16:01 ET] Fetching schedule for 2027-03-24...\n  1 games, 3 scheduled checks:\n    16:05 ET \u2014 1 game(s)\n    17:05 ET \u2014 1 game(s)\n    18:05 ET \u2014 1 game(s)\n  Morning state check skipped: first lineup check is due within 10 minutes.\n  Sleeping until 16:05 ET (4 min)...\n\n[16:05 ET] Running lineup check...\n  2 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR \u2014 no pick made: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-dpeq01de/data/picks/account_state/contest_streak.manual.json: check 3, season: must be an integer equal to effective_date's year\n  Sleeping until 17:05 ET (60 min)...\n\n[17:05 ET] Running lineup check...\n  0 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR \u2014 no pick made: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-dpeq01de/data/picks/account_state/contest_streak.manual.json: check 3, season: must be an integer equal to effective_date's year\n  Sleeping until 18:05 ET (60 min)...\n\n[18:05 ET] Running lineup check...\n  0 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR \u2014 no pick made: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-dpeq01de/data/picks/account_state/contest_streak.manual.json: check 3, season: must be an integer equal to effective_date's year\n  Tomorrow's wake-up: Thu 03-25 10:00 ET\n[contest_state CRITICAL] dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-dpeq01de/data/picks/account_state/contest_streak.manual.json: check 3, season: must be an integer equal to effective_date's year\n[blend_training CRITICAL] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-dpeq01de/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n[disk_fill CRITICAL] disk usage 95.6% (885.5/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-dpeq01de/data/picks\n[streak_validation CRITICAL] streak.json missing at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-dpeq01de/data/picks/streak.json\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-24T17:01:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T17:01:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-24T17:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-25"
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "idle",
+        "until": "2027-03-25T10:00:00-04:00"
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-dpeq01de/orchestrator.toml"
+        ],
+        "code": 0,
+        "text": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[17:01 ET] Fetching schedule for 2027-03-24...\n  1 games, 2 scheduled checks:\n    17:05 ET \u2014 1 game(s)\n    18:05 ET \u2014 1 game(s)\n  Morning state check skipped: first lineup check is due within 10 minutes.\n  Sleeping until 17:05 ET (4 min)...\n\n[17:05 ET] Running lineup check...\n  2 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR \u2014 no pick made: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-dpeq01de/data/picks/account_state/contest_streak.manual.json: check 3, season: must be an integer equal to effective_date's year\n  Sleeping until 18:05 ET (60 min)...\n\n[18:05 ET] Running lineup check...\n  0 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR \u2014 no pick made: dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-dpeq01de/data/picks/account_state/contest_streak.manual.json: check 3, season: must be an integer equal to effective_date's year\n  Tomorrow's wake-up: Thu 03-25 10:00 ET\n[contest_state CRITICAL] dated contest observation invalid at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-dpeq01de/data/picks/account_state/contest_streak.manual.json: check 3, season: must be an integer equal to effective_date's year\n[blend_training CRITICAL] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-dpeq01de/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n[disk_fill CRITICAL] disk usage 95.6% (885.5/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-dpeq01de/data/picks\n[streak_validation CRITICAL] streak.json missing at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-dpeq01de/data/picks/streak.json\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS day check 2027-03-24: NO DECISION. 1 games were scheduled and the day has no decision record: no pick was committed and no skip was decided."
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "cli",
+        "args": [
+          "day-outcome",
+          "--date",
+          "2027-03-24",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-dpeq01de/orchestrator.toml",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-dpeq01de/data/picks",
+          "--expected-username",
+          "offline-account",
+          "--dm-recipient",
+          "offline-recipient.example"
+        ],
+        "code": 1,
+        "text": "{\"date\": \"2027-03-24\", \"state\": \"no_decision\", \"ok\": false, \"detail\": \"1 games were scheduled and the day has no decision record: no pick was committed and no skip was decided.\", \"pick\": null, \"streak_problem\": null}\n",
+        "error": null
+      }
+    ],
+    "snapshot": {
+      "data/health_state/health_dm_delivery_status.json": {
+        "body_first_line": "BTS health CRITICAL alert(s):",
+        "body_sha256": "bfbbd5081c97771b02bcc52135efc28f35f30ec6f83157231332f550e60c21cc",
+        "critical_count": 4,
+        "recipient": "offline-recipient.example",
+        "recipient_configured": true,
+        "schema_version": "bts_health_dm_delivery_status_v1",
+        "sent_day": "2027-03-24",
+        "sent_sources": [
+          "CRITICAL:blend_training",
+          "CRITICAL:contest_state",
+          "CRITICAL:disk_fill",
+          "CRITICAL:streak_validation"
+        ],
+        "status": "sent",
+        "updated_at": "2027-03-24T22:05:00+00:00",
+        "warn_attention_count": 0
+      },
+      "data/health_state/slate_auc_status.json": {
+        "computed_at": "2027-03-24",
+        "window_days": 60,
+        "n_days": 0,
+        "n_rows": 0,
+        "auc": null,
+        "reason": "insufficient_days"
+      },
+      "data/health_state/warn_attention_state.json": {
+        "schema_version": "bts_warn_attention_state_v1",
+        "sources": {}
+      },
+      "data/picks/2027-03-24/scheduler_state.json": {
+        "date": "2027-03-24",
+        "schedule_fetched_at": "2027-03-24T17:01:00-04:00",
+        "games": [
+          {
+            "game_pk": 700,
+            "game_time_et": "2027-03-24T19:05:00-04:00",
+            "lineup_confirmed": true,
+            "is_doubleheader_game2": false
+          }
+        ],
+        "confirmed_game_pks": [
+          700
+        ],
+        "runs_completed": [
+          {
+            "time": "2027-03-24T17:05:00-04:00",
+            "new_lineups": 2,
+            "skipped": false,
+            "pick_name": null,
+            "pick_p": null,
+            "duration_sec": 0.0
+          },
+          {
+            "time": "2027-03-24T18:05:00-04:00",
+            "new_lineups": 0,
+            "skipped": false,
+            "pick_name": null,
+            "pick_p": null,
+            "duration_sec": 0.0
+          }
+        ],
+        "pick_locked": false,
+        "pick_locked_at": null,
+        "result_status": null,
+        "next_wakeup": "2027-03-25T10:00:00-04:00",
+        "analytics_jobs": null,
+        "skip_summary": null,
+        "skip_notified_at": null,
+        "final_skip_candidate": null,
+        "committed_pick_written": false,
+        "delivery_refusals": null,
+        "fallback_refreshes": null
+      },
+      "data/picks/account_state/contest_streak.manual.json": {
+        "schema_version": "bts_contest_streak_manual_v3",
+        "effective_date": "2027-03-24"
+      }
+    }
+  },
+  {
+    "case": "bad_automatic_utf8",
+    "events": [
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "cli",
+        "args": [
+          "fetch-contest-streak",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-xmuzc4d2/data/picks",
+          "--expected-username",
+          "offline-account",
+          "--dm-recipient",
+          "offline-recipient.example"
+        ],
+        "code": 1,
+        "text": "",
+        "error": "UnicodeDecodeError('utf-8', b'\\xff', 0, 1, 'invalid start byte')"
+      },
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS health CRITICAL alert(s):\n- [contest_state] contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-xmuzc4d2/data/picks/account_state/contest_streak.json: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte"
+      },
+      {
+        "at": "2027-03-24T17:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-25"
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS health CRITICAL alert(s):\n- [contest_state] contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-xmuzc4d2/data/picks/account_state/contest_streak.json: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte\n- [blend_training] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-xmuzc4d2/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n- [disk_fill] disk usage 95.6% (885.5/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-xmuzc4d2/data/picks\n- [streak_validation] streak.json missing at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-xmuzc4d2/data/picks/streak.json"
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "idle",
+        "until": "2027-03-25T10:00:00-04:00"
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-xmuzc4d2/orchestrator.toml"
+        ],
+        "code": 0,
+        "text": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[16:01 ET] Fetching schedule for 2027-03-24...\n  1 games, 3 scheduled checks:\n    16:05 ET \u2014 1 game(s)\n    17:05 ET \u2014 1 game(s)\n    18:05 ET \u2014 1 game(s)\n  Morning state check skipped: first lineup check is due within 10 minutes.\n  Sleeping until 16:05 ET (4 min)...\n\n[16:05 ET] Running lineup check...\n  2 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR \u2014 no pick made: contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-xmuzc4d2/data/picks/account_state/contest_streak.json: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte\n  Sleeping until 17:05 ET (60 min)...\n\n[17:05 ET] Running lineup check...\n  0 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR \u2014 no pick made: contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-xmuzc4d2/data/picks/account_state/contest_streak.json: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte\n  Sleeping until 18:05 ET (60 min)...\n\n[18:05 ET] Running lineup check...\n  0 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR \u2014 no pick made: contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-xmuzc4d2/data/picks/account_state/contest_streak.json: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte\n  Tomorrow's wake-up: Thu 03-25 10:00 ET\n[contest_state CRITICAL] contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-xmuzc4d2/data/picks/account_state/contest_streak.json: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte\n[blend_training CRITICAL] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-xmuzc4d2/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n[disk_fill CRITICAL] disk usage 95.6% (885.5/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-xmuzc4d2/data/picks\n[streak_validation CRITICAL] streak.json missing at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-xmuzc4d2/data/picks/streak.json\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-24T17:01:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T17:01:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-24T17:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-25"
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "idle",
+        "until": "2027-03-25T10:00:00-04:00"
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-xmuzc4d2/orchestrator.toml"
+        ],
+        "code": 0,
+        "text": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[17:01 ET] Fetching schedule for 2027-03-24...\n  1 games, 2 scheduled checks:\n    17:05 ET \u2014 1 game(s)\n    18:05 ET \u2014 1 game(s)\n  Morning state check skipped: first lineup check is due within 10 minutes.\n  Sleeping until 17:05 ET (4 min)...\n\n[17:05 ET] Running lineup check...\n  2 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR \u2014 no pick made: contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-xmuzc4d2/data/picks/account_state/contest_streak.json: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte\n  Sleeping until 18:05 ET (60 min)...\n\n[18:05 ET] Running lineup check...\n  0 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR \u2014 no pick made: contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-xmuzc4d2/data/picks/account_state/contest_streak.json: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte\n  Tomorrow's wake-up: Thu 03-25 10:00 ET\n[contest_state CRITICAL] contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-xmuzc4d2/data/picks/account_state/contest_streak.json: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte\n[blend_training CRITICAL] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-xmuzc4d2/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n[disk_fill CRITICAL] disk usage 95.6% (885.5/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-xmuzc4d2/data/picks\n[streak_validation CRITICAL] streak.json missing at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-xmuzc4d2/data/picks/streak.json\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS day check 2027-03-24: NO DECISION. 1 games were scheduled and the day has no decision record: no pick was committed and no skip was decided."
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "cli",
+        "args": [
+          "day-outcome",
+          "--date",
+          "2027-03-24",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-xmuzc4d2/orchestrator.toml",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-xmuzc4d2/data/picks",
+          "--expected-username",
+          "offline-account",
+          "--dm-recipient",
+          "offline-recipient.example"
+        ],
+        "code": 1,
+        "text": "{\"date\": \"2027-03-24\", \"state\": \"no_decision\", \"ok\": false, \"detail\": \"1 games were scheduled and the day has no decision record: no pick was committed and no skip was decided.\", \"pick\": null, \"streak_problem\": null}\n",
+        "error": null
+      }
+    ],
+    "snapshot": {
+      "data/health_state/health_dm_delivery_status.json": {
+        "body_first_line": "BTS health CRITICAL alert(s):",
+        "body_sha256": "e48bb9b9bfddc1e8835b6b8c03d269741ae0443ad7a08b350496f1274a349b82",
+        "critical_count": 4,
+        "recipient": "offline-recipient.example",
+        "recipient_configured": true,
+        "schema_version": "bts_health_dm_delivery_status_v1",
+        "sent_day": "2027-03-24",
+        "sent_sources": [
+          "CRITICAL:blend_training",
+          "CRITICAL:contest_state",
+          "CRITICAL:disk_fill",
+          "CRITICAL:streak_validation"
+        ],
+        "status": "sent",
+        "updated_at": "2027-03-24T22:05:00+00:00",
+        "warn_attention_count": 0
+      },
+      "data/health_state/slate_auc_status.json": {
+        "computed_at": "2027-03-24",
+        "window_days": 60,
+        "n_days": 0,
+        "n_rows": 0,
+        "auc": null,
+        "reason": "insufficient_days"
+      },
+      "data/health_state/warn_attention_state.json": {
+        "schema_version": "bts_warn_attention_state_v1",
+        "sources": {}
+      },
+      "data/picks/2027-03-24/scheduler_state.json": {
+        "date": "2027-03-24",
+        "schedule_fetched_at": "2027-03-24T17:01:00-04:00",
+        "games": [
+          {
+            "game_pk": 700,
+            "game_time_et": "2027-03-24T19:05:00-04:00",
+            "lineup_confirmed": true,
+            "is_doubleheader_game2": false
+          }
+        ],
+        "confirmed_game_pks": [
+          700
+        ],
+        "runs_completed": [
+          {
+            "time": "2027-03-24T17:05:00-04:00",
+            "new_lineups": 2,
+            "skipped": false,
+            "pick_name": null,
+            "pick_p": null,
+            "duration_sec": 0.0
+          },
+          {
+            "time": "2027-03-24T18:05:00-04:00",
+            "new_lineups": 0,
+            "skipped": false,
+            "pick_name": null,
+            "pick_p": null,
+            "duration_sec": 0.0
+          }
+        ],
+        "pick_locked": false,
+        "pick_locked_at": null,
+        "result_status": null,
+        "next_wakeup": "2027-03-25T10:00:00-04:00",
+        "analytics_jobs": null,
+        "skip_summary": null,
+        "skip_notified_at": null,
+        "final_skip_candidate": null,
+        "committed_pick_written": false,
+        "delivery_refusals": null,
+        "fallback_refreshes": null
+      },
+      "data/picks/account_state/contest_streak.json": {
+        "fixture_read_error": "'utf-8' codec can't decode byte 0xff in position 0: invalid start byte"
+      }
+    }
+  },
+  {
+    "case": "no_source",
+    "events": [
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "cli",
+        "args": [
+          "season-contract",
+          "enable",
+          "--season",
+          "2027",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-4wke2bw6/data/picks"
+        ],
+        "code": 0,
+        "text": "switch: automatic\n  season: 2027\n  status: automatic\n  activation_id: 233e859eae2e4881a1789f71c041f13a\n  switched_at: 2027-03-24T20:01:00Z\n  revoked_at: None\n  note: None\nThis activation needs a fetch to replace the automatic observation with season 2027 and activation_id 233e859eae2e4881a1789f71c041f13a before live use (enforced by change set 4b-2). Until a matching observation is on disk, use today's dated observation. A fetch can install the matching observation and then fail at a later step; a non-zero fetch exit does not prove that none was installed.\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "cli",
+        "args": [
+          "fetch-contest-streak",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-4wke2bw6/data/picks",
+          "--expected-username",
+          "offline-account",
+          "--dm-recipient",
+          "offline-recipient.example"
+        ],
+        "code": 0,
+        "text": "wrote /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-4wke2bw6/data/picks/account_state/contest_streak.json for season 2027: active_streak=0 best_streak=0 source_date=None\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "Today's pick: Fixture Batter 0 (T0)\nvs Fixture Pitcher 0 | 97.0%\n\nStreak: 0"
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-25"
+      },
+      {
+        "at": "2027-03-24T19:45:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS health CRITICAL alert(s):\n- [contest_state] contest state has no source_date (/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-4wke2bw6/data/picks/account_state/contest_streak.json); no settled rounds in the profile, so coverage/freshness cannot be verified \u2014 investigate the fetch\n- [blend_training] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-4wke2bw6/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n- [disk_fill] disk usage 95.6% (885.5/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-4wke2bw6/data/picks\n\nWARN attention:\n- [saver_state] Streak Saver flag uninitialized for season 2027 (no saver_state.json) while streak is 0; counting the saver as spent. Check the saver in MLB and run ONE of these. Not earned yet this season: `bts saver-state --init not_earned --season 2027`. Earned and unused: `bts saver-state --init active --season 2027`. Already used: `bts saver-state --init used --season 2027` (1st observed day)"
+      },
+      {
+        "at": "2027-03-24T19:45:00-04:00",
+        "type": "idle",
+        "until": "2027-03-25T10:00:00-04:00"
+      },
+      {
+        "at": "2027-03-24T19:45:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-4wke2bw6/orchestrator.toml"
+        ],
+        "code": 0,
+        "text": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[16:01 ET] Fetching schedule for 2027-03-24...\n  1 games, 3 scheduled checks:\n    16:05 ET \u2014 1 game(s)\n    17:05 ET \u2014 1 game(s)\n    18:05 ET \u2014 1 game(s)\n  Morning state check skipped: first lineup check is due within 10 minutes.\n  Sleeping until 16:05 ET (4 min)...\n\n[16:05 ET] Running lineup check...\n  2 new confirmed lineup(s). Running predictions...\n  Pick: Fixture Batter 0 (T0) 97.0% \u2192 should_lock=True\n  LOCKED (lineup) \u2014 Pick DM sent: offline-dm-6\n  Pick locked. Stopping lineup checks.\n  Tomorrow's wake-up: Thu 03-25 10:00 ET\n  Waiting until 19:15 ET (game start + 10min, 190 min)...\n  [19:15 ET] Games: 700: live\n  [19:30 ET] Games: 700: live\n  [19:45 ET] Games: 700: final\n  Result: hit. Streak: 1.\n  Day complete. Result: final\n[contest_state CRITICAL] contest state has no source_date (/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-4wke2bw6/data/picks/account_state/contest_streak.json); no settled rounds in the profile, so coverage/freshness cannot be verified \u2014 investigate the fetch\n[saver_state WARN] Streak Saver flag uninitialized for season 2027 (no saver_state.json) while streak is 0; counting the saver as spent. Check the saver in MLB and run ONE of these. Not earned yet this season: `bts saver-state --init not_earned --season 2027`. Earned and unused: `bts saver-state --init active --season 2027`. Already used: `bts saver-state --init used --season 2027`\n[blend_training CRITICAL] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-4wke2bw6/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n[disk_fill CRITICAL] disk usage 95.6% (885.5/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-4wke2bw6/data/picks\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-24T17:01:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T17:01:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-24T17:05:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-25"
+      },
+      {
+        "at": "2027-03-24T17:05:00-04:00",
+        "type": "idle",
+        "until": "2027-03-25T10:00:00-04:00"
+      },
+      {
+        "at": "2027-03-24T17:05:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-4wke2bw6/orchestrator.toml"
+        ],
+        "code": 0,
+        "text": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[17:01 ET] Fetching schedule for 2027-03-24...\n  1 games, 2 scheduled checks:\n    17:05 ET \u2014 1 game(s)\n    18:05 ET \u2014 1 game(s)\n  Sleeping until 17:05 ET (4 min)...\n\n[17:05 ET] Running lineup check...\n  Pick already committed (scoreable decision on disk) \u2014 skipping cascade.\n  Pick already locked (game started or previously delivered).\n  Pick locked. Stopping lineup checks.\n  Tomorrow's wake-up: Thu 03-25 10:00 ET\n[contest_state CRITICAL] contest state has no source_date (/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-4wke2bw6/data/picks/account_state/contest_streak.json); no settled rounds in the profile, so coverage/freshness cannot be verified \u2014 investigate the fetch\n[saver_state WARN] Streak Saver flag uninitialized for season 2027 (no saver_state.json) while streak is 0; counting the saver as spent. Check the saver in MLB and run ONE of these. Not earned yet this season: `bts saver-state --init not_earned --season 2027`. Earned and unused: `bts saver-state --init active --season 2027`. Already used: `bts saver-state --init used --season 2027`\n[blend_training CRITICAL] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-4wke2bw6/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n[disk_fill CRITICAL] disk usage 95.6% (885.5/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-4wke2bw6/data/picks\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS day check 2027-03-24: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown. Pick: Fixture Batter 0."
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "cli",
+        "args": [
+          "day-outcome",
+          "--date",
+          "2027-03-24",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-4wke2bw6/orchestrator.toml",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-4wke2bw6/data/picks",
+          "--expected-username",
+          "offline-account",
+          "--dm-recipient",
+          "offline-recipient.example"
+        ],
+        "code": 1,
+        "text": "{\"date\": \"2027-03-24\", \"state\": \"entry_unverifiable\", \"ok\": false, \"detail\": \"No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown.\", \"pick\": \"Fixture Batter 0\", \"streak_problem\": null}\n",
+        "error": null
+      }
+    ],
+    "snapshot": {
+      "data/health_state/contest_streak_fetch_status.json": {
+        "last_error": null,
+        "last_success_at": "2027-03-24T20:01:00Z"
+      },
+      "data/health_state/health_dm_delivery_status.json": {
+        "body_first_line": "BTS health CRITICAL alert(s):",
+        "body_sha256": "19f61eb69a317381dd5b47c14fce929da80c2cfef2c00924ed40933d8a065a5b",
+        "critical_count": 3,
+        "recipient": "offline-recipient.example",
+        "recipient_configured": true,
+        "schema_version": "bts_health_dm_delivery_status_v1",
+        "sent_day": "2027-03-24",
+        "sent_sources": [
+          "CRITICAL:blend_training",
+          "CRITICAL:contest_state",
+          "CRITICAL:disk_fill",
+          "WARN_ATTENTION:saver_state"
+        ],
+        "status": "sent",
+        "updated_at": "2027-03-24T23:45:00+00:00",
+        "warn_attention_count": 1
+      },
+      "data/health_state/slate_auc_status.json": {
+        "computed_at": "2027-03-24",
+        "window_days": 60,
+        "n_days": 0,
+        "n_rows": 0,
+        "auc": null,
+        "reason": "insufficient_days"
+      },
+      "data/health_state/warn_attention_state.json": {
+        "schema_version": "bts_warn_attention_state_v1",
+        "sources": {
+          "saver_state": {
+            "last_message": "Streak Saver flag uninitialized for season 2027 (no saver_state.json) while streak is 0; counting the saver as spent. Check the saver in MLB and run ONE of these. Not earned yet this season: `bts saver-state --init not_earned --season 2027`. Earned and unused: `bts saver-state --init active --season 2027`. Already used: `bts saver-state --init used --season 2027`",
+            "last_seen": "2027-03-24",
+            "streak": 1
+          }
+        }
+      },
+      "data/picks/2027-03-24/decision.json": {
+        "schema_version": "bts_daily_decision_v3",
+        "date": "2027-03-24",
+        "action": "single",
+        "source": "mdp",
+        "primary": {
+          "batter_id": 100,
+          "batter_name": "Fixture Batter 0",
+          "team": "T0",
+          "game_pk": 700,
+          "p_game_hit": 0.97
+        },
+        "double_down": null,
+        "second_candidate": null,
+        "streak": 0,
+        "saver_available": false,
+        "state_source": "contest",
+        "state_status": "stale",
+        "allow_double": true,
+        "contest_source_date": null,
+        "delivery_status": "delivered",
+        "scoreable": true,
+        "objective": "reach57",
+        "best_streak": 0,
+        "best_status": "untrusted",
+        "effective_best": null,
+        "tail_policy_sha256": null,
+        "degraded_reason": null,
+        "policy_guard": null,
+        "finalized_at": "2027-03-24T20:05:00Z"
+      },
+      "data/picks/2027-03-24/scheduler_state.json": {
+        "date": "2027-03-24",
+        "schedule_fetched_at": "2027-03-24T17:01:00-04:00",
+        "games": [
+          {
+            "game_pk": 700,
+            "game_time_et": "2027-03-24T19:05:00-04:00",
+            "lineup_confirmed": true,
+            "is_doubleheader_game2": false
+          }
+        ],
+        "confirmed_game_pks": [
+          700
+        ],
+        "runs_completed": [
+          {
+            "time": "2027-03-24T17:05:00-04:00",
+            "new_lineups": 2,
+            "skipped": false,
+            "pick_name": "Fixture Batter 0",
+            "pick_p": 0.97,
+            "duration_sec": 0.0
+          }
+        ],
+        "pick_locked": true,
+        "pick_locked_at": "2027-03-24T17:05:00-04:00",
+        "result_status": null,
+        "next_wakeup": "2027-03-25T10:00:00-04:00",
+        "analytics_jobs": {
+          "live_forward_capture": {
+            "status": "disabled",
+            "updated_at": "2027-03-24T16:05:00-04:00",
+            "reason": "live_forward_capture_on_lock=false"
+          }
+        },
+        "skip_summary": null,
+        "skip_notified_at": null,
+        "final_skip_candidate": null,
+        "committed_pick_written": true,
+        "delivery_refusals": null,
+        "fallback_refreshes": null
+      },
+      "data/picks/2027-03-24.json": {
+        "date": "2027-03-24",
+        "run_time": "2027-03-24T20:05:00+00:00",
+        "pick": {
+          "batter_name": "Fixture Batter 0",
+          "batter_id": 100,
+          "team": "T0",
+          "lineup_position": 1,
+          "pitcher_name": "Fixture Pitcher 0",
+          "pitcher_id": 900,
+          "p_game_hit": 0.97,
+          "flags": [],
+          "projected_lineup": false,
+          "game_pk": 700,
+          "game_time": "2027-03-24T23:05:00+00:00",
+          "pitcher_team": "U0"
+        },
+        "double_down": null,
+        "runner_up": null,
+        "bluesky_posted": false,
+        "bluesky_uri": null,
+        "notification_sent": true,
+        "notification_channel": "bluesky_dm",
+        "notification_id": "offline-dm-6",
+        "delivery_attempted": true,
+        "delivered_at": "2027-03-24T16:05:00-04:00",
+        "result": "hit",
+        "slot_results": {
+          "pick": "hit"
+        },
+        "shadow_model_version": null,
+        "model_git_sha": "d0bdcdba",
+        "model_pickle_sha256": null,
+        "policy_npz_sha256": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
+        "feature_env_schema_version": "bts_feature_env_v1",
+        "feature_env": {
+          "BTS_LGBM_DETERMINISTIC": "0",
+          "BTS_LGBM_RANDOM_STATE": "42",
+          "BTS_PITCHER_HR_30G_MIN_PERIODS": "7",
+          "BTS_ROOKIE_GATE_K": "20",
+          "BTS_USE_CALIBRATION": "0"
+        },
+        "feature_env_hash": "fb1841abbb3f269053f4687d291405c4c08ef1c9a87eda8f4f0663804b481ebe",
+        "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+        "policy_decision": {
+          "action": "single",
+          "policy_action": "double",
+          "source": "mdp",
+          "objective": "reach57",
+          "streak": 0,
+          "days_effective": 180,
+          "best_supplied": 0,
+          "best_status": "untrusted",
+          "effective_best": null,
+          "tail_sha256": null,
+          "degraded_reason": null,
+          "reason": null,
+          "pick_bar": null,
+          "guard": null
+        },
+        "chosen_on": {
+          "schema": "bts_pick_chosen_on_v1",
+          "required": true,
+          "kind": "automatic",
+          "streak": 0,
+          "saver_available": false,
+          "dated": null
+        },
+        "automatic_reading": {
+          "schema": "bts_pick_automatic_reading_v1",
+          "recorded_at": "2027-03-24T20:01:00Z",
+          "age_hours": 0.07,
+          "stale": false,
+          "reason": null
+        }
+      },
+      "data/picks/account_state/contest_streak.json": {
+        "activation_id": "233e859eae2e4881a1789f71c041f13a",
+        "active_streak": 0,
+        "best_streak": 0,
+        "recorded_at": "2027-03-24T20:01:00Z",
+        "saver_available": null,
+        "schema_version": "bts_contest_streak_auto_v2",
+        "season": 2027,
+        "source": "mlb_bts_profile",
+        "source_date": null,
+        "user_id": 4242,
+        "username": "offline-account"
+      },
+      "data/picks/account_state/season_contract.json": {
+        "schema_version": "bts_season_contract_v1",
+        "season": 2027,
+        "status": "automatic",
+        "activation_id": "233e859eae2e4881a1789f71c041f13a",
+        "switched_at": "2027-03-24T20:01:00Z",
+        "revoked_at": null,
+        "note": null
+      },
+      "data/picks/streak.json": {
+        "streak": 1,
+        "saver_available": true,
+        "updated": "2027-03-24T23:45:00+00:00",
+        "applied_dates": [
+          "2027-03-24"
+        ],
+        "season": 2027
+      }
+    }
+  },
+  {
+    "case": "overlong_saver",
+    "events": [
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "cli",
+        "args": [
+          "season-contract",
+          "enable",
+          "--season",
+          "2027",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-0md5vsrr/data/picks"
+        ],
+        "code": 0,
+        "text": "switch: automatic\n  season: 2027\n  status: automatic\n  activation_id: 43c043f551584976b912af23a07f4381\n  switched_at: 2027-03-24T20:01:00Z\n  revoked_at: None\n  note: None\nThis activation needs a fetch to replace the automatic observation with season 2027 and activation_id 43c043f551584976b912af23a07f4381 before live use (enforced by change set 4b-2). Until a matching observation is on disk, use today's dated observation. A fetch can install the matching observation and then fail at a later step; a non-zero fetch exit does not prove that none was installed.\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "cli",
+        "args": [
+          "fetch-contest-streak",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-0md5vsrr/data/picks",
+          "--expected-username",
+          "offline-account",
+          "--dm-recipient",
+          "offline-recipient.example"
+        ],
+        "code": 0,
+        "text": "wrote /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-0md5vsrr/data/picks/account_state/contest_streak.json for season 2027: active_streak=20 best_streak=20 source_date=2027-03-23\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "cli",
+        "args": [
+          "saver-state",
+          "--init",
+          "active",
+          "--force",
+          "--season",
+          "2027",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-0md5vsrr/data/picks"
+        ],
+        "code": 0,
+        "text": "Initialized saver flag: active (season 2027)\nsaver_state: active (season 2027)\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-0md5vsrr/orchestrator.toml"
+        ],
+        "code": 1,
+        "text": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[16:01 ET] Fetching schedule for 2027-03-24...\n  1 games, 3 scheduled checks:\n    16:05 ET \u2014 1 game(s)\n    17:05 ET \u2014 1 game(s)\n    18:05 ET \u2014 1 game(s)\n  Morning state check skipped: first lineup check is due within 10 minutes.\n  Sleeping until 16:05 ET (4 min)...\n\n[16:05 ET] Running lineup check...\n  2 new confirmed lineup(s). Running predictions...\n",
+        "error": "ValueError('Exceeds the limit (4300 digits) for integer string conversion: value has 5000 digits; use sys.set_int_max_str_digits() to increase the limit')"
+      },
+      {
+        "at": "2027-03-24T17:01:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T17:01:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-24T17:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T17:05:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-0md5vsrr/orchestrator.toml"
+        ],
+        "code": 1,
+        "text": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[17:01 ET] Fetching schedule for 2027-03-24...\n  1 games, 2 scheduled checks:\n    17:05 ET \u2014 1 game(s)\n    18:05 ET \u2014 1 game(s)\n  Morning state check skipped: first lineup check is due within 10 minutes.\n  Sleeping until 17:05 ET (4 min)...\n\n[17:05 ET] Running lineup check...\n  2 new confirmed lineup(s). Running predictions...\n",
+        "error": "ValueError('Exceeds the limit (4300 digits) for integer string conversion: value has 5000 digits; use sys.set_int_max_str_digits() to increase the limit')"
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS day check 2027-03-24: NO DECISION. 1 games were scheduled and the day has no decision record: no pick was committed and no skip was decided."
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "cli",
+        "args": [
+          "day-outcome",
+          "--date",
+          "2027-03-24",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-0md5vsrr/orchestrator.toml",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-0md5vsrr/data/picks",
+          "--expected-username",
+          "offline-account",
+          "--dm-recipient",
+          "offline-recipient.example"
+        ],
+        "code": 1,
+        "text": "{\"date\": \"2027-03-24\", \"state\": \"no_decision\", \"ok\": false, \"detail\": \"1 games were scheduled and the day has no decision record: no pick was committed and no skip was decided.\", \"pick\": null, \"streak_problem\": null}\n",
+        "error": null
+      }
+    ],
+    "snapshot": {
+      "data/health_state/contest_streak_fetch_status.json": {
+        "last_error": null,
+        "last_success_at": "2027-03-24T20:01:00Z"
+      },
+      "data/picks/2027-03-24/scheduler_state.json": {
+        "date": "2027-03-24",
+        "schedule_fetched_at": "2027-03-24T17:01:00-04:00",
+        "games": [
+          {
+            "game_pk": 700,
+            "game_time_et": "2027-03-24T19:05:00-04:00",
+            "lineup_confirmed": false,
+            "is_doubleheader_game2": false
+          }
+        ],
+        "confirmed_game_pks": [],
+        "runs_completed": [],
+        "pick_locked": false,
+        "pick_locked_at": null,
+        "result_status": null,
+        "next_wakeup": null,
+        "analytics_jobs": null,
+        "skip_summary": null,
+        "skip_notified_at": null,
+        "final_skip_candidate": null,
+        "committed_pick_written": false,
+        "delivery_refusals": null,
+        "fallback_refreshes": null
+      },
+      "data/picks/account_state/contest_streak.json": {
+        "activation_id": "43c043f551584976b912af23a07f4381",
+        "active_streak": 20,
+        "best_streak": 20,
+        "recorded_at": "2027-03-24T20:01:00Z",
+        "saver_available": null,
+        "schema_version": "bts_contest_streak_auto_v2",
+        "season": 2027,
+        "source": "mlb_bts_profile",
+        "source_date": "2027-03-23",
+        "user_id": 4242,
+        "username": "offline-account"
+      },
+      "data/picks/account_state/saver_state.json": {
+        "fixture_read_error": "Exceeds the limit (4300 digits) for integer string conversion: value has 5000 digits; use sys.set_int_max_str_digits() to increase the limit"
+      },
+      "data/picks/account_state/season_contract.json": {
+        "schema_version": "bts_season_contract_v1",
+        "season": 2027,
+        "status": "automatic",
+        "activation_id": "43c043f551584976b912af23a07f4381",
+        "switched_at": "2027-03-24T20:01:00Z",
+        "revoked_at": null,
+        "note": null
+      }
+    }
+  },
+  {
+    "case": "bad_model_fallback",
+    "events": [
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS health CRITICAL alert(s):\n- [contest_state] model state is corrupt; cannot use model fallback: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-_ryfkeiz/data/picks/streak.json: streak is not a non-negative integer"
+      },
+      {
+        "at": "2027-03-24T17:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-25"
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS health CRITICAL alert(s):\n- [blend_training] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-_ryfkeiz/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n- [disk_fill] disk usage 95.6% (885.5/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-_ryfkeiz/data/picks\n- [streak_validation] streak.json schema invalid: streak field is list, expected int"
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "idle",
+        "until": "2027-03-25T10:00:00-04:00"
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-_ryfkeiz/orchestrator.toml"
+        ],
+        "code": 0,
+        "text": "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.\n[16:01 ET] Fetching schedule for 2027-03-24...\n  1 games, 3 scheduled checks:\n    16:05 ET \u2014 1 game(s)\n    17:05 ET \u2014 1 game(s)\n    18:05 ET \u2014 1 game(s)\n  Sleeping until 16:05 ET (4 min)...\n\n[16:05 ET] Running lineup check...\n  2 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR \u2014 no pick made: model state is corrupt; cannot use model fallback: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-_ryfkeiz/data/picks/streak.json: streak is not a non-negative integer\n  Sleeping until 17:05 ET (60 min)...\n\n[17:05 ET] Running lineup check...\n  0 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR \u2014 no pick made: model state is corrupt; cannot use model fallback: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-_ryfkeiz/data/picks/streak.json: streak is not a non-negative integer\n  Sleeping until 18:05 ET (60 min)...\n\n[18:05 ET] Running lineup check...\n  0 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR \u2014 no pick made: model state is corrupt; cannot use model fallback: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-_ryfkeiz/data/picks/streak.json: streak is not a non-negative integer\n  Tomorrow's wake-up: Thu 03-25 10:00 ET\n[blend_training CRITICAL] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-_ryfkeiz/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n[disk_fill CRITICAL] disk usage 95.6% (885.5/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-_ryfkeiz/data/picks\n[streak_validation CRITICAL] streak.json schema invalid: streak field is list, expected int\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-24T17:01:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T17:01:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-24T17:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-25"
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "idle",
+        "until": "2027-03-25T10:00:00-04:00"
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-_ryfkeiz/orchestrator.toml"
+        ],
+        "code": 0,
+        "text": "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.\n[17:01 ET] Fetching schedule for 2027-03-24...\n  1 games, 2 scheduled checks:\n    17:05 ET \u2014 1 game(s)\n    18:05 ET \u2014 1 game(s)\n  Sleeping until 17:05 ET (4 min)...\n\n[17:05 ET] Running lineup check...\n  2 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR \u2014 no pick made: model state is corrupt; cannot use model fallback: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-_ryfkeiz/data/picks/streak.json: streak is not a non-negative integer\n  Sleeping until 18:05 ET (60 min)...\n\n[18:05 ET] Running lineup check...\n  0 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR \u2014 no pick made: model state is corrupt; cannot use model fallback: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-_ryfkeiz/data/picks/streak.json: streak is not a non-negative integer\n  Tomorrow's wake-up: Thu 03-25 10:00 ET\n[blend_training CRITICAL] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-_ryfkeiz/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n[disk_fill CRITICAL] disk usage 95.6% (885.5/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-_ryfkeiz/data/picks\n[streak_validation CRITICAL] streak.json schema invalid: streak field is list, expected int\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS day check 2027-03-24: NO DECISION. 1 games were scheduled and the day has no decision record: no pick was committed and no skip was decided. Also: The local model streak file (streak.json) needs review (streak is not a non-negative integer). Grading or replay may be affected. Preserve the files in place during triage. Follow B8b item 2 in docs/ops/2027-season-start.md before the next affected job. Give the BTS lead this alert, the host and ET run time, and any grading or reconcile errors, receipt paths and health alerts. If the lead session is unavailable, escalate through Eric. The 08:00 ET correction cutoff still applies."
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "cli",
+        "args": [
+          "day-outcome",
+          "--date",
+          "2027-03-24",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-_ryfkeiz/orchestrator.toml",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-_ryfkeiz/data/picks",
+          "--expected-username",
+          "offline-account",
+          "--dm-recipient",
+          "offline-recipient.example"
+        ],
+        "code": 1,
+        "text": "{\"date\": \"2027-03-24\", \"state\": \"no_decision\", \"ok\": false, \"detail\": \"1 games were scheduled and the day has no decision record: no pick was committed and no skip was decided.\", \"pick\": null, \"streak_problem\": \"streak is not a non-negative integer\"}\n",
+        "error": null
+      }
+    ],
+    "snapshot": {
+      "data/health_state/health_dm_delivery_status.json": {
+        "body_first_line": "BTS health CRITICAL alert(s):",
+        "body_sha256": "8bfdabe3d6e555be68cc0b1d1cb134e823f2bd9edd5fb272dbba2876c470b323",
+        "critical_count": 3,
+        "recipient": "offline-recipient.example",
+        "recipient_configured": true,
+        "schema_version": "bts_health_dm_delivery_status_v1",
+        "sent_day": "2027-03-24",
+        "sent_sources": [
+          "CRITICAL:blend_training",
+          "CRITICAL:contest_state",
+          "CRITICAL:disk_fill",
+          "CRITICAL:streak_validation"
+        ],
+        "status": "sent",
+        "updated_at": "2027-03-24T22:05:00+00:00",
+        "warn_attention_count": 0
+      },
+      "data/health_state/slate_auc_status.json": {
+        "computed_at": "2027-03-24",
+        "window_days": 60,
+        "n_days": 0,
+        "n_rows": 0,
+        "auc": null,
+        "reason": "insufficient_days"
+      },
+      "data/health_state/warn_attention_state.json": {
+        "schema_version": "bts_warn_attention_state_v1",
+        "sources": {}
+      },
+      "data/picks/2027-03-24/scheduler_state.json": {
+        "date": "2027-03-24",
+        "schedule_fetched_at": "2027-03-24T17:01:00-04:00",
+        "games": [
+          {
+            "game_pk": 700,
+            "game_time_et": "2027-03-24T19:05:00-04:00",
+            "lineup_confirmed": true,
+            "is_doubleheader_game2": false
+          }
+        ],
+        "confirmed_game_pks": [
+          700
+        ],
+        "runs_completed": [
+          {
+            "time": "2027-03-24T17:05:00-04:00",
+            "new_lineups": 2,
+            "skipped": false,
+            "pick_name": null,
+            "pick_p": null,
+            "duration_sec": 0.0
+          },
+          {
+            "time": "2027-03-24T18:05:00-04:00",
+            "new_lineups": 0,
+            "skipped": false,
+            "pick_name": null,
+            "pick_p": null,
+            "duration_sec": 0.0
+          }
+        ],
+        "pick_locked": false,
+        "pick_locked_at": null,
+        "result_status": null,
+        "next_wakeup": "2027-03-25T10:00:00-04:00",
+        "analytics_jobs": null,
+        "skip_summary": null,
+        "skip_notified_at": null,
+        "final_skip_candidate": null,
+        "committed_pick_written": false,
+        "delivery_refusals": null,
+        "fallback_refreshes": null
+      },
+      "data/picks/streak.json": {
+        "season": 2027,
+        "streak": []
+      }
+    }
+  },
+  {
+    "case": "bad_decision",
+    "events": [
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "cli",
+        "args": [
+          "set-contest-streak",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-tui821oc/data/picks",
+          "--date",
+          "2027-03-24",
+          "--streak",
+          "0",
+          "--best-streak",
+          "0",
+          "--saver",
+          "not_earned"
+        ],
+        "code": 0,
+        "text": "Observation written at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-tui821oc/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=0 best=0 saver=not_earned reason=None\ncontest_streak: 0 (best 0, saver not_earned) for 2027-03-24, in effect today\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "Today's pick: Fixture Batter 0 (T0)\nvs Fixture Pitcher 0 | 97.0%\n\nStreak: 0"
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-25"
+      },
+      {
+        "at": "2027-03-24T19:45:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS health CRITICAL alert(s):\n- [blend_training] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-tui821oc/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n- [disk_fill] disk usage 95.6% (885.5/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-tui821oc/data/picks"
+      },
+      {
+        "at": "2027-03-24T19:45:00-04:00",
+        "type": "idle",
+        "until": "2027-03-25T10:00:00-04:00"
+      },
+      {
+        "at": "2027-03-24T19:45:00-04:00",
+        "type": "run_day",
+        "journal": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[16:01 ET] Fetching schedule for 2027-03-24...\n  1 games, 3 scheduled checks:\n    16:05 ET \u2014 1 game(s)\n    17:05 ET \u2014 1 game(s)\n    18:05 ET \u2014 1 game(s)\n  Morning state check skipped: first lineup check is due within 10 minutes.\n  Sleeping until 16:05 ET (4 min)...\n\n[16:05 ET] Running lineup check...\n  2 new confirmed lineup(s). Running predictions...\n  Pick: Fixture Batter 0 (T0) 97.0% \u2192 should_lock=True\n  LOCKED (lineup) \u2014 Pick DM sent: offline-dm-5\n  Pick locked. Stopping lineup checks.\n  Tomorrow's wake-up: Thu 03-25 10:00 ET\n  Waiting until 19:15 ET (game start + 10min, 190 min)...\n  [19:15 ET] Games: 700: live\n  [19:30 ET] Games: 700: live\n  [19:45 ET] Games: 700: final\n  Result: hit. Streak: 1.\n  Day complete. Result: final\n[blend_training CRITICAL] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-tui821oc/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n[disk_fill CRITICAL] disk usage 95.6% (885.5/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-tui821oc/data/picks\n"
+      },
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-tui821oc/orchestrator.toml"
+        ],
+        "code": 1,
+        "text": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[16:01 ET] Fetching schedule for 2027-03-24...\n  1 games, 3 scheduled checks:\n    16:05 ET \u2014 1 game(s)\n    17:05 ET \u2014 1 game(s)\n    18:05 ET \u2014 1 game(s)\n  Sleeping until 16:05 ET (4 min)...\n\n[16:05 ET] Running lineup check...\n",
+        "error": "UnicodeDecodeError('utf-8', b'\\xff', 0, 1, 'invalid start byte')"
+      },
+      {
+        "at": "2027-03-24T17:01:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T17:01:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-24T17:05:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-tui821oc/orchestrator.toml"
+        ],
+        "code": 1,
+        "text": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[17:01 ET] Fetching schedule for 2027-03-24...\n  1 games, 2 scheduled checks:\n    17:05 ET \u2014 1 game(s)\n    18:05 ET \u2014 1 game(s)\n  Morning state check skipped: first lineup check is due within 10 minutes.\n  Sleeping until 17:05 ET (4 min)...\n\n[17:05 ET] Running lineup check...\n",
+        "error": "UnicodeDecodeError('utf-8', b'\\xff', 0, 1, 'invalid start byte')"
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS day check 2027-03-24: THE CHECK COULD NOT RUN (UnicodeDecodeError). The day's end state is unknown."
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "cli",
+        "args": [
+          "day-outcome",
+          "--date",
+          "2027-03-24",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-tui821oc/orchestrator.toml",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-tui821oc/data/picks",
+          "--expected-username",
+          "offline-account",
+          "--dm-recipient",
+          "offline-recipient.example"
+        ],
+        "code": 2,
+        "text": "day-outcome: could not run for 2027-03-24: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte\n",
+        "error": null
+      }
+    ],
+    "snapshot": {
+      "data/health_state/health_dm_delivery_status.json": {
+        "body_first_line": "BTS health CRITICAL alert(s):",
+        "body_sha256": "d3f1badf960d44716aa98997fa732d99ccdc9310ac682a16e0373f0bdf78e65a",
+        "critical_count": 2,
+        "recipient": "offline-recipient.example",
+        "recipient_configured": true,
+        "schema_version": "bts_health_dm_delivery_status_v1",
+        "sent_day": "2027-03-24",
+        "sent_sources": [
+          "CRITICAL:blend_training",
+          "CRITICAL:disk_fill"
+        ],
+        "status": "sent",
+        "updated_at": "2027-03-24T23:45:00+00:00",
+        "warn_attention_count": 0
+      },
+      "data/health_state/slate_auc_status.json": {
+        "computed_at": "2027-03-24",
+        "window_days": 60,
+        "n_days": 0,
+        "n_rows": 0,
+        "auc": null,
+        "reason": "insufficient_days"
+      },
+      "data/health_state/warn_attention_state.json": {
+        "schema_version": "bts_warn_attention_state_v1",
+        "sources": {}
+      },
+      "data/picks/2027-03-24/decision.json": {
+        "fixture_read_error": "'utf-8' codec can't decode byte 0xff in position 0: invalid start byte"
+      },
+      "data/picks/2027-03-24/scheduler_state.json": {
+        "date": "2027-03-24",
+        "schedule_fetched_at": "2027-03-24T17:01:00-04:00",
+        "games": [
+          {
+            "game_pk": 700,
+            "game_time_et": "2027-03-24T19:05:00-04:00",
+            "lineup_confirmed": false,
+            "is_doubleheader_game2": false
+          }
+        ],
+        "confirmed_game_pks": [],
+        "runs_completed": [],
+        "pick_locked": false,
+        "pick_locked_at": null,
+        "result_status": null,
+        "next_wakeup": null,
+        "analytics_jobs": {
+          "live_forward_capture": {
+            "status": "disabled",
+            "updated_at": "2027-03-24T16:05:00-04:00",
+            "reason": "live_forward_capture_on_lock=false"
+          }
+        },
+        "skip_summary": null,
+        "skip_notified_at": null,
+        "final_skip_candidate": null,
+        "committed_pick_written": true,
+        "delivery_refusals": null,
+        "fallback_refreshes": null
+      },
+      "data/picks/2027-03-24.json": {
+        "date": "2027-03-24",
+        "run_time": "2027-03-24T20:05:00+00:00",
+        "pick": {
+          "batter_name": "Fixture Batter 0",
+          "batter_id": 100,
+          "team": "T0",
+          "lineup_position": 1,
+          "pitcher_name": "Fixture Pitcher 0",
+          "pitcher_id": 900,
+          "p_game_hit": 0.97,
+          "flags": [],
+          "projected_lineup": false,
+          "game_pk": 700,
+          "game_time": "2027-03-24T23:05:00+00:00",
+          "pitcher_team": "U0"
+        },
+        "double_down": null,
+        "runner_up": null,
+        "bluesky_posted": false,
+        "bluesky_uri": null,
+        "notification_sent": true,
+        "notification_channel": "bluesky_dm",
+        "notification_id": "offline-dm-5",
+        "delivery_attempted": true,
+        "delivered_at": "2027-03-24T16:05:00-04:00",
+        "result": "hit",
+        "slot_results": {
+          "pick": "hit"
+        },
+        "shadow_model_version": null,
+        "model_git_sha": "d0bdcdba",
+        "model_pickle_sha256": null,
+        "policy_npz_sha256": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
+        "feature_env_schema_version": "bts_feature_env_v1",
+        "feature_env": {
+          "BTS_LGBM_DETERMINISTIC": "0",
+          "BTS_LGBM_RANDOM_STATE": "42",
+          "BTS_PITCHER_HR_30G_MIN_PERIODS": "7",
+          "BTS_ROOKIE_GATE_K": "20",
+          "BTS_USE_CALIBRATION": "0"
+        },
+        "feature_env_hash": "fb1841abbb3f269053f4687d291405c4c08ef1c9a87eda8f4f0663804b481ebe",
+        "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+        "policy_decision": {
+          "action": "single",
+          "policy_action": "double",
+          "source": "mdp",
+          "objective": "reach57",
+          "streak": 0,
+          "days_effective": 180,
+          "best_supplied": 0,
+          "best_status": "trusted",
+          "effective_best": null,
+          "tail_sha256": null,
+          "degraded_reason": null,
+          "reason": null,
+          "pick_bar": null,
+          "guard": null
+        },
+        "chosen_on": {
+          "schema": "bts_pick_chosen_on_v1",
+          "required": true,
+          "kind": "dated",
+          "streak": 0,
+          "saver_available": true,
+          "dated": {
+            "effective_date": "2027-03-24",
+            "active_streak": 0,
+            "best_streak": 0,
+            "saver_state": "not_earned"
+          }
+        },
+        "automatic_reading": null
+      },
+      "data/picks/account_state/contest_streak.manual.json": {
+        "active_streak": 0,
+        "best_streak": 0,
+        "effective_date": "2027-03-24",
+        "expires_at": "2027-03-24T23:59:59.999999-04:00",
+        "recorded_at": "2027-03-24T20:01:00Z",
+        "saver_state": "not_earned",
+        "schema_version": "bts_contest_streak_manual_v3",
+        "season": 2027,
+        "source": "manual_cli"
+      },
+      "data/picks/streak.json": {
+        "streak": 1,
+        "saver_available": true,
+        "updated": "2027-03-24T23:45:00+00:00",
+        "applied_dates": [
+          "2027-03-24"
+        ],
+        "season": 2027
+      }
+    }
+  },
+  {
+    "case": "wrong_account",
+    "events": [
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "cli",
+        "args": [
+          "set-contest-streak",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-cw_i5dzx/data/picks",
+          "--date",
+          "2027-03-24",
+          "--streak",
+          "0",
+          "--best-streak",
+          "0",
+          "--saver",
+          "not_earned"
+        ],
+        "code": 0,
+        "text": "Observation written at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-cw_i5dzx/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=0 best=0 saver=not_earned reason=None\ncontest_streak: 0 (best 0, saver not_earned) for 2027-03-24, in effect today\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS fetch-contest-streak failed: prior contest_streak.json is 'other-offline-account'/None, not session 'offline-account'/4242; refusing to overwrite"
+      },
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "cli",
+        "args": [
+          "fetch-contest-streak",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-cw_i5dzx/data/picks",
+          "--expected-username",
+          "offline-account",
+          "--dm-recipient",
+          "offline-recipient.example"
+        ],
+        "code": 2,
+        "text": "fetch-contest-streak: prior contest_streak.json is 'other-offline-account'/None, not session 'offline-account'/4242; refusing to overwrite\n",
+        "error": null
+      },
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "Today's pick: Fixture Batter 0 (T0)\nvs Fixture Pitcher 0 | 97.0%\n\nStreak: 0"
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-25"
+      },
+      {
+        "at": "2027-03-24T19:45:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS health CRITICAL alert(s):\n- [blend_training] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-cw_i5dzx/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n- [disk_fill] disk usage 95.6% (885.5/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-cw_i5dzx/data/picks"
+      },
+      {
+        "at": "2027-03-24T19:45:00-04:00",
+        "type": "idle",
+        "until": "2027-03-25T10:00:00-04:00"
+      },
+      {
+        "at": "2027-03-24T19:45:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-cw_i5dzx/orchestrator.toml"
+        ],
+        "code": 0,
+        "text": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[16:01 ET] Fetching schedule for 2027-03-24...\n  1 games, 3 scheduled checks:\n    16:05 ET \u2014 1 game(s)\n    17:05 ET \u2014 1 game(s)\n    18:05 ET \u2014 1 game(s)\n  Morning state check skipped: first lineup check is due within 10 minutes.\n  Sleeping until 16:05 ET (4 min)...\n\n[16:05 ET] Running lineup check...\n  2 new confirmed lineup(s). Running predictions...\n  Pick: Fixture Batter 0 (T0) 97.0% \u2192 should_lock=True\n  LOCKED (lineup) \u2014 Pick DM sent: offline-dm-7\n  Pick locked. Stopping lineup checks.\n  Tomorrow's wake-up: Thu 03-25 10:00 ET\n  Waiting until 19:15 ET (game start + 10min, 190 min)...\n  [19:15 ET] Games: 700: live\n  [19:30 ET] Games: 700: live\n  [19:45 ET] Games: 700: final\n  Result: hit. Streak: 1.\n  Day complete. Result: final\n[blend_training CRITICAL] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-cw_i5dzx/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n[disk_fill CRITICAL] disk usage 95.6% (885.5/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-cw_i5dzx/data/picks\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-24T17:01:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T17:01:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-24T17:05:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-25"
+      },
+      {
+        "at": "2027-03-24T17:05:00-04:00",
+        "type": "idle",
+        "until": "2027-03-25T10:00:00-04:00"
+      },
+      {
+        "at": "2027-03-24T17:05:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-cw_i5dzx/orchestrator.toml"
+        ],
+        "code": 0,
+        "text": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[17:01 ET] Fetching schedule for 2027-03-24...\n  1 games, 2 scheduled checks:\n    17:05 ET \u2014 1 game(s)\n    18:05 ET \u2014 1 game(s)\n  Sleeping until 17:05 ET (4 min)...\n\n[17:05 ET] Running lineup check...\n  Pick already committed (scoreable decision on disk) \u2014 skipping cascade.\n  Pick already locked (game started or previously delivered).\n  Pick locked. Stopping lineup checks.\n  Tomorrow's wake-up: Thu 03-25 10:00 ET\n[blend_training CRITICAL] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-cw_i5dzx/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n[disk_fill CRITICAL] disk usage 95.6% (885.5/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-cw_i5dzx/data/picks\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS day check 2027-03-24: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown. Pick: Fixture Batter 0."
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "cli",
+        "args": [
+          "day-outcome",
+          "--date",
+          "2027-03-24",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-cw_i5dzx/orchestrator.toml",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-cw_i5dzx/data/picks",
+          "--expected-username",
+          "offline-account",
+          "--dm-recipient",
+          "offline-recipient.example"
+        ],
+        "code": 1,
+        "text": "{\"date\": \"2027-03-24\", \"state\": \"entry_unverifiable\", \"ok\": false, \"detail\": \"No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown.\", \"pick\": \"Fixture Batter 0\", \"streak_problem\": null}\n",
+        "error": null
+      }
+    ],
+    "snapshot": {
+      "data/health_state/contest_streak_fetch_status.json": {
+        "last_alert_at": "2027-03-24T20:01:00Z",
+        "last_alert_at_by_category": {
+          "actionable": "2027-03-24T20:01:00Z"
+        },
+        "last_error": "prior contest_streak.json is 'other-offline-account'/None, not session 'offline-account'/4242; refusing to overwrite",
+        "last_error_at": "2027-03-24T20:01:00Z",
+        "last_error_category": "actionable"
+      },
+      "data/health_state/health_dm_delivery_status.json": {
+        "body_first_line": "BTS health CRITICAL alert(s):",
+        "body_sha256": "851e2ea5029e17f82c8480bd67f0fc44c11ade6fe171f5ce184c1045743d33c0",
+        "critical_count": 2,
+        "recipient": "offline-recipient.example",
+        "recipient_configured": true,
+        "schema_version": "bts_health_dm_delivery_status_v1",
+        "sent_day": "2027-03-24",
+        "sent_sources": [
+          "CRITICAL:blend_training",
+          "CRITICAL:disk_fill"
+        ],
+        "status": "sent",
+        "updated_at": "2027-03-24T23:45:00+00:00",
+        "warn_attention_count": 0
+      },
+      "data/health_state/slate_auc_status.json": {
+        "computed_at": "2027-03-24",
+        "window_days": 60,
+        "n_days": 0,
+        "n_rows": 0,
+        "auc": null,
+        "reason": "insufficient_days"
+      },
+      "data/health_state/warn_attention_state.json": {
+        "schema_version": "bts_warn_attention_state_v1",
+        "sources": {}
+      },
+      "data/picks/2027-03-24/decision.json": {
+        "schema_version": "bts_daily_decision_v3",
+        "date": "2027-03-24",
+        "action": "single",
+        "source": "mdp",
+        "primary": {
+          "batter_id": 100,
+          "batter_name": "Fixture Batter 0",
+          "team": "T0",
+          "game_pk": 700,
+          "p_game_hit": 0.97
+        },
+        "double_down": null,
+        "second_candidate": null,
+        "streak": 0,
+        "saver_available": true,
+        "state_source": "contest",
+        "state_status": "fresh",
+        "allow_double": true,
+        "contest_source_date": "2027-03-24",
+        "delivery_status": "delivered",
+        "scoreable": true,
+        "objective": "reach57",
+        "best_streak": 0,
+        "best_status": "trusted",
+        "effective_best": null,
+        "tail_policy_sha256": null,
+        "degraded_reason": null,
+        "policy_guard": null,
+        "finalized_at": "2027-03-24T20:05:00Z"
+      },
+      "data/picks/2027-03-24/scheduler_state.json": {
+        "date": "2027-03-24",
+        "schedule_fetched_at": "2027-03-24T17:01:00-04:00",
+        "games": [
+          {
+            "game_pk": 700,
+            "game_time_et": "2027-03-24T19:05:00-04:00",
+            "lineup_confirmed": true,
+            "is_doubleheader_game2": false
+          }
+        ],
+        "confirmed_game_pks": [
+          700
+        ],
+        "runs_completed": [
+          {
+            "time": "2027-03-24T17:05:00-04:00",
+            "new_lineups": 2,
+            "skipped": false,
+            "pick_name": "Fixture Batter 0",
+            "pick_p": 0.97,
+            "duration_sec": 0.0
+          }
+        ],
+        "pick_locked": true,
+        "pick_locked_at": "2027-03-24T17:05:00-04:00",
+        "result_status": null,
+        "next_wakeup": "2027-03-25T10:00:00-04:00",
+        "analytics_jobs": {
+          "live_forward_capture": {
+            "status": "disabled",
+            "updated_at": "2027-03-24T16:05:00-04:00",
+            "reason": "live_forward_capture_on_lock=false"
+          }
+        },
+        "skip_summary": null,
+        "skip_notified_at": null,
+        "final_skip_candidate": null,
+        "committed_pick_written": true,
+        "delivery_refusals": null,
+        "fallback_refreshes": null
+      },
+      "data/picks/2027-03-24.json": {
+        "date": "2027-03-24",
+        "run_time": "2027-03-24T20:05:00+00:00",
+        "pick": {
+          "batter_name": "Fixture Batter 0",
+          "batter_id": 100,
+          "team": "T0",
+          "lineup_position": 1,
+          "pitcher_name": "Fixture Pitcher 0",
+          "pitcher_id": 900,
+          "p_game_hit": 0.97,
+          "flags": [],
+          "projected_lineup": false,
+          "game_pk": 700,
+          "game_time": "2027-03-24T23:05:00+00:00",
+          "pitcher_team": "U0"
+        },
+        "double_down": null,
+        "runner_up": null,
+        "bluesky_posted": false,
+        "bluesky_uri": null,
+        "notification_sent": true,
+        "notification_channel": "bluesky_dm",
+        "notification_id": "offline-dm-7",
+        "delivery_attempted": true,
+        "delivered_at": "2027-03-24T16:05:00-04:00",
+        "result": "hit",
+        "slot_results": {
+          "pick": "hit"
+        },
+        "shadow_model_version": null,
+        "model_git_sha": "d0bdcdba",
+        "model_pickle_sha256": null,
+        "policy_npz_sha256": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
+        "feature_env_schema_version": "bts_feature_env_v1",
+        "feature_env": {
+          "BTS_LGBM_DETERMINISTIC": "0",
+          "BTS_LGBM_RANDOM_STATE": "42",
+          "BTS_PITCHER_HR_30G_MIN_PERIODS": "7",
+          "BTS_ROOKIE_GATE_K": "20",
+          "BTS_USE_CALIBRATION": "0"
+        },
+        "feature_env_hash": "fb1841abbb3f269053f4687d291405c4c08ef1c9a87eda8f4f0663804b481ebe",
+        "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+        "policy_decision": {
+          "action": "single",
+          "policy_action": "double",
+          "source": "mdp",
+          "objective": "reach57",
+          "streak": 0,
+          "days_effective": 180,
+          "best_supplied": 0,
+          "best_status": "trusted",
+          "effective_best": null,
+          "tail_sha256": null,
+          "degraded_reason": null,
+          "reason": null,
+          "pick_bar": null,
+          "guard": null
+        },
+        "chosen_on": {
+          "schema": "bts_pick_chosen_on_v1",
+          "required": true,
+          "kind": "dated",
+          "streak": 0,
+          "saver_available": true,
+          "dated": {
+            "effective_date": "2027-03-24",
+            "active_streak": 0,
+            "best_streak": 0,
+            "saver_state": "not_earned"
+          }
+        },
+        "automatic_reading": null
+      },
+      "data/picks/account_state/contest_streak.json": {
+        "username": "other-offline-account"
+      },
+      "data/picks/account_state/contest_streak.manual.json": {
+        "active_streak": 0,
+        "best_streak": 0,
+        "effective_date": "2027-03-24",
+        "expires_at": "2027-03-24T23:59:59.999999-04:00",
+        "recorded_at": "2027-03-24T20:01:00Z",
+        "saver_state": "not_earned",
+        "schema_version": "bts_contest_streak_manual_v3",
+        "season": 2027,
+        "source": "manual_cli"
+      },
+      "data/picks/streak.json": {
+        "streak": 1,
+        "saver_available": true,
+        "updated": "2027-03-24T23:45:00+00:00",
+        "applied_dates": [
+          "2027-03-24"
+        ],
+        "season": 2027
+      }
+    }
+  },
+  {
+    "case": "schedule_top",
+    "events": [
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-5_qj27_l/orchestrator.toml"
+        ],
+        "code": 1,
+        "text": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[16:01 ET] Fetching schedule for 2027-03-24...\n",
+        "error": "ValueError('MLB schedule dates must be a list')"
+      },
+      {
+        "at": "2027-03-24T17:01:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T17:01:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-5_qj27_l/orchestrator.toml"
+        ],
+        "code": 1,
+        "text": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[17:01 ET] Fetching schedule for 2027-03-24...\n",
+        "error": "ValueError('MLB schedule dates must be a list')"
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS day check 2027-03-24: SCHEDULE UNVERIFIABLE. The schedule could not be read, so whether a pick was due is unknown."
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "cli",
+        "args": [
+          "day-outcome",
+          "--date",
+          "2027-03-24",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-5_qj27_l/orchestrator.toml",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-5_qj27_l/data/picks",
+          "--expected-username",
+          "offline-account",
+          "--dm-recipient",
+          "offline-recipient.example"
+        ],
+        "code": 1,
+        "text": "{\"date\": \"2027-03-24\", \"state\": \"schedule_unverifiable\", \"ok\": false, \"detail\": \"The schedule could not be read, so whether a pick was due is unknown.\", \"pick\": null, \"streak_problem\": null}\n",
+        "error": null
+      }
+    ],
+    "snapshot": {}
+  },
+  {
+    "case": "schedule_missing_time",
+    "events": [
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T16:01:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-igqxexzg/orchestrator.toml"
+        ],
+        "code": 1,
+        "text": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[16:01 ET] Fetching schedule for 2027-03-24...\n",
+        "error": "KeyError('gameDate')"
+      },
+      {
+        "at": "2027-03-24T17:01:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T17:01:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-igqxexzg/orchestrator.toml"
+        ],
+        "code": 1,
+        "text": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[17:01 ET] Fetching schedule for 2027-03-24...\n",
+        "error": "KeyError('gameDate')"
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS day check 2027-03-24: NO DECISION. 1 games were scheduled and the day has no decision record: no pick was committed and no skip was decided."
+      },
+      {
+        "at": "2027-03-25T08:30:00-04:00",
+        "type": "cli",
+        "args": [
+          "day-outcome",
+          "--date",
+          "2027-03-24",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-igqxexzg/orchestrator.toml",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-refusal-igqxexzg/data/picks",
+          "--expected-username",
+          "offline-account",
+          "--dm-recipient",
+          "offline-recipient.example"
+        ],
+        "code": 1,
+        "text": "{\"date\": \"2027-03-24\", \"state\": \"no_decision\", \"ok\": false, \"detail\": \"1 games were scheduled and the day has no decision record: no pick was committed and no skip was decided.\", \"pick\": null, \"streak_problem\": null}\n",
+        "error": null
+      }
+    ],
+    "snapshot": {}
+  },
+  {
+    "case": "B7",
+    "events": [
+      {
+        "at": "2027-03-24T07:45:00-04:00",
+        "type": "cli",
+        "args": [
+          "park-drag-refresh",
+          "--root",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-park-a6aht9o5/drag"
+        ],
+        "code": 1,
+        "text": "{\"ok\": false, \"started_at\": \"2027-03-24T11:45:00\", \"error\": \"store season 2026 is behind 2027 \\u2014 reseed for the new season\", \"finished_at\": \"2027-03-24T11:45:00\"}\n",
+        "error": null
+      },
+      {
+        "at": "2027-03-24T07:45:00-04:00",
+        "type": "cli",
+        "args": [
+          "park-drag-refresh",
+          "--root",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-park-a6aht9o5/drag"
+        ],
+        "code": 1,
+        "text": "{\"ok\": false, \"started_at\": \"2027-03-24T11:45:00\", \"error\": \"cannot convert float NaN to integer\", \"finished_at\": \"2027-03-24T11:45:00\"}\n",
+        "error": null
+      }
+    ],
+    "snapshot": {}
+  }
+]

@@ -1,0 +1,50 @@
+PROBE 3 PASS: {
+  "cron_setup_and_flags": {
+    "research": {
+      "cron_line_count": 18,
+      "verified_cli_commands": 20,
+      "dm_capable_lines": [
+        {
+          "schedule": "30 8 * * *",
+          "cmd": "bts day-outcome --date 2027-07-14 --config /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wr2_probe3_d_kk17jh/c1/home_research/.bts-orchestrator.toml --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social"
+        }
+      ]
+    },
+    "enter": {
+      "cron_line_count": 19,
+      "verified_cli_commands": 21,
+      "dm_capable_lines": [
+        {
+          "schedule": "10 1 * * *",
+          "cmd": "bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social"
+        },
+        {
+          "schedule": "10 2 * * *",
+          "cmd": "bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social"
+        },
+        {
+          "schedule": "30 10 * * *",
+          "cmd": "bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social"
+        },
+        {
+          "schedule": "30 13 * * *",
+          "cmd": "bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social"
+        },
+        {
+          "schedule": "30 8 * * *",
+          "cmd": "bts day-outcome --date 2027-07-14 --config /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wr2_probe3_d_kk17jh/c1/home_enter/.bts-orchestrator.toml --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social"
+        },
+        {
+          "schedule": "*/15 * * * *",
+          "cmd": "bts check-pick-entered --cron --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social"
+        }
+      ]
+    }
+  },
+  "timing_and_collisions": {
+    "rollover_10am_heartbeat_collision": false,
+    "early_watchdog_cutoff_boundary_verified": true,
+    "fetch_cadence_age_at_10am_hours": 7.83,
+    "missed_overnight_fetches_age_at_10am_hours": 20.5
+  }
+}

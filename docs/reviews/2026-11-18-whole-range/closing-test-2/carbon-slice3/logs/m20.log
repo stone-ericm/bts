@@ -1,0 +1,37 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-carbon3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_wr_f1b_carbon_regressions.py F                                [100%]
+
+=================================== FAILURES ===================================
+_ test_dm_failed_after_wrong_game_and_present_unverified_keeps_consumed_wrong_game_tier _
+
+    def test_dm_failed_after_wrong_game_and_present_unverified_keeps_consumed_wrong_game_tier():
+        """Pins cli.py:2263 (`if prior_wrong_game or reason == "wrong_game":`) when removal initial DM fails."""
+        with tempfile.TemporaryDirectory() as td:
+            w = World(Path(td))
+            w.commit(pitch=PITCH)
+            w.capture([WRONG])
+            assert w.check("18:30", MATCH)["marker"]["escalations"] == ["wrong_game"]
+    
+            # Bridge through present_unverified so was_alerted becomes False
+            assert w.check("18:40", MATCH, crosswalk={})["marker"]["status"] == "present_unverified"
+    
+            # Operator removes entry and initial DM fails -> writes dm_failed, MUST preserve escalations=["wrong_game"]!
+            r3 = w.check("18:45", [], dm="failure")
+            assert r3["exit"] == 1
+            assert r3["marker"]["status"] == "dm_failed"
+            assert r3["marker"]["reason"] == "no_pick"
+            assert r3["marker"]["game_unresolved"] is True
+>           assert r3["marker"]["escalations"] == ["wrong_game"]
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'escalations'
+
+tests/test_wr_f1b_carbon_regressions.py:53: KeyError
+=========================== short test summary info ============================
+FAILED tests/test_wr_f1b_carbon_regressions.py::test_dm_failed_after_wrong_game_and_present_unverified_keeps_consumed_wrong_game_tier
+============================== 1 failed in 0.33s ===============================

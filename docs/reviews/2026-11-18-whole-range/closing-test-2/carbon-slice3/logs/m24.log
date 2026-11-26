@@ -1,0 +1,131 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-carbon3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 7 items
+
+tests/test_day_outcome.py FFFFFFF                                        [100%]
+
+=================================== FAILURES ===================================
+_ test_batter_match_with_other_qualification_states_stays_unverifiable[missing] _
+
+state = 'missing'
+
+    @pytest.mark.parametrize("state", ["missing", "player_unverified", "ambiguous", "wrong_round", "wrong_game",
+                                        "unsupported_duplicate_selection", "unknown"])
+    def test_batter_match_with_other_qualification_states_stays_unverifiable(state):
+        rec = _batter_only_receipt()
+        rec["qualification"]["slots"].append({"state": state})
+>       assert _classify(receipts=[rec]).state == "entry_unverifiable"
+E       AssertionError: assert 'entered_game_unverified' == 'entry_unverifiable'
+E         
+E         - entry_unverifiable
+E         + entered_game_unverified
+
+tests/test_day_outcome.py:309: AssertionError
+_ test_batter_match_with_other_qualification_states_stays_unverifiable[player_unverified] _
+
+state = 'player_unverified'
+
+    @pytest.mark.parametrize("state", ["missing", "player_unverified", "ambiguous", "wrong_round", "wrong_game",
+                                        "unsupported_duplicate_selection", "unknown"])
+    def test_batter_match_with_other_qualification_states_stays_unverifiable(state):
+        rec = _batter_only_receipt()
+        rec["qualification"]["slots"].append({"state": state})
+>       assert _classify(receipts=[rec]).state == "entry_unverifiable"
+E       AssertionError: assert 'entered_game_unverified' == 'entry_unverifiable'
+E         
+E         - entry_unverifiable
+E         + entered_game_unverified
+
+tests/test_day_outcome.py:309: AssertionError
+_ test_batter_match_with_other_qualification_states_stays_unverifiable[ambiguous] _
+
+state = 'ambiguous'
+
+    @pytest.mark.parametrize("state", ["missing", "player_unverified", "ambiguous", "wrong_round", "wrong_game",
+                                        "unsupported_duplicate_selection", "unknown"])
+    def test_batter_match_with_other_qualification_states_stays_unverifiable(state):
+        rec = _batter_only_receipt()
+        rec["qualification"]["slots"].append({"state": state})
+>       assert _classify(receipts=[rec]).state == "entry_unverifiable"
+E       AssertionError: assert 'entered_game_unverified' == 'entry_unverifiable'
+E         
+E         - entry_unverifiable
+E         + entered_game_unverified
+
+tests/test_day_outcome.py:309: AssertionError
+_ test_batter_match_with_other_qualification_states_stays_unverifiable[wrong_round] _
+
+state = 'wrong_round'
+
+    @pytest.mark.parametrize("state", ["missing", "player_unverified", "ambiguous", "wrong_round", "wrong_game",
+                                        "unsupported_duplicate_selection", "unknown"])
+    def test_batter_match_with_other_qualification_states_stays_unverifiable(state):
+        rec = _batter_only_receipt()
+        rec["qualification"]["slots"].append({"state": state})
+>       assert _classify(receipts=[rec]).state == "entry_unverifiable"
+E       AssertionError: assert 'entered_game_unverified' == 'entry_unverifiable'
+E         
+E         - entry_unverifiable
+E         + entered_game_unverified
+
+tests/test_day_outcome.py:309: AssertionError
+_ test_batter_match_with_other_qualification_states_stays_unverifiable[wrong_game] _
+
+state = 'wrong_game'
+
+    @pytest.mark.parametrize("state", ["missing", "player_unverified", "ambiguous", "wrong_round", "wrong_game",
+                                        "unsupported_duplicate_selection", "unknown"])
+    def test_batter_match_with_other_qualification_states_stays_unverifiable(state):
+        rec = _batter_only_receipt()
+        rec["qualification"]["slots"].append({"state": state})
+>       assert _classify(receipts=[rec]).state == "entry_unverifiable"
+E       AssertionError: assert 'entered_game_unverified' == 'entry_unverifiable'
+E         
+E         - entry_unverifiable
+E         + entered_game_unverified
+
+tests/test_day_outcome.py:309: AssertionError
+_ test_batter_match_with_other_qualification_states_stays_unverifiable[unsupported_duplicate_selection] _
+
+state = 'unsupported_duplicate_selection'
+
+    @pytest.mark.parametrize("state", ["missing", "player_unverified", "ambiguous", "wrong_round", "wrong_game",
+                                        "unsupported_duplicate_selection", "unknown"])
+    def test_batter_match_with_other_qualification_states_stays_unverifiable(state):
+        rec = _batter_only_receipt()
+        rec["qualification"]["slots"].append({"state": state})
+>       assert _classify(receipts=[rec]).state == "entry_unverifiable"
+E       AssertionError: assert 'entered_game_unverified' == 'entry_unverifiable'
+E         
+E         - entry_unverifiable
+E         + entered_game_unverified
+
+tests/test_day_outcome.py:309: AssertionError
+_ test_batter_match_with_other_qualification_states_stays_unverifiable[unknown] _
+
+state = 'unknown'
+
+    @pytest.mark.parametrize("state", ["missing", "player_unverified", "ambiguous", "wrong_round", "wrong_game",
+                                        "unsupported_duplicate_selection", "unknown"])
+    def test_batter_match_with_other_qualification_states_stays_unverifiable(state):
+        rec = _batter_only_receipt()
+        rec["qualification"]["slots"].append({"state": state})
+>       assert _classify(receipts=[rec]).state == "entry_unverifiable"
+E       AssertionError: assert 'entered_game_unverified' == 'entry_unverifiable'
+E         
+E         - entry_unverifiable
+E         + entered_game_unverified
+
+tests/test_day_outcome.py:309: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_day_outcome.py::test_batter_match_with_other_qualification_states_stays_unverifiable[missing]
+FAILED tests/test_day_outcome.py::test_batter_match_with_other_qualification_states_stays_unverifiable[player_unverified]
+FAILED tests/test_day_outcome.py::test_batter_match_with_other_qualification_states_stays_unverifiable[ambiguous]
+FAILED tests/test_day_outcome.py::test_batter_match_with_other_qualification_states_stays_unverifiable[wrong_round]
+FAILED tests/test_day_outcome.py::test_batter_match_with_other_qualification_states_stays_unverifiable[wrong_game]
+FAILED tests/test_day_outcome.py::test_batter_match_with_other_qualification_states_stays_unverifiable[unsupported_duplicate_selection]
+FAILED tests/test_day_outcome.py::test_batter_match_with_other_qualification_states_stays_unverifiable[unknown]
+============================== 7 failed in 0.25s ===============================

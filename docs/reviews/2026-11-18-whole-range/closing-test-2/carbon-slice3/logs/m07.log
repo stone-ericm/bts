@@ -1,0 +1,62 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-carbon3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 2 items
+
+tests/test_wr_h_longest.py FF                                            [100%]
+
+=================================== FAILURES ===================================
+__________________ test_r1_healthy_paired_base_can_double[1] ___________________
+
+artifact = {'base_error': None, 'base_sha256': '66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4', 'boundaries': ...     [0, 0, 0, 0, 0]],
+
+        [[0, 0, 0, 0, 0],
+         [0, 0, 0, 0, 0]]]], shape=(58, 181, 2, 5), dtype=int8), ...}
+rebound_policy = <function rebound_policy.<locals>.prepare at 0x10c27ad40>
+horizon = 1
+
+    @pytest.mark.parametrize("horizon", [1, 180])
+    def test_r1_healthy_paired_base_can_double(artifact, rebound_policy, horizon):
+        policy = rebound_policy(season_length=np.array(horizon),
+                                policy_table=artifact["policy_table"][:, :horizon + 1])
+        ctx = strategy.DecisionContext(.84, .83, True, "2027-09-26", True, policy,
+                                       BOUNDARY, "trusted")
+        decision = strategy.resolve_policy_decision(ctx, BOUNDARY, False)
+>       assert (decision.action, decision.tail_sha256, decision.degraded_reason) == (
+            "double", policy["tail"].sha256, None)
+E       AssertionError: assert ('single', '8...ec8e91', None) == ('double', '8...ec8e91', None)
+E         
+E         At index 0 diff: 'single' != 'double'
+E         Use -v to get more diff
+
+tests/test_wr_h_longest.py:348: AssertionError
+_________________ test_r1_healthy_paired_base_can_double[180] __________________
+
+artifact = {'base_error': None, 'base_sha256': '66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4', 'boundaries': ...     [0, 0, 0, 0, 0]],
+
+        [[0, 0, 0, 0, 0],
+         [0, 0, 0, 0, 0]]]], shape=(58, 181, 2, 5), dtype=int8), ...}
+rebound_policy = <function rebound_policy.<locals>.prepare at 0x10c206200>
+horizon = 180
+
+    @pytest.mark.parametrize("horizon", [1, 180])
+    def test_r1_healthy_paired_base_can_double(artifact, rebound_policy, horizon):
+        policy = rebound_policy(season_length=np.array(horizon),
+                                policy_table=artifact["policy_table"][:, :horizon + 1])
+        ctx = strategy.DecisionContext(.84, .83, True, "2027-09-26", True, policy,
+                                       BOUNDARY, "trusted")
+        decision = strategy.resolve_policy_decision(ctx, BOUNDARY, False)
+>       assert (decision.action, decision.tail_sha256, decision.degraded_reason) == (
+            "double", policy["tail"].sha256, None)
+E       AssertionError: assert ('single', 'd...f949f4', None) == ('double', 'd...f949f4', None)
+E         
+E         At index 0 diff: 'single' != 'double'
+E         Use -v to get more diff
+
+tests/test_wr_h_longest.py:348: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_h_longest.py::test_r1_healthy_paired_base_can_double[1]
+FAILED tests/test_wr_h_longest.py::test_r1_healthy_paired_base_can_double[180]
+============================== 2 failed in 0.27s ===============================

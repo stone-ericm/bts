@@ -1,0 +1,34 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-carbon3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_wr_f1_review.py F                                             [100%]
+
+=================================== FAILURES ===================================
+________________________ test_m13_partial_double_proof _________________________
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2640/test_m13_partial_double_proof0')
+
+    def test_m13_partial_double_proof(tmp_path):
+        world = World(tmp_path)
+        world.commit(pitch=PITCH, dd=(1020, 201, PITCH))
+        second = {"id": 78, "roundId": 1, "feedId": 201}
+        both = [row(), row(78, 2, 2)]
+        world.capture([WRONG, second])
+        world.check("18:30", both, dm="failure")
+        world.check("18:40", both, crosswalk={})
+        world.capture([RIGHT, {**second, "feedId": None}])
+        partial = world.check("18:45", both)
+        assert [slot["state"] for slot in partial["receipts"][-1]["qualification"]["slots"]] == [
+            "confirmed", "unit_unverified"
+        ]
+>       assert partial["exit"] == 1
+E       assert 0 == 1
+
+tests/test_wr_f1_review.py:55: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_f1_review.py::test_m13_partial_double_proof - assert 0 == 1
+============================== 1 failed in 0.34s ===============================

@@ -1,0 +1,34 @@
+nice: setpriority: Operation not permitted
+01/33 killed: tests/test_wr_g_guard.py::test_lookup_edge_shapes
+02/33 killed: tests/test_wr_g_guard.py::test_malformed_donor_cells
+03/33 killed: tests/test_wr_g_guard.py::test_malformed_queried_cell
+04/33 killed: tests/test_wr_g_guard.py::test_guard_journal
+05/33 killed: tests/test_wr_g_guard.py::test_decision_round_trip_and_skip_predicate
+06/33 killed: tests/test_wr_h_longest.py::test_h1_h2_h3_resolver_grid
+07/33 killed: tests/test_wr_h_longest.py::test_h6_display_before_artifacts
+08/33 killed: tests/test_wr_h_longest.py::test_h7_finalized_decision
+09/33 killed: tests/test_wr_h_longest.py::test_positive_day_rule_selects_a_play_at_exact_ties
+10/33 killed: tests/test_wr_h_longest.py::test_clamped_double_persists_both_actions
+11/33 killed: tests/test_wr_h_longest.py::test_r1_malformed_paired_base_forces_single
+12/33 killed: tests/test_wr_h2_caps.py::test_m2_switched_fetch_trusts_high_best
+13/33 killed: tests/test_wr_h2_caps.py::test_m3_dated_high_best
+14/33 killed: tests/test_wr_h2_caps.py::test_m4_required_pick_survives_reload
+15/33 killed: tests/test_wr_h2_caps.py::test_k4_automatic_reads
+16/33 killed: tests/test_wr_h2_caps.py::test_k5_fetch_validation
+17/33 killed: tests/test_wr_h2_caps.py::test_k6_dated_cli_rejects_before_writes
+18/33 killed: tests/test_wr_f1_wrong_game.py::test_m1_missing_then_wrong_game
+19/33 killed: tests/test_wr_f1_wrong_game.py::test_m3_only_wrong_double_down_leg_is_named
+20/33 killed: tests/test_wr_f1_wrong_game.py::test_m10_raising_read_confirms_batter_only
+21/33 killed: tests/test_wr_f1_wrong_game.py::test_n10_full_proof_clears_warning
+22/33 killed: tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery
+23/33 killed: tests/test_wr_f2_saver_flag.py::test_m3_after_midnight_uses_processed_season_and_current_files
+24/33 killed: tests/test_wr_f2_saver_flag.py::test_existing_digest_sends_first_and_stays_below_chat_limit
+25/33 killed: tests/test_wr_f2_saver_flag.py::test_failed_send_and_interrupt_before_status_can_retry
+26/33 baseline did not pass: tests/test_wr_f4_streak_file.py::test_m2_bad_contents
+27/33 baseline did not pass: tests/test_wr_f4_streak_file.py::test_k4_decoder_limits_preserve_no_decision
+28/33 baseline did not pass: tests/test_wr_f4_streak_file.py::test_k3_compact_dm
+29/33 baseline did not pass: tests/test_wr_f4_streak_file.py::test_k1_dangling_symlink
+30/33 killed: tests/test_streak_season_cs2.py::test_row3_tagless_three_starts_at_one_instead_of_carrying_over
+31/33 killed: .codex-review/whole-range/test_offline_contracts.py::test_skip_with_corrected_dated_read
+32/33 killed: .codex-review/whole-range/test_offline_contracts.py::test_early_window_stays_open_until_the_real_cutoff
+33/33 killed: .codex-review/whole-range/test_offline_contracts.py::test_early_run_defers_for_original_slot

@@ -1,0 +1,35 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-carbon3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_wr_h2_caps.py F                                               [100%]
+
+=================================== FAILURES ===================================
+___________________ test_k6_dated_cli_rejects_before_writes ____________________
+
+live = (PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2637/test_k6_dated_cli_reje...t_state_required': True, 'entry_intent': 'enter', 'pick_delivery': 'dm'}, ...}, [70000, 70001], <Mock id='4580717296'>)
+
+    def test_k6_dated_cli_rejects_before_writes(live):
+        directory, _, _, _ = live
+        cli_args = ["set-contest-streak", "--picks-dir", str(directory)]
+        for active, best, day, extra in (
+            ("12", "11", DAY, []), ("-1", "12", DAY, []), ("57", "401", DAY, []),
+            ("12", "12", DAY - timedelta(days=1), []), ("12", "12", DAY, ["--ttl-hours", "1"]),
+            ("12", None, DAY, []),
+        ):
+            args = [*cli_args, "--date", str(day), "--streak", active, "--saver", "used"]
+            if best is not None:
+                args.extend(["--best-streak", best])
+            result = CliRunner().invoke(cli.cli, args + extra, standalone_mode=False)
+>           assert type(result.exception) is BadParameter
+E           AssertionError: assert <class 'bts.contest_state.ContestStateError'> is BadParameter
+E            +  where <class 'bts.contest_state.ContestStateError'> = type(ContestStateError('dated contest observation invalid at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytes...o0/picks/account_state/contest_streak.manual.json: check 6, best_streak: must be an integer from active_streak to 400'))
+E            +    where ContestStateError('dated contest observation invalid at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytes...o0/picks/account_state/contest_streak.manual.json: check 6, best_streak: must be an integer from active_streak to 400') = <Result ContestStateError('dated contest observation invalid at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn...0/picks/account_state/contest_streak.manual.json: check 6, best_streak: must be an integer from active_streak to 400')>.exception
+
+tests/test_wr_h2_caps.py:281: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_h2_caps.py::test_k6_dated_cli_rejects_before_writes - As...
+============================== 1 failed in 0.33s ===============================

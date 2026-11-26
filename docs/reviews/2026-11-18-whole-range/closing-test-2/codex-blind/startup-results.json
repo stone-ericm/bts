@@ -1,0 +1,1134 @@
+[
+  {
+    "live": false,
+    "required": false,
+    "intent": "research",
+    "events": [
+      {
+        "at": "2027-03-24T10:00:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T10:00:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-25"
+      },
+      {
+        "at": "2027-03-24T19:45:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS health CRITICAL alert(s):\n- [blend_training] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-z0gjwn97/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n- [disk_fill] disk usage 95.6% (885.5/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-z0gjwn97/data/picks"
+      },
+      {
+        "at": "2027-03-24T19:45:00-04:00",
+        "type": "idle",
+        "until": "2027-03-25T10:00:00-04:00"
+      },
+      {
+        "at": "2027-03-24T19:45:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-z0gjwn97/orchestrator.toml"
+        ],
+        "code": 0,
+        "text": "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.\n[10:00 ET] Fetching schedule for 2027-03-24...\n  1 games, 3 scheduled checks:\n    16:05 ET \u2014 1 game(s)\n    17:05 ET \u2014 1 game(s)\n    18:05 ET \u2014 1 game(s)\n  Sleeping until 16:05 ET (365 min)...\n\n[16:05 ET] Running lineup check...\n  2 new confirmed lineup(s). Running predictions...\n  Pick: Fixture Batter 0 (T0) 97.0% \u2192 should_lock=True\n  [PRIVATE] LOCKED (lineup) \u2014 Fixture Batter 0 (T0) 97.0% \u2014 NOT delivered\n  Pick locked. Stopping lineup checks.\n  Tomorrow's wake-up: Thu 03-25 10:00 ET\n  Waiting until 19:15 ET (game start + 10min, 190 min)...\n  [19:15 ET] Games: 700: live\n  [19:30 ET] Games: 700: live\n  [19:45 ET] Games: 700: final\n  Result: hit. Streak: 1.\n  Day complete. Result: final\n[blend_training CRITICAL] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-z0gjwn97/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n[disk_fill CRITICAL] disk usage 95.6% (885.5/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-z0gjwn97/data/picks\n",
+        "error": "None"
+      }
+    ],
+    "snapshot": {
+      "data/health_state/contest_streak_fetch_status.json": {
+        "last_error": null,
+        "last_success_at": "2026-09-27T14:00:00Z"
+      },
+      "data/health_state/health_dm_delivery_status.json": {
+        "body_first_line": "BTS health CRITICAL alert(s):",
+        "body_sha256": "a27477c865f4be66ce968392260849a980055d5a681e0aeddca9b66304c3acc5",
+        "critical_count": 2,
+        "recipient": "offline-recipient.example",
+        "recipient_configured": true,
+        "schema_version": "bts_health_dm_delivery_status_v1",
+        "sent_day": "2027-03-24",
+        "sent_sources": [
+          "CRITICAL:blend_training",
+          "CRITICAL:disk_fill"
+        ],
+        "status": "sent",
+        "updated_at": "2027-03-24T23:45:00+00:00",
+        "warn_attention_count": 0
+      },
+      "data/health_state/slate_auc_status.json": {
+        "computed_at": "2027-03-24",
+        "window_days": 60,
+        "n_days": 0,
+        "n_rows": 0,
+        "auc": null,
+        "reason": "insufficient_days"
+      },
+      "data/health_state/warn_attention_state.json": {
+        "schema_version": "bts_warn_attention_state_v1",
+        "sources": {}
+      },
+      "data/picks/2026-09-27/decision.json": {
+        "schema_version": "bts_daily_decision_v3",
+        "date": "2026-09-27",
+        "action": "single",
+        "source": "mdp",
+        "primary": {
+          "batter_id": 100,
+          "batter_name": "Fixture Batter 0",
+          "team": "T0",
+          "game_pk": 700,
+          "p_game_hit": 0.97
+        },
+        "double_down": null,
+        "second_candidate": null,
+        "streak": 16,
+        "saver_available": true,
+        "state_source": "contest",
+        "state_status": "fresh",
+        "allow_double": true,
+        "contest_source_date": "2026-09-27",
+        "delivery_status": "private_locked",
+        "scoreable": true,
+        "objective": "emax_season_best",
+        "best_streak": 16,
+        "best_status": "trusted",
+        "effective_best": 16,
+        "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+        "degraded_reason": null,
+        "finalized_at": "2026-09-27T22:05:00Z"
+      },
+      "data/picks/2026-09-27/scheduler_state.json": {
+        "date": "2026-09-27",
+        "schedule_fetched_at": "2026-09-27T10:00:00-04:00",
+        "games": [
+          {
+            "game_pk": 700,
+            "game_time_et": "2026-09-27T19:05:00-04:00",
+            "lineup_confirmed": true,
+            "is_doubleheader_game2": false
+          }
+        ],
+        "confirmed_game_pks": [
+          700
+        ],
+        "runs_completed": [
+          {
+            "time": "2026-09-27T18:05:00-04:00",
+            "new_lineups": 2,
+            "skipped": false,
+            "pick_name": "Fixture Batter 0",
+            "pick_p": 0.97,
+            "duration_sec": 0.0
+          }
+        ],
+        "pick_locked": true,
+        "pick_locked_at": "2026-09-27T18:05:00-04:00",
+        "result_status": "final",
+        "next_wakeup": "2026-09-28T10:00:00-04:00",
+        "analytics_jobs": {
+          "live_forward_capture": {
+            "status": "disabled",
+            "updated_at": "2026-09-27T18:05:00-04:00",
+            "reason": "live_forward_capture_on_lock=false"
+          }
+        },
+        "skip_summary": null,
+        "skip_notified_at": null,
+        "final_skip_candidate": null,
+        "committed_pick_written": true,
+        "delivery_refusals": null,
+        "fallback_refreshes": null
+      },
+      "data/picks/2026-09-27.json": {
+        "date": "2026-09-27",
+        "run_time": "2026-09-27T22:05:00+00:00",
+        "pick": {
+          "batter_name": "Fixture Batter 0",
+          "batter_id": 100,
+          "team": "T0",
+          "lineup_position": 1,
+          "pitcher_name": "Fixture Pitcher 0",
+          "pitcher_id": 900,
+          "p_game_hit": 0.97,
+          "flags": [],
+          "projected_lineup": false,
+          "game_pk": 700,
+          "game_time": "2026-09-27T23:05:00+00:00",
+          "pitcher_team": "U0"
+        },
+        "double_down": null,
+        "runner_up": null,
+        "bluesky_posted": false,
+        "bluesky_uri": null,
+        "notification_sent": false,
+        "notification_channel": null,
+        "notification_id": null,
+        "delivery_attempted": false,
+        "delivered_at": null,
+        "result": "hit",
+        "slot_results": {
+          "pick": "hit"
+        },
+        "shadow_model_version": null,
+        "model_git_sha": "619abda7",
+        "model_pickle_sha256": null,
+        "policy_npz_sha256": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
+        "feature_env_schema_version": "bts_feature_env_v1",
+        "feature_env": {
+          "BTS_LGBM_DETERMINISTIC": "0",
+          "BTS_LGBM_RANDOM_STATE": "42",
+          "BTS_PITCHER_HR_30G_MIN_PERIODS": "7",
+          "BTS_ROOKIE_GATE_K": "20",
+          "BTS_USE_CALIBRATION": "0"
+        },
+        "feature_env_hash": "fb1841abbb3f269053f4687d291405c4c08ef1c9a87eda8f4f0663804b481ebe",
+        "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+        "policy_decision": {
+          "action": "single",
+          "policy_action": "double",
+          "source": "mdp",
+          "objective": "emax_season_best",
+          "streak": 16,
+          "days_effective": 1,
+          "best_supplied": 16,
+          "best_status": "trusted",
+          "effective_best": 16,
+          "tail_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+          "degraded_reason": null,
+          "reason": null,
+          "pick_bar": null
+        }
+      },
+      "data/picks/2027-03-24/decision.json": {
+        "schema_version": "bts_daily_decision_v3",
+        "date": "2027-03-24",
+        "action": "single",
+        "source": "mdp",
+        "primary": {
+          "batter_id": 100,
+          "batter_name": "Fixture Batter 0",
+          "team": "T0",
+          "game_pk": 700,
+          "p_game_hit": 0.97
+        },
+        "double_down": null,
+        "second_candidate": null,
+        "streak": 16,
+        "saver_available": false,
+        "state_source": "contest",
+        "state_status": "fresh",
+        "allow_double": true,
+        "contest_source_date": "2026-09-27",
+        "delivery_status": "private_locked",
+        "scoreable": true,
+        "objective": "reach57",
+        "best_streak": 16,
+        "best_status": "untrusted",
+        "effective_best": null,
+        "tail_policy_sha256": null,
+        "degraded_reason": null,
+        "policy_guard": null,
+        "finalized_at": "2027-03-24T20:05:00Z"
+      },
+      "data/picks/2027-03-24/scheduler_state.json": {
+        "date": "2027-03-24",
+        "schedule_fetched_at": "2027-03-24T10:00:00-04:00",
+        "games": [
+          {
+            "game_pk": 700,
+            "game_time_et": "2027-03-24T19:05:00-04:00",
+            "lineup_confirmed": true,
+            "is_doubleheader_game2": false
+          }
+        ],
+        "confirmed_game_pks": [
+          700
+        ],
+        "runs_completed": [
+          {
+            "time": "2027-03-24T16:05:00-04:00",
+            "new_lineups": 2,
+            "skipped": false,
+            "pick_name": "Fixture Batter 0",
+            "pick_p": 0.97,
+            "duration_sec": 0.0
+          }
+        ],
+        "pick_locked": true,
+        "pick_locked_at": "2027-03-24T16:05:00-04:00",
+        "result_status": "final",
+        "next_wakeup": "2027-03-25T10:00:00-04:00",
+        "analytics_jobs": {
+          "live_forward_capture": {
+            "status": "disabled",
+            "updated_at": "2027-03-24T16:05:00-04:00",
+            "reason": "live_forward_capture_on_lock=false"
+          }
+        },
+        "skip_summary": null,
+        "skip_notified_at": null,
+        "final_skip_candidate": null,
+        "committed_pick_written": true,
+        "delivery_refusals": null,
+        "fallback_refreshes": null
+      },
+      "data/picks/2027-03-24.json": {
+        "date": "2027-03-24",
+        "run_time": "2027-03-24T20:05:00+00:00",
+        "pick": {
+          "batter_name": "Fixture Batter 0",
+          "batter_id": 100,
+          "team": "T0",
+          "lineup_position": 1,
+          "pitcher_name": "Fixture Pitcher 0",
+          "pitcher_id": 900,
+          "p_game_hit": 0.97,
+          "flags": [],
+          "projected_lineup": false,
+          "game_pk": 700,
+          "game_time": "2027-03-24T23:05:00+00:00",
+          "pitcher_team": "U0"
+        },
+        "double_down": null,
+        "runner_up": null,
+        "bluesky_posted": false,
+        "bluesky_uri": null,
+        "notification_sent": false,
+        "notification_channel": null,
+        "notification_id": null,
+        "delivery_attempted": false,
+        "delivered_at": null,
+        "result": "hit",
+        "slot_results": {
+          "pick": "hit"
+        },
+        "shadow_model_version": null,
+        "model_git_sha": "d0bdcdba",
+        "model_pickle_sha256": null,
+        "policy_npz_sha256": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
+        "feature_env_schema_version": "bts_feature_env_v1",
+        "feature_env": {
+          "BTS_LGBM_DETERMINISTIC": "0",
+          "BTS_LGBM_RANDOM_STATE": "42",
+          "BTS_PITCHER_HR_30G_MIN_PERIODS": "7",
+          "BTS_ROOKIE_GATE_K": "20",
+          "BTS_USE_CALIBRATION": "0"
+        },
+        "feature_env_hash": "fb1841abbb3f269053f4687d291405c4c08ef1c9a87eda8f4f0663804b481ebe",
+        "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+        "policy_decision": {
+          "action": "single",
+          "policy_action": "single",
+          "source": "mdp",
+          "objective": "reach57",
+          "streak": 16,
+          "days_effective": 180,
+          "best_supplied": 16,
+          "best_status": "untrusted",
+          "effective_best": null,
+          "tail_sha256": null,
+          "degraded_reason": null,
+          "reason": null,
+          "pick_bar": null,
+          "guard": null
+        },
+        "chosen_on": {
+          "schema": "bts_pick_chosen_on_v1",
+          "required": false,
+          "kind": "automatic",
+          "streak": 16,
+          "saver_available": false,
+          "dated": null
+        },
+        "automatic_reading": null
+      },
+      "data/picks/account_state/contest_streak.json": {
+        "active_streak": 16,
+        "best_streak": 16,
+        "recorded_at": "2026-09-27T14:00:00Z",
+        "saver_available": null,
+        "schema_version": "bts_contest_streak_auto_v1",
+        "source": "mlb_bts_profile",
+        "source_date": "2026-09-27",
+        "user_id": 4242,
+        "username": "offline-account"
+      },
+      "data/picks/account_state/saver_state.json": {
+        "season": 2026,
+        "state": "active",
+        "updated_at": "2026-09-27T14:00:00+00:00",
+        "source": "cli"
+      },
+      "data/picks/streak.json": {
+        "streak": 1,
+        "saver_available": true,
+        "updated": "2027-03-24T23:45:00+00:00",
+        "applied_dates": [
+          "2027-03-24"
+        ],
+        "season": 2027
+      }
+    }
+  },
+  {
+    "live": true,
+    "required": false,
+    "intent": "research",
+    "events": [
+      {
+        "at": "2027-03-24T10:00:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-le06x4kf/orchestrator.toml"
+        ],
+        "code": 2,
+        "text": "bts schedule: refusing to start: scheduler delivery 'dm' requires contest state. Optional reads can use a contest observation without the season-coverage check. Set contest_state_required = true under [scheduler] and contest_state_expected = true under [health_checks].\n",
+        "error": null
+      }
+    ],
+    "snapshot": {
+      "data/health_state/contest_streak_fetch_status.json": {
+        "last_error": null,
+        "last_success_at": "2026-09-27T14:00:00Z"
+      },
+      "data/health_state/health_dm_delivery_status.json": {
+        "body_first_line": "BTS health CRITICAL alert(s):",
+        "body_sha256": "ab079e7917a301f7e5907e65f6401fc6db2b1061f8b03ac30030da3a0e3da597",
+        "critical_count": 2,
+        "recipient": "offline-recipient.example",
+        "recipient_configured": true,
+        "schema_version": "bts_health_dm_delivery_status_v1",
+        "sent_day": "2026-09-27",
+        "sent_sources": [
+          "CRITICAL:blend_training",
+          "CRITICAL:disk_fill"
+        ],
+        "status": "sent",
+        "updated_at": "2026-09-27T23:45:00+00:00",
+        "warn_attention_count": 0
+      },
+      "data/health_state/slate_auc_status.json": {
+        "computed_at": "2026-09-27",
+        "window_days": 60,
+        "n_days": 0,
+        "n_rows": 0,
+        "auc": null,
+        "reason": "insufficient_days"
+      },
+      "data/health_state/warn_attention_state.json": {
+        "schema_version": "bts_warn_attention_state_v1",
+        "sources": {}
+      },
+      "data/picks/2026-09-27/decision.json": {
+        "schema_version": "bts_daily_decision_v3",
+        "date": "2026-09-27",
+        "action": "single",
+        "source": "mdp",
+        "primary": {
+          "batter_id": 100,
+          "batter_name": "Fixture Batter 0",
+          "team": "T0",
+          "game_pk": 700,
+          "p_game_hit": 0.97
+        },
+        "double_down": null,
+        "second_candidate": null,
+        "streak": 16,
+        "saver_available": true,
+        "state_source": "contest",
+        "state_status": "fresh",
+        "allow_double": true,
+        "contest_source_date": "2026-09-27",
+        "delivery_status": "private_locked",
+        "scoreable": true,
+        "objective": "emax_season_best",
+        "best_streak": 16,
+        "best_status": "trusted",
+        "effective_best": 16,
+        "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+        "degraded_reason": null,
+        "finalized_at": "2026-09-27T22:05:00Z"
+      },
+      "data/picks/2026-09-27/scheduler_state.json": {
+        "date": "2026-09-27",
+        "schedule_fetched_at": "2026-09-27T10:00:00-04:00",
+        "games": [
+          {
+            "game_pk": 700,
+            "game_time_et": "2026-09-27T19:05:00-04:00",
+            "lineup_confirmed": true,
+            "is_doubleheader_game2": false
+          }
+        ],
+        "confirmed_game_pks": [
+          700
+        ],
+        "runs_completed": [
+          {
+            "time": "2026-09-27T18:05:00-04:00",
+            "new_lineups": 2,
+            "skipped": false,
+            "pick_name": "Fixture Batter 0",
+            "pick_p": 0.97,
+            "duration_sec": 0.0
+          }
+        ],
+        "pick_locked": true,
+        "pick_locked_at": "2026-09-27T18:05:00-04:00",
+        "result_status": "final",
+        "next_wakeup": "2026-09-28T10:00:00-04:00",
+        "analytics_jobs": {
+          "live_forward_capture": {
+            "status": "disabled",
+            "updated_at": "2026-09-27T18:05:00-04:00",
+            "reason": "live_forward_capture_on_lock=false"
+          }
+        },
+        "skip_summary": null,
+        "skip_notified_at": null,
+        "final_skip_candidate": null,
+        "committed_pick_written": true,
+        "delivery_refusals": null,
+        "fallback_refreshes": null
+      },
+      "data/picks/2026-09-27.json": {
+        "date": "2026-09-27",
+        "run_time": "2026-09-27T22:05:00+00:00",
+        "pick": {
+          "batter_name": "Fixture Batter 0",
+          "batter_id": 100,
+          "team": "T0",
+          "lineup_position": 1,
+          "pitcher_name": "Fixture Pitcher 0",
+          "pitcher_id": 900,
+          "p_game_hit": 0.97,
+          "flags": [],
+          "projected_lineup": false,
+          "game_pk": 700,
+          "game_time": "2026-09-27T23:05:00+00:00",
+          "pitcher_team": "U0"
+        },
+        "double_down": null,
+        "runner_up": null,
+        "bluesky_posted": false,
+        "bluesky_uri": null,
+        "notification_sent": false,
+        "notification_channel": null,
+        "notification_id": null,
+        "delivery_attempted": false,
+        "delivered_at": null,
+        "result": "hit",
+        "slot_results": {
+          "pick": "hit"
+        },
+        "shadow_model_version": null,
+        "model_git_sha": "619abda7",
+        "model_pickle_sha256": null,
+        "policy_npz_sha256": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
+        "feature_env_schema_version": "bts_feature_env_v1",
+        "feature_env": {
+          "BTS_LGBM_DETERMINISTIC": "0",
+          "BTS_LGBM_RANDOM_STATE": "42",
+          "BTS_PITCHER_HR_30G_MIN_PERIODS": "7",
+          "BTS_ROOKIE_GATE_K": "20",
+          "BTS_USE_CALIBRATION": "0"
+        },
+        "feature_env_hash": "fb1841abbb3f269053f4687d291405c4c08ef1c9a87eda8f4f0663804b481ebe",
+        "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+        "policy_decision": {
+          "action": "single",
+          "policy_action": "double",
+          "source": "mdp",
+          "objective": "emax_season_best",
+          "streak": 16,
+          "days_effective": 1,
+          "best_supplied": 16,
+          "best_status": "trusted",
+          "effective_best": 16,
+          "tail_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+          "degraded_reason": null,
+          "reason": null,
+          "pick_bar": null
+        }
+      },
+      "data/picks/account_state/contest_streak.json": {
+        "active_streak": 16,
+        "best_streak": 16,
+        "recorded_at": "2026-09-27T14:00:00Z",
+        "saver_available": null,
+        "schema_version": "bts_contest_streak_auto_v1",
+        "source": "mlb_bts_profile",
+        "source_date": "2026-09-27",
+        "user_id": 4242,
+        "username": "offline-account"
+      },
+      "data/picks/account_state/saver_state.json": {
+        "season": 2026,
+        "state": "active",
+        "updated_at": "2026-09-27T14:00:00+00:00",
+        "source": "cli"
+      },
+      "data/picks/streak.json": {
+        "streak": 17,
+        "saver_available": true,
+        "updated": "2026-09-27T23:45:00+00:00"
+      }
+    }
+  },
+  {
+    "live": true,
+    "required": false,
+    "intent": "enter",
+    "events": [
+      {
+        "at": "2027-03-24T10:00:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-q062jai3/orchestrator.toml"
+        ],
+        "code": 2,
+        "text": "bts schedule: refusing to start: scheduler delivery 'dm' and scheduler.entry_intent = 'enter' require contest state. Optional reads can use a contest observation without the season-coverage check. Set contest_state_required = true under [scheduler] and contest_state_expected = true under [health_checks].\n",
+        "error": null
+      }
+    ],
+    "snapshot": {
+      "data/health_state/contest_streak_fetch_status.json": {
+        "last_error": null,
+        "last_success_at": "2026-09-27T14:00:00Z"
+      },
+      "data/health_state/health_dm_delivery_status.json": {
+        "body_first_line": "BTS health CRITICAL alert(s):",
+        "body_sha256": "ab079e7917a301f7e5907e65f6401fc6db2b1061f8b03ac30030da3a0e3da597",
+        "critical_count": 2,
+        "recipient": "offline-recipient.example",
+        "recipient_configured": true,
+        "schema_version": "bts_health_dm_delivery_status_v1",
+        "sent_day": "2026-09-27",
+        "sent_sources": [
+          "CRITICAL:blend_training",
+          "CRITICAL:disk_fill"
+        ],
+        "status": "sent",
+        "updated_at": "2026-09-27T23:45:00+00:00",
+        "warn_attention_count": 0
+      },
+      "data/health_state/slate_auc_status.json": {
+        "computed_at": "2026-09-27",
+        "window_days": 60,
+        "n_days": 0,
+        "n_rows": 0,
+        "auc": null,
+        "reason": "insufficient_days"
+      },
+      "data/health_state/warn_attention_state.json": {
+        "schema_version": "bts_warn_attention_state_v1",
+        "sources": {}
+      },
+      "data/picks/2026-09-27/decision.json": {
+        "schema_version": "bts_daily_decision_v3",
+        "date": "2026-09-27",
+        "action": "single",
+        "source": "mdp",
+        "primary": {
+          "batter_id": 100,
+          "batter_name": "Fixture Batter 0",
+          "team": "T0",
+          "game_pk": 700,
+          "p_game_hit": 0.97
+        },
+        "double_down": null,
+        "second_candidate": null,
+        "streak": 16,
+        "saver_available": true,
+        "state_source": "contest",
+        "state_status": "fresh",
+        "allow_double": true,
+        "contest_source_date": "2026-09-27",
+        "delivery_status": "private_locked",
+        "scoreable": true,
+        "objective": "emax_season_best",
+        "best_streak": 16,
+        "best_status": "trusted",
+        "effective_best": 16,
+        "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+        "degraded_reason": null,
+        "finalized_at": "2026-09-27T22:05:00Z"
+      },
+      "data/picks/2026-09-27/scheduler_state.json": {
+        "date": "2026-09-27",
+        "schedule_fetched_at": "2026-09-27T10:00:00-04:00",
+        "games": [
+          {
+            "game_pk": 700,
+            "game_time_et": "2026-09-27T19:05:00-04:00",
+            "lineup_confirmed": true,
+            "is_doubleheader_game2": false
+          }
+        ],
+        "confirmed_game_pks": [
+          700
+        ],
+        "runs_completed": [
+          {
+            "time": "2026-09-27T18:05:00-04:00",
+            "new_lineups": 2,
+            "skipped": false,
+            "pick_name": "Fixture Batter 0",
+            "pick_p": 0.97,
+            "duration_sec": 0.0
+          }
+        ],
+        "pick_locked": true,
+        "pick_locked_at": "2026-09-27T18:05:00-04:00",
+        "result_status": "final",
+        "next_wakeup": "2026-09-28T10:00:00-04:00",
+        "analytics_jobs": {
+          "live_forward_capture": {
+            "status": "disabled",
+            "updated_at": "2026-09-27T18:05:00-04:00",
+            "reason": "live_forward_capture_on_lock=false"
+          }
+        },
+        "skip_summary": null,
+        "skip_notified_at": null,
+        "final_skip_candidate": null,
+        "committed_pick_written": true,
+        "delivery_refusals": null,
+        "fallback_refreshes": null
+      },
+      "data/picks/2026-09-27.json": {
+        "date": "2026-09-27",
+        "run_time": "2026-09-27T22:05:00+00:00",
+        "pick": {
+          "batter_name": "Fixture Batter 0",
+          "batter_id": 100,
+          "team": "T0",
+          "lineup_position": 1,
+          "pitcher_name": "Fixture Pitcher 0",
+          "pitcher_id": 900,
+          "p_game_hit": 0.97,
+          "flags": [],
+          "projected_lineup": false,
+          "game_pk": 700,
+          "game_time": "2026-09-27T23:05:00+00:00",
+          "pitcher_team": "U0"
+        },
+        "double_down": null,
+        "runner_up": null,
+        "bluesky_posted": false,
+        "bluesky_uri": null,
+        "notification_sent": false,
+        "notification_channel": null,
+        "notification_id": null,
+        "delivery_attempted": false,
+        "delivered_at": null,
+        "result": "hit",
+        "slot_results": {
+          "pick": "hit"
+        },
+        "shadow_model_version": null,
+        "model_git_sha": "619abda7",
+        "model_pickle_sha256": null,
+        "policy_npz_sha256": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
+        "feature_env_schema_version": "bts_feature_env_v1",
+        "feature_env": {
+          "BTS_LGBM_DETERMINISTIC": "0",
+          "BTS_LGBM_RANDOM_STATE": "42",
+          "BTS_PITCHER_HR_30G_MIN_PERIODS": "7",
+          "BTS_ROOKIE_GATE_K": "20",
+          "BTS_USE_CALIBRATION": "0"
+        },
+        "feature_env_hash": "fb1841abbb3f269053f4687d291405c4c08ef1c9a87eda8f4f0663804b481ebe",
+        "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+        "policy_decision": {
+          "action": "single",
+          "policy_action": "double",
+          "source": "mdp",
+          "objective": "emax_season_best",
+          "streak": 16,
+          "days_effective": 1,
+          "best_supplied": 16,
+          "best_status": "trusted",
+          "effective_best": 16,
+          "tail_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+          "degraded_reason": null,
+          "reason": null,
+          "pick_bar": null
+        }
+      },
+      "data/picks/account_state/contest_streak.json": {
+        "active_streak": 16,
+        "best_streak": 16,
+        "recorded_at": "2026-09-27T14:00:00Z",
+        "saver_available": null,
+        "schema_version": "bts_contest_streak_auto_v1",
+        "source": "mlb_bts_profile",
+        "source_date": "2026-09-27",
+        "user_id": 4242,
+        "username": "offline-account"
+      },
+      "data/picks/account_state/saver_state.json": {
+        "season": 2026,
+        "state": "active",
+        "updated_at": "2026-09-27T14:00:00+00:00",
+        "source": "cli"
+      },
+      "data/picks/streak.json": {
+        "streak": 17,
+        "saver_available": true,
+        "updated": "2026-09-27T23:45:00+00:00"
+      }
+    }
+  },
+  {
+    "live": true,
+    "required": true,
+    "intent": "enter",
+    "events": [
+      {
+        "at": "2027-03-24T10:00:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T10:00:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-24T10:00:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS health CRITICAL alert(s):\n- [contest_state] Morning check for 2027-03-24: no usable contest state was found at startup. Check MLB and run bts season-contract status with the scheduler's picks directory. If state still needs correction, follow today's dated-observation instructions while a lineup check remains. First planned lineup check at 16:05 ET."
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS health CRITICAL alert(s):\n- [contest_state] Live decision refused: season 2027 switch is absent.\nAlternative dated path \u2014 TEMPLATE: `bts set-contest-streak --date 2027-03-24 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks`; then run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows."
+      },
+      {
+        "at": "2027-03-24T17:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-25"
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "BTS health CRITICAL alert(s):\n- [contest_state] Live decision refused: season 2027 switch is absent.\nAlternative dated path \u2014 TEMPLATE: `bts set-contest-streak --date 2027-03-24 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks`; then run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n- [blend_training] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n- [disk_fill] disk usage 95.6% (885.5/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks\n\nWARN attention:\n- [saver_state] Streak Saver flag uninitialized for season 2027 (stale-season flag, season 2026) while streak is 16; counting the saver as spent. Check the saver in MLB and run ONE of these. Not earned yet this season: `bts saver-state --init not_earned --season 2027`. Earned and unused: `bts saver-state --init active --season 2027`. Already used: `bts saver-state --init used --season 2027` (1st observed day)"
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "idle",
+        "until": "2027-03-25T10:00:00-04:00"
+      },
+      {
+        "at": "2027-03-24T18:05:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/orchestrator.toml"
+        ],
+        "code": 0,
+        "text": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[10:00 ET] Fetching schedule for 2027-03-24...\n  1 games, 3 scheduled checks:\n    16:05 ET \u2014 1 game(s)\n    17:05 ET \u2014 1 game(s)\n    18:05 ET \u2014 1 game(s)\n  MORNING STATE CHECK \u2014 no pick can be made yet: 'Live decision refused: season 2027 switch is absent.\\nAlternative dated path \\u2014 TEMPLATE: `bts set-contest-streak --date 2027-03-24 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks` and compare the readings with MLB; only then run `bts s\n  Sleeping until 16:05 ET (365 min)...\n\n[16:05 ET] Running lineup check...\n  2 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR \u2014 no pick made: Live decision refused: season 2027 switch is absent.\nAlternative dated path \u2014 TEMPLATE: `bts set-contest-streak --date 2027-03-24 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks`; then run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n  Sleeping until 17:05 ET (60 min)...\n\n[17:05 ET] Running lineup check...\n  0 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR \u2014 no pick made: Live decision refused: season 2027 switch is absent.\nAlternative dated path \u2014 TEMPLATE: `bts set-contest-streak --date 2027-03-24 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks`; then run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n  Sleeping until 18:05 ET (60 min)...\n\n[18:05 ET] Running lineup check...\n  0 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR \u2014 no pick made: Live decision refused: season 2027 switch is absent.\nAlternative dated path \u2014 TEMPLATE: `bts set-contest-streak --date 2027-03-24 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks`; then run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n  Tomorrow's wake-up: Thu 03-25 10:00 ET\n[saver_state WARN] Streak Saver flag uninitialized for season 2027 (stale-season flag, season 2026) while streak is 16; counting the saver as spent. Check the saver in MLB and run ONE of these. Not earned yet this season: `bts saver-state --init not_earned --season 2027`. Earned and unused: `bts saver-state --init active --season 2027`. Already used: `bts saver-state --init used --season 2027`\n[contest_state CRITICAL] Live decision refused: season 2027 switch is absent.\nAlternative dated path \u2014 TEMPLATE: `bts set-contest-streak --date 2027-03-24 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks`; then run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n[blend_training CRITICAL] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.\n[disk_fill CRITICAL] disk usage 95.6% (885.5/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-startup-3q8lwwvk/data/picks\n",
+        "error": "None"
+      }
+    ],
+    "snapshot": {
+      "data/health_state/contest_morning_check_dm_delivery_status.json": {
+        "body_first_line": "BTS health CRITICAL alert(s):",
+        "body_sha256": "a80b950dd8b714252365d8b795b96be3a4f8f6cfc86999e9cf60a6d2bc88ae04",
+        "critical_count": 1,
+        "recipient": "offline-recipient.example",
+        "recipient_configured": true,
+        "schema_version": "bts_health_dm_delivery_status_v1",
+        "sent_day": "2027-03-24",
+        "sent_sources": [
+          "CRITICAL:contest_state:morning"
+        ],
+        "status": "sent",
+        "updated_at": "2027-03-24T14:00:00+00:00",
+        "warn_attention_count": 0
+      },
+      "data/health_state/contest_streak_fetch_status.json": {
+        "last_error": null,
+        "last_success_at": "2026-09-27T14:00:00Z"
+      },
+      "data/health_state/health_dm_delivery_status.json": {
+        "body_first_line": "BTS health CRITICAL alert(s):",
+        "body_sha256": "bd46c4fd1c153ccf158d2ffbce672c00a572c7b363fd0f6d630d2c2a716980da",
+        "critical_count": 3,
+        "recipient": "offline-recipient.example",
+        "recipient_configured": true,
+        "schema_version": "bts_health_dm_delivery_status_v1",
+        "sent_day": "2027-03-24",
+        "sent_sources": [
+          "CRITICAL:blend_training",
+          "CRITICAL:contest_state",
+          "CRITICAL:disk_fill",
+          "WARN_ATTENTION:saver_state"
+        ],
+        "status": "sent",
+        "updated_at": "2027-03-24T22:05:00+00:00",
+        "warn_attention_count": 1
+      },
+      "data/health_state/slate_auc_status.json": {
+        "computed_at": "2027-03-24",
+        "window_days": 60,
+        "n_days": 0,
+        "n_rows": 0,
+        "auc": null,
+        "reason": "insufficient_days"
+      },
+      "data/health_state/warn_attention_state.json": {
+        "schema_version": "bts_warn_attention_state_v1",
+        "sources": {
+          "saver_state": {
+            "last_message": "Streak Saver flag uninitialized for season 2027 (stale-season flag, season 2026) while streak is 16; counting the saver as spent. Check the saver in MLB and run ONE of these. Not earned yet this season: `bts saver-state --init not_earned --season 2027`. Earned and unused: `bts saver-state --init active --season 2027`. Already used: `bts saver-state --init used --season 2027`",
+            "last_seen": "2027-03-24",
+            "streak": 1
+          }
+        }
+      },
+      "data/picks/2026-09-27/decision.json": {
+        "schema_version": "bts_daily_decision_v3",
+        "date": "2026-09-27",
+        "action": "single",
+        "source": "mdp",
+        "primary": {
+          "batter_id": 100,
+          "batter_name": "Fixture Batter 0",
+          "team": "T0",
+          "game_pk": 700,
+          "p_game_hit": 0.97
+        },
+        "double_down": null,
+        "second_candidate": null,
+        "streak": 16,
+        "saver_available": true,
+        "state_source": "contest",
+        "state_status": "fresh",
+        "allow_double": true,
+        "contest_source_date": "2026-09-27",
+        "delivery_status": "private_locked",
+        "scoreable": true,
+        "objective": "emax_season_best",
+        "best_streak": 16,
+        "best_status": "trusted",
+        "effective_best": 16,
+        "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+        "degraded_reason": null,
+        "finalized_at": "2026-09-27T22:05:00Z"
+      },
+      "data/picks/2026-09-27/scheduler_state.json": {
+        "date": "2026-09-27",
+        "schedule_fetched_at": "2026-09-27T10:00:00-04:00",
+        "games": [
+          {
+            "game_pk": 700,
+            "game_time_et": "2026-09-27T19:05:00-04:00",
+            "lineup_confirmed": true,
+            "is_doubleheader_game2": false
+          }
+        ],
+        "confirmed_game_pks": [
+          700
+        ],
+        "runs_completed": [
+          {
+            "time": "2026-09-27T18:05:00-04:00",
+            "new_lineups": 2,
+            "skipped": false,
+            "pick_name": "Fixture Batter 0",
+            "pick_p": 0.97,
+            "duration_sec": 0.0
+          }
+        ],
+        "pick_locked": true,
+        "pick_locked_at": "2026-09-27T18:05:00-04:00",
+        "result_status": "final",
+        "next_wakeup": "2026-09-28T10:00:00-04:00",
+        "analytics_jobs": {
+          "live_forward_capture": {
+            "status": "disabled",
+            "updated_at": "2026-09-27T18:05:00-04:00",
+            "reason": "live_forward_capture_on_lock=false"
+          }
+        },
+        "skip_summary": null,
+        "skip_notified_at": null,
+        "final_skip_candidate": null,
+        "committed_pick_written": true,
+        "delivery_refusals": null,
+        "fallback_refreshes": null
+      },
+      "data/picks/2026-09-27.json": {
+        "date": "2026-09-27",
+        "run_time": "2026-09-27T22:05:00+00:00",
+        "pick": {
+          "batter_name": "Fixture Batter 0",
+          "batter_id": 100,
+          "team": "T0",
+          "lineup_position": 1,
+          "pitcher_name": "Fixture Pitcher 0",
+          "pitcher_id": 900,
+          "p_game_hit": 0.97,
+          "flags": [],
+          "projected_lineup": false,
+          "game_pk": 700,
+          "game_time": "2026-09-27T23:05:00+00:00",
+          "pitcher_team": "U0"
+        },
+        "double_down": null,
+        "runner_up": null,
+        "bluesky_posted": false,
+        "bluesky_uri": null,
+        "notification_sent": false,
+        "notification_channel": null,
+        "notification_id": null,
+        "delivery_attempted": false,
+        "delivered_at": null,
+        "result": "hit",
+        "slot_results": {
+          "pick": "hit"
+        },
+        "shadow_model_version": null,
+        "model_git_sha": "619abda7",
+        "model_pickle_sha256": null,
+        "policy_npz_sha256": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
+        "feature_env_schema_version": "bts_feature_env_v1",
+        "feature_env": {
+          "BTS_LGBM_DETERMINISTIC": "0",
+          "BTS_LGBM_RANDOM_STATE": "42",
+          "BTS_PITCHER_HR_30G_MIN_PERIODS": "7",
+          "BTS_ROOKIE_GATE_K": "20",
+          "BTS_USE_CALIBRATION": "0"
+        },
+        "feature_env_hash": "fb1841abbb3f269053f4687d291405c4c08ef1c9a87eda8f4f0663804b481ebe",
+        "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+        "policy_decision": {
+          "action": "single",
+          "policy_action": "double",
+          "source": "mdp",
+          "objective": "emax_season_best",
+          "streak": 16,
+          "days_effective": 1,
+          "best_supplied": 16,
+          "best_status": "trusted",
+          "effective_best": 16,
+          "tail_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+          "degraded_reason": null,
+          "reason": null,
+          "pick_bar": null
+        }
+      },
+      "data/picks/2027-03-24/scheduler_state.json": {
+        "date": "2027-03-24",
+        "schedule_fetched_at": "2027-03-24T10:00:00-04:00",
+        "games": [
+          {
+            "game_pk": 700,
+            "game_time_et": "2027-03-24T19:05:00-04:00",
+            "lineup_confirmed": true,
+            "is_doubleheader_game2": false
+          }
+        ],
+        "confirmed_game_pks": [
+          700
+        ],
+        "runs_completed": [
+          {
+            "time": "2027-03-24T16:05:00-04:00",
+            "new_lineups": 2,
+            "skipped": false,
+            "pick_name": null,
+            "pick_p": null,
+            "duration_sec": 0.0
+          },
+          {
+            "time": "2027-03-24T17:05:00-04:00",
+            "new_lineups": 0,
+            "skipped": false,
+            "pick_name": null,
+            "pick_p": null,
+            "duration_sec": 0.0
+          },
+          {
+            "time": "2027-03-24T18:05:00-04:00",
+            "new_lineups": 0,
+            "skipped": false,
+            "pick_name": null,
+            "pick_p": null,
+            "duration_sec": 0.0
+          }
+        ],
+        "pick_locked": false,
+        "pick_locked_at": null,
+        "result_status": null,
+        "next_wakeup": "2027-03-25T10:00:00-04:00",
+        "analytics_jobs": null,
+        "skip_summary": null,
+        "skip_notified_at": null,
+        "final_skip_candidate": null,
+        "committed_pick_written": false,
+        "delivery_refusals": null,
+        "fallback_refreshes": null
+      },
+      "data/picks/account_state/contest_streak.json": {
+        "active_streak": 16,
+        "best_streak": 16,
+        "recorded_at": "2026-09-27T14:00:00Z",
+        "saver_available": null,
+        "schema_version": "bts_contest_streak_auto_v1",
+        "source": "mlb_bts_profile",
+        "source_date": "2026-09-27",
+        "user_id": 4242,
+        "username": "offline-account"
+      },
+      "data/picks/account_state/saver_state.json": {
+        "season": 2026,
+        "state": "active",
+        "updated_at": "2026-09-27T14:00:00+00:00",
+        "source": "cli"
+      },
+      "data/picks/streak.json": {
+        "streak": 17,
+        "saver_available": true,
+        "updated": "2026-09-27T23:45:00+00:00"
+      }
+    }
+  }
+]

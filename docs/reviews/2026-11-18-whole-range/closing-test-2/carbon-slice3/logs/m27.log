@@ -1,0 +1,50 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-carbon3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_saved_pick_paths_cs5a.py F                                    [100%]
+
+=================================== FAILURES ===================================
+____________ test_uncovered_preview_double_is_refused_then_replaced ____________
+
+world = ({'bluesky': {'dm_recipient': 'offline.test'}, 'health_checks': {'enabled': False}, 'orchestrator': {'heartbeat_path':...{'abstract': 'P', 'code': 'S', 'detailed': 'Scheduled'}, 102: {'abstract': 'P', 'code': 'S', 'detailed': 'Scheduled'}})
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2646/test_uncovered_preview_double_0')
+capsys = <_pytest.capture.CaptureFixture object at 0x118ad33b0>
+
+    def test_uncovered_preview_double_is_refused_then_replaced(world, tmp_path, capsys):
+        config, directory, _, _ = world
+        set_automatic(directory, streak=0, covered=False)
+        preview = invoke("preview", config, tmp_path)
+        assert preview.exit_code == 0
+        cached = picks.load_pick(DAY, directory)
+        assert cached.double_down is not None
+        set_dated(directory, streak=30, best=30)
+        frame, tier = orchestrator.run_cascade.return_value
+        replacement = frame.assign(p_game_hit=[0.99, 0.81])
+        orchestrator.run_cascade.side_effect = [RuntimeError("cascade failed"),
+                                               (replacement, tier)]
+        refresh = scheduler._refresh_pick_at_fallback_decision(config, DAY, cached, 0.03)
+        assert refresh.daily is cached and refresh.selection is None
+        path = directory / f"{DAY}.json"
+        raw = path.read_bytes()
+        state = scheduler_state()
+        assert scheduler._deliver_and_lock_pick(
+            refresh.daily, config, directory, state, DAY, "fallback", selection=refresh.selection,
+        ) is False
+        assert path.read_bytes() == raw and not state.pick_locked
+        assert load_decision(DAY, directory) is None
+        assert not dm.send_dm.called and not posting.post_to_bluesky.called
+        assert alert.send_dm.call_count == 1
+>       assert "chosen without the live check" in alert.send_dm.call_args.args[1]
+E       AssertionError: assert 'chosen without the live check' in 'BTS health CRITICAL alert(s):\n- [contest_state] Saved pick for 2027-07-15 was not delivered because it was chosen on...30, best streak 30, saver used). A later scheduled check or fallback refresh may choose a replacement, if one remains.'
+
+tests/test_saved_pick_paths_cs5a.py:163: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  FALLBACK REFRESH: re-predict failed (cascade failed), using cached pick
+CONTEST STATE ERROR — pick delivery blocked: Saved pick for 2027-07-15 was not delivered because it was chosen on automatic. The live state is dated (effective date 2027-07-15, active streak 30, best streak 30, saver used). A later scheduled check or fallback refresh may choose a replacement, if one remains.
+=========================== short test summary info ============================
+FAILED tests/test_saved_pick_paths_cs5a.py::test_uncovered_preview_double_is_refused_then_replaced
+============================== 1 failed in 0.90s ===============================

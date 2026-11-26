@@ -1,0 +1,14 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-carbon3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 29 items
+
+.carbon-review/whole-range/test_probe_interactions.py ......             [ 20%]
+.carbon-review/whole-range/test_probe_clocks_and_years.py .....          [ 37%]
+.carbon-review/whole-range/test_probe_fail_closed.py .....               [ 55%]
+.carbon-review/whole-range/build_mutants.py .                            [ 58%]
+tests/test_web_saver.py ............                                     [100%]
+
+============================== 29 passed in 5.35s ==============================

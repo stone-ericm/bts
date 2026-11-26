@@ -1,0 +1,266 @@
+[
+  {
+    "case": "A4_A6",
+    "events": [
+      {
+        "at": "2027-03-24T10:00:00-04:00",
+        "type": "cli",
+        "args": [
+          "check-pick-entered",
+          "--dry-run",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-operator-w6lq9_9y/data/picks"
+        ],
+        "code": 2,
+        "text": "Usage: cli check-pick-entered [OPTIONS]\nTry 'cli check-pick-entered --help' for help.\n\nError: No such option: --dry-run\n",
+        "error": null
+      },
+      {
+        "at": "2027-03-24T10:00:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T10:00:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-24T10:00:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-25"
+      },
+      {
+        "at": "2027-03-24T10:00:00-04:00",
+        "type": "idle",
+        "until": "2027-03-25T10:00:00-04:00"
+      },
+      {
+        "at": "2027-03-24T10:00:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--dry-run",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-operator-w6lq9_9y/orchestrator.toml"
+        ],
+        "code": 0,
+        "text": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[10:00 ET] Fetching schedule for 2027-03-24...\nNo games scheduled for 2027-03-24.\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-24T10:00:00-04:00",
+        "type": "dry_run_heartbeat",
+        "body": "{\"state\": \"idle_end_of_day\", \"timestamp\": \"2027-03-24T14:00:00+00:00\"}"
+      }
+    ]
+  },
+  {
+    "case": "A7_private_with_installed_watchdog",
+    "events": [
+      {
+        "at": "2027-03-24T10:00:00-04:00",
+        "type": "cli",
+        "args": [
+          "set-contest-streak",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-operator-33ix4oqn/data/picks",
+          "--date",
+          "2027-03-24",
+          "--streak",
+          "0",
+          "--best-streak",
+          "0",
+          "--saver",
+          "not_earned"
+        ],
+        "code": 0,
+        "text": "Observation written at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-operator-33ix4oqn/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=0 best=0 saver=not_earned reason=None\ncontest_streak: 0 (best 0, saver not_earned) for 2027-03-24, in effect today\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-24T10:00:00-04:00",
+        "type": "cli",
+        "args": [
+          "entry-intent",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-operator-33ix4oqn/orchestrator.toml"
+        ],
+        "code": 1,
+        "text": "entry-intent: entry_intent 'enter' expects delivery dm or public, but the scheduler would deliver 'private'\n",
+        "error": null
+      },
+      {
+        "at": "2027-03-24T10:00:00-04:00",
+        "type": "ready"
+      },
+      {
+        "at": "2027-03-24T10:00:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-24"
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "predictions",
+        "available": true
+      },
+      {
+        "at": "2027-03-24T16:05:00-04:00",
+        "type": "schedule",
+        "day": "2027-03-25"
+      },
+      {
+        "at": "2027-03-24T18:00:00-04:00",
+        "type": "dm",
+        "recipient": "offline-recipient.example",
+        "message": "\u26a0\ufe0f BTS pick NOT entered in MLB app: Fixture Batter 0 \u2014 first pitch 7:05 PM ET (60 min to submit). Fix it now!"
+      },
+      {
+        "at": "2027-03-24T18:00:00-04:00",
+        "type": "cli",
+        "args": [
+          "check-pick-entered",
+          "--cron",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-operator-33ix4oqn/data/picks",
+          "--expected-username",
+          "offline-account",
+          "--dm-recipient",
+          "offline-recipient.example"
+        ],
+        "code": 1,
+        "text": "check-pick-entered: DM sent to offline-recipient.example\n",
+        "error": null
+      },
+      {
+        "at": "2027-03-24T19:45:00-04:00",
+        "type": "idle",
+        "until": "2027-03-25T10:00:00-04:00"
+      },
+      {
+        "at": "2027-03-24T19:45:00-04:00",
+        "type": "cli",
+        "args": [
+          "schedule",
+          "--config",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-operator-33ix4oqn/orchestrator.toml"
+        ],
+        "code": 0,
+        "text": "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.\n[10:00 ET] Fetching schedule for 2027-03-24...\n  1 games, 3 scheduled checks:\n    16:05 ET \u2014 1 game(s)\n    17:05 ET \u2014 1 game(s)\n    18:05 ET \u2014 1 game(s)\n  Sleeping until 16:05 ET (365 min)...\n\n[16:05 ET] Running lineup check...\n  2 new confirmed lineup(s). Running predictions...\n  Pick: Fixture Batter 0 (T0) 97.0% \u2192 should_lock=True\n  [PRIVATE] LOCKED (lineup) \u2014 Fixture Batter 0 (T0) 97.0% \u2014 NOT delivered\n  Pick locked. Stopping lineup checks.\n  Tomorrow's wake-up: Thu 03-25 10:00 ET\n  Waiting until 19:15 ET (game start + 10min, 190 min)...\n  [19:15 ET] Games: 700: live\n  [19:30 ET] Games: 700: live\n  [19:45 ET] Games: 700: final\n  Result: hit. Streak: 1.\n  Day complete. Result: final\n",
+        "error": "None"
+      }
+    ]
+  },
+  {
+    "case": "B8a_dated_and_saver",
+    "events": [
+      {
+        "at": "2027-03-24T23:50:00-04:00",
+        "type": "cli",
+        "args": [
+          "set-contest-streak",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-operator-a2nzimqh/data/picks",
+          "--date",
+          "2027-03-24",
+          "--streak",
+          "0",
+          "--best-streak",
+          "0",
+          "--saver",
+          "not_earned"
+        ],
+        "code": 0,
+        "text": "Observation written at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-operator-a2nzimqh/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=0 best=0 saver=not_earned reason=None\ncontest_streak: 0 (best 0, saver not_earned) for 2027-03-24, in effect today\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-25T00:20:00-04:00",
+        "type": "cli",
+        "args": [
+          "set-contest-streak",
+          "--date",
+          "2027-03-24",
+          "--streak",
+          "1",
+          "--best-streak",
+          "1",
+          "--saver",
+          "not_earned",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-operator-a2nzimqh/data/picks"
+        ],
+        "code": 2,
+        "text": "Usage: cli set-contest-streak [OPTIONS]\nTry 'cli set-contest-streak --help' for help.\n\nError: Invalid value for --date: must be today (2027-03-25)\n",
+        "error": null
+      },
+      {
+        "at": "2027-03-25T00:20:00-04:00",
+        "type": "cli",
+        "args": [
+          "saver-state",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-operator-a2nzimqh/data/picks",
+          "--init",
+          "not_earned"
+        ],
+        "code": 0,
+        "text": "Initialized saver flag: not_earned (season 2027)\nsaver_state: not_earned (season 2027)\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-25T00:20:00-04:00",
+        "type": "cli",
+        "args": [
+          "saver-state",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-operator-a2nzimqh/data/picks",
+          "--use"
+        ],
+        "code": 0,
+        "text": "Marked saver used (it was not_earned). To take this back run `bts saver-state --init not_earned --force --season 2027`.\nsaver_state: used (season 2027)\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-25T00:20:00-04:00",
+        "type": "cli",
+        "args": [
+          "saver-state",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-operator-a2nzimqh/data/picks",
+          "--undo"
+        ],
+        "code": 0,
+        "text": "Undid mark-used (saver active again).\nsaver_state: active (season 2027)\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-25T00:20:00-04:00",
+        "type": "cli",
+        "args": [
+          "saver-state",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-operator-a2nzimqh/data/picks",
+          "--init",
+          "not_earned",
+          "--force"
+        ],
+        "code": 0,
+        "text": "Forced saver flag: active -> not_earned (season 2027)\nsaver_state: not_earned (season 2027)\n",
+        "error": "None"
+      },
+      {
+        "at": "2027-03-25T00:20:00-04:00",
+        "type": "cli",
+        "args": [
+          "saver-state",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-operator-a2nzimqh/data/picks",
+          "--show"
+        ],
+        "code": 0,
+        "text": "saver_state: not_earned (season 2027)\n",
+        "error": "None"
+      }
+    ]
+  }
+]

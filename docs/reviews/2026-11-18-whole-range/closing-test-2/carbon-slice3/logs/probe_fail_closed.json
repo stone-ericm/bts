@@ -1,0 +1,22 @@
+[
+  {
+    "test": "test_live_gate_refusal_has_no_dm_but_leaves_heartbeat_stale",
+    "status": "PASS"
+  },
+  {
+    "test": "test_fetch_contest_streak_prior_non_dict_or_bad_utf8_crashes_without_alert",
+    "status": "PASS"
+  },
+  {
+    "test": "test_watchdog_persistent_auth_or_identity_failure_is_silent_until_morning",
+    "status": "PASS"
+  },
+  {
+    "test": "test_data_build_untyped_feed_and_pull_non_dict_raises",
+    "status": "PASS"
+  },
+  {
+    "test": "test_malformed_schedule_and_bounded_readers_and_pp_cache_signals",
+    "status": "PASS"
+  }
+]

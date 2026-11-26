@@ -1,0 +1,978 @@
+{
+  "clock": [
+    [
+      "scripts/cron-setup-hetzner.sh:56",
+      "# The season to build is the current year, evaluated when cron runs the line (it was a hardcoded 2026)."
+    ],
+    [
+      "scripts/cron-setup-hetzner.sh:57",
+      "DATA_BUILD_SEASON='$(date +\\%Y)'"
+    ],
+    [
+      "src/bts/cli.py:1462",
+      "@click.option(\"--date\", \"effective_date\", type=click.DateTime(formats=[\"%Y-%m-%d\"]),"
+    ],
+    [
+      "src/bts/cli.py:1519",
+      "now = datetime.now(timezone.utc)"
+    ],
+    [
+      "src/bts/cli.py:1529",
+      "from bts.contest_state import MAX_SEASON_STREAK"
+    ],
+    [
+      "src/bts/cli.py:1531",
+      "if best_streak > MAX_SEASON_STREAK:"
+    ],
+    [
+      "src/bts/cli.py:1532",
+      "raise click.BadParameter(f\"best streak must be at most {MAX_SEASON_STREAK}\","
+    ],
+    [
+      "src/bts/cli.py:1547",
+      "now_et = datetime.now(ZoneInfo(\"America/New_York\"))"
+    ],
+    [
+      "src/bts/cli.py:1857",
+      "date_str = date_str or datetime.now(ZoneInfo(\"America/New_York\")).strftime(\"%Y-%m-%d\")"
+    ],
+    [
+      "src/bts/cli.py:2348",
+      "now = datetime.now(timezone.utc)"
+    ],
+    [
+      "src/bts/cli.py:2367",
+      "now = datetime.now(timezone.utc)"
+    ],
+    [
+      "src/bts/cli.py:2414",
+      "now = datetime.now(timezone.utc)"
+    ],
+    [
+      "src/bts/cli.py:2434",
+      "stamp = utc.strftime(\"%Y%m%dT%H%M%S%fZ\")"
+    ],
+    [
+      "src/bts/cli.py:2510",
+      "now = datetime.now(timezone.utc)"
+    ],
+    [
+      "src/bts/contest_fetch.py:8",
+      "from bts.contest_state import MAX_SEASON_STREAK"
+    ],
+    [
+      "src/bts/contest_fetch.py:198",
+      "if best_streak > MAX_SEASON_STREAK:"
+    ],
+    [
+      "src/bts/contest_fetch.py:199",
+      "raise ContestFetchError(f\"seasonBestStreak must be <= {MAX_SEASON_STREAK}\")"
+    ],
+    [
+      "src/bts/contest_state.py:91",
+      "MAX_SEASON_STREAK = 400"
+    ],
+    [
+      "src/bts/contest_state.py:212",
+      "effective_date = date.fromisoformat(raw_date)"
+    ],
+    [
+      "src/bts/contest_state.py:239",
+      "if type(active) is not int or not 0 <= active <= MAX_SEASON_STREAK:"
+    ],
+    [
+      "src/bts/contest_state.py:240",
+      "invalid(5, \"active_streak\", f\"must be an integer from 0 to {MAX_SEASON_STREAK}\")"
+    ],
+    [
+      "src/bts/contest_state.py:242",
+      "if type(best) is not int or not active <= best <= MAX_SEASON_STREAK:"
+    ],
+    [
+      "src/bts/contest_state.py:243",
+      "invalid(6, \"best_streak\", f\"must be an integer from active_streak to {MAX_SEASON_STREAK}\")"
+    ],
+    [
+      "src/bts/contest_state.py:265",
+      "``streak <= best <= MAX_SEASON_STREAK`` (400), with current provenance"
+    ],
+    [
+      "src/bts/contest_state.py:274",
+      "if best < 0 or best < contest.streak or best > MAX_SEASON_STREAK:"
+    ],
+    [
+      "src/bts/contest_state.py:355",
+      "streak > MAX_SEASON_STREAK"
+    ],
+    [
+      "src/bts/contest_state.py:356",
+      "or (best is not None and (best < streak or best > MAX_SEASON_STREAK))"
+    ],
+    [
+      "src/bts/day_outcome.py:1",
+      "\"\"\"The end-of-day outcome check: every day must end in a known state (2026-11-13)."
+    ],
+    [
+      "src/bts/day_outcome.py:74",
+      "\"in docs/ops/2027-season-start.md before the next affected job. Give the BTS lead this alert, \""
+    ],
+    [
+      "src/bts/day_outcome.py:82",
+      "\"Follow B8b item 2 in docs/ops/2027-season-start.md before the next affected job. \""
+    ],
+    [
+      "src/bts/features/probable_pitcher_cache.py:233",
+      "at = datetime.now(timezone.utc)"
+    ],
+    [
+      "src/bts/features/probable_pitcher_cache.py:242",
+      "target = folder / f\"probable_pitcher_lookup.{at:%Y%m%dT%H%M%SZ}.{original_sha[:12]}.json\""
+    ],
+    [
+      "src/bts/health/late_delivery.py:51",
+      "reason = r.get(\"reason\") or \"past_submission_cutoff\"       # records before 2026-11-13 carry no reason"
+    ],
+    [
+      "src/bts/health/pick_entry.py:119",
+      "live_date = date.fromisoformat(marker.get(\"date\"))"
+    ],
+    [
+      "src/bts/health/runner.py:124",
+      "wall_date_et = datetime.now(timezone.utc).astimezone(ET).date()"
+    ],
+    [
+      "src/bts/health/tail_policy.py:38",
+      "from bts.strategy import SEASON_END_DATES, season_end_date"
+    ],
+    [
+      "src/bts/health/tail_policy.py:39",
+      "if today.year in SEASON_END_DATES:"
+    ],
+    [
+      "src/bts/health/tail_policy.py:45",
+      "f\"bts.strategy.SEASON_END_DATES\"),"
+    ],
+    [
+      "src/bts/picks.py:23",
+      "from bts.contest_state import DecisionStreakState, MAX_SEASON_STREAK, valid_automatic_reading"
+    ],
+    [
+      "src/bts/picks.py:272",
+      "if kind in {\"dated\", \"automatic\"} and streak > MAX_SEASON_STREAK:"
+    ],
+    [
+      "src/bts/picks.py:285",
+      "or active != streak or not 0 <= active <= best <= MAX_SEASON_STREAK"
+    ],
+    [
+      "src/bts/picks.py:631",
+      "return datetime.strptime(date, \"%Y-%m-%d\").year"
+    ],
+    [
+      "src/bts/picks.py:637",
+      "\"\"\"2027.0 == 2027 and True == 1: an unchecked argument could match a tag, or write one that no"
+    ],
+    [
+      "src/bts/picks.py:777",
+      "``date`` makes the update apply AT MOST ONCE per contest date (incident L04, fixed 2026-11-13). The"
+    ],
+    [
+      "src/bts/picks.py:864",
+      "# a miss had consumed) on any reconcile run later the same day (incident L02, fixed 2026-11-13)."
+    ],
+    [
+      "src/bts/picks.py:1259",
+      "# an official at-bat by then (it was graded \"miss\" until 2026-11-13: incident L01). saw_pre_pa is kept for"
+    ],
+    [
+      "src/bts/picks.py:1293",
+      "(6A, 6B). None: on neither roster. Until 2026-11-13 every no-hit line graded \"miss\" (incident L01).\"\"\""
+    ],
+    [
+      "src/bts/scheduler.py:379",
+      "# Thin slates (2026-07-16; Opening Night 2027-03-24 is a one-game slate). With one or two games the regular plan"
+    ],
+    [
+      "src/bts/scheduler.py:3428",
+      "# register's L03 control caught it (2026-11-13). A standing skip does not wait."
+    ],
+    [
+      "src/bts/simulate/backtest_blend.py:798",
+      "training frames never see it. Research plumbing for the 2026"
+    ],
+    [
+      "src/bts/simulate/backtest_blend.py:799",
+      "framing test (``docs/sota_audit/2026-10-09-prereg-c2-framing-2026-test.md``"
+    ],
+    [
+      "src/bts/strategy.py:46",
+      "# 2027 date as zero days left = skip all season; found 2026-11-12)."
+    ],
+    [
+      "src/bts/strategy.py:47",
+      "# The 2027 playing finale is September 26. Recheck the boundary if it moves."
+    ],
+    [
+      "src/bts/strategy.py:48",
+      "SEASON_END_DATES = {2026: \"2026-09-28\", 2027: \"2027-09-27\"}"
+    ],
+    [
+      "src/bts/strategy.py:49",
+      "_DEFAULT_SEASON_END_MMDD = \"09-28\""
+    ],
+    [
+      "src/bts/strategy.py:50",
+      "# The 2026 audit scripts (gate_b rebaseline, mdp aggressiveness, boundary-shadow"
+    ],
+    [
+      "src/bts/strategy.py:51",
+      "# census) import this name and mean 2026. The pick path uses season_end_date()."
+    ],
+    [
+      "src/bts/strategy.py:52",
+      "SEASON_END_DATE = SEASON_END_DATES[2026]"
+    ],
+    [
+      "src/bts/strategy.py:61",
+      "return SEASON_END_DATES.get(year, f\"{year}-{_DEFAULT_SEASON_END_MMDD}\")"
+    ],
+    [
+      "src/bts/strategy.py:251",
+      "end = datetime.strptime(season_end_date(date), \"%Y-%m-%d\")"
+    ],
+    [
+      "src/bts/web.py:1086",
+      "saver_dashboard_context(PICKS_DIR, now=datetime.now(timezone.utc)),"
+    ]
+  ],
+  "refusal": [
+    [
+      "src/bts/cli.py:1165",
+      "raise SystemExit(1) from exc"
+    ],
+    [
+      "src/bts/cli.py:1214",
+      "raise SystemExit(1) from exc"
+    ],
+    [
+      "src/bts/cli.py:1215",
+      "refusal = saved_pick_refusal(result.daily, decision_state)"
+    ],
+    [
+      "src/bts/cli.py:1216",
+      "if refusal is not None:"
+    ],
+    [
+      "src/bts/cli.py:1217",
+      "click.echo(f\"bts run: no pick: {refusal}\", err=True)"
+    ],
+    [
+      "src/bts/cli.py:1218",
+      "raise SystemExit(1)"
+    ],
+    [
+      "src/bts/cli.py:1265",
+      "raise SystemExit(1) from exc"
+    ],
+    [
+      "src/bts/cli.py:1267",
+      "refusal = saved_pick_refusal(daily, decision_state)"
+    ],
+    [
+      "src/bts/cli.py:1268",
+      "if refusal is not None:"
+    ],
+    [
+      "src/bts/cli.py:1269",
+      "click.echo(f\"bts run: no pick: {refusal}\", err=True)"
+    ],
+    [
+      "src/bts/cli.py:1270",
+      "raise SystemExit(1)"
+    ],
+    [
+      "src/bts/cli.py:1442",
+      "raise click.ClickException("
+    ],
+    [
+      "src/bts/cli.py:1447",
+      "raise click.ClickException("
+    ],
+    [
+      "src/bts/cli.py:1507",
+      "raise click.BadParameter(\"requires --date\", param_hint=\"--saver\")"
+    ],
+    [
+      "src/bts/cli.py:1510",
+      "raise click.BadParameter(\"required with --date\", param_hint=\"--best-streak\")"
+    ],
+    [
+      "src/bts/cli.py:1512",
+      "raise click.BadParameter(\"required with --date\", param_hint=\"--saver\")"
+    ],
+    [
+      "src/bts/cli.py:1518",
+      "raise click.BadParameter(\"cannot be used with --date\", param_hint=option)"
+    ],
+    [
+      "src/bts/cli.py:1523",
+      "raise click.BadParameter(f\"must be today ({today.isoformat()})\", param_hint=\"--date\")"
+    ],
+    [
+      "src/bts/cli.py:1525",
+      "raise click.BadParameter(\"streak must be non-negative\", param_hint=\"--streak\")"
+    ],
+    [
+      "src/bts/cli.py:1527",
+      "raise click.BadParameter(\"best streak must be at least the active streak\","
+    ],
+    [
+      "src/bts/cli.py:1532",
+      "raise click.BadParameter(f\"best streak must be at most {MAX_SEASON_STREAK}\","
+    ],
+    [
+      "src/bts/cli.py:1674",
+      "raise click.exceptions.Exit(1)"
+    ],
+    [
+      "src/bts/cli.py:1734",
+      "return False"
+    ],
+    [
+      "src/bts/cli.py:1740",
+      "return False"
+    ],
+    [
+      "src/bts/cli.py:1759",
+      "raise SystemExit(2)"
+    ],
+    [
+      "src/bts/cli.py:1870",
+      "raise SystemExit(2)"
+    ],
+    [
+      "src/bts/cli.py:1880",
+      "raise SystemExit(1)"
+    ],
+    [
+      "src/bts/cli.py:2087",
+      "return False"
+    ],
+    [
+      "src/bts/cli.py:2355",
+      "raise SystemExit(1)"
+    ],
+    [
+      "src/bts/cli.py:2370",
+      "raise click.UsageError(f\"--season must equal the current ET year {year}\")"
+    ],
+    [
+      "src/bts/cli.py:2390",
+      "raise SystemExit(1)"
+    ],
+    [
+      "src/bts/cli.py:2417",
+      "raise click.UsageError(f\"--season must equal the current ET year {year}\")"
+    ],
+    [
+      "src/bts/cli.py:2419",
+      "raise click.UsageError(\"--reason must be non-empty after stripping whitespace\")"
+    ],
+    [
+      "src/bts/cli.py:2432",
+      "raise SystemExit(1)"
+    ],
+    [
+      "src/bts/cli.py:2447",
+      "raise FileExistsError(f\"target already exists: {target}\")"
+    ],
+    [
+      "src/bts/cli.py:2457",
+      "raise SystemExit(1)"
+    ],
+    [
+      "src/bts/cli.py:2463",
+      "raise SystemExit(1)"
+    ],
+    [
+      "src/bts/cli.py:2472",
+      "\"for you to consult. Future live decisions refuse the automatic observation, subject to the \""
+    ],
+    [
+      "src/bts/cli.py:2565",
+      "raise ContestFetchError(\"profile predictions key is missing\")"
+    ],
+    [
+      "src/bts/cli.py:2567",
+      "raise ContestFetchError(\"profile predictions must be a list\")"
+    ],
+    [
+      "src/bts/cli.py:2569",
+      "raise ContestFetchError(\"profile predictions must contain only objects\")"
+    ],
+    [
+      "src/bts/cli.py:2571",
+      "raise ContestFetchError(\"rounds mapping must be non-empty\")"
+    ],
+    [
+      "src/bts/cli.py:2743",
+      "click.echo(f\"bts orchestrate: refusing to run: {problem}\", err=True)"
+    ],
+    [
+      "src/bts/cli.py:2744",
+      "raise SystemExit(2)"
+    ],
+    [
+      "src/bts/cli.py:2777",
+      "click.echo(f\"bts schedule: refusing to start: {problem}\", err=True)"
+    ],
+    [
+      "src/bts/cli.py:2778",
+      "raise SystemExit(2)"
+    ],
+    [
+      "src/bts/cli.py:2779",
+      "click.echo(f\"bts schedule: WARNING (a real run would refuse to start): {problem}\", err=True)"
+    ],
+    [
+      "src/bts/contest_fetch.py:199",
+      "raise ContestFetchError(f\"seasonBestStreak must be <= {MAX_SEASON_STREAK}\")"
+    ],
+    [
+      "src/bts/contest_state.py:31",
+      "# What reading and decoding a state or pick file can raise. ValueError covers malformed JSON,"
+    ],
+    [
+      "src/bts/contest_state.py:200",
+      "raise _HistoricalContestStateError(f\"The dated manual contest streak file failed validation for {field}.\")"
+    ],
+    [
+      "src/bts/contest_state.py:201",
+      "raise ContestStateError("
+    ],
+    [
+      "src/bts/contest_state.py:328",
+      "raise _HistoricalContestStateError(malformed) from exc"
+    ],
+    [
+      "src/bts/contest_state.py:332",
+      "raise _HistoricalContestStateError(malformed)"
+    ],
+    [
+      "src/bts/contest_state.py:341",
+      "raise _HistoricalContestStateError(f\"The {label} contest streak file has an invalid streak.\")"
+    ],
+    [
+      "src/bts/contest_state.py:347",
+      "raise _HistoricalContestStateError(f\"The {label} contest streak file has an invalid saver value.\")"
+    ],
+    [
+      "src/bts/contest_state.py:359",
+      "raise _HistoricalContestStateError(\"The automatic contest streak file has an invalid streak or best streak.\")"
+    ],
+    [
+      "src/bts/contest_state.py:360",
+      "raise ContestStateError("
+    ],
+    [
+      "src/bts/contest_state.py:368",
+      "raise _HistoricalContestStateError(\"The automatic contest observation is undated.\")"
+    ],
+    [
+      "src/bts/contest_state.py:369",
+      "raise ContestStateError(f\"automatic contest observation is undated at {path}\")"
+    ],
+    [
+      "src/bts/contest_state.py:377",
+      "raise _HistoricalContestStateError(\"The automatic contest streak file failed validation for season.\")"
+    ],
+    [
+      "src/bts/contest_state.py:378",
+      "raise ContestStateError(f\"automatic contest season invalid in {path}: must be an integer\")"
+    ],
+    [
+      "src/bts/contest_state.py:382",
+      "raise _HistoricalContestStateError(\"The automatic contest streak file failed validation for activation_id.\")"
+    ],
+    [
+      "src/bts/contest_state.py:383",
+      "raise ContestStateError(f\"automatic contest activation_id invalid in {path}: must be 32 lowercase hexadecimal characters\")"
+    ],
+    [
+      "src/bts/contest_state.py:564",
+      "raise TypeError(\"expected object\")"
+    ],
+    [
+      "src/bts/contest_state.py:599",
+      "refusal = live_automatic_refusal(picks_dir, now_dt, contest, switch=switch)"
+    ],
+    [
+      "src/bts/contest_state.py:600",
+      "if refusal is not None:"
+    ],
+    [
+      "src/bts/contest_state.py:601",
+      "raise ContestStateError(refusal)"
+    ],
+    [
+      "src/bts/contest_state.py:609",
+      "raise ContestStateError(f\"model state is corrupt; cannot use model fallback: {model_error}\")"
+    ],
+    [
+      "src/bts/contest_state.py:613",
+      "raise ContestStateError("
+    ],
+    [
+      "src/bts/data/build.py:348",
+      "beside them, raise instead of treating the season as empty. Any other malformed shape"
+    ],
+    [
+      "src/bts/data/build.py:406",
+      "raise ValueError(\"No requested-type game feeds; missing or unreadable gameData.game.type in \""
+    ],
+    [
+      "src/bts/data/build.py:409",
+      "raise ValueError(f\"No requested-type game feeds for season {season} in {season_dir}; \""
+    ],
+    [
+      "src/bts/data/pull.py:77",
+      "raise ValueError(f\"game feed {game_pk} must be a JSON object\")"
+    ],
+    [
+      "src/bts/features/probable_pitcher_cache.py:177",
+      "raise OSError(\"original cache bytes unavailable\")"
+    ],
+    [
+      "src/bts/features/probable_pitcher_cache.py:194",
+      "raise FileExistsError(target)"
+    ],
+    [
+      "src/bts/features/probable_pitcher_cache.py:202",
+      "raise ValueError(\"status exceeds size limit\")"
+    ],
+    [
+      "src/bts/features/probable_pitcher_cache.py:210",
+      "raise FileExistsError(path)"
+    ],
+    [
+      "src/bts/features/probable_pitcher_cache.py:264",
+      "return False"
+    ],
+    [
+      "src/bts/health/alert.py:111",
+      "raise OSError(\"not a regular file\")"
+    ],
+    [
+      "src/bts/health/alert.py:124",
+      "raise OSError(\"not a regular file\")"
+    ],
+    [
+      "src/bts/health/alert.py:249",
+      "raise OSError(\"receipt must be an unaliased regular file\")"
+    ],
+    [
+      "src/bts/health/alert.py:264",
+      "raise ValueError(f\"Duplicate receipt member: {key}\")"
+    ],
+    [
+      "src/bts/health/alert.py:344",
+      "return False"
+    ],
+    [
+      "src/bts/health/alert.py:355",
+      "raise ValueError(\"send_dm returned no usable message id\")"
+    ],
+    [
+      "src/bts/health/alert.py:442",
+      "return False"
+    ],
+    [
+      "src/bts/health/contest_state.py:48",
+      "\"Use the new day's morning state check, when available, and live refusal for current diagnosis. \""
+    ],
+    [
+      "src/bts/health/contest_state.py:86",
+      "raise"
+    ],
+    [
+      "src/bts/health/contest_state.py:95",
+      "refusal = (_automatic_refusal(picks_dir, now, state, historical=True) if historical"
+    ],
+    [
+      "src/bts/health/contest_state.py:97",
+      "if refusal is not None:"
+    ],
+    [
+      "src/bts/health/contest_state.py:98",
+      "alerts.append(Alert(level=\"CRITICAL\", source=SOURCE, message=refusal))"
+    ],
+    [
+      "src/bts/health/late_delivery.py:55",
+      "f\"delivery REFUSED for {day.isoformat()}: {r.get('label')}: {games}; \""
+    ],
+    [
+      "src/bts/health/late_delivery.py:59",
+      "f\"late delivery REFUSED for {day.isoformat()}: {r.get('batter')} ({r.get('label')}) \""
+    ],
+    [
+      "src/bts/health/pick_entry.py:73",
+      "return False"
+    ],
+    [
+      "src/bts/orchestrator.py:396",
+      "refusal = saved_pick_refusal(result.daily, decision_state)"
+    ],
+    [
+      "src/bts/orchestrator.py:397",
+      "if refusal is not None:"
+    ],
+    [
+      "src/bts/orchestrator.py:398",
+      "print(f\"bts orchestrate: no pick: {refusal}\", file=sys.stderr)"
+    ],
+    [
+      "src/bts/orchestrator.py:399",
+      "return False"
+    ],
+    [
+      "src/bts/orchestrator.py:446",
+      "refusal = saved_pick_refusal(daily, decision_state)"
+    ],
+    [
+      "src/bts/orchestrator.py:447",
+      "if refusal is not None:"
+    ],
+    [
+      "src/bts/orchestrator.py:448",
+      "print(f\"bts orchestrate: no pick: {refusal}\", file=sys.stderr)"
+    ],
+    [
+      "src/bts/orchestrator.py:449",
+      "return False"
+    ],
+    [
+      "src/bts/picks.py:302",
+      "raise TypeError(\"required must be a bool\")"
+    ],
+    [
+      "src/bts/picks.py:623",
+      "override), so no object can raise, exit or stall in here; a str subclass reads as \"cannot tell\"."
+    ],
+    [
+      "src/bts/picks.py:640",
+      "raise TypeError(f\"season must be an int or None, got {season!r}\")"
+    ],
+    [
+      "src/bts/picks.py:720",
+      "raise"
+    ],
+    [
+      "src/bts/picks.py:793",
+      "raise ValueError(\"cannot determine season of contest date: \" + shown)"
+    ],
+    [
+      "src/bts/probable_pitcher_status.py:38",
+      "raise NonRegularFile(path)"
+    ],
+    [
+      "src/bts/probable_pitcher_status.py:46",
+      "\"\"\"Return false for an absent directory and reject other entry types.\"\"\""
+    ],
+    [
+      "src/bts/probable_pitcher_status.py:50",
+      "return False"
+    ],
+    [
+      "src/bts/probable_pitcher_status.py:52",
+      "raise NotADirectoryError(path)"
+    ],
+    [
+      "src/bts/probable_pitcher_status.py:60",
+      "raise ValueError(\"status exceeds size limit\")"
+    ],
+    [
+      "src/bts/probable_pitcher_status.py:63",
+      "raise ValueError(\"invalid status schema\")"
+    ],
+    [
+      "src/bts/probable_pitcher_status.py:67",
+      "raise ValueError(\"invalid status name or identity\")"
+    ],
+    [
+      "src/bts/probable_pitcher_status.py:72",
+      "raise ValueError(\"invalid cache or evidence metadata\")"
+    ],
+    [
+      "src/bts/probable_pitcher_status.py:75",
+      "raise ValueError(\"invalid UTC timestamp\")"
+    ],
+    [
+      "src/bts/probable_pitcher_status.py:78",
+      "raise ValueError(\"timestamp and ET date disagree\")"
+    ],
+    [
+      "src/bts/probable_pitcher_status.py:83",
+      "raise ValueError(\"invalid game ID sample\")"
+    ],
+    [
+      "src/bts/probable_pitcher_status.py:86",
+      "raise ValueError(\"invalid rescan count\")"
+    ],
+    [
+      "src/bts/probable_pitcher_status.py:89",
+      "raise ValueError(\"invalid whole-cache outcome\")"
+    ],
+    [
+      "src/bts/probable_pitcher_status.py:92",
+      "raise ValueError(\"invalid drop counts\")"
+    ],
+    [
+      "src/bts/scheduler.py:168",
+      "# The refusal is carried out of the handler as bounded text, so a failed send"
+    ],
+    [
+      "src/bts/scheduler.py:170",
+      "refused = None"
+    ],
+    [
+      "src/bts/scheduler.py:174",
+      "refused = ascii(str(error))[:800]"
+    ],
+    [
+      "src/bts/scheduler.py:175",
+      "if refused is not None:"
+    ],
+    [
+      "src/bts/scheduler.py:176",
+      "_print_morning_check(f\"  MORNING STATE CHECK \u2014 no pick can be made yet: {refused}\")"
+    ],
+    [
+      "src/bts/scheduler.py:305",
+      "raise ValueError(f\"non-JSON constant {token}\")"
+    ],
+    [
+      "src/bts/scheduler.py:310",
+      "raise ValueError(f\"Invalid MLB schedule JSON: {exc}\") from exc"
+    ],
+    [
+      "src/bts/scheduler.py:312",
+      "raise ValueError(\"MLB schedule must be a JSON object\")"
+    ],
+    [
+      "src/bts/scheduler.py:315",
+      "raise ValueError(\"MLB schedule dates must be a list\")"
+    ],
+    [
+      "src/bts/scheduler.py:321",
+      "raise ValueError(f\"MLB schedule {location} must be an object\")"
+    ],
+    [
+      "src/bts/scheduler.py:324",
+      "raise ValueError(f\"MLB schedule {location}.games must be a list\")"
+    ],
+    [
+      "src/bts/scheduler.py:327",
+      "raise ValueError(f\"MLB schedule {location}.games[{game_index}] must be an object\")"
+    ],
+    [
+      "src/bts/scheduler.py:1281",
+      "# Refuse only when none of the pick's games remains playable (incident L03)."
+    ],
+    [
+      "src/bts/scheduler.py:1291",
+      "return False"
+    ],
+    [
+      "src/bts/scheduler.py:1324",
+      "refusal = saved_pick_refusal(daily, decision_state)"
+    ],
+    [
+      "src/bts/scheduler.py:1325",
+      "if refusal is not None:"
+    ],
+    [
+      "src/bts/scheduler.py:1326",
+      "print(f\"CONTEST STATE ERROR \u2014 pick delivery blocked: {refusal}\", file=sys.stderr)"
+    ],
+    [
+      "src/bts/scheduler.py:1328",
+      "_alert_contest_state_failure(config, ContestStateError(refusal))"
+    ],
+    [
+      "src/bts/scheduler.py:1331",
+      "return False"
+    ],
+    [
+      "src/bts/scheduler.py:2530",
+      "msg = (f\"LATE DELIVERY REFUSED: the {cutoff.strftime('%H:%M ET')} cutoff for {names} had been reached. \""
+    ],
+    [
+      "src/bts/scheduler.py:2570",
+      "refusal on state, DM a CRITICAL. Leaves pick_locked False so a later cycle can re-pick. The DM names the"
+    ],
+    [
+      "src/bts/scheduler.py:2576",
+      "print(f\"  DELIVERY REFUSED ({label}) \u2014 {games}; not delivering a pick on it.\", file=sys.stderr)"
+    ],
+    [
+      "src/bts/scheduler.py:2587",
+      "msg = (f\"DELIVERY REFUSED for {date}: {games}. \""
+    ],
+    [
+      "src/bts/season_contract.py:42",
+      "raise InvalidContract(check, text)"
+    ],
+    [
+      "src/bts/season_contract.py:142",
+      "reason = f\"Live decision refused: corrupt season switch, check {state.check}: {state.error}.\""
+    ],
+    [
+      "src/bts/season_contract.py:147",
+      "reason = \"Live decision refused: the selected legacy manual override is no longer accepted for a live pick.\""
+    ],
+    [
+      "src/bts/season_contract.py:157",
+      "reason = f\"Live decision refused: season {year} switch is {state.state}{detail}.\""
+    ],
+    [
+      "src/bts/season_contract.py:162",
+      "reason = \"Live decision refused: there is no automatic observation for this activation.\""
+    ],
+    [
+      "src/bts/season_contract.py:184",
+      "reason = f\"Live decision refused: {detail}.\""
+    ],
+    [
+      "src/bts/season_contract.py:224",
+      "return False"
+    ],
+    [
+      "src/bts/season_contract.py:264",
+      "adjective = \"invalid\" if label == \"manual\" else \"refused\""
+    ],
+    [
+      "src/bts/season_contract.py:302",
+      "return None, \"refused\", str(exc)"
+    ],
+    [
+      "src/bts/season_contract.py:314",
+      "automatic, _, refusal = verdict(omit_selected_dated=True) if dated else (live, disposition, detail)"
+    ],
+    [
+      "src/bts/season_contract.py:320",
+      "lines.append(f\"automatic path alone: refused: {refusal.splitlines()[0]}\")"
+    ],
+    [
+      "src/bts/season_contract.py:336",
+      "raise ValueError(\"not an object\")"
+    ],
+    [
+      "src/bts/simulate/backtest_blend.py:665",
+      "raise ValueError(f\"{label} scores are not aligned with the required rows\")"
+    ],
+    [
+      "src/bts/simulate/backtest_blend.py:670",
+      "raise ValueError(f\"{label} scores are not aligned with the required rows\")"
+    ],
+    [
+      "src/bts/simulate/backtest_blend.py:672",
+      "raise ValueError(f\"{label} returned non-finite scores\")"
+    ],
+    [
+      "src/bts/simulate/backtest_blend.py:803",
+      "rows and the estimated-PA reliever rows), raise instead of being"
+    ],
+    [
+      "src/bts/simulate/backtest_blend.py:897",
+      "raise ValueError(\"predict_day_transform must return the day's rows with the same index, order and \""
+    ],
+    [
+      "src/bts/simulate/backtest_blend.py:910",
+      "raise"
+    ],
+    [
+      "src/bts/strategy.py:367",
+      "raise ValueError(\"base policy season length must be a positive integer\")"
+    ],
+    [
+      "src/bts/strategy.py:369",
+      "raise ValueError(\"base policy boundaries must be a list\")"
+    ],
+    [
+      "src/bts/strategy.py:373",
+      "raise ValueError(\"base policy boundaries must be finite numbers\")"
+    ],
+    [
+      "src/bts/strategy.py:375",
+      "raise ValueError(\"base policy boundaries must be strictly increasing\")"
+    ],
+    [
+      "src/bts/strategy.py:377",
+      "raise ValueError(\"base policy table must be a four-dimensional array\")"
+    ],
+    [
+      "src/bts/strategy.py:379",
+      "raise ValueError(\"base policy table must not be a masked array\")"
+    ],
+    [
+      "src/bts/strategy.py:381",
+      "raise ValueError(\"base policy table must have an integer dtype\")"
+    ],
+    [
+      "src/bts/strategy.py:384",
+      "raise ValueError(\"base policy table shape does not cover the lookup\")"
+    ],
+    [
+      "src/bts/strategy.py:386",
+      "raise ValueError(\"base policy table contains an invalid action\")"
+    ],
+    [
+      "src/bts/strategy.py:395",
+      "raise ValueError(policy.get(\"base_error\") or \"decoded base policy or sha unavailable\")"
+    ],
+    [
+      "src/bts/strategy.py:398",
+      "raise ValueError(policy.get(\"tail_error\") or \"tail policy missing\")"
+    ],
+    [
+      "src/bts/strategy.py:400",
+      "raise ValueError(\"tail pairing unverifiable: base policy sha mismatch\")"
+    ],
+    [
+      "src/bts/strategy.py:402",
+      "raise ValueError(\"tail policy must have one quality bin\")"
+    ],
+    [
+      "src/bts/util.py:30",
+      "raise NotRegularFileError(f\"{path}: not a regular file\")"
+    ],
+    [
+      "src/bts/util.py:34",
+      "raise FileReadLimitError(f\"{path}: exceeds read limit\")"
+    ],
+    [
+      "src/bts/util.py:44",
+      "raise NotRegularFileError(f\"{path}: not a regular file\")"
+    ],
+    [
+      "src/bts/util.py:48",
+      "raise"
+    ],
+    [
+      "src/bts/util.py:49",
+      "raise MissingFileTargetError(*exc.args) from exc"
+    ],
+    [
+      "src/bts/util.py:53",
+      "raise NotRegularFileError(f\"{path}: not a regular file\")"
+    ],
+    [
+      "src/bts/util.py:54",
+      "raise OSError(f\"{path}: not a regular file\")"
+    ],
+    [
+      "src/bts/util.py:63",
+      "raise FileReadLimitError(f\"{path}: exceeds read limit\")"
+    ]
+  ]
+}

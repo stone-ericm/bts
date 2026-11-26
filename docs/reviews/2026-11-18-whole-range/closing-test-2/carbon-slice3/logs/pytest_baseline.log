@@ -1,0 +1,27 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-carbon3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 172 items
+
+tests/test_wr_g_guard.py ..........                                      [  5%]
+tests/test_wr_h_longest.py ...................                           [ 16%]
+tests/test_wr_h2_caps.py ......                                          [ 20%]
+tests/test_wr_f1_wrong_game.py ..                                        [ 21%]
+tests/test_wr_f1_review.py .                                             [ 22%]
+tests/test_wr_f1_game_pk_types.py ....                                   [ 24%]
+tests/test_wr_f1b_carbon_regressions.py .                                [ 25%]
+tests/test_wr_f2_saver_flag.py .....                                     [ 27%]
+tests/test_day_outcome.py ........                                       [ 32%]
+tests/test_day_outcome_entry_sequence.py ............................... [ 50%]
+..                                                                       [ 51%]
+tests/test_saved_pick_paths_cs5a.py .                                    [ 52%]
+tests/test_stale_delivery_cs4c.py ........                               [ 56%]
+tests/test_morning_state_cs6b1.py ......                                 [ 60%]
+tests/health/test_alert_status_cs6b2.py ................................ [ 79%]
+..........                                                               [ 84%]
+tests/test_wr_e_texts.py ....                                            [ 87%]
+tests/test_alert_status_callers_cs6b2.py ......................          [100%]
+
+============================= 172 passed in 1.85s ==============================

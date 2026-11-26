@@ -1,0 +1,35 @@
+# Rewritten by the coordinator from each log's pytest summary line (the first rc file recorded the exit status of a date call, not pytest's)
+pytest_probes: 29 passed in 5.35s 
+pytest_baseline: 172 passed in 1.85s 
+m01: 1 failed in 0.25s 
+m02: 1 failed in 0.25s 
+m03: 1 failed in 0.27s 
+m04: 4 failed, 1 passed in 0.28s 
+m05: 1 failed, 2 passed in 0.39s 
+m06: 4 failed in 0.26s 
+m07: 2 failed in 0.27s 
+m08: 11 passed in 0.39s 
+m09: 1 failed in 0.26s 
+m10: 1 failed in 0.24s 
+m11: 1 failed in 0.34s 
+m12: 1 failed in 0.34s 
+m13: 1 failed, 1 passed in 0.37s 
+m14: 1 failed in 0.34s 
+m15: 1 failed in 0.33s 
+m16: 1 failed in 0.34s 
+m17: 1 failed in 0.34s 
+m18: 1 failed in 0.34s 
+m19: 2 failed, 2 passed in 0.34s 
+m20: 1 failed in 0.33s 
+m21: 2 failed, 1 passed in 0.42s 
+m22: 1 passed in 0.40s 
+m23: 1 failed in 0.43s 
+m24: 7 failed in 0.25s 
+m25: 1 failed in 0.23s 
+m26: 24 failed, 9 passed in 0.39s 
+m27: 1 failed in 0.90s 
+m28: 4 failed, 4 passed in 0.95s 
+m29: 1 failed, 5 passed in 0.93s 
+m30: 6 failed, 36 passed in 0.26s 
+m31: 4 passed in 0.52s 
+m32: 22 passed in 0.95s 

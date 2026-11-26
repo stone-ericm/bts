@@ -1,0 +1,876 @@
+[
+  {
+    "entered": 700,
+    "events": [
+      {
+        "at": "2027-07-15T12:05:00-04:00",
+        "type": "cli",
+        "args": [
+          "check-pick-entered",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-entry-base-o7pckh42/data/picks",
+          "--expected-username",
+          "offline-account",
+          "--dm-recipient",
+          "offline-recipient.example"
+        ],
+        "code": 0,
+        "text": "check-pick-entered: 2027-07-15 pick entered (match)\n",
+        "error": "None"
+      }
+    ],
+    "snapshot": {
+      "data/health_state/pick_entry_check.json": {
+        "checked_at": "2027-07-15T12:05:00-04:00",
+        "date": "2027-07-15",
+        "reason": "match",
+        "receipt": "f816e513818b41ca8c4d28443ee1ecb2",
+        "status": "confirmed"
+      },
+      "data/health_state/pick_entry_receipts/2027-07-15/20270715T120500000000-6062447fe6d44be49771ad6ab2b1e744.json": {
+        "account": {
+          "expected_username": "offline-account",
+          "user_id": 4242,
+          "username": "offline-account"
+        },
+        "attempt_id": "6062447fe6d44be49771ad6ab2b1e744",
+        "cutoff_at": "2027-07-15T13:00:00-04:00",
+        "degraded": [],
+        "detail": null,
+        "error": null,
+        "et_date": "2027-07-15",
+        "exit_code": 0,
+        "failed_at": null,
+        "marker_status": "confirmed",
+        "minutes_to_pitch": 60.0,
+        "observation": {
+          "before_cutoff": true,
+          "entered_bts_ids": [
+            1
+          ],
+          "resolved_mlb_ids": [
+            100
+          ],
+          "response_completed_at": "2027-07-15T12:05:00-04:00",
+          "rows": {
+            "pending": [
+              {
+                "number": null,
+                "playerId": 1,
+                "result": null,
+                "roundId": 1,
+                "unitId": 77
+              }
+            ],
+            "profile": []
+          },
+          "sources": {
+            "crosswalk_sha256": "aaac1d0d661ca1283191f3159dbef083a4d6209cbd6e95fb731e53c15c4ccd5c",
+            "pending_sha256": "7e26171427db5abdabcfa2506173f4adf0e96e4ecf52abb6b605765dbaa82fe3",
+            "profile_sha256": "c97779d3e79b3bb9f044e3cc6ab783070d8cd9d818dbe84a2a413b87478eeb75",
+            "rounds_sha256": "cf4d385a3238dba0e24f80a85101a356387a9e6ead250ff0a6a1862a5c332096",
+            "units": {
+              "files": [
+                {
+                  "captured_utc": "2027-07-15T130000Z",
+                  "path": "leaderboard/static_snapshots/units/2027-07-15T130000Z.json.gz",
+                  "sha256": "a4f835c2c3a47b7bc87dc5d1d5a3d9b120a86a50ea26b3029b71d2f9b269debd"
+                }
+              ],
+              "inventory_sha256": "b749dbacaed2bc72cf8e5ca2f8ceba795c37228a922e22e76b4bc9540552384f"
+            }
+          }
+        },
+        "outcome": "observed",
+        "producer": {
+          "command": "check-pick-entered",
+          "revision": "d0bdcdba"
+        },
+        "published_at": "2027-07-15T12:05:00-04:00",
+        "qualification": {
+          "all_confirmed": true,
+          "slots": [
+            {
+              "batter_id": 100,
+              "game_pk": 700,
+              "role": "pick",
+              "row": {
+                "number": null,
+                "playerId": 1,
+                "roundId": 1,
+                "unitId": 77
+              },
+              "state": "confirmed"
+            }
+          ]
+        },
+        "references": null,
+        "schema": "bts_pick_entry_receipt_v1",
+        "season": 2027,
+        "selection": {
+          "commit": {
+            "decision_sha256": "689600ea65fa2d0182080f8647fc664e4c3caab768713cc6ca9d505145f482ac",
+            "decision_valid": true,
+            "delivery_status": "delivered",
+            "scoreable": true
+          },
+          "delivery": {
+            "bluesky_posted": false,
+            "bluesky_uri": null,
+            "delivered_at": "2027-07-15T10:05:00-04:00",
+            "notification_channel": "bluesky_dm",
+            "notification_id": "offline-dm-5",
+            "notification_sent": true
+          },
+          "pick_file_sha256": "3f94c8dfd70b4a97252bbc1018f39b22285c3cd149520d7f06e44edc291fe6c3",
+          "slots": [
+            {
+              "batter_id": 100,
+              "batter_name": "Fixture Batter 0",
+              "game_pk": 700,
+              "game_time": "2027-07-15T17:05:00+00:00",
+              "role": "pick"
+            }
+          ]
+        },
+        "started_at": "2027-07-15T12:05:00-04:00",
+        "verifier": {
+          "game_qualified": false,
+          "ok": true,
+          "reason": "match",
+          "required_mlb_ids": [
+            100
+          ]
+        }
+      },
+      "data/health_state/pick_entry_receipts/2027-07-15/20270715T120500000000-f816e513818b41ca8c4d28443ee1ecb2.json": {
+        "account": {
+          "expected_username": "offline-account",
+          "user_id": 4242,
+          "username": "offline-account"
+        },
+        "attempt_id": "f816e513818b41ca8c4d28443ee1ecb2",
+        "cutoff_at": "2027-07-15T13:00:00-04:00",
+        "degraded": [],
+        "detail": null,
+        "error": null,
+        "et_date": "2027-07-15",
+        "exit_code": 0,
+        "failed_at": null,
+        "marker_status": "confirmed",
+        "minutes_to_pitch": 60.0,
+        "observation": {
+          "before_cutoff": true,
+          "entered_bts_ids": [
+            1
+          ],
+          "resolved_mlb_ids": [
+            100
+          ],
+          "response_completed_at": "2027-07-15T12:05:00-04:00",
+          "rows": {
+            "pending": [
+              {
+                "number": null,
+                "playerId": 1,
+                "result": null,
+                "roundId": 1,
+                "unitId": 77
+              }
+            ],
+            "profile": []
+          },
+          "sources": {
+            "crosswalk_sha256": "aaac1d0d661ca1283191f3159dbef083a4d6209cbd6e95fb731e53c15c4ccd5c",
+            "pending_sha256": "7e26171427db5abdabcfa2506173f4adf0e96e4ecf52abb6b605765dbaa82fe3",
+            "profile_sha256": "c97779d3e79b3bb9f044e3cc6ab783070d8cd9d818dbe84a2a413b87478eeb75",
+            "rounds_sha256": "cf4d385a3238dba0e24f80a85101a356387a9e6ead250ff0a6a1862a5c332096",
+            "units": {
+              "files": [
+                {
+                  "captured_utc": "2027-07-15T130000Z",
+                  "path": "leaderboard/static_snapshots/units/2027-07-15T130000Z.json.gz",
+                  "sha256": "6050677f4611eba55ea8d2a7896b83ec0b9f53ea024a60e4ecac362029dfe772"
+                }
+              ],
+              "inventory_sha256": "45ac50ddefdf8d0b27b6103a06a80a8c41f501b708d66175fb00dff46afb027b"
+            }
+          }
+        },
+        "outcome": "observed",
+        "producer": {
+          "command": "check-pick-entered",
+          "revision": "619abda7"
+        },
+        "published_at": "2027-07-15T12:05:00-04:00",
+        "qualification": {
+          "all_confirmed": true,
+          "slots": [
+            {
+              "batter_id": 100,
+              "game_pk": 700,
+              "role": "pick",
+              "row": {
+                "number": null,
+                "playerId": 1,
+                "roundId": 1,
+                "unitId": 77
+              },
+              "state": "confirmed"
+            }
+          ]
+        },
+        "references": null,
+        "schema": "bts_pick_entry_receipt_v1",
+        "season": 2027,
+        "selection": {
+          "commit": {
+            "decision_sha256": "689600ea65fa2d0182080f8647fc664e4c3caab768713cc6ca9d505145f482ac",
+            "decision_valid": true,
+            "delivery_status": "delivered",
+            "scoreable": true
+          },
+          "delivery": {
+            "bluesky_posted": false,
+            "bluesky_uri": null,
+            "delivered_at": "2027-07-15T10:05:00-04:00",
+            "notification_channel": "bluesky_dm",
+            "notification_id": "offline-dm-5",
+            "notification_sent": true
+          },
+          "pick_file_sha256": "682feb0e4b4808e99adb8d008f1582ee8d71fd4ca10ea8371f6ff6852c15e263",
+          "slots": [
+            {
+              "batter_id": 100,
+              "batter_name": "Fixture Batter 0",
+              "game_pk": 700,
+              "game_time": "2027-07-15T17:05:00+00:00",
+              "role": "pick"
+            }
+          ]
+        },
+        "started_at": "2027-07-15T12:05:00-04:00",
+        "verifier": {
+          "game_qualified": false,
+          "ok": true,
+          "reason": "match",
+          "required_mlb_ids": [
+            100
+          ]
+        }
+      },
+      "data/picks/2027-07-15/decision.json": {
+        "schema_version": "bts_daily_decision_v3",
+        "date": "2027-07-15",
+        "action": "single",
+        "source": "mdp",
+        "primary": {
+          "batter_id": 100,
+          "batter_name": "Fixture Batter 0",
+          "team": "T0",
+          "game_pk": 700,
+          "p_game_hit": 0.98
+        },
+        "double_down": null,
+        "second_candidate": null,
+        "streak": 20,
+        "saver_available": true,
+        "state_source": "contest",
+        "state_status": "fresh",
+        "allow_double": true,
+        "contest_source_date": "2027-07-15",
+        "delivery_status": "delivered",
+        "scoreable": true,
+        "objective": "reach57",
+        "best_streak": 20,
+        "best_status": "trusted",
+        "effective_best": null,
+        "tail_policy_sha256": null,
+        "degraded_reason": null,
+        "policy_guard": null,
+        "finalized_at": "2027-07-15T14:05:00Z"
+      },
+      "data/picks/2027-07-15/scheduler_state.json": {
+        "date": "2027-07-15",
+        "schedule_fetched_at": "2027-07-15T09:55:00-04:00",
+        "games": [
+          {
+            "game_pk": 700,
+            "game_time_et": "2027-07-15T13:05:00-04:00",
+            "lineup_confirmed": true,
+            "is_doubleheader_game2": false
+          },
+          {
+            "game_pk": 701,
+            "game_time_et": "2027-07-15T20:05:00-04:00",
+            "lineup_confirmed": true,
+            "is_doubleheader_game2": true
+          }
+        ],
+        "confirmed_game_pks": [
+          700,
+          701
+        ],
+        "runs_completed": [
+          {
+            "time": "2027-07-15T10:05:00-04:00",
+            "new_lineups": 4,
+            "skipped": false,
+            "pick_name": "Fixture Batter 0",
+            "pick_p": 0.98,
+            "duration_sec": 0.0
+          }
+        ],
+        "pick_locked": true,
+        "pick_locked_at": "2027-07-15T10:05:00-04:00",
+        "result_status": "final",
+        "next_wakeup": "2027-07-16T10:00:00-04:00",
+        "analytics_jobs": {
+          "live_forward_capture": {
+            "status": "disabled",
+            "updated_at": "2027-07-15T10:05:00-04:00",
+            "reason": "live_forward_capture_on_lock=false"
+          }
+        },
+        "skip_summary": null,
+        "skip_notified_at": null,
+        "final_skip_candidate": null,
+        "committed_pick_written": true,
+        "delivery_refusals": null,
+        "fallback_refreshes": null
+      },
+      "data/picks/2027-07-15.json": {
+        "date": "2027-07-15",
+        "run_time": "2027-07-15T14:05:00+00:00",
+        "pick": {
+          "batter_name": "Fixture Batter 0",
+          "batter_id": 100,
+          "team": "T0",
+          "lineup_position": 1,
+          "pitcher_name": "Fixture Pitcher 0",
+          "pitcher_id": 900,
+          "p_game_hit": 0.98,
+          "flags": [],
+          "projected_lineup": false,
+          "game_pk": 700,
+          "game_time": "2027-07-15T17:05:00+00:00",
+          "pitcher_team": "U0"
+        },
+        "double_down": null,
+        "runner_up": null,
+        "bluesky_posted": false,
+        "bluesky_uri": null,
+        "notification_sent": true,
+        "notification_channel": "bluesky_dm",
+        "notification_id": "offline-dm-5",
+        "delivery_attempted": true,
+        "delivered_at": "2027-07-15T10:05:00-04:00",
+        "result": "hit",
+        "slot_results": {
+          "pick": "hit"
+        },
+        "shadow_model_version": null,
+        "model_git_sha": "d0bdcdba",
+        "model_pickle_sha256": null,
+        "policy_npz_sha256": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
+        "feature_env_schema_version": "bts_feature_env_v1",
+        "feature_env": {
+          "BTS_LGBM_DETERMINISTIC": "0",
+          "BTS_LGBM_RANDOM_STATE": "42",
+          "BTS_PITCHER_HR_30G_MIN_PERIODS": "7",
+          "BTS_ROOKIE_GATE_K": "20",
+          "BTS_USE_CALIBRATION": "0"
+        },
+        "feature_env_hash": "fb1841abbb3f269053f4687d291405c4c08ef1c9a87eda8f4f0663804b481ebe",
+        "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+        "policy_decision": {
+          "action": "single",
+          "policy_action": "single",
+          "source": "mdp",
+          "objective": "reach57",
+          "streak": 20,
+          "days_effective": 74,
+          "best_supplied": 20,
+          "best_status": "trusted",
+          "effective_best": null,
+          "tail_sha256": null,
+          "degraded_reason": null,
+          "reason": null,
+          "pick_bar": null,
+          "guard": null
+        },
+        "chosen_on": {
+          "schema": "bts_pick_chosen_on_v1",
+          "required": true,
+          "kind": "dated",
+          "streak": 20,
+          "saver_available": true,
+          "dated": {
+            "effective_date": "2027-07-15",
+            "active_streak": 20,
+            "best_streak": 20,
+            "saver_state": "active"
+          }
+        },
+        "automatic_reading": null
+      },
+      "data/picks/account_state/contest_streak.manual.json": {
+        "active_streak": 20,
+        "best_streak": 20,
+        "effective_date": "2027-07-15",
+        "expires_at": "2027-07-15T23:59:59.999999-04:00",
+        "recorded_at": "2027-07-15T13:55:00Z",
+        "saver_state": "active",
+        "schema_version": "bts_contest_streak_manual_v3",
+        "season": 2027,
+        "source": "manual_cli"
+      },
+      "data/picks/streak.json": {
+        "streak": 1,
+        "saver_available": true,
+        "updated": "2027-07-15T17:45:00+00:00",
+        "applied_dates": [
+          "2027-07-15"
+        ],
+        "season": 2027
+      }
+    }
+  },
+  {
+    "entered": 701,
+    "events": [
+      {
+        "at": "2027-07-15T12:05:00-04:00",
+        "type": "cli",
+        "args": [
+          "check-pick-entered",
+          "--picks-dir",
+          "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-entry-base-uvqb39t5/data/picks",
+          "--expected-username",
+          "offline-account",
+          "--dm-recipient",
+          "offline-recipient.example"
+        ],
+        "code": 0,
+        "text": "check-pick-entered: 2027-07-15 pick entered (match)\n",
+        "error": "None"
+      }
+    ],
+    "snapshot": {
+      "data/health_state/pick_entry_check.json": {
+        "checked_at": "2027-07-15T12:05:00-04:00",
+        "date": "2027-07-15",
+        "reason": "match",
+        "receipt": "d1fc21df7a814db6af6860a46d455bcb",
+        "status": "confirmed"
+      },
+      "data/health_state/pick_entry_receipts/2027-07-15/20270715T120500000000-5cb3d5ec3d0745839e73b150d8e36c80.json": {
+        "account": {
+          "expected_username": "offline-account",
+          "user_id": 4242,
+          "username": "offline-account"
+        },
+        "attempt_id": "5cb3d5ec3d0745839e73b150d8e36c80",
+        "cutoff_at": "2027-07-15T13:00:00-04:00",
+        "degraded": [],
+        "detail": null,
+        "error": null,
+        "et_date": "2027-07-15",
+        "exit_code": 1,
+        "failed_at": null,
+        "marker_status": "alerted",
+        "minutes_to_pitch": 60.0,
+        "observation": {
+          "before_cutoff": true,
+          "entered_bts_ids": [
+            1
+          ],
+          "resolved_mlb_ids": [
+            100
+          ],
+          "response_completed_at": "2027-07-15T12:05:00-04:00",
+          "rows": {
+            "pending": [
+              {
+                "number": null,
+                "playerId": 1,
+                "result": null,
+                "roundId": 1,
+                "unitId": 88
+              }
+            ],
+            "profile": []
+          },
+          "sources": {
+            "crosswalk_sha256": "aaac1d0d661ca1283191f3159dbef083a4d6209cbd6e95fb731e53c15c4ccd5c",
+            "pending_sha256": "e8b46b080c26df8ab733f5d1ac21748f5a8de66b0b8c8f3f85ccfd51aa14a0ca",
+            "profile_sha256": "c97779d3e79b3bb9f044e3cc6ab783070d8cd9d818dbe84a2a413b87478eeb75",
+            "rounds_sha256": "cf4d385a3238dba0e24f80a85101a356387a9e6ead250ff0a6a1862a5c332096",
+            "units": {
+              "files": [
+                {
+                  "captured_utc": "2027-07-15T130000Z",
+                  "path": "leaderboard/static_snapshots/units/2027-07-15T130000Z.json.gz",
+                  "sha256": "a4f835c2c3a47b7bc87dc5d1d5a3d9b120a86a50ea26b3029b71d2f9b269debd"
+                }
+              ],
+              "inventory_sha256": "b749dbacaed2bc72cf8e5ca2f8ceba795c37228a922e22e76b4bc9540552384f"
+            }
+          }
+        },
+        "outcome": "observed",
+        "producer": {
+          "command": "check-pick-entered",
+          "revision": "d0bdcdba"
+        },
+        "published_at": "2027-07-15T12:05:00-04:00",
+        "qualification": {
+          "all_confirmed": false,
+          "slots": [
+            {
+              "batter_id": 100,
+              "game_pk": 700,
+              "role": "pick",
+              "row": {
+                "number": null,
+                "playerId": 1,
+                "roundId": 1,
+                "unitId": 88
+              },
+              "state": "wrong_game"
+            }
+          ]
+        },
+        "references": null,
+        "schema": "bts_pick_entry_receipt_v1",
+        "season": 2027,
+        "selection": {
+          "commit": {
+            "decision_sha256": "689600ea65fa2d0182080f8647fc664e4c3caab768713cc6ca9d505145f482ac",
+            "decision_valid": true,
+            "delivery_status": "delivered",
+            "scoreable": true
+          },
+          "delivery": {
+            "bluesky_posted": false,
+            "bluesky_uri": null,
+            "delivered_at": "2027-07-15T10:05:00-04:00",
+            "notification_channel": "bluesky_dm",
+            "notification_id": "offline-dm-5",
+            "notification_sent": true
+          },
+          "pick_file_sha256": "3f94c8dfd70b4a97252bbc1018f39b22285c3cd149520d7f06e44edc291fe6c3",
+          "slots": [
+            {
+              "batter_id": 100,
+              "batter_name": "Fixture Batter 0",
+              "game_pk": 700,
+              "game_time": "2027-07-15T17:05:00+00:00",
+              "role": "pick"
+            }
+          ]
+        },
+        "started_at": "2027-07-15T12:05:00-04:00",
+        "verifier": {
+          "game_qualified": false,
+          "ok": true,
+          "reason": "match",
+          "required_mlb_ids": [
+            100
+          ]
+        }
+      },
+      "data/health_state/pick_entry_receipts/2027-07-15/20270715T120500000000-d1fc21df7a814db6af6860a46d455bcb.json": {
+        "account": {
+          "expected_username": "offline-account",
+          "user_id": 4242,
+          "username": "offline-account"
+        },
+        "attempt_id": "d1fc21df7a814db6af6860a46d455bcb",
+        "cutoff_at": "2027-07-15T13:00:00-04:00",
+        "degraded": [],
+        "detail": null,
+        "error": null,
+        "et_date": "2027-07-15",
+        "exit_code": 0,
+        "failed_at": null,
+        "marker_status": "confirmed",
+        "minutes_to_pitch": 60.0,
+        "observation": {
+          "before_cutoff": true,
+          "entered_bts_ids": [
+            1
+          ],
+          "resolved_mlb_ids": [
+            100
+          ],
+          "response_completed_at": "2027-07-15T12:05:00-04:00",
+          "rows": {
+            "pending": [
+              {
+                "number": null,
+                "playerId": 1,
+                "result": null,
+                "roundId": 1,
+                "unitId": 88
+              }
+            ],
+            "profile": []
+          },
+          "sources": {
+            "crosswalk_sha256": "aaac1d0d661ca1283191f3159dbef083a4d6209cbd6e95fb731e53c15c4ccd5c",
+            "pending_sha256": "e8b46b080c26df8ab733f5d1ac21748f5a8de66b0b8c8f3f85ccfd51aa14a0ca",
+            "profile_sha256": "c97779d3e79b3bb9f044e3cc6ab783070d8cd9d818dbe84a2a413b87478eeb75",
+            "rounds_sha256": "cf4d385a3238dba0e24f80a85101a356387a9e6ead250ff0a6a1862a5c332096",
+            "units": {
+              "files": [
+                {
+                  "captured_utc": "2027-07-15T130000Z",
+                  "path": "leaderboard/static_snapshots/units/2027-07-15T130000Z.json.gz",
+                  "sha256": "6050677f4611eba55ea8d2a7896b83ec0b9f53ea024a60e4ecac362029dfe772"
+                }
+              ],
+              "inventory_sha256": "45ac50ddefdf8d0b27b6103a06a80a8c41f501b708d66175fb00dff46afb027b"
+            }
+          }
+        },
+        "outcome": "observed",
+        "producer": {
+          "command": "check-pick-entered",
+          "revision": "619abda7"
+        },
+        "published_at": "2027-07-15T12:05:00-04:00",
+        "qualification": {
+          "all_confirmed": false,
+          "slots": [
+            {
+              "batter_id": 100,
+              "game_pk": 700,
+              "role": "pick",
+              "row": {
+                "number": null,
+                "playerId": 1,
+                "roundId": 1,
+                "unitId": 88
+              },
+              "state": "wrong_game"
+            }
+          ]
+        },
+        "references": null,
+        "schema": "bts_pick_entry_receipt_v1",
+        "season": 2027,
+        "selection": {
+          "commit": {
+            "decision_sha256": "689600ea65fa2d0182080f8647fc664e4c3caab768713cc6ca9d505145f482ac",
+            "decision_valid": true,
+            "delivery_status": "delivered",
+            "scoreable": true
+          },
+          "delivery": {
+            "bluesky_posted": false,
+            "bluesky_uri": null,
+            "delivered_at": "2027-07-15T10:05:00-04:00",
+            "notification_channel": "bluesky_dm",
+            "notification_id": "offline-dm-5",
+            "notification_sent": true
+          },
+          "pick_file_sha256": "682feb0e4b4808e99adb8d008f1582ee8d71fd4ca10ea8371f6ff6852c15e263",
+          "slots": [
+            {
+              "batter_id": 100,
+              "batter_name": "Fixture Batter 0",
+              "game_pk": 700,
+              "game_time": "2027-07-15T17:05:00+00:00",
+              "role": "pick"
+            }
+          ]
+        },
+        "started_at": "2027-07-15T12:05:00-04:00",
+        "verifier": {
+          "game_qualified": false,
+          "ok": true,
+          "reason": "match",
+          "required_mlb_ids": [
+            100
+          ]
+        }
+      },
+      "data/picks/2027-07-15/decision.json": {
+        "schema_version": "bts_daily_decision_v3",
+        "date": "2027-07-15",
+        "action": "single",
+        "source": "mdp",
+        "primary": {
+          "batter_id": 100,
+          "batter_name": "Fixture Batter 0",
+          "team": "T0",
+          "game_pk": 700,
+          "p_game_hit": 0.98
+        },
+        "double_down": null,
+        "second_candidate": null,
+        "streak": 20,
+        "saver_available": true,
+        "state_source": "contest",
+        "state_status": "fresh",
+        "allow_double": true,
+        "contest_source_date": "2027-07-15",
+        "delivery_status": "delivered",
+        "scoreable": true,
+        "objective": "reach57",
+        "best_streak": 20,
+        "best_status": "trusted",
+        "effective_best": null,
+        "tail_policy_sha256": null,
+        "degraded_reason": null,
+        "policy_guard": null,
+        "finalized_at": "2027-07-15T14:05:00Z"
+      },
+      "data/picks/2027-07-15/scheduler_state.json": {
+        "date": "2027-07-15",
+        "schedule_fetched_at": "2027-07-15T09:55:00-04:00",
+        "games": [
+          {
+            "game_pk": 700,
+            "game_time_et": "2027-07-15T13:05:00-04:00",
+            "lineup_confirmed": true,
+            "is_doubleheader_game2": false
+          },
+          {
+            "game_pk": 701,
+            "game_time_et": "2027-07-15T20:05:00-04:00",
+            "lineup_confirmed": true,
+            "is_doubleheader_game2": true
+          }
+        ],
+        "confirmed_game_pks": [
+          700,
+          701
+        ],
+        "runs_completed": [
+          {
+            "time": "2027-07-15T10:05:00-04:00",
+            "new_lineups": 4,
+            "skipped": false,
+            "pick_name": "Fixture Batter 0",
+            "pick_p": 0.98,
+            "duration_sec": 0.0
+          }
+        ],
+        "pick_locked": true,
+        "pick_locked_at": "2027-07-15T10:05:00-04:00",
+        "result_status": "final",
+        "next_wakeup": "2027-07-16T10:00:00-04:00",
+        "analytics_jobs": {
+          "live_forward_capture": {
+            "status": "disabled",
+            "updated_at": "2027-07-15T10:05:00-04:00",
+            "reason": "live_forward_capture_on_lock=false"
+          }
+        },
+        "skip_summary": null,
+        "skip_notified_at": null,
+        "final_skip_candidate": null,
+        "committed_pick_written": true,
+        "delivery_refusals": null,
+        "fallback_refreshes": null
+      },
+      "data/picks/2027-07-15.json": {
+        "date": "2027-07-15",
+        "run_time": "2027-07-15T14:05:00+00:00",
+        "pick": {
+          "batter_name": "Fixture Batter 0",
+          "batter_id": 100,
+          "team": "T0",
+          "lineup_position": 1,
+          "pitcher_name": "Fixture Pitcher 0",
+          "pitcher_id": 900,
+          "p_game_hit": 0.98,
+          "flags": [],
+          "projected_lineup": false,
+          "game_pk": 700,
+          "game_time": "2027-07-15T17:05:00+00:00",
+          "pitcher_team": "U0"
+        },
+        "double_down": null,
+        "runner_up": null,
+        "bluesky_posted": false,
+        "bluesky_uri": null,
+        "notification_sent": true,
+        "notification_channel": "bluesky_dm",
+        "notification_id": "offline-dm-5",
+        "delivery_attempted": true,
+        "delivered_at": "2027-07-15T10:05:00-04:00",
+        "result": "hit",
+        "slot_results": {
+          "pick": "hit"
+        },
+        "shadow_model_version": null,
+        "model_git_sha": "d0bdcdba",
+        "model_pickle_sha256": null,
+        "policy_npz_sha256": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
+        "feature_env_schema_version": "bts_feature_env_v1",
+        "feature_env": {
+          "BTS_LGBM_DETERMINISTIC": "0",
+          "BTS_LGBM_RANDOM_STATE": "42",
+          "BTS_PITCHER_HR_30G_MIN_PERIODS": "7",
+          "BTS_ROOKIE_GATE_K": "20",
+          "BTS_USE_CALIBRATION": "0"
+        },
+        "feature_env_hash": "fb1841abbb3f269053f4687d291405c4c08ef1c9a87eda8f4f0663804b481ebe",
+        "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+        "policy_decision": {
+          "action": "single",
+          "policy_action": "single",
+          "source": "mdp",
+          "objective": "reach57",
+          "streak": 20,
+          "days_effective": 74,
+          "best_supplied": 20,
+          "best_status": "trusted",
+          "effective_best": null,
+          "tail_sha256": null,
+          "degraded_reason": null,
+          "reason": null,
+          "pick_bar": null,
+          "guard": null
+        },
+        "chosen_on": {
+          "schema": "bts_pick_chosen_on_v1",
+          "required": true,
+          "kind": "dated",
+          "streak": 20,
+          "saver_available": true,
+          "dated": {
+            "effective_date": "2027-07-15",
+            "active_streak": 20,
+            "best_streak": 20,
+            "saver_state": "active"
+          }
+        },
+        "automatic_reading": null
+      },
+      "data/picks/account_state/contest_streak.manual.json": {
+        "active_streak": 20,
+        "best_streak": 20,
+        "effective_date": "2027-07-15",
+        "expires_at": "2027-07-15T23:59:59.999999-04:00",
+        "recorded_at": "2027-07-15T13:55:00Z",
+        "saver_state": "active",
+        "schema_version": "bts_contest_streak_manual_v3",
+        "season": 2027,
+        "source": "manual_cli"
+      },
+      "data/picks/streak.json": {
+        "streak": 1,
+        "saver_available": true,
+        "updated": "2027-07-15T17:45:00+00:00",
+        "applied_dates": [
+          "2027-07-15"
+        ],
+        "season": 2027
+      }
+    }
+  }
+]

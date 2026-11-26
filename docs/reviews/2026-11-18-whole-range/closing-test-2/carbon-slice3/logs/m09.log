@@ -1,0 +1,42 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-carbon3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_wr_h_longest.py F                                             [100%]
+
+=================================== FAILURES ===================================
+______________________ test_f2_masked_table_forces_single ______________________
+
+rebound_policy = <function rebound_policy.<locals>.prepare at 0x10c91fd80>
+
+    def test_f2_masked_table_forces_single(rebound_policy):
+        policy = rebound_policy()
+        # NPZ preserves the underlying values but drops the mask.
+        table = np.ma.array(policy["policy_table"], mask=False)
+        table[0, 0, 0, 0] = np.ma.masked
+>       assert_degraded_finale(policy | {"policy_table": table})
+
+tests/test_wr_h_longest.py:423: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+policy = {'base_error': None, 'base_sha256': '66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4', 'boundaries': ...se, False, False],
+          [False, False, False, False, False]]]],
+  fill_value=np.int64(999999),
+  dtype=int8), ...}
+
+    def assert_degraded_finale(policy):
+        decision = finale_decision(policy)
+>       assert (decision.action, decision.policy_action, decision.objective, decision.source) == (
+            "single", "single", OBJECTIVE, "mdp")
+E       AssertionError: assert ('double', 'd...treak', 'mdp') == ('single', 's...treak', 'mdp')
+E         
+E         At index 0 diff: 'double' != 'single'
+E         Use -v to get more diff
+
+tests/test_wr_h_longest.py:394: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_h_longest.py::test_f2_masked_table_forces_single - Asser...
+============================== 1 failed in 0.26s ===============================

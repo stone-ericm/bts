@@ -1,0 +1,18 @@
+51c51
+<     for cmd in ("crontab", "curl", "flock", "date"):
+---
+>     for cmd in ("crontab", "curl", "flock", "timeout", "date"):
+65a66
+>         cmd = cmd.replace("/usr/bin/timeout", shlex.quote(str(bin_path / "timeout")))
+93c94
+<         assert args[:2] == ["-n", "/home/bts/.check-results.lock"], args
+---
+>         assert args[:2] in (["-n", "/home/bts/.check-results.lock"], ["-n", "/home/bts/.check-pick-entered.lock"]), args
+94a96,98
+>     if name == "timeout":
+>         assert args[:4] == ["--verbose", "-k", "30", "840"], args
+>         os.execv(args[4], args[4:])
+138c142
+<                 assert call[0] == "flock", call
+---
+>                 assert call[0] in ("flock", "timeout"), call

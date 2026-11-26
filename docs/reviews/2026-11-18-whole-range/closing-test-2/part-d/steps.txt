@@ -1,0 +1,11 @@
+2026-11-26 11:44:32 start red
+2026-11-26 11:44:33 end red rc=1
+2026-11-26 11:44:33 start green
+2026-11-26 11:44:33 end green rc=1
+2026-11-26 11:44:33 start walk-extended
+2026-11-26 11:44:59 end walk-extended rc=1
+2026-11-26 11:44:59 ALL STEPS DONE
+2026-11-26 11:46:06 start green2
+2026-11-26 11:46:06 end green2 rc=0
+2026-11-26 11:46:06 start walk-extended2
+2026-11-26 11:46:32 end walk-extended2 rc=0

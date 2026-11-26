@@ -1,0 +1,59 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-carbon3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 6 items
+
+tests/test_morning_state_cs6b1.py ...F..                                 [100%]
+
+=================================== FAILURES ===================================
+______________ test_margin_uses_earliest_planned_target[600-run] _______________
+
+morning = ({'bluesky': {'dm_recipient': 'offline.test'}, 'health_checks': {'enabled': False}, 'orchestrator': {'heartbeat_path':...     665742    Juan Soto  NYM  ...             False      102  2027-07-15T23:40:00Z
+
+[2 rows x 13 columns], 'offline'))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118c4bb60>
+capsys = <_pytest.capture.CaptureFixture object at 0x118c68950>, lead = 600
+expected = 'run'
+
+    @pytest.mark.parametrize(("lead", "expected"), [
+        (-60, "due"), (0, "due"), (599, "due"), (600, "run"), (None, "empty"), ("mixed", "due"),
+    ])
+    def test_margin_uses_earliest_planned_target(morning, monkeypatch, capsys, lead, expected):
+        config, _, now, _ = morning
+        targets = [] if lead is None else [now[0] + timedelta(seconds=lead)] if lead != "mixed" else [
+            now[0] + timedelta(hours=1), now[0] - timedelta(minutes=1),
+        ]
+        monkeypatch.setattr(scheduler, "plan_run_times", lambda *a, **k: [
+            {"time_et": target, "game_pks": [101]} for target in targets
+        ])
+        helper = Mock(wraps=getattr(scheduler, "_morning_state_check", None))
+        monkeypatch.setattr(scheduler, "_morning_state_check", helper, raising=False)
+        scheduler.run_day(DAY, config)
+        err = capsys.readouterr().err
+        if expected == "run":
+>           helper.assert_called_once_with(config, morning[1], DAY, START, targets[0])
+
+tests/test_morning_state_cs6b1.py:199: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Mock id='4710632288'>
+args = ({'bluesky': {'dm_recipient': 'offline.test'}, 'health_checks': {'enabled': False}, 'orchestrator': {'heartbeat_path':...72000))), datetime.datetime(2027, 7, 15, 10, 10, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=72000))))
+kwargs = {}, msg = "Expected 'mock' to be called once. Called 0 times."
+
+    def assert_called_once_with(self, /, *args, **kwargs):
+        """assert that the mock was called exactly once and that that call was
+        with the specified arguments."""
+        if not self.call_count == 1:
+            msg = ("Expected '%s' to be called once. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+>           raise AssertionError(msg)
+E           AssertionError: Expected 'mock' to be called once. Called 0 times.
+
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:960: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_morning_state_cs6b1.py::test_margin_uses_earliest_planned_target[600-run]
+========================= 1 failed, 5 passed in 0.93s ==========================

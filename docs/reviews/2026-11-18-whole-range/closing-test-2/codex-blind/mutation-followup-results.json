@@ -1,0 +1,92 @@
+[
+  {
+    "test": ".codex-review/whole-range/test_offline_followup.py::test_boolean_model_streak",
+    "path": "src/bts/day_outcome.py",
+    "before": "if type(streak) is not int or streak < 0:",
+    "after": "if not isinstance(streak, int) or streak < 0:",
+    "base": {
+      "code": 0,
+      "output": ".                                                                        [100%]\n1 passed in 0.84s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n__________________________ test_boolean_model_streak ___________________________\n.codex-review/whole-range/test_offline_followup.py:23: in test_boolean_model_streak\n    assert code == 1\nE   assert 0 == 1\n=========================== short test summary info ============================\nFAILED .codex-review/whole-range/test_offline_followup.py::test_boolean_model_streak\n1 failed in 0.87s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": ".codex-review/whole-range/test_offline_followup.py::test_bounded_decoder_failure",
+    "path": "src/bts/day_outcome.py",
+    "before": "return f\"JSON exceeds decoder limits ({type(exc).__name__})\"",
+    "after": "return \"not valid JSON\"",
+    "base": {
+      "code": 0,
+      "output": ".                                                                        [100%]\n1 passed in 0.85s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n_________________________ test_bounded_decoder_failure _________________________\n.codex-review/whole-range/test_offline_followup.py:32: in test_bounded_decoder_failure\n    assert report[\"streak_problem\"] == \"JSON exceeds decoder limits (ValueError)\"\nE   AssertionError: assert 'not valid JSON' == 'JSON exceeds... (ValueError)'\nE     \nE     - JSON exceeds decoder limits (ValueError)\nE     + not valid JSON\n=========================== short test summary info ============================\nFAILED .codex-review/whole-range/test_offline_followup.py::test_bounded_decoder_failure\n1 failed in 0.88s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": ".codex-review/whole-range/test_offline_followup.py::test_report_compacts_long_advisory",
+    "path": "src/bts/day_outcome.py",
+    "before": "if len(body) > DM_MAX_CODE_POINTS:",
+    "after": "if len(body) > 2000:",
+    "base": {
+      "code": 0,
+      "output": ".                                                                        [100%]\n1 passed in 0.84s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n______________________ test_report_compacts_long_advisory ______________________\n.codex-review/whole-range/test_offline_followup.py:39: in test_report_compacts_long_advisory\n    assert len(outcome.message()) < 1000\nE   AssertionError: assert 1401 < 1000\nE    +  where 1401 = len('BTS day check 2027-03-24: NOT ENTERED. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...ealth alerts. If the lead session is unavailable, escalate through Eric. The 08:00 ET correction cutoff still applies.')\nE    +    where 'BTS day check 2027-03-24: NOT ENTERED. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...ealth alerts. If the lead session is unavailable, escalate through Eric. The 08:00 ET correction cutoff still applies.' = message()\nE    +      where message = DayOutcome(date='2027-03-24', state='not_entered', detail='xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', pick=None, streak_problem='not a JSON object').message\n=========================== short test summary info ============================\nFAILED .codex-review/whole-range/test_offline_followup.py::test_report_compacts_long_advisory\n1 failed in 0.86s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": ".codex-review/whole-range/test_offline_followup.py::test_dangling_streak_is_absent",
+    "path": "src/bts/day_outcome.py",
+    "before": "except MissingFileTargetError:\n        return None",
+    "after": "except MissingFileTargetError:\n        return \"missing\"",
+    "base": {
+      "code": 0,
+      "output": ".                                                                        [100%]\n1 passed in 0.84s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n________________________ test_dangling_streak_is_absent ________________________\n.codex-review/whole-range/test_offline_followup.py:45: in test_dangling_streak_is_absent\n    assert code == 0\nE   assert 1 == 0\n=========================== short test summary info ============================\nFAILED .codex-review/whole-range/test_offline_followup.py::test_dangling_streak_is_absent\n1 failed in 0.88s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_h_longest.py::test_positive_day_rule_selects_a_play_at_exact_ties",
+    "path": "src/bts/simulate/tail_policy.py",
+    "before": "return (\"single\", \"double\", \"skip\")[values.index(gain)]",
+    "after": "return \"single\"",
+    "base": {
+      "code": 0,
+      "output": ".....                                                                    [100%]\n5 passed in 0.62s\n"
+    },
+    "mutant": {
+      "code": 0,
+      "output": ".....                                                                    [100%]\n5 passed in 0.61s\n"
+    },
+    "verdict": "survived"
+  },
+  {
+    "test": "tests/test_wr_h2_caps.py::test_k6_dated_cli_rejects_before_writes",
+    "path": "src/bts/cli.py",
+    "before": "f\"best streak must be at most {MAX_SEASON_STREAK}\"",
+    "after": "\"invalid best streak\"",
+    "base": {
+      "code": 0,
+      "output": ".                                                                        [100%]\n1 passed in 0.85s\n"
+    },
+    "mutant": {
+      "code": 0,
+      "output": ".                                                                        [100%]\n1 passed in 0.86s\n"
+    },
+    "verdict": "survived"
+  }
+]

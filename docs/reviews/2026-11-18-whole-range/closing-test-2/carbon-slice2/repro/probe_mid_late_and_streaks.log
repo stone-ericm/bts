@@ -1,0 +1,585 @@
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-07-15...
+  2 games, 4 scheduled checks:
+    16:10 ET — 1 game(s)
+    16:40 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    17:40 ET — 1 game(s)
+  Morning state check: automatic contest state accepted (streak 12).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Pick: Juan Soto (NYY) 82.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: dm-msg-1
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 190 min)...
+  [19:20 ET] Games: 700001: final
+  Result: hit. Streak: 13.
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-07-15...
+  2 games, 4 scheduled checks:
+    16:10 ET — 1 game(s)
+    16:40 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    17:40 ET — 1 game(s)
+  Morning state check: automatic contest state accepted (streak 12).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Pick: Juan Soto (NYY) 83.5% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: dm-msg-1
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 190 min)...
+  [19:20 ET] Games: 700001: final, 700002: final
+  Result: miss. Streak: 12.
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-07-15...
+  2 games, 4 scheduled checks:
+    16:10 ET — 1 game(s)
+    16:40 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    17:40 ET — 1 game(s)
+  Morning state check: automatic contest state accepted (streak 12).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  SKIP — Candidate used in the decision: Juan Soto (NYY) 72.0%, below the streak-12 bar (79.6%) using unrounded values. Streak used at this check: 12.
+  Sleeping until 16:40 ET (30 min)...
+
+[16:40 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  SKIP — Candidate used in the decision: Juan Soto (NYY) 72.0%, below the streak-12 bar (79.6%) using unrounded values. Streak used at this check: 12.
+  Sleeping until 17:10 ET (30 min)...
+
+[17:10 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  SKIP — Candidate used in the decision: Juan Soto (NYY) 72.0%, below the streak-12 bar (79.6%) using unrounded values. Streak used at this check: 12.
+  Sleeping until 17:40 ET (30 min)...
+
+[17:40 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  SKIP — Candidate used in the decision: Juan Soto (NYY) 72.0%, below the streak-12 bar (79.6%) using unrounded values. Streak used at this check: 12.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-09-20...
+  2 games, 4 scheduled checks:
+    16:10 ET — 1 game(s)
+    16:40 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    17:40 ET — 1 game(s)
+  Morning state check: automatic contest state accepted (streak 12).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Policy: objective=emax_season_best action=single streak=12 best=14 (trusted) effective_best=14 days=7 tail=dc5d0c992443
+  Pick: Juan Soto (NYY) 84.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: dm-msg-1
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Tue 09-21 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 190 min)...
+  [19:20 ET] Games: 700001: final
+  Result: hit. Streak: 13.
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-09-20...
+  2 games, 4 scheduled checks:
+    16:10 ET — 1 game(s)
+    16:40 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    17:40 ET — 1 game(s)
+  Morning state check: automatic contest state accepted (streak 12).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Policy: objective=emax_season_best action=double streak=12 best=25 (trusted) effective_best=25 days=7 tail=dc5d0c992443
+  Pick: Juan Soto (NYY) 84.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: dm-msg-1
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Tue 09-21 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 190 min)...
+  [19:20 ET] Games: 700001: final, 700002: final
+  Result: hit. Streak: 14.
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-09-20...
+  2 games, 4 scheduled checks:
+    16:10 ET — 1 game(s)
+    16:40 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    17:40 ET — 1 game(s)
+  Morning state check: automatic contest state accepted (streak 5).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Policy: objective=emax_season_best action=skip streak=5 best=25 (trusted) effective_best=25 days=7 tail=dc5d0c992443
+  SKIP — Candidate used in the decision: Juan Soto (NYY) 85.0%. Reason: season-best 25 can't be beaten with 7 days left (max reachable 19); no pick. Streak used at this check: 5.
+  Sleeping until 16:40 ET (30 min)...
+
+[16:40 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Policy: objective=emax_season_best action=skip streak=5 best=25 (trusted) effective_best=25 days=7 tail=dc5d0c992443
+  SKIP — Candidate used in the decision: Juan Soto (NYY) 85.0%. Reason: season-best 25 can't be beaten with 7 days left (max reachable 19); no pick. Streak used at this check: 5.
+  Sleeping until 17:10 ET (30 min)...
+
+[17:10 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Policy: objective=emax_season_best action=skip streak=5 best=25 (trusted) effective_best=25 days=7 tail=dc5d0c992443
+  SKIP — Candidate used in the decision: Juan Soto (NYY) 85.0%. Reason: season-best 25 can't be beaten with 7 days left (max reachable 19); no pick. Streak used at this check: 5.
+  Sleeping until 17:40 ET (30 min)...
+
+[17:40 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Policy: objective=emax_season_best action=skip streak=5 best=25 (trusted) effective_best=25 days=7 tail=dc5d0c992443
+  SKIP — Candidate used in the decision: Juan Soto (NYY) 85.0%. Reason: season-best 25 can't be beaten with 7 days left (max reachable 19); no pick. Streak used at this check: 5.
+  Tomorrow's wake-up: Tue 09-21 10:00 ET
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-09-20...
+  2 games, 4 scheduled checks:
+    16:10 ET — 1 game(s)
+    16:40 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    17:40 ET — 1 game(s)
+  Morning state check: automatic contest state accepted (streak 51).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Pick: Juan Soto (NYY) 85.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: dm-msg-1
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Tue 09-21 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 190 min)...
+  [19:20 ET] Games: 700001: final, 700002: final
+  Result: hit. Streak: 53.
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-09-26...
+  2 games, 4 scheduled checks:
+    16:10 ET — 1 game(s)
+    16:40 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    17:40 ET — 1 game(s)
+  Morning state check: automatic contest state accepted (streak 55).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Pick: Juan Soto (NYY) 85.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: dm-msg-1
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Mon 09-27 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 190 min)...
+  [19:20 ET] Games: 700001: final, 700002: final
+  Result: hit. Streak: 57.
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-09-26...
+  2 games, 4 scheduled checks:
+    16:10 ET — 1 game(s)
+    16:40 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    17:40 ET — 1 game(s)
+  Morning state check: automatic contest state accepted (streak 56).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Pick: Juan Soto (NYY) 85.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: dm-msg-1
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Mon 09-27 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 190 min)...
+  [19:20 ET] Games: 700001: final
+  Result: hit. Streak: 57.
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-07-15...
+  2 games, 4 scheduled checks:
+    16:10 ET — 1 game(s)
+    16:40 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    17:40 ET — 1 game(s)
+  Morning state check: automatic contest state accepted (streak 12).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Pick: Juan Soto (NYY) 82.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: dm-msg-1
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 190 min)...
+  [19:20 ET] Games: 700001: final
+  Result: void. Streak: 12.
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-07-15...
+  2 games, 4 scheduled checks:
+    16:10 ET — 1 game(s)
+    16:40 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    17:40 ET — 1 game(s)
+  Morning state check: automatic contest state accepted (streak 12).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Pick: Juan Soto (NYY) 85.0% → should_lock=True
+  DELIVERY REFUSED (lineup) — game 700001 is Postponed; not delivering a pick on it.
+  Sleeping until 16:40 ET (30 min)...
+
+[16:40 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Pick: Shohei Ohtani (LAD) 83.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: dm-msg-2
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 20:20 ET (game start + 10min, 220 min)...
+  [20:20 ET] Games: 700002: final
+  Result: hit. Streak: 13.
+  Day complete. Result: final
+[late_delivery CRITICAL] delivery REFUSED for 2027-07-15: lineup: game 700001 is Postponed; nothing was delivered by that path
+[disk_fill CRITICAL] disk usage 95.6% (885.2/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wr2_probe1_yqf5oqdw/t1/postponed_single/data/picks
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-07-15...
+  2 games, 4 scheduled checks:
+    16:10 ET — 1 game(s)
+    16:40 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    17:40 ET — 1 game(s)
+  Morning state check: automatic contest state accepted (streak 0).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Pick: Juan Soto (NYY) 85.0% → should_lock=True
+  DOUBLE HAS A VOID LEG (lineup) — game 700001 is Postponed; retaining both picks.
+  LOCKED (lineup) — Pick DM sent: dm-msg-1
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 190 min)...
+  [19:20 ET] Games: 700001: final, 700002: final
+  Result: hit. Streak: 1.
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-07-15...
+  2 games, 4 scheduled checks:
+    13:10 ET — 1 game(s)
+    13:40 ET — 1 game(s)
+    16:40 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+  Doubleheader game 2s (fluid time): {700102}
+  Morning state check: automatic contest state accepted (streak 12).
+  Sleeping until 13:10 ET (190 min)...
+
+[13:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Pick: Juan Soto (NYY) 82.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: dm-msg-1
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 16:20 ET (game start + 10min, 190 min)...
+  [16:20 ET] Games: 700101: final
+  Result: hit. Streak: 13.
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-07-15...
+  2 games, 4 scheduled checks:
+    13:10 ET — 1 game(s)
+    13:40 ET — 1 game(s)
+    16:40 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+  Doubleheader game 2s (fluid time): {700102}
+  Morning state check: automatic contest state accepted (streak 12).
+  Sleeping until 13:10 ET (190 min)...
+
+[13:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Pick: Juan Soto (NYY) 82.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: dm-msg-1
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 16:20 ET (game start + 10min, 190 min)...
+  [16:20 ET] Games: 700101: final
+  Result: hit. Streak: 13.
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-07-14...
+  2 games, 4 scheduled checks:
+    16:10 ET — 1 game(s)
+    16:40 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    17:40 ET — 1 game(s)
+  Morning state check: automatic contest state accepted (streak 57).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=single streak=57 best=57 (trusted) effective_best=None days=75 tail=dc5d0c992443
+  Pick: Juan Soto (NYY) 84.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: dm-msg-1
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 07-15 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 190 min)...
+  [19:20 ET] Games: 700001: final
+  Result: hit. Streak: 58.
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-07-15...
+  2 games, 4 scheduled checks:
+    16:10 ET — 1 game(s)
+    16:40 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    17:40 ET — 1 game(s)
+  Morning state check: automatic contest state accepted (streak 58).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=single streak=58 best=58 (trusted) effective_best=None days=74 tail=dc5d0c992443
+  Pick: Juan Soto (NYY) 84.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: dm-msg-2
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-15T05:10:00Z, about 15.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only on the pick's ET slate date once prior entries settle or their windows close empty. For a later slate date, see B8a. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 190 min)...
+  [19:20 ET] Games: 700001: final
+  Result: hit. Streak: 59.
+  Day complete. Result: final
+[blend_training CRITICAL] missing tomorrow's blend pkl: blend_2027-07-16.pkl not found in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wr2_probe1_yqf5oqdw/t2/progression_57_58/data/models. 3 AM cron on 2027-07-15 likely failed; predictions on 2027-07-16 will fall back to stale blend.
+[disk_fill CRITICAL] disk usage 95.6% (885.2/926.3GB) on /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wr2_probe1_yqf5oqdw/t2/progression_57_58/data/picks
+[health_dm_delivery CRITICAL] health alert DM skipped: no recipient
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-09-26...
+  2 games, 4 scheduled checks:
+    16:10 ET — 1 game(s)
+    16:40 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    17:40 ET — 1 game(s)
+  Morning state check: automatic contest state accepted (streak 58).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=double streak=58 best=58 (trusted) effective_best=None days=1 tail=dc5d0c992443
+  Pick: Juan Soto (NYY) 84.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: dm-msg-1
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Mon 09-27 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 190 min)...
+  [19:20 ET] Games: 700001: final, 700002: final
+  Result: hit. Streak: 60.
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2026-07-16...
+  2 games, 4 scheduled checks:
+    16:10 ET — 1 game(s)
+    16:40 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    17:40 ET — 1 game(s)
+  Morning state check: automatic contest state accepted (streak 12).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Pick: Juan Soto (NYY) 82.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: dm-msg-1
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-17 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 190 min)...
+  [19:20 ET] Games: 700001: final
+  Result: void. Streak: 12.
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2026-09-21...
+  2 games, 4 scheduled checks:
+    16:10 ET — 1 game(s)
+    16:40 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    17:40 ET — 1 game(s)
+  Morning state check: automatic contest state accepted (streak 12).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Policy: objective=emax_season_best action=double streak=12 best=18 (trusted) effective_best=18 days=7 tail=dc5d0c992443
+  Pick: Juan Soto (NYY) 82.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: dm-msg-1
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Tue 09-22 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 190 min)...
+  [19:20 ET] Games: 700001: final, 700002: final
+  Result: hit. Streak: 14.
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2026-09-27...
+  2 games, 4 scheduled checks:
+    16:10 ET — 1 game(s)
+    16:40 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    17:40 ET — 1 game(s)
+  Morning state check: automatic contest state accepted (streak 12).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Policy: objective=emax_season_best action=skip streak=12 best=18 (trusted) effective_best=18 days=1 tail=dc5d0c992443
+  SKIP — Candidate used in the decision: Juan Soto (NYY) 82.0%. Reason: season-best 18 can't be beaten with 1 days left (max reachable 14); no pick. Streak used at this check: 12.
+  Sleeping until 16:40 ET (30 min)...
+
+[16:40 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Policy: objective=emax_season_best action=skip streak=12 best=18 (trusted) effective_best=18 days=1 tail=dc5d0c992443
+  SKIP — Candidate used in the decision: Juan Soto (NYY) 82.0%. Reason: season-best 18 can't be beaten with 1 days left (max reachable 14); no pick. Streak used at this check: 12.
+  Sleeping until 17:10 ET (30 min)...
+
+[17:10 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Policy: objective=emax_season_best action=skip streak=12 best=18 (trusted) effective_best=18 days=1 tail=dc5d0c992443
+  SKIP — Candidate used in the decision: Juan Soto (NYY) 82.0%. Reason: season-best 18 can't be beaten with 1 days left (max reachable 14); no pick. Streak used at this check: 12.
+  Sleeping until 17:40 ET (30 min)...
+
+[17:40 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Policy: objective=emax_season_best action=skip streak=12 best=18 (trusted) effective_best=18 days=1 tail=dc5d0c992443
+  SKIP — Candidate used in the decision: Juan Soto (NYY) 82.0%. Reason: season-best 18 can't be beaten with 1 days left (max reachable 14); no pick. Streak used at this check: 12.
+  Tomorrow's wake-up: Mon 09-28 10:00 ET
+PROBE 1 PASS: {
+  "days": {
+    "mid_single_saver_earned": {
+      "action": "single",
+      "objective": "reach57",
+      "dms_sent": 1
+    },
+    "mid_double_saver_rescue": {
+      "action": "double",
+      "objective": "reach57",
+      "dms_sent": 1
+    },
+    "mid_skip_reach57": {
+      "action": "skip",
+      "objective": "reach57",
+      "dms_sent": 1
+    },
+    "late_tail_single": {
+      "action": "single",
+      "objective": "emax_season_best",
+      "dms_sent": 1
+    },
+    "late_tail_double": {
+      "action": "double",
+      "objective": "emax_season_best",
+      "dms_sent": 1
+    },
+    "late_tail_stop_skip": {
+      "action": "skip",
+      "objective": "emax_season_best",
+      "dms_sent": 1
+    },
+    "late_reach57_streak51": {
+      "action": "double",
+      "objective": "reach57",
+      "dms_sent": 1
+    },
+    "finale_streak55_double": {
+      "action": "double",
+      "objective": "reach57",
+      "dms_sent": 1
+    },
+    "finale_streak56_single": {
+      "action": "single",
+      "objective": "reach57",
+      "dms_sent": 1
+    },
+    "mid_void_walk_only": {
+      "action": "single",
+      "objective": "reach57",
+      "dms_sent": 1
+    },
+    "postponed_single_repick": "refused_g1_then_delivered_g2_hit_plus_eod_late_delivery_dm",
+    "postponed_double_one_leg": {
+      "pick": "void",
+      "double_down": "hit"
+    },
+    "all_postponed_day_outcome": "no_games",
+    "doubleheader": {
+      "wrong_game": "entry_unverifiable",
+      "right_game": "entered",
+      "no_units": "entered_game_unverified"
+    }
+  },
+  "streaks": {
+    "matrix_count": 63,
+    "progression_57_58_59": "clean",
+    "finale_58_to_60_double": "clean",
+    "cap_400_accepted_401_rejected": "verified"
+  },
+  "basesha_vs_head": {
+    "matched_2026": {
+      "2026-07-16": {
+        "action": "single",
+        "objective": "reach57",
+        "dm_equal": true,
+        "base_dms": [
+          "Today's pick: Juan Soto (NYY)\nvs Garrett Crochet | 82.0%\n\nStreak: 12"
+        ],
+        "head_dms": [
+          "Today's pick: Juan Soto (NYY)\nvs Garrett Crochet | 82.0%\n\nStreak: 12"
+        ]
+      },
+      "2026-09-21": {
+        "action": "double",
+        "objective": "emax_season_best",
+        "dm_equal": true,
+        "base_dms": [
+          "Today's picks (double down):\nJuan Soto (NYY) vs Garrett Crochet \u2014 82.0%\nShohei Ohtani (LAD) vs Logan Webb \u2014 72.0%\nP(both): 59.0%\n\nStreak: 12"
+        ],
+        "head_dms": [
+          "Today's picks (double down):\nJuan Soto (NYY) vs Garrett Crochet \u2014 82.0%\nShohei Ohtani (LAD) vs Logan Webb \u2014 72.0%\nP(both): 59.0%\n\nStreak: 12"
+        ]
+      },
+      "2026-09-27": {
+        "action": "skip",
+        "objective": "emax_season_best",
+        "dm_equal": false,
+        "base_dms": [
+          "BTS 2026-09-27: No pick \u2014 model's best is Juan Soto (NYY) 82.0%; season-best 18 can't be beaten with 1 days left (max reachable 14); no pick. Streak holds at 12."
+        ],
+        "head_dms": [
+          "BTS 2026-09-27: No pick at this check. Candidate used in the decision: Juan Soto (NYY) 82.0%. Reason: season-best 18 can't be beaten with 1 days left (max reachable 14); no pick. Streak used at this check: 12."
+        ]
+      }
+    },
+    "walk_only_basesha_vs_head": [
+      "miss",
+      "void"
+    ],
+    "basesha_2027_all_skip": true,
+    "basesha_s57_s58_skip": [
+      "skip",
+      "skip"
+    ],
+    "guarded_cell_verified": {
+      "streak": 3,
+      "days": 28,
+      "saver": false,
+      "action": "double",
+      "guard": {
+        "rule": "monotone_skip_v1",
+        "bin": 1,
+        "from_bin": 0,
+        "table_action": "skip"
+      }
+    }
+  }
+}

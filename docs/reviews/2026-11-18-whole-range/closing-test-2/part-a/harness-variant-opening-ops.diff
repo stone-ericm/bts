@@ -1,0 +1,6 @@
+85c85,87
+<     assert target.count("check-pick-entered") == target.count("day-outcome") == 1
+---
+>     # VARIANT (closing test re-run): FINAL2's watchdog line names its lock file .check-pick-entered.lock (F1b),
+>     # so count the LINES that run the command rather than occurrences of the word.
+>     assert sum("bts check-pick-entered" in line for line in target.splitlines()) == target.count("day-outcome") == 1

@@ -1,0 +1,33 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-carbon3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_wr_f1_wrong_game.py F                                         [100%]
+
+=================================== FAILURES ===================================
+_________________ test_m9_lost_binding_does_not_clear_warning __________________
+
+wrong = <tests.test_wr_f1_wrong_game.World object at 0x10e5b0ce0>
+
+    def test_m9_lost_binding_does_not_clear_warning(wrong):
+        wrong.check("18:30", MATCH)
+        wrong.capture([RIGHT], f"{DAY}T220000Z")
+        result = wrong.check("19:05", MATCH)
+>       assert_wrong(result, escalation=["t30", "wrong_game"])
+
+tests/test_wr_f1_wrong_game.py:278: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+result = {'attempted_dm': ['✅ BTS pick entry confirmed for 2027-03-24 (match).'], 'dm': ['✅ BTS pick entry confirmed for 2027-03-24 (match).'], 'exception': None, 'exit': 0, ...}
+
+    def assert_wrong(result, *, escalation, status="alerted"):
+>       assert result["exit"] == 1
+E       assert 0 == 1
+
+tests/test_wr_f1_wrong_game.py:176: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_f1_wrong_game.py::test_m9_lost_binding_does_not_clear_warning
+============================== 1 failed in 0.34s ===============================

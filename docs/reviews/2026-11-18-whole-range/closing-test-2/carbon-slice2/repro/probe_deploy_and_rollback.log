@@ -1,0 +1,99 @@
+PROBE 2 PASS: {
+  "head_first_start": {
+    "old_private_research": {
+      "exit_code": 0,
+      "ready_sent": true,
+      "dms_sent": 0,
+      "used_2026_contest_streak": 4,
+      "graded_model_streak_2027": 1
+    },
+    "half_edited_dm_not_required": {
+      "exit_code": 2,
+      "dms_across_5_systemd_restarts": 0,
+      "ready_sent": false,
+      "heartbeat_untouched": true,
+      "deploy_canary_would_fail_and_rollback": true
+    },
+    "half_edited_required_no_switch": {
+      "off_day_exit": 0,
+      "off_day_dms": 0,
+      "deploy_canary_passes": true,
+      "game_day_exit": 0,
+      "game_day_dms_first_run": 3,
+      "same_day_restart_extra_dms": 0
+    }
+  },
+  "rollback_to_basesha": {
+    "pick_file": {
+      "basesha_loads_head_pick": true,
+      "basesha_loads_head_shadow_pick": true,
+      "resave_drops_keys": [
+        "automatic_reading",
+        "chosen_on"
+      ]
+    },
+    "decision_file": {
+      "existing_longest_streak_loads": true,
+      "existing_is_scoreable_commit": true,
+      "existing_decision_objective_normalized_to": "unknown",
+      "writing_outstanding_h_pick_returns": null,
+      "writing_outstanding_h_pick_leaves_file_absent": true
+    },
+    "streak_file": {
+      "basesha_reads_head_streak_and_increments_to": 59,
+      "basesha_save_drops_keys": [
+        "applied_dates",
+        "season"
+      ]
+    },
+    "contest_and_manual_files": {
+      "auto_v2_with_revoked_switch": {
+        "basesha_ignores_revoked_switch_and_reads_streak": 58,
+        "auto_v2_best_status_degrades_to": "untrusted",
+        "auto_v2_best_streak_returned": 60
+      },
+      "v3_manual_alongside_2026_auto": {
+        "v3_manual_streak_was": 5,
+        "basesha_selected_streak": 4,
+        "basesha_selected_source_date": "2026-09-14",
+        "v3_manual_ignored_because_override_expires_at_missing": true
+      },
+      "v3_manual_alone": {
+        "basesha_selected_streak": 5,
+        "status": "stale",
+        "allow_double": true,
+        "best_status": "untrusted",
+        "health_alerts": [
+          [
+            "CRITICAL",
+            "contest_state",
+            "contest state has no source_date (/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wr2_pro"
+          ],
+          [
+            "WARN",
+            "contest_state",
+            "legacy/expired manual override present at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T"
+          ]
+        ]
+      }
+    },
+    "status_and_day_effects": {
+      "pe_alerts_on_wrong_game_marker": [],
+      "basesha_cpe_exit_on_wrong_game_dh": 0,
+      "basesha_cpe_sent_false_all_clear_dm": [
+        "\u2705 BTS pick entry confirmed for 2027-07-15 (match)."
+      ],
+      "basesha_marker_after_wrong_game": {
+        "checked_at": "2027-07-15T17:00:00-04:00",
+        "date": "2027-07-15",
+        "reason": "match",
+        "receipt": "64b8db9acf934674b90c503e4bbd1b11",
+        "status": "confirmed"
+      },
+      "basesha_uncommitted_2027_day_action": "skip",
+      "basesha_uncommitted_2027_day_dms": [
+        "BTS 2027-07-15: No pick yet \u2014 model's best is Juan Soto (NYY) 85%, below the ~80% bar (streak holds at 12). Will pick if a confirmed lineup clears it."
+      ]
+    }
+  }
+}

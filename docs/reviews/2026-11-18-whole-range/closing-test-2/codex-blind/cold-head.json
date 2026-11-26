@@ -1,0 +1,98 @@
+{
+  "archived": false,
+  "events": [
+    {
+      "at": "2027-03-24T10:00:00-04:00",
+      "type": "cli",
+      "args": [
+        "data",
+        "build",
+        "--seasons",
+        "2027",
+        "--raw-dir",
+        "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-cold-c82_6f0i/data/raw",
+        "--out-dir",
+        "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-cold-c82_6f0i/data/processed"
+      ],
+      "code": 0,
+      "text": "Building /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-cold-c82_6f0i/data/processed/pa_2027.parquet from /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-cold-c82_6f0i/data/raw/2027/...\nNo regular-season games available for season 2027; nothing written.\n",
+      "error": "None"
+    },
+    {
+      "at": "2027-03-24T10:00:00-04:00",
+      "type": "refresh",
+      "inputs": "missing",
+      "result": "success",
+      "wrote_season": false
+    },
+    {
+      "at": "2027-03-24T10:00:00-04:00",
+      "type": "cli",
+      "args": [
+        "data",
+        "build",
+        "--seasons",
+        "2027",
+        "--raw-dir",
+        "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-cold-c82_6f0i/data/raw",
+        "--out-dir",
+        "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-cold-c82_6f0i/data/processed"
+      ],
+      "code": 0,
+      "text": "Building /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-cold-c82_6f0i/data/processed/pa_2027.parquet from /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-cold-c82_6f0i/data/raw/2027/...\nNo regular-season games available for season 2027; nothing written.\n",
+      "error": "None"
+    },
+    {
+      "at": "2027-03-24T10:00:00-04:00",
+      "type": "refresh",
+      "inputs": "spring_only",
+      "result": "success",
+      "wrote_season": false
+    },
+    {
+      "at": "2027-03-24T10:00:00-04:00",
+      "type": "cli",
+      "args": [
+        "data",
+        "build",
+        "--seasons",
+        "2027",
+        "--raw-dir",
+        "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-cold-c82_6f0i/data/raw",
+        "--out-dir",
+        "/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-cold-c82_6f0i/data/processed"
+      ],
+      "code": 1,
+      "text": "Building /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-cold-c82_6f0i/data/processed/pa_2027.parquet from /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-cold-c82_6f0i/data/raw/2027/...\n",
+      "error": "JSONDecodeError('Expecting value: line 1 column 1 (char 0)')"
+    },
+    {
+      "at": "2027-03-24T10:00:00-04:00",
+      "type": "refresh",
+      "inputs": "malformed",
+      "result": "JSONDecodeError('Expecting value: line 1 column 1 (char 0)')"
+    },
+    {
+      "at": "2027-03-24T10:00:00-04:00",
+      "type": "bullpen",
+      "starter_only": 0.5,
+      "plus_reliever": 0.5,
+      "cache_keys": [
+        "1300",
+        "1301",
+        "1302",
+        "1303",
+        "1304",
+        "1305",
+        "1306",
+        "1307",
+        "1308",
+        "1309",
+        "1310"
+      ],
+      "evidence": [
+        "health_state/probable_pitcher_cache/2027-03-24.unreadable_cache.e276abec6b40.json"
+      ]
+    }
+  ]
+}

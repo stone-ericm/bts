@@ -1,0 +1,54 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-carbon3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 3 items
+
+tests/test_wr_f2_saver_flag.py .FF                                       [100%]
+
+=================================== FAILURES ===================================
+_____________ test_m1_m2_live_warning_and_delivery[not_earned-14] ______________
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2642/test_m1_m2_live_warning_and_de1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x110d332c0>
+state = 'not_earned', streak = 14
+
+    @pytest.mark.parametrize(("state", "streak"), [("active", 14), ("not_earned", 14),
+                                                  ("not_earned", 9)])
+    def test_m1_m2_live_warning_and_delivery(tmp_path, monkeypatch, state, streak):
+        picks = tmp_path / "oom" / "picks"
+        observation(monkeypatch, picks, streak=streak)
+        flag(picks, state)
+        expected = alert.Alert("WARN", "saver_state", live_message(DAY, state), incident_key=INCIDENT)
+>       assert health.check(picks, now=DAY, expected=True) == [expected]
+E       assert [] == [Alert(level=...ed_mismatch')]
+E         
+E         Right contains one more item: Alert(level='WARN', source='saver_state', message="Streak Saver on 2027-07-15 ET. The dated observation says the saver...list B8a. Follow B8a's saver reconciliation steps for any correction.", incident_key='saver_state:dated_used_mismatch')
+E         Use -v to get more diff
+
+tests/test_wr_f2_saver_flag.py:149: AssertionError
+______________ test_m1_m2_live_warning_and_delivery[not_earned-9] ______________
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2642/test_m1_m2_live_warning_and_de2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x110d33050>
+state = 'not_earned', streak = 9
+
+    @pytest.mark.parametrize(("state", "streak"), [("active", 14), ("not_earned", 14),
+                                                  ("not_earned", 9)])
+    def test_m1_m2_live_warning_and_delivery(tmp_path, monkeypatch, state, streak):
+        picks = tmp_path / "oom" / "picks"
+        observation(monkeypatch, picks, streak=streak)
+        flag(picks, state)
+        expected = alert.Alert("WARN", "saver_state", live_message(DAY, state), incident_key=INCIDENT)
+>       assert health.check(picks, now=DAY, expected=True) == [expected]
+E       assert [] == [Alert(level=...ed_mismatch')]
+E         
+E         Right contains one more item: Alert(level='WARN', source='saver_state', message="Streak Saver on 2027-07-15 ET. The dated observation says the saver...list B8a. Follow B8a's saver reconciliation steps for any correction.", incident_key='saver_state:dated_used_mismatch')
+E         Use -v to get more diff
+
+tests/test_wr_f2_saver_flag.py:149: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[not_earned-14]
+FAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[not_earned-9]
+========================= 2 failed, 1 passed in 0.42s ==========================

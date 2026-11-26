@@ -1,0 +1,7 @@
+nice: setpriority: Operation not permitted
+01/6 killed: .codex-review/whole-range/test_offline_followup.py::test_boolean_model_streak
+02/6 killed: .codex-review/whole-range/test_offline_followup.py::test_bounded_decoder_failure
+03/6 killed: .codex-review/whole-range/test_offline_followup.py::test_report_compacts_long_advisory
+04/6 killed: .codex-review/whole-range/test_offline_followup.py::test_dangling_streak_is_absent
+05/6 survived: tests/test_wr_h_longest.py::test_positive_day_rule_selects_a_play_at_exact_ties
+06/6 survived: tests/test_wr_h2_caps.py::test_k6_dated_cli_rejects_before_writes

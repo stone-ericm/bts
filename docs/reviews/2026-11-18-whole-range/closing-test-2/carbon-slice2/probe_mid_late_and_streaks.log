@@ -1,0 +1,129 @@
+{
+  "days": {
+    "mid_single_saver_earned": {
+      "action": "single",
+      "objective": "reach57",
+      "dms_sent": 1
+    },
+    "mid_double_saver_rescue": {
+      "action": "double",
+      "objective": "reach57",
+      "dms_sent": 1
+    },
+    "mid_skip_reach57": {
+      "action": "skip",
+      "objective": "reach57",
+      "dms_sent": 1
+    },
+    "late_tail_single": {
+      "action": "single",
+      "objective": "emax_season_best",
+      "dms_sent": 1
+    },
+    "late_tail_double": {
+      "action": "double",
+      "objective": "emax_season_best",
+      "dms_sent": 1
+    },
+    "late_tail_stop_skip": {
+      "action": "skip",
+      "objective": "emax_season_best",
+      "dms_sent": 1
+    },
+    "late_reach57_streak51": {
+      "action": "double",
+      "objective": "reach57",
+      "dms_sent": 1
+    },
+    "finale_streak55_double": {
+      "action": "double",
+      "objective": "reach57",
+      "dms_sent": 1
+    },
+    "finale_streak56_single": {
+      "action": "single",
+      "objective": "reach57",
+      "dms_sent": 1
+    },
+    "mid_void_walk_only": {
+      "action": "single",
+      "objective": "reach57",
+      "dms_sent": 1
+    },
+    "postponed_single_repick": "refused_g1_then_delivered_g2_hit_plus_eod_late_delivery_dm",
+    "postponed_double_one_leg": {
+      "pick": "void",
+      "double_down": "hit"
+    },
+    "all_postponed_day_outcome": "no_games",
+    "doubleheader": {
+      "wrong_game": "entry_unverifiable",
+      "right_game": "entered",
+      "no_units": "entered_game_unverified"
+    }
+  },
+  "streaks": {
+    "matrix_count": 63,
+    "progression_57_58_59": "clean",
+    "finale_58_to_60_double": "clean",
+    "cap_400_accepted_401_rejected": "verified"
+  },
+  "basesha_vs_head": {
+    "matched_2026": {
+      "2026-07-16": {
+        "action": "single",
+        "objective": "reach57",
+        "dm_equal": true,
+        "base_dms": [
+          "Today's pick: Juan Soto (NYY)\nvs Garrett Crochet | 82.0%\n\nStreak: 12"
+        ],
+        "head_dms": [
+          "Today's pick: Juan Soto (NYY)\nvs Garrett Crochet | 82.0%\n\nStreak: 12"
+        ]
+      },
+      "2026-09-21": {
+        "action": "double",
+        "objective": "emax_season_best",
+        "dm_equal": true,
+        "base_dms": [
+          "Today's picks (double down):\nJuan Soto (NYY) vs Garrett Crochet \u2014 82.0%\nShohei Ohtani (LAD) vs Logan Webb \u2014 72.0%\nP(both): 59.0%\n\nStreak: 12"
+        ],
+        "head_dms": [
+          "Today's picks (double down):\nJuan Soto (NYY) vs Garrett Crochet \u2014 82.0%\nShohei Ohtani (LAD) vs Logan Webb \u2014 72.0%\nP(both): 59.0%\n\nStreak: 12"
+        ]
+      },
+      "2026-09-27": {
+        "action": "skip",
+        "objective": "emax_season_best",
+        "dm_equal": false,
+        "base_dms": [
+          "BTS 2026-09-27: No pick \u2014 model's best is Juan Soto (NYY) 82.0%; season-best 18 can't be beaten with 1 days left (max reachable 14); no pick. Streak holds at 12."
+        ],
+        "head_dms": [
+          "BTS 2026-09-27: No pick at this check. Candidate used in the decision: Juan Soto (NYY) 82.0%. Reason: season-best 18 can't be beaten with 1 days left (max reachable 14); no pick. Streak used at this check: 12."
+        ]
+      }
+    },
+    "walk_only_basesha_vs_head": [
+      "miss",
+      "void"
+    ],
+    "basesha_2027_all_skip": true,
+    "basesha_s57_s58_skip": [
+      "skip",
+      "skip"
+    ],
+    "guarded_cell_verified": {
+      "streak": 3,
+      "days": 28,
+      "saver": false,
+      "action": "double",
+      "guard": {
+        "rule": "monotone_skip_v1",
+        "bin": 1,
+        "from_bin": 0,
+        "table_action": "skip"
+      }
+    }
+  }
+}

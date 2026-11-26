@@ -1,0 +1,136 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-carbon3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 4 items
+
+tests/test_wr_h_longest.py FFFF                                          [100%]
+
+=================================== FAILURES ===================================
+_____________ test_h1_h2_h3_resolver_grid[days0-True-True-single] ______________
+
+artifact = {'base_error': None, 'base_sha256': '66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4', 'boundaries': ...     [0, 0, 0, 0, 0]],
+
+        [[0, 0, 0, 0, 0],
+         [0, 0, 0, 0, 0]]]], shape=(58, 181, 2, 5), dtype=int8), ...}
+days = range(4, 272), allow = True, partner = True, expected = 'single'
+
+    @pytest.mark.parametrize("days,allow,partner,expected", [
+        (range(4, 272), True, True, "single"),
+        (range(1, 4), True, True, "double"),
+        (range(1, 4), False, True, "single"),
+        (range(1, 4), True, False, "single"),
+    ])
+    def test_h1_h2_h3_resolver_grid(artifact, days, allow, partner, expected):
+        for raw, streak, saver, p in product(
+                days, (BOUNDARY, BOUNDARY + 1, BOUNDARY + 3, BOUNDARY + 43),
+                (False, True), (.01, .5, .8, .99)):
+            day = str(FINALE_END - timedelta(days=raw))
+            ctx = strategy.DecisionContext(
+                p, .95 if partner else None, partner, day, allow, artifact, BOUNDARY, "trusted")
+            decision = strategy.resolve_policy_decision(ctx, streak, saver)
+>           assert (decision.action, decision.policy_action, decision.objective) == (
+                expected, "double" if raw <= 3 else "single", OBJECTIVE)
+E           AssertionError: assert ('skip', 'skip', 'reach57') == ('single', 's...ngest_streak')
+E             
+E             At index 0 diff: 'skip' != 'single'
+E             Use -v to get more diff
+
+tests/test_wr_h_longest.py:48: AssertionError
+_____________ test_h1_h2_h3_resolver_grid[days1-True-True-double] ______________
+
+artifact = {'base_error': None, 'base_sha256': '66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4', 'boundaries': ...     [0, 0, 0, 0, 0]],
+
+        [[0, 0, 0, 0, 0],
+         [0, 0, 0, 0, 0]]]], shape=(58, 181, 2, 5), dtype=int8), ...}
+days = range(1, 4), allow = True, partner = True, expected = 'double'
+
+    @pytest.mark.parametrize("days,allow,partner,expected", [
+        (range(4, 272), True, True, "single"),
+        (range(1, 4), True, True, "double"),
+        (range(1, 4), False, True, "single"),
+        (range(1, 4), True, False, "single"),
+    ])
+    def test_h1_h2_h3_resolver_grid(artifact, days, allow, partner, expected):
+        for raw, streak, saver, p in product(
+                days, (BOUNDARY, BOUNDARY + 1, BOUNDARY + 3, BOUNDARY + 43),
+                (False, True), (.01, .5, .8, .99)):
+            day = str(FINALE_END - timedelta(days=raw))
+            ctx = strategy.DecisionContext(
+                p, .95 if partner else None, partner, day, allow, artifact, BOUNDARY, "trusted")
+            decision = strategy.resolve_policy_decision(ctx, streak, saver)
+>           assert (decision.action, decision.policy_action, decision.objective) == (
+                expected, "double" if raw <= 3 else "single", OBJECTIVE)
+E           AssertionError: assert ('skip', 'skip', 'reach57') == ('double', 'd...ngest_streak')
+E             
+E             At index 0 diff: 'skip' != 'double'
+E             Use -v to get more diff
+
+tests/test_wr_h_longest.py:48: AssertionError
+_____________ test_h1_h2_h3_resolver_grid[days2-False-True-single] _____________
+
+artifact = {'base_error': None, 'base_sha256': '66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4', 'boundaries': ...     [0, 0, 0, 0, 0]],
+
+        [[0, 0, 0, 0, 0],
+         [0, 0, 0, 0, 0]]]], shape=(58, 181, 2, 5), dtype=int8), ...}
+days = range(1, 4), allow = False, partner = True, expected = 'single'
+
+    @pytest.mark.parametrize("days,allow,partner,expected", [
+        (range(4, 272), True, True, "single"),
+        (range(1, 4), True, True, "double"),
+        (range(1, 4), False, True, "single"),
+        (range(1, 4), True, False, "single"),
+    ])
+    def test_h1_h2_h3_resolver_grid(artifact, days, allow, partner, expected):
+        for raw, streak, saver, p in product(
+                days, (BOUNDARY, BOUNDARY + 1, BOUNDARY + 3, BOUNDARY + 43),
+                (False, True), (.01, .5, .8, .99)):
+            day = str(FINALE_END - timedelta(days=raw))
+            ctx = strategy.DecisionContext(
+                p, .95 if partner else None, partner, day, allow, artifact, BOUNDARY, "trusted")
+            decision = strategy.resolve_policy_decision(ctx, streak, saver)
+>           assert (decision.action, decision.policy_action, decision.objective) == (
+                expected, "double" if raw <= 3 else "single", OBJECTIVE)
+E           AssertionError: assert ('skip', 'skip', 'reach57') == ('single', 'd...ngest_streak')
+E             
+E             At index 0 diff: 'skip' != 'single'
+E             Use -v to get more diff
+
+tests/test_wr_h_longest.py:48: AssertionError
+_____________ test_h1_h2_h3_resolver_grid[days3-True-False-single] _____________
+
+artifact = {'base_error': None, 'base_sha256': '66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4', 'boundaries': ...     [0, 0, 0, 0, 0]],
+
+        [[0, 0, 0, 0, 0],
+         [0, 0, 0, 0, 0]]]], shape=(58, 181, 2, 5), dtype=int8), ...}
+days = range(1, 4), allow = True, partner = False, expected = 'single'
+
+    @pytest.mark.parametrize("days,allow,partner,expected", [
+        (range(4, 272), True, True, "single"),
+        (range(1, 4), True, True, "double"),
+        (range(1, 4), False, True, "single"),
+        (range(1, 4), True, False, "single"),
+    ])
+    def test_h1_h2_h3_resolver_grid(artifact, days, allow, partner, expected):
+        for raw, streak, saver, p in product(
+                days, (BOUNDARY, BOUNDARY + 1, BOUNDARY + 3, BOUNDARY + 43),
+                (False, True), (.01, .5, .8, .99)):
+            day = str(FINALE_END - timedelta(days=raw))
+            ctx = strategy.DecisionContext(
+                p, .95 if partner else None, partner, day, allow, artifact, BOUNDARY, "trusted")
+            decision = strategy.resolve_policy_decision(ctx, streak, saver)
+>           assert (decision.action, decision.policy_action, decision.objective) == (
+                expected, "double" if raw <= 3 else "single", OBJECTIVE)
+E           AssertionError: assert ('skip', 'skip', 'reach57') == ('single', 'd...ngest_streak')
+E             
+E             At index 0 diff: 'skip' != 'single'
+E             Use -v to get more diff
+
+tests/test_wr_h_longest.py:48: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_h_longest.py::test_h1_h2_h3_resolver_grid[days0-True-True-single]
+FAILED tests/test_wr_h_longest.py::test_h1_h2_h3_resolver_grid[days1-True-True-double]
+FAILED tests/test_wr_h_longest.py::test_h1_h2_h3_resolver_grid[days2-False-True-single]
+FAILED tests/test_wr_h_longest.py::test_h1_h2_h3_resolver_grid[days3-True-False-single]
+============================== 4 failed in 0.26s ===============================

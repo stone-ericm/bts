@@ -1,0 +1,11 @@
+0a1,2
+> # VARIANT for the closing test re-run (FINAL2): the two "too high" cases moved from 58 to 401, the cap H2 set
+> # (MAX_SEASON_STREAK = 400); everything else identical to refusals.py.
+63c65
+<                 replacements(auto, active_streak=58, best_streak=58)
+---
+>                 replacements(auto, active_streak=401, best_streak=401)
+129c131
+<         ('streak-too-high', 58, True, [], '<= 57'),
+---
+>         ('streak-too-high', 401, True, [], '<= 400'),

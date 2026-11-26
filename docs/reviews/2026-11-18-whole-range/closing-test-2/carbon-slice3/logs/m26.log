@@ -1,0 +1,901 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-carbon3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 33 items
+
+tests/test_day_outcome_entry_sequence.py .........FFFFFFFFFFFFFFFFFFFFFF [ 93%]
+FF                                                                       [100%]
+
+=================================== FAILURES ===================================
+_ test_receipt_precedence_is_independent_of_observation_order[full-batter-late-absent] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2645/test_receipt_precedence_is_ind9')
+order = ('full', 'batter', 'late', 'absent'), expected = 'entered'
+
+    @pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+    def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+        """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+        from bts.daily_decision import load_decision_bytes
+        from bts.day_outcome import classify_day
+        from bts.entry_receipt import _sha
+        date = "2027-03-24"
+        picks = tmp_path / "picks"
+        write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                       primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+        decision, raw = load_decision_bytes(date, picks)
+    
+        def receipt(kind):
+            return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                    "degraded": [], "account": {"username": "owner"},
+                    "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                    "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                    "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                    "qualification": {"all_confirmed": kind in ("full", "late"),
+                                      "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                           "confirmed" if kind in ("full", "late") else "missing"}]}}
+    
+        outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                               receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+>       assert outcome.state == expected
+E       AssertionError: assert 'entered_game_unverified' == 'entered'
+E         
+E         - entered
+E         + entered_game_unverified
+
+tests/test_day_outcome_entry_sequence.py:177: AssertionError
+_ test_receipt_precedence_is_independent_of_observation_order[full-batter-absent-late] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2645/test_receipt_precedence_is_ind10')
+order = ('full', 'batter', 'absent', 'late'), expected = 'entered'
+
+    @pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+    def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+        """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+        from bts.daily_decision import load_decision_bytes
+        from bts.day_outcome import classify_day
+        from bts.entry_receipt import _sha
+        date = "2027-03-24"
+        picks = tmp_path / "picks"
+        write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                       primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+        decision, raw = load_decision_bytes(date, picks)
+    
+        def receipt(kind):
+            return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                    "degraded": [], "account": {"username": "owner"},
+                    "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                    "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                    "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                    "qualification": {"all_confirmed": kind in ("full", "late"),
+                                      "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                           "confirmed" if kind in ("full", "late") else "missing"}]}}
+    
+        outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                               receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+>       assert outcome.state == expected
+E       AssertionError: assert 'entered_game_unverified' == 'entered'
+E         
+E         - entered
+E         + entered_game_unverified
+
+tests/test_day_outcome_entry_sequence.py:177: AssertionError
+_ test_receipt_precedence_is_independent_of_observation_order[full-late-batter-absent] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2645/test_receipt_precedence_is_ind11')
+order = ('full', 'late', 'batter', 'absent'), expected = 'entered'
+
+    @pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+    def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+        """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+        from bts.daily_decision import load_decision_bytes
+        from bts.day_outcome import classify_day
+        from bts.entry_receipt import _sha
+        date = "2027-03-24"
+        picks = tmp_path / "picks"
+        write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                       primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+        decision, raw = load_decision_bytes(date, picks)
+    
+        def receipt(kind):
+            return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                    "degraded": [], "account": {"username": "owner"},
+                    "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                    "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                    "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                    "qualification": {"all_confirmed": kind in ("full", "late"),
+                                      "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                           "confirmed" if kind in ("full", "late") else "missing"}]}}
+    
+        outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                               receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+>       assert outcome.state == expected
+E       AssertionError: assert 'entered_game_unverified' == 'entered'
+E         
+E         - entered
+E         + entered_game_unverified
+
+tests/test_day_outcome_entry_sequence.py:177: AssertionError
+_ test_receipt_precedence_is_independent_of_observation_order[full-late-absent-batter] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2645/test_receipt_precedence_is_ind12')
+order = ('full', 'late', 'absent', 'batter'), expected = 'entered'
+
+    @pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+    def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+        """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+        from bts.daily_decision import load_decision_bytes
+        from bts.day_outcome import classify_day
+        from bts.entry_receipt import _sha
+        date = "2027-03-24"
+        picks = tmp_path / "picks"
+        write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                       primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+        decision, raw = load_decision_bytes(date, picks)
+    
+        def receipt(kind):
+            return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                    "degraded": [], "account": {"username": "owner"},
+                    "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                    "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                    "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                    "qualification": {"all_confirmed": kind in ("full", "late"),
+                                      "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                           "confirmed" if kind in ("full", "late") else "missing"}]}}
+    
+        outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                               receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+>       assert outcome.state == expected
+E       AssertionError: assert 'entered_game_unverified' == 'entered'
+E         
+E         - entered
+E         + entered_game_unverified
+
+tests/test_day_outcome_entry_sequence.py:177: AssertionError
+_ test_receipt_precedence_is_independent_of_observation_order[full-absent-batter-late] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2645/test_receipt_precedence_is_ind13')
+order = ('full', 'absent', 'batter', 'late'), expected = 'entered'
+
+    @pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+    def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+        """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+        from bts.daily_decision import load_decision_bytes
+        from bts.day_outcome import classify_day
+        from bts.entry_receipt import _sha
+        date = "2027-03-24"
+        picks = tmp_path / "picks"
+        write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                       primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+        decision, raw = load_decision_bytes(date, picks)
+    
+        def receipt(kind):
+            return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                    "degraded": [], "account": {"username": "owner"},
+                    "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                    "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                    "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                    "qualification": {"all_confirmed": kind in ("full", "late"),
+                                      "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                           "confirmed" if kind in ("full", "late") else "missing"}]}}
+    
+        outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                               receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+>       assert outcome.state == expected
+E       AssertionError: assert 'entered_game_unverified' == 'entered'
+E         
+E         - entered
+E         + entered_game_unverified
+
+tests/test_day_outcome_entry_sequence.py:177: AssertionError
+_ test_receipt_precedence_is_independent_of_observation_order[full-absent-late-batter] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2645/test_receipt_precedence_is_ind14')
+order = ('full', 'absent', 'late', 'batter'), expected = 'entered'
+
+    @pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+    def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+        """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+        from bts.daily_decision import load_decision_bytes
+        from bts.day_outcome import classify_day
+        from bts.entry_receipt import _sha
+        date = "2027-03-24"
+        picks = tmp_path / "picks"
+        write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                       primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+        decision, raw = load_decision_bytes(date, picks)
+    
+        def receipt(kind):
+            return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                    "degraded": [], "account": {"username": "owner"},
+                    "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                    "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                    "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                    "qualification": {"all_confirmed": kind in ("full", "late"),
+                                      "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                           "confirmed" if kind in ("full", "late") else "missing"}]}}
+    
+        outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                               receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+>       assert outcome.state == expected
+E       AssertionError: assert 'entered_game_unverified' == 'entered'
+E         
+E         - entered
+E         + entered_game_unverified
+
+tests/test_day_outcome_entry_sequence.py:177: AssertionError
+_ test_receipt_precedence_is_independent_of_observation_order[batter-full-late-absent] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2645/test_receipt_precedence_is_ind15')
+order = ('batter', 'full', 'late', 'absent'), expected = 'entered'
+
+    @pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+    def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+        """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+        from bts.daily_decision import load_decision_bytes
+        from bts.day_outcome import classify_day
+        from bts.entry_receipt import _sha
+        date = "2027-03-24"
+        picks = tmp_path / "picks"
+        write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                       primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+        decision, raw = load_decision_bytes(date, picks)
+    
+        def receipt(kind):
+            return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                    "degraded": [], "account": {"username": "owner"},
+                    "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                    "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                    "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                    "qualification": {"all_confirmed": kind in ("full", "late"),
+                                      "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                           "confirmed" if kind in ("full", "late") else "missing"}]}}
+    
+        outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                               receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+>       assert outcome.state == expected
+E       AssertionError: assert 'entered_game_unverified' == 'entered'
+E         
+E         - entered
+E         + entered_game_unverified
+
+tests/test_day_outcome_entry_sequence.py:177: AssertionError
+_ test_receipt_precedence_is_independent_of_observation_order[batter-full-absent-late] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2645/test_receipt_precedence_is_ind16')
+order = ('batter', 'full', 'absent', 'late'), expected = 'entered'
+
+    @pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+    def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+        """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+        from bts.daily_decision import load_decision_bytes
+        from bts.day_outcome import classify_day
+        from bts.entry_receipt import _sha
+        date = "2027-03-24"
+        picks = tmp_path / "picks"
+        write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                       primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+        decision, raw = load_decision_bytes(date, picks)
+    
+        def receipt(kind):
+            return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                    "degraded": [], "account": {"username": "owner"},
+                    "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                    "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                    "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                    "qualification": {"all_confirmed": kind in ("full", "late"),
+                                      "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                           "confirmed" if kind in ("full", "late") else "missing"}]}}
+    
+        outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                               receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+>       assert outcome.state == expected
+E       AssertionError: assert 'entered_game_unverified' == 'entered'
+E         
+E         - entered
+E         + entered_game_unverified
+
+tests/test_day_outcome_entry_sequence.py:177: AssertionError
+_ test_receipt_precedence_is_independent_of_observation_order[batter-late-full-absent] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2645/test_receipt_precedence_is_ind17')
+order = ('batter', 'late', 'full', 'absent'), expected = 'entered'
+
+    @pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+    def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+        """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+        from bts.daily_decision import load_decision_bytes
+        from bts.day_outcome import classify_day
+        from bts.entry_receipt import _sha
+        date = "2027-03-24"
+        picks = tmp_path / "picks"
+        write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                       primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+        decision, raw = load_decision_bytes(date, picks)
+    
+        def receipt(kind):
+            return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                    "degraded": [], "account": {"username": "owner"},
+                    "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                    "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                    "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                    "qualification": {"all_confirmed": kind in ("full", "late"),
+                                      "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                           "confirmed" if kind in ("full", "late") else "missing"}]}}
+    
+        outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                               receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+>       assert outcome.state == expected
+E       AssertionError: assert 'entered_game_unverified' == 'entered'
+E         
+E         - entered
+E         + entered_game_unverified
+
+tests/test_day_outcome_entry_sequence.py:177: AssertionError
+_ test_receipt_precedence_is_independent_of_observation_order[batter-late-absent-full] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2645/test_receipt_precedence_is_ind18')
+order = ('batter', 'late', 'absent', 'full'), expected = 'entered'
+
+    @pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+    def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+        """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+        from bts.daily_decision import load_decision_bytes
+        from bts.day_outcome import classify_day
+        from bts.entry_receipt import _sha
+        date = "2027-03-24"
+        picks = tmp_path / "picks"
+        write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                       primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+        decision, raw = load_decision_bytes(date, picks)
+    
+        def receipt(kind):
+            return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                    "degraded": [], "account": {"username": "owner"},
+                    "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                    "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                    "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                    "qualification": {"all_confirmed": kind in ("full", "late"),
+                                      "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                           "confirmed" if kind in ("full", "late") else "missing"}]}}
+    
+        outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                               receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+>       assert outcome.state == expected
+E       AssertionError: assert 'entered_game_unverified' == 'entered'
+E         
+E         - entered
+E         + entered_game_unverified
+
+tests/test_day_outcome_entry_sequence.py:177: AssertionError
+_ test_receipt_precedence_is_independent_of_observation_order[batter-absent-full-late] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2645/test_receipt_precedence_is_ind19')
+order = ('batter', 'absent', 'full', 'late'), expected = 'entered'
+
+    @pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+    def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+        """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+        from bts.daily_decision import load_decision_bytes
+        from bts.day_outcome import classify_day
+        from bts.entry_receipt import _sha
+        date = "2027-03-24"
+        picks = tmp_path / "picks"
+        write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                       primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+        decision, raw = load_decision_bytes(date, picks)
+    
+        def receipt(kind):
+            return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                    "degraded": [], "account": {"username": "owner"},
+                    "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                    "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                    "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                    "qualification": {"all_confirmed": kind in ("full", "late"),
+                                      "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                           "confirmed" if kind in ("full", "late") else "missing"}]}}
+    
+        outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                               receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+>       assert outcome.state == expected
+E       AssertionError: assert 'entered_game_unverified' == 'entered'
+E         
+E         - entered
+E         + entered_game_unverified
+
+tests/test_day_outcome_entry_sequence.py:177: AssertionError
+_ test_receipt_precedence_is_independent_of_observation_order[batter-absent-late-full] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2645/test_receipt_precedence_is_ind20')
+order = ('batter', 'absent', 'late', 'full'), expected = 'entered'
+
+    @pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+    def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+        """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+        from bts.daily_decision import load_decision_bytes
+        from bts.day_outcome import classify_day
+        from bts.entry_receipt import _sha
+        date = "2027-03-24"
+        picks = tmp_path / "picks"
+        write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                       primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+        decision, raw = load_decision_bytes(date, picks)
+    
+        def receipt(kind):
+            return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                    "degraded": [], "account": {"username": "owner"},
+                    "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                    "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                    "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                    "qualification": {"all_confirmed": kind in ("full", "late"),
+                                      "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                           "confirmed" if kind in ("full", "late") else "missing"}]}}
+    
+        outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                               receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+>       assert outcome.state == expected
+E       AssertionError: assert 'entered_game_unverified' == 'entered'
+E         
+E         - entered
+E         + entered_game_unverified
+
+tests/test_day_outcome_entry_sequence.py:177: AssertionError
+_ test_receipt_precedence_is_independent_of_observation_order[late-full-batter-absent] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2645/test_receipt_precedence_is_ind21')
+order = ('late', 'full', 'batter', 'absent'), expected = 'entered'
+
+    @pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+    def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+        """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+        from bts.daily_decision import load_decision_bytes
+        from bts.day_outcome import classify_day
+        from bts.entry_receipt import _sha
+        date = "2027-03-24"
+        picks = tmp_path / "picks"
+        write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                       primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+        decision, raw = load_decision_bytes(date, picks)
+    
+        def receipt(kind):
+            return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                    "degraded": [], "account": {"username": "owner"},
+                    "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                    "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                    "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                    "qualification": {"all_confirmed": kind in ("full", "late"),
+                                      "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                           "confirmed" if kind in ("full", "late") else "missing"}]}}
+    
+        outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                               receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+>       assert outcome.state == expected
+E       AssertionError: assert 'entered_game_unverified' == 'entered'
+E         
+E         - entered
+E         + entered_game_unverified
+
+tests/test_day_outcome_entry_sequence.py:177: AssertionError
+_ test_receipt_precedence_is_independent_of_observation_order[late-full-absent-batter] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2645/test_receipt_precedence_is_ind22')
+order = ('late', 'full', 'absent', 'batter'), expected = 'entered'
+
+    @pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+    def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+        """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+        from bts.daily_decision import load_decision_bytes
+        from bts.day_outcome import classify_day
+        from bts.entry_receipt import _sha
+        date = "2027-03-24"
+        picks = tmp_path / "picks"
+        write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                       primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+        decision, raw = load_decision_bytes(date, picks)
+    
+        def receipt(kind):
+            return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                    "degraded": [], "account": {"username": "owner"},
+                    "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                    "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                    "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                    "qualification": {"all_confirmed": kind in ("full", "late"),
+                                      "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                           "confirmed" if kind in ("full", "late") else "missing"}]}}
+    
+        outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                               receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+>       assert outcome.state == expected
+E       AssertionError: assert 'entered_game_unverified' == 'entered'
+E         
+E         - entered
+E         + entered_game_unverified
+
+tests/test_day_outcome_entry_sequence.py:177: AssertionError
+_ test_receipt_precedence_is_independent_of_observation_order[late-batter-full-absent] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2645/test_receipt_precedence_is_ind23')
+order = ('late', 'batter', 'full', 'absent'), expected = 'entered'
+
+    @pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+    def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+        """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+        from bts.daily_decision import load_decision_bytes
+        from bts.day_outcome import classify_day
+        from bts.entry_receipt import _sha
+        date = "2027-03-24"
+        picks = tmp_path / "picks"
+        write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                       primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+        decision, raw = load_decision_bytes(date, picks)
+    
+        def receipt(kind):
+            return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                    "degraded": [], "account": {"username": "owner"},
+                    "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                    "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                    "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                    "qualification": {"all_confirmed": kind in ("full", "late"),
+                                      "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                           "confirmed" if kind in ("full", "late") else "missing"}]}}
+    
+        outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                               receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+>       assert outcome.state == expected
+E       AssertionError: assert 'entered_game_unverified' == 'entered'
+E         
+E         - entered
+E         + entered_game_unverified
+
+tests/test_day_outcome_entry_sequence.py:177: AssertionError
+_ test_receipt_precedence_is_independent_of_observation_order[late-batter-absent-full] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2645/test_receipt_precedence_is_ind24')
+order = ('late', 'batter', 'absent', 'full'), expected = 'entered'
+
+    @pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+    def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+        """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+        from bts.daily_decision import load_decision_bytes
+        from bts.day_outcome import classify_day
+        from bts.entry_receipt import _sha
+        date = "2027-03-24"
+        picks = tmp_path / "picks"
+        write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                       primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+        decision, raw = load_decision_bytes(date, picks)
+    
+        def receipt(kind):
+            return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                    "degraded": [], "account": {"username": "owner"},
+                    "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                    "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                    "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                    "qualification": {"all_confirmed": kind in ("full", "late"),
+                                      "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                           "confirmed" if kind in ("full", "late") else "missing"}]}}
+    
+        outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                               receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+>       assert outcome.state == expected
+E       AssertionError: assert 'entered_game_unverified' == 'entered'
+E         
+E         - entered
+E         + entered_game_unverified
+
+tests/test_day_outcome_entry_sequence.py:177: AssertionError
+_ test_receipt_precedence_is_independent_of_observation_order[late-absent-full-batter] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2645/test_receipt_precedence_is_ind25')
+order = ('late', 'absent', 'full', 'batter'), expected = 'entered'
+
+    @pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+    def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+        """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+        from bts.daily_decision import load_decision_bytes
+        from bts.day_outcome import classify_day
+        from bts.entry_receipt import _sha
+        date = "2027-03-24"
+        picks = tmp_path / "picks"
+        write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                       primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+        decision, raw = load_decision_bytes(date, picks)
+    
+        def receipt(kind):
+            return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                    "degraded": [], "account": {"username": "owner"},
+                    "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                    "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                    "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                    "qualification": {"all_confirmed": kind in ("full", "late"),
+                                      "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                           "confirmed" if kind in ("full", "late") else "missing"}]}}
+    
+        outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                               receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+>       assert outcome.state == expected
+E       AssertionError: assert 'entered_game_unverified' == 'entered'
+E         
+E         - entered
+E         + entered_game_unverified
+
+tests/test_day_outcome_entry_sequence.py:177: AssertionError
+_ test_receipt_precedence_is_independent_of_observation_order[late-absent-batter-full] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2645/test_receipt_precedence_is_ind26')
+order = ('late', 'absent', 'batter', 'full'), expected = 'entered'
+
+    @pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+    def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+        """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+        from bts.daily_decision import load_decision_bytes
+        from bts.day_outcome import classify_day
+        from bts.entry_receipt import _sha
+        date = "2027-03-24"
+        picks = tmp_path / "picks"
+        write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                       primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+        decision, raw = load_decision_bytes(date, picks)
+    
+        def receipt(kind):
+            return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                    "degraded": [], "account": {"username": "owner"},
+                    "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                    "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                    "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                    "qualification": {"all_confirmed": kind in ("full", "late"),
+                                      "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                           "confirmed" if kind in ("full", "late") else "missing"}]}}
+    
+        outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                               receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+>       assert outcome.state == expected
+E       AssertionError: assert 'entered_game_unverified' == 'entered'
+E         
+E         - entered
+E         + entered_game_unverified
+
+tests/test_day_outcome_entry_sequence.py:177: AssertionError
+_ test_receipt_precedence_is_independent_of_observation_order[absent-full-batter-late] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2645/test_receipt_precedence_is_ind27')
+order = ('absent', 'full', 'batter', 'late'), expected = 'entered'
+
+    @pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+    def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+        """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+        from bts.daily_decision import load_decision_bytes
+        from bts.day_outcome import classify_day
+        from bts.entry_receipt import _sha
+        date = "2027-03-24"
+        picks = tmp_path / "picks"
+        write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                       primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+        decision, raw = load_decision_bytes(date, picks)
+    
+        def receipt(kind):
+            return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                    "degraded": [], "account": {"username": "owner"},
+                    "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                    "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                    "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                    "qualification": {"all_confirmed": kind in ("full", "late"),
+                                      "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                           "confirmed" if kind in ("full", "late") else "missing"}]}}
+    
+        outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                               receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+>       assert outcome.state == expected
+E       AssertionError: assert 'entered_game_unverified' == 'entered'
+E         
+E         - entered
+E         + entered_game_unverified
+
+tests/test_day_outcome_entry_sequence.py:177: AssertionError
+_ test_receipt_precedence_is_independent_of_observation_order[absent-full-late-batter] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2645/test_receipt_precedence_is_ind28')
+order = ('absent', 'full', 'late', 'batter'), expected = 'entered'
+
+    @pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+    def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+        """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+        from bts.daily_decision import load_decision_bytes
+        from bts.day_outcome import classify_day
+        from bts.entry_receipt import _sha
+        date = "2027-03-24"
+        picks = tmp_path / "picks"
+        write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                       primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+        decision, raw = load_decision_bytes(date, picks)
+    
+        def receipt(kind):
+            return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                    "degraded": [], "account": {"username": "owner"},
+                    "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                    "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                    "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                    "qualification": {"all_confirmed": kind in ("full", "late"),
+                                      "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                           "confirmed" if kind in ("full", "late") else "missing"}]}}
+    
+        outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                               receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+>       assert outcome.state == expected
+E       AssertionError: assert 'entered_game_unverified' == 'entered'
+E         
+E         - entered
+E         + entered_game_unverified
+
+tests/test_day_outcome_entry_sequence.py:177: AssertionError
+_ test_receipt_precedence_is_independent_of_observation_order[absent-batter-full-late] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2645/test_receipt_precedence_is_ind29')
+order = ('absent', 'batter', 'full', 'late'), expected = 'entered'
+
+    @pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+    def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+        """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+        from bts.daily_decision import load_decision_bytes
+        from bts.day_outcome import classify_day
+        from bts.entry_receipt import _sha
+        date = "2027-03-24"
+        picks = tmp_path / "picks"
+        write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                       primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+        decision, raw = load_decision_bytes(date, picks)
+    
+        def receipt(kind):
+            return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                    "degraded": [], "account": {"username": "owner"},
+                    "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                    "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                    "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                    "qualification": {"all_confirmed": kind in ("full", "late"),
+                                      "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                           "confirmed" if kind in ("full", "late") else "missing"}]}}
+    
+        outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                               receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+>       assert outcome.state == expected
+E       AssertionError: assert 'entered_game_unverified' == 'entered'
+E         
+E         - entered
+E         + entered_game_unverified
+
+tests/test_day_outcome_entry_sequence.py:177: AssertionError
+_ test_receipt_precedence_is_independent_of_observation_order[absent-batter-late-full] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2645/test_receipt_precedence_is_ind30')
+order = ('absent', 'batter', 'late', 'full'), expected = 'entered'
+
+    @pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+    def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+        """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+        from bts.daily_decision import load_decision_bytes
+        from bts.day_outcome import classify_day
+        from bts.entry_receipt import _sha
+        date = "2027-03-24"
+        picks = tmp_path / "picks"
+        write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                       primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+        decision, raw = load_decision_bytes(date, picks)
+    
+        def receipt(kind):
+            return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                    "degraded": [], "account": {"username": "owner"},
+                    "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                    "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                    "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                    "qualification": {"all_confirmed": kind in ("full", "late"),
+                                      "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                           "confirmed" if kind in ("full", "late") else "missing"}]}}
+    
+        outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                               receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+>       assert outcome.state == expected
+E       AssertionError: assert 'entered_game_unverified' == 'entered'
+E         
+E         - entered
+E         + entered_game_unverified
+
+tests/test_day_outcome_entry_sequence.py:177: AssertionError
+_ test_receipt_precedence_is_independent_of_observation_order[absent-late-full-batter] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2645/test_receipt_precedence_is_ind31')
+order = ('absent', 'late', 'full', 'batter'), expected = 'entered'
+
+    @pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+    def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+        """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+        from bts.daily_decision import load_decision_bytes
+        from bts.day_outcome import classify_day
+        from bts.entry_receipt import _sha
+        date = "2027-03-24"
+        picks = tmp_path / "picks"
+        write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                       primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+        decision, raw = load_decision_bytes(date, picks)
+    
+        def receipt(kind):
+            return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                    "degraded": [], "account": {"username": "owner"},
+                    "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                    "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                    "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                    "qualification": {"all_confirmed": kind in ("full", "late"),
+                                      "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                           "confirmed" if kind in ("full", "late") else "missing"}]}}
+    
+        outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                               receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+>       assert outcome.state == expected
+E       AssertionError: assert 'entered_game_unverified' == 'entered'
+E         
+E         - entered
+E         + entered_game_unverified
+
+tests/test_day_outcome_entry_sequence.py:177: AssertionError
+_ test_receipt_precedence_is_independent_of_observation_order[absent-late-batter-full] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2645/test_receipt_precedence_is_ind32')
+order = ('absent', 'late', 'batter', 'full'), expected = 'entered'
+
+    @pytest.mark.parametrize("order,expected", PRECEDENCE_CASES)
+    def test_receipt_precedence_is_independent_of_observation_order(tmp_path, order, expected):
+        """Reviewer probe: all 33 orders preserve full > batter-only > late > absence."""
+        from bts.daily_decision import load_decision_bytes
+        from bts.day_outcome import classify_day
+        from bts.entry_receipt import _sha
+        date = "2027-03-24"
+        picks = tmp_path / "picks"
+        write_decision(date, picks, action="single", source="mdp", scoreable=True, delivery_status="delivered",
+                       primary={"batter_id": 1, "batter_name": "A", "game_pk": 9001, "p_game_hit": .8})
+        decision, raw = load_decision_bytes(date, picks)
+    
+        def receipt(kind):
+            return {"schema": "bts_pick_entry_receipt_v1", "outcome": "observed", "et_date": date, "season": 2027,
+                    "degraded": [], "account": {"username": "owner"},
+                    "selection": {"commit": {"decision_sha256": _sha(raw)}},
+                    "observation": {"before_cutoff": kind != "late", "response_completed_at": date + "T23:06:00Z"},
+                    "verifier": {"reason": "no_pick" if kind == "absent" else "match"},
+                    "qualification": {"all_confirmed": kind in ("full", "late"),
+                                      "slots": [{"state": "unit_unverified" if kind == "batter" else
+                                                           "confirmed" if kind in ("full", "late") else "missing"}]}}
+    
+        outcome = classify_day(date=date, games=1, decision=decision, decision_sha256=_sha(raw),
+                               receipts=[receipt(kind) for kind in order], intent="enter", expected_username="owner")
+>       assert outcome.state == expected
+E       AssertionError: assert 'entered_game_unverified' == 'entered'
+E         
+E         - entered
+E         + entered_game_unverified
+
+tests/test_day_outcome_entry_sequence.py:177: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_day_outcome_entry_sequence.py::test_receipt_precedence_is_independent_of_observation_order[full-batter-late-absent]
+FAILED tests/test_day_outcome_entry_sequence.py::test_receipt_precedence_is_independent_of_observation_order[full-batter-absent-late]
+FAILED tests/test_day_outcome_entry_sequence.py::test_receipt_precedence_is_independent_of_observation_order[full-late-batter-absent]
+FAILED tests/test_day_outcome_entry_sequence.py::test_receipt_precedence_is_independent_of_observation_order[full-late-absent-batter]
+FAILED tests/test_day_outcome_entry_sequence.py::test_receipt_precedence_is_independent_of_observation_order[full-absent-batter-late]
+FAILED tests/test_day_outcome_entry_sequence.py::test_receipt_precedence_is_independent_of_observation_order[full-absent-late-batter]
+FAILED tests/test_day_outcome_entry_sequence.py::test_receipt_precedence_is_independent_of_observation_order[batter-full-late-absent]
+FAILED tests/test_day_outcome_entry_sequence.py::test_receipt_precedence_is_independent_of_observation_order[batter-full-absent-late]
+FAILED tests/test_day_outcome_entry_sequence.py::test_receipt_precedence_is_independent_of_observation_order[batter-late-full-absent]
+FAILED tests/test_day_outcome_entry_sequence.py::test_receipt_precedence_is_independent_of_observation_order[batter-late-absent-full]
+FAILED tests/test_day_outcome_entry_sequence.py::test_receipt_precedence_is_independent_of_observation_order[batter-absent-full-late]
+FAILED tests/test_day_outcome_entry_sequence.py::test_receipt_precedence_is_independent_of_observation_order[batter-absent-late-full]
+FAILED tests/test_day_outcome_entry_sequence.py::test_receipt_precedence_is_independent_of_observation_order[late-full-batter-absent]
+FAILED tests/test_day_outcome_entry_sequence.py::test_receipt_precedence_is_independent_of_observation_order[late-full-absent-batter]
+FAILED tests/test_day_outcome_entry_sequence.py::test_receipt_precedence_is_independent_of_observation_order[late-batter-full-absent]
+FAILED tests/test_day_outcome_entry_sequence.py::test_receipt_precedence_is_independent_of_observation_order[late-batter-absent-full]
+FAILED tests/test_day_outcome_entry_sequence.py::test_receipt_precedence_is_independent_of_observation_order[late-absent-full-batter]
+FAILED tests/test_day_outcome_entry_sequence.py::test_receipt_precedence_is_independent_of_observation_order[late-absent-batter-full]
+FAILED tests/test_day_outcome_entry_sequence.py::test_receipt_precedence_is_independent_of_observation_order[absent-full-batter-late]
+FAILED tests/test_day_outcome_entry_sequence.py::test_receipt_precedence_is_independent_of_observation_order[absent-full-late-batter]
+FAILED tests/test_day_outcome_entry_sequence.py::test_receipt_precedence_is_independent_of_observation_order[absent-batter-full-late]
+FAILED tests/test_day_outcome_entry_sequence.py::test_receipt_precedence_is_independent_of_observation_order[absent-batter-late-full]
+FAILED tests/test_day_outcome_entry_sequence.py::test_receipt_precedence_is_independent_of_observation_order[absent-late-full-batter]
+FAILED tests/test_day_outcome_entry_sequence.py::test_receipt_precedence_is_independent_of_observation_order[absent-late-batter-full]
+========================= 24 failed, 9 passed in 0.39s =========================

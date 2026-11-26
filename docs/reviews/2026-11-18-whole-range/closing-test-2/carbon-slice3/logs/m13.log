@@ -1,0 +1,43 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-carbon3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 2 items
+
+tests/test_wr_h2_caps.py F.                                              [100%]
+
+=================================== FAILURES ===================================
+________________ test_k7_chosen_on_boundary_and_identity[dated] ________________
+
+live = (PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2635/test_k7_chosen_on_boun...t_state_required': True, 'entry_intent': 'enter', 'pick_delivery': 'dm'}, ...}, [70000, 70001], <Mock id='4542200384'>)
+kind = 'dated'
+
+    @pytest.mark.parametrize("kind", ["dated", "automatic"])
+    def test_k7_chosen_on_boundary_and_identity(live, kind):
+        directory, cfg, games, _ = live
+        install(directory, kind, 400, 400)
+        select(cfg, games)
+        chosen = picks.load_pick(str(DAY), directory).chosen_on
+        assert chosen["streak"] == 400
+        for value in (-1, True, 401):
+            dated = dict(chosen["dated"], active_streak=value, best_streak=value) if kind == "dated" else None
+            assert picks._valid_chosen_on(dict(chosen, streak=value, dated=dated)) is None
+        assert picks._valid_chosen_on(dict(chosen, kind="unknown")) is None
+        if kind == "dated":
+            for update in ({"active_streak": 399}, {"best_streak": 399}, {"best_streak": 401}):
+>               assert picks._valid_chosen_on(dict(chosen, dated=dict(chosen["dated"], **update))) is None
+E               AssertionError: assert {'dated': {'active_streak': 400, 'best_streak': 399, 'effective_date': '2027-09-26', 'saver_state': 'used'}, 'kind': 'dated', 'required': True, 'saver_available': False, ...} is None
+E                +  where {'dated': {'active_streak': 400, 'best_streak': 399, 'effective_date': '2027-09-26', 'saver_state': 'used'}, 'kind': 'dated', 'required': True, 'saver_available': False, ...} = <function _valid_chosen_on at 0x10ec35a80>({'dated': {'active_streak': 400, 'best_streak': 399, 'effective_date': '2027-09-26', 'saver_state': 'used'}, 'kind': 'dated', 'required': True, 'saver_available': False, ...})
+E                +    where <function _valid_chosen_on at 0x10ec35a80> = picks._valid_chosen_on
+E                +    and   {'dated': {'active_streak': 400, 'best_streak': 399, 'effective_date': '2027-09-26', 'saver_state': 'used'}, 'kind': 'dated', 'required': True, 'saver_available': False, ...} = dict({'dated': {'active_streak': 400, 'best_streak': 400, 'effective_date': '2027-09-26', 'saver_state': 'used'}, 'kind': 'dated', 'required': True, 'saver_available': False, ...}, dated={'active_streak': 400, 'best_streak': 399, 'effective_date': '2027-09-26', 'saver_state': 'used'})
+E                +      where {'active_streak': 400, 'best_streak': 399, 'effective_date': '2027-09-26', 'saver_state': 'used'} = dict({'active_streak': 400, 'best_streak': 400, 'effective_date': '2027-09-26', 'saver_state': 'used'}, **{'best_streak': 399})
+
+tests/test_wr_h2_caps.py:301: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=double streak=400 best=400 (trusted) effective_best=None days=1 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+=========================== short test summary info ============================
+FAILED tests/test_wr_h2_caps.py::test_k7_chosen_on_boundary_and_identity[dated]
+========================= 1 failed, 1 passed in 0.37s ==========================

@@ -1,0 +1,179 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-carbon3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 5 items
+
+tests/test_wr_g_guard.py .FFFF                                           [100%]
+
+=================================== FAILURES ===================================
+________ test_guard_journal[50-180-0.96-False-True-True-single/single] _________
+
+artifact = {'base_error': None, 'base_sha256': '66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4', 'boundaries': ...     [0, 0, 0, 0, 0]],
+
+        [[0, 0, 0, 0, 0],
+         [0, 0, 0, 0, 0]]]], shape=(58, 181, 2, 5), dtype=int8), ...}
+probabilities = [(0.0, 0.3979894223197587, np.float64(0.7959788446395173)), (0.7959788446395174, 0.8037347733397218, np.float64(0.8114....8252474190317034, 0.832993807853349, np.float64(0.8407401966749946)), (0.8407401966749947, 0.9203700983374974, 0.999)]
+capsys = <_pytest.capture.CaptureFixture object at 0x10e4329f0>, s = 50, d = 180
+p = 0.96, saver = False, allow = True, second = True, expected = 'single/single'
+
+    @pytest.mark.parametrize("s,d,p,saver,allow,second,expected", [
+        (50, 180, 0.83, False, True, True, ""),
+        (50, 180, 0.96, False, True, True, "single/single"),
+        (1, 29, 0.72, False, True, True, "double/double"),
+        (1, 29, 0.72, False, False, True, "double/single"),
+        (1, 29, 0.72, False, True, False, "double/single"),
+    ])
+    def test_guard_journal(artifact, probabilities, capsys, s, d, p, saver, allow, second, expected):
+        if expected.startswith("double"):
+            p = probabilities[1][1]
+        ctx = replace(context(p, (END - timedelta(days=d)).isoformat(), artifact, s),
+                      allow_double=allow, has_diff_game=second)
+        dec = strategy.resolve_policy_decision(ctx, s, saver)
+        scheduler._log_policy_decision(SimpleNamespace(decision=dec, saver_available=saver))
+        lines = capsys.readouterr().err.splitlines()
+        if not expected:
+            assert lines == []
+            return
+        policy_action, action = expected.split("/")
+        q, j = (1, 0) if policy_action == "double" else (4, 3)
+>       assert lines == [
+            f"  POLICY GUARD — At streak {s} with {d} policy days left and saver input unavailable, "
+            f"the table skips bin {q}. Bin {j} supplies {policy_action}. Selected action is {action}."
+        ]
+E       AssertionError: assert [] == ['  POLICY GU...n is single.']
+E         
+E         Right contains one more item: '  POLICY GUARD — At streak 50 with 180 policy days left and saver input unavailable, the table skips bin 4. Bin 3 supplies single. Selected action is single.'
+E         Use -v to get more diff
+
+tests/test_wr_g_guard.py:210: AssertionError
+_________ test_guard_journal[1-29-0.72-False-True-True-double/double] __________
+
+artifact = {'base_error': None, 'base_sha256': '66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4', 'boundaries': ...     [0, 0, 0, 0, 0]],
+
+        [[0, 0, 0, 0, 0],
+         [0, 0, 0, 0, 0]]]], shape=(58, 181, 2, 5), dtype=int8), ...}
+probabilities = [(0.0, 0.3979894223197587, np.float64(0.7959788446395173)), (0.7959788446395174, 0.8037347733397218, np.float64(0.8114....8252474190317034, 0.832993807853349, np.float64(0.8407401966749946)), (0.8407401966749947, 0.9203700983374974, 0.999)]
+capsys = <_pytest.capture.CaptureFixture object at 0x10af31700>, s = 1, d = 29
+p = 0.8037347733397218, saver = False, allow = True, second = True
+expected = 'double/double'
+
+    @pytest.mark.parametrize("s,d,p,saver,allow,second,expected", [
+        (50, 180, 0.83, False, True, True, ""),
+        (50, 180, 0.96, False, True, True, "single/single"),
+        (1, 29, 0.72, False, True, True, "double/double"),
+        (1, 29, 0.72, False, False, True, "double/single"),
+        (1, 29, 0.72, False, True, False, "double/single"),
+    ])
+    def test_guard_journal(artifact, probabilities, capsys, s, d, p, saver, allow, second, expected):
+        if expected.startswith("double"):
+            p = probabilities[1][1]
+        ctx = replace(context(p, (END - timedelta(days=d)).isoformat(), artifact, s),
+                      allow_double=allow, has_diff_game=second)
+        dec = strategy.resolve_policy_decision(ctx, s, saver)
+        scheduler._log_policy_decision(SimpleNamespace(decision=dec, saver_available=saver))
+        lines = capsys.readouterr().err.splitlines()
+        if not expected:
+            assert lines == []
+            return
+        policy_action, action = expected.split("/")
+        q, j = (1, 0) if policy_action == "double" else (4, 3)
+>       assert lines == [
+            f"  POLICY GUARD — At streak {s} with {d} policy days left and saver input unavailable, "
+            f"the table skips bin {q}. Bin {j} supplies {policy_action}. Selected action is {action}."
+        ]
+E       AssertionError: assert [] == ['  POLICY GU...n is double.']
+E         
+E         Right contains one more item: '  POLICY GUARD — At streak 1 with 29 policy days left and saver input unavailable, the table skips bin 1. Bin 0 supplies double. Selected action is double.'
+E         Use -v to get more diff
+
+tests/test_wr_g_guard.py:210: AssertionError
+_________ test_guard_journal[1-29-0.72-False-False-True-double/single] _________
+
+artifact = {'base_error': None, 'base_sha256': '66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4', 'boundaries': ...     [0, 0, 0, 0, 0]],
+
+        [[0, 0, 0, 0, 0],
+         [0, 0, 0, 0, 0]]]], shape=(58, 181, 2, 5), dtype=int8), ...}
+probabilities = [(0.0, 0.3979894223197587, np.float64(0.7959788446395173)), (0.7959788446395174, 0.8037347733397218, np.float64(0.8114....8252474190317034, 0.832993807853349, np.float64(0.8407401966749946)), (0.8407401966749947, 0.9203700983374974, 0.999)]
+capsys = <_pytest.capture.CaptureFixture object at 0x10e487e30>, s = 1, d = 29
+p = 0.8037347733397218, saver = False, allow = False, second = True
+expected = 'double/single'
+
+    @pytest.mark.parametrize("s,d,p,saver,allow,second,expected", [
+        (50, 180, 0.83, False, True, True, ""),
+        (50, 180, 0.96, False, True, True, "single/single"),
+        (1, 29, 0.72, False, True, True, "double/double"),
+        (1, 29, 0.72, False, False, True, "double/single"),
+        (1, 29, 0.72, False, True, False, "double/single"),
+    ])
+    def test_guard_journal(artifact, probabilities, capsys, s, d, p, saver, allow, second, expected):
+        if expected.startswith("double"):
+            p = probabilities[1][1]
+        ctx = replace(context(p, (END - timedelta(days=d)).isoformat(), artifact, s),
+                      allow_double=allow, has_diff_game=second)
+        dec = strategy.resolve_policy_decision(ctx, s, saver)
+        scheduler._log_policy_decision(SimpleNamespace(decision=dec, saver_available=saver))
+        lines = capsys.readouterr().err.splitlines()
+        if not expected:
+            assert lines == []
+            return
+        policy_action, action = expected.split("/")
+        q, j = (1, 0) if policy_action == "double" else (4, 3)
+>       assert lines == [
+            f"  POLICY GUARD — At streak {s} with {d} policy days left and saver input unavailable, "
+            f"the table skips bin {q}. Bin {j} supplies {policy_action}. Selected action is {action}."
+        ]
+E       AssertionError: assert [] == ['  POLICY GU...n is single.']
+E         
+E         Right contains one more item: '  POLICY GUARD — At streak 1 with 29 policy days left and saver input unavailable, the table skips bin 1. Bin 0 supplies double. Selected action is single.'
+E         Use -v to get more diff
+
+tests/test_wr_g_guard.py:210: AssertionError
+_________ test_guard_journal[1-29-0.72-False-True-False-double/single] _________
+
+artifact = {'base_error': None, 'base_sha256': '66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4', 'boundaries': ...     [0, 0, 0, 0, 0]],
+
+        [[0, 0, 0, 0, 0],
+         [0, 0, 0, 0, 0]]]], shape=(58, 181, 2, 5), dtype=int8), ...}
+probabilities = [(0.0, 0.3979894223197587, np.float64(0.7959788446395173)), (0.7959788446395174, 0.8037347733397218, np.float64(0.8114....8252474190317034, 0.832993807853349, np.float64(0.8407401966749946)), (0.8407401966749947, 0.9203700983374974, 0.999)]
+capsys = <_pytest.capture.CaptureFixture object at 0x10aefc2f0>, s = 1, d = 29
+p = 0.8037347733397218, saver = False, allow = True, second = False
+expected = 'double/single'
+
+    @pytest.mark.parametrize("s,d,p,saver,allow,second,expected", [
+        (50, 180, 0.83, False, True, True, ""),
+        (50, 180, 0.96, False, True, True, "single/single"),
+        (1, 29, 0.72, False, True, True, "double/double"),
+        (1, 29, 0.72, False, False, True, "double/single"),
+        (1, 29, 0.72, False, True, False, "double/single"),
+    ])
+    def test_guard_journal(artifact, probabilities, capsys, s, d, p, saver, allow, second, expected):
+        if expected.startswith("double"):
+            p = probabilities[1][1]
+        ctx = replace(context(p, (END - timedelta(days=d)).isoformat(), artifact, s),
+                      allow_double=allow, has_diff_game=second)
+        dec = strategy.resolve_policy_decision(ctx, s, saver)
+        scheduler._log_policy_decision(SimpleNamespace(decision=dec, saver_available=saver))
+        lines = capsys.readouterr().err.splitlines()
+        if not expected:
+            assert lines == []
+            return
+        policy_action, action = expected.split("/")
+        q, j = (1, 0) if policy_action == "double" else (4, 3)
+>       assert lines == [
+            f"  POLICY GUARD — At streak {s} with {d} policy days left and saver input unavailable, "
+            f"the table skips bin {q}. Bin {j} supplies {policy_action}. Selected action is {action}."
+        ]
+E       AssertionError: assert [] == ['  POLICY GU...n is single.']
+E         
+E         Right contains one more item: '  POLICY GUARD — At streak 1 with 29 policy days left and saver input unavailable, the table skips bin 1. Bin 0 supplies double. Selected action is single.'
+E         Use -v to get more diff
+
+tests/test_wr_g_guard.py:210: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_g_guard.py::test_guard_journal[50-180-0.96-False-True-True-single/single]
+FAILED tests/test_wr_g_guard.py::test_guard_journal[1-29-0.72-False-True-True-double/double]
+FAILED tests/test_wr_g_guard.py::test_guard_journal[1-29-0.72-False-False-True-double/single]
+FAILED tests/test_wr_g_guard.py::test_guard_journal[1-29-0.72-False-True-False-double/single]
+========================= 4 failed, 1 passed in 0.28s ==========================

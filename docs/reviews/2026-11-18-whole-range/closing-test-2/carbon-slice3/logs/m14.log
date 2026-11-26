@@ -1,0 +1,37 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-carbon3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_wr_h2_caps.py F                                               [100%]
+
+=================================== FAILURES ===================================
+_______________ test_k8_parsed_best_requires_current_provenance ________________
+
+live = (PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2636/test_k8_parsed_best_re...t_state_required': True, 'entry_intent': 'enter', 'pick_delivery': 'dm'}, ...}, [70000, 70001], <Mock id='4553645696'>)
+
+    def test_k8_parsed_best_requires_current_provenance(live):
+        directory, _, _, _ = live
+        install(directory, "automatic", 400, 400)
+        path = directory / "account_state/contest_streak.json"
+        sample = contest_state._read_state_file(path, require_dated=True, historical=False)
+        now = walk.REAL_DATETIME(2027, 9, 26, 12, tzinfo=walk.ET)
+    
+        def classify(**updates):
+            return contest_state.classify_best_streak(replace(sample, **updates), now=now, now_year=DAY.year)
+    
+        assert classify() == (400, "trusted")
+        assert classify(best_streak=None) == (None, "missing")
+        for value in (-1, 399, 401):
+>           assert classify(best_streak=value) == (value, "untrusted")
+E           AssertionError: assert (399, 'trusted') == (399, 'untrusted')
+E             
+E             At index 1 diff: 'trusted' != 'untrusted'
+E             Use -v to get more diff
+
+tests/test_wr_h2_caps.py:317: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_h2_caps.py::test_k8_parsed_best_requires_current_provenance
+============================== 1 failed in 0.34s ===============================

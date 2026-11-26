@@ -1,0 +1,481 @@
+[
+  {
+    "test": "tests/test_wr_g_guard.py::test_lookup_edge_shapes",
+    "path": "src/bts/simulate/mdp.py",
+    "before": "range(q - 1, -1, -1)",
+    "after": "range(0, q)",
+    "base": {
+      "code": 0,
+      "output": ".                                                                        [100%]\n1 passed in 0.64s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________ test_lookup_edge_shapes ____________________________\ntests/test_wr_g_guard.py:185: in test_lookup_edge_shapes\n    assert lookup(table, [0.7, 0.8, 0.9], 10, 105, False, p, 100) == (\nE   AssertionError: assert ('double', {'...ion': 'skip'}) == ('single', {'...ion': 'skip'})\nE     \nE     At index 0 diff: 'double' != 'single'\nE     Use -v to get more diff\n=========================== short test summary info ============================\nFAILED tests/test_wr_g_guard.py::test_lookup_edge_shapes - AssertionError: as...\n1 failed in 0.66s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_g_guard.py::test_malformed_donor_cells",
+    "path": "src/bts/simulate/mdp.py",
+    "before": "if donor_code in (1, 2):",
+    "after": "if donor_code != 0:",
+    "base": {
+      "code": 0,
+      "output": "..                                                                       [100%]\n2 passed in 0.63s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "FF                                                                       [100%]\n=================================== FAILURES ===================================\n___________________ test_malformed_donor_cells[1-expected0] ____________________\ntests/test_wr_g_guard.py:224: in test_malformed_donor_cells\n    assert mdp.lookup_action_guarded(*args, 0.8) == expected\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-mutation-vpojwy7v/src/bts/simulate/mdp.py:233: in lookup_action_guarded\n    return ACTIONS[int(donor_code)], {\n           ^^^^^^^^^^^^^^^^^^^^^^^^\nE   IndexError: tuple index out of range\n___________________ test_malformed_donor_cells[3-expected1] ____________________\ntests/test_wr_g_guard.py:224: in test_malformed_donor_cells\n    assert mdp.lookup_action_guarded(*args, 0.8) == expected\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-mutation-vpojwy7v/src/bts/simulate/mdp.py:233: in lookup_action_guarded\n    return ACTIONS[int(donor_code)], {\n           ^^^^^^^^^^^^^^^^^^^^^^^^\nE   IndexError: tuple index out of range\n=========================== short test summary info ============================\nFAILED tests/test_wr_g_guard.py::test_malformed_donor_cells[1-expected0] - In...\nFAILED tests/test_wr_g_guard.py::test_malformed_donor_cells[3-expected1] - In...\n2 failed in 0.67s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_g_guard.py::test_malformed_queried_cell",
+    "path": "src/bts/simulate/mdp.py",
+    "before": "    action = ACTIONS[policy_table[indices]]",
+    "after": "    action = 'skip'",
+    "base": {
+      "code": 0,
+      "output": ".                                                                        [100%]\n1 passed in 0.63s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n_________________________ test_malformed_queried_cell __________________________\ntests/test_wr_g_guard.py:232: in test_malformed_queried_cell\n    with pytest.raises(type(raw.value)):\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE   Failed: DID NOT RAISE <class 'IndexError'>\n=========================== short test summary info ============================\nFAILED tests/test_wr_g_guard.py::test_malformed_queried_cell - Failed: DID NO...\n1 failed in 0.67s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_g_guard.py::test_guard_journal",
+    "path": "src/bts/scheduler.py",
+    "before": "    if guard is not None:\n        saver =",
+    "after": "    if False:\n        saver =",
+    "base": {
+      "code": 0,
+      "output": ".....                                                                    [100%]\n5 passed in 0.64s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": ".FFFF                                                                    [100%]\n=================================== FAILURES ===================================\n________ test_guard_journal[50-180-0.96-False-True-True-single/single] _________\ntests/test_wr_g_guard.py:210: in test_guard_journal\n    assert lines == [\nE   AssertionError: assert [] == ['  POLICY GU...n is single.']\nE     \nE     Right contains one more item: '  POLICY GUARD \u2014 At streak 50 with 180 policy days left and saver input unavailable, the table skips bin 4. Bin 3 supplies single. Selected action is single.'\nE     Use -v to get more diff\n_________ test_guard_journal[1-29-0.72-False-True-True-double/double] __________\ntests/test_wr_g_guard.py:210: in test_guard_journal\n    assert lines == [\nE   AssertionError: assert [] == ['  POLICY GU...n is double.']\nE     \nE     Right contains one more item: '  POLICY GUARD \u2014 At streak 1 with 29 policy days left and saver input unavailable, the table skips bin 1. Bin 0 supplies double. Selected action is double.'\nE     Use -v to get more diff\n_________ test_guard_journal[1-29-0.72-False-False-True-double/single] _________\ntests/test_wr_g_guard.py:210: in test_guard_journal\n    assert lines == [\nE   AssertionError: assert [] == ['  POLICY GU...n is single.']\nE     \nE     Right contains one more item: '  POLICY GUARD \u2014 At streak 1 with 29 policy days left and saver input unavailable, the table skips bin 1. Bin 0 supplies double. Selected action is single.'\nE     Use -v to get more diff\n_________ test_guard_journal[1-29-0.72-False-True-False-double/single] _________\ntests/test_wr_g_guard.py:210: in test_guard_journal\n    assert lines == [\nE   AssertionError: assert [] == ['  POLICY GU...n is single.']\nE     \nE     Right contains one more item: '  POLICY GUARD \u2014 At streak 1 with 29 policy days left and saver input unavailable, the table skips bin 1. Bin 0 supplies double. Selected action is single.'\nE     Use -v to get more diff\n=========================== short test summary info ============================\nFAILED tests/test_wr_g_guard.py::test_guard_journal[50-180-0.96-False-True-True-single/single]\nFAILED tests/test_wr_g_guard.py::test_guard_journal[1-29-0.72-False-True-True-double/double]\nFAILED tests/test_wr_g_guard.py::test_guard_journal[1-29-0.72-False-False-True-double/single]\nFAILED tests/test_wr_g_guard.py::test_guard_journal[1-29-0.72-False-True-False-double/single]\n4 failed, 1 passed in 0.68s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_g_guard.py::test_decision_round_trip_and_skip_predicate",
+    "path": "src/bts/daily_decision.py",
+    "before": "policy_guard if action != \"skip\" else None",
+    "after": "policy_guard",
+    "base": {
+      "code": 0,
+      "output": ".                                                                        [100%]\n1 passed in 0.65s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n_________________ test_decision_round_trip_and_skip_predicate __________________\ntests/test_wr_g_guard.py:271: in test_decision_round_trip_and_skip_predicate\n    assert record[\"policy_guard\"] == expected\nE   AssertionError: assert {'bin': 4, 'from_bin': 3, 'rule': 'monotone_skip_v1', 'table_action': 'skip'} == None\n=========================== short test summary info ============================\nFAILED tests/test_wr_g_guard.py::test_decision_round_trip_and_skip_predicate\n1 failed in 0.69s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_h_longest.py::test_h1_h2_h3_resolver_grid",
+    "path": "src/bts/simulate/tail_policy.py",
+    "before": "streak >= LONGEST_STREAK_FROM and days_remaining",
+    "after": "streak > LONGEST_STREAK_FROM and days_remaining",
+    "base": {
+      "code": 0,
+      "output": "....                                                                     [100%]\n4 passed in 0.76s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "FFFF                                                                     [100%]\n=================================== FAILURES ===================================\n_____________ test_h1_h2_h3_resolver_grid[days0-True-True-single] ______________\ntests/test_wr_h_longest.py:48: in test_h1_h2_h3_resolver_grid\n    assert (decision.action, decision.policy_action, decision.objective) == (\nE   AssertionError: assert ('skip', 'skip', 'reach57') == ('single', 's...ngest_streak')\nE     \nE     At index 0 diff: 'skip' != 'single'\nE     Use -v to get more diff\n_____________ test_h1_h2_h3_resolver_grid[days1-True-True-double] ______________\ntests/test_wr_h_longest.py:48: in test_h1_h2_h3_resolver_grid\n    assert (decision.action, decision.policy_action, decision.objective) == (\nE   AssertionError: assert ('skip', 'skip', 'reach57') == ('double', 'd...ngest_streak')\nE     \nE     At index 0 diff: 'skip' != 'double'\nE     Use -v to get more diff\n_____________ test_h1_h2_h3_resolver_grid[days2-False-True-single] _____________\ntests/test_wr_h_longest.py:48: in test_h1_h2_h3_resolver_grid\n    assert (decision.action, decision.policy_action, decision.objective) == (\nE   AssertionError: assert ('skip', 'skip', 'reach57') == ('single', 'd...ngest_streak')\nE     \nE     At index 0 diff: 'skip' != 'single'\nE     Use -v to get more diff\n_____________ test_h1_h2_h3_resolver_grid[days3-True-False-single] _____________\ntests/test_wr_h_longest.py:48: in test_h1_h2_h3_resolver_grid\n    assert (decision.action, decision.policy_action, decision.objective) == (\nE   AssertionError: assert ('skip', 'skip', 'reach57') == ('single', 'd...ngest_streak')\nE     \nE     At index 0 diff: 'skip' != 'single'\nE     Use -v to get more diff\n=========================== short test summary info ============================\nFAILED tests/test_wr_h_longest.py::test_h1_h2_h3_resolver_grid[days0-True-True-single]\nFAILED tests/test_wr_h_longest.py::test_h1_h2_h3_resolver_grid[days1-True-True-double]\nFAILED tests/test_wr_h_longest.py::test_h1_h2_h3_resolver_grid[days2-False-True-single]\nFAILED tests/test_wr_h_longest.py::test_h1_h2_h3_resolver_grid[days3-True-False-single]\n4 failed in 0.66s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_h_longest.py::test_h6_display_before_artifacts",
+    "path": "src/bts/strategy.py",
+    "before": "        return 0.0",
+    "after": "        return 0.125",
+    "base": {
+      "code": 0,
+      "output": "...                                                                      [100%]\n3 passed in 0.61s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "FFF                                                                      [100%]\n=================================== FAILURES ===================================\n__________________ test_h6_display_before_artifacts[shipped] ___________________\ntests/test_wr_h_longest.py:66: in test_h6_display_before_artifacts\n    assert strategy.effective_pick_bar(BOUNDARY, \"2027-07-15\", False) == 0.0\nE   AssertionError: assert 0.125 == 0.0\nE    +  where 0.125 = <function effective_pick_bar at 0x110587920>(57, '2027-07-15', False)\nE    +    where <function effective_pick_bar at 0x110587920> = strategy.effective_pick_bar\n__________________ test_h6_display_before_artifacts[missing] ___________________\ntests/test_wr_h_longest.py:66: in test_h6_display_before_artifacts\n    assert strategy.effective_pick_bar(BOUNDARY, \"2027-07-15\", False) == 0.0\nE   AssertionError: assert 0.125 == 0.0\nE    +  where 0.125 = <function effective_pick_bar at 0x110587920>(57, '2027-07-15', False)\nE    +    where <function effective_pick_bar at 0x110587920> = strategy.effective_pick_bar\n___________________ test_h6_display_before_artifacts[raises] ___________________\ntests/test_wr_h_longest.py:66: in test_h6_display_before_artifacts\n    assert strategy.effective_pick_bar(BOUNDARY, \"2027-07-15\", False) == 0.0\nE   AssertionError: assert 0.125 == 0.0\nE    +  where 0.125 = <function effective_pick_bar at 0x110587920>(57, '2027-07-15', False)\nE    +    where <function effective_pick_bar at 0x110587920> = strategy.effective_pick_bar\n=========================== short test summary info ============================\nFAILED tests/test_wr_h_longest.py::test_h6_display_before_artifacts[shipped]\nFAILED tests/test_wr_h_longest.py::test_h6_display_before_artifacts[missing]\nFAILED tests/test_wr_h_longest.py::test_h6_display_before_artifacts[raises]\n3 failed in 0.65s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_h_longest.py::test_h7_finalized_decision",
+    "path": "src/bts/daily_decision.py",
+    "before": "OBJECTIVES = (\"reach57\", \"emax_season_best\", \"longest_streak\")",
+    "after": "OBJECTIVES = (\"reach57\", \"emax_season_best\")",
+    "base": {
+      "code": 0,
+      "output": ".                                                                        [100%]\n1 passed in 0.61s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n__________________________ test_h7_finalized_decision __________________________\ntests/test_wr_h_longest.py:74: in test_h7_finalized_decision\n    assert rec is not None\nE   assert None is not None\n=========================== short test summary info ============================\nFAILED tests/test_wr_h_longest.py::test_h7_finalized_decision - assert None i...\n1 failed in 0.65s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_h_longest.py::test_positive_day_rule_selects_a_play_at_exact_ties",
+    "path": "src/bts/simulate/tail_policy.py",
+    "before": "return (\"single\", \"double\", \"skip\")[values.index(gain)]",
+    "after": "return (\"single\", \"double\", \"skip\")[2 - values[::-1].index(gain)]",
+    "base": {
+      "code": 0,
+      "output": ".....                                                                    [100%]\n5 passed in 0.63s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "F..FF                                                                    [100%]\n=================================== FAILURES ===================================\n_________ test_positive_day_rule_selects_a_play_at_exact_ties[0.0-0.0] _________\ntests/test_wr_h_longest.py:206: in test_positive_day_rule_selects_a_play_at_exact_ties\n    assert actions <= {\"single\", \"double\"}\nE   AssertionError: assert {'skip'} <= {'double', 'single'}\nE     \nE     Extra items in the left set:\nE     'skip'\n________ test_positive_day_rule_selects_a_play_at_exact_ties[0.5-0.25] _________\ntests/test_wr_h_longest.py:206: in test_positive_day_rule_selects_a_play_at_exact_ties\n    assert actions <= {\"single\", \"double\"}\nE   AssertionError: assert {'double', 'single', 'skip'} <= {'double', 'single'}\nE     \nE     Extra items in the left set:\nE     'skip'\n________ test_positive_day_rule_selects_a_play_at_exact_ties[0.75-0.5] _________\ntests/test_wr_h_longest.py:206: in test_positive_day_rule_selects_a_play_at_exact_ties\n    assert actions <= {\"single\", \"double\"}\nE   AssertionError: assert {'double', 'single', 'skip'} <= {'double', 'single'}\nE     \nE     Extra items in the left set:\nE     'skip'\n=========================== short test summary info ============================\nFAILED tests/test_wr_h_longest.py::test_positive_day_rule_selects_a_play_at_exact_ties[0.0-0.0]\nFAILED tests/test_wr_h_longest.py::test_positive_day_rule_selects_a_play_at_exact_ties[0.5-0.25]\nFAILED tests/test_wr_h_longest.py::test_positive_day_rule_selects_a_play_at_exact_ties[0.75-0.5]\n3 failed, 2 passed in 0.65s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_h_longest.py::test_clamped_double_persists_both_actions",
+    "path": "src/bts/strategy.py",
+    "before": "if action == \"double\" and not ctx.allow_double:",
+    "after": "if False:",
+    "base": {
+      "code": 0,
+      "output": "..                                                                       [100%]\n2 passed in 0.88s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "F.                                                                       [100%]\n=================================== FAILURES ===================================\n_____________ test_clamped_double_persists_both_actions[disabled] ______________\ntests/test_wr_h_longest.py:223: in test_clamped_double_persists_both_actions\n    assert daily.double_down is None\nE   AssertionError: assert Pick(batter_name='Batter 1', batter_id=101, team='T1', lineup_position=2, pitcher_name='Pitcher 1', pitcher_id=901, p_game_hit=0.95, flags=[], projected_lineup=False, game_pk=70001, game_time='2027-09-26T23:05:00Z', pitcher_team='U1') is None\nE    +  where Pick(batter_name='Batter 1', batter_id=101, team='T1', lineup_position=2, pitcher_name='Pitcher 1', pitcher_id=901, p_game_hit=0.95, flags=[], projected_lineup=False, game_pk=70001, game_time='2027-09-26T23:05:00Z', pitcher_team='U1') = DailyPick(date='2027-09-26', run_time='2027-09-26T16:00:00+00:00', pick=Pick(batter_name='Batter 0', batter_id=100, te...f4', 'degraded_reason': None, 'reason': None, 'pick_bar': None, 'guard': None}, chosen_on=None, automatic_reading=None).double_down\n=========================== short test summary info ============================\nFAILED tests/test_wr_h_longest.py::test_clamped_double_persists_both_actions[disabled]\n1 failed, 1 passed in 0.91s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_h_longest.py::test_r1_malformed_paired_base_forces_single",
+    "path": "src/bts/strategy.py",
+    "before": "_validate_longest_base(policy)",
+    "after": "pass  # ignore invalid base",
+    "base": {
+      "code": 0,
+      "output": "............                                                             [100%]\n12 passed in 0.71s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "FFFFFFFFFFFF                                                             [100%]\n=================================== FAILURES ===================================\n_____________ test_r1_malformed_paired_base_forces_single[scalar] ______________\ntests/test_wr_h_longest.py:335: in test_r1_malformed_paired_base_forces_single\n    assert (decision.action, decision.policy_action, decision.objective) == (\"single\", \"single\", OBJECTIVE)\nE   AssertionError: assert ('double', 'd...ngest_streak') == ('single', 's...ngest_streak')\nE     \nE     At index 0 diff: 'double' != 'single'\nE     Use -v to get more diff\n_______________ test_r1_malformed_paired_base_forces_single[1d] ________________\ntests/test_wr_h_longest.py:335: in test_r1_malformed_paired_base_forces_single\n    assert (decision.action, decision.policy_action, decision.objective) == (\"single\", \"single\", OBJECTIVE)\nE   AssertionError: assert ('double', 'd...ngest_streak') == ('single', 's...ngest_streak')\nE     \nE     At index 0 diff: 'double' != 'single'\nE     Use -v to get more diff\n_______________ test_r1_malformed_paired_base_forces_single[3d] ________________\ntests/test_wr_h_longest.py:335: in test_r1_malformed_paired_base_forces_single\n    assert (decision.action, decision.policy_action, decision.objective) == (\"single\", \"single\", OBJECTIVE)\nE   AssertionError: assert ('double', 'd...ngest_streak') == ('single', 's...ngest_streak')\nE     \nE     At index 0 diff: 'double' != 'single'\nE     Use -v to get more diff\n___________ test_r1_malformed_paired_base_forces_single[saver-axis] ____________\ntests/test_wr_h_longest.py:335: in test_r1_malformed_paired_base_forces_single\n    assert (decision.action, decision.policy_action, decision.objective) == (\"single\", \"single\", OBJECTIVE)\nE   AssertionError: assert ('double', 'd...ngest_streak') == ('single', 's...ngest_streak')\nE     \nE     At index 0 diff: 'double' != 'single'\nE     Use -v to get more diff\n____________ test_r1_malformed_paired_base_forces_single[bin-axis] _____________\ntests/test_wr_h_longest.py:335: in test_r1_malformed_paired_base_forces_single\n    assert (decision.action, decision.policy_action, decision.objective) == (\"single\", \"single\", OBJECTIVE)\nE   AssertionError: assert ('double', 'd...ngest_streak') == ('single', 's...ngest_streak')\nE     \nE     At index 0 diff: 'double' != 'single'\nE     Use -v to get more diff\n____________ test_r1_malformed_paired_base_forces_single[day-axis] _____________\ntests/test_wr_h_longest.py:335: in test_r1_malformed_paired_base_forces_single\n    assert (decision.action, decision.policy_action, decision.objective) == (\"single\", \"single\", OBJECTIVE)\nE   AssertionError: assert ('double', 'd...ngest_streak') == ('single', 's...ngest_streak')\nE     \nE     At index 0 diff: 'double' != 'single'\nE     Use -v to get more diff\n___________ test_r1_malformed_paired_base_forces_single[streak-axis] ___________\ntests/test_wr_h_longest.py:335: in test_r1_malformed_paired_base_forces_single\n    assert (decision.action, decision.policy_action, decision.objective) == (\"single\", \"single\", OBJECTIVE)\nE   AssertionError: assert ('double', 'd...ngest_streak') == ('single', 's...ngest_streak')\nE     \nE     At index 0 diff: 'double' != 'single'\nE     Use -v to get more diff\n______________ test_r1_malformed_paired_base_forces_single[float] ______________\ntests/test_wr_h_longest.py:335: in test_r1_malformed_paired_base_forces_single\n    assert (decision.action, decision.policy_action, decision.objective) == (\"single\", \"single\", OBJECTIVE)\nE   AssertionError: assert ('double', 'd...ngest_streak') == ('single', 's...ngest_streak')\nE     \nE     At index 0 diff: 'double' != 'single'\nE     Use -v to get more diff\n____________ test_r1_malformed_paired_base_forces_single[action-3] _____________\ntests/test_wr_h_longest.py:335: in test_r1_malformed_paired_base_forces_single\n    assert (decision.action, decision.policy_action, decision.objective) == (\"single\", \"single\", OBJECTIVE)\nE   AssertionError: assert ('double', 'd...ngest_streak') == ('single', 's...ngest_streak')\nE     \nE     At index 0 diff: 'double' != 'single'\nE     Use -v to get more diff\n_________ test_r1_malformed_paired_base_forces_single[action-minus-1] __________\ntests/test_wr_h_longest.py:335: in test_r1_malformed_paired_base_forces_single\n    assert (decision.action, decision.policy_action, decision.objective) == (\"single\", \"single\", OBJECTIVE)\nE   AssertionError: assert ('double', 'd...ngest_streak') == ('single', 's...ngest_streak')\nE     \nE     At index 0 diff: 'double' != 'single'\nE     Use -v to get more diff\n___________ test_r1_malformed_paired_base_forces_single[boundaries] ____________\ntests/test_wr_h_longest.py:335: in test_r1_malformed_paired_base_forces_single\n    assert (decision.action, decision.policy_action, decision.objective) == (\"single\", \"single\", OBJECTIVE)\nE   AssertionError: assert ('double', 'd...ngest_streak') == ('single', 's...ngest_streak')\nE     \nE     At index 0 diff: 'double' != 'single'\nE     Use -v to get more diff\n__________ test_r1_malformed_paired_base_forces_single[bool-horizon] ___________\ntests/test_wr_h_longest.py:335: in test_r1_malformed_paired_base_forces_single\n    assert (decision.action, decision.policy_action, decision.objective) == (\"single\", \"single\", OBJECTIVE)\nE   AssertionError: assert ('double', 'd...ngest_streak') == ('single', 's...ngest_streak')\nE     \nE     At index 0 diff: 'double' != 'single'\nE     Use -v to get more diff\n=========================== short test summary info ============================\nFAILED tests/test_wr_h_longest.py::test_r1_malformed_paired_base_forces_single[scalar]\nFAILED tests/test_wr_h_longest.py::test_r1_malformed_paired_base_forces_single[1d]\nFAILED tests/test_wr_h_longest.py::test_r1_malformed_paired_base_forces_single[3d]\nFAILED tests/test_wr_h_longest.py::test_r1_malformed_paired_base_forces_single[saver-axis]\nFAILED tests/test_wr_h_longest.py::test_r1_malformed_paired_base_forces_single[bin-axis]\nFAILED tests/test_wr_h_longest.py::test_r1_malformed_paired_base_forces_single[day-axis]\nFAILED tests/test_wr_h_longest.py::test_r1_malformed_paired_base_forces_single[streak-axis]\nFAILED tests/test_wr_h_longest.py::test_r1_malformed_paired_base_forces_single[float]\nFAILED tests/test_wr_h_longest.py::test_r1_malformed_paired_base_forces_single[action-3]\nFAILED tests/test_wr_h_longest.py::test_r1_malformed_paired_base_forces_single[action-minus-1]\nFAILED tests/test_wr_h_longest.py::test_r1_malformed_paired_base_forces_single[boundaries]\nFAILED tests/test_wr_h_longest.py::test_r1_malformed_paired_base_forces_single[bool-horizon]\n12 failed in 0.81s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_h2_caps.py::test_m2_switched_fetch_trusts_high_best",
+    "path": "src/bts/contest_state.py",
+    "before": "best < contest.streak or best > MAX_SEASON_STREAK",
+    "after": "best < contest.streak or best > 57",
+    "base": {
+      "code": 0,
+      "output": ".                                                                        [100%]\n1 passed in 0.85s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________ test_m2_switched_fetch_trusts_high_best ____________________\ntests/test_wr_h2_caps.py:97: in test_m2_switched_fetch_trusts_high_best\n    assert (current.streak, current.best_streak, current.best_status) == (58, 58, \"trusted\")\nE   AssertionError: assert (58, 58, 'untrusted') == (58, 58, 'trusted')\nE     \nE     At index 2 diff: 'untrusted' != 'trusted'\nE     Use -v to get more diff\n=========================== short test summary info ============================\nFAILED tests/test_wr_h2_caps.py::test_m2_switched_fetch_trusts_high_best - As...\n1 failed in 0.88s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_h2_caps.py::test_m3_dated_high_best",
+    "path": "src/bts/contest_state.py",
+    "before": "0 <= active <= MAX_SEASON_STREAK",
+    "after": "0 <= active <= 57",
+    "base": {
+      "code": 0,
+      "output": ".                                                                        [100%]\n1 passed in 0.87s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________ test_m3_dated_high_best ____________________________\ntests/test_wr_h2_caps.py:102: in test_m3_dated_high_best\n    install(directory, \"dated\", 60, 75)\ntests/test_wr_h2_caps.py:53: in install\n    assert walk.install_state(directory, DAY, walk.State(kind, active, best, \"used\", .96)) == []\nE   AssertionError: assert ['set-contest...om 0 to 400]'] == []\nE     \nE     Left contains one more item: 'set-contest-streak exit 1: [ContestStateError: dated contest observation invalid at /private/var/folders/5j/s3fw5hps4...d_high_best0/picks/account_state/contest_streak.manual.json: check 5, active_streak: must be an integer from 0 to 400]'\nE     Use -v to get more diff\n=========================== short test summary info ============================\nFAILED tests/test_wr_h2_caps.py::test_m3_dated_high_best - AssertionError: as...\n1 failed in 0.89s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_h2_caps.py::test_m4_required_pick_survives_reload",
+    "path": "src/bts/picks.py",
+    "before": "kind in {\"dated\", \"automatic\"} and streak > MAX_SEASON_STREAK",
+    "after": "kind in {\"dated\", \"automatic\"} and streak > 57",
+    "base": {
+      "code": 0,
+      "output": "..                                                                       [100%]\n2 passed in 0.89s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "FF                                                                       [100%]\n=================================== FAILURES ===================================\n_________________ test_m4_required_pick_survives_reload[dated] _________________\ntests/test_wr_h2_caps.py:132: in test_m4_required_pick_survives_reload\n    assert saved.chosen_on[\"required\"] and saved.chosen_on[\"kind\"] == kind\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE   TypeError: 'NoneType' object is not subscriptable\n----------------------------- Captured stderr call -----------------------------\n  6 new confirmed lineup(s). Running predictions...\n  Policy: objective=longest_streak action=double streak=58 best=58 (trusted) effective_best=None days=1 tail=dc5d0c992443\n  Pick: Batter 0 (T0) 96.0% \u2192 should_lock=True\n_______________ test_m4_required_pick_survives_reload[automatic] _______________\ntests/test_wr_h2_caps.py:132: in test_m4_required_pick_survives_reload\n    assert saved.chosen_on[\"required\"] and saved.chosen_on[\"kind\"] == kind\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE   TypeError: 'NoneType' object is not subscriptable\n----------------------------- Captured stderr call -----------------------------\n  6 new confirmed lineup(s). Running predictions...\n  Policy: objective=longest_streak action=double streak=58 best=58 (trusted) effective_best=None days=1 tail=dc5d0c992443\n  Pick: Batter 0 (T0) 96.0% \u2192 should_lock=True\n=========================== short test summary info ============================\nFAILED tests/test_wr_h2_caps.py::test_m4_required_pick_survives_reload[dated]\nFAILED tests/test_wr_h2_caps.py::test_m4_required_pick_survives_reload[automatic]\n2 failed in 0.92s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_h2_caps.py::test_k4_automatic_reads",
+    "path": "src/bts/contest_state.py",
+    "before": "streak > MAX_SEASON_STREAK\n",
+    "after": "False\n",
+    "base": {
+      "code": 0,
+      "output": "..                                                                       [100%]\n2 passed in 0.86s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "FF                                                                       [100%]\n=================================== FAILURES ===================================\n________________________ test_k4_automatic_reads[False] ________________________\ntests/test_wr_h2_caps.py:226: in test_k4_automatic_reads\n    with pytest.raises(error, match=\"invalid streak or best streak\" if historical else \"automatic contest streak invalid\"):\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE   Failed: DID NOT RAISE <class 'bts.contest_state.ContestStateError'>\n________________________ test_k4_automatic_reads[True] _________________________\ntests/test_wr_h2_caps.py:226: in test_k4_automatic_reads\n    with pytest.raises(error, match=\"invalid streak or best streak\" if historical else \"automatic contest streak invalid\"):\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE   Failed: DID NOT RAISE <class 'bts.contest_state._HistoricalContestStateError'>\n=========================== short test summary info ============================\nFAILED tests/test_wr_h2_caps.py::test_k4_automatic_reads[False] - Failed: DID...\nFAILED tests/test_wr_h2_caps.py::test_k4_automatic_reads[True] - Failed: DID ...\n2 failed in 0.89s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_h2_caps.py::test_k5_fetch_validation",
+    "path": "src/bts/contest_fetch.py",
+    "before": "if best_streak > MAX_SEASON_STREAK:",
+    "after": "if False:",
+    "base": {
+      "code": 0,
+      "output": ".                                                                        [100%]\n1 passed in 0.86s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________ test_k5_fetch_validation ___________________________\ntests/test_wr_h2_caps.py:264: in test_k5_fetch_validation\n    refuse({\"activeStreak\": active, \"seasonBestStreak\": best}, f\"seasonBestStreak must be {message}\")\ntests/test_wr_h2_caps.py:243: in refuse\n    with pytest.raises(contest_fetch.ContestFetchError, match=f\"^{message}$\"):\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE   Failed: DID NOT RAISE <class 'bts.contest_fetch.ContestFetchError'>\n=========================== short test summary info ============================\nFAILED tests/test_wr_h2_caps.py::test_k5_fetch_validation - Failed: DID NOT R...\n1 failed in 0.90s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_h2_caps.py::test_k6_dated_cli_rejects_before_writes",
+    "path": "src/bts/cli.py",
+    "before": "if best_streak > MAX_SEASON_STREAK:",
+    "after": "if False:",
+    "base": {
+      "code": 0,
+      "output": ".                                                                        [100%]\n1 passed in 0.86s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________ test_k6_dated_cli_rejects_before_writes ____________________\ntests/test_wr_h2_caps.py:281: in test_k6_dated_cli_rejects_before_writes\n    assert type(result.exception) is BadParameter\nE   AssertionError: assert <class 'bts.contest_state.ContestStateError'> is BadParameter\nE    +  where <class 'bts.contest_state.ContestStateError'> = type(ContestStateError('dated contest observation invalid at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytes...o0/picks/account_state/contest_streak.manual.json: check 6, best_streak: must be an integer from active_streak to 400'))\nE    +    where ContestStateError('dated contest observation invalid at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytes...o0/picks/account_state/contest_streak.manual.json: check 6, best_streak: must be an integer from active_streak to 400') = <Result ContestStateError('dated contest observation invalid at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn...0/picks/account_state/contest_streak.manual.json: check 6, best_streak: must be an integer from active_streak to 400')>.exception\n=========================== short test summary info ============================\nFAILED tests/test_wr_h2_caps.py::test_k6_dated_cli_rejects_before_writes - As...\n1 failed in 0.88s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_f1_wrong_game.py::test_m1_missing_then_wrong_game",
+    "path": "src/bts/cli.py",
+    "before": "if result[\"state\"] == \"wrong_game\" and type(slot[\"game_pk\"]) is int",
+    "after": "if result[\"state\"] == \"confirmed\" and type(slot[\"game_pk\"]) is int",
+    "base": {
+      "code": 0,
+      "output": ".                                                                        [100%]\n1 passed in 0.85s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n_______________________ test_m1_missing_then_wrong_game ________________________\ntests/test_wr_f1_wrong_game.py:190: in test_m1_missing_then_wrong_game\n    assert_wrong(result, escalation=[\"initial\", \"wrong_game\"])\ntests/test_wr_f1_wrong_game.py:176: in assert_wrong\n    assert result[\"exit\"] == 1\nE   assert 0 == 1\n=========================== short test summary info ============================\nFAILED tests/test_wr_f1_wrong_game.py::test_m1_missing_then_wrong_game - asse...\n1 failed in 0.89s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_f1_wrong_game.py::test_m3_only_wrong_double_down_leg_is_named",
+    "path": "src/bts/cli.py",
+    "before": "if ok:\n        slots = selection_slots(daily)",
+    "after": "if False:\n        slots = selection_slots(daily)",
+    "base": {
+      "code": 0,
+      "output": ".                                                                        [100%]\n1 passed in 0.85s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n_________________ test_m3_only_wrong_double_down_leg_is_named __________________\ntests/test_wr_f1_wrong_game.py:211: in test_m3_only_wrong_double_down_leg_is_named\n    assert_wrong(result, escalation=[\"wrong_game\"])\ntests/test_wr_f1_wrong_game.py:176: in assert_wrong\n    assert result[\"exit\"] == 1\nE   assert 0 == 1\n=========================== short test summary info ============================\nFAILED tests/test_wr_f1_wrong_game.py::test_m3_only_wrong_double_down_leg_is_named\n1 failed in 0.87s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_f1_wrong_game.py::test_m10_raising_read_confirms_batter_only",
+    "path": "src/bts/cli.py",
+    "before": "reason = \"match_game_unchecked\"",
+    "after": "reason = \"match\"",
+    "base": {
+      "code": 0,
+      "output": "...                                                                      [100%]\n3 passed in 0.88s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "FFF                                                                      [100%]\n=================================== FAILURES ===================================\n_______________ test_m10_raising_read_confirms_batter_only[None] _______________\ntests/test_wr_f1_wrong_game.py:292: in test_m10_raising_read_confirms_batter_only\n    assert result[\"marker\"][\"reason\"] == \"match_game_unchecked\"\nE   AssertionError: assert 'match' == 'match_game_unchecked'\nE     \nE     - match_game_unchecked\nE     + match\n_____________ test_m10_raising_read_confirms_batter_only[no_pick] ______________\ntests/test_wr_f1_wrong_game.py:292: in test_m10_raising_read_confirms_batter_only\n    assert result[\"marker\"][\"reason\"] == \"match_game_unchecked\"\nE   AssertionError: assert 'match' == 'match_game_unchecked'\nE     \nE     - match_game_unchecked\nE     + match\n____________ test_m10_raising_read_confirms_batter_only[wrong_game] ____________\ntests/test_wr_f1_wrong_game.py:292: in test_m10_raising_read_confirms_batter_only\n    assert result[\"marker\"][\"reason\"] == \"match_game_unchecked\"\nE   AssertionError: assert 'match' == 'match_game_unchecked'\nE     \nE     - match_game_unchecked\nE     + match\n=========================== short test summary info ============================\nFAILED tests/test_wr_f1_wrong_game.py::test_m10_raising_read_confirms_batter_only[None]\nFAILED tests/test_wr_f1_wrong_game.py::test_m10_raising_read_confirms_batter_only[no_pick]\nFAILED tests/test_wr_f1_wrong_game.py::test_m10_raising_read_confirms_batter_only[wrong_game]\n3 failed in 0.90s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_f1_wrong_game.py::test_n10_full_proof_clears_warning",
+    "path": "src/bts/cli.py",
+    "before": "was_alerted or \"initial\" in prior_escalations or \"wrong_game\" in prior_escalations",
+    "after": "False",
+    "base": {
+      "code": 0,
+      "output": ".                                                                        [100%]\n1 passed in 0.86s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n______________________ test_n10_full_proof_clears_warning ______________________\ntests/test_wr_f1_wrong_game.py:476: in test_n10_full_proof_clears_warning\n    assert result[\"dm\"] == [f\"\u2705 BTS pick entry confirmed for {DAY} (match).\"]\nE   AssertionError: assert [] == ['\u2705 BTS pick ...-24 (match).']\nE     \nE     Right contains one more item: '\u2705 BTS pick entry confirmed for 2027-03-24 (match).'\nE     Use -v to get more diff\n=========================== short test summary info ============================\nFAILED tests/test_wr_f1_wrong_game.py::test_n10_full_proof_clears_warning - A...\n1 failed in 0.88s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery",
+    "path": "src/bts/health/contest_state.py",
+    "before": "if flag.state in {\"active\", \"not_earned\"}:",
+    "after": "if flag.state == \"active\":",
+    "base": {
+      "code": 0,
+      "output": "...                                                                      [100%]\n3 passed in 0.94s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": ".FF                                                                      [100%]\n=================================== FAILURES ===================================\n_____________ test_m1_m2_live_warning_and_delivery[not_earned-14] ______________\ntests/test_wr_f2_saver_flag.py:149: in test_m1_m2_live_warning_and_delivery\n    assert health.check(picks, now=DAY, expected=True) == [expected]\nE   assert [] == [Alert(level=...ed_mismatch')]\nE     \nE     Right contains one more item: Alert(level='WARN', source='saver_state', message=\"Streak Saver on 2027-07-15 ET. The dated observation says the saver...list B8a. Follow B8a's saver reconciliation steps for any correction.\", incident_key='saver_state:dated_used_mismatch')\nE     Use -v to get more diff\n______________ test_m1_m2_live_warning_and_delivery[not_earned-9] ______________\ntests/test_wr_f2_saver_flag.py:149: in test_m1_m2_live_warning_and_delivery\n    assert health.check(picks, now=DAY, expected=True) == [expected]\nE   assert [] == [Alert(level=...ed_mismatch')]\nE     \nE     Right contains one more item: Alert(level='WARN', source='saver_state', message=\"Streak Saver on 2027-07-15 ET. The dated observation says the saver...list B8a. Follow B8a's saver reconciliation steps for any correction.\", incident_key='saver_state:dated_used_mismatch')\nE     Use -v to get more diff\n=========================== short test summary info ============================\nFAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[not_earned-14]\nFAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[not_earned-9]\n2 failed, 1 passed in 0.97s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_f2_saver_flag.py::test_m3_after_midnight_uses_processed_season_and_current_files",
+    "path": "src/bts/health/runner.py",
+    "before": "historical_day = today\n",
+    "after": "historical_day = None\n",
+    "base": {
+      "code": 0,
+      "output": "..                                                                       [100%]\n2 passed in 0.96s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "FF                                                                       [100%]\n=================================== FAILURES ===================================\n_____ test_m3_after_midnight_uses_processed_season_and_current_files[day0] _____\ntests/test_wr_f2_saver_flag.py:175: in test_m3_after_midnight_uses_processed_season_and_current_files\n    assert body.index(reason) < body.index(\" (1st observed day)\") < body.index(health.HISTORICAL_POINTER)\nE   AssertionError: assert 543 < 172\nE    +  where 543 = <built-in method index of str object at 0x795500b980>(' (1st observed day)')\nE    +    where <built-in method index of str object at 0x795500b980> = 'BTS health WARN attention:\\n- [saver_state] Prior slate 2027-07-15 ET. The dated observation recorded the saver as us...when available, and live refusal for current diagnosis. Season contract status shows current files. (1st observed day)'.index\nE    +  and   172 = <built-in method index of str object at 0x795500b980>('This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this al...rning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.')\nE    +    where <built-in method index of str object at 0x795500b980> = 'BTS health WARN attention:\\n- [saver_state] Prior slate 2027-07-15 ET. The dated observation recorded the saver as us...when available, and live refusal for current diagnosis. Season contract status shows current files. (1st observed day)'.index\nE    +    and   'This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this al...rning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.' = health.HISTORICAL_POINTER\n------------------------------ Captured log call -------------------------------\nWARNING  bts.health.alert:alert.py:49 [saver_state WARN] Prior slate 2027-07-15 ET. The dated observation recorded the saver as used. At this check the flag for season 2027 read active. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.\n_____ test_m3_after_midnight_uses_processed_season_and_current_files[day1] _____\ntests/test_wr_f2_saver_flag.py:175: in test_m3_after_midnight_uses_processed_season_and_current_files\n    assert body.index(reason) < body.index(\" (1st observed day)\") < body.index(health.HISTORICAL_POINTER)\nE   AssertionError: assert 543 < 172\nE    +  where 543 = <built-in method index of str object at 0x7954a53700>(' (1st observed day)')\nE    +    where <built-in method index of str object at 0x7954a53700> = 'BTS health WARN attention:\\n- [saver_state] Prior slate 2027-12-31 ET. The dated observation recorded the saver as us...when available, and live refusal for current diagnosis. Season contract status shows current files. (1st observed day)'.index\nE    +  and   172 = <built-in method index of str object at 0x7954a53700>('This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this al...rning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.')\nE    +    where <built-in method index of str object at 0x7954a53700> = 'BTS health WARN attention:\\n- [saver_state] Prior slate 2027-12-31 ET. The dated observation recorded the saver as us...when available, and live refusal for current diagnosis. Season contract status shows current files. (1st observed day)'.index\nE    +    and   'This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this al...rning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.' = health.HISTORICAL_POINTER\n------------------------------ Captured log call -------------------------------\nWARNING  bts.health.alert:alert.py:49 [saver_state WARN] Prior slate 2027-12-31 ET. The dated observation recorded the saver as used. At this check the flag for season 2027 read active. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.\n=========================== short test summary info ============================\nFAILED tests/test_wr_f2_saver_flag.py::test_m3_after_midnight_uses_processed_season_and_current_files[day0]\nFAILED tests/test_wr_f2_saver_flag.py::test_m3_after_midnight_uses_processed_season_and_current_files[day1]\n2 failed in 0.97s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_f2_saver_flag.py::test_existing_digest_sends_first_and_stays_below_chat_limit",
+    "path": "src/bts/health/runner.py",
+    "before": "    if mismatch_attention:\n",
+    "after": "    if False:\n",
+    "base": {
+      "code": 0,
+      "output": ".                                                                        [100%]\n1 passed in 0.93s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n_________ test_existing_digest_sends_first_and_stays_below_chat_limit __________\ntests/test_wr_f2_saver_flag.py:349: in test_existing_digest_sends_first_and_stays_below_chat_limit\n    assert sends[0] == base_sends[0] and warning.message in sends[1][1]\n                                                            ^^^^^^^^\nE   IndexError: list index out of range\n------------------------------ Captured log call -------------------------------\nWARNING  bts.health.alert:alert.py:49 [pick_entry WARN] Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. \nWARNING  bts.health.alert:alert.py:49 [pick_entry WARN] Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. \nWARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.\n=========================== short test summary info ============================\nFAILED tests/test_wr_f2_saver_flag.py::test_existing_digest_sends_first_and_stays_below_chat_limit\n1 failed in 0.97s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_f2_saver_flag.py::test_failed_send_and_interrupt_before_status_can_retry",
+    "path": "src/bts/health/runner.py",
+    "before": "            require_message_id=True,",
+    "after": "            require_message_id=False,",
+    "base": {
+      "code": 0,
+      "output": ".                                                                        [100%]\n1 passed in 0.95s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n____________ test_failed_send_and_interrupt_before_status_can_retry ____________\ntests/test_wr_f2_saver_flag.py:372: in test_failed_send_and_interrupt_before_status_can_retry\n    assert retried and json.loads(status.read_text())[\"status\"] == \"failed\"\nE   assert ([('offline.test', \"BTS health WARN attention:\\n- [saver_state] Streak Saver on 2027-07-15 ET. The dated observation sa... directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction. (1st observed day)\")] and 'sent' == 'failed'\nE     \nE     - failed\nE     + sent)\n------------------------------ Captured log call -------------------------------\nWARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.\nERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: offline\nTraceback (most recent call last):\n  File \"/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrblind-mutation-vpojwy7v/src/bts/health/alert.py\", line 457, in dispatch_dm_for_health_alerts\n    send_dm(dm_recipient, body)\n  File \"/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py\", line 1139, in __call__\n    return self._mock_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py\", line 1143, in _mock_call\n    return self._execute_mock_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py\", line 1198, in _execute_mock_call\n    raise effect\nRuntimeError: offline\nERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed\nWARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.\nWARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.\n=========================== short test summary info ============================\nFAILED tests/test_wr_f2_saver_flag.py::test_failed_send_and_interrupt_before_status_can_retry\n1 failed in 0.98s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": "tests/test_wr_f4_streak_file.py::test_m2_bad_contents",
+    "path": "src/bts/day_outcome.py",
+    "before": "if type(streak) is not int or streak < 0:",
+    "after": "if not isinstance(streak, int) or streak < 0:",
+    "base": {
+      "code": 4,
+      "output": "\n==================================== ERRORS ====================================\n_______________ ERROR collecting tests/test_wr_f4_streak_file.py _______________\ntests/test_wr_f4_streak_file.py:19: in <module>\n    from tests.test_wr_f3_skip_state_review import evidence\n<frozen importlib._bootstrap>:1360: in _find_and_load\n    ???\n<frozen importlib._bootstrap>:1331: in _find_and_load_unlocked\n    ???\n<frozen importlib._bootstrap>:935: in _load_unlocked\n    ???\n.venv/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:197: in exec_module\n    exec(co, module.__dict__)\ntests/test_wr_f3_skip_state_review.py:22: in <module>\n    spec.loader.exec_module(carbon)\n<frozen importlib._bootstrap_external>:995: in exec_module\n    ???\n<frozen importlib._bootstrap_external>:1132: in get_code\n    ???\n<frozen importlib._bootstrap_external>:1190: in get_data\n    ???\nE   FileNotFoundError: [Errno 2] No such file or directory: '/Users/eric/projects/bts-work/wr2-blind/docs/reviews/2026-11-18-whole-range/closing-test/carbon-slice3/test_slice3_interactions.py'\n=========================== short test summary info ============================\nERROR tests/test_wr_f4_streak_file.py - FileNotFoundError: [Errno 2] No such ...\n1 error in 0.92s\nERROR: found no collectors for /Users/eric/projects/bts-work/wr2-blind/tests/test_wr_f4_streak_file.py::test_m2_bad_contents\n\n"
+    },
+    "verdict": "baseline did not pass"
+  },
+  {
+    "test": "tests/test_wr_f4_streak_file.py::test_k4_decoder_limits_preserve_no_decision",
+    "path": "src/bts/day_outcome.py",
+    "before": "return f\"JSON exceeds decoder limits ({type(exc).__name__})\"",
+    "after": "return \"not valid JSON\"",
+    "base": {
+      "code": 4,
+      "output": "\n==================================== ERRORS ====================================\n_______________ ERROR collecting tests/test_wr_f4_streak_file.py _______________\ntests/test_wr_f4_streak_file.py:19: in <module>\n    from tests.test_wr_f3_skip_state_review import evidence\n<frozen importlib._bootstrap>:1360: in _find_and_load\n    ???\n<frozen importlib._bootstrap>:1331: in _find_and_load_unlocked\n    ???\n<frozen importlib._bootstrap>:935: in _load_unlocked\n    ???\n.venv/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:197: in exec_module\n    exec(co, module.__dict__)\ntests/test_wr_f3_skip_state_review.py:22: in <module>\n    spec.loader.exec_module(carbon)\n<frozen importlib._bootstrap_external>:995: in exec_module\n    ???\n<frozen importlib._bootstrap_external>:1132: in get_code\n    ???\n<frozen importlib._bootstrap_external>:1190: in get_data\n    ???\nE   FileNotFoundError: [Errno 2] No such file or directory: '/Users/eric/projects/bts-work/wr2-blind/docs/reviews/2026-11-18-whole-range/closing-test/carbon-slice3/test_slice3_interactions.py'\n=========================== short test summary info ============================\nERROR tests/test_wr_f4_streak_file.py - FileNotFoundError: [Errno 2] No such ...\n1 error in 0.92s\nERROR: found no collectors for /Users/eric/projects/bts-work/wr2-blind/tests/test_wr_f4_streak_file.py::test_k4_decoder_limits_preserve_no_decision\n\n"
+    },
+    "verdict": "baseline did not pass"
+  },
+  {
+    "test": "tests/test_wr_f4_streak_file.py::test_k3_compact_dm",
+    "path": "src/bts/day_outcome.py",
+    "before": "if len(body) > DM_MAX_CODE_POINTS:",
+    "after": "if len(body) > 2000:",
+    "base": {
+      "code": 4,
+      "output": "\n==================================== ERRORS ====================================\n_______________ ERROR collecting tests/test_wr_f4_streak_file.py _______________\ntests/test_wr_f4_streak_file.py:19: in <module>\n    from tests.test_wr_f3_skip_state_review import evidence\n<frozen importlib._bootstrap>:1360: in _find_and_load\n    ???\n<frozen importlib._bootstrap>:1331: in _find_and_load_unlocked\n    ???\n<frozen importlib._bootstrap>:935: in _load_unlocked\n    ???\n.venv/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:197: in exec_module\n    exec(co, module.__dict__)\ntests/test_wr_f3_skip_state_review.py:22: in <module>\n    spec.loader.exec_module(carbon)\n<frozen importlib._bootstrap_external>:995: in exec_module\n    ???\n<frozen importlib._bootstrap_external>:1132: in get_code\n    ???\n<frozen importlib._bootstrap_external>:1190: in get_data\n    ???\nE   FileNotFoundError: [Errno 2] No such file or directory: '/Users/eric/projects/bts-work/wr2-blind/docs/reviews/2026-11-18-whole-range/closing-test/carbon-slice3/test_slice3_interactions.py'\n=========================== short test summary info ============================\nERROR tests/test_wr_f4_streak_file.py - FileNotFoundError: [Errno 2] No such ...\n1 error in 0.92s\nERROR: found no collectors for /Users/eric/projects/bts-work/wr2-blind/tests/test_wr_f4_streak_file.py::test_k3_compact_dm\n\n"
+    },
+    "verdict": "baseline did not pass"
+  },
+  {
+    "test": "tests/test_wr_f4_streak_file.py::test_k1_dangling_symlink",
+    "path": "src/bts/day_outcome.py",
+    "before": "except MissingFileTargetError:\n        return None",
+    "after": "except MissingFileTargetError:\n        return \"missing\"",
+    "base": {
+      "code": 4,
+      "output": "\n==================================== ERRORS ====================================\n_______________ ERROR collecting tests/test_wr_f4_streak_file.py _______________\ntests/test_wr_f4_streak_file.py:19: in <module>\n    from tests.test_wr_f3_skip_state_review import evidence\n<frozen importlib._bootstrap>:1360: in _find_and_load\n    ???\n<frozen importlib._bootstrap>:1331: in _find_and_load_unlocked\n    ???\n<frozen importlib._bootstrap>:935: in _load_unlocked\n    ???\n.venv/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:197: in exec_module\n    exec(co, module.__dict__)\ntests/test_wr_f3_skip_state_review.py:22: in <module>\n    spec.loader.exec_module(carbon)\n<frozen importlib._bootstrap_external>:995: in exec_module\n    ???\n<frozen importlib._bootstrap_external>:1132: in get_code\n    ???\n<frozen importlib._bootstrap_external>:1190: in get_data\n    ???\nE   FileNotFoundError: [Errno 2] No such file or directory: '/Users/eric/projects/bts-work/wr2-blind/docs/reviews/2026-11-18-whole-range/closing-test/carbon-slice3/test_slice3_interactions.py'\n=========================== short test summary info ============================\nERROR tests/test_wr_f4_streak_file.py - FileNotFoundError: [Errno 2] No such ...\n1 error in 0.91s\nERROR: found no collectors for /Users/eric/projects/bts-work/wr2-blind/tests/test_wr_f4_streak_file.py::test_k1_dangling_symlink\n\n"
+    },
+    "verdict": "baseline did not pass"
+  },
+  {
+    "test": "tests/test_streak_season_cs2.py::test_row3_tagless_three_starts_at_one_instead_of_carrying_over",
+    "path": "src/bts/picks.py",
+    "before": "data.get(\"season\")",
+    "after": "data.get(\"season\", season)",
+    "base": {
+      "code": 0,
+      "output": ".                                                                        [100%]\n1 passed in 0.63s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n________ test_row3_tagless_three_starts_at_one_instead_of_carrying_over ________\ntests/test_streak_season_cs2.py:263: in test_row3_tagless_three_starts_at_one_instead_of_carrying_over\n    assert p.update_streak([True], tmp_path, date=\"2027-04-02\") == 1\nE   AssertionError: assert 4 == 1\nE    +  where 4 = <function update_streak at 0x107456520>([True], PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2612/test_row3_tagless_three_starts0'), date='2027-04-02')\nE    +    where <function update_streak at 0x107456520> = p.update_streak\n=========================== short test summary info ============================\nFAILED tests/test_streak_season_cs2.py::test_row3_tagless_three_starts_at_one_instead_of_carrying_over\n1 failed in 0.66s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": ".codex-review/whole-range/test_offline_contracts.py::test_skip_with_corrected_dated_read",
+    "path": "src/bts/day_outcome.py",
+    "before": "if dated_inputs is not None and dated_inputs != skip_inputs:",
+    "after": "if False:",
+    "base": {
+      "code": 0,
+      "output": ".                                                                        [100%]\n1 passed in 0.87s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n_____________________ test_skip_with_corrected_dated_read ______________________\n.codex-review/whole-range/test_offline_contracts.py:14: in test_skip_with_corrected_dated_read\n    assert reports[0][\"state\"] == \"skip_state_review\"\nE   AssertionError: assert 'deliberate_skip' == 'skip_state_review'\nE     \nE     - skip_state_review\nE     + deliberate_skip\n=========================== short test summary info ============================\nFAILED .codex-review/whole-range/test_offline_contracts.py::test_skip_with_corrected_dated_read\n1 failed in 0.90s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": ".codex-review/whole-range/test_offline_contracts.py::test_early_window_stays_open_until_the_real_cutoff",
+    "path": "src/bts/entry_receipt.py",
+    "before": "SUBMISSION_CUTOFF_MIN < lead - minute <= window_min",
+    "after": "SUBMISSION_CUTOFF_MIN <= lead - minute <= window_min",
+    "base": {
+      "code": 0,
+      "output": ".                                                                        [100%]\n1 passed in 0.84s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n______________ test_early_window_stays_open_until_the_real_cutoff ______________\n.codex-review/whole-range/test_offline_contracts.py:23: in test_early_window_stays_open_until_the_real_cutoff\n    assert not has_original_slot(day, wall(D1, \"10:05\"))\nE   AssertionError: assert not True\nE    +  where True = <function has_original_slot at 0x10f600ae0>(datetime.date(2027, 3, 24), datetime.datetime(2027, 3, 24, 10, 5, tzinfo=zoneinfo.ZoneInfo(key='America/New_York')))\nE    +    where datetime.datetime(2027, 3, 24, 10, 5, tzinfo=zoneinfo.ZoneInfo(key='America/New_York')) = wall('2027-03-24', '10:05')\n=========================== short test summary info ============================\nFAILED .codex-review/whole-range/test_offline_contracts.py::test_early_window_stays_open_until_the_real_cutoff\n1 failed in 0.87s\n"
+    },
+    "verdict": "killed"
+  },
+  {
+    "test": ".codex-review/whole-range/test_offline_contracts.py::test_early_run_defers_for_original_slot",
+    "path": "src/bts/cli.py",
+    "before": "if early and has_original_slot(now.date(), first_pitch, window_min):",
+    "after": "if False:",
+    "base": {
+      "code": 0,
+      "output": ".                                                                        [100%]\n1 passed in 0.87s\n"
+    },
+    "mutant": {
+      "code": 1,
+      "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________ test_early_run_defers_for_original_slot ____________________\n.codex-review/whole-range/test_offline_contracts.py:38: in test_early_run_defers_for_original_slot\n    assert \"early check deferred\" in check.output\nE   AssertionError: assert 'early check deferred' in 'check-pick-entered: DM sent to offline-recipient.example\\n'\nE    +  where 'check-pick-entered: DM sent to offline-recipient.example\\n' = <Result SystemExit(1)>.output\n=========================== short test summary info ============================\nFAILED .codex-review/whole-range/test_offline_contracts.py::test_early_run_defers_for_original_slot\n1 failed in 0.90s\n"
+    },
+    "verdict": "killed"
+  }
+]

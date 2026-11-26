@@ -1,0 +1,87 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-walk
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 8 items
+
+tests/scripts/season_walk/test_season_walk_h2g.py FFFFF.FF               [100%]
+
+=================================== FAILURES ===================================
+_________ test_extended_states_cover_57_58_and_far_above_on_both_paths _________
+
+    def test_extended_states_cover_57_58_and_far_above_on_both_paths():
+>       labels = {s.label() for s in walk.EXTENDED_STATES}
+                                     ^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.season_walk.walk' has no attribute 'EXTENDED_STATES'
+
+tests/scripts/season_walk/test_season_walk_h2g.py:17: AttributeError
+_______ test_guard_pair_check_flags_a_stronger_skip_beside_a_weaker_play _______
+
+    def test_guard_pair_check_flags_a_stronger_skip_beside_a_weaker_play():
+        base = dict(day="2027-07-15", in_season=True)
+        records = [base | dict(state="dated/50/50/used/0.96", action="skip"),
+                   base | dict(state="dated/50/50/used/0.72", action="single")]
+>       problems = walk.guard_pair_problems(records)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.season_walk.walk' has no attribute 'guard_pair_problems'
+
+tests/scripts/season_walk/test_season_walk_h2g.py:34: AttributeError
+___________ test_shipped_table_never_skips_a_bin_above_a_playing_bin ___________
+
+    def test_shipped_table_never_skips_a_bin_above_a_playing_bin():
+>       result = walk.table_guard_check()
+                 ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.season_walk.walk' has no attribute 'table_guard_check'
+
+tests/scripts/season_walk/test_season_walk_h2g.py:44: AttributeError
+_____________ test_table_guard_check_catches_the_unguarded_lookup ______________
+
+    def test_table_guard_check_catches_the_unguarded_lookup():
+        # failure direction: the raw table action (no guard) is exactly the defect G removed
+        from bts.simulate import mdp
+>       result = walk.table_guard_check(lookup=lambda *a: (mdp.lookup_action(*a), None))
+                 ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.season_walk.walk' has no attribute 'table_guard_check'
+
+tests/scripts/season_walk/test_season_walk_h2g.py:53: AttributeError
+___________ test_cap_edges_accept_400_and_refuse_401_on_both_writers ___________
+
+    def test_cap_edges_accept_400_and_refuse_401_on_both_writers():
+>       result = walk.cap_checks()
+                 ^^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.season_walk.walk' has no attribute 'cap_checks'
+
+tests/scripts/season_walk/test_season_walk_h2g.py:58: AttributeError
+___ test_sequence_from_55_through_59_keeps_playing_and_every_reader_accepts ____
+
+    def test_sequence_from_55_through_59_keeps_playing_and_every_reader_accepts():
+>       result = walk.sequence_57_58()
+                 ^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.season_walk.walk' has no attribute 'sequence_57_58'
+
+tests/scripts/season_walk/test_season_walk_h2g.py:73: AttributeError
+________________ test_sequence_without_raised_caps_stops_at_58 _________________
+
+    def test_sequence_without_raised_caps_stops_at_58():
+        # failure direction: H without H2 (the caps back at 57) must show up as problems at 58
+        import bts.contest_fetch as fetch_mod
+        import bts.contest_state as state_mod
+        import bts.picks as picks_mod
+        with patch.object(state_mod, "MAX_SEASON_STREAK", 57), \
+                patch.object(picks_mod, "MAX_SEASON_STREAK", 57), \
+                patch.object(fetch_mod, "MAX_SEASON_STREAK", 57, create=True):
+>           result = walk.sequence_57_58()
+                     ^^^^^^^^^^^^^^^^^^^
+E           AttributeError: module 'scripts.audit.season_walk.walk' has no attribute 'sequence_57_58'
+
+tests/scripts/season_walk/test_season_walk_h2g.py:91: AttributeError
+=========================== short test summary info ============================
+FAILED tests/scripts/season_walk/test_season_walk_h2g.py::test_extended_states_cover_57_58_and_far_above_on_both_paths
+FAILED tests/scripts/season_walk/test_season_walk_h2g.py::test_guard_pair_check_flags_a_stronger_skip_beside_a_weaker_play
+FAILED tests/scripts/season_walk/test_season_walk_h2g.py::test_shipped_table_never_skips_a_bin_above_a_playing_bin
+FAILED tests/scripts/season_walk/test_season_walk_h2g.py::test_table_guard_check_catches_the_unguarded_lookup
+FAILED tests/scripts/season_walk/test_season_walk_h2g.py::test_cap_edges_accept_400_and_refuse_401_on_both_writers
+FAILED tests/scripts/season_walk/test_season_walk_h2g.py::test_sequence_from_55_through_59_keeps_playing_and_every_reader_accepts
+FAILED tests/scripts/season_walk/test_season_walk_h2g.py::test_sequence_without_raised_caps_stops_at_58
+========================= 7 failed, 1 passed in 0.81s ==========================

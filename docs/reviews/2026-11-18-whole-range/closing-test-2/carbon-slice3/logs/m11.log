@@ -1,0 +1,35 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-carbon3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_wr_h2_caps.py F                                               [100%]
+
+=================================== FAILURES ===================================
+________________ test_m1_dated_cli_selects_delivers_and_commits ________________
+
+live = (PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2633/test_m1_dated_cli_sele...t_state_required': True, 'entry_intent': 'enter', 'pick_delivery': 'dm'}, ...}, [70000, 70001], <Mock id='4544365920'>)
+
+    def test_m1_dated_cli_selects_delivers_and_commits(live):
+        directory, cfg, games, send = live
+>       install(directory, "dated", 58, 58)
+
+tests/test_wr_h2_caps.py:78: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+directory = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2633/test_m1_dated_cli_selects_deli0/picks')
+kind = 'dated', active = 58, best = 58
+
+    def install(directory, kind, active, best):
+>       assert walk.install_state(directory, DAY, walk.State(kind, active, best, "used", .96)) == []
+E       assert ['set-contest...e at most 57'] == []
+E         
+E         Left contains one more item: "set-contest-streak exit 2: Usage: cli set-contest-streak [OPTIONS]\nTry 'cli set-contest-streak --help' for help.\n\nError: Invalid value for --best-streak: best streak must be at most 57"
+E         Use -v to get more diff
+
+tests/test_wr_h2_caps.py:53: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_h2_caps.py::test_m1_dated_cli_selects_delivers_and_commits
+============================== 1 failed in 0.34s ===============================

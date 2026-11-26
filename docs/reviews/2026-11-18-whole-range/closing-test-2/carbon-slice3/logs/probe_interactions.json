@@ -1,0 +1,26 @@
+[
+  {
+    "test": "test_5a_saved_pick_refusal_vs_fallbacks_and_downstream",
+    "status": "PASS"
+  },
+  {
+    "test": "test_4c_stale_reading_stamp_vs_dated_and_bts_run_reuse",
+    "status": "PASS"
+  },
+  {
+    "test": "test_6b1_morning_check_vs_same_day_restarts",
+    "status": "PASS"
+  },
+  {
+    "test": "test_cs2_streak_season_vs_reconcile_and_new_year",
+    "status": "PASS"
+  },
+  {
+    "test": "test_bullpen_and_probable_cache_cold_start",
+    "status": "PASS"
+  },
+  {
+    "test": "test_watchdog_f2_f3_f4_g_h_h2_end_to_end",
+    "status": "PASS"
+  }
+]

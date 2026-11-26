@@ -1,0 +1,58 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-carbon3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 3 items
+
+tests/test_wr_g_guard.py F..                                             [100%]
+
+=================================== FAILURES ===================================
+____________ test_guarded_delivery_records_selected_batter[warmup] _____________
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2628/test_guarded_delivery_records_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x107466780>
+scheduler_commit = ({'bluesky': {'dm_recipient': 'probe'}, 'health_checks': {'contest_state_expected': True, 'enabled': False}, 'orchestr...p'}}, <Mock id='4501734656'>, datetime.datetime(2027, 3, 24, 18, 32, tzinfo=zoneinfo.ZoneInfo(key='America/New_York')))
+mode = 'warmup'
+
+    @pytest.mark.parametrize("mode", ["warmup", "dm", "public"])
+    def test_guarded_delivery_records_selected_batter(tmp_path, monkeypatch, scheduler_commit, mode):
+        config, frame, statuses, send, _ = scheduler_commit
+        frame["p_game_hit"] = 0.96
+        _, selection, _ = orchestrator.run_and_pick(config, DAY)
+        daily = selection.pick_result.daily
+        assert selection.decision.guard == GUARD
+        if mode == "warmup":
+            picks.save_pick(daily, tmp_path)
+            for pk in statuses:
+                statuses[pk] = {"abstract": "P", "detailed": "Warmup"}
+            refresh = scheduler._refresh_pick_at_fallback_decision(config, DAY, daily, 0.03)
+            daily, selection = refresh.daily, refresh.selection
+            assert selection is not None and selection.decision is None
+            assert selection.primary_candidate is None
+        if mode == "public":
+            config["scheduler"]["pick_delivery"] = "public"
+            monkeypatch.setattr(posting, "post_to_bluesky", send)
+        assert scheduler._deliver_and_lock_pick(
+            daily, config, tmp_path, state(), DAY, "probe", selection=selection)
+        send.assert_called_once()
+        if mode != "public":
+            assert daily.pick.batter_name in send.call_args.args[1]
+        record = decision(tmp_path, "delivered")
+        assert record["action"] == "single"
+        if mode == "warmup":
+>           assert record["primary"] == scheduler._row_from_daily(daily.pick)
+E           AssertionError: assert None == {'batter_id': 100, 'batter_name': 'Batter 0', 'game_pk': 70000, 'p_game_hit': 0.96, ...}
+E            +  where {'batter_id': 100, 'batter_name': 'Batter 0', 'game_pk': 70000, 'p_game_hit': 0.96, ...} = <function _row_from_daily at 0x10ca447c0>(Pick(batter_name='Batter 0', batter_id=100, team='T0', lineup_position=1, pitcher_name='Pitcher 0', pitcher_id=900, p_game_hit=0.96, flags=[], projected_lineup=False, game_pk=70000, game_time='2027-03-24T23:05:00Z', pitcher_team='U0'))
+E            +    where <function _row_from_daily at 0x10ca447c0> = scheduler._row_from_daily
+E            +    and   Pick(batter_name='Batter 0', batter_id=100, team='T0', lineup_position=1, pitcher_name='Pitcher 0', pitcher_id=900, p_game_hit=0.96, flags=[], projected_lineup=False, game_pk=70000, game_time='2027-03-24T23:05:00Z', pitcher_team='U0') = DailyPick(date='2027-03-24', run_time='2027-03-24T16:00:00+00:00', pick=Pick(batter_name='Batter 0', batter_id=100, te...effective_date': '2027-03-24', 'active_streak': 50, 'best_streak': 50, 'saver_state': 'used'}}, automatic_reading=None).pick
+
+tests/test_wr_g_guard.py:519: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  FALLBACK REFRESH: pick unchanged (Batter 0 96.0%)
+  Selected slot's game 70000 is no longer available (postponed/started/missing); should_lock=False.
+  FALLBACK REFRESH: should_lock=False, block=slot_unavailable
+  LOCKED (probe) — Pick DM sent: confirmed-dm
+=========================== short test summary info ============================
+FAILED tests/test_wr_g_guard.py::test_guarded_delivery_records_selected_batter[warmup]
+========================= 1 failed, 2 passed in 0.39s ==========================

@@ -1,0 +1,228 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-carbon3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 8 items
+
+tests/test_stale_delivery_cs4c.py F.F.F.F.                               [100%]
+
+=================================== FAILURES ===================================
+________ test_attempt_snapshot_and_confirmed_warning[12-None-False-dm] _________
+
+world = ({'bluesky': {'dm_recipient': 'offline.test'}, 'health_checks': {'enabled': False}, 'orchestrator': {'heartbeat_path':...{'abstract': 'P', 'code': 'S', 'detailed': 'Scheduled'}, 102: {'abstract': 'P', 'code': 'S', 'detailed': 'Scheduled'}})
+stamp_saved_pick = <function stamp_saved_pick.<locals>.stamp at 0x118fa4a40>
+capsys = <_pytest.capture.CaptureFixture object at 0x118e8c080>, mode = 'dm'
+saved = False, age = 12, why = None
+
+    @pytest.mark.parametrize("mode", ["dm", "public"])
+    @pytest.mark.parametrize("saved", [False, True])
+    @pytest.mark.parametrize(("age", "why"), [(12, None), (20, "old")])
+    def test_attempt_snapshot_and_confirmed_warning(world, stamp_saved_pick, capsys, mode, saved, age, why):
+        config, directory, _, _ = world
+        config["scheduler"]["pick_delivery"] = mode
+        recorded = (NOW - timedelta(hours=age)).isoformat()
+        seed_automatic(directory, recorded)
+        daily = daily_pick()
+        if saved:
+            # Same accepted reading was fresh at the earlier choice. The delivery
+            # must replace the stored value even when no selection is available.
+            chosen = NOW - timedelta(hours=8)
+            stamp(daily, directory, stamp_saved_pick, chosen)
+            set_reading_on_disk(daily, directory, dict(
+                OLD, recorded_at=recorded, age_hours=float(age - 8), stale=False, reason=None,
+            ))
+            daily = picks.load_pick(DAY, directory)
+        expected = dict(OLD, recorded_at=recorded, age_hours=float(age), stale=why is not None, reason=why)
+        attempts = []
+    
+        def capture(*args):
+            attempted = picks.load_pick(DAY, directory)
+            assert attempted.delivery_attempted and not picks.pick_was_delivered(attempted)
+            assert not alert.send_dm.called
+            attempts.append(getattr(attempted, "automatic_reading", None))
+            return "sent"
+    
+        def capture_warning(recipient, body):
+            assert picks.load_pick(DAY, directory).delivered_at == NOW.isoformat()
+            assert scheduler.load_state(DAY, directory).pick_locked
+            assert load_decision(DAY, directory)["delivery_status"] == "delivered"
+            return "captured warning"
+    
+        pick_transport(mode).side_effect = capture
+        alert.send_dm.side_effect = capture_warning
+        assert send(daily, world, None if saved else fresh(daily, world))
+>       assert attempts == [expected]
+E       AssertionError: assert [None] == [{'age_hours'...ing_v1', ...}]
+E         
+E         At index 0 diff: None != {'schema': 'bts_pick_automatic_reading_v1', 'recorded_at': '2027-07-15T06:35:00-04:00', 'age_hours': 12.0, 'stale': False, 'reason': None}
+E         Use -v to get more diff
+
+tests/test_stale_delivery_cs4c.py:126: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (fixture) — Pick DM sent: sent
+_________ test_attempt_snapshot_and_confirmed_warning[12-None-True-dm] _________
+
+world = ({'bluesky': {'dm_recipient': 'offline.test'}, 'health_checks': {'enabled': False}, 'orchestrator': {'heartbeat_path':...{'abstract': 'P', 'code': 'S', 'detailed': 'Scheduled'}, 102: {'abstract': 'P', 'code': 'S', 'detailed': 'Scheduled'}})
+stamp_saved_pick = <function stamp_saved_pick.<locals>.stamp at 0x118fa6ac0>
+capsys = <_pytest.capture.CaptureFixture object at 0x118e8e510>, mode = 'dm'
+saved = True, age = 12, why = None
+
+    @pytest.mark.parametrize("mode", ["dm", "public"])
+    @pytest.mark.parametrize("saved", [False, True])
+    @pytest.mark.parametrize(("age", "why"), [(12, None), (20, "old")])
+    def test_attempt_snapshot_and_confirmed_warning(world, stamp_saved_pick, capsys, mode, saved, age, why):
+        config, directory, _, _ = world
+        config["scheduler"]["pick_delivery"] = mode
+        recorded = (NOW - timedelta(hours=age)).isoformat()
+        seed_automatic(directory, recorded)
+        daily = daily_pick()
+        if saved:
+            # Same accepted reading was fresh at the earlier choice. The delivery
+            # must replace the stored value even when no selection is available.
+            chosen = NOW - timedelta(hours=8)
+            stamp(daily, directory, stamp_saved_pick, chosen)
+            set_reading_on_disk(daily, directory, dict(
+                OLD, recorded_at=recorded, age_hours=float(age - 8), stale=False, reason=None,
+            ))
+            daily = picks.load_pick(DAY, directory)
+        expected = dict(OLD, recorded_at=recorded, age_hours=float(age), stale=why is not None, reason=why)
+        attempts = []
+    
+        def capture(*args):
+            attempted = picks.load_pick(DAY, directory)
+            assert attempted.delivery_attempted and not picks.pick_was_delivered(attempted)
+            assert not alert.send_dm.called
+            attempts.append(getattr(attempted, "automatic_reading", None))
+            return "sent"
+    
+        def capture_warning(recipient, body):
+            assert picks.load_pick(DAY, directory).delivered_at == NOW.isoformat()
+            assert scheduler.load_state(DAY, directory).pick_locked
+            assert load_decision(DAY, directory)["delivery_status"] == "delivered"
+            return "captured warning"
+    
+        pick_transport(mode).side_effect = capture
+        alert.send_dm.side_effect = capture_warning
+        assert send(daily, world, None if saved else fresh(daily, world))
+>       assert attempts == [expected]
+E       AssertionError: assert [{'age_hours'...ing_v1', ...}] == [{'age_hours'...ing_v1', ...}]
+E         
+E         At index 0 diff: {'schema': 'bts_pick_automatic_reading_v1', 'recorded_at': '2027-07-15T06:35:00-04:00', 'age_hours': 4.0, 'stale': False, 'reason': None} != {'schema': 'bts_pick_automatic_reading_v1', 'recorded_at': '2027-07-15T06:35:00-04:00', 'age_hours': 12.0, 'stale': False, 'reason': None}
+E         Use -v to get more diff
+
+tests/test_stale_delivery_cs4c.py:126: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (fixture) — Pick DM sent: sent
+_________ test_attempt_snapshot_and_confirmed_warning[20-old-False-dm] _________
+
+world = ({'bluesky': {'dm_recipient': 'offline.test'}, 'health_checks': {'enabled': False}, 'orchestrator': {'heartbeat_path':...{'abstract': 'P', 'code': 'S', 'detailed': 'Scheduled'}, 102: {'abstract': 'P', 'code': 'S', 'detailed': 'Scheduled'}})
+stamp_saved_pick = <function stamp_saved_pick.<locals>.stamp at 0x118fa6f20>
+capsys = <_pytest.capture.CaptureFixture object at 0x118e8ccb0>, mode = 'dm'
+saved = False, age = 20, why = 'old'
+
+    @pytest.mark.parametrize("mode", ["dm", "public"])
+    @pytest.mark.parametrize("saved", [False, True])
+    @pytest.mark.parametrize(("age", "why"), [(12, None), (20, "old")])
+    def test_attempt_snapshot_and_confirmed_warning(world, stamp_saved_pick, capsys, mode, saved, age, why):
+        config, directory, _, _ = world
+        config["scheduler"]["pick_delivery"] = mode
+        recorded = (NOW - timedelta(hours=age)).isoformat()
+        seed_automatic(directory, recorded)
+        daily = daily_pick()
+        if saved:
+            # Same accepted reading was fresh at the earlier choice. The delivery
+            # must replace the stored value even when no selection is available.
+            chosen = NOW - timedelta(hours=8)
+            stamp(daily, directory, stamp_saved_pick, chosen)
+            set_reading_on_disk(daily, directory, dict(
+                OLD, recorded_at=recorded, age_hours=float(age - 8), stale=False, reason=None,
+            ))
+            daily = picks.load_pick(DAY, directory)
+        expected = dict(OLD, recorded_at=recorded, age_hours=float(age), stale=why is not None, reason=why)
+        attempts = []
+    
+        def capture(*args):
+            attempted = picks.load_pick(DAY, directory)
+            assert attempted.delivery_attempted and not picks.pick_was_delivered(attempted)
+            assert not alert.send_dm.called
+            attempts.append(getattr(attempted, "automatic_reading", None))
+            return "sent"
+    
+        def capture_warning(recipient, body):
+            assert picks.load_pick(DAY, directory).delivered_at == NOW.isoformat()
+            assert scheduler.load_state(DAY, directory).pick_locked
+            assert load_decision(DAY, directory)["delivery_status"] == "delivered"
+            return "captured warning"
+    
+        pick_transport(mode).side_effect = capture
+        alert.send_dm.side_effect = capture_warning
+        assert send(daily, world, None if saved else fresh(daily, world))
+>       assert attempts == [expected]
+E       AssertionError: assert [None] == [{'age_hours'...ing_v1', ...}]
+E         
+E         At index 0 diff: None != {'schema': 'bts_pick_automatic_reading_v1', 'recorded_at': '2027-07-14T22:35:00-04:00', 'age_hours': 20.0, 'stale': True, 'reason': 'old'}
+E         Use -v to get more diff
+
+tests/test_stale_delivery_cs4c.py:126: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (fixture) — Pick DM sent: sent
+_________ test_attempt_snapshot_and_confirmed_warning[20-old-True-dm] __________
+
+world = ({'bluesky': {'dm_recipient': 'offline.test'}, 'health_checks': {'enabled': False}, 'orchestrator': {'heartbeat_path':...{'abstract': 'P', 'code': 'S', 'detailed': 'Scheduled'}, 102: {'abstract': 'P', 'code': 'S', 'detailed': 'Scheduled'}})
+stamp_saved_pick = <function stamp_saved_pick.<locals>.stamp at 0x118fa6b60>
+capsys = <_pytest.capture.CaptureFixture object at 0x118e8d5e0>, mode = 'dm'
+saved = True, age = 20, why = 'old'
+
+    @pytest.mark.parametrize("mode", ["dm", "public"])
+    @pytest.mark.parametrize("saved", [False, True])
+    @pytest.mark.parametrize(("age", "why"), [(12, None), (20, "old")])
+    def test_attempt_snapshot_and_confirmed_warning(world, stamp_saved_pick, capsys, mode, saved, age, why):
+        config, directory, _, _ = world
+        config["scheduler"]["pick_delivery"] = mode
+        recorded = (NOW - timedelta(hours=age)).isoformat()
+        seed_automatic(directory, recorded)
+        daily = daily_pick()
+        if saved:
+            # Same accepted reading was fresh at the earlier choice. The delivery
+            # must replace the stored value even when no selection is available.
+            chosen = NOW - timedelta(hours=8)
+            stamp(daily, directory, stamp_saved_pick, chosen)
+            set_reading_on_disk(daily, directory, dict(
+                OLD, recorded_at=recorded, age_hours=float(age - 8), stale=False, reason=None,
+            ))
+            daily = picks.load_pick(DAY, directory)
+        expected = dict(OLD, recorded_at=recorded, age_hours=float(age), stale=why is not None, reason=why)
+        attempts = []
+    
+        def capture(*args):
+            attempted = picks.load_pick(DAY, directory)
+            assert attempted.delivery_attempted and not picks.pick_was_delivered(attempted)
+            assert not alert.send_dm.called
+            attempts.append(getattr(attempted, "automatic_reading", None))
+            return "sent"
+    
+        def capture_warning(recipient, body):
+            assert picks.load_pick(DAY, directory).delivered_at == NOW.isoformat()
+            assert scheduler.load_state(DAY, directory).pick_locked
+            assert load_decision(DAY, directory)["delivery_status"] == "delivered"
+            return "captured warning"
+    
+        pick_transport(mode).side_effect = capture
+        alert.send_dm.side_effect = capture_warning
+        assert send(daily, world, None if saved else fresh(daily, world))
+>       assert attempts == [expected]
+E       AssertionError: assert [{'age_hours'...ing_v1', ...}] == [{'age_hours'...ing_v1', ...}]
+E         
+E         At index 0 diff: {'schema': 'bts_pick_automatic_reading_v1', 'recorded_at': '2027-07-14T22:35:00-04:00', 'age_hours': 12.0, 'stale': False, 'reason': None} != {'schema': 'bts_pick_automatic_reading_v1', 'recorded_at': '2027-07-14T22:35:00-04:00', 'age_hours': 20.0, 'stale': True, 'reason': 'old'}
+E         Use -v to get more diff
+
+tests/test_stale_delivery_cs4c.py:126: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (fixture) — Pick DM sent: sent
+=========================== short test summary info ============================
+FAILED tests/test_stale_delivery_cs4c.py::test_attempt_snapshot_and_confirmed_warning[12-None-False-dm]
+FAILED tests/test_stale_delivery_cs4c.py::test_attempt_snapshot_and_confirmed_warning[12-None-True-dm]
+FAILED tests/test_stale_delivery_cs4c.py::test_attempt_snapshot_and_confirmed_warning[20-old-False-dm]
+FAILED tests/test_stale_delivery_cs4c.py::test_attempt_snapshot_and_confirmed_warning[20-old-True-dm]
+========================= 4 failed, 4 passed in 0.95s ==========================

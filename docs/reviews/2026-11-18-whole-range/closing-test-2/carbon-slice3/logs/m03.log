@@ -1,0 +1,30 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-carbon3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_wr_g_guard.py F                                               [100%]
+
+=================================== FAILURES ===================================
+_________________ test_decision_round_trip_and_skip_predicate __________________
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2627/test_decision_round_trip_and_s0')
+
+    def test_decision_round_trip_and_skip_predicate(tmp_path):
+        day = "2027-03-24"
+        primary = {"batter_id": 100, "game_pk": 1, "p_game_hit": 0.96}
+        for action, guard, expected in (("single", GUARD, GUARD), ("single", None, None),
+                                         ("skip", GUARD, None)):
+            record = daily_decision.write_decision(
+                day, tmp_path, action=action, source="mdp", primary=primary, policy_guard=guard,
+                delivery_status="delivered" if action == "single" else "not_applicable",
+                scoreable=action == "single")
+>           assert record["policy_guard"] == expected
+E           AssertionError: assert {'bin': 4, 'from_bin': 3, 'rule': 'monotone_skip_v1', 'table_action': 'skip'} == None
+
+tests/test_wr_g_guard.py:271: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_g_guard.py::test_decision_round_trip_and_skip_predicate
+============================== 1 failed in 0.27s ===============================

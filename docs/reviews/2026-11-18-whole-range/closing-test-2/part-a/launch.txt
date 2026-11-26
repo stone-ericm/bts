@@ -1,0 +1,8 @@
+2026-11-26 11:36:48 hold set
+2026-11-26 11:36:48 slot free
+2026-11-26 11:42:16 w2: hold already present (not mine); not touching it
+2026-11-26 11:43:49 wrapped part a exited rc=0
+2026-11-26 11:43:49 hold removed
+2026-11-26 11:43:51 w2: slot free
+2026-11-26 11:44:32 w2: gap exited rc=0
+2026-11-26 11:45:02 w2: walk jobs exited rc=0

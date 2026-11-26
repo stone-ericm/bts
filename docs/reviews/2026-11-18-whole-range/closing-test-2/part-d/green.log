@@ -1,0 +1,26 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-walk
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 34 items
+
+tests/scripts/season_walk/test_season_walk.py .......................... [ 76%]
+                                                                         [ 76%]
+tests/scripts/season_walk/test_season_walk_h2g.py ......F.               [100%]
+
+=================================== FAILURES ===================================
+___ test_sequence_from_55_through_59_keeps_playing_and_every_reader_accepts ____
+
+    def test_sequence_from_55_through_59_keeps_playing_and_every_reader_accepts():
+        result = walk.sequence_57_58()
+>       assert result["problems"] == []
+E       AssertionError: assert ['2027-08-03 ...o saved pick'] == []
+E         
+E         Left contains 3 more items, first extra item: '2027-08-03 mlb 57: saved pick refused: no saved pick'
+E         Use -v to get more diff
+
+tests/scripts/season_walk/test_season_walk_h2g.py:74: AssertionError
+=========================== short test summary info ============================
+FAILED tests/scripts/season_walk/test_season_walk_h2g.py::test_sequence_from_55_through_59_keeps_playing_and_every_reader_accepts
+========================= 1 failed, 33 passed in 0.72s =========================

@@ -1,0 +1,188 @@
+{
+  "data/health_state/contest_streak_fetch_status.json": {
+    "last_error": null,
+    "last_success_at": "2026-09-27T14:00:00Z"
+  },
+  "data/health_state/health_dm_delivery_status.json": {
+    "body_first_line": "BTS health CRITICAL alert(s):",
+    "body_sha256": "ab079e7917a301f7e5907e65f6401fc6db2b1061f8b03ac30030da3a0e3da597",
+    "critical_count": 2,
+    "recipient": "offline-recipient.example",
+    "recipient_configured": true,
+    "schema_version": "bts_health_dm_delivery_status_v1",
+    "sent_day": "2026-09-27",
+    "sent_sources": [
+      "CRITICAL:blend_training",
+      "CRITICAL:disk_fill"
+    ],
+    "status": "sent",
+    "updated_at": "2026-09-27T23:45:00+00:00",
+    "warn_attention_count": 0
+  },
+  "data/health_state/slate_auc_status.json": {
+    "computed_at": "2026-09-27",
+    "window_days": 60,
+    "n_days": 0,
+    "n_rows": 0,
+    "auc": null,
+    "reason": "insufficient_days"
+  },
+  "data/health_state/warn_attention_state.json": {
+    "schema_version": "bts_warn_attention_state_v1",
+    "sources": {}
+  },
+  "data/picks/2026-09-27/decision.json": {
+    "schema_version": "bts_daily_decision_v3",
+    "date": "2026-09-27",
+    "action": "single",
+    "source": "mdp",
+    "primary": {
+      "batter_id": 100,
+      "batter_name": "Fixture Batter 0",
+      "team": "T0",
+      "game_pk": 700,
+      "p_game_hit": 0.97
+    },
+    "double_down": null,
+    "second_candidate": null,
+    "streak": 16,
+    "saver_available": true,
+    "state_source": "contest",
+    "state_status": "fresh",
+    "allow_double": true,
+    "contest_source_date": "2026-09-27",
+    "delivery_status": "private_locked",
+    "scoreable": true,
+    "objective": "emax_season_best",
+    "best_streak": 16,
+    "best_status": "trusted",
+    "effective_best": 16,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "finalized_at": "2026-09-27T22:05:00Z"
+  },
+  "data/picks/2026-09-27/scheduler_state.json": {
+    "date": "2026-09-27",
+    "schedule_fetched_at": "2026-09-27T10:00:00-04:00",
+    "games": [
+      {
+        "game_pk": 700,
+        "game_time_et": "2026-09-27T19:05:00-04:00",
+        "lineup_confirmed": true,
+        "is_doubleheader_game2": false
+      }
+    ],
+    "confirmed_game_pks": [
+      700
+    ],
+    "runs_completed": [
+      {
+        "time": "2026-09-27T18:05:00-04:00",
+        "new_lineups": 2,
+        "skipped": false,
+        "pick_name": "Fixture Batter 0",
+        "pick_p": 0.97,
+        "duration_sec": 0.0
+      }
+    ],
+    "pick_locked": true,
+    "pick_locked_at": "2026-09-27T18:05:00-04:00",
+    "result_status": "final",
+    "next_wakeup": "2026-09-28T10:00:00-04:00",
+    "analytics_jobs": {
+      "live_forward_capture": {
+        "status": "disabled",
+        "updated_at": "2026-09-27T18:05:00-04:00",
+        "reason": "live_forward_capture_on_lock=false"
+      }
+    },
+    "skip_summary": null,
+    "skip_notified_at": null,
+    "final_skip_candidate": null,
+    "committed_pick_written": true,
+    "delivery_refusals": null,
+    "fallback_refreshes": null
+  },
+  "data/picks/2026-09-27.json": {
+    "date": "2026-09-27",
+    "run_time": "2026-09-27T22:05:00+00:00",
+    "pick": {
+      "batter_name": "Fixture Batter 0",
+      "batter_id": 100,
+      "team": "T0",
+      "lineup_position": 1,
+      "pitcher_name": "Fixture Pitcher 0",
+      "pitcher_id": 900,
+      "p_game_hit": 0.97,
+      "flags": [],
+      "projected_lineup": false,
+      "game_pk": 700,
+      "game_time": "2026-09-27T23:05:00+00:00",
+      "pitcher_team": "U0"
+    },
+    "double_down": null,
+    "runner_up": null,
+    "bluesky_posted": false,
+    "bluesky_uri": null,
+    "notification_sent": false,
+    "notification_channel": null,
+    "notification_id": null,
+    "delivery_attempted": false,
+    "delivered_at": null,
+    "result": "hit",
+    "slot_results": {
+      "pick": "hit"
+    },
+    "shadow_model_version": null,
+    "model_git_sha": "619abda7",
+    "model_pickle_sha256": null,
+    "policy_npz_sha256": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
+    "feature_env_schema_version": "bts_feature_env_v1",
+    "feature_env": {
+      "BTS_LGBM_DETERMINISTIC": "0",
+      "BTS_LGBM_RANDOM_STATE": "42",
+      "BTS_PITCHER_HR_30G_MIN_PERIODS": "7",
+      "BTS_ROOKIE_GATE_K": "20",
+      "BTS_USE_CALIBRATION": "0"
+    },
+    "feature_env_hash": "fb1841abbb3f269053f4687d291405c4c08ef1c9a87eda8f4f0663804b481ebe",
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "policy_decision": {
+      "action": "single",
+      "policy_action": "double",
+      "source": "mdp",
+      "objective": "emax_season_best",
+      "streak": 16,
+      "days_effective": 1,
+      "best_supplied": 16,
+      "best_status": "trusted",
+      "effective_best": 16,
+      "tail_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+      "degraded_reason": null,
+      "reason": null,
+      "pick_bar": null
+    }
+  },
+  "data/picks/account_state/contest_streak.json": {
+    "active_streak": 16,
+    "best_streak": 16,
+    "recorded_at": "2026-09-27T14:00:00Z",
+    "saver_available": null,
+    "schema_version": "bts_contest_streak_auto_v1",
+    "source": "mlb_bts_profile",
+    "source_date": "2026-09-27",
+    "user_id": 4242,
+    "username": "offline-account"
+  },
+  "data/picks/account_state/saver_state.json": {
+    "season": 2026,
+    "state": "active",
+    "updated_at": "2026-09-27T14:00:00+00:00",
+    "source": "cli"
+  },
+  "data/picks/streak.json": {
+    "streak": 17,
+    "saver_available": true,
+    "updated": "2026-09-27T23:45:00+00:00"
+  }
+}

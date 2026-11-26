@@ -1,0 +1,10 @@
+0a1
+> # VARIANT (closing test re-run, FINAL2): the two skip-notice wording asserts follow Ea's text; nothing else changed.
+502c503
+<         assert any("No pick yet" in m["text"] and "streak holds at 12" in m["text"] for m in w2.dms)
+---
+>         assert any("No pick at this check" in m["text"] and "Streak used at this check: 12" in m["text"] for m in w2.dms)
+709c710
+<         assert len([m for m in w.dms if "No pick yet" in m["text"]]) == 1
+---
+>         assert len([m for m in w.dms if "No pick at this check" in m["text"]]) == 1

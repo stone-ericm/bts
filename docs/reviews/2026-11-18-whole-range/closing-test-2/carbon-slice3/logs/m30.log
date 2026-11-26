@@ -1,0 +1,166 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr2-carbon3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 42 items
+
+tests/health/test_alert_status_cs6b2.py ......F......F......F......F.... [ 76%]
+..F......F                                                               [100%]
+
+=================================== FAILURES ===================================
+__________________ test_failed_count[health-banner_only-True] __________________
+
+count = True, critical = []
+status_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2649/test_failed_count_health_banne6/health_dm_delivery_status.json')
+transport = <Mock id='4564708448'>
+
+    @pytest.mark.parametrize("count", [1, 0, -1, None, "1", 1.5, True])
+    @pytest.mark.parametrize("critical", [[], [CRITICAL]], ids=["banner_only", "with_alert"])
+    def test_failed_count(count, critical, status_path, transport):
+        original = {"status": "failed", "critical_count": count}
+        status_path.write_text(json.dumps(original))
+        banner = type(count) is int and count > 0
+        body = alert.format_health_dm_body(critical)
+        expected = BANNER + ("\n\n" + body if body else "") if banner else body
+        result = dispatch(status_path, critical)
+>       assert result is (expected is not None)
+E       assert True is (None is not None)
+
+tests/health/test_alert_status_cs6b2.py:150: AssertionError
+__________________ test_failed_count[health-with_alert-True] ___________________
+
+count = True
+critical = [Alert(level='CRITICAL', source='probe', message='critical probe', incident_key=None)]
+status_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2649/test_failed_count_health_with_6/health_dm_delivery_status.json')
+transport = <Mock id='4564781920'>
+
+    @pytest.mark.parametrize("count", [1, 0, -1, None, "1", 1.5, True])
+    @pytest.mark.parametrize("critical", [[], [CRITICAL]], ids=["banner_only", "with_alert"])
+    def test_failed_count(count, critical, status_path, transport):
+        original = {"status": "failed", "critical_count": count}
+        status_path.write_text(json.dumps(original))
+        banner = type(count) is int and count > 0
+        body = alert.format_health_dm_body(critical)
+        expected = BANNER + ("\n\n" + body if body else "") if banner else body
+        result = dispatch(status_path, critical)
+        assert result is (expected is not None)
+        assert transport.call_count == int(expected is not None)
+        if expected is None:
+            assert saved(status_path) == original
+        else:
+>           assert transport.call_args.args[1] == expected
+E           AssertionError: assert '⚠️ Previous ...ritical probe' == 'BTS health C...ritical probe'
+E             
+E             + ⚠️ Previous health alert DM FAILED to send (True CRITICAL) — it may have been missed.
+E             + 
+E               BTS health CRITICAL alert(s):
+E               - [probe] critical probe
+
+tests/health/test_alert_status_cs6b2.py:155: AssertionError
+__________ test_failed_count[contest_stale_reading-banner_only-True] ___________
+
+count = True, critical = []
+status_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2649/test_failed_count_contest_stal6/contest_stale_reading_dm_delivery_status.json')
+transport = <Mock id='4564713008'>
+
+    @pytest.mark.parametrize("count", [1, 0, -1, None, "1", 1.5, True])
+    @pytest.mark.parametrize("critical", [[], [CRITICAL]], ids=["banner_only", "with_alert"])
+    def test_failed_count(count, critical, status_path, transport):
+        original = {"status": "failed", "critical_count": count}
+        status_path.write_text(json.dumps(original))
+        banner = type(count) is int and count > 0
+        body = alert.format_health_dm_body(critical)
+        expected = BANNER + ("\n\n" + body if body else "") if banner else body
+        result = dispatch(status_path, critical)
+>       assert result is (expected is not None)
+E       assert True is (None is not None)
+
+tests/health/test_alert_status_cs6b2.py:150: AssertionError
+___________ test_failed_count[contest_stale_reading-with_alert-True] ___________
+
+count = True
+critical = [Alert(level='CRITICAL', source='probe', message='critical probe', incident_key=None)]
+status_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2649/test_failed_count_contest_stal13/contest_stale_reading_dm_delivery_status.json')
+transport = <Mock id='4564786288'>
+
+    @pytest.mark.parametrize("count", [1, 0, -1, None, "1", 1.5, True])
+    @pytest.mark.parametrize("critical", [[], [CRITICAL]], ids=["banner_only", "with_alert"])
+    def test_failed_count(count, critical, status_path, transport):
+        original = {"status": "failed", "critical_count": count}
+        status_path.write_text(json.dumps(original))
+        banner = type(count) is int and count > 0
+        body = alert.format_health_dm_body(critical)
+        expected = BANNER + ("\n\n" + body if body else "") if banner else body
+        result = dispatch(status_path, critical)
+        assert result is (expected is not None)
+        assert transport.call_count == int(expected is not None)
+        if expected is None:
+            assert saved(status_path) == original
+        else:
+>           assert transport.call_args.args[1] == expected
+E           AssertionError: assert '⚠️ Previous ...ritical probe' == 'BTS health C...ritical probe'
+E             
+E             + ⚠️ Previous health alert DM FAILED to send (True CRITICAL) — it may have been missed.
+E             + 
+E               BTS health CRITICAL alert(s):
+E               - [probe] critical probe
+
+tests/health/test_alert_status_cs6b2.py:155: AssertionError
+__________ test_failed_count[contest_morning_check-banner_only-True] ___________
+
+count = True, critical = []
+status_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2649/test_failed_count_contest_morn6/contest_morning_check_dm_delivery_status.json')
+transport = <Mock id='4564786912'>
+
+    @pytest.mark.parametrize("count", [1, 0, -1, None, "1", 1.5, True])
+    @pytest.mark.parametrize("critical", [[], [CRITICAL]], ids=["banner_only", "with_alert"])
+    def test_failed_count(count, critical, status_path, transport):
+        original = {"status": "failed", "critical_count": count}
+        status_path.write_text(json.dumps(original))
+        banner = type(count) is int and count > 0
+        body = alert.format_health_dm_body(critical)
+        expected = BANNER + ("\n\n" + body if body else "") if banner else body
+        result = dispatch(status_path, critical)
+>       assert result is (expected is not None)
+E       assert True is (None is not None)
+
+tests/health/test_alert_status_cs6b2.py:150: AssertionError
+___________ test_failed_count[contest_morning_check-with_alert-True] ___________
+
+count = True
+critical = [Alert(level='CRITICAL', source='probe', message='critical probe', incident_key=None)]
+status_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2649/test_failed_count_contest_morn13/contest_morning_check_dm_delivery_status.json')
+transport = <Mock id='4564943552'>
+
+    @pytest.mark.parametrize("count", [1, 0, -1, None, "1", 1.5, True])
+    @pytest.mark.parametrize("critical", [[], [CRITICAL]], ids=["banner_only", "with_alert"])
+    def test_failed_count(count, critical, status_path, transport):
+        original = {"status": "failed", "critical_count": count}
+        status_path.write_text(json.dumps(original))
+        banner = type(count) is int and count > 0
+        body = alert.format_health_dm_body(critical)
+        expected = BANNER + ("\n\n" + body if body else "") if banner else body
+        result = dispatch(status_path, critical)
+        assert result is (expected is not None)
+        assert transport.call_count == int(expected is not None)
+        if expected is None:
+            assert saved(status_path) == original
+        else:
+>           assert transport.call_args.args[1] == expected
+E           AssertionError: assert '⚠️ Previous ...ritical probe' == 'BTS health C...ritical probe'
+E             
+E             + ⚠️ Previous health alert DM FAILED to send (True CRITICAL) — it may have been missed.
+E             + 
+E               BTS health CRITICAL alert(s):
+E               - [probe] critical probe
+
+tests/health/test_alert_status_cs6b2.py:155: AssertionError
+=========================== short test summary info ============================
+FAILED tests/health/test_alert_status_cs6b2.py::test_failed_count[health-banner_only-True]
+FAILED tests/health/test_alert_status_cs6b2.py::test_failed_count[health-with_alert-True]
+FAILED tests/health/test_alert_status_cs6b2.py::test_failed_count[contest_stale_reading-banner_only-True]
+FAILED tests/health/test_alert_status_cs6b2.py::test_failed_count[contest_stale_reading-with_alert-True]
+FAILED tests/health/test_alert_status_cs6b2.py::test_failed_count[contest_morning_check-banner_only-True]
+FAILED tests/health/test_alert_status_cs6b2.py::test_failed_count[contest_morning_check-with_alert-True]
+========================= 6 failed, 36 passed in 0.26s =========================

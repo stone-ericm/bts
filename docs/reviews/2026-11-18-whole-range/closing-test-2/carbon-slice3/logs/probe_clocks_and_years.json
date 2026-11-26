@@ -1,0 +1,22 @@
+[
+  {
+    "test": "test_2027_03_24_opening_night_boundaries",
+    "status": "PASS"
+  },
+  {
+    "test": "test_midnight_et_in_day_health_dm_dedup_spends_tomorrow_budget",
+    "status": "PASS"
+  },
+  {
+    "test": "test_midnight_et_watchdog_post_midnight_pitch_blind_spot",
+    "status": "PASS"
+  },
+  {
+    "test": "test_2027_09_26_and_2027_09_27_finale_and_makeup_day",
+    "status": "PASS"
+  },
+  {
+    "test": "test_2027_12_31_and_2028_unconfigured",
+    "status": "PASS"
+  }
+]
