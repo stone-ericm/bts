@@ -86,7 +86,7 @@ def auto(picks, now, streak=14):
     ))
 
 
-def eod(monkeypatch, picks, *, day=DAY, wall=None, transport=None, existing=()):
+def eod(monkeypatch, picks, *, day=DAY, wall=None, transport=None, existing=(), overrides=None):
     safe_run = runner._safe_run
 
     def run_check(name, check):
@@ -99,7 +99,8 @@ def eod(monkeypatch, picks, *, day=DAY, wall=None, transport=None, existing=()):
         patch.setattr(alert, "send_dm", transport)
         patch.setattr(runner, "_safe_run", run_check)
         alerts = runner.run_all_checks(picks, picks.parent / "models", RECIPIENT,
-                                       today=day.date(), contest_state_expected=True)
+                                       today=day.date(), contest_state_expected=True,
+                                       thresholds_overrides=overrides)
     return alerts, [call.args for call in transport.call_args_list]
 
 
@@ -117,8 +118,8 @@ def live_message(day, state):
         f"The flag for season {day.year} read {state} at this check. "
         "A later automatic decision may count a saver as available. "
         "Verify the current season's saver and prior entries in MLB before any correction. "
-        "Use `bts season-contract status` for the scheduler's picks directory "
-        "and follow checklist B8a for any correction."
+        "Use the `bts season-contract status` command with the scheduler's picks directory "
+        "as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction."
     )
 
 
@@ -135,7 +136,7 @@ def test_m1_m2_live_warning_and_delivery(tmp_path, monkeypatch, state, streak):
     assert len(sends) == 1
     recipient, body = sends[0]
     assert recipient == RECIPIENT
-    assert expected.message in body
+    assert body == f"BTS health WARN attention:\n- [saver_state] {expected.message} (1st observed day)"
     assert not status_path(picks).exists()
     receipt = json.loads(status_path(picks, MISMATCH_STATUS).read_text())
     assert receipt["sent_sources"] == [f"WARN_ATTENTION:{INCIDENT}"]
@@ -195,7 +196,7 @@ def test_k1_existing_dated_warning(tmp_path, monkeypatch, streak):
     picks = tmp_path / "picks"
     observation(monkeypatch, picks, state="not_earned", streak=streak)
     live = health.check(picks, now=DAY, expected=True)
-    flag(picks, "active")
+    (picks / "account_state/saver_state.json").write_bytes(decoder_limit())
     live_warning, = live
     arguments = f"bts set-contest-streak --date {DAY.date()} --streak {streak} --best-streak 15"
     directory = f"--picks-dir {shlex.quote(str(picks))}"
@@ -243,17 +244,33 @@ def test_k2_k3_unusable_flag_preserves_existing_alerts(tmp_path, monkeypatch, st
         path.write_bytes({
             "encoding": b"\xff", "list": b"[]", "invalid": b"{",
             "integer": b'{"season":' + b"9" * 5000 + b"}",
-            "nested": b"[" * 3000 + b"]" * 3000,
+            "nested": decoder_limit() if state == "nested" else b"",
         }[state])
 
+    for day, expected in zip(modes, baseline):
+        with flag_read_deadline():
+            assert health.check(picks, now=DAY, expected=True, historical_day=day) == expected
+
+
+def decoder_limit():
+    payload = b"[" * 200_000 + b"]" * 200_000
+    with pytest.raises(RecursionError):
+        json.loads(payload)
+    return payload
+
+
+@contextmanager
+def flag_read_deadline():
+    class FlagReadTimeout(BaseException):
+        pass
+
     def timed_out(*_):
-        raise TimeoutError("saver flag check blocked")
+        raise FlagReadTimeout("saver flag check blocked")
 
     previous_handler = signal.signal(signal.SIGALRM, timed_out)
     signal.alarm(15)
     try:
-        for day, expected in zip(modes, baseline):
-            assert health.check(picks, now=DAY, expected=True, historical_day=day) == expected
+        yield
     finally:
         signal.alarm(0)
         signal.signal(signal.SIGALRM, previous_handler)
@@ -336,8 +353,80 @@ def test_failed_send_and_interrupt_before_status_can_retry(tmp_path, monkeypatch
     assert json.loads(status.read_text())["status"] == "failed"
     assert path.read_bytes() == before
     _, retried = eod(monkeypatch, picks, transport=Mock(return_value=""))
-    assert retried and json.loads(status.read_text())["status"] == "sent"
+    assert retried and json.loads(status.read_text())["status"] == "failed"
+    assert eod(monkeypatch, picks)[1] == retried
     assert eod(monkeypatch, picks)[1] == []
+
+
+@pytest.mark.parametrize("kind", ["symlink", "hardlink"])
+def test_receipt_alias_preserves_saver_flag(tmp_path, monkeypatch, kind):
+    picks = tmp_path / "picks"
+    observation(monkeypatch, picks)
+    path = flag(picks, "active")
+    before = path.read_bytes()
+    receipt = status_path(picks, MISMATCH_STATUS)
+    receipt.parent.mkdir()
+    if kind == "symlink":
+        receipt.symlink_to(path)
+    else:
+        os.link(path, receipt)
+    alerts, sends = eod(monkeypatch, picks)
+    assert mismatch(alerts) and len(sends) == 1
+    assert path.read_bytes() == before
+    assert receipt.is_symlink() == (kind == "symlink")
+    assert receipt.samefile(path)
+    assert eod(monkeypatch, picks)[1] == sends
+
+
+def test_root_receipt_override_preserves_digest_and_sends_mismatch(tmp_path, monkeypatch):
+    picks = tmp_path / "picks"
+    observation(monkeypatch, picks)
+    flag(picks, "used")
+    existing = [alert.Alert("CRITICAL", "offline-probe", "Pre-existing critical alert")]
+    overrides = {"health_dm_delivery_status": "/"}
+    _, baseline = eod(monkeypatch, picks, existing=existing, overrides=overrides)
+    assert len(baseline) == 1
+    flag(picks, "active")
+    alerts, sends = eod(monkeypatch, picks, existing=existing, overrides=overrides)
+    warning, = mismatch(alerts)
+    assert sends[:1] == baseline
+    assert len(sends) == 2 and warning.message in sends[1][1]
+    assert json.loads(status_path(picks, MISMATCH_STATUS).read_text())["message_id"] == "sent"
+
+
+def test_consecutive_days_and_changed_body_are_eligible(tmp_path, monkeypatch):
+    picks = tmp_path / "picks"
+    for offset in range(3):
+        day = DAY + dt.timedelta(days=offset)
+        observation(monkeypatch, picks, day)
+        flag(picks, "active")
+        _, sends = eod(monkeypatch, picks, day=day)
+        label = ("1st observed day", "2nd consecutive day", "3rd consecutive day")[offset]
+        assert len(sends) == 1 and f"({label})" in sends[0][1]
+        assert eod(monkeypatch, picks, day=day)[1] == []
+    flag(picks, "not_earned")
+    _, sends = eod(monkeypatch, picks, day=day)
+    assert len(sends) == 1 and "read not_earned" in sends[0][1]
+
+
+def test_b8a_saver_reconciliation_text():
+    checklist = Path(__file__).resolve().parents[1] / "docs/ops/2027-season-start.md"
+    row, = (line for line in checklist.read_text().splitlines() if line.startswith("| B8a |"))
+    stale, warning = row.split("if initialization races, reread the flag. ", 1)[1].split("</li>", 1)
+    addition, _, _ = stale.partition(" Read the latest fetch status")
+    assert addition == (
+        "Coordinate saver corrections with anyone using the dashboard. "
+        "Immediately before writing, refresh MLB and the scheduler's flag. "
+        "If either changed since your verification, stop and reconcile the current state before retrying."
+    )
+    assert warning.split("</li>", 1)[0] + "</li>" == (
+        "<li>**On the end-of-day warning that begins `Streak Saver on D ET. The dated observation "
+        "says the saver was used.`** (change set F2): D is the ET date the warning prints. Run "
+        "`bts season-contract status --picks-dir DIR` (DIR as above) and compare the dated row's saver "
+        "and the saver flag with MLB. If MLB shows this season's saver used, follow **The saver** "
+        "in the bullet above. If MLB shows it not used, the dated observation was the mistaken side "
+        "and the flag is right: leave the flag as it is (a dated observation applies only on its own date).</li>"
+    )
 
 
 @pytest.mark.parametrize("scenario", ["expired", "automatic", "legacy", "missing",

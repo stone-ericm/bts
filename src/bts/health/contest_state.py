@@ -212,7 +212,7 @@ def _check(picks_dir: Path, *, expected: bool, now: datetime, historical: bool) 
             year = now.astimezone(ZoneInfo("America/New_York")).year
             try:
                 flag = _read_saver_state(picks_dir, season=year, historical=True)
-            except (ValueError, RecursionError):
+            except (OSError, ValueError, RecursionError):
                 return alerts
             if flag.state in {"active", "not_earned"}:
                 if historical:
@@ -227,8 +227,8 @@ def _check(picks_dir: Path, *, expected: bool, now: datetime, historical: bool) 
                         f"The flag for season {year} read {flag.state} at this check. "
                         "A later automatic decision may count a saver as available. "
                         "Verify the current season's saver and prior entries in MLB before any correction. "
-                        "Use `bts season-contract status` for the scheduler's picks directory "
-                        "and follow checklist B8a for any correction."
+                        "Use the `bts season-contract status` command with the scheduler's picks directory "
+                        "as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction."
                     )
                 alerts.append(Alert(
                     level="WARN", source=SAVER_SOURCE, message=message,

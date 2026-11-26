@@ -344,12 +344,20 @@ def run_all_checks(
         now_et_date=processed_date,
     )
     if mismatch_attention:
+        suffix = ".dated_used_mismatch.json"
+        try:
+            mismatch_status = status_path.with_name(status_path.name + suffix)
+        except Exception:
+            mismatch_status = (
+                picks_dir.parent / "health_state" / ("health_dm_delivery_status.json" + suffix)
+            )
         dispatch_dm_for_health_alerts(
             [],
             dm_recipient,
             warn_attention=mismatch_attention,
-            status_path=status_path.with_name(status_path.name + ".dated_used_mismatch.json"),
+            status_path=mismatch_status,
             now_et_date=processed_date,
+            require_message_id=True,
         )
     return alerts
 
