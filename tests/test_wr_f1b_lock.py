@@ -56,7 +56,7 @@ def generated(installer):
 
 def test_generated_wrapper_order_and_interval(generated):
     schedule = generated.split()[:5]
-    assert schedule == ["*/15", "10-23", "*", "*", "*"]
+    assert schedule == ["*/15", "*", "*", "*", "*"]
     durations = re.search(
         rf"{FLOCK} -n {re.escape(LOCK)} {TIMEOUT} --verbose -k (\d+) (\d+) \S+/uv {ENTRY}",
         generated,

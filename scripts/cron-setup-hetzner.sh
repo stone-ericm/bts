@@ -14,9 +14,10 @@
 #   */5  — healthchecks.io ping
 #   */5  — scheduler heartbeat staleness check (pings hc-ping /fail on stale)
 #   */30 — capture BTS public static JSONs (pregame consensus + lookups; content-deduped, no auth)
-#   */15 10-23 — Every 15 minutes from 10:00 through 23:45 ET, the entry watchdog can DM about a missing,
-#                mismatching or game-unverified pick before the submission cutoff. This line is installed only for
-#                entry_intent = "enter" (see below). A slot skips if another invocation holds the same lock. After
+#   */15 *     — The entry watchdog launches every 15 minutes in ET under entry_intent = "enter".
+#                Before 10:00 ET, a check inside a committed pick's entry window defers if a nominal
+#                10:00–23:45 ET quarter-hour on the same date is also inside that window.
+#                A slot skips if another invocation holds the same lock. After
 #                acquisition, timeout sends TERM at 14 minutes and sends KILL 30 seconds later if its monitored child
 #                is still running.
 #   20 */3 — restic 'ops' backup: data/picks + data/health_state to R2 (audit F5; needs RESTIC_PASSWORD in .env + scripts/install-restic-hetzner.sh)
@@ -68,7 +69,7 @@ case "$ACTION" in
         case "$ENTRY_INTENT" in
             enter) FETCH_RECIPIENT=" --dm-recipient stonehengee.bsky.social"
                 ENTRY_CRON_LINE="
-*/15 10-23 * * * $PREFIX /usr/bin/flock -n /home/bts/.check-pick-entered.lock /usr/bin/timeout --verbose -k 30 840 $UV_BIN run bts check-pick-entered --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $LOG_DIR/cron.log 2>&1 $MARKER" ;;
+*/15 * * * * $PREFIX /usr/bin/flock -n /home/bts/.check-pick-entered.lock /usr/bin/timeout --verbose -k 30 840 $UV_BIN run bts check-pick-entered --cron --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $LOG_DIR/cron.log 2>&1 $MARKER" ;;
             research) ;;
             *)
                 echo "ERROR: refusing to $ACTION: unexpected entry-intent output: $ENTRY_INTENT" >&2

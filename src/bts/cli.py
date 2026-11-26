@@ -1887,7 +1887,10 @@ def day_outcome(date_str, config_path, picks_dir, expected_username, dm_recipien
 @click.option("--window-min", default=75, type=int,
               help="Check only within this many minutes before first pitch")
 @click.option("--now-et", default=None, help="Test override: naive ET datetime ISO")
-def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, now_et):
+@click.option("--cron", is_flag=True,
+              help="Before 10:00 ET, defer an in-window check of a committed pick if a nominal "
+                   "10:00–23:45 ET quarter-hour is also inside that window.")
+def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, now_et, cron):
     """DM if today's delivered pick was never entered in the MLB app.
 
     Every run publishes one entry receipt (bts.entry_receipt; watchdog plan P1), whatever its outcome. The
@@ -1929,7 +1932,7 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
     rec = EntryReceipt(et_date=now.date().isoformat(), started_at=now, clock=clock,
                        expected_username=expected_username, picks_dir=picks_dir)
     try:
-        _check_pick_entered(Path(picks_dir), expected_username, dm_recipient, window_min, now, rec)
+        _check_pick_entered(Path(picks_dir), expected_username, dm_recipient, window_min, now, rec, cron=cron)
     except SystemExit as exc:
         rec.exit_code = exc.code
         raise
@@ -1941,21 +1944,29 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
         rec.publish()
 
 
-def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now, rec):
+def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now, rec, *, cron=False):
     import sys
     import time
     from datetime import timezone
     from shlex import quote
 
     import httpx
-    from bts.daily_decision import load_decision_bytes, scoreable_commit_from
-    from bts.entry_receipt import qualify_run, selection_slots
+    from bts.daily_decision import decision_path, load_decision_bytes, parse_decision, scoreable_commit_from
+    from bts.entry_receipt import (
+        STATE_READ_LIMIT, early_marker_path, has_original_slot, qualify_run,
+        read_early_marker, read_early_pick, selection_slots, slot_identities,
+    )
     from bts.picks import load_pick_bytes
     from bts.scheduler import _earliest_pick_game_et
+    from bts.util import read_bounded_file_bytes
 
     today = now.date().isoformat()
+    early = cron and now.hour < 10
     # The pick and decision files are each read once; the receipt binds the exact bytes parsed and gated on.
-    daily, pick_raw = load_pick_bytes(today, picks)
+    if early:
+        daily, pick_raw, first_pitch = read_early_pick(picks, today)
+    else:
+        daily, pick_raw = load_pick_bytes(today, picks)
     if daily is None:
         rec.set_outcome("no_pick_file")
         click.echo(f"check-pick-entered: no pick for {today}; nothing to check")
@@ -1969,14 +1980,25 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
     # (decision.scoreable) with a pick_was_delivered fallback. This covers the
     # delivered / private_locked / locked_unconfirmed commit states and stays
     # silent for previews/deferred picks. (2026-07-06 premature-DM fix.)
-    decision, decision_raw = load_decision_bytes(today, picks)
+    if early:
+        decision, decision_raw = None, None
+        try:
+            decision_raw = read_bounded_file_bytes(decision_path(today, picks), STATE_READ_LIMIT)
+            decision = parse_decision(decision_raw.decode("utf-8"))
+        except (OSError, ValueError, TypeError, RecursionError):
+            pass
+        if decision is not None and decision.get("date") != today:
+            decision = None
+    else:
+        decision, decision_raw = load_decision_bytes(today, picks)
     rec.selection(daily, pick_raw, decision, decision_raw)
     if not scoreable_commit_from(decision, daily):
         rec.set_outcome("not_committed")
         click.echo(f"check-pick-entered: pick for {today} not committed/locked; nothing to check")
         return
 
-    first_pitch = _earliest_pick_game_et(daily)
+    if not early:
+        first_pitch = _earliest_pick_game_et(daily)
     minutes_to_pitch = (first_pitch - now).total_seconds() / 60
     # BTS rejects submissions within 5 min of first pitch. Only check inside
     # [cutoff, window]: below the cutoff the pick can no longer be entered, so a
@@ -1991,6 +2013,12 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
         click.echo(f"check-pick-entered: outside window ({minutes_to_pitch:.0f} min to pitch)")
         return
 
+    if early and has_original_slot(now.date(), first_pitch, window_min):
+        rec.set_outcome("base_slot_available")
+        click.echo("check-pick-entered: early check deferred because a nominal "
+                   "10:00–23:45 ET quarter-hour is inside this pick's entry window")
+        return
+
     status_path = picks.parent / "health_state" / "pick_entry_check.json"
 
     # "confirmed" is the ONLY terminal state (audit F1): an "alerted" day keeps
@@ -1999,17 +2027,29 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
     # sailed past a single 18:00 DM). "dm_failed" stays fully retryable
     # (Codex review, 2026-07-03).
     prior = {}
-    if status_path.exists():
+    if early:
+        rec.early_cron_run = True
+        status_path = early_marker_path(picks, today)
+        early_slots = selection_slots(daily)
+        prior = read_early_marker(picks, today)
+        if slot_identities(prior.get("slots")) != slot_identities(early_slots):
+            prior = {}
+        elif [leg["game_time"] for leg in prior["slots"]] != [leg["game_time"] for leg in early_slots]:
+            unresolved = (prior.get("status") != "confirmed"
+                          and (prior.get("game_unresolved") is True or prior.get("reason") == "wrong_game"
+                               or "wrong_game" in prior.get("escalations", [])))
+            prior = {"game_unresolved": unresolved}
+    elif status_path.exists():
         try:
             prior = json.loads(status_path.read_text())
         except (json.JSONDecodeError, OSError):
             prior = {}
         if prior.get("date") != today:
             prior = {}
-        if prior.get("status") == "confirmed":
-            rec.confirmed_by(prior.get("receipt"))   # None: the marker predates receipts
-            click.echo(f"check-pick-entered: already confirmed for {today}")
-            return
+    if prior.get("status") == "confirmed":
+        rec.confirmed_by(prior.get("receipt"))   # None: the marker predates receipts
+        click.echo(f"check-pick-entered: already confirmed for {today}")
+        return
     was_alerted = prior.get("status") == "alerted"
     prior_escalations = list(prior.get("escalations") or [])
     prior_wrong_game = (
@@ -2026,8 +2066,20 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
             marker["game_unresolved"] = True
         # The marker names this run's receipt, so a later already-confirmed run can reference the confirming one.
         marker["receipt"] = rec.attempt_id
+        if not early:
+            rec.marker(marker["status"])
+            _atomic_write_json(status_path, marker)
+            return True
+        marker["slots"] = early_slots
+        marker["observed_at"] = rec.response_completed_at
+        try:
+            _atomic_write_json(status_path, marker)
+        except OSError as exc:
+            rec.detail = f"early marker unavailable ({type(exc).__name__})"
+            click.echo(f"check-pick-entered: {rec.detail}", err=True)
+            return False
         rec.marker(marker["status"])
-        _atomic_write_json(status_path, marker)
+        return True
 
     from bts.leaderboard.auth import (
         load_session_cookies, extract_uid, fetch_login_session, AuthError,
@@ -2109,8 +2161,9 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
         marker = {"date": today, "status": "confirmed", "reason": reason, "checked_at": now.isoformat()}
         if prior_wrong_game and reason == "match":
             marker["escalations"] = prior_escalations
-        mark(marker)
-        if dm_recipient and (was_alerted or "initial" in prior_escalations or "wrong_game" in prior_escalations):
+        published = mark(marker)
+        if published and dm_recipient and (
+                was_alerted or "initial" in prior_escalations or "wrong_game" in prior_escalations):
             # One-time all-clear on the alerted -> confirmed transition: the
             # operator got a scary DM; close the loop when the fix lands.
             try:

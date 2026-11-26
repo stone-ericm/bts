@@ -3,10 +3,12 @@
 **What it is:** the producer prerequisite **P1** of the C1 rank-2 watchdog build plan (`docs/superpowers/plans/2026-10-06-c1-r2-watchdog-build.md`). It implements registration R4 and the producer receipt contract in `docs/sota_audit/2026-10-04-prereg-c1-watchdog.md`. It is revised after producer review r1 (C1–C6).
 - **Producer:** `bts check-pick-entered` (`src/bts/cli.py`), with the receipt code in `src/bts/entry_receipt.py` and publication in `src/bts/receipt_io.py`.
 - **Tests:** `tests/test_entry_receipt.py`.
-- **What it does not change:** the run's DMs, marker statuses, exit codes, retry policy, authenticated requests and cadence. The existing `TestCheckPickEntered` tests pass unchanged. The marker gains one key, `receipt`.
+- The installer sets the cadence and the watchdog decides eligibility. A true-only `early_cron_run` marks a run that passed the early gate. Each marker names the receipt of its own writer.
+- Early cron writes `data/health_state/pick_entry_check.early/<ET date>.json`. Manual checks and original-hours cron use the live marker. Each ledger can send a warning and an all-clear for the same entry.
+- The morning report uses an early observation when the final pick has the same leg identities and has no nominal original-hours slot. It uses the cutoff from that final pick. A later bound account observation from a manual or original-hours check takes precedence.
 
 ## Where
-- **One file per run:** The watchdog attempts to seal one receipt per CLI invocation at `data/health_state/pick_entry_receipts/<ET date>/<started>-<attempt_id>.json`. The enter schedule supplies 56 slots per day. A slot skipped on lock contention produces no receipt. A hard stop before sealing can leave the run without a discoverable receipt.
+- Each watchdog CLI invocation attempts to publish one receipt JSON at `data/health_state/pick_entry_receipts/<ET date>/<started>-<attempt_id>.json` and its sibling `.json.sealed` file. A slot skipped on lock contention produces no receipt. A hard stop before sealing can leave the run without a discoverable receipt.
 - **Backup and retention:** the restic `ops` set (`data/health_state`) backs it up. Nothing prunes it.
 - **Publication** (`receipt_io.publish`):
   - each missing directory is created one level at a time, and its parent is fsynced;
@@ -30,7 +32,8 @@
 | `et_date`, `season` | the contest date checked (ET) and its year |
 | `started_at` | run start (tz-aware ET). It is the same instant the run uses for its decisions |
 | `outcome` | see below |
-| `detail` | set only when the run raised: `raised <ExceptionType>` |
+| `detail` | `raised <ExceptionType>` for an exception or `early marker unavailable (<ExceptionType>)` for a failed early marker write |
+| `early_cron_run` | true only when a pre-10:00 ET `--cron` run passes the early gate |
 | `selection` | **expected identity**, parsed from the exact bytes the run read once (C2): `slots` (`role` pick / double_down, `batter_id`, `batter_name`, `game_pk`, `game_time`), `delivery` (channel, notification id, Bluesky uri, `delivered_at`, flags), `commit` (the gated decision's `decision_sha256`, `decision_valid`, `delivery_status`, `scoreable`), `pick_file_sha256` |
 | `cutoff_at`, `minutes_to_pitch` | the submission cutoff (the **earliest** selected leg's first pitch − `SUBMISSION_CUTOFF_MIN`) and the minutes to that first pitch at `started_at` |
 | `account` | **verified account**, once the login session returned: `expected_username` (the `--expected-username` option), `user_id`, `username` |
@@ -56,6 +59,7 @@ The watchdog checks game qualification separately from publication, so an unreso
 | `no_pick_file` | no attempt | no pick file for the date |
 | `not_committed` | no attempt | the pick is not a scoreable commit (a preview, or deferred) |
 | `outside_window` | no attempt | outside `(cutoff, window]` before the earliest leg's first pitch; `selection` and `cutoff_at` are set |
+| `base_slot_available` | no attempt | a `--cron` start before 10:00 ET deferred because a nominal 10:00–23:45 ET quarter-hour on the same date is inside the committed selection's window |
 | `already_confirmed` | no fetch | the marker already says confirmed. It references the confirming receipt and makes **no new observation and no freshness claim** |
 | `identity_mismatch` | attempted | the session belongs to another username; `account` records what was seen; no observation |
 | `fetch_failed` | attempted | an auth, HTTP or shape failure; no observation |

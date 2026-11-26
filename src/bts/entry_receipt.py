@@ -27,13 +27,94 @@ import hashlib
 import json
 import sys
 import uuid
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from bts import receipt_io
+from bts.util import read_bounded_file_bytes
 
 SCHEMA = "bts_pick_entry_receipt_v1"
 REPO = Path(__file__).resolve().parents[2]
+WATCHDOG_WINDOW_MIN = 75
+STATE_READ_LIMIT = 64 * 1024
+
+
+def read_early_pick(picks_dir: Path, et_date: str):
+    """Read the selection once, retaining the exact bytes for its receipt."""
+    from bts.picks import earliest_pick_game_et, parse_daily_pick
+
+    try:
+        raw = read_bounded_file_bytes(Path(picks_dir) / f"{et_date}.json", 1024 * 1024)
+        daily = parse_daily_pick(raw.decode("utf-8"))
+        if daily.date == et_date and slot_identities(selection_slots(daily)) is not None:
+            return daily, raw, earliest_pick_game_et(daily)
+    except (OSError, ValueError, TypeError, KeyError, AttributeError, OverflowError, RecursionError):
+        pass
+    return None, None, None
+
+
+def has_original_slot(et_date: date, first_pitch: datetime, window_min: int = WATCHDOG_WINDOW_MIN) -> bool:
+    from bts.picks import SUBMISSION_CUTOFF_MIN
+
+    start = datetime.combine(et_date, datetime.min.time(), ZoneInfo("America/New_York"))
+    lead = (first_pitch - start).total_seconds() / 60
+    return any(SUBMISSION_CUTOFF_MIN < lead - minute <= window_min
+               for minute in range(10 * 60, 24 * 60, 15))
+
+
+def slot_identities(slots: object) -> list[list] | None:
+    if not isinstance(slots, list) or not 1 <= len(slots) <= 2:
+        return None
+    identities = []
+    for role, slot in zip(("pick", "double_down"), slots):
+        if (not isinstance(slot, dict) or slot.get("role") != role
+                or type(slot.get("batter_id")) is not int
+                or "game_pk" not in slot
+                or (slot["game_pk"] is not None and type(slot["game_pk"]) is not int)):
+            return None
+        identities.append([role, slot["batter_id"], slot["game_pk"]])
+    return identities
+
+
+def early_marker_path(picks_dir: Path, et_date: str) -> Path:
+    return Path(picks_dir).parent / "health_state" / "pick_entry_check.early" / f"{et_date}.json"
+
+
+def aware_timestamp(value: object) -> datetime | None:
+    if isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value)
+            if parsed.tzinfo is not None:
+                return parsed
+        except ValueError:
+            pass
+    return None
+
+
+def read_early_marker(picks_dir: Path, et_date: str) -> dict:
+    try:
+        marker = json.loads(read_bounded_file_bytes(early_marker_path(picks_dir, et_date),
+                                                    STATE_READ_LIMIT).decode("utf-8"))
+    except (OSError, ValueError, RecursionError):
+        return {}
+    if not isinstance(marker, dict) or marker.get("date") != et_date:
+        return {}
+    checked = aware_timestamp(marker.get("checked_at"))
+    slots = marker.get("slots")
+    tiers = marker.get("escalations", [])
+    if (marker.get("status") not in ("alerted", "dm_failed", "confirmed", "present_unverified")
+            or checked is None or checked.date().isoformat() != et_date
+            or slot_identities(slots) is None
+            or not isinstance(tiers, list)
+            or any(tier not in ("wrong_game", "initial", "t30", "t15") for tier in tiers)):
+        return {}
+    try:
+        for slot in slots:
+            datetime.fromisoformat(slot.get("game_time"))
+    except (TypeError, ValueError):
+        return {}
+    return marker
 ROW_FIELDS = {"roundId": int, "unitId": int, "playerId": int, "number": int, "result": str}
 # The only result values a row may carry into a receipt (producer review r2 C3): the contest's resolved states plus
 # null (pending). Any other string is nulled and named, so no unexpected text, a token included, rides along.
@@ -220,6 +301,7 @@ class EntryReceipt:
         self._error = self._failed_at = None
         self._references = None
         self._marker_status = None
+        self.early_cron_run = False
 
     # ---- hooks (references and clock readings only) ---------------------------------------------------------------
     @_guarded
@@ -264,6 +346,10 @@ class EntryReceipt:
     @_guarded
     def marker(self, status) -> None:
         self._marker_status = status
+
+    @property
+    def response_completed_at(self) -> str | None:
+        return self._responses_done.isoformat() if self._responses_done is not None else None
 
     # ---- the record (publish time) --------------------------------------------------------------------------------
     def _selection(self) -> dict | None:
@@ -319,7 +405,8 @@ class EntryReceipt:
                 "account": account, "observation": observation, "verifier": verifier, "qualification": qualification,
                 "references": self._references, "error": error, "failed_at": iso(self._failed_at),
                 "marker_status": self._marker_status, "exit_code": self.exit_code, "degraded": self.degraded,
-                "published_at": iso(self.clock())}
+                "published_at": iso(self.clock()),
+                **({"early_cron_run": True} if self.early_cron_run else {})}
 
     def publish(self) -> Path | None:
         """Build, then publish durably. Any failure leaves no discoverable receipt and is reported on stderr."""
