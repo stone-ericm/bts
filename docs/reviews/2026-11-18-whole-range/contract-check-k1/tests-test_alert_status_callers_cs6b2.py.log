@@ -1,0 +1,117 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-k1/.codex-review/scratch-k1
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 22 items
+
+tests/test_alert_status_callers_cs6b2.py ......FFFF............          [100%]
+
+=================================== FAILURES ===================================
+________ test_shared_alert_callers[in_loop-contest_state-green_missing] ________
+/Users/eric/projects/bts-work/wr-chk-k1/.codex-review/scratch-k1/tests/test_alert_status_callers_cs6b2.py:106: in test_shared_alert_callers
+    in_loop, final = fallback_sites
+    ^^^^^^^^^^^^^^
+E   ValueError: not enough values to unpack (expected 2, got 0)
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Pick: Steven Kwan (CLE) 82.0% → should_lock=False
+  Earliest pick game at 19:10 ET, no check before then — fallback at 18:35 ET (10 min)...
+  FALLBACK BLOCKED — contest state invalid: Live decision refused: season 2027 switch is absent.
+Alternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2658/test_shared_alert_callers_in_l0/picks`. Read N, B and S from MLB (active streak, best streak and saver state).
+Alternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2658/test_shared_alert_callers_in_l0/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2658/test_shared_alert_callers_in_l0/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2658/test_shared_alert_callers_in_l0/picks`; then run `bts fetch-contest-streak --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2658/test_shared_alert_callers_in_l0/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.
+One repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.
+  Sleeping until 18:55 ET (30 min)...
+  Checks done, pick undelivered — sleeping until the fallback deadline 18:35 ET (10 min)...
+  MISSED-PICK ALERT — no delivery with ~45min to first pitch.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+------------------------------ Captured log call -------------------------------
+ERROR    bts.strategy:strategy.py:98 MDP base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz')
+ERROR    bts.strategy:strategy.py:105 MDP tail policy not usable (base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz'): tail pairing unverifiable)
+___________ test_shared_alert_callers[in_loop-contest_state-corrupt] ___________
+/Users/eric/projects/bts-work/wr-chk-k1/.codex-review/scratch-k1/tests/test_alert_status_callers_cs6b2.py:106: in test_shared_alert_callers
+    in_loop, final = fallback_sites
+    ^^^^^^^^^^^^^^
+E   ValueError: not enough values to unpack (expected 2, got 0)
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Pick: Steven Kwan (CLE) 82.0% → should_lock=False
+  Earliest pick game at 19:10 ET, no check before then — fallback at 18:35 ET (10 min)...
+  FALLBACK BLOCKED — contest state invalid: Live decision refused: season 2027 switch is absent.
+Alternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2658/test_shared_alert_callers_in_l1/picks`. Read N, B and S from MLB (active streak, best streak and saver state).
+Alternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2658/test_shared_alert_callers_in_l1/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2658/test_shared_alert_callers_in_l1/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2658/test_shared_alert_callers_in_l1/picks`; then run `bts fetch-contest-streak --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2658/test_shared_alert_callers_in_l1/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.
+One repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.
+  Sleeping until 18:55 ET (30 min)...
+  Checks done, pick undelivered — sleeping until the fallback deadline 18:35 ET (10 min)...
+  MISSED-PICK ALERT — no delivery with ~45min to first pitch.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+------------------------------ Captured log call -------------------------------
+ERROR    bts.strategy:strategy.py:98 MDP base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz')
+ERROR    bts.strategy:strategy.py:105 MDP tail policy not usable (base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz'): tail pairing unverifiable)
+_________ test_shared_alert_callers[final-contest_state-green_missing] _________
+/Users/eric/projects/bts-work/wr-chk-k1/.codex-review/scratch-k1/tests/test_alert_status_callers_cs6b2.py:106: in test_shared_alert_callers
+    in_loop, final = fallback_sites
+    ^^^^^^^^^^^^^^
+E   ValueError: not enough values to unpack (expected 2, got 0)
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Sleeping until 18:55 ET (20 min)...
+  FALLBACK BLOCKED — contest state invalid: Live decision refused: season 2027 switch is absent.
+Alternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2658/test_shared_alert_callers_fina0/picks`. Read N, B and S from MLB (active streak, best streak and saver state).
+Alternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2658/test_shared_alert_callers_fina0/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2658/test_shared_alert_callers_fina0/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2658/test_shared_alert_callers_fina0/picks`; then run `bts fetch-contest-streak --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2658/test_shared_alert_callers_fina0/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.
+One repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.
+  MISSED-PICK ALERT — no delivery with ~35min to first pitch.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+____________ test_shared_alert_callers[final-contest_state-corrupt] ____________
+/Users/eric/projects/bts-work/wr-chk-k1/.codex-review/scratch-k1/tests/test_alert_status_callers_cs6b2.py:106: in test_shared_alert_callers
+    in_loop, final = fallback_sites
+    ^^^^^^^^^^^^^^
+E   ValueError: not enough values to unpack (expected 2, got 0)
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Sleeping until 18:55 ET (20 min)...
+  FALLBACK BLOCKED — contest state invalid: Live decision refused: season 2027 switch is absent.
+Alternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2658/test_shared_alert_callers_fina1/picks`. Read N, B and S from MLB (active streak, best streak and saver state).
+Alternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2658/test_shared_alert_callers_fina1/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2658/test_shared_alert_callers_fina1/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2658/test_shared_alert_callers_fina1/picks`; then run `bts fetch-contest-streak --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2658/test_shared_alert_callers_fina1/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.
+One repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.
+  MISSED-PICK ALERT — no delivery with ~35min to first pitch.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+=========================== short test summary info ============================
+FAILED tests/test_alert_status_callers_cs6b2.py::test_shared_alert_callers[in_loop-contest_state-green_missing]
+FAILED tests/test_alert_status_callers_cs6b2.py::test_shared_alert_callers[in_loop-contest_state-corrupt]
+FAILED tests/test_alert_status_callers_cs6b2.py::test_shared_alert_callers[final-contest_state-green_missing]
+FAILED tests/test_alert_status_callers_cs6b2.py::test_shared_alert_callers[final-contest_state-corrupt]
+========================= 4 failed, 18 passed in 5.28s =========================

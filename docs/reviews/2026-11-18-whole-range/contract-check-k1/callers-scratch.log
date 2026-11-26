@@ -1,0 +1,14 @@
+nice: setpriority: Operation not permitted
+JOURNAL check ["  CONTEST STATE ERROR \u2014 no pick made: Live decision refused: season 2027 switch is absent."]
+ROUTE check [('run_single_check', 2021, datetime.date(2027, 7, 15))] 2027-07-15T18:35:00-04:00 453 live decision now: refused; Live decision refused: season 2026 switch is absent.
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-chk-k1/.codex-review/wr-k1-check/callers_and_operator.py", line 71, in <module>
+    command("enable", directory, "--season", 2027)
+  File "/Users/eric/projects/bts-work/wr-chk-k1/.codex-review/wr-k1-check/callers_and_operator.py", line 28, in command
+    assert rc == 0, text
+           ^^^^^^^
+AssertionError: Usage: cli season-contract enable [OPTIONS]
+Try 'cli season-contract enable --help' for help.
+
+Error: --season must equal the current ET year 2026
+

@@ -1,0 +1,40 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-k1/.codex-review/scratch-k1
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 9 items
+
+tests/test_wr_c3_r2_entered_pick_blockers.py ...F.....                   [100%]
+
+=================================== FAILURES ===================================
+_____________ test_entered_pick_never_skipped_by_season_replay[N4] _____________
+/Users/eric/projects/bts-work/wr-chk-k1/.codex-review/scratch-k1/tests/test_wr_c3_r2_entered_pick_blockers.py:258: in <lambda>
+    lambda *a, **k: (_ for _ in ()).throw(contest_state.ContestStateError("stale")),
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/projects/bts-work/wr-chk-k1/.codex-review/scratch-k1/tests/test_wr_c3_r2_entered_pick_blockers.py:258: in <genexpr>
+    lambda *a, **k: (_ for _ in ()).throw(contest_state.ContestStateError("stale")),
+E   bts.contest_state.ContestStateError: stale
+
+During handling of the above exception, another exception occurred:
+/Users/eric/projects/bts-work/wr-chk-k1/.codex-review/scratch-k1/tests/test_wr_c3_r2_entered_pick_blockers.py:265: in test_entered_pick_never_skipped_by_season_replay
+    scheduler.run_day(ENTERED, cfg)
+/Users/eric/projects/bts-work/wr-chk-k1/.codex-review/scratch-k1/src/bts/scheduler.py:3129: in run_day
+    result = run_single_check(
+/Users/eric/projects/bts-work/wr-chk-k1/.codex-review/scratch-k1/src/bts/scheduler.py:2021: in run_single_check
+    _alert_contest_state_failure(config, e, slate_date=date)
+E   TypeError: test_entered_pick_never_skipped_by_season_replay.<locals>.<lambda>() got an unexpected keyword argument 'slate_date'
+----------------------------- Captured stderr call -----------------------------
+  FALLBACK REFRESH: no fresh pick available, using cached
+  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.
+[18:36 ET] Fetching schedule for 2027-04-18...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+
+[18:36 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  CONTEST STATE ERROR — no pick made: stale
+=========================== short test summary info ============================
+FAILED tests/test_wr_c3_r2_entered_pick_blockers.py::test_entered_pick_never_skipped_by_season_replay[N4]
+========================= 1 failed, 8 passed in 2.18s ==========================
