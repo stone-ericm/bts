@@ -6,7 +6,7 @@
 - **What it does not change:** the run's DMs, marker statuses, exit codes, retry policy, authenticated requests and cadence. The existing `TestCheckPickEntered` tests pass unchanged. The marker gains one key, `receipt`.
 
 ## Where
-- **One file per run:** The watchdog attempts to seal one receipt per CLI invocation at `data/health_state/pick_entry_receipts/<ET date>/<started>-<attempt_id>.json`. The enter schedule supplies 56 slots per day. A slot skipped on lock contention produces no receipt. A hard stop before sealing can leave the run without a discoverable receipt.
+- **One file per run.** The watchdog attempts to seal one receipt per CLI invocation at `data/health_state/pick_entry_receipts/<ET date>/<started>-<attempt_id>.json`. The enter schedule runs every 15 minutes all day ET, with 96 nominal slots on an ordinary day, 92 on the spring clock-change day, and 100 on the fall clock-change day. A slot skipped on lock contention produces no receipt. A hard stop before sealing can leave the run without a discoverable receipt.
 - **Backup and retention:** the restic `ops` set (`data/health_state`) backs it up. Nothing prunes it.
 - **Publication** (`receipt_io.publish`):
   - each missing directory is created one level at a time, and its parent is fsynced;
@@ -56,6 +56,7 @@ The watchdog checks game qualification separately from publication, so an unreso
 | `no_pick_file` | no attempt | no pick file for the date |
 | `not_committed` | no attempt | the pick is not a scoreable commit (a preview, or deferred) |
 | `outside_window` | no attempt | outside `(cutoff, window]` before the earliest leg's first pitch; `selection` and `cutoff_at` are set |
+| `base_slot_available` | no attempt | a `--cron` start before 10:00 ET deferred because a 10:00–23:45 ET quarter-hour on the same date is inside the committed selection's window |
 | `already_confirmed` | no fetch | the marker already says confirmed. It references the confirming receipt and makes **no new observation and no freshness claim** |
 | `identity_mismatch` | attempted | the session belongs to another username; `account` records what was seen; no observation |
 | `fetch_failed` | attempted | an auth, HTTP or shape failure; no observation |

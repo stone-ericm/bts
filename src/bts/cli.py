@@ -1887,7 +1887,8 @@ def day_outcome(date_str, config_path, picks_dir, expected_username, dm_recipien
 @click.option("--window-min", default=75, type=int,
               help="Check only within this many minutes before first pitch")
 @click.option("--now-et", default=None, help="Test override: naive ET datetime ISO")
-def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, now_et):
+@click.option("--cron", is_flag=True, help="Defer early checks when the original schedule has a slot")
+def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, now_et, cron):
     """DM if today's delivered pick was never entered in the MLB app.
 
     Every run publishes one entry receipt (bts.entry_receipt; watchdog plan P1), whatever its outcome. The
@@ -1929,7 +1930,7 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
     rec = EntryReceipt(et_date=now.date().isoformat(), started_at=now, clock=clock,
                        expected_username=expected_username, picks_dir=picks_dir)
     try:
-        _check_pick_entered(Path(picks_dir), expected_username, dm_recipient, window_min, now, rec)
+        _check_pick_entered(Path(picks_dir), expected_username, dm_recipient, window_min, now, rec, cron=cron)
     except SystemExit as exc:
         rec.exit_code = exc.code
         raise
@@ -1941,7 +1942,7 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
         rec.publish()
 
 
-def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now, rec):
+def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now, rec, *, cron=False):
     import sys
     import time
     from datetime import timezone
@@ -1990,6 +1991,16 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
         rec.set_outcome("outside_window")
         click.echo(f"check-pick-entered: outside window ({minutes_to_pitch:.0f} min to pitch)")
         return
+
+    if cron and now.hour < 10:
+        first_base_slot = now.replace(hour=10, minute=0, second=0, microsecond=0)
+        for minute in range(0, 14 * 60, 15):
+            slot = first_base_slot + timedelta(minutes=minute)
+            slot_lead = (first_pitch - slot).total_seconds() / 60
+            if submit_cutoff_min < slot_lead <= window_min:
+                rec.set_outcome("base_slot_available")
+                click.echo("check-pick-entered: original schedule has a slot inside the window")
+                return
 
     status_path = picks.parent / "health_state" / "pick_entry_check.json"
 
