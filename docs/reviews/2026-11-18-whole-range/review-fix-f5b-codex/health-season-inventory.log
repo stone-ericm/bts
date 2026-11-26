@@ -1,0 +1,11 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/__init__.py
+capture count 2 sealed receipt bytes 3017 observed health []
+capture count 326 sealed receipt bytes 74621 observed health [('CRITICAL', '2027-07-15: committed pick entry never confirmed AND the not-entered alert DM failed to send — the operator was never reached (reason=no_pick)')]
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/wr-f5b-r1/receipt_inventory_probe.py", line 61, in <module>
+    health_with_sealed_recovery(root / 'full', 325)
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/wr-f5b-r1/receipt_inventory_probe.py", line 35, in health_with_sealed_recovery
+    assert alerts == [], 'a confirmed sealed recovery must prevent an old early health alert from returning'
+           ^^^^^^^^^^^^
+AssertionError: a confirmed sealed recovery must prevent an old early health alert from returning

@@ -1,0 +1,12 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f5c-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 6 items
+
+.codex-review/f5-records/docs/reviews/2026-11-18-whole-range/review-fix-f5-carbon/probe_07_extra_regressions.py . [ 16%]
+.....                                                                    [100%]
+
+============================== 6 passed in 2.68s ===============================

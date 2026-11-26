@@ -1,0 +1,14 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/__init__.py
+naive UTC 2027-03-24 10:05:00-04:00 original slot False morning entered
+Z 2027-03-24 10:05:01-04:00 original slot True morning entry_unverifiable
+explicit offset 2027-03-24 11:15:00-04:00 original slot True morning entry_unverifiable
+late same date 2027-03-24 23:50:00-04:00 original slot True morning entry_unverifiable
+last slot + 75 2027-03-25 01:00:00-04:00 original slot True morning entry_unverifiable
+last slot + 75 + 1s 2027-03-25 01:00:01-04:00 original slot False morning entered
+manual fix after final early slot 1 0
+interrupt after marker replacement before confirmed all-clear raised KeyboardInterrupt
+R10 with a genuine non-early absence (1, {'date': '2027-03-24', 'state': 'not_entered', 'ok': False, 'detail': 'Not entered: 1 successful account checks saw no matching entry and none confirmed one.', 'pick': 'Batter 1010', 'streak_problem': None}, ['BTS day check 2027-03-24: NOT ENTERED. Not entered: 1 successful account checks saw no matching entry and none confirmed one. Pick: Batter 1010.'])
+genuine early receipt plus F3 and F4 (1, {'date': '2027-03-24', 'state': 'skip_state_review', 'ok': False, 'detail': 'The policy recorded a skip for 2027-03-24 using streak 30 and policy saver availability unavailable. The installed dated observation for 2027-03-24 records streak 1 and policy saver availability unavailable. Check MLB for unsettled entries and verify the current streak, season best and saver.', 'pick': None, 'streak_problem': 'not a JSON object'}, ['BTS day check 2027-03-24: SKIP STATE REVIEW. The policy recorded a skip for 2027-03-24 using streak 30 and policy saver availability unavailable. The installed dated observation for 2027-03-24 records streak 1 and policy saver availability unavailable. Check MLB for unsettled entries and verify the current streak, season best and saver. Also: The local model streak file (streak.json) needs review (not a JSON object). Grading or replay may be affected. Preserve the files in place during triage. Follow B8b item 2 in docs/ops/2027-season-start.md before the next affected job. Give the BTS lead this alert, the host and ET run time, and any grading or reconcile errors, receipt paths and health alerts. If the lead session is unavailable, escalate through Eric. The 08:00 ET correction cutoff still applies.'])
+unrepresentable cutoff morning ('AssertionError', "('', OverflowError('date value out of range'))")
+unrepresentable cutoff health ('OverflowError', 'date value out of range')

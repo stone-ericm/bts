@@ -1,0 +1,19 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/__init__.py
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/__init__.py
+R10 (1, {'date': '2027-03-24', 'state': 'not_entered', 'ok': False, 'detail': 'Not entered: 1 successful account checks saw no matching entry and none confirmed one.', 'pick': 'Batter 1010', 'streak_problem': None}, ['BTS day check 2027-03-24: NOT ENTERED. Not entered: 1 successful account checks saw no matching entry and none confirmed one. Pick: Batter 1010.'])
+R10 (1, {'date': '2027-03-24', 'state': 'entry_unverifiable', 'ok': False, 'detail': 'No check both observed the account and confirmed this pick, and none observed its absence (observed x1). Whether it was entered is unknown.', 'pick': 'Batter 1010', 'streak_problem': None}, ['BTS day check 2027-03-24: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (observed x1). Whether it was entered is unknown. Pick: Batter 1010.'])
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/wr-f5b-r1/replay_archives.py", line 92, in <module>
+    archived_main(path, args)
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/wr-f5b-r1/replay_archives.py", line 43, in archived_main
+    runpy.run_path(str(path), run_name='__main__')
+  File "<frozen runpy>", line 287, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/docs/reviews/2026-11-18-whole-range/contract-check-f5b/morning_cases.py", line 126, in <module>
+    fifo(root)
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/docs/reviews/2026-11-18-whole-range/contract-check-f5b/morning_cases.py", line 36, in fifo
+    assert child.returncode == 0, (child.stdout, child.stderr)
+           ^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('', 'Traceback (most recent call last):\n  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/docs/reviews/2026-11-18-whole-range/contract-check-f5b/morning_cases.py", line 11, in <module>\n    from replay_support import DAY, ET, RIGHT, SCRATCH, World, compact, deadline, row, source\n  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/docs/reviews/2026-11-18-whole-range/contract-check-f5b/replay_support.py", line 18, in <module>\n    import alert_probe\nModuleNotFoundError: No module named \'alert_probe\'\n')

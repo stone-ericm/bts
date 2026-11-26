@@ -1,0 +1,44 @@
+{
+  "base": {
+    "version": "base",
+    "bts_file": "/private/tmp/wr-f5b-scratch/base/src/bts/__init__.py",
+    "checks": {
+      "closing_fixture": "pass",
+      "shared_window": "pass",
+      "R2_revised_replacement": "base_pass",
+      "R3_revised_spent_tiers": "base_pass",
+      "R1_corrected_pitch": "base_pass",
+      "R4_prior_date_health": "base_pass",
+      "R7_manual_crosswalk_gap": "base_pass",
+      "R8_manual_rechecks": "pass",
+      "R9_single_all_clear": "base_pass",
+      "F5r2_3_slot_gained_then_lost": "base_not_entered",
+      "moving_double": "pass",
+      "R10_morning_fifo": "pass:not_entered",
+      "R11_live_invalid_utf8": "pass:CRITICAL",
+      "R12_year_boundary_recovery": "pass:quiet"
+    }
+  },
+  "f5": {
+    "version": "f5",
+    "bts_file": "/private/tmp/wr-f5b-scratch/candidate/src/bts/__init__.py",
+    "checks": {
+      "closing_fixture": "pass",
+      "shared_window": "pass",
+      "R2_revised_replacement": "fixed:entry_unverifiable",
+      "R3_revised_spent_tiers": "fixed:not_entered",
+      "R1_corrected_pitch": "fixed:entry_unverifiable",
+      "R4_prior_date_health": "fixed:CRITICAL_preserved",
+      "R6_mutation_witness": "pass",
+      "R7_manual_crosswalk_gap": "fixed:10:00_warned",
+      "R8_manual_rechecks": "pass",
+      "R13_live_precedence": "pass",
+      "R9_single_all_clear": "fixed:one_warn_one_clear_zero_at_1000",
+      "F5r2_3_slot_gained_then_lost": "fixed:not_entered",
+      "moving_double": "pass",
+      "R10_morning_fifo": "pass:entry_unverifiable",
+      "R11_live_invalid_utf8": "pass:CRITICAL",
+      "R12_year_boundary_recovery": "pass:quiet"
+    }
+  }
+}

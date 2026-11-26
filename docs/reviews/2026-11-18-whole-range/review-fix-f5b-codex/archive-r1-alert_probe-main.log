@@ -1,0 +1,23 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/__init__.py
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/__init__.py
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/wr-f5b-r1/replay_archives.py", line 92, in <module>
+    archived_main(path, args)
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/wr-f5b-r1/replay_archives.py", line 43, in archived_main
+    runpy.run_path(str(path), run_name='__main__')
+  File "<frozen runpy>", line 287, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/f5-records/docs/reviews/2026-11-18-whole-range/review-fix-f5-codex/alert_probe.py", line 165, in <module>
+    closing_fixture(root, version)
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/f5-records/docs/reviews/2026-11-18-whole-range/review-fix-f5-codex/alert_probe.py", line 28, in closing_fixture
+    with gzip.open(fixture, 'rt') as stream:
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/gzip.py", line 65, in open
+    binary_file = GzipFile(filename, gz_mode, compresslevel)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/gzip.py", line 201, in __init__
+    fileobj = self.myfileobj = builtins.open(filename, mode or 'rb')
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/f5-records/docs/reviews/docs/reviews/2026-11-18-whole-range/closing-test/codex-blind/evidence/cron-early-entry.json.gz'

@@ -1,0 +1,21 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/__init__.py
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/__init__.py
+manual ledger 09:45 observed True ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'] {} ['⚠️ BTS pick NOT entered in MLB app: Batter 1010 — first pitch 10:05 AM ET (15 min to submit). Fix it now!']
+manual ledger 09:55 observed None ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'] {'checked_at': '2027-03-24T09:55:00-04:00', 'date': '2027-03-24', 'escalations': [], 'reason': 'present_unverified', 'status': 'present_unverified'} []
+manual ledger 10:00 observed None ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'] {'checked_at': '2027-03-24T10:00:00-04:00', 'date': '2027-03-24', 'escalations': ['initial', 't15', 't30'], 'reason': 'no_pick', 'status': 'alerted'} ['⚠️ BTS pick NOT entered in MLB app: Batter 1010 — first pitch 10:06 AM ET (1 min to submit). Fix it now!']
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/wr-f5b-r1/replay_archives.py", line 92, in <module>
+    archived_main(path, args)
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/wr-f5b-r1/replay_archives.py", line 43, in archived_main
+    runpy.run_path(str(path), run_name='__main__')
+  File "<frozen runpy>", line 287, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/f5-records/docs/reviews/2026-11-18-whole-range/review-fix-f5-codex-r2/state_replay.py", line 38, in <module>
+    results = {case.__name__: case(root / case.__name__, version) for case in cases}
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/f5-records/docs/reviews/2026-11-18-whole-range/review-fix-f5-codex-r2/state_sequences.py", line 45, in manual_carries_tiers
+    assert bool(result["sent"]) == (version == "base")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

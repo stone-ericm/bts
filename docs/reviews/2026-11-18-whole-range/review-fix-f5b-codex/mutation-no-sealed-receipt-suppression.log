@@ -1,0 +1,48 @@
+nice: setpriority: Operation not permitted
+no-sealed-receipt-suppression /private/tmp/wr-f5b-r1.IOC8VR/tmpnft6m5bj/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /private/tmp/wr-f5b-r1.IOC8VR/tmpnft6m5bj
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 60 items
+
+tests/test_wr_f5b_watchdog.py .......................................... [ 70%]
+..............F
+
+=================================== FAILURES ===================================
+___ test_early_failure_retained_across_dates_and_suppressed_by_live_recovery ___
+
+replay = <tests.test_wr_f5b_watchdog.replay.<locals>.Replay object at 0x1111e9850>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1113f1d60>
+
+    def test_early_failure_retained_across_dates_and_suppressed_by_live_recovery(replay, monkeypatch):
+        tomorrow = "2027-03-25"
+        replay.pick("06:10", deliver="04:55")
+        with monkeypatch.context() as patch:
+            patch.setattr("bts.dm.send_dm", fail_warning)
+            replay.check("05:00", present=False)
+        replay.pick("06:10", day=tomorrow, deliver="04:55")
+        replay.check("05:00", day=tomorrow)
+        assert [a.level for a in health_at(replay)] == ["CRITICAL"]
+        replay.check("05:20", manual=True)
+        replay.pick("10:50", day=tomorrow, deliver="09:50")
+        replay.check("10:00", day=tomorrow)
+        assert health_at(replay) == []
+        yesterday = "2027-03-23"
+        replay.pick("19:10", day=yesterday, deliver="17:50")
+        replay.check("18:00", day=yesterday, manual=True)
+>       assert health_at(replay) == []
+E       AssertionError: assert [Alert(level=...ent_key=None)] == []
+E         
+E         Left contains one more item: Alert(level='CRITICAL', source='pick_entry', message='2027-03-24: committed pick entry never confirmed AND the not-entered alert DM failed to send — the operator was never reached (reason=no_pick)', incident_key=None)
+E         Use -v to get more diff
+
+tests/test_wr_f5b_watchdog.py:690: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_f5b_watchdog.py::test_early_failure_retained_across_dates_and_suppressed_by_live_recovery
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+======================== 1 failed, 56 passed in 25.90s =========================
+
+
+no-sealed-receipt-suppression DETECTED

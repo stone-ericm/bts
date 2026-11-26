@@ -1,0 +1,7 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/__init__.py
+*/15 10-23 * * * cd /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp6weldud4/home/projects/bts && set -a && . ./.env && set +a && /usr/bin/flock -n /home/bts/.check-pick-entered.lock /usr/bin/timeout --verbose -k 30 840 /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp6weldud4/home/.local/bin/uv run bts check-pick-entered --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp6weldud4/home/logs/cron.log 2>&1 # BTS-HETZNER
+*/15 * * * * cd /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp6weldud4/home/projects/bts && set -a && . ./.env && set +a && /usr/bin/flock -n /home/bts/.check-pick-entered.lock /usr/bin/timeout --verbose -k 30 840 /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp6weldud4/home/.local/bin/uv run bts check-pick-entered --cron --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp6weldud4/home/logs/cron.log 2>&1 # BTS-HETZNER
+2027-03-14 92
+2027-03-24 96
+2027-11-07 100

@@ -1,0 +1,15 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/__init__.py
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/__init__.py
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/wr-f5b-r1/replay_archives.py", line 92, in <module>
+    archived_main(path, args)
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/wr-f5b-r1/replay_archives.py", line 43, in archived_main
+    runpy.run_path(str(path), run_name='__main__')
+  File "<frozen runpy>", line 287, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/f5-records/docs/reviews/2026-11-18-whole-range/review-fix-f5-codex-r2/surviving_mutations.py", line 19, in <module>
+    assert early["marker"]["status"] == "confirmed" and early["marker"]["early_cron_run"] is True
+           ~~~~~~~~~~~~~~~^^^^^^^^^^
+TypeError: 'NoneType' object is not subscriptable

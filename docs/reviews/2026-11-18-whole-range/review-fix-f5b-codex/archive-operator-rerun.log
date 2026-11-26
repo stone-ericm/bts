@@ -1,0 +1,47 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/__init__.py
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/__init__.py
+scripts/cron-setup-hetzner.sh:18: #                Before 10:00 ET, a check inside a committed pick's entry window defers if a nominal
+scripts/cron-setup-hetzner.sh:19: #                10:00–23:45 ET quarter-hour on the same date is also inside that window.
+ARCHITECTURE.md:355: - **`bts check-pick-entered` — v2 RE-ENABLED 2026-07-03, hardened 2026-07-04 (Codex review).** The entry watchdog launches every 15 minutes in ET under `entry_intent = "enter"`. Before 10:00 ET, a check inside a committed pick's entry window defers if a nominal 10:00–23:45 ET quarter-hour on the same date is also inside that window. Pre-first-pitch DM if today's delivered pick wasn't entered in the MLB app — or was entered as the WRONG pick. v1 (2026-06-12) was disabled same-day because its sole source, the profile predictions array, is **SETTLED-only** → false-alarmed every pre-pitch day. v2 sources entry from the UNION of the profile and `GET api/predictions` (`contest_fetch.fetch_pending_predictions`; found in the app JS bundle), which exposes the pending same-day row. **Identity-verified** (`contest_fetch.pick_entry_status`, added 2026-07-04): entry must contain the DELIVERED player(s) — BOTH double-down slots — mapped BTS-playerId→MLB-feedId via players.json (`cli._fetch_bts_to_mlb`); a wrong player or a missing DD slot alerts as a **mismatch**, an unresolved crosswalk falls back to present-unverified (OUR gap never false-alarms). Rationale: Eric always intends the entered pick to equal the recommendation. **Marker discipline.** Early state is recorded by date in its own ledger. The live ledger retains the base confirmation and retry rules. Confirmation is terminal in the applicable ledger. An alerted or unverified entry is checked again while eligible, and failed warning sends stay retryable. `fetch_pending_predictions` raises `ContestFetchError` on a drifted 200 (not `[]`) so schema drift → quiet skip, not a false alarm. Any fetch failure skips quietly WITHOUT consuming the marker. Original incident: 2026-06-11, a delivered pick never entered — this closes that class. **Hardened again 2026-07-06 (Codex-reviewed; `docs/audit/2026-07-06-deferred-dd-and-premature-entry-alert.md`):** the check now gates on `daily_decision.is_scoreable_commit` (the same commit predicate scoring/dashboard use) BEFORE the window/fetch, so a deferred/undelivered *preview* `{date}.json` never triggers a "not entered" DM — the 2026-07-06 incident was a premature DM on a deferred double-down whose early leg (2:10 PM confirmed) locked before the projected primary (9:45 PM) could confirm. The firing window now also excludes the un-submittable final 5 min (deadline = first pitch − 5; the DM reports minutes-to-cutoff). A `state.pick_locked` "union" gate was considered and REJECTED (Codex): `classify_pick_lock_state` sets `pick_locked` on an undelivered preview via status-lookup-failure / game-started, so OR-ing it would reintroduce false alarms. Former residual limitation (a `private_locked`/`locked_unconfirmed` commit whose best-effort `decision.json` write ALSO failed was never alerted) closed 2026-08-14: `committed_pick_written` is no longer set on a failed write, so the E3 missed-pick alert fires. **v3 (2026-07-09, audit F1 + Codex review): `alerted` is NON-terminal** — after the initial DM, every `*/15` run RE-VERIFIES the account until the entry is confirmed or the cutoff passes, with throttled escalation DMs at T−30 and T−15 minutes-to-cutoff (each tier fires once; an alert sent at/below a threshold consumes it; the marker carries an `escalations` ledger, legacy markers = initial-fired) and a one-time ✅ all-clear DM on the alerted→confirmed transition. **Only an exact identity `match` is terminal**: `present_unverified` (crosswalk gap) writes a nonterminal marker and keeps re-verifying, and fewer entered rows than delivered slots is a `mismatch` regardless of crosswalk coverage. The window's lower bound is strict (exactly first_pitch−5 = already locked, no "0 min" DM). Failed DMs stay retryable at every tier. EOD backstop: the `pick_entry` health source. Known deferral: no postponed-game awareness — a pre-pitch postponement keeps nagging for a selection that will Pass (product call pending). **Hardened 2026-08-11 (auth-flap incident):** auth uses `fetch_login_session(attempts=2)` (bounded — the `*/15` cron is the outer retry loop), and minutes-to-cutoff is computed net of monotonic elapsed fetch time, so a slow auth/profile stage can never produce a "Fix it now!" DM for an entry that locked mid-fetch; that no-DM path still writes the `alerted` marker (detected-and-unresolved, same semantics as the tier-exhausted branch) so the EOD `pick_entry` audit fires. Transient auth outages keep the quiet-skip (v3 design).
+docs/ops/pick-entry-receipt-v1.md:6: - The installer sets the cadence and the watchdog decides eligibility. A true-only `early_cron_run` marks a run that passed the early gate. Each marker names the receipt of its own writer.
+docs/ops/pick-entry-receipt-v1.md:8: - The morning report uses an early observation when the final pick has the same leg identities and has no nominal original-hours slot. It uses the cutoff from that final pick. A later bound account observation from a manual or original-hours check takes precedence.
+docs/ops/pick-entry-receipt-v1.md:11: - Each watchdog CLI invocation attempts to publish one receipt JSON at `data/health_state/pick_entry_receipts/<ET date>/<started>-<attempt_id>.json` and its sibling `.json.sealed` file. A slot skipped on lock contention produces no receipt. A hard stop before sealing can leave the run without a discoverable receipt.
+docs/ops/pick-entry-receipt-v1.md:36: | `early_cron_run` | true only when a pre-10:00 ET `--cron` run passes the early gate |
+docs/ops/pick-entry-receipt-v1.md:62: | `base_slot_available` | no attempt | a `--cron` start before 10:00 ET deferred because a nominal 10:00–23:45 ET quarter-hour on the same date is inside the committed selection's window |
+Usage: cli check-pick-entered [OPTIONS]
+
+  DM if today's delivered pick was never entered in the MLB app.
+
+  Every run publishes one entry receipt (bts.entry_receipt; watchdog plan P1),
+  whatever its outcome. The receipt records; it changes nothing below.
+
+  v2 (2026-07-03, RE-ENABLED in cron): entry is now detected from the UNION of
+  two sources — the profile endpoint (settled rows only; v1's sole source and
+  why v1 false-alarmed every pre-pitch day and was disabled 2026-06-12) and GET
+  api/predictions (discovered via the app JS bundle), which exposes the pending
+  same-day row before settlement. Any fetch failure skips quietly WITHOUT
+  consuming the once-per-day marker, so a transient error can never produce the
+  v1 false-alarm class — the next cron run retries.
+
+  Runs from cron every 15 min; exits silently unless NOW is inside the pre-
+  first-pitch window for today's locked pick. v3 (audit F1): "alerted" is non-
+  terminal — every run re-verifies until the entry is confirmed or the cutoff
+  passes, with throttled escalations at T-30/T-15 to cutoff and a one-time all-
+  clear DM once the entry appears (marker with escalation ledger in
+  data/health_state/pick_entry_check.json).
+
+Options:
+  --picks-dir TEXT          Picks directory
+  --expected-username TEXT  Refuse if session identity differs
+  --dm-recipient TEXT       Bluesky handle for the not-entered DM
+  --window-min INTEGER      Check only within this many minutes before first
+                            pitch
+  --now-et TEXT             Test override: naive ET datetime ISO
+  --cron                    Before 10:00 ET, defer an in-window check of a
+                            committed pick if a nominal 10:00–23:45 ET quarter-
+                            hour is also inside that window.
+  --help                    Show this message and exit.
+
+09:45 check-pick-entered: early check deferred because a nominal 10:00–23:45 ET quarter-hour is inside this pick's entry window
+10:00:02 check-pick-entered: outside window (5 min to pitch)

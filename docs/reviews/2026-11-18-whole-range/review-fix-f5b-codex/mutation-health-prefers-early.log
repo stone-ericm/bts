@@ -1,0 +1,16 @@
+nice: setpriority: Operation not permitted
+health-prefers-early /private/tmp/wr-f5b-r1.IOC8VR/tmpb45jtn4c/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /private/tmp/wr-f5b-r1.IOC8VR/tmpb45jtn4c
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 60 items
+
+tests/test_wr_f5b_watchdog.py .......................................... [ 70%]
+..................                                                       [100%]
+
+============================= 60 passed in 29.13s ==============================
+
+
+health-prefers-early SURVIVED

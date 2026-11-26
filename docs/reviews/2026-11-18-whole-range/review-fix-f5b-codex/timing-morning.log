@@ -1,0 +1,24 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/__init__.py
+inclusive-75 05:00 06:15 observed ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'] True
+outside-75 05:00 06:15:01 outside_window [] None
+strict-cutoff 06:00 06:05 outside_window [] None
+before-cutoff 06:00 06:05:01 observed ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'] True
+no-original-1000 09:45 10:05 observed ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'] True
+sole-original-1000 09:45 10:05:01 base_slot_available [] None
+starts-at-1000 10:00 10:05:01 observed ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'] None
+one-second-late 10:00:01 10:05:01 outside_window [] None
+original-75 10:00 11:15 observed ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'] None
+double-down earlier leg 2027-03-24T06:05:00-04:00
+morning unchanged 0 entered []
+morning late 1 entered_late ['BTS day check 2027-03-24: ENTERED LATE. The entry was first confirmed at 2027-03-24T09:51:00-04:00, after the cutoff. Pick: Batter 1010.']
+morning gain-slot 1 entry_unverifiable ['BTS day check 2027-03-24: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (observed x1). Whether it was entered is unknown. Pick: Batter 1010.']
+morning lose-slot-to-live-absence 1 not_entered ['BTS day check 2027-03-24: NOT ENTERED. Not entered: 1 successful account checks saw no matching entry and none confirmed one. Pick: Batter 1010.']
+morning changed-leg 1 entry_unverifiable ['BTS day check 2027-03-24: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (observed x1). Whether it was entered is unknown. Pick: Batter 1010.']
+morning fifo 1 entry_unverifiable ['BTS day check 2027-03-24: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (observed x1). Whether it was entered is unknown. Pick: Batter 1010.']
+morning wrong-date 1 entry_unverifiable ['BTS day check 2027-03-24: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (observed x1). Whether it was entered is unknown. Pick: Batter 1010.']
+morning invalid-time 1 entry_unverifiable ['BTS day check 2027-03-24: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (observed x1). Whether it was entered is unknown. Pick: Batter 1010.']
+morning oversize 1 entry_unverifiable ['BTS day check 2027-03-24: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (observed x1). Whether it was entered is unknown. Pick: Batter 1010.']
+morning invalid-encoding 1 entry_unverifiable ['BTS day check 2027-03-24: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (observed x1). Whether it was entered is unknown. Pick: Batter 1010.']
+morning non-object 1 entry_unverifiable ['BTS day check 2027-03-24: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (observed x1). Whether it was entered is unknown. Pick: Batter 1010.']
+midnight and year boundary 2027-12-31.json 2028-01-01.json

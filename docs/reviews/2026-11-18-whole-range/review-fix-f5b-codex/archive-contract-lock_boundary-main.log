@@ -1,0 +1,5 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/__init__.py
+base 10:00 lock exit 0 [('flock', 70911), ('timeout', 70911), ('timeout-child', 70914), ('uv', 70914), ('uv-child', 70915), ('child', 70915), ('ready', 70915)]
+f5 10:00 lock exit 1 [('flock', 70925)]
+if allowed through, the base's sole 10:00 run alerts: (1, 'SystemExit', 'observed', None, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], ['⚠️ BTS pick NOT entered in MLB app: Batter 1010 — first pitch 10:06 AM ET (1 min to submit). Fix it now!'], 'alerted')
