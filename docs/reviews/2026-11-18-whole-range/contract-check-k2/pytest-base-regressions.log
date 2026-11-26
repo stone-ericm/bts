@@ -1,0 +1,18 @@
+nice: setpriority: Operation not permitted
+Strategy: /Users/eric/projects/bts-work/wr-chk-k2/src/bts/strategy.py
+Scheduler: /Users/eric/projects/bts-work/wr-chk-k2/src/bts/scheduler.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-k2
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 162 items
+
+tests/scripts/season_walk/test_season_walk.py .......................... [ 16%]
+                                                                         [ 16%]
+tests/test_wr_a_calendar_replay_carbon.py ..............                 [ 24%]
+tests/test_wr_c2_carbon_v2.py .....................                      [ 37%]
+tests/test_wr_c2_recovery.py ........................................... [ 64%]
+..........................................................               [100%]
+
+============================= 162 passed in 2.48s ==============================

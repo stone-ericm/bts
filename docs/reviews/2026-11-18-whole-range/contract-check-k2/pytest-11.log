@@ -1,0 +1,14 @@
+nice: setpriority: Operation not permitted
+Strategy: /Users/eric/projects/bts-work/wr-chk-k2/.codex-review/scratch-k2/src/bts/strategy.py
+Scheduler: /Users/eric/projects/bts-work/wr-chk-k2/.codex-review/scratch-k2/src/bts/scheduler.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-k2
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 11 items
+
+tests/experiment/test_registry.py ......                                 [ 54%]
+tests/experiment/test_run_selection_feature_cols.py .....                [100%]
+
+============================== 11 passed in 1.19s ==============================
