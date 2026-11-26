@@ -1,0 +1,17 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f3b-cb
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 154 items
+
+tests/test_audit_f6_review_probes.py ...                                 [  1%]
+tests/test_day_outcome.py .............................................. [ 31%]
+..........                                                               [ 38%]
+tests/test_day_outcome_entry_sequence.py ............................... [ 58%]
+....                                                                     [ 61%]
+tests/test_entry_intent.py ............................................. [ 90%]
+.......                                                                  [ 94%]
+tests/test_live_gate_cs6a_review.py ........                             [100%]
+
+============================= 154 passed in 15.83s =============================

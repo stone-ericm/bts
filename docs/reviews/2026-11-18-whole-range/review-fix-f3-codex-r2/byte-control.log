@@ -1,0 +1,12 @@
+nice: setpriority: Operation not permitted
+bts.__file__=/tmp/wr-f3-r2.c157UACu/byte-limit/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f3b-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 92 items / 88 deselected / 4 selected
+
+tests/test_wr_f3_skip_state_review.py ....                               [100%]
+
+======================= 4 passed, 88 deselected in 0.39s =======================

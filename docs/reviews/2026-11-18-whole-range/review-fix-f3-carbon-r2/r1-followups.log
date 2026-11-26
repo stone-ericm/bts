@@ -1,0 +1,2 @@
+r1 scheduler complete: 26/26 cases passed on base and F3.
+r1 inputs complete: bad_files, 7 E1 timestamp edges, 17 malformed skips (base==F3), enumeration, standing all passed.

@@ -1,0 +1,16 @@
+=== 1A. B1 (K2e sequence and K2c consistency) ===
+base bts.__file__=/private/tmp/wr-f3-r2-scratch/base/src/bts/__init__.py
+f3   bts.__file__=/Users/eric/projects/bts-work/wr-rev-f3b-cb/src/bts/__init__.py
+B1/K2e outcome: {"date": "2027-03-24", "state": "skip_state_review", "ok": false, "detail": "The policy recorded a skip for 2027-03-24 using streak 30 and policy saver availability unavailable. An archived dated observation for 2027-03-24 records streak 1 and policy saver availability available. Check MLB for unsettled entries and verify the current streak, season best and saver.", "pick": null}
+K2c re-enable without archive: {"date": "2027-03-24", "state": "deliberate_skip", "ok": true, "detail": "The policy skipped the day.", "pick": null}
+=== 1B. E1 (ET overflow on dated timestamps and mixed archives) ===
+overflow discarded: contest_streak.manual.json @ 0001-01-01T00:00:00Z -> deliberate_skip (exit 0)
+overflow discarded: contest_streak.manual.revoked-a.json @ 0001-01-01T00:00:00Z -> deliberate_skip (exit 0)
+overflow discarded: contest_streak.manual.json @ 9999-12-31T23:59:59-12:00 -> deliberate_skip (exit 0)
+overflow discarded: contest_streak.manual.revoked-a.json @ 9999-12-31T23:59:59-12:00 -> deliberate_skip (exit 0)
+overflow discarded: contest_streak.manual.json @ 0001-01-01T04:56:01Z -> deliberate_skip (exit 0)
+overflow discarded: contest_streak.manual.revoked-a.json @ 0001-01-01T04:56:01Z -> deliberate_skip (exit 0)
+overflow discarded: contest_streak.manual.json @ 9999-12-31T19:00:00-10:00 -> deliberate_skip (exit 0)
+overflow discarded: contest_streak.manual.revoked-a.json @ 9999-12-31T19:00:00-10:00 -> deliberate_skip (exit 0)
+mixed archive (no revoke): {"date": "2027-04-02", "state": "skip_state_review", "ok": false, "detail": "The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. An archived dated observation for 2027-04-02 records streak 2 and policy saver availability unavailable. Check MLB for unsettled entries and verify the current streak, season best and saver.", "pick": null}
+mixed archive (with revoke): {"date": "2027-04-02", "state": "skip_state_review", "ok": false, "detail": "The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. An archived dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.", "pick": null}

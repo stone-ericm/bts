@@ -1,0 +1,4 @@
+mutation read_regular_file_text_eof: exit 1 | ========================= 1 failed, 91 passed in 1.30s =========================
+mutation drop_dated_overflow_handling: exit 1 | ========================= 5 failed, 87 passed in 1.33s =========================
+mutation read_on_all_outcomes: exit 1 | ======================== 15 failed, 77 passed in 1.42s =========================
+mutation drop_archives: exit 1 | ======================== 18 failed, 74 passed in 1.41s =========================

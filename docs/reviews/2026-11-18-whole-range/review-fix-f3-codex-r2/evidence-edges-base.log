@@ -1,0 +1,15 @@
+nice: setpriority: Operation not permitted
+bts.__file__=/tmp/wr-f3-r2.c157UACu/src/bts/__init__.py
+contest_streak.manual.json 0001-01-01T00:00:00Z deliberate_skip
+contest_streak.manual.revoked-probe.json 0001-01-01T00:00:00Z deliberate_skip
+contest_streak.manual.json 9999-12-31T23:59:59-12:00 deliberate_skip
+contest_streak.manual.revoked-probe.json 9999-12-31T23:59:59-12:00 deliberate_skip
+mixed {"exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+EIO after partial read {"exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+short reads and oversized input {"exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+bytes read 0 read requests []
+matching installed observation {"exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+legacy list schema {"exit": 1, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"no_decision\", \"ok\": false, \"detail\": \"1 games were scheduled and the day has no decision record: no pick was committed and no skip was decided.\", \"pick\": null}\n", "stderr": "", "sends": [["operator.invalid", "BTS day check 2027-04-02: NO DECISION. 1 games were scheduled and the day has no decision record: no pick was committed and no skip was decided."]], "exception": "SystemExit"}
+Archive enumeration failure preserved the already read archive
+{"interrupt": {"exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}, "two_restarts": {"exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}, "failed_send": {"exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}}
+{"invalid_config": {"exit": 2, "stdout": "", "stderr": "day-outcome: could not run for 2027-04-02: TOMLDecodeError: Expected ']' at the end of a table declaration (at line 1, column 6)\n", "sends": [["operator.invalid", "BTS day check 2027-04-02: THE CHECK COULD NOT RUN (TOMLDecodeError). The day's end state is unknown."]], "exception": "SystemExit"}}

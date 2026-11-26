@@ -1,0 +1,15 @@
+ISO grammar [lowercase_z] '2027-04-02T14:00:00z': exit=0 (dated & switch consistent)
+ISO grammar [compact_iso] '20270402T140000Z': exit=1 (dated & switch consistent)
+ISO grammar [space_sep] '2027-04-02 14:00:00-04:00': exit=1 (dated & switch consistent)
+ISO grammar [arbitrary_sep_with_Z] '2027-04-02x14:00:00Z': exit=1 (dated & switch consistent)
+ISO grammar [plus_as_date_time_sep_naive] '2027-04-02+14:00': exit=0 (dated & switch consistent)
+ISO grammar [plus_as_sep_with_Z] '2027-04-02+14:00Z': exit=1 (dated & switch consistent)
+ISO grammar [subminute_offset] '2027-04-02T14:00:00.123456+05:45:30.123456': exit=1 (dated & switch consistent)
+ISO grammar [date_only_Z] '2027-04-02Z': exit=0 (dated & switch consistent)
+=== A2. Unhashable / hostile JSON field types and NaN/Infinity ===
+A2 passed: all unhashable/boolean/overflow/NaN JSON inputs handled safely.
+=== A3. ET DST spring-forward / fall-back and saver/streak boundaries ===
+A3 passed: DST transitions, streak=0/9/10 saver boundaries, no-recipient CLI, and installed+revoke verified.
+=== A4. Filesystem, symlinks, account_state non-dir, and 7-byte partial reads ===
+A4 passed: symlinks, non-dir account_state, str/Path picks_dir, and 7-byte partial reads verified.
+=== A5. Extra paired base-vs-F3 cases and R64 text audit ===

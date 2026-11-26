@@ -1,0 +1,42 @@
+nice: setpriority: Operation not permitted
+bts.__file__=/tmp/wr-f3-r2.c157UACu/byte-limit/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f3b-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 92 items / 88 deselected / 4 selected
+
+tests/test_wr_f3_skip_state_review.py ...F                               [100%]
+
+=================================== FAILURES ===================================
+________________________ test_evidence_read_byte_limit _________________________
+
+report = namespace(account=PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2268/test_...cli_report=<function report.<locals>.cli_report at 0x10d145580>, check=<function report.<locals>.check at 0x10d145c60>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c94ea80>
+
+    def test_evidence_read_byte_limit(report, monkeypatch):
+        report.setup()
+        path = report.account / EVIDENCE["current"]
+        path.write_text(json.dumps(evidence("current", padding="x" * (256 * 1024))))
+        target = path.stat()
+        real_read = os.read
+        bytes_read = []
+    
+        def count_read(fd, size):
+            chunk = real_read(fd, size)
+            if os.path.samestat(os.fstat(fd), target):
+                bytes_read.append(len(chunk))
+            return chunk
+    
+        with monkeypatch.context() as patches:
+            patches.setattr(os, "read", count_read)
+            assert day_outcome._read_evidence(path) is None
+>       assert 0 < sum(bytes_read) <= 64 * 1024 + 1
+E       assert 262432 <= ((64 * 1024) + 1)
+E        +  where 262432 = sum([65536, 65536, 65536, 65536, 288, 0])
+
+tests/test_wr_f3_skip_state_review.py:239: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_f3_skip_state_review.py::test_evidence_read_byte_limit
+================== 1 failed, 3 passed, 88 deselected in 0.43s ==================

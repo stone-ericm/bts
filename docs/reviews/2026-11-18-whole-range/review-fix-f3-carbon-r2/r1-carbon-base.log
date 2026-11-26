@@ -1,0 +1,6 @@
+bts.__file__=/private/tmp/wr-f3-r2-scratch/base/src/bts/__init__.py
+test_stale_mdp_skip_not_invalidated_by_dated_correction_silences_all_alarms stopped at a historical assertion: 
+{"archived_case": "test_stale_mdp_skip_not_invalidated_by_dated_correction_silences_all_alarms", "exit": 0, "date": "2027-03-24", "state": "deliberate_skip", "ok": true, "detail": "The policy skipped the day.", "pick": null}
+{"archived_case": "test_item1d_live_refusal_vs_health_and_day_outcome", "exit": 0, "date": "2027-07-15", "state": "deliberate_skip", "ok": true, "detail": "The policy skipped the day.", "pick": null}
+Carbon dated correction for D was replaced using set-contest-streak on D+1 at 08:00 ET.
+{"case": "carbon_dated", "checks": ["16:10", "17:10", "18:10"], "skip_inputs": [["16:10", "dated", 30, false]], "exit": 0, "data": {"date": "2027-03-24", "state": "deliberate_skip", "ok": true, "detail": "The policy skipped the day.", "pick": null}, "DM": [], "files_unchanged": true}

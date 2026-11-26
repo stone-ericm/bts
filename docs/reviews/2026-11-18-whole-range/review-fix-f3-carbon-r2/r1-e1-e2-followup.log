@@ -1,0 +1,2 @@
+E1 representable ET min/max ranking: {"date": "2027-04-02", "state": "skip_state_review", "ok": false, "detail": "The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. An archived dated observation for 2027-04-02 records streak 5 and policy saver availability unavailable. Check MLB for unsettled entries and verify the current streak, season best and saver.", "pick": null}
+E2 exact text check passed on CLAUDE.md:66 and day_outcome.__doc__.
