@@ -1,0 +1,15 @@
+nice: setpriority: Operation not permitted
+base absent 56 {'no_pick_file': 56} {} 0 DMs / 0 marker writes
+f5 absent 96 {'no_pick_file': 96} {} 0 DMs / 0 marker writes
+ops backup includes all JSONs and seals; retention command leaves local files intact
+f5 yesterday 40 {'no_pick_file': 40} {} 0 DMs / 0 marker writes
+f5 preview 40 {'not_committed': 40} {} 0 DMs / 0 marker writes
+f5 evening 40 {'outside_window': 40} {} 0 DMs / 0 marker writes
+f5 base-window 96 {'outside_window': 92, 'base_slot_available': 1, 'observed': 1, 'already_confirmed': 2} {'cookies': 1, 'login': 1, 'profile': 1, 'pending': 1, 'rounds': 1, 'players': 1} 0 DMs / 1 marker writes
+f5 already-confirmed 40 {'outside_window': 35, 'already_confirmed': 5} {} 0 DMs / 0 marker writes
+f5 yesterday-marker 96 {'outside_window': 91, 'observed': 1, 'already_confirmed': 4} {'cookies': 1, 'login': 1, 'profile': 1, 'pending': 1, 'rounds': 1, 'players': 1} 0 DMs / 1 marker writes
+f5 missing 40 {'outside_window': 35, 'observed': 5} {'cookies': 5, 'login': 5, 'profile': 5, 'pending': 5, 'rounds': 5, 'players': 5} 3 DMs / 5 marker writes
+f5 mismatch 40 {'outside_window': 35, 'observed': 5} {'cookies': 5, 'login': 5, 'profile': 5, 'pending': 5, 'rounds': 5, 'players': 5} 3 DMs / 5 marker writes
+f5 alerted 40 {'outside_window': 35, 'observed': 5} {'cookies': 5, 'login': 5, 'profile': 5, 'pending': 5, 'rounds': 5, 'players': 5} 2 DMs / 5 marker writes
+f5 identity 40 {'outside_window': 35, 'identity_mismatch': 5} {'cookies': 5, 'login': 5} 0 DMs / 0 marker writes
+f5 auth-failure 40 {'outside_window': 35, 'fetch_failed': 5} {'cookies': 5, 'login': 5} 0 DMs / 0 marker writes

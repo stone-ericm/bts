@@ -1,0 +1,5 @@
+nice: setpriority: Operation not permitted
+candidate /Users/eric/projects/bts-work/wr-rev-f5-cx/src/bts/__init__.py
+09:45 base_slot_available 10:00 observed ['⚠️ BTS entry game needs verification. pick Batter 1010: recommended game 101 (first pitch 10:20 AM ET), the entry is recorded in game 102. Check the delivered pick and the game shown in MLB for each listed leg. Change only a leg whose correct game you can verify and that MLB still lets you edit. Keep any correct leg as entered.']
+mutation /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpapzwakig/src/bts/__init__.py
+09:45 observed 10:00 already_confirmed []

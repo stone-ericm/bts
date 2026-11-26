@@ -1,0 +1,16 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f5-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 95 items
+
+tests/test_backup.py ...........................                         [ 28%]
+tests/test_backup_cli.py .....                                           [ 33%]
+tests/health/test_backup_freshness.py ..........                         [ 44%]
+tests/scripts/season_ledger/test_contest.py .........                    [ 53%]
+tests/scripts/season_ledger/test_reconcile.py .......................... [ 81%]
+..................                                                       [100%]
+
+============================== 95 passed in 0.53s ==============================

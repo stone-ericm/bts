@@ -1,0 +1,12 @@
+nice: setpriority: Operation not permitted
+Real window outcomes across minute x installed slot, both double leg orders, and custom widths: Counter({'outside_window': 398835, 'read': 19480, 'base_slot_available': 533})
+Extra reads at default width only for earliest pitch 00:06–10:05
+CLI 10:05 09:45 None observed
+CLI 10:05 10:00 None outside_window
+CLI 10:05:01 09:45 None base_slot_available
+CLI 10:05:01 10:00:02 None outside_window
+CLI 10:06 10:00 None observed
+CLI 10:50 09:35 None base_slot_available
+CLI 10:50 09:34:59 None outside_window
+CLI 10:25 09:45 40 base_slot_available
+CLI 10:25 09:45 39 outside_window

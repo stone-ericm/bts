@@ -1,0 +1,30 @@
+nice: setpriority: Operation not permitted
+manual-too /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpimgn1hwg/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpimgn1hwg
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 18 items
+
+tests/test_wr_f5_watchdog_window.py ..............F...                   [100%]
+
+=================================== FAILURES ===================================
+____________________ test_manual_early_check_still_confirms ____________________
+
+replay = <tests.test_wr_f5_watchdog_window.replay.<locals>.Replay object at 0x110e6a4b0>
+
+    def test_manual_early_check_still_confirms(replay):
+        replay.pick("10:50")
+        outcome, calls, dms, changed = replay.check("09:45", manual=True)
+>       assert outcome == "observed" and "pending" in calls and not dms and changed
+E       AssertionError: assert ('base_slot_available' == 'observed'
+E         
+E         - observed
+E         + base_slot_available)
+
+tests/test_wr_f5_watchdog_window.py:265: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_f5_watchdog_window.py::test_manual_early_check_still_confirms
+========================= 1 failed, 17 passed in 9.79s =========================
+manual-too DETECTED

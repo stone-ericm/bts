@@ -1,0 +1,11 @@
+nice: setpriority: Operation not permitted
+2027-03-14 56/92 launch projections; 92 local sealed receipts; 900s gap
+2027-03-24 56/96 launch projections; 96 local sealed receipts; 900s gap
+2027-11-07 56/100 launch projections; 100 local sealed receipts; 900s gap
+spring wall-time limit: twenty elapsed minutes, eighty by the watchdog; no attempt
+fall wall-time limit: 115 elapsed minutes, 55 by the watchdog; account read
+Dec 31 next-midnight pitch ignored on Jan 1; a Jan 1 pick was read as season 2028
+pick input malformed JSONDecodeError identical CLI behavior with and without --cron
+pick input directory IsADirectoryError identical CLI behavior with and without --cron
+pick input fifo TimeoutError identical CLI behavior with and without --cron
+interrupted send left no marker; uncertain send wrote dm_failed; restart retried and EOD retained WARN

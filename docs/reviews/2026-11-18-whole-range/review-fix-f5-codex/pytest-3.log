@@ -1,0 +1,19 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f5-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 182 items
+
+tests/test_season_contract_cs4b2_edges.py ....................           [ 10%]
+tests/test_wr_c2_carbon_v2.py .....................                      [ 22%]
+tests/test_scheduler_decision_record_integration.py .................... [ 33%]
+....                                                                     [ 35%]
+tests/test_wr_c2_r2_carbon.py ..................                         [ 45%]
+tests/test_wr_a_review_carbon.py .........................               [ 59%]
+tests/test_audit_f6_review_probes.py ...                                 [ 60%]
+tests/test_automatic_reading_cs4c.py ................................... [ 80%]
+....................................                                     [100%]
+
+============================= 182 passed in 7.58s ==============================

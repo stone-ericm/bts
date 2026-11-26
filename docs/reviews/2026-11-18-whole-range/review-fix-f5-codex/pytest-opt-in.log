@@ -1,0 +1,55 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f5-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_wr_f1b_lock.py F                                              [100%]
+
+=================================== FAILURES ===================================
+_____ test_k4_unwrapped_overlapping_invocations_preserve_newer_observation _____
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1799/test_k4_unwrapped_overlapping_0')
+
+    @pytest.mark.skipif(os.environ.get("BTS_F1B_OVERLAP_DIAGNOSTIC") != "1",
+                        reason="set BTS_F1B_OVERLAP_DIAGNOSTIC=1 to run the archived K4 diagnostic")
+    def test_k4_unwrapped_overlapping_invocations_preserve_newer_observation(tmp_path):
+        # Adapt the archived interleaving.py probe, keeping its safety assertion.
+        from click.testing import CliRunner
+    
+        world = World(tmp_path)
+        world.commit(pitch=PITCH)
+        assert world.check("18:25")["marker"]["escalations"] == ["initial"]
+        world.capture([WRONG])
+        original_runner = world.runner
+    
+        def older_pending(*args, **kwargs):
+            world.runner = CliRunner()
+            try:
+                second = world.check("18:45", MATCH, dm="failure")
+            finally:
+                world.runner = original_runner
+            assert second["marker"]["game_unresolved"] is True
+            assert second["marker"]["escalations"] == ["initial"]
+            return []
+    
+        world.check("18:30", more_patches=[("bts.contest_fetch.fetch_pending_predictions", older_pending)])
+        world.capture([RIGHT], f"{DAY}T230000Z")
+        final = world.check("19:00", MATCH)
+        receipt = next(item for item in final["receipts"] if item["attempt_id"] == final["marker"]["receipt"])
+        assert receipt["qualification"]["slots"][0]["state"] == "unit_unverified"
+        all_clear = f"✅ BTS pick entry confirmed for {DAY} (match)."
+>       assert not (final["marker"]["status"] == "confirmed" or all_clear in final["attempted_dm"]), (
+            "An overlapping no-entry run erased the wrong-game observation, then a batter match gave an all-clear."
+        )
+E       AssertionError: An overlapping no-entry run erased the wrong-game observation, then a batter match gave an all-clear.
+E       assert not ('confirmed' == 'confirmed'
+E         
+E           confirmed)
+
+tests/test_wr_f1b_lock.py:513: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_f1b_lock.py::test_k4_unwrapped_overlapping_invocations_preserve_newer_observation
+============================== 1 failed in 0.83s ===============================

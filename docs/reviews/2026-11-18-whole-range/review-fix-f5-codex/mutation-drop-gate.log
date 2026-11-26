@@ -1,0 +1,65 @@
+nice: setpriority: Operation not permitted
+drop-gate /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpztwdq3za/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpztwdq3za
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 18 items
+
+tests/test_wr_f5_watchdog_window.py ............FF....                   [100%]
+
+=================================== FAILURES ===================================
+_________________ test_preserve_base_warnings[M5-late-binding] _________________
+
+installed = '*/15 * * * * cd /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1791/test_preserve_bas...2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1791/test_preserve_base_warnings_M50/home/logs/cron.log 2>&1 # BTS-HETZNER'
+replay = <tests.test_wr_f5_watchdog_window.replay.<locals>.Replay object at 0x10c99c320>
+wrong_game = True
+
+    @pytest.mark.parametrize("wrong_game", [True, False], ids=["M5-late-binding", "M6-removed-entry"])
+    def test_preserve_base_warnings(installed, replay, wrong_game):
+        replay.pick("10:50")
+        if not wrong_game:
+            replay.units(RIGHT)
+        observed = {}
+        for at in slots(installed):
+            if "09:45" <= at <= "10:45":
+                if at == "10:00" and wrong_game:
+                    replay.units(WRONG, "140000")
+                observed[at] = replay.check(at, present=at == "09:45" or wrong_game)
+>       assert observed.get("09:45") == ("base_slot_available", [], [], False)
+E       AssertionError: assert ('observed', ...s'], [], True) == ('base_slot_a...[], [], False)
+E         
+E         At index 0 diff: 'observed' != 'base_slot_available'
+E         Use -v to get more diff
+
+tests/test_wr_f5_watchdog_window.py:250: AssertionError
+________________ test_preserve_base_warnings[M6-removed-entry] _________________
+
+installed = '*/15 * * * * cd /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1791/test_preserve_bas...2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1791/test_preserve_base_warnings_M60/home/logs/cron.log 2>&1 # BTS-HETZNER'
+replay = <tests.test_wr_f5_watchdog_window.replay.<locals>.Replay object at 0x10c9976b0>
+wrong_game = False
+
+    @pytest.mark.parametrize("wrong_game", [True, False], ids=["M5-late-binding", "M6-removed-entry"])
+    def test_preserve_base_warnings(installed, replay, wrong_game):
+        replay.pick("10:50")
+        if not wrong_game:
+            replay.units(RIGHT)
+        observed = {}
+        for at in slots(installed):
+            if "09:45" <= at <= "10:45":
+                if at == "10:00" and wrong_game:
+                    replay.units(WRONG, "140000")
+                observed[at] = replay.check(at, present=at == "09:45" or wrong_game)
+>       assert observed.get("09:45") == ("base_slot_available", [], [], False)
+E       AssertionError: assert ('observed', ...s'], [], True) == ('base_slot_a...[], [], False)
+E         
+E         At index 0 diff: 'observed' != 'base_slot_available'
+E         Use -v to get more diff
+
+tests/test_wr_f5_watchdog_window.py:250: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_f5_watchdog_window.py::test_preserve_base_warnings[M5-late-binding]
+FAILED tests/test_wr_f5_watchdog_window.py::test_preserve_base_warnings[M6-removed-entry]
+========================= 2 failed, 16 passed in 9.82s =========================
+drop-gate DETECTED

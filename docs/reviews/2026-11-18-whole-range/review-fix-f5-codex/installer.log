@@ -1,0 +1,11 @@
+nice: setpriority: Operation not permitted
+enter absent [0, 0, 0, 0]
+enter marked [0, 0, 0, 0]
+enter unreadable [0, 1, 1, 1]
+research marked [0, 0, 0, 0]
+research absent [0, 0, 0, 0]
+missing-config marked [1, 1, 1, 0]
+missing-intent marked [1, 1, 1, 0]
+malformed marked [1, 1, 1, 0]
+disagreeing marked [1, 1, 1, 0]
+live-gate marked [1, 1, 1, 0]

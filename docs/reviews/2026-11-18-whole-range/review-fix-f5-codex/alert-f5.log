@@ -1,0 +1,10 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5-cx/src/bts/__init__.py
+closing fixture: ['05:15'] (0, {'date': '2027-03-24', 'state': 'entered', 'ok': True, 'detail': 'The entry was confirmed in 1 of 96 checks before the cutoff.', 'pick': 'Batter 1'}, [])
+bind-wrong [('09:45', 'base_slot_available', 0), ('10:00', 'observed', 1), ('10:15', 'observed', 1), ('10:30', 'observed', 1), ('10:45', 'outside_window', 0)] entry_unverifiable
+remove-entry [('09:45', 'base_slot_available', 0), ('10:00', 'observed', 1), ('10:15', 'observed', 1), ('10:30', 'observed', 1), ('10:45', 'outside_window', 0)] not_entered
+late-commit [('09:45', 'not_committed', 0), ('10:00', 'observed', 1), ('10:15', 'observed', 1), ('10:30', 'observed', 1), ('10:45', 'outside_window', 0)] not_entered
+revised window, early alert: False [('09:45', 'observed', ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], []), ('10:00', 'already_confirmed', [], []), ('10:15', 'already_confirmed', [], []), ('10:30', 'already_confirmed', [], []), ('10:45', 'outside_window', [], [])] entry_unverifiable
+revised window, early alert: True [('09:45', 'observed', ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], ['⚠️ BTS pick NOT entered in MLB app: Batter 1010 — first pitch 10:05 AM ET (15 min to submit). Fix it now!']), ('10:00', 'observed', ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], []), ('10:15', 'outside_window', [], []), ('10:30', 'outside_window', [], []), ('10:45', 'outside_window', [], [])] not_entered
+same batter and game, corrected saved pitch: [('09:45', 'observed', []), ('10:00', 'already_confirmed', []), ('10:15', 'already_confirmed', []), ('10:30', 'already_confirmed', []), ('10:45', 'outside_window', [])] entered_game_unverified 0
+prior-date health after 05:00: observed [] []

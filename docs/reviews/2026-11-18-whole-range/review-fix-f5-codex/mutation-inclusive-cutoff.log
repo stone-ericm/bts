@@ -1,0 +1,77 @@
+nice: setpriority: Operation not permitted
+inclusive-cutoff /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmper9pq1ae/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmper9pq1ae
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 18 items
+
+tests/test_wr_f5_watchdog_window.py .........F.F......                   [100%]
+
+=================================== FAILURES ===================================
+_________________________ test_early_slate[missing-M3] _________________________
+
+installed = '*/15 * * * * cd /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1797/test_early_slate_...rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1797/test_early_slate_missing_M3_0/home/logs/cron.log 2>&1 # BTS-HETZNER'
+replay = <tests.test_wr_f5_watchdog_window.replay.<locals>.Replay object at 0x10ce766c0>
+pitch = '10:05', start = '09:00', end = '10:00'
+expected = ['09:00', '09:15', '09:30', '09:45'], present = False
+
+    @pytest.mark.parametrize("pitch, start, end, expected", [
+        pytest.param("06:10", "05:00", "06:15", ["05:15", "05:30", "05:45", "06:00"], id="M2"),
+        pytest.param("10:05", "09:00", "10:00", ["09:00", "09:15", "09:30", "09:45"], id="M3"),
+    ])
+    @pytest.mark.parametrize("present", [False, True], ids=["missing", "M7-confirmed"])
+    def test_early_slate(installed, replay, pitch, start, end, expected, present):
+        replay.units(RIGHT)
+        if pitch == "10:05":
+            replay.pick(pitch, deliver="08:55")
+        observed = {}
+        for at in slots(installed):
+            if start <= at <= end:
+                if pitch == "06:10" and at == expected[0]:
+                    replay.pick(pitch)
+                observed[at] = replay.check(at, present=present)
+        reads = [at for at, result in observed.items() if "pending" in result[1]]
+>       assert reads == (expected[:1] if present else expected)
+E       AssertionError: assert [] == ['09:00', '09...:30', '09:45']
+E         
+E         Right contains 4 more items, first extra item: '09:00'
+E         Use -v to get more diff
+
+tests/test_wr_f5_watchdog_window.py:228: AssertionError
+______________________ test_early_slate[M7-confirmed-M3] _______________________
+
+installed = '*/15 * * * * cd /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1797/test_early_slate_...2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1797/test_early_slate_M7_confirmed_1/home/logs/cron.log 2>&1 # BTS-HETZNER'
+replay = <tests.test_wr_f5_watchdog_window.replay.<locals>.Replay object at 0x10ce75670>
+pitch = '10:05', start = '09:00', end = '10:00'
+expected = ['09:00', '09:15', '09:30', '09:45'], present = True
+
+    @pytest.mark.parametrize("pitch, start, end, expected", [
+        pytest.param("06:10", "05:00", "06:15", ["05:15", "05:30", "05:45", "06:00"], id="M2"),
+        pytest.param("10:05", "09:00", "10:00", ["09:00", "09:15", "09:30", "09:45"], id="M3"),
+    ])
+    @pytest.mark.parametrize("present", [False, True], ids=["missing", "M7-confirmed"])
+    def test_early_slate(installed, replay, pitch, start, end, expected, present):
+        replay.units(RIGHT)
+        if pitch == "10:05":
+            replay.pick(pitch, deliver="08:55")
+        observed = {}
+        for at in slots(installed):
+            if start <= at <= end:
+                if pitch == "06:10" and at == expected[0]:
+                    replay.pick(pitch)
+                observed[at] = replay.check(at, present=present)
+        reads = [at for at, result in observed.items() if "pending" in result[1]]
+>       assert reads == (expected[:1] if present else expected)
+E       AssertionError: assert [] == ['09:00']
+E         
+E         Right contains one more item: '09:00'
+E         Use -v to get more diff
+
+tests/test_wr_f5_watchdog_window.py:228: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_f5_watchdog_window.py::test_early_slate[missing-M3] - As...
+FAILED tests/test_wr_f5_watchdog_window.py::test_early_slate[M7-confirmed-M3]
+======================== 2 failed, 16 passed in 10.23s =========================
+inclusive-cutoff DETECTED

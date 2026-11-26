@@ -1,0 +1,4 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f5-cx/src/bts/__init__.py
+manual outcomes: {'no_pick_file': 48, 'not_committed': 48, 'observed': 48, 'fetch_failed': 16, 'already_confirmed': 32}
+199 matched sequences, 201 invocations per tree

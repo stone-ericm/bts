@@ -1,0 +1,13 @@
+nice: setpriority: Operation not permitted
+start-1015 /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpx70_udlg/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpx70_udlg
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 18 items
+
+tests/test_wr_f5_watchdog_window.py ..................                   [100%]
+
+============================== 18 passed in 9.78s ==============================
+start-1015 SURVIVED
