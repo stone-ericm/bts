@@ -40,3 +40,20 @@ Run from the repository root: `.venv/bin/python -m scripts.audit.season_walk.wal
 4,599 runs; every check passes except one: 841 in-season skip notices say a 96% candidate is "below the
 streak-N bar of 82.5%" or "below the ~80% bar" (streaks 43 to 56, the shipped table skipping its top
 quality bin while it plays the bin below, or skipping every bin). See the closing test report.
+
+## Extension for the closing test re-run (`--extended`; branch `audit/season-walk-h2g`, not merged)
+`--extended` walks `DEFAULT_STATES` plus `EXTENDED_STATES` (17 more: automatic 57/57, 58/60 and 120/120; dated 57,
+59, 100/150 and the 400 cap edge; candidate-strength pairs 0.96/0.72 at 41, 45, 53 dated and 50, 55 automatic) and adds:
+- `guard_pair_problems`: in season, for the same date and contest state, the 0.96 candidate never skips where the
+  0.72 candidate plays (G, on the walk's own decisions);
+- `table_guard_check`: every cell of the shipped table (streak 0-56, days 1-180, both savers, every bin through its
+  midpoint) through `mdp.lookup_action_guarded`: no bin skips while a weaker bin plays, playing cells unchanged, and
+  the number of guarded cells (G's 1,511); the unguarded lookup reports exactly those 1,511 (failure direction);
+- `cap_checks`: H2's 400 on both writers: dated and automatic 400 accepted by the live loader, 401 refused;
+- `sequence_57_58`: H and H2 together in one picks directory on the automatic path: MLB 55, 56, 57, 58, 59 on
+  2027-08-01..05 through the real fetch, the decision call, the pick saved and read back from disk and judged by the
+  live saved-pick check, the health contest-state check, and the model streak file graded past 57. Without H2 (caps
+  patched back to 57) the walk reports problems at 58 (test).
+Result on FINAL2 `d0bdcdba`: `results/walk-final2-extended.txt` (8,760 runs, 0 problems). Limits as above; the
+sequence's MLB streak is synthetic (the policy skipped at 55 and 56, so the numbers are not a real run of hits); the
+health check is the contest-state check only; `bts day-outcome` is not run here.

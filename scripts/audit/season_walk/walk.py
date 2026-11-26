@@ -81,6 +81,21 @@ DEFAULT_STATES = tuple(
     + [State("dated", 58, 60, "used", 0.96)]
 )
 
+# The closing test re-run's extension (opt-in with --extended; the default walk and its saved results are
+# unchanged): H and H2 together on both paths (57, 58, far above, the 400 edge, both candidate strengths),
+# and more pairs of candidate strengths below 57 for G's "no bin skips while a weaker bin plays".
+EXTENDED_STATES = tuple(
+    [State("automatic", 57, 57, "active", 0.96), State("automatic", 58, 60, "used", 0.96),
+     State("automatic", 120, 120, "used", 0.72),
+     State("dated", 57, 57, "not_earned", 0.72), State("dated", 59, 59, "active", 0.72),
+     State("dated", 100, 150, "used", 0.96), State("dated", 400, 400, "used", 0.96)]
+    + [State(kind, s, b, v, p)
+       for (kind, s, b, v) in (("dated", 41, 41, "used"), ("dated", 45, 45, "active"),
+                               ("dated", 53, 53, "not_earned"), ("automatic", 50, 50, "used"),
+                               ("automatic", 55, 55, "active"))
+       for p in (0.96, 0.72)]
+)
+
 
 def expected_days_left(day: date) -> int:
     """Independent oracle: calendar dates from ``day`` through the finale, inclusive."""
@@ -408,6 +423,164 @@ def walk(start: date = WALK_START, end: date = WALK_END, states=DEFAULT_STATES, 
     return records
 
 
+def guard_pair_problems(records: list[dict]) -> list[str]:
+    """G on the walk's own records: in season, the 0.96 candidate never skips where 0.72 plays."""
+    by_key: dict = {}
+    for r in records:
+        kind, streak, best, saver, top = r["state"].split("/")
+        by_key.setdefault((r["day"], kind, streak, best, saver), {})[top] = r
+    problems = []
+    for (day, kind, streak, best, saver), pair in sorted(by_key.items()):
+        strong, weak = pair.get("0.96"), pair.get("0.72")
+        if not strong or not weak or not strong.get("in_season"):
+            continue
+        if strong.get("action") == "skip" and weak.get("action") in {"single", "double"}:
+            problems.append(f"{day} {kind}/{streak}/{best}/{saver}: 0.96 skips while 0.72 plays "
+                            f"({weak.get('action')})")
+    return problems
+
+
+def table_guard_check(lookup=None) -> dict:
+    """G on the shipped table, every cell: streak 0-56, days 1-180, both savers, every quality bin.
+
+    ``lookup`` defaults to ``mdp.lookup_action_guarded``; a bin may skip only if every weaker bin skips.
+    """
+    import numpy as np
+    from bts.simulate import mdp
+    lookup = lookup or mdp.lookup_action_guarded
+    art = np.load(REPO / "data/models/mdp_policy.npz")
+    table, edges = art["policy_table"], [float(x) for x in art["boundaries"]]
+    season = int(art["season_length"])
+    probes = [edges[0] - 0.01] + [(lo + hi) / 2 for lo, hi in zip(edges, edges[1:])] + [edges[-1] + 0.01]
+    problems, cells, changed = [], 0, 0
+    for s in range(57):
+        for d in range(1, season + 1):
+            for v in (False, True):
+                actions = []
+                for q, conf in enumerate(probes):
+                    action, guard = lookup(table, edges, s, d, v, conf, season)
+                    cells += 1
+                    changed += guard is not None
+                    raw = mdp.lookup_action(table, edges, s, d, v, conf, season)
+                    if raw != "skip" and action != raw:
+                        problems.append(f"streak {s} days {d} saver {v} bin {q}: playing cell changed "
+                                        f"{raw} -> {action}")
+                    actions.append(action)
+                for q, action in enumerate(actions):
+                    if action == "skip" and any(a in {"single", "double"} for a in actions[:q]):
+                        problems.append(f"streak {s} days {d} saver {v} bin {q}: skips while a weaker "
+                                        f"bin plays {actions[:q]}")
+    return {"problems": problems, "cells": cells, "changed_states": changed}
+
+
+def cap_checks() -> dict:
+    """H2's one constant (400) at its edge on both writers: dated and automatic, 400 in, 401 out."""
+    from bts.contest_state import ContestStateError, load_decision_streak_state
+    out: dict = {"problems": []}
+    day = date(2027, 8, 3)
+    for kind in ("dated", "automatic"):
+        for value in (400, 401):
+            with tempfile.TemporaryDirectory(prefix="season-walk-cap-") as tmp:
+                picks = Path(tmp) / "picks"
+                picks.mkdir()
+                with offline(REAL_DATETIME.combine(day, _dtmod.time(10), ET)):
+                    setup = install_state(picks, day, State(kind, value, value, "used", 0.96))
+                    try:
+                        got = load_decision_streak_state(picks, require_contest_state=True,
+                                                         now=REAL_DATETIME.combine(day, _dtmod.time(12), ET))
+                        verdict = "accepted" if got.streak == value else f"accepted as {got.streak}"
+                    except ContestStateError as exc:
+                        verdict = "refused"
+                        out[f"{kind}_{value}_reason"] = str(exc).splitlines()[0][:200]
+            out[f"{kind}_{value}"] = verdict
+            out[f"{kind}_{value}_setup"] = setup
+            want = "accepted" if value == 400 else "refused"
+            if verdict != want:
+                out["problems"].append(f"cap edge {kind} {value}: {verdict}, expected {want} (setup {setup})")
+            if value == 400 and setup:
+                out["problems"].append(f"cap edge {kind} 400 setup problems {setup}")
+            if value == 401 and not setup:
+                out["problems"].append(f"cap edge {kind} 401 was written without complaint")
+    return out
+
+
+def sequence_57_58() -> dict:
+    """H and H2 together: one picks dir on the automatic path, MLB's streak 55, 56, 57, 58, 59 on
+    2027-08-01..05 (best equal, saver used). Each morning the real fetch installs the reading, the
+    decision call picks, the saved pick is reloaded from disk and judged by the live saved-pick check,
+    and the health contest-state check runs; separately the model streak file is graded past 57."""
+    from bts import orchestrator, picks as picks_module
+    from bts.contest_state import load_decision_streak_state
+    from bts.health import contest_state as health_contest
+    out: dict = {"problems": [], "days": []}
+    first = date(2027, 8, 1)
+    with tempfile.TemporaryDirectory(prefix="season-walk-seq-") as tmp:
+        picks = Path(tmp) / "picks"
+        picks.mkdir()
+        with offline(REAL_DATETIME.combine(first, _dtmod.time(7), ET)):
+            code, text = _invoke("season-contract", "enable", "--season", 2027, "--picks-dir", picks)
+            if code != 0:
+                out["problems"].append(f"enable exit {code}: {text.strip()[:200]}")
+            code, text = _invoke("saver-state", "--init", "used", "--force", "--season", 2027,
+                                 "--picks-dir", picks)
+            if code != 0:
+                out["problems"].append(f"saver init exit {code}: {text.strip()[:200]}")
+            # model streak file graded day by day from 55 (dates before the walked days)
+            for i in range(55):
+                picks_module.update_streak([True], picks, date=(date(2027, 5, 1) + timedelta(days=i)).isoformat())
+            for i, mlb in enumerate((55, 56, 57, 58, 59)):
+                day = first + timedelta(days=i)
+                where = f"{day} mlb {mlb}"
+                _set_clock(REAL_DATETIME.combine(day, _dtmod.time(9), ET))
+                with _fetch_stubs(mlb, mlb, day - timedelta(days=1)):
+                    fetch_exit, text = _invoke("fetch-contest-streak", "--picks-dir", picks,
+                                               "--expected-username", ACCOUNT)
+                rec = dict(day=day.isoformat(), mlb_streak=mlb, fetch_exit=fetch_exit, action=None,
+                           objective=None, saved_pick_refusal=None, health=[], model_streak_after_hit=None)
+                if fetch_exit != 0:
+                    out["problems"].append(f"{where}: fetch exit {fetch_exit}: {text.strip()[:200]}")
+                noon = REAL_DATETIME.combine(day, _dtmod.time(12), ET)
+                _set_clock(noon)
+                frame = _predictions(day, 0.96)
+                statuses = {int(pk): {"abstract": "P", "detailed": "Scheduled"} for pk in frame["game_pk"]}
+                try:
+                    with patch.object(orchestrator, "run_cascade", lambda tiers, d, f=frame: (f.copy(), "season_walk")),                             patch.object(picks_module, "get_game_statuses_detailed", lambda d, s=statuses: s):
+                        _, sel, _ = orchestrator.run_and_pick(_config(picks), day.isoformat())
+                    rec["action"] = sel.action if sel else None
+                    rec["objective"] = sel.decision.objective if sel and sel.decision else None
+                    rec["decision_streak"] = sel.decision.streak if sel and sel.decision else None
+                    state = load_decision_streak_state(picks, require_contest_state=True, now=noon)
+                    rec["live_streak"] = state.streak
+                    # run_and_pick returns the pick; the scheduler saves it. Save it as the scheduler would,
+                    # then judge the copy read back from disk, as a restart's delivery path does.
+                    if sel is not None and sel.pick_result is not None and sel.pick_result.daily is not None:
+                        picks_module.save_pick(sel.pick_result.daily, picks)
+                    daily = picks_module.load_pick(day.isoformat(), picks)
+                    if rec["action"] in {"single", "double"}:
+                        rec["saved_pick_refusal"] = ("no saved pick" if daily is None
+                                                     else picks_module.saved_pick_refusal(daily, state))
+                    rec["health"] = [f"{a.level} {a.message[:160]}" for a in
+                                     health_contest.check(picks, expected=True, now=noon)]
+                except Exception as exc:
+                    out["problems"].append(f"{where}: error {type(exc).__name__}: {str(exc).splitlines()[0][:200] if str(exc) else ''}")
+                if rec.get("live_streak") not in (None, mlb):
+                    out["problems"].append(f"{where}: live decision streak {rec.get('live_streak')}")
+                if mlb >= LONGEST_STREAK_FROM and (rec["objective"] != OBJECTIVE_LONGEST or rec["action"] != "single"):
+                    out["problems"].append(f"{where}: {rec['objective']} {rec['action']}, expected longest_streak single")
+                if rec["saved_pick_refusal"] is not None:
+                    out["problems"].append(f"{where}: saved pick refused: {str(rec['saved_pick_refusal'])[:200]}")
+                if any(h.startswith("CRITICAL") for h in rec["health"]):
+                    out["problems"].append(f"{where}: health CRITICAL {rec['health']}")
+                try:
+                    rec["model_streak_after_hit"] = picks_module.update_streak([True], picks, date=day.isoformat())
+                except Exception as exc:
+                    out["problems"].append(f"{where}: model grading error {type(exc).__name__}: {exc}")
+                if rec["model_streak_after_hit"] != 56 + i:
+                    out["problems"].append(f"{where}: model streak after a hit {rec['model_streak_after_hit']}, expected {56 + i}")
+                out["days"].append(rec)
+    return out
+
+
 def summarize(records: list[dict]) -> dict:
     by_day: dict = {}
     for r in records:
@@ -422,15 +595,25 @@ def main(argv=None) -> int:
     parser.add_argument("--start", type=date.fromisoformat, default=WALK_START)
     parser.add_argument("--end", type=date.fromisoformat, default=WALK_END)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--extended", action="store_true",
+                        help="walk DEFAULT_STATES + EXTENDED_STATES and add the G and H/H2 checks")
     args = parser.parse_args(argv)
     os.chdir(REPO)   # the policy loader resolves data/models/ relative to the working directory
-    records = walk(args.start, args.end,
+    states = DEFAULT_STATES + (EXTENDED_STATES if args.extended else ())
+    records = walk(args.start, args.end, states=states,
                    progress=lambda d: print(d.isoformat(), flush=True) if d.day == 1 else None)
     boundary = boundary_checks()
     problems = check(records) + boundary["problems"]
+    extra = {}
+    if args.extended:
+        extra = {"guard_pairs": guard_pair_problems(records), "table_guard": table_guard_check(),
+                 "caps": cap_checks(), "sequence_57_58": sequence_57_58()}
+        problems += (extra["guard_pairs"] + extra["table_guard"]["problems"] + extra["caps"]["problems"]
+                     + extra["sequence_57_58"]["problems"])
     args.out.write_text(json.dumps({"start": args.start.isoformat(), "end": args.end.isoformat(),
-                                    "states": [s.label() for s in DEFAULT_STATES],
+                                    "states": [s.label() for s in states],
                                     "runs": len(records), "problems": problems, "boundary": boundary,
+                                    "extended": extra,
                                     "by_day": summarize(records), "records": records},
                                    indent=1, default=str))
     print(f"runs={len(records)} problems={len(problems)}")

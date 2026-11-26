@@ -1,0 +1,22 @@
+runs=8760 problems=0 (states 40: the 23 default + 17 extended, dates 2027-03-01..2027-10-05)
+guard pairs (0.96 skips while 0.72 plays, in season): 0
+table guard: cells 102600, guarded (changed) states 1511, problems 0
+caps: dated_400=accepted, dated_401=refused, automatic_400=accepted, automatic_401=refused
+sequence 2027-08-01..05 (automatic, MLB 55..59): 2027-08-01 mlb 55: fetch 0, reach57 skip, saved-pick check None, health [], model streak after hit 56; 2027-08-02 mlb 56: fetch 0, reach57 skip, saved-pick check None, health [], model streak after hit 57; 2027-08-03 mlb 57: fetch 0, longest_streak single, saved-pick check None, health [], model streak after hit 58; 2027-08-04 mlb 58: fetch 0, longest_streak single, saved-pick check None, health [], model streak after hit 59; 2027-08-05 mlb 59: fetch 0, longest_streak single, saved-pick check None, health [], model streak after hit 60
+  automatic/57/57/active/0.96: in-season {('single', 'longest_streak'): 184, ('double', 'longest_streak'): 3}
+  automatic/58/60/used/0.96: in-season {('single', 'longest_streak'): 184, ('double', 'longest_streak'): 3}
+  automatic/120/120/used/0.72: in-season {('single', 'longest_streak'): 184, ('double', 'longest_streak'): 3}
+  dated/57/57/not_earned/0.72: in-season {('single', 'longest_streak'): 184, ('double', 'longest_streak'): 3}
+  dated/59/59/active/0.72: in-season {('single', 'longest_streak'): 184, ('double', 'longest_streak'): 3}
+  dated/100/150/used/0.96: in-season {('single', 'longest_streak'): 184, ('double', 'longest_streak'): 3}
+  dated/400/400/used/0.96: in-season {('single', 'longest_streak'): 184, ('double', 'longest_streak'): 3}
+  dated/41/41/used/0.96: in-season {('single', 'reach57'): 157, ('double', 'reach57'): 23, ('single', 'emax_season_best'): 4, ('double', 'emax_season_best'): 3}
+  dated/41/41/used/0.72: in-season {('skip', 'reach57'): 177, ('single', 'reach57'): 1, ('double', 'reach57'): 2, ('single', 'emax_season_best'): 4, ('double', 'emax_season_best'): 3}
+  dated/45/45/active/0.96: in-season {('single', 'reach57'): 114, ('skip', 'reach57'): 43, ('double', 'reach57'): 25, ('single', 'emax_season_best'): 2, ('double', 'emax_season_best'): 3}
+  dated/45/45/active/0.72: in-season {('skip', 'reach57'): 179, ('single', 'reach57'): 1, ('double', 'reach57'): 2, ('single', 'emax_season_best'): 2, ('double', 'emax_season_best'): 3}
+  dated/53/53/not_earned/0.96: in-season {('skip', 'reach57'): 157, ('single', 'reach57'): 14, ('double', 'reach57'): 15, ('double', 'emax_season_best'): 1}
+  dated/53/53/not_earned/0.72: in-season {('skip', 'reach57'): 185, ('double', 'reach57'): 1, ('double', 'emax_season_best'): 1}
+  automatic/50/50/used/0.96: in-season {('single', 'reach57'): 20, ('skip', 'reach57'): 141, ('double', 'reach57'): 23, ('double', 'emax_season_best'): 3}
+  automatic/50/50/used/0.72: in-season {('skip', 'reach57'): 182, ('single', 'reach57'): 2, ('double', 'emax_season_best'): 3}
+  automatic/55/55/active/0.96: in-season {('skip', 'reach57'): 157, ('single', 'reach57'): 21, ('double', 'reach57'): 9}
+  automatic/55/55/active/0.72: in-season {('skip', 'reach57'): 186, ('double', 'reach57'): 1}
