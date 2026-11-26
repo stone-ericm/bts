@@ -1,0 +1,30 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/wr-k2-cx-base/src/bts/__init__.py
+/Users/eric/.matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/matplotlib-cpy425_9 because there was an issue with the default path (/Users/eric/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+  [park_drag] WARNING: table not found at data/external/park_drag/park_drag_export.csv; park_drag_delta will be NaN
+  [SHADOW MODEL] Skip (below threshold).
+  [SHADOW MODEL] Skip (below threshold).
+  [SHADOW MODEL] Skip (below threshold).
+  [SHADOW MODEL] Skip (below threshold).
+  [SHADOW MODEL] Skip (below threshold).
+  [SHADOW MODEL] Skip (below threshold).
+  [SHADOW MODEL] Skip (below threshold).
+  [SHADOW MODEL] Skip (below threshold).
+  [SHADOW MODEL] Skip (below threshold).
+  [SHADOW MODEL] Skip (below threshold).
+  [SHADOW MODEL] Skip (below threshold).
+  [SHADOW MODEL] Skip (below threshold).
+  [SHADOW MODEL] Skip (below threshold).
+  [SHADOW MODEL] Skip (below threshold).
+  [SHADOW MODEL] Skip (below threshold).
+  [SHADOW MODEL] Skip (below threshold).
+  [SHADOW MODEL] Skip (below threshold).
+  [SHADOW MODEL] Skip (below threshold).
+  [SHADOW MODEL] Skip (below threshold).
+  [SHADOW MODEL] Skip (below threshold).
+  [SHADOW MODEL] Skip (below threshold).
+  [SHADOW MODEL] Skip (below threshold).
+  [SHADOW MODEL] Skip (below threshold).
+  [SHADOW MODEL] Skip (below threshold).
+exit=0

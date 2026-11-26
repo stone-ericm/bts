@@ -1,0 +1,13 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-k2-cx/src/bts/__init__.py
+/Users/eric/.matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/matplotlib-_bi4e28i because there was an issue with the default path (/Users/eric/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+longest-streak policy: longest-streak rule unavailable (RuntimeError: unavailable MDP loader); forced single -> single
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-k2-cx/.codex-review/wr-k2-r1/probe_selection.py", line 167, in <module>
+    table()
+  File "/Users/eric/projects/bts-work/wr-rev-k2-cx/.codex-review/wr-k2-r1/probe_selection.py", line 68, in table
+    assert result.decision.action == "double" and not load.called
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+exit=1

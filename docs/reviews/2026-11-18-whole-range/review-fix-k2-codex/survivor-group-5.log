@@ -1,0 +1,26 @@
+tests/test_cli_integration.py
+tests/test_cli_schedule_date.py
+tests/test_cold_start_integration.py
+tests/test_contest_dated_cs4a_review.py
+tests/test_cutoff_candidate_exclusion.py
+tests/test_decide_action.py
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/wr-k2-cx-mutations/no-early-floor/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 146 items
+
+tests/test_cli_integration.py .......................................... [ 28%]
+............................                                             [ 47%]
+tests/test_cli_schedule_date.py .                                        [ 48%]
+tests/test_cold_start_integration.py ...x                                [ 51%]
+tests/test_contest_dated_cs4a_review.py ................................ [ 73%]
+.................                                                        [ 84%]
+tests/test_cutoff_candidate_exclusion.py .........                       [ 91%]
+tests/test_decide_action.py .............                                [100%]
+
+======================== 145 passed, 1 xfailed in 3.41s ========================
+exit=0

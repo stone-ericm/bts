@@ -1,0 +1,28 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/wr-k2-cx-mutations/warning-first/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 2 items
+
+tests/test_wr_k2_season_boundary.py F
+
+=================================== FAILURES ===================================
+_____________ test_real_morning_refusal_precedes_boundary[0-True] ______________
+tests/test_wr_k2_season_boundary.py:247: in test_real_morning_refusal_precedes_boundary
+    assert result["bodies"][0] == base["S5_original_11s"]["bodies"][0]
+E   AssertionError: assert 'BTS health W... as recorded.' == 'BTS health C... at 16:05 ET.'
+E     
+E     - BTS health CRITICAL alert(s):
+E     - - [contest_state] Morning check for 2027-09-27: no usable contest state was found at startup. Check MLB and run bts season-contract status with the scheduler's picks directory. If state still needs correction, follow today's dated-observation instructions while a lineup check remains. First planned lineup check at 16:05 ET.
+E     + BTS health WARN attention:
+E     + - [season_boundary] Season boundary behind the schedule for 2027-09-27 ET. At scheduler startup MLB listed at least one eligible regular-season game on that date. The configured exclusive ...
+E     
+E     ...Full output truncated (1 line hidden), use '-vv' to show
+=========================== short test summary info ============================
+FAILED tests/test_wr_k2_season_boundary.py::test_real_morning_refusal_precedes_boundary[0-True]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+============================== 1 failed in 0.68s ===============================
+exit=1

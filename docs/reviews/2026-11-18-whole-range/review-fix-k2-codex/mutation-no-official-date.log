@@ -1,0 +1,24 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/wr-k2-cx-mutations/no-official-date/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_wr_k2_season_boundary.py F
+
+=================================== FAILURES ===================================
+________________ test_fallback_warning_and_unclassifiable_rows _________________
+tests/test_wr_k2_season_boundary.py:165: in test_fallback_warning_and_unclassifiable_rows
+    assert "1 eligible regular-season game" in capsys.readouterr().err
+E   AssertionError: assert '1 eligible regular-season game' in '  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.\n[10:00 ET] Fetching schedule for 2028-09-29......028-09-28, giving a raw count of zero.\n  Sleeping until 18:20 ET (500 min)...\n\n[18:20 ET] Running lineup check...\n'
+E    +  where '  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.\n[10:00 ET] Fetching schedule for 2028-09-29......028-09-28, giving a raw count of zero.\n  Sleeping until 18:20 ET (500 min)...\n\n[18:20 ET] Running lineup check...\n' = CaptureResult(out='', err='  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.\n[10:00 ET] Fetching ...28-09-28, giving a raw count of zero.\n  Sleeping until 18:20 ET (500 min)...\n\n[18:20 ET] Running lineup check...\n').err
+E    +    where CaptureResult(out='', err='  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.\n[10:00 ET] Fetching ...28-09-28, giving a raw count of zero.\n  Sleeping until 18:20 ET (500 min)...\n\n[18:20 ET] Running lineup check...\n') = readouterr()
+E    +      where readouterr = <_pytest.capture.CaptureFixture object at 0x10a047020>.readouterr
+=========================== short test summary info ============================
+FAILED tests/test_wr_k2_season_boundary.py::test_fallback_warning_and_unclassifiable_rows
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+============================== 1 failed in 0.68s ===============================
+exit=1

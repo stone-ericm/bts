@@ -1,0 +1,33 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/wr-k2-cx-mutations/synchronous-send/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_wr_k2_season_boundary.py F
+
+=================================== FAILURES ===================================
+___________________ test_boundary_transport_can_outlive_wait ___________________
+tests/test_wr_k2_season_boundary.py:297: in test_boundary_transport_can_outlive_wait
+    assert "still sending at its deadline; continuing." in journal, journal
+E   AssertionError:   [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.
+E     [15:55 ET] Fetching schedule for 2027-09-27...
+E       1 games, 3 scheduled checks:
+E         16:05 ET — 1 game(s)
+E         17:05 ET — 1 game(s)
+E         18:20 ET — 1 game(s)
+E     SEASON BOUNDARY BEHIND SCHEDULE — 2027-09-27 ET: 1 eligible regular-season game(s). The configured exclusive boundary is 2027-09-27, giving a raw count of zero.
+E     Unknown-outcome alert failed: transport: assert False\n +  where False = wait(2)\n +    where wait = <threading.Event at 0x10da6b590: unset>.wait
+E       Sleeping until 16:05 ET (10 min)...
+E     
+E     [16:05 ET] Running lineup check...
+E     
+E   assert 'still sending at its deadline; continuing.' in '  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.\n[15:55 ET] Fetching schedule for 2027-09-27......ading.Event at 0x10da6b590: unset>.wait\n  Sleeping until 16:05 ET (10 min)...\n\n[16:05 ET] Running lineup check...\n'
+=========================== short test summary info ============================
+FAILED tests/test_wr_k2_season_boundary.py::test_boundary_transport_can_outlive_wait
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+============================== 1 failed in 2.69s ===============================
+exit=1

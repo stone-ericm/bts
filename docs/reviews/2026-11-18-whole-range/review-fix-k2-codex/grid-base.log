@@ -1,0 +1,5 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/wr-k2-cx-base/src/bts/__init__.py
+  0 new confirmed lineup(s). Running predictions...
+  SKIP — No candidate was chosen. Top model prediction (eligibility unverified): Batter 0 (T0) 96.0%.
+exit=0

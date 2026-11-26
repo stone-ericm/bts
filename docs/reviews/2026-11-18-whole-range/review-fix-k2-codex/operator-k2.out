@@ -1,0 +1,12 @@
+BTS health WARN attention:
+- [season_boundary] Season boundary behind the schedule for 2027-09-27 ET. At scheduler startup MLB listed at least one eligible regular-season game on that date. The configured exclusive boundary is 2027-09-27, giving a raw count of zero. With the raw count at zero, a fresh pick selection with an available predicted candidate uses the last-day policy. Please send this advisory to the BTS lead or Eric. Check the last regular-season game date on MLB's updated schedule, including pending makeup games, before arranging an update for a later run. Keep any pick already sent or entered as recorded.
+BTS health WARN attention:
+- [season_boundary] Season boundary behind the schedule for 2028-09-29 ET. At scheduler startup MLB listed at least one eligible regular-season game on that date. The fallback exclusive boundary for the unconfigured year 2028 is 2028-09-28, giving a raw count of zero. With the raw count at zero, a fresh pick selection with an available predicted candidate uses the last-day policy. Please send this advisory to the BTS lead or Eric. Check the last regular-season game date on MLB's updated schedule, including pending makeup games, before arranging an update for a later run. Keep any pick already sent or entered as recorded.
+  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.
+[00:01 ET] Fetching schedule for 2028-09-29...
+  1 games, 1 scheduled checks:
+    18:20 ET — 1 game(s)
+SEASON BOUNDARY BEHIND SCHEDULE — 2028-09-29 ET: 1 eligible regular-season game(s). The fallback exclusive boundary for the unconfigured year 2028 is 2028-09-28, giving a raw count of zero. Season boundary warning not sent: first lineup check is due within 10 minutes.
+
+[00:01 ET] Running lineup check...
+

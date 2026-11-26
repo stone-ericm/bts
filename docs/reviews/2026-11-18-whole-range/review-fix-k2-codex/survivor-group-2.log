@@ -1,0 +1,26 @@
+tests/experiment/test_strategies.py
+tests/health/test_realized_calibration.py
+tests/model/test_calibrate.py
+tests/scripts/season_walk/test_season_walk.py
+tests/scripts/test_bin_collapse_read.py
+tests/scripts/test_leaderboard_mechanism_mining.py
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/wr-k2-cx-mutations/no-early-floor/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 80 items
+
+tests/experiment/test_strategies.py ..                                   [  2%]
+tests/health/test_realized_calibration.py .............................. [ 40%]
+..                                                                       [ 42%]
+tests/model/test_calibrate.py .............                              [ 58%]
+tests/scripts/season_walk/test_season_walk.py .......................... [ 91%]
+                                                                         [ 91%]
+tests/scripts/test_bin_collapse_read.py ..                               [ 93%]
+tests/scripts/test_leaderboard_mechanism_mining.py .....                 [100%]
+
+============================== 80 passed in 1.73s ==============================
+exit=0

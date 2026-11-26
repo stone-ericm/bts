@@ -1,0 +1,29 @@
+tests/test_wr_c2_receipt_identity.py
+tests/test_wr_c2_recovery.py
+tests/test_wr_c3_r2_entered_pick_blockers.py
+tests/test_wr_c3v_delivery.py
+tests/test_wr_e_texts.py
+tests/test_wr_f3_skip_state_review.py
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-k2-cx/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 419 items
+
+tests/test_wr_c2_receipt_identity.py ................................... [  8%]
+........................................................................ [ 25%]
+....................................                                     [ 34%]
+tests/test_wr_c2_recovery.py ........................................... [ 44%]
+..........................................................               [ 58%]
+tests/test_wr_c3_r2_entered_pick_blockers.py .........                   [ 60%]
+tests/test_wr_c3v_delivery.py .........                                  [ 62%]
+tests/test_wr_e_texts.py ............................................... [ 73%]
+..................                                                       [ 78%]
+tests/test_wr_f3_skip_state_review.py .................................. [ 86%]
+..........................................................               [100%]
+
+============================= 419 passed in 36.09s =============================
+exit=0

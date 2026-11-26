@@ -1,0 +1,29 @@
+tests/test_saved_pick_paths_cs5a.py
+tests/test_saver_cs3.py
+tests/test_saver_cs3_review.py
+tests/test_scheduler.py
+tests/test_scheduler_decision_record_integration.py
+tests/test_scheduler_eve_of_break.py
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/wr-k2-cx-mutations/no-early-floor/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 417 items
+
+tests/test_saved_pick_paths_cs5a.py .................................... [  8%]
+..ss..ss.........................................................        [ 24%]
+tests/test_saver_cs3.py ................................................ [ 35%]
+........................................................................ [ 52%]
+................................................................         [ 68%]
+tests/test_saver_cs3_review.py ......................                    [ 73%]
+tests/test_scheduler.py ................................................ [ 85%]
+............................                                             [ 91%]
+tests/test_scheduler_decision_record_integration.py .................... [ 96%]
+....                                                                     [ 97%]
+tests/test_scheduler_eve_of_break.py ..........                          [100%]
+
+======================== 413 passed, 4 skipped in 4.48s ========================
+exit=0

@@ -1,0 +1,53 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/wr-k2-cx-mutations/plain-dispatch/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 4 items
+
+tests/test_wr_k2_season_boundary.py F
+
+=================================== FAILURES ===================================
+_________________ test_warning_unconfirmed_send_retried[None] __________________
+tests/test_wr_k2_season_boundary.py:187: in test_warning_unconfirmed_send_retried
+    assert len(bodies) == 2
+E   AssertionError: assert 1 == 2
+E    +  where 1 = len(['BTS health WARN attention:\n- [season_boundary] Season boundary behind the schedule for 2027-09-27 ET. At scheduler ... pending makeup games, before arranging an update for a later run. Keep any pick already sent or entered as recorded.'])
+----------------------------- Captured stderr call -----------------------------
+  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.
+[10:00 ET] Fetching schedule for 2027-09-27...
+  1 games, 3 scheduled checks:
+    16:05 ET — 1 game(s)
+    17:05 ET — 1 game(s)
+    18:20 ET — 1 game(s)
+SEASON BOUNDARY BEHIND SCHEDULE — 2027-09-27 ET: 1 eligible regular-season game(s). The configured exclusive boundary is 2027-09-27, giving a raw count of zero.
+  Sleeping until 16:05 ET (365 min)...
+
+[16:05 ET] Running lineup check...
+  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.
+[10:00 ET] Fetching schedule for 2027-09-27...
+  1 games, 3 scheduled checks:
+    16:05 ET — 1 game(s)
+    17:05 ET — 1 game(s)
+    18:20 ET — 1 game(s)
+SEASON BOUNDARY BEHIND SCHEDULE — 2027-09-27 ET: 1 eligible regular-season game(s). The configured exclusive boundary is 2027-09-27, giving a raw count of zero.
+  Sleeping until 16:05 ET (365 min)...
+
+[16:05 ET] Running lineup check...
+  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.
+[10:00 ET] Fetching schedule for 2027-09-27...
+  1 games, 3 scheduled checks:
+    16:05 ET — 1 game(s)
+    17:05 ET — 1 game(s)
+    18:20 ET — 1 game(s)
+SEASON BOUNDARY BEHIND SCHEDULE — 2027-09-27 ET: 1 eligible regular-season game(s). The configured exclusive boundary is 2027-09-27, giving a raw count of zero.
+  Sleeping until 16:05 ET (365 min)...
+
+[16:05 ET] Running lineup check...
+=========================== short test summary info ============================
+FAILED tests/test_wr_k2_season_boundary.py::test_warning_unconfirmed_send_retried[None]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+============================== 1 failed in 0.68s ===============================
+exit=1

@@ -1,0 +1,14 @@
+tests/validate/test_rare_event_mc_eval.py
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-k2-cx/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 22 items
+
+tests/validate/test_rare_event_mc_eval.py ......................         [100%]
+
+============================== 22 passed in 1.31s ==============================
+exit=0
