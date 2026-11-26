@@ -4,8 +4,9 @@
 - **Producer:** `bts check-pick-entered` (`src/bts/cli.py`), with the receipt code in `src/bts/entry_receipt.py` and publication in `src/bts/receipt_io.py`.
 - **Tests:** `tests/test_entry_receipt.py`.
 - The installer sets the cadence and the watchdog decides eligibility. A true-only `early_cron_run` marks a run that passed the early gate. Each marker names the receipt of its own writer.
-- Early cron writes `data/health_state/pick_entry_check.early/<ET date>.json`. Manual checks and original-hours cron use the live marker. Each ledger can send a warning and an all-clear for the same entry.
-- The morning report uses an early observation when the final pick has the same leg identities and has no nominal original-hours slot. It uses the cutoff from that final pick. A later bound account observation from a manual or original-hours check takes precedence.
+- A pre-10:00 ET cron check that passes the early gate writes any resulting marker to `data/health_state/pick_entry_check.early/<ET date>.json`. Manual checks and original-hours cron use the live marker. Each ledger can send a warning and an all-clear for the same entry.
+- The morning report uses qualifying early observations only with a readable final pick that has the same legs and no nominal original-hours slot. It uses the cutoff from that final pick. A later bound account observation from a manual or original-hours check takes precedence.
+- When end-of-day health falls back to the early marker, a qualifying later sealed live receipt supersedes that marker. A live marker write whose receipt is published in the milliseconds after an early observation is counted as following it.
 
 ## Where
 - Each watchdog CLI invocation attempts to publish one receipt JSON at `data/health_state/pick_entry_receipts/<ET date>/<started>-<attempt_id>.json` and its sibling `.json.sealed` file. A slot skipped on lock contention produces no receipt. A hard stop before sealing can leave the run without a discoverable receipt.

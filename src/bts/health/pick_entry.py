@@ -58,7 +58,7 @@ def _live_receipt_follows(picks_dir: Path, et_date: str, observed: datetime) -> 
     root = entry_receipt.receipts_root(picks_dir) / et_date
     for path in receipt_io.discover(root):
         try:
-            receipt = json.loads(read_bounded_file_bytes(path, entry_receipt.STATE_READ_LIMIT).decode("utf-8"))
+            receipt = json.loads(read_bounded_file_bytes(path, entry_receipt.RECEIPT_READ_LIMIT).decode("utf-8"))
         except (OSError, ValueError, RecursionError):
             continue
         if (not isinstance(receipt, dict) or receipt.get("schema") != entry_receipt.SCHEMA
@@ -66,13 +66,10 @@ def _live_receipt_follows(picks_dir: Path, et_date: str, observed: datetime) -> 
                 or receipt.get("outcome") != "observed" or receipt.get("exit_code") not in (0, 1)
                 or receipt.get("marker_status") not in ("alerted", "dm_failed", "confirmed", "present_unverified")):
             continue
-        # A normal exit establishes that the marker write returned. The response
-        # timestamp establishes a lower bound on when that write could occur.
-        observation = receipt.get("observation")
-        if isinstance(observation, dict):
-            completed = entry_receipt.aware_timestamp(observation.get("response_completed_at"))
-            if completed is not None and completed > observed:
-                return True
+        # A normal exit establishes that the marker write returned before publication.
+        published = entry_receipt.aware_timestamp(receipt.get("published_at"))
+        if published is not None and published > observed:
+            return True
     return False
 
 
@@ -86,7 +83,7 @@ def _early_alerts(picks_dir: Path, today: date, now: datetime) -> list[Alert]:
     observed = entry_receipt.aware_timestamp(observed_at)
     if observed is None or _live_receipt_follows(picks_dir, et_date, observed):
         return []
-    daily, _, first_pitch = entry_receipt.read_early_pick(picks_dir, et_date)
+    daily, _, _, cutoff = entry_receipt.read_early_pick(picks_dir, et_date)
     if daily is None:
         if status == "dm_failed":
             return [Alert(level="CRITICAL", source=SOURCE,
@@ -96,7 +93,7 @@ def _early_alerts(picks_dir: Path, today: date, now: datetime) -> list[Alert]:
     if (entry_receipt.slot_identities(entry_receipt.selection_slots(daily))
             != entry_receipt.slot_identities(marker["slots"])):
         return []
-    if now < first_pitch - timedelta(minutes=SUBMIT_CUTOFF_MIN):
+    if now < cutoff:
         return []
     return _marker_alerts(et_date, marker)
 

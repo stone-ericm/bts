@@ -1893,8 +1893,7 @@ def day_outcome(date_str, config_path, picks_dir, expected_username, dm_recipien
 def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, now_et, cron):
     """DM if today's delivered pick was never entered in the MLB app.
 
-    Every run publishes one entry receipt (bts.entry_receipt; watchdog plan P1), whatever its outcome. The
-    receipt records; it changes nothing below.
+    Each watchdog CLI invocation attempts to publish one entry receipt and its seal.
 
     v2 (2026-07-03, RE-ENABLED in cron): entry is now detected from the UNION
     of two sources — the profile endpoint (settled rows only; v1's sole source
@@ -1904,12 +1903,11 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
     quietly WITHOUT consuming the once-per-day marker, so a transient error
     can never produce the v1 false-alarm class — the next cron run retries.
 
-    Runs from cron every 15 min; exits silently unless NOW is inside the
-    pre-first-pitch window for today's locked pick. v3 (audit F1): "alerted"
-    is non-terminal — every run re-verifies until the entry is confirmed or
-    the cutoff passes, with throttled escalations at T-30/T-15 to cutoff and
-    a one-time all-clear DM once the entry appears (marker with escalation
-    ledger in data/health_state/pick_entry_check.json).
+    The installed watchdog launches every 15 minutes ET. It prints the outcome
+    when it skips a check. An eligible early check uses the dated early ledger.
+    Manual and original-hours checks use the live ledger. While eligible, an
+    unresolved entry is checked again, with throttled reminders at 30 and 15
+    minutes to cutoff and an all-clear when a warned entry is confirmed.
     """
     import time
     from datetime import datetime
@@ -1953,7 +1951,7 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
     import httpx
     from bts.daily_decision import decision_path, load_decision_bytes, parse_decision, scoreable_commit_from
     from bts.entry_receipt import (
-        STATE_READ_LIMIT, early_marker_path, has_original_slot, qualify_run,
+        STATE_READ_LIMIT, early_marker_path, has_original_slot, pitch_instants, qualify_run,
         read_early_marker, read_early_pick, selection_slots, slot_identities,
     )
     from bts.picks import load_pick_bytes
@@ -1964,7 +1962,7 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
     early = cron and now.hour < 10
     # The pick and decision files are each read once; the receipt binds the exact bytes parsed and gated on.
     if early:
-        daily, pick_raw, first_pitch = read_early_pick(picks, today)
+        daily, pick_raw, first_pitch, _ = read_early_pick(picks, today)
     else:
         daily, pick_raw = load_pick_bytes(today, picks)
     if daily is None:
@@ -2027,6 +2025,7 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
     # sailed past a single 18:00 DM). "dm_failed" stays fully retryable
     # (Codex review, 2026-07-03).
     prior = {}
+    pending_all_clear = False
     if early:
         rec.early_cron_run = True
         status_path = early_marker_path(picks, today)
@@ -2034,11 +2033,17 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
         prior = read_early_marker(picks, today)
         if slot_identities(prior.get("slots")) != slot_identities(early_slots):
             prior = {}
-        elif [leg["game_time"] for leg in prior["slots"]] != [leg["game_time"] for leg in early_slots]:
-            unresolved = (prior.get("status") != "confirmed"
-                          and (prior.get("game_unresolved") is True or prior.get("reason") == "wrong_game"
-                               or "wrong_game" in prior.get("escalations", [])))
-            prior = {"game_unresolved": unresolved}
+        else:
+            # Older early markers recorded warning tiers without a separate all-clear flag.
+            pending_all_clear = prior.get(
+                "pending_all_clear", bool(prior.get("escalations"))) is True
+            if prior.get("status") == "confirmed":
+                pending_all_clear = False
+            if pitch_instants(prior["slots"]) != pitch_instants(early_slots):
+                unresolved = (prior.get("status") != "confirmed"
+                              and (prior.get("game_unresolved") is True or prior.get("reason") == "wrong_game"
+                                   or "wrong_game" in prior.get("escalations", [])))
+                prior = {"game_unresolved": unresolved}
     elif status_path.exists():
         try:
             prior = json.loads(status_path.read_text())
@@ -2072,6 +2077,8 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
             return True
         marker["slots"] = early_slots
         marker["observed_at"] = rec.response_completed_at
+        if marker["status"] != "confirmed":
+            marker["pending_all_clear"] = pending_all_clear
         try:
             _atomic_write_json(status_path, marker)
         except OSError as exc:
@@ -2162,8 +2169,9 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
         if prior_wrong_game and reason == "match":
             marker["escalations"] = prior_escalations
         published = mark(marker)
-        if published and dm_recipient and (
-                was_alerted or "initial" in prior_escalations or "wrong_game" in prior_escalations):
+        should_clear = (pending_all_clear if early else
+                        was_alerted or "initial" in prior_escalations or "wrong_game" in prior_escalations)
+        if published and dm_recipient and should_clear:
             # One-time all-clear on the alerted -> confirmed transition: the
             # operator got a scary DM; close the loop when the fix lands.
             try:
@@ -2293,6 +2301,8 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
             import bts.dm
             bts.dm.send_dm(dm_recipient, msg)
             dm_sent = True
+            if early:
+                pending_all_clear = True
             click.echo(f"check-pick-entered: DM sent to {dm_recipient}")
         except Exception as exc:
             click.echo(f"check-pick-entered: DM failed: {exc}", err=True)

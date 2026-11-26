@@ -215,7 +215,7 @@ def replay(tmp_path, installed, monkeypatch):
             marker.write_text(json.dumps({"date": day, "status": "confirmed"}))
 
         def check(self, at, *, day=DAY, present=True, manual=False, unit=77, fetch_seconds=0,
-                  interrupt=False):
+                  interrupt=False, nested_receipts=0):
             calls.clear()
             dms.clear()
             before = marker.read_bytes() if marker.exists() else None
@@ -234,7 +234,7 @@ def replay(tmp_path, installed, monkeypatch):
             self.result = result
             assert result.exit_code in (0, 1), (result.output, result.exception)
             receipts = entry_receipt.discover(picks, day)
-            assert len(receipts) == count + 1
+            assert len(receipts) == count + 1 + nested_receipts
             receipt, = [r for r in receipts if r["started_at"].startswith(f"{day}T{at}:00")]
             if interrupt:
                 assert receipt["detail"] == "raised KeyboardInterrupt"
@@ -701,6 +701,164 @@ def test_unavailable_pick_keeps_recorded_early_send_failure(replay, monkeypatch)
     alert, = health_at(replay)
     assert alert.level == "CRITICAL" and "unknown" in alert.message and "05:00" in alert.message
     assert replay.check("05:15") == ("no_pick_file", [], [], False)
+
+
+@pytest.mark.parametrize("wrong_game", [False, True])
+def test_round2_pitch_correction_keeps_pending_all_clear(replay, wrong_game):
+    replay.pick("06:10", deliver="04:55")
+    if wrong_game:
+        replay.units(WRONG)
+    _, _, warnings, _ = replay.check("05:00", present=wrong_game)
+    assert len(warnings) == 1 and warnings[0].startswith("⚠")
+    replay.pick("06:20", deliver="04:55")
+    replay.units({**RIGHT, "id": 78}, "091000")
+    _, _, clears, _ = replay.check("05:15", unit=78)
+    assert len(clears) == 1 and "entry confirmed" in clears[0]
+    assert replay.check("05:30") == ("already_confirmed", [], [], False)
+
+
+def test_round2_equivalent_utc_pitch_stays_terminal(replay):
+    replay.pick("06:10", deliver="04:55")
+    replay.units(RIGHT)
+    replay.check("05:00")
+    path = replay.picks_dir / f"{DAY}.json"
+    pick = json.loads(path.read_text())
+    pick["pick"]["game_time"] = f"{DAY}T10:10:00Z"
+    path.write_text(json.dumps(pick))
+    assert replay.check("05:15") == ("already_confirmed", [], [], False)
+
+
+@pytest.mark.parametrize("paused", [False, True], ids=["season-inventory", "paused-write"])
+def test_round2_sealed_live_recovery_suppresses_displaced_early_failure(replay, monkeypatch, paused):
+    from bts.cli import _atomic_write_json
+
+    replay.pick("06:10", deliver="04:40")
+    replay.units(RIGHT)
+
+    def early_failure():
+        with monkeypatch.context() as patch:
+            patch.setattr("bts.dm.send_dm", fail_warning)
+            replay.check("05:00", present=False)
+        assert json.loads(replay.early_path.read_text())["status"] == "dm_failed"
+
+    if paused:
+        def write_after_early_failure(path, marker):
+            if path == replay.marker_path:
+                early_failure()
+                monkeypatch.setattr("time.monotonic", lambda: 1000 + 6 * 60)
+            _atomic_write_json(path, marker)
+
+        with monkeypatch.context() as patch:
+            patch.setattr("bts.cli._atomic_write_json", write_after_early_failure)
+            # The nested early check publishes its own receipt before the manual one.
+            replay.check("04:55", manual=True, nested_receipts=1)
+    else:
+        early_failure()
+        for index in range(325):
+            replay.units(RIGHT, f"08{index // 60:02}{index % 60:02}")
+        replay.check("05:15", manual=True)
+
+    live, = [r for r in entry_receipt.discover(replay.picks_dir, DAY) if not r.get("early_cron_run")]
+    assert live["marker_status"] == "confirmed"
+    if paused:
+        observed = json.loads(replay.early_path.read_text())["observed_at"]
+        assert live["observation"]["response_completed_at"] < observed < live["published_at"]
+    else:
+        root = entry_receipt.receipts_root(replay.picks_dir) / DAY
+        receipt_path, = root.glob(f"*-{live['attempt_id']}.json")
+        assert receipt_path.stat().st_size > 64 * 1024
+    yesterday = "2027-03-23"
+    replay.pick("19:10", day=yesterday, deliver="17:50")
+    replay.check("18:00", day=yesterday, manual=True)
+    assert json.loads(replay.marker_path.read_text())["date"] == yesterday
+    assert health_at(replay) == []
+
+
+@pytest.mark.parametrize(("field", "value"), [
+    ("observed_at", "not a datetime"),
+    ("observed_at", f"{DAY}T05:00:00"),
+    ("observed_at", "2027-03-23T05:00:00-04:00"),
+    ("receipt", ["not", "an", "id"]),
+])
+def test_round2_malformed_early_confirmation_is_ignored(replay, field, value):
+    replay.pick("06:10", deliver="04:55")
+    replay.check("05:00")
+    marker = json.loads(replay.early_path.read_text())
+    marker[field] = value
+    replay.early_path.write_text(json.dumps(marker))
+    outcome, calls, warnings, _ = replay.check("05:15", present=False)
+    assert outcome == "observed" and calls and len(warnings) == 1
+
+
+@pytest.mark.parametrize("failed", [False, True], ids=["morning", "health"])
+def test_round2_overflowing_pick_cutoff_is_unavailable(replay, monkeypatch, failed):
+    replay.pick("06:10", deliver="04:55")
+    replay.units(RIGHT)
+    with monkeypatch.context() as patch:
+        if failed:
+            patch.setattr("bts.dm.send_dm", fail_warning)
+        replay.check("05:00", present=not failed)
+    path = replay.picks_dir / f"{DAY}.json"
+    pick = json.loads(path.read_text())
+    pick["pick"]["game_time"] = "0001-01-01T05:00:00Z"
+    path.write_text(json.dumps(pick))
+    if failed:
+        alert, = health_at(replay)
+        assert alert.level == "CRITICAL" and "current selection is unknown" in alert.message
+    else:
+        code, dms = replay.morning()
+        assert code == 1 and "ENTRY UNVERIFIABLE" in dms[0]
+
+
+def test_round2_same_date_live_health_precedence_without_seal(replay, monkeypatch):
+    replay.pick("06:10", deliver="04:55")
+    with monkeypatch.context() as patch:
+        patch.setattr("bts.dm.send_dm", fail_warning)
+        replay.check("05:00", present=False)
+    assert [a.level for a in health_at(replay)] == ["CRITICAL"]
+    replay.marker()
+    assert health_at(replay) == []
+
+
+def test_round2_oversized_early_pick_is_unavailable(replay):
+    replay.pick("06:10", deliver="04:55")
+    replay.units(RIGHT)
+    replay.check("05:00")
+    path = replay.picks_dir / f"{DAY}.json"
+    path.write_bytes(path.read_bytes() + b" " * (1024 * 1024))
+    assert replay.check("05:15") == ("no_pick_file", [], [], False)
+    code, dms = replay.morning()
+    assert code == 1 and "ENTRY UNVERIFIABLE" in dms[0]
+
+
+@pytest.mark.parametrize(("pitch", "at", "deliver", "outcome"), [
+    ("10:20", "09:45", "09:40", "base_slot_available"),
+    ("06:10", "04:45", "04:40", "outside_window"),
+])
+def test_round2_local_gate_receipts_omit_early_flag(replay, pitch, at, deliver, outcome):
+    replay.pick(pitch, deliver=deliver)
+    assert replay.check(at) == (outcome, [], [], False)
+    receipt, = entry_receipt.discover(replay.picks_dir, DAY)
+    assert "early_cron_run" not in receipt
+
+
+@pytest.mark.parametrize("failed", [False, True], ids=["morning", "health"])
+def test_round2_early_readers_bind_saved_legs(replay, monkeypatch, failed):
+    replay.pick("06:10", deliver="04:55")
+    replay.units(RIGHT)
+    with monkeypatch.context() as patch:
+        if failed:
+            patch.setattr("bts.dm.send_dm", fail_warning)
+        replay.check("05:00", present=not failed)
+    path = replay.picks_dir / f"{DAY}.json"
+    pick = json.loads(path.read_text())
+    pick["pick"]["game_pk"] = 102
+    path.write_text(json.dumps(pick))
+    if failed:
+        assert health_at(replay) == []
+    else:
+        code, dms = replay.morning()
+        assert code == 1 and "ENTRY UNVERIFIABLE" in dms[0]
 
 
 def test_invalid_early_marker_destination(replay):

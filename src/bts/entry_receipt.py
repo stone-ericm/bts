@@ -27,7 +27,7 @@ import hashlib
 import json
 import sys
 import uuid
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -38,20 +38,23 @@ SCHEMA = "bts_pick_entry_receipt_v1"
 REPO = Path(__file__).resolve().parents[2]
 WATCHDOG_WINDOW_MIN = 75
 STATE_READ_LIMIT = 64 * 1024
+RECEIPT_READ_LIMIT = 4 * 1024 * 1024
 
 
 def read_early_pick(picks_dir: Path, et_date: str):
-    """Read the selection once, retaining the exact bytes for its receipt."""
-    from bts.picks import earliest_pick_game_et, parse_daily_pick
+    """Read the selection once, retaining its exact bytes and validated timing."""
+    from bts.picks import SUBMISSION_CUTOFF_MIN, earliest_pick_game_et, parse_daily_pick
 
     try:
         raw = read_bounded_file_bytes(Path(picks_dir) / f"{et_date}.json", 1024 * 1024)
         daily = parse_daily_pick(raw.decode("utf-8"))
         if daily.date == et_date and slot_identities(selection_slots(daily)) is not None:
-            return daily, raw, earliest_pick_game_et(daily)
+            first_pitch = earliest_pick_game_et(daily)
+            cutoff = first_pitch - timedelta(minutes=SUBMISSION_CUTOFF_MIN)
+            return daily, raw, first_pitch, cutoff
     except (OSError, ValueError, TypeError, KeyError, AttributeError, OverflowError, RecursionError):
         pass
-    return None, None, None
+    return None, None, None, None
 
 
 def has_original_slot(et_date: date, first_pitch: datetime, window_min: int = WATCHDOG_WINDOW_MIN) -> bool:
@@ -92,6 +95,11 @@ def aware_timestamp(value: object) -> datetime | None:
     return None
 
 
+def pitch_instants(slots: list[dict]) -> list[datetime]:
+    times = [datetime.fromisoformat(slot["game_time"]) for slot in slots]
+    return [time if time.tzinfo is not None else time.replace(tzinfo=timezone.utc) for time in times]
+
+
 def read_early_marker(picks_dir: Path, et_date: str) -> dict:
     try:
         marker = json.loads(read_bounded_file_bytes(early_marker_path(picks_dir, et_date),
@@ -107,14 +115,20 @@ def read_early_marker(picks_dir: Path, et_date: str) -> dict:
             or checked is None or checked.date().isoformat() != et_date
             or slot_identities(slots) is None
             or not isinstance(tiers, list)
-            or any(tier not in ("wrong_game", "initial", "t30", "t15") for tier in tiers)):
+            or any(tier not in ("wrong_game", "initial", "t30", "t15") for tier in tiers)
+            or ("receipt" in marker and not isinstance(marker["receipt"], str))):
         return {}
     try:
-        for slot in slots:
-            datetime.fromisoformat(slot.get("game_time"))
-    except (TypeError, ValueError):
+        pitch_instants(slots)
+        if "observed_at" in marker:
+            observed = aware_timestamp(marker["observed_at"])
+            if observed is None or observed.astimezone(ZoneInfo("America/New_York")).date().isoformat() != et_date:
+                return {}
+    except (KeyError, TypeError, ValueError, OverflowError):
         return {}
     return marker
+
+
 ROW_FIELDS = {"roundId": int, "unitId": int, "playerId": int, "number": int, "result": str}
 # The only result values a row may carry into a receipt (producer review r2 C3): the contest's resolved states plus
 # null (pending). Any other string is nulled and named, so no unexpected text, a token included, rides along.

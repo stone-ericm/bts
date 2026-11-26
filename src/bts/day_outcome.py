@@ -32,7 +32,7 @@ import json
 import os
 import stat
 from dataclasses import dataclass, replace
-from datetime import date as Date, datetime, timedelta
+from datetime import date as Date, datetime
 from pathlib import Path
 
 from bts.contest_state import DATED_MANUAL_SCHEMA, ContestStateError, validate_dated_observation
@@ -177,13 +177,11 @@ def _entry_state(receipts: list[dict], *, date: str, decision_sha256: str | None
 
 def _eligible_early_observations(early, live, picks_dir: Path, date: str) -> list[dict]:
     from bts import entry_receipt
-    from bts.picks import SUBMISSION_CUTOFF_MIN
 
-    daily, _, pitch = entry_receipt.read_early_pick(picks_dir, date)
+    daily, _, pitch, cutoff = entry_receipt.read_early_pick(picks_dir, date)
     if daily is None or entry_receipt.has_original_slot(Date.fromisoformat(date), pitch):
         return []
     identities = entry_receipt.slot_identities(entry_receipt.selection_slots(daily))
-    cutoff = pitch - timedelta(minutes=SUBMISSION_CUTOFF_MIN)
     latest_live = max((stamp for r in live if
                        (stamp := entry_receipt.aware_timestamp(
                            (r.get("observation") or {}).get("response_completed_at"))) is not None), default=None)
