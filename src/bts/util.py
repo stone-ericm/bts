@@ -18,11 +18,20 @@ class FileReadLimitError(OSError):
     """The file contains more bytes than the caller's read limit."""
 
 
+class MissingFileTargetError(FileNotFoundError):
+    """The target was missing at stat or open during a bounded read."""
+
+
 def read_regular_file_text(path: Path, *, max_bytes: int | None = None) -> str:
     """Read UTF-8 from a regular file, optionally rejecting inputs above a byte limit."""
-    if max_bytes is not None and not stat.S_ISREG(path.stat().st_mode):
-        raise NotRegularFileError(f"{path}: not a regular file")
-    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+    try:
+        if max_bytes is not None and not stat.S_ISREG(path.stat().st_mode):
+            raise NotRegularFileError(f"{path}: not a regular file")
+        fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+    except FileNotFoundError as exc:
+        if max_bytes is None:
+            raise
+        raise MissingFileTargetError(*exc.args) from exc
     try:
         if not stat.S_ISREG(os.fstat(fd).st_mode):
             if max_bytes is not None:

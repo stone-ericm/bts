@@ -28,8 +28,9 @@ NOTICE = (
     "through Eric. The 08:00 ET correction cutoff still applies."
 )
 COMPACT = (
-    ". Local model streak file needs review ({}). Preserve the files. See day-outcome JSON in cron.log "
-    "and B8b item 2 in docs/ops/2027-season-start.md before the next affected job. "
+    ". Local model streak file needs review ({}). Preserve the files. Find the day-outcome JSON in "
+    "cron.log for a scheduled run or on stdout for a manual run. Follow B8b item 2 in "
+    "docs/ops/2027-season-start.md before the next affected job. "
     "Escalate through Eric if needed."
 )
 STATES = {
@@ -391,3 +392,104 @@ def test_k1_dangling_symlink(tmp_path):
     assert (result.exit_code, result.stderr, messages) == (0, before.stderr, before_dm)
     assert json.loads(result.stdout) == json.loads(before.stdout) | {"streak_problem": None}
     assert path.readlink() == Path("absent.json")
+
+
+@pytest.mark.parametrize("stage", ["open", "fstat", "read"])
+def test_missing_target_vs_open_descriptor_failure(tmp_path, monkeypatch, stage):
+    directory, config, games = setup_day(tmp_path, "no_games")
+    args = directory, config, games
+    original, original_dm = run_report(*args)
+    path = directory / "streak.json"
+    path.write_bytes(b"{}")
+    real_open = os.open
+    real_operation = getattr(os, stage)
+    streak_fd = None
+    injected = []
+
+    def open_file(candidate, *args, **kwargs):
+        nonlocal streak_fd
+        if candidate != path:
+            return real_open(candidate, *args, **kwargs)
+        if stage == "open":
+            injected.append(stage)
+            raise FileNotFoundError(2, "injected missing target", candidate)
+        streak_fd = real_open(candidate, *args, **kwargs)
+        return streak_fd
+
+    def descriptor_operation(fd, *args, **kwargs):
+        if fd == streak_fd:
+            injected.append(stage)
+            raise FileNotFoundError(2, "injected descriptor failure")
+        return real_operation(fd, *args, **kwargs)
+
+    monkeypatch.setattr(util.os, "open", open_file)
+    if stage != "open":
+        monkeypatch.setattr(util.os, stage, descriptor_operation)
+    result, messages = run_report(*args)
+    assert injected == [stage]
+    if stage == "open":
+        assert (result.exit_code, result.stdout, result.stderr, messages) == (
+            0, original.stdout, original.stderr, original_dm,
+        )
+    else:
+        assert_problem((result, messages), json.loads(original.stdout), "cannot be read (FileNotFoundError)")
+
+
+def test_streak_read_once_after_classification_and_skip_review(tmp_path, monkeypatch):
+    directory, config, games = setup_day(tmp_path, "deliberate_skip")
+    args = directory, config, games
+    before = json.loads(run_report(*args)[0].stdout)
+    path = directory / "streak.json"
+    path.write_bytes(b"{}")
+    events = []
+    real_classify = day_outcome.classify_day
+    real_review = day_outcome._skip_review
+    real_read = day_outcome.read_regular_file_text
+
+    def classify(*args, **kwargs):
+        outcome = real_classify(*args, **kwargs)
+        events.append("classify")
+        return outcome
+
+    def review_skip(*args, **kwargs):
+        outcome = real_review(*args, **kwargs)
+        events.append("skip review")
+        path.write_bytes(b"{")
+        return outcome
+
+    def read_streak(candidate, **kwargs):
+        assert candidate == path
+        events.append("read")
+        return real_read(candidate, **kwargs)
+
+    monkeypatch.setattr(day_outcome, "classify_day", classify)
+    monkeypatch.setattr(day_outcome, "_skip_review", review_skip)
+    monkeypatch.setattr(day_outcome, "read_regular_file_text", read_streak)
+    run = run_report(*args)
+    assert events == ["classify", "skip review", "read"]
+    assert_problem(run, before, "not valid JSON")
+
+
+@pytest.mark.parametrize("expected", [
+    pytest.param(
+        "For a morning report with a model streak file advisory, give `bts-lead` the report, its host and ET "
+        "run time, and any grading or reconcile errors, receipt paths, and health alerts. If the lead session "
+        "is unavailable, give the same information to Eric. Verify which jobs completed, including when "
+        "reconcile reported success.",
+        id="morning-advisory",
+    ),
+    pytest.param(
+        "Complete reconcile replay can rebuild a replaceable regular file from verified final history after "
+        "the blockers are resolved. Preserve a non-regular target during triage and have the BTS lead or "
+        "Eric prepare a safe target before running reconcile. The grader and reconcile can block on a FIFO. "
+        "The 08:00 ET correction cutoff still applies.",
+        id="safe-recovery",
+    ),
+])
+def test_b8b_item_2_checklist(expected):
+    checklist = Path(__file__).resolve().parents[1] / "docs/ops/2027-season-start.md"
+    row = next(line for line in checklist.read_text().splitlines() if line.startswith("| B8b |"))
+    item = row.split(" (2) ", 1)[1].split(" (3) ", 1)[0]
+    assert expected in item
+    if expected.startswith("For a morning report"):
+        assert item.split("** ", 1)[1].startswith(expected + " ")

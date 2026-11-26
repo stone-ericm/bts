@@ -36,7 +36,7 @@ from pathlib import Path
 from bts.contest_state import DATED_MANUAL_SCHEMA, ContestStateError, validate_dated_observation
 from bts.saver_state import SaverState, policy_saver_available
 from bts.season_contract import ET, InvalidContract, validate_contract
-from bts.util import FileReadLimitError, NotRegularFileError, read_regular_file_text
+from bts.util import FileReadLimitError, MissingFileTargetError, NotRegularFileError, read_regular_file_text
 
 OK_STATES = frozenset({"no_games", "deliberate_skip", "entered", "entered_game_unverified", "research_commit"})
 ABSENT_REASONS = frozenset({"no_pick", "mismatch"})
@@ -76,8 +76,9 @@ class DayOutcome:
         if len(body) > DM_MAX_CODE_POINTS:
             return (
                 f"{head}. Local model streak file needs review ({self.streak_problem}). Preserve the files. "
-                "See day-outcome JSON in cron.log and B8b item 2 in docs/ops/2027-season-start.md before the "
-                "next affected job. Escalate through Eric if needed."
+                "Find the day-outcome JSON in cron.log for a scheduled run or on stdout for a manual run. "
+                "Follow B8b item 2 in docs/ops/2027-season-start.md before the next affected job. "
+                "Escalate through Eric if needed."
             )
         return body
 
@@ -89,7 +90,7 @@ class DayOutcome:
 def _streak_problem(path: Path) -> str | None:
     try:
         text = read_regular_file_text(path, max_bytes=STREAK_MAX_BYTES)
-    except FileNotFoundError:
+    except MissingFileTargetError:
         return None
     except NotRegularFileError:
         return "not a regular file"
