@@ -1,0 +1,37 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2-cb
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 889 items
+
+tests/test_live_gate_cs6a.py ........................................... [  4%]
+.............                                                            [  6%]
+tests/test_live_gate_cs6a_review.py ........                             [  7%]
+tests/test_morning_state_cs6b1.py ...................................... [ 11%]
+.......................                                                  [ 14%]
+tests/test_morning_state_cs6b1_review.py .................               [ 15%]
+tests/test_pick_chosen_on_cs5a.py ...................................... [ 20%]
+........................................................................ [ 28%]
+.............................................................            [ 35%]
+tests/test_pickpath_review_pp1.py ....                                   [ 35%]
+tests/test_pickpath_review_pp2.py ...................................... [ 39%]
+ss....ss....ss....ss.........                                            [ 43%]
+tests/test_postponed_delivery_guard.py ........................          [ 45%]
+tests/test_saved_pick_cs5a_review.py ................................... [ 49%]
+.............                                                            [ 51%]
+tests/test_saved_pick_paths_cs5a.py .................................... [ 55%]
+..ss..ss.........................................................        [ 62%]
+tests/test_saver_cs3.py ................................................ [ 68%]
+........................................................................ [ 76%]
+................................................................         [ 83%]
+tests/test_saver_cs3_review.py ......................                    [ 85%]
+tests/test_saver_state.py ................                               [ 87%]
+tests/test_scheduler.py ................................................ [ 93%]
+............................                                             [ 96%]
+tests/test_scheduler_decision_record_integration.py .................... [ 98%]
+....                                                                     [ 98%]
+tests/test_scheduler_eve_of_break.py ..........                          [100%]
+
+======================= 877 passed, 12 skipped in 4.53s ========================

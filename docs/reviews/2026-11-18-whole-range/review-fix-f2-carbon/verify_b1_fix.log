@@ -1,0 +1,537 @@
+nice: setpriority: Operation not permitted
+=== Unmodified 2e20fdfc ===
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0 -- /Users/eric/projects/bts-work/wr-rev-f2-cb/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2-cb
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 4 items
+
+.carbon-review/wr-f2-r1/test_f2_b1_stat_oserror_regression.py::test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm[False-unsearchable_dir] FAILED [ 25%]
+.carbon-review/wr-f2-r1/test_f2_b1_stat_oserror_regression.py::test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm[False-enametoolong] FAILED [ 50%]
+.carbon-review/wr-f2-r1/test_f2_b1_stat_oserror_regression.py::test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm[True-unsearchable_dir] FAILED [ 75%]
+.carbon-review/wr-f2-r1/test_f2_b1_stat_oserror_regression.py::test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm[True-enametoolong] FAILED [100%]
+
+=================================== FAILURES ===================================
+_ test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm[False-unsearchable_dir] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10fb65190>
+symlink_kind = 'unsearchable_dir', historical = False
+
+    @pytest.mark.parametrize("symlink_kind", ["unsearchable_dir", "enametoolong"])
+    @pytest.mark.parametrize("historical", [False, True])
+    def test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm(
+        tmp_path, monkeypatch, symlink_kind, historical,
+    ):
+        picks = tmp_path / "data" / "picks"
+        _write_dated_used(picks)
+        resolved = [dt.date(2027, 7, 16), dt.date(2027, 7, 17)]
+        monkeypatch.setattr(health, "latest_resolved_pick_date", lambda _: max(resolved))
+        monkeypatch.setattr(health, "_scan_resolved_pick_dates", lambda *a, **kw: resolved)
+        monkeypatch.setattr(health, "resolved_pick_settlement_gap", lambda *a: 2)
+    
+        baseline = health.check(
+            picks, expected=True, now=DAY, historical_day=DAY.date() if historical else None,
+        )
+        assert len(baseline) == 1 and baseline[0].source == "contest_state" and baseline[0].level == "WARN"
+    
+        locked_dir = None
+        target = picks / "account_state" / "saver_state.json"
+        if symlink_kind == "unsearchable_dir":
+            locked_dir = picks / "account_state" / "locked_sub"
+            locked_dir.mkdir()
+            (locked_dir / "s.json").write_text('{"season": 2027, "state": "active"}', encoding="utf-8")
+            locked_dir.chmod(0o000)
+            os.symlink(locked_dir / "s.json", target)
+        else:
+            os.symlink("x" * 300, target)
+    
+        wall = DAY + dt.timedelta(hours=3) if historical else DAY
+    
+        class WallClock(REAL_DT):
+            @classmethod
+            def now(cls, tz=None):
+                return wall.astimezone(tz) if tz else wall.replace(tzinfo=None)
+    
+        try:
+            dms = []
+            orig_safe_run = runner._safe_run
+            with patch.object(runner, "datetime", WallClock), \
+                 patch.object(alert, "datetime", WallClock), \
+                 patch.object(health, "datetime", WallClock), \
+                 patch.object(alert, "send_dm", side_effect=lambda r, b: dms.append((r, b)) or "ok"), \
+                 patch.object(runner, "_safe_run", side_effect=lambda n, fn: orig_safe_run(n, fn) if n == "contest_state" else []):
+                eod_alerts = runner.run_all_checks(
+                    picks_dir=picks,
+                    models_dir=tmp_path / "data" / "models",
+                    dm_recipient="ops.bsky.social",
+                    today=DAY.date(),
+                    contest_state_expected=True,
+                )
+>           actual = health.check(
+                picks, expected=True, now=DAY, historical_day=DAY.date() if historical else None,
+            )
+
+.carbon-review/wr-f2-r1/test_f2_b1_stat_oserror_regression.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/bts/health/contest_state.py:70: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:214: in _check
+    flag = _read_saver_state(picks_dir, season=year, historical=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/saver_state.py:54: in _read_saver_state
+    if not path.exists():
+           ^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:860: in exists
+    self.stat(follow_symlinks=follow_symlinks)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s0/data/picks/account_state/saver_state.json')
+
+    def stat(self, *, follow_symlinks=True):
+        """
+        Return the result of the stat() system call on this path, like
+        os.stat() does.
+        """
+>       return os.stat(self, follow_symlinks=follow_symlinks)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       PermissionError: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s0/data/picks/account_state/saver_state.json'
+
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:840: PermissionError
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.runner:runner.py:67 health check 'contest_state' raised: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s0/data/picks/account_state/saver_state.json'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/health/runner.py", line 65, in _safe_run
+    return fn()
+           ^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/health/runner.py", line 141, in <lambda>
+    contest_alerts = _safe_run("contest_state", lambda: contest_state.check(
+                                                        ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/health/contest_state.py", line 70, in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/health/contest_state.py", line 214, in _check
+    flag = _read_saver_state(picks_dir, season=year, historical=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/saver_state.py", line 54, in _read_saver_state
+    if not path.exists():
+           ^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 860, in exists
+    self.stat(follow_symlinks=follow_symlinks)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 840, in stat
+    return os.stat(self, follow_symlinks=follow_symlinks)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s0/data/picks/account_state/saver_state.json'
+ERROR    bts.health.alert:alert.py:47 [health_runner CRITICAL] health check 'contest_state' crashed: PermissionError: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s0/data/picks/account_state/saver_state.json'
+_ test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm[False-enametoolong] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10e4db9e0>
+symlink_kind = 'enametoolong', historical = False
+
+    @pytest.mark.parametrize("symlink_kind", ["unsearchable_dir", "enametoolong"])
+    @pytest.mark.parametrize("historical", [False, True])
+    def test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm(
+        tmp_path, monkeypatch, symlink_kind, historical,
+    ):
+        picks = tmp_path / "data" / "picks"
+        _write_dated_used(picks)
+        resolved = [dt.date(2027, 7, 16), dt.date(2027, 7, 17)]
+        monkeypatch.setattr(health, "latest_resolved_pick_date", lambda _: max(resolved))
+        monkeypatch.setattr(health, "_scan_resolved_pick_dates", lambda *a, **kw: resolved)
+        monkeypatch.setattr(health, "resolved_pick_settlement_gap", lambda *a: 2)
+    
+        baseline = health.check(
+            picks, expected=True, now=DAY, historical_day=DAY.date() if historical else None,
+        )
+        assert len(baseline) == 1 and baseline[0].source == "contest_state" and baseline[0].level == "WARN"
+    
+        locked_dir = None
+        target = picks / "account_state" / "saver_state.json"
+        if symlink_kind == "unsearchable_dir":
+            locked_dir = picks / "account_state" / "locked_sub"
+            locked_dir.mkdir()
+            (locked_dir / "s.json").write_text('{"season": 2027, "state": "active"}', encoding="utf-8")
+            locked_dir.chmod(0o000)
+            os.symlink(locked_dir / "s.json", target)
+        else:
+            os.symlink("x" * 300, target)
+    
+        wall = DAY + dt.timedelta(hours=3) if historical else DAY
+    
+        class WallClock(REAL_DT):
+            @classmethod
+            def now(cls, tz=None):
+                return wall.astimezone(tz) if tz else wall.replace(tzinfo=None)
+    
+        try:
+            dms = []
+            orig_safe_run = runner._safe_run
+            with patch.object(runner, "datetime", WallClock), \
+                 patch.object(alert, "datetime", WallClock), \
+                 patch.object(health, "datetime", WallClock), \
+                 patch.object(alert, "send_dm", side_effect=lambda r, b: dms.append((r, b)) or "ok"), \
+                 patch.object(runner, "_safe_run", side_effect=lambda n, fn: orig_safe_run(n, fn) if n == "contest_state" else []):
+                eod_alerts = runner.run_all_checks(
+                    picks_dir=picks,
+                    models_dir=tmp_path / "data" / "models",
+                    dm_recipient="ops.bsky.social",
+                    today=DAY.date(),
+                    contest_state_expected=True,
+                )
+>           actual = health.check(
+                picks, expected=True, now=DAY, historical_day=DAY.date() if historical else None,
+            )
+
+.carbon-review/wr-f2-r1/test_f2_b1_stat_oserror_regression.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/bts/health/contest_state.py:70: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:214: in _check
+    flag = _read_saver_state(picks_dir, season=year, historical=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/saver_state.py:54: in _read_saver_state
+    if not path.exists():
+           ^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:860: in exists
+    self.stat(follow_symlinks=follow_symlinks)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s1/data/picks/account_state/saver_state.json')
+
+    def stat(self, *, follow_symlinks=True):
+        """
+        Return the result of the stat() system call on this path, like
+        os.stat() does.
+        """
+>       return os.stat(self, follow_symlinks=follow_symlinks)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       OSError: [Errno 63] File name too long: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s1/data/picks/account_state/saver_state.json'
+
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:840: OSError
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.runner:runner.py:67 health check 'contest_state' raised: [Errno 63] File name too long: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s1/data/picks/account_state/saver_state.json'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/health/runner.py", line 65, in _safe_run
+    return fn()
+           ^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/health/runner.py", line 141, in <lambda>
+    contest_alerts = _safe_run("contest_state", lambda: contest_state.check(
+                                                        ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/health/contest_state.py", line 70, in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/health/contest_state.py", line 214, in _check
+    flag = _read_saver_state(picks_dir, season=year, historical=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/saver_state.py", line 54, in _read_saver_state
+    if not path.exists():
+           ^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 860, in exists
+    self.stat(follow_symlinks=follow_symlinks)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 840, in stat
+    return os.stat(self, follow_symlinks=follow_symlinks)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OSError: [Errno 63] File name too long: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s1/data/picks/account_state/saver_state.json'
+ERROR    bts.health.alert:alert.py:47 [health_runner CRITICAL] health check 'contest_state' crashed: OSError: [Errno 63] File name too long: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s1/data/picks/account_state/saver_state.json'
+_ test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm[True-unsearchable_dir] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x110a7eed0>
+symlink_kind = 'unsearchable_dir', historical = True
+
+    @pytest.mark.parametrize("symlink_kind", ["unsearchable_dir", "enametoolong"])
+    @pytest.mark.parametrize("historical", [False, True])
+    def test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm(
+        tmp_path, monkeypatch, symlink_kind, historical,
+    ):
+        picks = tmp_path / "data" / "picks"
+        _write_dated_used(picks)
+        resolved = [dt.date(2027, 7, 16), dt.date(2027, 7, 17)]
+        monkeypatch.setattr(health, "latest_resolved_pick_date", lambda _: max(resolved))
+        monkeypatch.setattr(health, "_scan_resolved_pick_dates", lambda *a, **kw: resolved)
+        monkeypatch.setattr(health, "resolved_pick_settlement_gap", lambda *a: 2)
+    
+        baseline = health.check(
+            picks, expected=True, now=DAY, historical_day=DAY.date() if historical else None,
+        )
+        assert len(baseline) == 1 and baseline[0].source == "contest_state" and baseline[0].level == "WARN"
+    
+        locked_dir = None
+        target = picks / "account_state" / "saver_state.json"
+        if symlink_kind == "unsearchable_dir":
+            locked_dir = picks / "account_state" / "locked_sub"
+            locked_dir.mkdir()
+            (locked_dir / "s.json").write_text('{"season": 2027, "state": "active"}', encoding="utf-8")
+            locked_dir.chmod(0o000)
+            os.symlink(locked_dir / "s.json", target)
+        else:
+            os.symlink("x" * 300, target)
+    
+        wall = DAY + dt.timedelta(hours=3) if historical else DAY
+    
+        class WallClock(REAL_DT):
+            @classmethod
+            def now(cls, tz=None):
+                return wall.astimezone(tz) if tz else wall.replace(tzinfo=None)
+    
+        try:
+            dms = []
+            orig_safe_run = runner._safe_run
+            with patch.object(runner, "datetime", WallClock), \
+                 patch.object(alert, "datetime", WallClock), \
+                 patch.object(health, "datetime", WallClock), \
+                 patch.object(alert, "send_dm", side_effect=lambda r, b: dms.append((r, b)) or "ok"), \
+                 patch.object(runner, "_safe_run", side_effect=lambda n, fn: orig_safe_run(n, fn) if n == "contest_state" else []):
+                eod_alerts = runner.run_all_checks(
+                    picks_dir=picks,
+                    models_dir=tmp_path / "data" / "models",
+                    dm_recipient="ops.bsky.social",
+                    today=DAY.date(),
+                    contest_state_expected=True,
+                )
+>           actual = health.check(
+                picks, expected=True, now=DAY, historical_day=DAY.date() if historical else None,
+            )
+
+.carbon-review/wr-f2-r1/test_f2_b1_stat_oserror_regression.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/bts/health/contest_state.py:70: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:214: in _check
+    flag = _read_saver_state(picks_dir, season=year, historical=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/saver_state.py:54: in _read_saver_state
+    if not path.exists():
+           ^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:860: in exists
+    self.stat(follow_symlinks=follow_symlinks)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s2/data/picks/account_state/saver_state.json')
+
+    def stat(self, *, follow_symlinks=True):
+        """
+        Return the result of the stat() system call on this path, like
+        os.stat() does.
+        """
+>       return os.stat(self, follow_symlinks=follow_symlinks)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       PermissionError: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s2/data/picks/account_state/saver_state.json'
+
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:840: PermissionError
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.runner:runner.py:67 health check 'contest_state' raised: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s2/data/picks/account_state/saver_state.json'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/health/runner.py", line 65, in _safe_run
+    return fn()
+           ^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/health/runner.py", line 141, in <lambda>
+    contest_alerts = _safe_run("contest_state", lambda: contest_state.check(
+                                                        ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/health/contest_state.py", line 70, in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/health/contest_state.py", line 214, in _check
+    flag = _read_saver_state(picks_dir, season=year, historical=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/saver_state.py", line 54, in _read_saver_state
+    if not path.exists():
+           ^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 860, in exists
+    self.stat(follow_symlinks=follow_symlinks)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 840, in stat
+    return os.stat(self, follow_symlinks=follow_symlinks)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s2/data/picks/account_state/saver_state.json'
+ERROR    bts.health.alert:alert.py:47 [health_runner CRITICAL] Prior slate 2027-07-15 ET. The contest state health check failed before it could finish. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+_ test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm[True-enametoolong] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c06af90>
+symlink_kind = 'enametoolong', historical = True
+
+    @pytest.mark.parametrize("symlink_kind", ["unsearchable_dir", "enametoolong"])
+    @pytest.mark.parametrize("historical", [False, True])
+    def test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm(
+        tmp_path, monkeypatch, symlink_kind, historical,
+    ):
+        picks = tmp_path / "data" / "picks"
+        _write_dated_used(picks)
+        resolved = [dt.date(2027, 7, 16), dt.date(2027, 7, 17)]
+        monkeypatch.setattr(health, "latest_resolved_pick_date", lambda _: max(resolved))
+        monkeypatch.setattr(health, "_scan_resolved_pick_dates", lambda *a, **kw: resolved)
+        monkeypatch.setattr(health, "resolved_pick_settlement_gap", lambda *a: 2)
+    
+        baseline = health.check(
+            picks, expected=True, now=DAY, historical_day=DAY.date() if historical else None,
+        )
+        assert len(baseline) == 1 and baseline[0].source == "contest_state" and baseline[0].level == "WARN"
+    
+        locked_dir = None
+        target = picks / "account_state" / "saver_state.json"
+        if symlink_kind == "unsearchable_dir":
+            locked_dir = picks / "account_state" / "locked_sub"
+            locked_dir.mkdir()
+            (locked_dir / "s.json").write_text('{"season": 2027, "state": "active"}', encoding="utf-8")
+            locked_dir.chmod(0o000)
+            os.symlink(locked_dir / "s.json", target)
+        else:
+            os.symlink("x" * 300, target)
+    
+        wall = DAY + dt.timedelta(hours=3) if historical else DAY
+    
+        class WallClock(REAL_DT):
+            @classmethod
+            def now(cls, tz=None):
+                return wall.astimezone(tz) if tz else wall.replace(tzinfo=None)
+    
+        try:
+            dms = []
+            orig_safe_run = runner._safe_run
+            with patch.object(runner, "datetime", WallClock), \
+                 patch.object(alert, "datetime", WallClock), \
+                 patch.object(health, "datetime", WallClock), \
+                 patch.object(alert, "send_dm", side_effect=lambda r, b: dms.append((r, b)) or "ok"), \
+                 patch.object(runner, "_safe_run", side_effect=lambda n, fn: orig_safe_run(n, fn) if n == "contest_state" else []):
+                eod_alerts = runner.run_all_checks(
+                    picks_dir=picks,
+                    models_dir=tmp_path / "data" / "models",
+                    dm_recipient="ops.bsky.social",
+                    today=DAY.date(),
+                    contest_state_expected=True,
+                )
+>           actual = health.check(
+                picks, expected=True, now=DAY, historical_day=DAY.date() if historical else None,
+            )
+
+.carbon-review/wr-f2-r1/test_f2_b1_stat_oserror_regression.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/bts/health/contest_state.py:70: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:214: in _check
+    flag = _read_saver_state(picks_dir, season=year, historical=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/saver_state.py:54: in _read_saver_state
+    if not path.exists():
+           ^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:860: in exists
+    self.stat(follow_symlinks=follow_symlinks)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s3/data/picks/account_state/saver_state.json')
+
+    def stat(self, *, follow_symlinks=True):
+        """
+        Return the result of the stat() system call on this path, like
+        os.stat() does.
+        """
+>       return os.stat(self, follow_symlinks=follow_symlinks)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       OSError: [Errno 63] File name too long: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s3/data/picks/account_state/saver_state.json'
+
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:840: OSError
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.runner:runner.py:67 health check 'contest_state' raised: [Errno 63] File name too long: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s3/data/picks/account_state/saver_state.json'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/health/runner.py", line 65, in _safe_run
+    return fn()
+           ^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/health/runner.py", line 141, in <lambda>
+    contest_alerts = _safe_run("contest_state", lambda: contest_state.check(
+                                                        ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/health/contest_state.py", line 70, in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/health/contest_state.py", line 214, in _check
+    flag = _read_saver_state(picks_dir, season=year, historical=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/saver_state.py", line 54, in _read_saver_state
+    if not path.exists():
+           ^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 860, in exists
+    self.stat(follow_symlinks=follow_symlinks)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 840, in stat
+    return os.stat(self, follow_symlinks=follow_symlinks)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OSError: [Errno 63] File name too long: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s3/data/picks/account_state/saver_state.json'
+ERROR    bts.health.alert:alert.py:47 [health_runner CRITICAL] Prior slate 2027-07-15 ET. The contest state health check failed before it could finish. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+=========================== short test summary info ============================
+FAILED .carbon-review/wr-f2-r1/test_f2_b1_stat_oserror_regression.py::test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm[False-unsearchable_dir] - PermissionError: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s0/data/picks/account_state/saver_state.json'
+FAILED .carbon-review/wr-f2-r1/test_f2_b1_stat_oserror_regression.py::test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm[False-enametoolong] - OSError: [Errno 63] File name too long: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s1/data/picks/account_state/saver_state.json'
+FAILED .carbon-review/wr-f2-r1/test_f2_b1_stat_oserror_regression.py::test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm[True-unsearchable_dir] - PermissionError: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s2/data/picks/account_state/saver_state.json'
+FAILED .carbon-review/wr-f2-r1/test_f2_b1_stat_oserror_regression.py::test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm[True-enametoolong] - OSError: [Errno 63] File name too long: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2009/test_dated_used_flag_symlink_s3/data/picks/account_state/saver_state.json'
+============================== 4 failed in 0.30s ===============================
+
+=== With smallest fix on scratch copy ===
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0 -- /Users/eric/projects/bts-work/wr-rev-f2-cb/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2-cb
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 54 items
+
+.carbon-review/wr-f2-r1/test_f2_b1_stat_oserror_regression.py::test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm[False-unsearchable_dir] PASSED [  1%]
+.carbon-review/wr-f2-r1/test_f2_b1_stat_oserror_regression.py::test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm[False-enametoolong] PASSED [  3%]
+.carbon-review/wr-f2-r1/test_f2_b1_stat_oserror_regression.py::test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm[True-unsearchable_dir] PASSED [  5%]
+.carbon-review/wr-f2-r1/test_f2_b1_stat_oserror_regression.py::test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm[True-enametoolong] PASSED [  7%]
+tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[active-14] PASSED [  9%]
+tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[not_earned-14] PASSED [ 11%]
+tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[not_earned-9] PASSED [ 12%]
+tests/test_wr_f2_saver_flag.py::test_m3_after_midnight_uses_processed_season_and_current_files[day0] PASSED [ 14%]
+tests/test_wr_f2_saver_flag.py::test_m3_after_midnight_uses_processed_season_and_current_files[day1] PASSED [ 16%]
+tests/test_wr_f2_saver_flag.py::test_m4_m5_verified_repair_changes_next_automatic_read[active] PASSED [ 18%]
+tests/test_wr_f2_saver_flag.py::test_m4_m5_verified_repair_changes_next_automatic_read[not_earned] PASSED [ 20%]
+tests/test_wr_f2_saver_flag.py::test_k1_existing_dated_warning[10] PASSED [ 22%]
+tests/test_wr_f2_saver_flag.py::test_k1_existing_dated_warning[11] PASSED [ 24%]
+tests/test_wr_f2_saver_flag.py::test_k1_existing_dated_warning[12] PASSED [ 25%]
+tests/test_wr_f2_saver_flag.py::test_k1_existing_dated_warning[13] PASSED [ 27%]
+tests/test_wr_f2_saver_flag.py::test_k1_existing_dated_warning[14] PASSED [ 29%]
+tests/test_wr_f2_saver_flag.py::test_k1_existing_dated_warning[15] PASSED [ 31%]
+tests/test_wr_f2_saver_flag.py::test_k2_k3_unusable_flag_preserves_existing_alerts[used] PASSED [ 33%]
+tests/test_wr_f2_saver_flag.py::test_k2_k3_unusable_flag_preserves_existing_alerts[uninitialized] PASSED [ 35%]
+tests/test_wr_f2_saver_flag.py::test_k2_k3_unusable_flag_preserves_existing_alerts[absent] PASSED [ 37%]
+tests/test_wr_f2_saver_flag.py::test_k2_k3_unusable_flag_preserves_existing_alerts[encoding] PASSED [ 38%]
+tests/test_wr_f2_saver_flag.py::test_k2_k3_unusable_flag_preserves_existing_alerts[list] PASSED [ 40%]
+tests/test_wr_f2_saver_flag.py::test_k2_k3_unusable_flag_preserves_existing_alerts[other-season] PASSED [ 42%]
+tests/test_wr_f2_saver_flag.py::test_k2_k3_unusable_flag_preserves_existing_alerts[directory] PASSED [ 44%]
+tests/test_wr_f2_saver_flag.py::test_k2_k3_unusable_flag_preserves_existing_alerts[fifo] PASSED [ 46%]
+tests/test_wr_f2_saver_flag.py::test_k2_k3_unusable_flag_preserves_existing_alerts[invalid] PASSED [ 48%]
+tests/test_wr_f2_saver_flag.py::test_k2_k3_unusable_flag_preserves_existing_alerts[integer] PASSED [ 50%]
+tests/test_wr_f2_saver_flag.py::test_k2_k3_unusable_flag_preserves_existing_alerts[nested] PASSED [ 51%]
+tests/test_wr_f2_saver_flag.py::test_k4_no_other_dated_observation_warns[active-active-14] PASSED [ 53%]
+tests/test_wr_f2_saver_flag.py::test_k4_no_other_dated_observation_warns[active-not_earned-9] PASSED [ 55%]
+tests/test_wr_f2_saver_flag.py::test_k4_no_other_dated_observation_warns[not_earned-active-14] PASSED [ 57%]
+tests/test_wr_f2_saver_flag.py::test_k4_no_other_dated_observation_warns[not_earned-not_earned-9] PASSED [ 59%]
+tests/test_wr_f2_saver_flag.py::test_k4_no_other_dated_observation_warns[used-active-14] PASSED [ 61%]
+tests/test_wr_f2_saver_flag.py::test_k4_no_other_dated_observation_warns[used-not_earned-9] PASSED [ 62%]
+tests/test_wr_f2_saver_flag.py::test_k4_no_other_dated_observation_warns[uninitialized-active-14] PASSED [ 64%]
+tests/test_wr_f2_saver_flag.py::test_k4_no_other_dated_observation_warns[uninitialized-not_earned-9] PASSED [ 66%]
+tests/test_wr_f2_saver_flag.py::test_same_day_reruns_preserve_both_incidents[used] PASSED [ 68%]
+tests/test_wr_f2_saver_flag.py::test_same_day_reruns_preserve_both_incidents[not_earned] PASSED [ 70%]
+tests/test_wr_f2_saver_flag.py::test_existing_digest_sends_first_and_stays_below_chat_limit PASSED [ 72%]
+tests/test_wr_f2_saver_flag.py::test_failed_send_and_interrupt_before_status_can_retry PASSED [ 74%]
+tests/test_wr_f2_saver_flag.py::test_k5_k6_k7_alerts_digest_and_status_match_base[False-expired] PASSED [ 75%]
+tests/test_wr_f2_saver_flag.py::test_k5_k6_k7_alerts_digest_and_status_match_base[False-automatic] PASSED [ 77%]
+tests/test_wr_f2_saver_flag.py::test_k5_k6_k7_alerts_digest_and_status_match_base[False-legacy] PASSED [ 79%]
+tests/test_wr_f2_saver_flag.py::test_k5_k6_k7_alerts_digest_and_status_match_base[False-missing] PASSED [ 81%]
+tests/test_wr_f2_saver_flag.py::test_k5_k6_k7_alerts_digest_and_status_match_base[False-future] PASSED [ 83%]
+tests/test_wr_f2_saver_flag.py::test_k5_k6_k7_alerts_digest_and_status_match_base[False-coverage] PASSED [ 85%]
+tests/test_wr_f2_saver_flag.py::test_k5_k6_k7_alerts_digest_and_status_match_base[False-invalid] PASSED [ 87%]
+tests/test_wr_f2_saver_flag.py::test_k5_k6_k7_alerts_digest_and_status_match_base[True-expired] PASSED [ 88%]
+tests/test_wr_f2_saver_flag.py::test_k5_k6_k7_alerts_digest_and_status_match_base[True-automatic] PASSED [ 90%]
+tests/test_wr_f2_saver_flag.py::test_k5_k6_k7_alerts_digest_and_status_match_base[True-legacy] PASSED [ 92%]
+tests/test_wr_f2_saver_flag.py::test_k5_k6_k7_alerts_digest_and_status_match_base[True-missing] PASSED [ 94%]
+tests/test_wr_f2_saver_flag.py::test_k5_k6_k7_alerts_digest_and_status_match_base[True-future] PASSED [ 96%]
+tests/test_wr_f2_saver_flag.py::test_k5_k6_k7_alerts_digest_and_status_match_base[True-coverage] PASSED [ 98%]
+tests/test_wr_f2_saver_flag.py::test_k5_k6_k7_alerts_digest_and_status_match_base[True-invalid] PASSED [100%]
+
+============================== 54 passed in 0.74s ==============================
+

@@ -1,0 +1,17 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0 -- /Users/eric/projects/bts-work/wr-rev-f2-cb/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2-cb
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 2 items
+
+.carbon-review/wr-f2-r1/probe_text_r64.py::test_rendered_messages_match_contract_and_grapheme_bounds PASSED
+.carbon-review/wr-f2-r1/probe_text_r64.py::test_worst_ordinary_states_under_r64_and_b8a PASSED
+
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED .carbon-review/wr-f2-r1/probe_text_r64.py::test_rendered_messages_match_contract_and_grapheme_bounds
+PASSED .carbon-review/wr-f2-r1/probe_text_r64.py::test_worst_ordinary_states_under_r64_and_b8a
+============================== 2 passed in 0.04s ===============================

@@ -1,0 +1,149 @@
+nice: setpriority: Operation not permitted
+[0_control_unmodified] -> UNNOTICED (SURVIVED)
+    rc=0
+    .........                                                                [ 95%]
+    tests/health/test_runner.py .....................                        [ 97%]
+    tests/health/test_contest_state.py ................                      [100%]
+    
+    ============================= 777 passed in 1.63s ==============================
+[1_drop_incident_key] -> KILLED
+    rc=1
+    /Users/eric/projects/bts-work/wr-rev-f2-cb/tests/test_wr_f2_saver_flag.py:132: assert [Alert(level=...ent_key=None)] == [Alert(level=...ed_mismatch')]
+    =========================== short test summary info ============================
+    FAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[active-14]
+    !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ======================== 1 failed, 690 passed in 1.05s =========================
+[2_use_load_saver_state] -> KILLED
+    rc=1
+    /Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: AssertionError: flag read
+    =========================== short test summary info ============================
+    FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-0-used-False]
+    !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ======================== 1 failed, 584 passed in 0.93s =========================
+    f2_fifo_only: noticed=True (TIMEOUT after 5s (blocked))
+[3_use_wall_clock_year] -> KILLED
+    rc=1
+    /Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: AssertionError: expected call not found.
+    =========================== short test summary info ============================
+    FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-0-used-False]
+    !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ======================== 1 failed, 584 passed in 0.92s =========================
+[4_warn_on_used_flag_too] -> KILLED
+    rc=1
+    /Users/eric/projects/bts-work/wr-rev-f2-cb/tests/test_wr_f2_saver_flag.py:162: assert not [Alert(level='WARN', source='saver_state', message="Prior slate 2027-07-15 ET. The dated observation recorded the save...l for current diagnosis. Season contract status shows current files.", incident_key='saver_state:dated_used_mismatch')]
+    =========================== short test summary info ============================
+    FAILED tests/test_wr_f2_saver_flag.py::test_m3_after_midnight_uses_processed_season_and_current_files[day0]
+    !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ======================== 1 failed, 693 passed in 1.09s =========================
+[5_send_inside_existing_digest] -> KILLED
+    rc=1
+    /Users/eric/projects/bts-work/wr-rev-f2-cb/tests/test_wr_f2_saver_flag.py:139: AssertionError: assert not True
+    =========================== short test summary info ============================
+    FAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[active-14]
+    !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ======================== 1 failed, 690 passed in 1.07s =========================
+[6_dispatch_mismatch_before_digest] -> KILLED
+    rc=1
+    /Users/eric/projects/bts-work/wr-rev-f2-cb/tests/test_wr_f2_saver_flag.py:316: assert (('offline.tes...bserved day)') == ('offline.tes...bserved day)')
+    =========================== short test summary info ============================
+    FAILED tests/test_wr_f2_saver_flag.py::test_existing_digest_sends_first_and_stays_below_chat_limit
+    !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ======================== 1 failed, 724 passed in 1.74s =========================
+[7_share_digest_status_file] -> KILLED
+    rc=1
+    /Users/eric/projects/bts-work/wr-rev-f2-cb/tests/test_wr_f2_saver_flag.py:139: AssertionError: assert not True
+    =========================== short test summary info ============================
+    FAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[active-14]
+    !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ======================== 1 failed, 690 passed in 1.89s =========================
+[8_drop_recursion_error] -> UNNOTICED (SURVIVED)
+    rc=0
+    .........                                                                [ 95%]
+    tests/health/test_runner.py .....................                        [ 97%]
+    tests/health/test_contest_state.py ................                      [100%]
+    
+    ============================= 777 passed in 1.72s ==============================
+[9a_put_warn_before_not_earned_guarded] -> UNNOTICED (SURVIVED)
+    rc=0
+    .........                                                                [ 95%]
+    tests/health/test_runner.py .....................                        [ 97%]
+    tests/health/test_contest_state.py ................                      [100%]
+    
+    ============================= 777 passed in 1.73s ==============================
+[9b_put_flag_read_and_warn_before_not_earned_unguarded_read] -> UNNOTICED (SURVIVED)
+    rc=0
+    .........                                                                [ 95%]
+    tests/health/test_runner.py .....................                        [ 97%]
+    tests/health/test_contest_state.py ................                      [100%]
+    
+    ============================= 777 passed in 1.73s ==============================
+
+SUMMARY_JSON:
+[
+  {
+    "mutation": "0_control_unmodified",
+    "noticed": false,
+    "detail": "rc=0\n.........                                                                [ 95%]\ntests/health/test_runner.py .....................                        [ 97%]\ntests/health/test_contest_state.py ................                      [100%]\n\n============================= 777 passed in 1.63s ==============================",
+    "extra": null
+  },
+  {
+    "mutation": "1_drop_incident_key",
+    "noticed": true,
+    "detail": "rc=1\n/Users/eric/projects/bts-work/wr-rev-f2-cb/tests/test_wr_f2_saver_flag.py:132: assert [Alert(level=...ent_key=None)] == [Alert(level=...ed_mismatch')]\n=========================== short test summary info ============================\nFAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[active-14]\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n======================== 1 failed, 690 passed in 1.05s =========================",
+    "extra": null
+  },
+  {
+    "mutation": "2_use_load_saver_state",
+    "noticed": true,
+    "detail": "rc=1\n/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: AssertionError: flag read\n=========================== short test summary info ============================\nFAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-0-used-False]\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n======================== 1 failed, 584 passed in 0.93s =========================",
+    "extra": "f2_fifo_only: noticed=True (TIMEOUT after 5s (blocked))"
+  },
+  {
+    "mutation": "3_use_wall_clock_year",
+    "noticed": true,
+    "detail": "rc=1\n/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: AssertionError: expected call not found.\n=========================== short test summary info ============================\nFAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-0-used-False]\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n======================== 1 failed, 584 passed in 0.92s =========================",
+    "extra": null
+  },
+  {
+    "mutation": "4_warn_on_used_flag_too",
+    "noticed": true,
+    "detail": "rc=1\n/Users/eric/projects/bts-work/wr-rev-f2-cb/tests/test_wr_f2_saver_flag.py:162: assert not [Alert(level='WARN', source='saver_state', message=\"Prior slate 2027-07-15 ET. The dated observation recorded the save...l for current diagnosis. Season contract status shows current files.\", incident_key='saver_state:dated_used_mismatch')]\n=========================== short test summary info ============================\nFAILED tests/test_wr_f2_saver_flag.py::test_m3_after_midnight_uses_processed_season_and_current_files[day0]\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n======================== 1 failed, 693 passed in 1.09s =========================",
+    "extra": null
+  },
+  {
+    "mutation": "5_send_inside_existing_digest",
+    "noticed": true,
+    "detail": "rc=1\n/Users/eric/projects/bts-work/wr-rev-f2-cb/tests/test_wr_f2_saver_flag.py:139: AssertionError: assert not True\n=========================== short test summary info ============================\nFAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[active-14]\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n======================== 1 failed, 690 passed in 1.07s =========================",
+    "extra": null
+  },
+  {
+    "mutation": "6_dispatch_mismatch_before_digest",
+    "noticed": true,
+    "detail": "rc=1\n/Users/eric/projects/bts-work/wr-rev-f2-cb/tests/test_wr_f2_saver_flag.py:316: assert (('offline.tes...bserved day)') == ('offline.tes...bserved day)')\n=========================== short test summary info ============================\nFAILED tests/test_wr_f2_saver_flag.py::test_existing_digest_sends_first_and_stays_below_chat_limit\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n======================== 1 failed, 724 passed in 1.74s =========================",
+    "extra": null
+  },
+  {
+    "mutation": "7_share_digest_status_file",
+    "noticed": true,
+    "detail": "rc=1\n/Users/eric/projects/bts-work/wr-rev-f2-cb/tests/test_wr_f2_saver_flag.py:139: AssertionError: assert not True\n=========================== short test summary info ============================\nFAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[active-14]\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n======================== 1 failed, 690 passed in 1.89s =========================",
+    "extra": null
+  },
+  {
+    "mutation": "8_drop_recursion_error",
+    "noticed": false,
+    "detail": "rc=0\n.........                                                                [ 95%]\ntests/health/test_runner.py .....................                        [ 97%]\ntests/health/test_contest_state.py ................                      [100%]\n\n============================= 777 passed in 1.72s ==============================",
+    "extra": null
+  },
+  {
+    "mutation": "9a_put_warn_before_not_earned_guarded",
+    "noticed": false,
+    "detail": "rc=0\n.........                                                                [ 95%]\ntests/health/test_runner.py .....................                        [ 97%]\ntests/health/test_contest_state.py ................                      [100%]\n\n============================= 777 passed in 1.73s ==============================",
+    "extra": null
+  },
+  {
+    "mutation": "9b_put_flag_read_and_warn_before_not_earned_unguarded_read",
+    "noticed": false,
+    "detail": "rc=0\n.........                                                                [ 95%]\ntests/health/test_runner.py .....................                        [ 97%]\ntests/health/test_contest_state.py ................                      [100%]\n\n============================= 777 passed in 1.73s ==============================",
+    "extra": null
+  }
+]

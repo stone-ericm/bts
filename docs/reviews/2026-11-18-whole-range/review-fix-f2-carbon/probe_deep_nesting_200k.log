@@ -1,0 +1,19 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0 -- /Users/eric/projects/bts-work/wr-rev-f2-cb/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2-cb
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 3 items
+
+.carbon-review/wr-f2-r1/probe_deep_nesting_200k.py::test_3000_nesting_does_not_raise_recursion_error_in_cpython312 PASSED [ 33%]
+.carbon-review/wr-f2-r1/probe_deep_nesting_200k.py::test_real_recursion_error_200k_preserves_alerts_on_dated_used[False] PASSED [ 66%]
+.carbon-review/wr-f2-r1/probe_deep_nesting_200k.py::test_real_recursion_error_200k_preserves_alerts_on_dated_used[True] PASSED [100%]
+
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED .carbon-review/wr-f2-r1/probe_deep_nesting_200k.py::test_3000_nesting_does_not_raise_recursion_error_in_cpython312
+PASSED .carbon-review/wr-f2-r1/probe_deep_nesting_200k.py::test_real_recursion_error_200k_preserves_alerts_on_dated_used[False]
+PASSED .carbon-review/wr-f2-r1/probe_deep_nesting_200k.py::test_real_recursion_error_200k_preserves_alerts_on_dated_used[True]
+============================== 3 passed in 0.01s ===============================
