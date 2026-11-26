@@ -1,0 +1,16 @@
+nice: setpriority: Operation not permitted
+JOURNAL check ["  CONTEST STATE ERROR \u2014 no pick made: Live decision refused: season 2027 switch is absent."]
+ROUTE check [('run_single_check', 1995, None)] 2027-07-15T18:35:00-04:00 1311 live decision now: refused; Live decision refused: season 2027 switch is absent.
+JOURNAL revoked_at_check ["  CONTEST STATE ERROR \u2014 no pick made: Live decision refused: season 2027 switch is revoked."]
+ROUTE revoked_at_check [('run_single_check', 1995, None)] 2027-07-15T18:35:00-04:00 1312 live decision now: refused; Live decision refused: season 2027 switch is revoked.
+JOURNAL delivery_loader ["  CONTEST STATE ERROR \u2014 pick delivery blocked: Live decision refused: season 2027 switch is absent."]
+ROUTE delivery_loader [('_deliver_and_lock_pick', 1321, None)] 2027-07-15T18:35:00-04:00 1311 live decision now: refused; Live decision refused: season 2027 switch is absent.
+JOURNAL saved_changed ["CONTEST STATE ERROR \u2014 pick delivery blocked: Saved pick for 2027-07-15 was not delivered because it was chosen on dated (effective date 2027-07-15, active streak 12, best streak 16, saver used). The live state is dated (effective date 2027-07-15, active streak 13, best streak 16, saver used). A later scheduled check or fallback refresh may choose a replacement, if one remains."]
+ROUTE saved_changed [('_deliver_and_lock_pick', 1328, None)] 2027-07-15T18:35:00-04:00 382 live decision now: accepted; source=contest; streak=13; status=fresh; saver=used
+JOURNAL in_loop ["  FALLBACK BLOCKED \u2014 contest state invalid: Live decision refused: season 2027 switch is absent."]
+ROUTE in_loop [('run_day', 3305, None)] 2027-07-15T18:25:00-04:00 1311 live decision now: refused; Live decision refused: season 2027 switch is absent.
+JOURNAL final_midnight ["  FALLBACK BLOCKED \u2014 contest state invalid: Live decision refused: season 2027 switch is absent."]
+ROUTE final_midnight [('run_day', 3458, None)] 2027-07-16T00:30:00-04:00 1311 live decision now: refused; Live decision refused: season 2027 switch is absent.
+FINAL ['  Morning state check skipped: first lineup check is due within 10 minutes.']
+E4 REAL 2027-06-14 1 2027-06-15
+E4 REAL 2027-06-15 1 2027-06-15

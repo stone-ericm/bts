@@ -1,0 +1,55 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-k1/.codex-review/scratch-k1
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 20 items
+
+tests/test_season_contract_cs4b2_edges.py ...................F           [100%]
+
+=================================== FAILURES ===================================
+_________ test_real_selection_fallbacks_orchestrator_and_clean_outcome _________
+tests/test_season_contract_cs4b2_edges.py:234: in test_real_selection_fallbacks_orchestrator_and_clean_outcome
+    assert result.returncode == 0, result.stdout + result.stderr
+E   AssertionError:   CONTEST STATE ERROR — pick delivery blocked: injected proposed season refusal
+E       LOCKED (delivered) — pick already delivered.
+E       DELIVERY OUTCOME UNKNOWN (crash_guard) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+E     Unknown-outcome alert failed: transport: send_dm returned no usable message id
+E       [PRIVATE] LOCKED (private) — Offline (NYM) 80.0% — NOT delivered
+E       0 new confirmed lineup(s). Running predictions...
+E       CONTEST STATE ERROR — no pick made: injected proposed season refusal
+E     BTS 2027-07-15: contest-account streak state invalid. No pick made. (injected proposed season refusal)
+E       DM sent to offline.test
+E     Pick (offline): Offline (80.0%)
+E     Pick locked: Offline
+E     Pick (offline): Offline (80.0%)
+E     /Users/eric/.matplotlib is not a writable directory
+E     Matplotlib created a temporary cache directory at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/matplotlib-3v69iihc because there was an issue with the default path (/Users/eric/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+E       [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+E     [18:40 ET] Fetching schedule for 2027-07-15...
+E       1 games, 1 scheduled checks:
+E         18:40 ET — 1 game(s)
+E       Morning state check skipped: first lineup check is due within 10 minutes.
+E     
+E     [18:40 ET] Running lineup check...
+E       FALLBACK BLOCKED — contest state invalid: injected NEW refusal
+E       [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+E     [18:40 ET] Fetching schedule for 2027-07-15...
+E       1 games, 0 scheduled checks:
+E       Morning state check skipped: no lineup check is planned.
+E       FALLBACK BLOCKED — contest state invalid: injected NEW refusal
+E       [12:00 ET] Games: 999: final
+E       Result: hit. Streak: 1.
+E     Traceback (most recent call last):
+E       File "<string>", line 1, in <module>
+E       File "/Users/eric/projects/bts-work/wr-chk-k1/.codex-review/scratch-k1/tests/test_season_contract_cs4b2_edges.py", line 262, in _caller_control
+E         assert case["alerts"] and case["calls"] and not case["sends"]
+E                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E     AssertionError
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['/Users/eric/projects/bts-work/wr-chk-k1/.codex-review/scratch-k1/../../.venv/bin/python', '-c'...e["calls"] and not case["sends"]\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n').returncode
+=========================== short test summary info ============================
+FAILED tests/test_season_contract_cs4b2_edges.py::test_real_selection_fallbacks_orchestrator_and_clean_outcome
+========================= 1 failed, 19 passed in 3.09s =========================

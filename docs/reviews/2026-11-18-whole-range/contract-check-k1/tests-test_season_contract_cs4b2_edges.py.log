@@ -1,0 +1,59 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-k1/.codex-review/scratch-k1
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 20 items
+
+tests/test_season_contract_cs4b2_edges.py .............F.....F           [100%]
+
+=================================== FAILURES ===================================
+__________________ test_delivery_snapshot_and_guards[refused] __________________
+tests/test_season_contract_cs4b2_edges.py:188: in reading
+    raise cs.ContestStateError("injected new refusal")
+E   bts.contest_state.ContestStateError: injected new refusal
+
+During handling of the above exception, another exception occurred:
+tests/test_season_contract_cs4b2_edges.py:194: in test_delivery_snapshot_and_guards
+    result = sch._deliver_and_lock_pick(d, config, tmp_path, state, d.date, mode)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/scheduler.py:1347: in _deliver_and_lock_pick
+    _alert_contest_state_failure(config, e, slate_date=date)
+E   TypeError: test_delivery_snapshot_and_guards.<locals>.<lambda>() got an unexpected keyword argument 'slate_date'
+----------------------------- Captured stderr call -----------------------------
+  CONTEST STATE ERROR — pick delivery blocked: injected new refusal
+_________ test_real_selection_fallbacks_orchestrator_and_clean_outcome _________
+tests/test_season_contract_cs4b2_edges.py:234: in test_real_selection_fallbacks_orchestrator_and_clean_outcome
+    assert result.returncode == 0, result.stdout + result.stderr
+E   AssertionError:   CONTEST STATE ERROR — pick delivery blocked: injected proposed season refusal
+E     Traceback (most recent call last):
+E       File "/Users/eric/projects/bts-work/wr-chk-k1/.codex-review/scratch-k1/src/bts/scheduler.py", line 1344, in _deliver_and_lock_pick
+E         decision_state = load_decision_streak_state(picks_dir, require_contest_state=required)
+E                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       File "/Users/eric/projects/bts-work/wr-chk-k1/.codex-review/scratch-k1/docs/reviews/2026-11-14-season-rollover/build/cs4b-check/probe.py", line 217, in refuse
+E         def refuse(*a,**kw):reads.append(kw);raise err
+E                                              ^^^^^^^^^
+E     bts.contest_state.ContestStateError: injected proposed season refusal
+E     
+E     During handling of the above exception, another exception occurred:
+E     
+E     Traceback (most recent call last):
+E       File "<string>", line 1, in <module>
+E       File "/Users/eric/projects/bts-work/wr-chk-k1/.codex-review/scratch-k1/tests/test_season_contract_cs4b2_edges.py", line 247, in _caller_control
+E         p.current_callers()
+E       File "/Users/eric/projects/bts-work/wr-chk-k1/.codex-review/scratch-k1/docs/reviews/2026-11-14-season-rollover/build/cs4b2-check/probe.py", line 258, in current_callers
+E         module.callers()
+E       File "/Users/eric/projects/bts-work/wr-chk-k1/.codex-review/scratch-k1/docs/reviews/2026-11-14-season-rollover/build/cs4b-check/probe.py", line 230, in callers
+E         ok=sch._deliver_and_lock_pick(daily(**kw),config,p,st,day,desc)
+E            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       File "/Users/eric/projects/bts-work/wr-chk-k1/.codex-review/scratch-k1/src/bts/scheduler.py", line 1347, in _deliver_and_lock_pick
+E         _alert_contest_state_failure(config, e, slate_date=date)
+E     TypeError: callers.<locals>.<lambda>() got an unexpected keyword argument 'slate_date'
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['/Users/eric/projects/bts-work/wr-chk-k1/.codex-review/scratch-k1/../../.venv/bin/python', '-c'...nfig, e, slate_date=date)\nTypeError: callers.<locals>.<lambda>() got an unexpected keyword argument \'slate_date\'\n').returncode
+=========================== short test summary info ============================
+FAILED tests/test_season_contract_cs4b2_edges.py::test_delivery_snapshot_and_guards[refused]
+FAILED tests/test_season_contract_cs4b2_edges.py::test_real_selection_fallbacks_orchestrator_and_clean_outcome
+========================= 2 failed, 18 passed in 1.93s =========================

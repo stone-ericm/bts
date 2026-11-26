@@ -1,0 +1,40 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-k1/.codex-review/scratch-k1
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 22 items
+
+tests/test_saver_cs3_review.py ..........F...........                    [100%]
+
+=================================== FAILURES ===================================
+_ test_block_deliver_and_lock_pick_catches_corrupt_model_streak_without_type_error _
+src/bts/scheduler.py:1344: in _deliver_and_lock_pick
+    decision_state = load_decision_streak_state(picks_dir, require_contest_state=required)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/contest_state.py:613: in load_decision_streak_state
+    raise ContestStateError(
+E   bts.contest_state.ContestStateError: model state is corrupt; cannot use model fallback: /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2672/test_block_deliver_and_lock_pi0/streak.json: streak is not a non-negative integer
+
+During handling of the above exception, another exception occurred:
+tests/test_saver_cs3_review.py:119: in test_block_deliver_and_lock_pick_catches_corrupt_model_streak_without_type_error
+    ok = sched._deliver_and_lock_pick(dp, cfg, tmp_path, st_sched, f"{cur_yr}-07-15", "check-1")
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/scheduler.py:1347: in _deliver_and_lock_pick
+    _alert_contest_state_failure(config, e, slate_date=date)
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1204: in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: test_block_deliver_and_lock_pick_catches_corrupt_model_streak_without_type_error.<locals>.<lambda>() got an unexpected keyword argument 'slate_date'
+----------------------------- Captured stderr call -----------------------------
+  CONTEST STATE ERROR — pick delivery blocked: model state is corrupt; cannot use model fallback: /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2672/test_block_deliver_and_lock_pi0/streak.json: streak is not a non-negative integer
+=========================== short test summary info ============================
+FAILED tests/test_saver_cs3_review.py::test_block_deliver_and_lock_pick_catches_corrupt_model_streak_without_type_error
+========================= 1 failed, 21 passed in 0.94s =========================

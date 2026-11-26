@@ -1,0 +1,4 @@
+nice: setpriority: Operation not permitted
+{"case": "absent", "variant": "None", "reason_first_line": "Live decision refused: season 2027 switch is absent.", "plain": [1146, null, "failed"], "prior_failed": [1230, null, "failed"]}
+{"case": "revoked", "variant": "None", "reason_first_line": "Live decision refused: season 2027 switch is revoked.", "plain": [1147, null, "failed"], "prior_failed": [1231, null, "failed"]}
+{"case": "no_fetch", "variant": "None", "reason_first_line": "Live decision refused: there is no automatic observation for this activation.", "plain": [746, null, "sent"], "prior_failed": [830, null, "sent"]}
