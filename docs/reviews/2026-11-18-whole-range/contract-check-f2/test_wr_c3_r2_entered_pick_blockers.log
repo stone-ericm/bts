@@ -1,0 +1,105 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-f2/.codex-review/wr-f2-check/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 9 items
+
+tests/test_wr_c3_r2_entered_pick_blockers.py EEEEEEEEE                   [100%]
+
+==================================== ERRORS ====================================
+____ ERROR at setup of test_entered_pick_never_skipped_by_season_replay[N1] ____
+tests/test_wr_c3v_reconcile.py:82: in base_modules
+    archive = subprocess.check_output(["git", "-C", str(repo), "archive", BASE, *files], timeout=10)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:466: in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:571: in run
+    raise CalledProcessError(retcode, process.args,
+E   subprocess.CalledProcessError: Command '['git', '-C', '/Users/eric/projects/bts-work/wr-chk-f2/.codex-review/wr-f2-check/scratch', 'archive', '88b69a16', 'src/bts/picks.py', 'src/bts/reconcile_receipt.py', 'src/bts/cli.py']' returned non-zero exit status 128.
+---------------------------- Captured stderr setup -----------------------------
+fatal: pathspec 'src/bts/picks.py' did not match any files
+____ ERROR at setup of test_entered_pick_never_skipped_by_season_replay[N2] ____
+tests/test_wr_c3v_reconcile.py:82: in base_modules
+    archive = subprocess.check_output(["git", "-C", str(repo), "archive", BASE, *files], timeout=10)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:466: in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:571: in run
+    raise CalledProcessError(retcode, process.args,
+E   subprocess.CalledProcessError: Command '['git', '-C', '/Users/eric/projects/bts-work/wr-chk-f2/.codex-review/wr-f2-check/scratch', 'archive', '88b69a16', 'src/bts/picks.py', 'src/bts/reconcile_receipt.py', 'src/bts/cli.py']' returned non-zero exit status 128.
+____ ERROR at setup of test_entered_pick_never_skipped_by_season_replay[N3] ____
+tests/test_wr_c3v_reconcile.py:82: in base_modules
+    archive = subprocess.check_output(["git", "-C", str(repo), "archive", BASE, *files], timeout=10)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:466: in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:571: in run
+    raise CalledProcessError(retcode, process.args,
+E   subprocess.CalledProcessError: Command '['git', '-C', '/Users/eric/projects/bts-work/wr-chk-f2/.codex-review/wr-f2-check/scratch', 'archive', '88b69a16', 'src/bts/picks.py', 'src/bts/reconcile_receipt.py', 'src/bts/cli.py']' returned non-zero exit status 128.
+____ ERROR at setup of test_entered_pick_never_skipped_by_season_replay[N4] ____
+tests/test_wr_c3v_reconcile.py:82: in base_modules
+    archive = subprocess.check_output(["git", "-C", str(repo), "archive", BASE, *files], timeout=10)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:466: in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:571: in run
+    raise CalledProcessError(retcode, process.args,
+E   subprocess.CalledProcessError: Command '['git', '-C', '/Users/eric/projects/bts-work/wr-chk-f2/.codex-review/wr-f2-check/scratch', 'archive', '88b69a16', 'src/bts/picks.py', 'src/bts/reconcile_receipt.py', 'src/bts/cli.py']' returned non-zero exit status 128.
+____ ERROR at setup of test_entered_pick_never_skipped_by_season_replay[N5] ____
+tests/test_wr_c3v_reconcile.py:82: in base_modules
+    archive = subprocess.check_output(["git", "-C", str(repo), "archive", BASE, *files], timeout=10)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:466: in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:571: in run
+    raise CalledProcessError(retcode, process.args,
+E   subprocess.CalledProcessError: Command '['git', '-C', '/Users/eric/projects/bts-work/wr-chk-f2/.codex-review/wr-f2-check/scratch', 'archive', '88b69a16', 'src/bts/picks.py', 'src/bts/reconcile_receipt.py', 'src/bts/cli.py']' returned non-zero exit status 128.
+____ ERROR at setup of test_entered_pick_never_skipped_by_season_replay[N6] ____
+tests/test_wr_c3v_reconcile.py:82: in base_modules
+    archive = subprocess.check_output(["git", "-C", str(repo), "archive", BASE, *files], timeout=10)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:466: in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:571: in run
+    raise CalledProcessError(retcode, process.args,
+E   subprocess.CalledProcessError: Command '['git', '-C', '/Users/eric/projects/bts-work/wr-chk-f2/.codex-review/wr-f2-check/scratch', 'archive', '88b69a16', 'src/bts/picks.py', 'src/bts/reconcile_receipt.py', 'src/bts/cli.py']' returned non-zero exit status 128.
+____ ERROR at setup of test_entered_pick_never_skipped_by_season_replay[N7] ____
+tests/test_wr_c3v_reconcile.py:82: in base_modules
+    archive = subprocess.check_output(["git", "-C", str(repo), "archive", BASE, *files], timeout=10)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:466: in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:571: in run
+    raise CalledProcessError(retcode, process.args,
+E   subprocess.CalledProcessError: Command '['git', '-C', '/Users/eric/projects/bts-work/wr-chk-f2/.codex-review/wr-f2-check/scratch', 'archive', '88b69a16', 'src/bts/picks.py', 'src/bts/reconcile_receipt.py', 'src/bts/cli.py']' returned non-zero exit status 128.
+____ ERROR at setup of test_entered_pick_never_skipped_by_season_replay[N8] ____
+tests/test_wr_c3v_reconcile.py:82: in base_modules
+    archive = subprocess.check_output(["git", "-C", str(repo), "archive", BASE, *files], timeout=10)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:466: in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:571: in run
+    raise CalledProcessError(retcode, process.args,
+E   subprocess.CalledProcessError: Command '['git', '-C', '/Users/eric/projects/bts-work/wr-chk-f2/.codex-review/wr-f2-check/scratch', 'archive', '88b69a16', 'src/bts/picks.py', 'src/bts/reconcile_receipt.py', 'src/bts/cli.py']' returned non-zero exit status 128.
+_ ERROR at setup of test_b2_symlinked_decision_parent_keeps_unmarked_live_pick _
+tests/test_wr_c3v_reconcile.py:82: in base_modules
+    archive = subprocess.check_output(["git", "-C", str(repo), "archive", BASE, *files], timeout=10)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:466: in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py:571: in run
+    raise CalledProcessError(retcode, process.args,
+E   subprocess.CalledProcessError: Command '['git', '-C', '/Users/eric/projects/bts-work/wr-chk-f2/.codex-review/wr-f2-check/scratch', 'archive', '88b69a16', 'src/bts/picks.py', 'src/bts/reconcile_receipt.py', 'src/bts/cli.py']' returned non-zero exit status 128.
+=========================== short test summary info ============================
+ERROR tests/test_wr_c3_r2_entered_pick_blockers.py::test_entered_pick_never_skipped_by_season_replay[N1]
+ERROR tests/test_wr_c3_r2_entered_pick_blockers.py::test_entered_pick_never_skipped_by_season_replay[N2]
+ERROR tests/test_wr_c3_r2_entered_pick_blockers.py::test_entered_pick_never_skipped_by_season_replay[N3]
+ERROR tests/test_wr_c3_r2_entered_pick_blockers.py::test_entered_pick_never_skipped_by_season_replay[N4]
+ERROR tests/test_wr_c3_r2_entered_pick_blockers.py::test_entered_pick_never_skipped_by_season_replay[N5]
+ERROR tests/test_wr_c3_r2_entered_pick_blockers.py::test_entered_pick_never_skipped_by_season_replay[N6]
+ERROR tests/test_wr_c3_r2_entered_pick_blockers.py::test_entered_pick_never_skipped_by_season_replay[N7]
+ERROR tests/test_wr_c3_r2_entered_pick_blockers.py::test_entered_pick_never_skipped_by_season_replay[N8]
+ERROR tests/test_wr_c3_r2_entered_pick_blockers.py::test_b2_symlinked_decision_parent_keeps_unmarked_live_pick
+============================== 9 errors in 0.20s ===============================

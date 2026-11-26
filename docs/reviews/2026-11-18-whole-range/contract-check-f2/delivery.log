@@ -1,0 +1,10 @@
+nice: setpriority: Operation not permitted
+not_earned then used same processed day ['WARN_ATTENTION:saver_state'] second suppressed True
+next day BTS health WARN attention: 2nd consecutive day
+used then not_earned same processed day ['WARN_ATTENTION:saver_state'] second suppressed True
+next day BTS health WARN attention: 2nd consecutive day
+historical DM BTS health WARN attention:
+- [saver_state] Prior slate 2027-07-15 ET. The dated observation says the saver was used while the saver flag does not. The saver flag may still count it as in hand. (1st observed day) This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+D+1, D after midnight, D+1 again: all sent because status holds one date
+failed retry attempted, empty ID stored as sent
+oom directory [('WARN', 'saver_state'), ('CRITICAL', 'analytics_job_oom')]

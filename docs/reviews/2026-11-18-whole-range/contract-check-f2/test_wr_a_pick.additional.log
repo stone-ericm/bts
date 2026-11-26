@@ -1,0 +1,11 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-f2/.codex-review/wr-f2-check/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 31 items
+
+tests/test_wr_a_pick.py ...............................                  [100%]
+
+============================== 31 passed in 2.29s ==============================

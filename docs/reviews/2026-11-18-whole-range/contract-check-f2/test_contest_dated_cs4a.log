@@ -1,0 +1,583 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-f2/.codex-review/wr-f2-check/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 690 items
+
+tests/test_contest_dated_cs4a.py ....................................... [  5%]
+........................................................................ [ 16%]
+........................................................................ [ 26%]
+........................................................................ [ 36%]
+........................................................................ [ 47%]
+........................................................................ [ 57%]
+........................................................................ [ 68%]
+........................................................................ [ 78%]
+.........................................FF....FF....FF....FF....FF....F [ 89%]
+F....FF....FF....FF....FF....FF....FF....FF....FF....................... [ 99%]
+...                                                                      [100%]
+
+=================================== FAILURES ===================================
+______ test_health_observation_saver_without_flag_read[None-0-used-False] ______
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+______ test_health_observation_saver_without_flag_read[None-0-used-True] _______
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+______ test_health_observation_saver_without_flag_read[None-9-used-False] ______
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+______ test_health_observation_saver_without_flag_read[None-9-used-True] _______
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+_____ test_health_observation_saver_without_flag_read[None-10-used-False] ______
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+______ test_health_observation_saver_without_flag_read[None-10-used-True] ______
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+_____ test_health_observation_saver_without_flag_read[None-12-used-False] ______
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+______ test_health_observation_saver_without_flag_read[None-12-used-True] ______
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+_____ test_health_observation_saver_without_flag_read[None-15-used-False] ______
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+______ test_health_observation_saver_without_flag_read[None-15-used-True] ______
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+_____ test_health_observation_saver_without_flag_read[None-16-used-False] ______
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+______ test_health_observation_saver_without_flag_read[None-16-used-True] ______
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+_____ test_health_observation_saver_without_flag_read[None-57-used-False] ______
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+______ test_health_observation_saver_without_flag_read[None-57-used-True] ______
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+____ test_health_observation_saver_without_flag_read[corrupt-0-used-False] _____
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+_____ test_health_observation_saver_without_flag_read[corrupt-0-used-True] _____
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+____ test_health_observation_saver_without_flag_read[corrupt-9-used-False] _____
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+_____ test_health_observation_saver_without_flag_read[corrupt-9-used-True] _____
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+____ test_health_observation_saver_without_flag_read[corrupt-10-used-False] ____
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+____ test_health_observation_saver_without_flag_read[corrupt-10-used-True] _____
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+____ test_health_observation_saver_without_flag_read[corrupt-12-used-False] ____
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+____ test_health_observation_saver_without_flag_read[corrupt-12-used-True] _____
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+____ test_health_observation_saver_without_flag_read[corrupt-15-used-False] ____
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+____ test_health_observation_saver_without_flag_read[corrupt-15-used-True] _____
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+____ test_health_observation_saver_without_flag_read[corrupt-16-used-False] ____
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+____ test_health_observation_saver_without_flag_read[corrupt-16-used-True] _____
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+____ test_health_observation_saver_without_flag_read[corrupt-57-used-False] ____
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+____ test_health_observation_saver_without_flag_read[corrupt-57-used-True] _____
+tests/test_contest_dated_cs4a.py:321: in test_health_observation_saver_without_flag_read
+    alerts=check(tmp_path,now=NOW,expected=expected)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:69: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:213: in _check
+    if historical else load_saver_state(picks_dir, season=season))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   AssertionError: flag read
+=========================== short test summary info ============================
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-0-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-0-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-9-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-9-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-10-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-10-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-12-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-12-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-15-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-15-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-16-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-16-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-57-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-57-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-0-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-0-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-9-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-9-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-10-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-10-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-12-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-12-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-15-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-15-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-16-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-16-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-57-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-57-used-True]
+======================== 28 failed, 662 passed in 2.47s ========================

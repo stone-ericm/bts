@@ -1,0 +1,71 @@
+One file per process. Candidate source: scratch/src/bts/health/contest_state.py.
+All runs used TZ=America/New_York, timeout and nice -n 19. The sandbox rejected the priority change.
+
+Test file | Exit status | Log
+tests/health/test_alert.py | 0 | health__test_alert.additional.log
+tests/health/test_alert_status_cs6b2.py | 0 | health__test_alert_status_cs6b2.additional.log
+tests/health/test_contest_state.py | 0 | health__test_contest_state.log
+tests/health/test_f4_exception_propagation.py | 0 | health__test_f4_exception_propagation.verified.log
+tests/health/test_h6_resurface.py | 0 | health__test_h6_resurface.additional.log
+tests/health/test_late_delivery.py | 0 | health__test_late_delivery.verified.log
+tests/health/test_runner.py | 0 | health__test_runner.log
+tests/scripts/test_state_segment_policy_candidate_screen.py | 0 | scripts__test_state_segment_policy_candidate_screen.log
+tests/test_alert_status_callers_cs6b2.py | 0 | test_alert_status_callers_cs6b2.log
+tests/test_backup.py | 0 | test_backup.log
+tests/test_backup_cli.py | 0 | test_backup_cli.log
+tests/test_cli_integration.py | 0 | test_cli_integration.log
+tests/test_cli_schedule_date.py | 0 | test_cli_schedule_date.log
+tests/test_cold_start_integration.py | 0 | test_cold_start_integration.log
+tests/test_contest_dated_cs4a.py | 1 | test_contest_dated_cs4a.log
+tests/test_contest_dated_cs4a_review.py | 0 | test_contest_dated_cs4a_review.log
+tests/test_contest_fetch.py | 0 | test_contest_fetch.log
+tests/test_contest_state.py | 0 | test_contest_state.log
+tests/test_contest_state_decoder_limits.py | 0 | test_contest_state_decoder_limits.log
+tests/test_contest_state_defensive_reads.py | 0 | test_contest_state_defensive_reads.additional.log
+tests/test_decision_saver_fallback.py | 0 | test_decision_saver_fallback.log
+tests/test_entry_intent.py | 0 | test_entry_intent.log
+tests/test_incident_2026_08_30.py | 0 | test_incident_2026_08_30.log
+tests/test_incident_register_2026.py | 0 | test_incident_register_2026.log
+tests/test_live_gate_cs6a.py | 0 | test_live_gate_cs6a.log
+tests/test_live_gate_cs6a_review.py | 0 | test_live_gate_cs6a_review.log
+tests/test_morning_state_cs6b1.py | 0 | test_morning_state_cs6b1.log
+tests/test_pick_chosen_on_cs5a.py | 0 | test_pick_chosen_on_cs5a.log
+tests/test_pickpath_review_pp2.py | 0 | test_pickpath_review_pp2.log
+tests/test_saved_pick_cs5a_review.py | 0 | test_saved_pick_cs5a_review.log
+tests/test_saved_pick_paths_cs5a.py | 0 | test_saved_pick_paths_cs5a.log
+tests/test_saver_cs3.py | 0 | test_saver_cs3.log
+tests/test_saver_cs3_review.py | 0 | test_saver_cs3_review.log
+tests/test_saver_state.py | 0 | test_saver_state.log
+tests/test_scheduler.py | 0 | test_scheduler.log
+tests/test_scheduler_decision_record_integration.py | 0 | test_scheduler_decision_record_integration.log
+tests/test_scheduler_eve_of_break.py | 0 | test_scheduler_eve_of_break.log
+tests/test_season_contract_cs4b1.py | 0 | test_season_contract_cs4b1.log
+tests/test_season_contract_cs4b1_edges.py | 0 | test_season_contract_cs4b1_edges.log
+tests/test_season_contract_cs4b1_review.py | 0 | test_season_contract_cs4b1_review.log
+tests/test_season_contract_cs4b2.py | 0 | test_season_contract_cs4b2.log
+tests/test_season_contract_cs4b2_edges.py | 0 | test_season_contract_cs4b2_edges.log
+tests/test_season_contract_cs4b2_review.py | 0 | test_season_contract_cs4b2_review.log
+tests/test_stale_delivery_cs4c.py | 0 | test_stale_delivery_cs4c.additional.log
+tests/test_stale_delivery_cs4c_carbon.py | 0 | test_stale_delivery_cs4c_carbon.log
+tests/test_streak_season_cs2.py | 0 | test_streak_season_cs2.log
+tests/test_streak_season_cs2_review.py | 0 | test_streak_season_cs2_review.log
+tests/test_thin_slate_checks.py | 0 | test_thin_slate_checks.log
+tests/test_web_saver.py | 1 | test_web_saver.log
+tests/test_wr_a_calendar.py | 0 | test_wr_a_calendar.log
+tests/test_wr_a_pick.py | 0 | test_wr_a_pick.additional.log
+tests/test_wr_a_review_carbon.py | 0 | test_wr_a_review_carbon.log
+tests/test_wr_b_contract.py | 0 | test_wr_b_contract.log
+tests/test_wr_b_edges.py | 0 | test_wr_b_edges.log
+tests/test_wr_b_r2_review_adopt.py | 0 | test_wr_b_r2_review_adopt.log
+tests/test_wr_c1_clock.py | 0 | test_wr_c1_clock.log
+tests/test_wr_c1_history.py | 0 | test_wr_c1_history.log
+tests/test_wr_c2_recovery.py | 0 | test_wr_c2_recovery.log
+tests/test_wr_c3_r2_entered_pick_blockers.py | 0 | test_wr_c3_r2_entered_pick_blockers.verified.log
+tests/test_wr_g_guard.py | 0 | test_wr_g_guard.log
+tests/test_wr_h2_caps.py | 0 | test_wr_h2_caps.log
+tests/test_wr_w15_health.py | 0 | test_wr_w15_health.log
+tests/test_wr_w15b.py | 0 | test_wr_w15b.log
+tests/validate/test_ope.py | 0 | validate__test_ope.log
+
+Unchanged base comparison: tests/test_contest_dated_cs4a.py | 0 | test_contest_dated_cs4a.base.log
+C3 first scratch attempt had an archive path setup error; the verified rerun used the checkout Git directory for read-only archive access.
