@@ -1,0 +1,73 @@
+nice: setpriority: Operation not permitted
+Strategy: /Users/eric/projects/bts-work/wr-chk-k2/.codex-review/scratch-k2/src/bts/strategy.py
+Scheduler: /Users/eric/projects/bts-work/wr-chk-k2/.codex-review/scratch-k2/src/bts/scheduler.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-k2
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 382 items
+
+tests/test_wr_a_review_carbon.py .........................               [  6%]
+tests/test_wr_a_schedule.py ........................                     [ 12%]
+tests/test_wr_c1_history.py .........................................    [ 23%]
+tests/test_wr_c2_carbon_v2.py ...................F.                      [ 29%]
+tests/test_wr_c2_r2_carbon.py ..................                         [ 33%]
+tests/test_wr_c2_receipt_identity.py ................................... [ 42%]
+........................................................................ [ 61%]
+....................................                                     [ 71%]
+tests/test_wr_c2_recovery.py ........................................... [ 82%]
+...................F......................................               [ 97%]
+tests/test_wr_c3_r2_entered_pick_blockers.py .........                   [100%]
+
+=================================== FAILURES ===================================
+_ test_first_encounter_after_midnight_keys_receipt_by_slate_and_preserves_ack_without_recipient[2027-12-31-2028-01-01] _
+tests/test_wr_c2_carbon_v2.py:322: in test_first_encounter_after_midnight_keys_receipt_by_slate_and_preserves_ack_without_recipient
+    alert.send_dm.assert_called_once_with("offline.test", _copy(day))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:960: in assert_called_once_with
+    raise AssertionError(msg)
+E   AssertionError: Expected 'mock' to be called once. Called 2 times.
+E   Calls: [call('offline.test', "BTS health WARN attention:\n- [season_boundary] Season boundary behind the schedule: MLB lists 1 regular-season game(s) on 2027-12-31, but bts.strategy.SEASON_END_DATES gives 2027-09-27 as the day after the last game day, so the stored count is 0 days left. The pick for 2027-12-31 is decided as the season's last day. Ask the BTS lead session or Eric to update the stored boundary to the day after the new last regular-season game day; until then each such day is decided as the last day."),
+E    call('offline.test', "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-12-31 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-12-31 ET. Do not enter or change a pick based on this alert. If 2027-12-31 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate.")].
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[00:03 ET] Fetching schedule for 2027-12-31...
+  1 games, 1 scheduled checks:
+    17:25 ET — 1 game(s)
+  SEASON BOUNDARY BEHIND SCHEDULE — Season boundary behind the schedule: MLB lists 1 regular-season game(s) on 2027-12-31, but bts.strategy.SEASON_END_DATES gives 2027-09-27 as the day after the last game day, so the stored count is 0 days left. The pick for 2027-12-31 is decided as the season's last day. Ask the BTS lead session or Eric to update the stored boundary to the day after the new last regular-season game day; until then each such day is decided as the last day.
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[00:03 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Sat 01-01 10:00 ET
+  Day complete. Result: final
+____ test_unknown_receipt_uses_slate_across_midnight[2027-12-31-2028-01-01] ____
+tests/test_wr_c2_recovery.py:383: in test_unknown_receipt_uses_slate_across_midnight
+    alert.send_dm.assert_called_once_with("offline.test", copy(day))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:960: in assert_called_once_with
+    raise AssertionError(msg)
+E   AssertionError: Expected 'mock' to be called once. Called 2 times.
+E   Calls: [call('offline.test', "BTS health WARN attention:\n- [season_boundary] Season boundary behind the schedule: MLB lists 1 regular-season game(s) on 2027-12-31, but bts.strategy.SEASON_END_DATES gives 2027-09-27 as the day after the last game day, so the stored count is 0 days left. The pick for 2027-12-31 is decided as the season's last day. Ask the BTS lead session or Eric to update the stored boundary to the day after the new last regular-season game day; until then each such day is decided as the last day."),
+E    call('offline.test', "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-12-31 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-12-31 ET. Do not enter or change a pick based on this alert. If 2027-12-31 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate.")].
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:30 ET] Fetching schedule for 2027-12-31...
+  1 games, 1 scheduled checks:
+    17:25 ET — 1 game(s)
+  SEASON BOUNDARY BEHIND SCHEDULE — Season boundary behind the schedule: MLB lists 1 regular-season game(s) on 2027-12-31, but bts.strategy.SEASON_END_DATES gives 2027-09-27 as the day after the last game day, so the stored count is 0 days left. The pick for 2027-12-31 is decided as the season's last day. Ask the BTS lead session or Eric to update the stored boundary to the day after the new last regular-season game day; until then each such day is decided as the last day.
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:30 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Sat 01-01 10:00 ET
+  Day complete. Result: final
+=========================== short test summary info ============================
+FAILED tests/test_wr_c2_carbon_v2.py::test_first_encounter_after_midnight_keys_receipt_by_slate_and_preserves_ack_without_recipient[2027-12-31-2028-01-01]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_receipt_uses_slate_across_midnight[2027-12-31-2028-01-01]
+======================== 2 failed, 380 passed in 12.19s ========================
