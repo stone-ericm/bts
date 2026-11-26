@@ -1887,7 +1887,8 @@ def day_outcome(date_str, config_path, picks_dir, expected_username, dm_recipien
 @click.option("--window-min", default=75, type=int,
               help="Check only within this many minutes before first pitch")
 @click.option("--now-et", default=None, help="Test override: naive ET datetime ISO")
-@click.option("--cron", is_flag=True, help="Defer early checks when the original schedule has a slot")
+@click.option("--cron", is_flag=True,
+              help="Before 10:00 ET, defer if a nominal 10:00–23:45 ET quarter-hour is inside today’s entry window.")
 def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, now_et, cron):
     """DM if today's delivered pick was never entered in the MLB app.
 
@@ -1999,8 +2000,10 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
             slot_lead = (first_pitch - slot).total_seconds() / 60
             if submit_cutoff_min < slot_lead <= window_min:
                 rec.set_outcome("base_slot_available")
-                click.echo("check-pick-entered: original schedule has a slot inside the window")
+                click.echo("check-pick-entered: early check deferred because a nominal "
+                           "10:00–23:45 ET quarter-hour is inside this pick's entry window")
                 return
+        rec.early_cron_run = True
 
     status_path = picks.parent / "health_state" / "pick_entry_check.json"
 
@@ -2010,17 +2013,25 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
     # sailed past a single 18:00 DM). "dm_failed" stays fully retryable
     # (Codex review, 2026-07-03).
     prior = {}
-    if status_path.exists():
+    displaced = {}
+    displaced_raw = b""
+    if cron:
+        from bts.health.pick_entry import read_marker
+        prior, raw = read_marker(status_path)
+        if prior.get("date") != today and prior.get("status") in ("alerted", "dm_failed"):
+            displaced, displaced_raw = prior, raw
+    elif status_path.exists():
         try:
             prior = json.loads(status_path.read_text())
         except (json.JSONDecodeError, OSError):
             prior = {}
-        if prior.get("date") != today:
-            prior = {}
-        if prior.get("status") == "confirmed":
-            rec.confirmed_by(prior.get("receipt"))   # None: the marker predates receipts
-            click.echo(f"check-pick-entered: already confirmed for {today}")
-            return
+    if prior.get("date") != today:
+        prior = {}
+    reset_early_marker = cron and now.hour >= 10 and prior.get("early_cron_run") is True
+    if prior.get("status") == "confirmed" and not reset_early_marker:
+        rec.confirmed_by(prior.get("receipt"))   # None: the marker predates receipts
+        click.echo(f"check-pick-entered: already confirmed for {today}")
+        return
     was_alerted = prior.get("status") == "alerted"
     prior_escalations = list(prior.get("escalations") or [])
     prior_wrong_game = (
@@ -2031,8 +2042,34 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
     # Older alerted markers imply an initial alert unless they record a game observation.
     if was_alerted and not prior_escalations and not prior_wrong_game:
         prior_escalations = ["initial"]
+    send_all_clear = was_alerted or "initial" in prior_escalations or "wrong_game" in prior_escalations
+    if reset_early_marker:
+        prior_escalations = []
 
     def mark(marker):
+        if displaced:
+            import os
+            import tempfile
+            from datetime import date
+
+            previous = displaced.get("date")
+            try:
+                previous_date = date.fromisoformat(previous)
+            except (ValueError, TypeError):
+                previous_date = None
+            if previous_date is not None and previous_date.isoformat() == previous:
+                copy = status_path.with_name(f"pick_entry_check.{previous}.json")
+                if not copy.exists():
+                    with tempfile.NamedTemporaryFile(dir=status_path.parent) as temporary:
+                        temporary.write(displaced_raw)
+                        temporary.flush()
+                        os.fsync(temporary.fileno())
+                        try:
+                            os.link(temporary.name, copy)
+                        except FileExistsError:
+                            pass
+        if rec.early_cron_run:
+            marker["early_cron_run"] = True
         if marker["status"] != "confirmed" and (reason == "wrong_game" or prior_wrong_game):
             marker["game_unresolved"] = True
         # The marker names this run's receipt, so a later already-confirmed run can reference the confirming one.
@@ -2121,7 +2158,7 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
         if prior_wrong_game and reason == "match":
             marker["escalations"] = prior_escalations
         mark(marker)
-        if dm_recipient and (was_alerted or "initial" in prior_escalations or "wrong_game" in prior_escalations):
+        if dm_recipient and send_all_clear:
             # One-time all-clear on the alerted -> confirmed transition: the
             # operator got a scary DM; close the loop when the fix lands.
             try:

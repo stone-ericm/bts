@@ -67,14 +67,16 @@ def _binds(rec: dict, *, date: str, decision_sha256: str | None, expected_userna
 
 
 def _entry_state(receipts: list[dict], *, date: str, decision_sha256: str | None,
-                 expected_username: str | None) -> tuple[str, str]:
+                 expected_username: str | None, has_original_slot: bool = False) -> tuple[str, str]:
     bound = [r for r in receipts
              if _binds(r, date=date, decision_sha256=decision_sha256, expected_username=expected_username)]
     confirmed = [r for r in bound if (r.get("qualification") or {}).get("all_confirmed") is True]
-    in_time = [r for r in confirmed if (r.get("observation") or {}).get("before_cutoff") is True]
+    evidence = [r for r in bound if not (has_original_slot and r.get("early_cron_run") is True)]
+    in_time = [r for r in evidence if (r.get("qualification") or {}).get("all_confirmed") is True
+               and (r.get("observation") or {}).get("before_cutoff") is True]
     if in_time:
         return "entered", f"The entry was confirmed in {len(in_time)} of {len(receipts)} checks before the cutoff."
-    batter_only = [r for r in bound
+    batter_only = [r for r in evidence
                    if (r.get("observation") or {}).get("before_cutoff") is True
                    and (r.get("verifier") or {}).get("reason") == "match"
                    and (r.get("qualification") or {}).get("slots")
@@ -82,10 +84,11 @@ def _entry_state(receipts: list[dict], *, date: str, decision_sha256: str | None
                            for s in r["qualification"]["slots"])]
     if batter_only:
         return "entered_game_unverified", "The batter entry matched before the cutoff; the game was not verified."
-    if confirmed:
-        at = min(str((r.get("observation") or {}).get("response_completed_at")) for r in confirmed)
+    late = [r for r in confirmed if (r.get("observation") or {}).get("before_cutoff") is not True]
+    if late:
+        at = min(str((r.get("observation") or {}).get("response_completed_at")) for r in late)
         return "entered_late", f"The entry was first confirmed at {at}, after the cutoff."
-    absent = [r for r in bound if (r.get("verifier") or {}).get("reason") in ABSENT_REASONS]
+    absent = [r for r in evidence if (r.get("verifier") or {}).get("reason") in ABSENT_REASONS]
     if absent:
         return "not_entered", (f"Not entered: {len(absent)} successful account checks saw no matching entry and "
                                f"none confirmed one.")
@@ -99,10 +102,11 @@ def _entry_state(receipts: list[dict], *, date: str, decision_sha256: str | None
 
 def classify_day(*, date: str, games: int | None, decision: dict | None, decision_sha256: str | None,
                  receipts: list[dict], intent: str | None, expected_username: str | None,
-                 void_games: int = 0) -> DayOutcome:
+                 void_games: int = 0, has_original_slot: bool = False) -> DayOutcome:
     """Name the day's end state. `games` is the number of regular-season games scheduled that date, or None when the
     schedule could not be read; `void_games` counts postponed/cancelled games. `receipts` are the day's SEALED
-    entry receipts (`entry_receipt.discover`)."""
+    entry receipts (`entry_receipt.discover`). If the final pick has an original-schedule slot, early cron
+    receipts still count as checks but cannot establish timely entry, batter-only entry or absence."""
     def out(state, detail, pick=None):
         return DayOutcome(date=date, state=state, detail=detail, pick=pick)
 
@@ -138,13 +142,34 @@ def classify_day(*, date: str, games: int | None, decision: dict | None, decisio
         return out("delivered_under_research", f"Research mode, but the pick's delivery status is "
                                                f"{decision.get('delivery_status')!r}.", pick)
     state, detail = _entry_state(receipts, date=date, decision_sha256=decision_sha256,
-                                 expected_username=expected_username)
+                                 expected_username=expected_username, has_original_slot=has_original_slot)
     return out(state, detail, pick)
+
+
+def _has_original_slot(date: str, picks_dir) -> bool:
+    from datetime import datetime, timedelta
+    from pathlib import Path
+
+    from bts.picks import SUBMISSION_CUTOFF_MIN, earliest_pick_game_et, load_pick
+
+    try:
+        daily = load_pick(date, Path(picks_dir))
+        if daily is None:
+            return False
+        first_pitch = earliest_pick_game_et(daily)
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, OverflowError):
+        return False
+    first_slot = datetime.fromisoformat(date).replace(hour=10, tzinfo=first_pitch.tzinfo)
+    return any(
+        SUBMISSION_CUTOFF_MIN < (first_pitch - (first_slot + timedelta(minutes=minute))).total_seconds() / 60 <= 75
+        for minute in range(0, 14 * 60, 15)
+    )
 
 
 def gather(date: str, picks_dir, config: dict, *, expected_username: str | None, fetch_schedule=None) -> DayOutcome:
     """Read the day's evidence and classify it. Read-only: the schedule (one public request), the decision record and
-    the sealed entry receipts. A schedule failure is reported as unverifiable, not raised."""
+    the sealed entry receipts. Reads the final pick for the original-schedule slot rule when early evidence exists.
+    A schedule failure is reported as unverifiable, not raised."""
     from bts import entry_receipt
     from bts.daily_decision import load_decision_bytes
     from bts.entry_intent import check_entry_intent
@@ -160,7 +185,9 @@ def gather(date: str, picks_dir, config: dict, *, expected_username: str | None,
         games = None
     decision, raw = load_decision_bytes(date, picks_dir)
     intent = check_entry_intent(config, include_live_gate=False)
+    receipts = entry_receipt.discover(picks_dir, date)
+    has_original_slot = any(r.get("early_cron_run") is True for r in receipts) and _has_original_slot(date, picks_dir)
     return classify_day(date=date, games=games, void_games=void_games,
                         decision=decision, decision_sha256=entry_receipt._sha(raw),
-                        receipts=entry_receipt.discover(picks_dir, date),
+                        receipts=receipts, has_original_slot=has_original_slot,
                         intent=intent.intent if intent.ok else None, expected_username=expected_username)

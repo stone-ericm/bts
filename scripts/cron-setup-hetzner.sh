@@ -14,9 +14,9 @@
 #   */5  — healthchecks.io ping
 #   */5  — scheduler heartbeat staleness check (pings hc-ping /fail on stale)
 #   */30 — capture BTS public static JSONs (pregame consensus + lookups; content-deduped, no auth)
-#   */15 *     — Every 15 minutes, all day ET, the entry watchdog can DM about a missing,
-#                mismatching or game-unverified pick before the submission cutoff. This line is installed only for
-#                entry_intent = "enter" (see below). A slot skips if another invocation holds the same lock. After
+#   */15 *     — The entry watchdog launches every 15 minutes in ET under entry_intent = "enter".
+#                Before 10:00 ET it defers when a nominal 10:00–23:45 ET quarter-hour on the same date
+#                falls inside the saved selection’s entry window. A slot skips if another invocation holds the same lock. After
 #                acquisition, timeout sends TERM at 14 minutes and sends KILL 30 seconds later if its monitored child
 #                is still running.
 #   20 */3 — restic 'ops' backup: data/picks + data/health_state to R2 (audit F5; needs RESTIC_PASSWORD in .env + scripts/install-restic-hetzner.sh)

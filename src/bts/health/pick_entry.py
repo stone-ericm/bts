@@ -10,9 +10,13 @@ entry window is still open.
 from __future__ import annotations
 
 import json
+import locale
 import logging
+import os
+import stat
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from typing import Any
 
 from bts.health.alert import Alert
 from bts.picks import SUBMISSION_CUTOFF_MIN
@@ -22,6 +26,18 @@ log = logging.getLogger(__name__)
 SOURCE = "pick_entry"
 
 SUBMIT_CUTOFF_MIN = SUBMISSION_CUTOFF_MIN  # single definition lives in bts.picks
+
+
+def read_marker(path: Path) -> tuple[Any, bytes]:
+    """Read an entry marker and hold its original bytes for a displaced copy."""
+    try:
+        with open(path, "rb", opener=lambda name, flags: os.open(name, flags | os.O_NONBLOCK)) as stream:
+            if stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+                raw = stream.read()
+                return json.loads(raw.decode(locale.getpreferredencoding(False))), raw
+    except (OSError, ValueError):
+        pass
+    return {}, b""
 
 
 def _earliest_cutoff_utc(picks_dir: Path, today: date) -> datetime | None:
@@ -57,19 +73,23 @@ def check(
     today: date | None = None,
     now: datetime | None = None,
 ) -> list[Alert]:
-    """WARN/CRITICAL when today's entry marker never reached 'confirmed'."""
+    """WARN/CRITICAL from today's live marker or its displaced date-stamped copy."""
     if today is None:
         today = date.today()
     if now is None:
         now = datetime.now(timezone.utc)
 
     marker_path = Path(picks_dir).parent / "health_state" / "pick_entry_check.json"
-    try:
-        marker = json.loads(marker_path.read_text())
-    except (OSError, json.JSONDecodeError):
+    marker, raw = read_marker(marker_path)
+    if not raw:
         return []
-    if marker.get("date") != today.isoformat():
-        return []
+    marker_date = marker.get("date")
+    if marker_date != today.isoformat():
+        if marker_date is None:
+            return []
+        marker, _ = read_marker(marker_path.with_name(f"pick_entry_check.{today.isoformat()}.json"))
+        if not isinstance(marker, dict) or marker.get("date") != today.isoformat():
+            return []
     status = marker.get("status")
     if status not in ("alerted", "dm_failed"):
         return []

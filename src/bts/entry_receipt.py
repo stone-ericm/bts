@@ -207,6 +207,7 @@ class EntryReceipt:
         self.expected_username = expected_username
         self.picks_dir = Path(picks_dir)
         self.attempt_id = uuid.uuid4().hex
+        self.early_cron_run = False
         self.outcome, self.detail, self.exit_code = "incomplete", None, 0
         self.fetch_mono = None                    # the run's own fetch-start monotonic reading (test clock anchor)
         self.degraded: list[str] = []
@@ -314,6 +315,7 @@ class EntryReceipt:
         return {"schema": SCHEMA, "attempt_id": self.attempt_id,
                 "producer": {"command": "check-pick-entered", "revision": _git_head_sha(REPO)},
                 "et_date": self.et_date, "season": int(self.et_date[:4]), "started_at": iso(self.started_at),
+                **({"early_cron_run": True} if self.early_cron_run else {}),
                 "outcome": self.outcome, "detail": self.detail, "selection": selection, "cutoff_at": iso(cutoff),
                 "minutes_to_pitch": round(self._minutes, 3) if self._minutes is not None else None,
                 "account": account, "observation": observation, "verifier": verifier, "qualification": qualification,

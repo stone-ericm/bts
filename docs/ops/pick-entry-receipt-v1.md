@@ -6,7 +6,7 @@
 - **What it does not change:** the run's DMs, marker statuses, exit codes, retry policy, authenticated requests and cadence. The existing `TestCheckPickEntered` tests pass unchanged. The marker gains one key, `receipt`.
 
 ## Where
-- **One file per run.** The watchdog attempts to seal one receipt per CLI invocation at `data/health_state/pick_entry_receipts/<ET date>/<started>-<attempt_id>.json`. The enter schedule runs every 15 minutes all day ET, with 96 nominal slots on an ordinary day, 92 on the spring clock-change day, and 100 on the fall clock-change day. A slot skipped on lock contention produces no receipt. A hard stop before sealing can leave the run without a discoverable receipt.
+- Each watchdog CLI invocation attempts to publish one receipt JSON at `data/health_state/pick_entry_receipts/<ET date>/<started>-<attempt_id>.json` and its sibling `.json.sealed` file. The enter schedule runs every 15 minutes all day ET, with 96 nominal slots on an ordinary day, 92 on the spring clock-change day, and 100 on the fall clock-change day. A slot skipped on lock contention produces no receipt. A hard stop before sealing can leave the run without a discoverable receipt.
 - **Backup and retention:** the restic `ops` set (`data/health_state`) backs it up. Nothing prunes it.
 - **Publication** (`receipt_io.publish`):
   - each missing directory is created one level at a time, and its parent is fsynced;
@@ -16,6 +16,7 @@
   - **If only the seal's own directory fsync fails,** the receipt still counts: it is complete and durable, and a crash could only remove the seal, which withdraws acceptance.
 - **Discovery** (`entry_receipt.discover(picks_dir, date)` / `receipt_io.discover`) returns only `*.json` files that are **sealed and not tombstoned**. **Consumers must use that rule:** an unsealed, tombstoned or missing receipt is unavailable evidence, never success. That includes the double refusal, where the directory fsync, the removal and the tombstone write all fail: no seal is ever written, so the receipt never counts.
 - **The marker** `data/health_state/pick_entry_check.json` names the receipt of the run that wrote it (`receipt`).
+- An early cron run that passes the gate marks its writes with `"early_cron_run": true`. When a cron run replaces another date’s `alerted` or `dm_failed` marker, it first preserves the original bytes in `data/health_state/pick_entry_check.<displaced ET date>.json`. Entry health reads that date’s copy when the live marker is for a different date. The first copy is retained.
 
 ## Behaviour neutrality (review r1 C5)
 - **During the run,** the receipt hooks capture the inputs and timing. On a batter match the watchdog can run game qualification before making its decision. Publication independently reads the captures and records the resulting evidence. Each hook is behind a guard; a guard failure is listed in `degraded`.
@@ -29,6 +30,7 @@
 | `producer` | `{command: "check-pick-entered", revision: <git HEAD of the running checkout or null>}`. The revision is sampled at publication: a code version, not proof of the deployed artifact |
 | `et_date`, `season` | the contest date checked (ET) and its year |
 | `started_at` | run start (tz-aware ET). It is the same instant the run uses for its decisions |
+| `early_cron_run` | true when a `--cron` start before 10:00 ET passes the early gate. All other receipts omit this field. If the final saved pick has a nominal 10:00–23:45 ET quarter-hour with more than 5 and at most 75 minutes to first pitch, the morning report counts these receipts as checks and excludes them as evidence of timely entry, batter-only entry or absence |
 | `outcome` | see below |
 | `detail` | set only when the run raised: `raised <ExceptionType>` |
 | `selection` | **expected identity**, parsed from the exact bytes the run read once (C2): `slots` (`role` pick / double_down, `batter_id`, `batter_name`, `game_pk`, `game_time`), `delivery` (channel, notification id, Bluesky uri, `delivered_at`, flags), `commit` (the gated decision's `decision_sha256`, `decision_valid`, `delivery_status`, `scoreable`), `pick_file_sha256` |
@@ -56,7 +58,7 @@ The watchdog checks game qualification separately from publication, so an unreso
 | `no_pick_file` | no attempt | no pick file for the date |
 | `not_committed` | no attempt | the pick is not a scoreable commit (a preview, or deferred) |
 | `outside_window` | no attempt | outside `(cutoff, window]` before the earliest leg's first pitch; `selection` and `cutoff_at` are set |
-| `base_slot_available` | no attempt | a `--cron` start before 10:00 ET deferred because a 10:00–23:45 ET quarter-hour on the same date is inside the committed selection's window |
+| `base_slot_available` | no attempt | a `--cron` start before 10:00 ET deferred because a nominal 10:00–23:45 ET quarter-hour on the same date is inside the committed selection's window |
 | `already_confirmed` | no fetch | the marker already says confirmed. It references the confirming receipt and makes **no new observation and no freshness claim** |
 | `identity_mismatch` | attempted | the session belongs to another username; `account` records what was seen; no observation |
 | `fetch_failed` | attempted | an auth, HTTP or shape failure; no observation |
