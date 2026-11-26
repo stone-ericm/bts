@@ -295,3 +295,6 @@ The H gate found a real regression (15 failures in `tests/test_streak_season_cs2
 - **The season walk on `main` is clean** for the first time: 5,037 runs (the dated 57/57 and 58/60 states added), 0 problems, exit 0.
 - H's accepted residue (Eric): a base policy file damaged in a way `_validate_longest_base` does not list, with a tail rebuilt against it, gets the rule's normal pick and no degradation note. H and H2 deploy together; before a rollback past H2 the lead checks active and best in both observation files and pending pick metadata (B8b (4)).
 - With this, Ea, G, H and H2 are all on `main`. Open from this session's list: nothing. Still for January (R63, Eb): the checklist's first-boot rows and `INCIDENT.md`. The closing test's re-run on the moved head (R51) is the lead's.
+
+## Lead, 2026-11-25 19:36: F1, an unreadable capture
+The session kept today's batter-only "confirmed" when the capture file is unreadable (its Amendment 1, A5). Partly overruled: that is a false all-clear in F1's own doubleheader case (R64 class). Ruled: say the batter is confirmed and the game could not be checked (the meaning of `day-outcome`'s existing `entered_game_unverified`), no "Fix it now" and no move-the-entry instruction, and count it as confirmed for the later-check skip (no repeated nag).
