@@ -1,0 +1,18 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-f1b
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 173 items / 2 deselected / 171 selected
+
+tests/test_wr_f1_review.py .............                                 [  7%]
+tests/test_wr_f1_wrong_game.py ......................................... [ 31%]
+...........................                                              [ 47%]
+tests/test_day_outcome_entry_sequence.py ............................... [ 65%]
+....                                                                     [ 67%]
+tests/test_entry_receipt.py ............................................ [ 93%]
+.....                                                                    [ 96%]
+tests/health/test_pick_entry_source.py ......                            [100%]
+
+====================== 171 passed, 2 deselected in 25.70s ======================

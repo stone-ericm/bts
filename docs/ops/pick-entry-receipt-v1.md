@@ -6,7 +6,7 @@
 - **What it does not change:** the run's DMs, marker statuses, exit codes, retry policy, authenticated requests and cadence. The existing `TestCheckPickEntered` tests pass unchanged. The marker gains one key, `receipt`.
 
 ## Where
-- **One file per run:** `data/health_state/pick_entry_receipts/<ET date>/<started %Y%m%dT%H%M%S%f>-<attempt_id>.json`, every run, whatever its outcome. The cron runs `*/15 10-23` under `entry_intent = "enter"`, so about 56 small files a day.
+- **One file per run:** The watchdog attempts to seal one receipt per CLI invocation at `data/health_state/pick_entry_receipts/<ET date>/<started>-<attempt_id>.json`. The enter schedule supplies 56 slots per day. A slot skipped on lock contention produces no receipt. A hard stop before sealing can leave the run without a discoverable receipt.
 - **Backup and retention:** the restic `ops` set (`data/health_state`) backs it up. Nothing prunes it.
 - **Publication** (`receipt_io.publish`):
   - each missing directory is created one level at a time, and its parent is fsynced;
@@ -18,7 +18,7 @@
 - **The marker** `data/health_state/pick_entry_check.json` names the receipt of the run that wrote it (`receipt`).
 
 ## Behaviour neutrality (review r1 C5)
-- **During the run,** the receipt's hooks only store references and clock readings, each behind a guard; a guard failure is listed in `degraded`.
+- **During the run,** the receipt hooks capture the inputs and timing. On a batter match the watchdog can run game qualification before making its decision. Publication independently reads the captures and records the resulting evidence. Each hook is behind a guard; a guard failure is listed in `degraded`.
 - **In `publish`:** every extraction, hash, qualification and serialization happens there, after the run's own decisions, DMs and marker writes. A failure there publishes nothing and changes nothing.
 
 ## Fields
@@ -43,6 +43,8 @@
 | `exit_code` | the run's exit code (null if it raised) |
 | `degraded` | names of receipt hooks that failed (their fields may be missing) |
 | `published_at` | when the receipt was built |
+
+The watchdog checks game qualification separately from publication, so an unresolved wrong-game observation can change the receipt's `marker_status` and `exit_code` while the receipt's `verifier` still records the batter-only match.
 
 **Clocks:** in production every time is the wall clock. Under the `--now-et` test override, times are the anchored instant, advanced by process time after the run's own fetch start.
 

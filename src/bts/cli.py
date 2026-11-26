@@ -1944,8 +1944,12 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
 def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now, rec):
     import sys
     import time
+    from datetime import timezone
+    from shlex import quote
+
     import httpx
     from bts.daily_decision import load_decision_bytes, scoreable_commit_from
+    from bts.entry_receipt import qualify_run, selection_slots
     from bts.picks import load_pick_bytes
     from bts.scheduler import _earliest_pick_game_et
 
@@ -1989,11 +1993,6 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
 
     status_path = picks.parent / "health_state" / "pick_entry_check.json"
 
-    def mark(marker):
-        # The marker names this run's receipt, so a later already-confirmed run can reference the confirming one.
-        marker["receipt"] = rec.attempt_id
-        rec.marker(marker["status"])
-        _atomic_write_json(status_path, marker)
     # "confirmed" is the ONLY terminal state (audit F1): an "alerted" day keeps
     # RE-VERIFYING on every run until the entry appears or the window closes —
     # a delivered warning is not verified remediation (the 7/08 missed DD leg
@@ -2012,10 +2011,23 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
             click.echo(f"check-pick-entered: already confirmed for {today}")
             return
     was_alerted = prior.get("status") == "alerted"
-    # Markers written before the escalation ladder lack the field: the initial
-    # alert has by definition already fired on an "alerted" marker.
-    prior_escalations = list(prior.get("escalations")
-                             or (["initial"] if was_alerted else []))
+    prior_escalations = list(prior.get("escalations") or [])
+    prior_wrong_game = (
+        prior.get("game_unresolved") is True
+        or prior.get("reason") == "wrong_game"
+        or "wrong_game" in prior_escalations
+    )
+    # Older alerted markers imply an initial alert unless they record a game observation.
+    if was_alerted and not prior_escalations and not prior_wrong_game:
+        prior_escalations = ["initial"]
+
+    def mark(marker):
+        if marker["status"] != "confirmed" and (reason == "wrong_game" or prior_wrong_game):
+            marker["game_unresolved"] = True
+        # The marker names this run's receipt, so a later already-confirmed run can reference the confirming one.
+        marker["receipt"] = rec.attempt_id
+        rec.marker(marker["status"])
+        _atomic_write_json(status_path, marker)
 
     from bts.leaderboard.auth import (
         load_session_cookies, extract_uid, fetch_login_session, AuthError,
@@ -2070,25 +2082,57 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
         click.echo(f"check-pick-entered: {today} entry present but identity "
                    f"unverified; will re-verify")
         return
+    affected = []
+    units = None
     if ok:
-        mark({"date": today, "status": "confirmed",
-                                         "reason": reason, "checked_at": now.isoformat()})
-        if (was_alerted or "initial" in prior_escalations) and dm_recipient:
+        slots = selection_slots(daily)
+        if len({slot["batter_id"] for slot in slots}) != len(slots):
+            if prior_wrong_game:
+                affected = [(slot, None) for slot in slots]
+        else:
+            try:
+                qualification, units = qualify_run(slots, success, pending, rounds, bts_to_mlb, picks, now.date())
+            except Exception as exc:
+                reason = "match_game_unchecked"
+                click.echo(f"check-pick-entered: game check unavailable ({type(exc).__name__}); batter match only",
+                           err=True)
+            else:
+                results = list(zip(slots, qualification["slots"], strict=True))
+                affected = [(slot, result) for slot, result in results
+                            if result["state"] == "wrong_game" and type(slot["game_pk"]) is int]
+                if not affected and prior_wrong_game and not qualification["all_confirmed"]:
+                    affected = [(slot, result) for slot, result in results if result["state"] != "confirmed"]
+        if affected:
+            ok, reason = False, "wrong_game"
+
+    if ok:
+        marker = {"date": today, "status": "confirmed", "reason": reason, "checked_at": now.isoformat()}
+        if prior_wrong_game and reason == "match":
+            marker["escalations"] = prior_escalations
+        mark(marker)
+        if dm_recipient and (was_alerted or "initial" in prior_escalations or "wrong_game" in prior_escalations):
             # One-time all-clear on the alerted -> confirmed transition: the
             # operator got a scary DM; close the loop when the fix lands.
             try:
                 import bts.dm
-                bts.dm.send_dm(dm_recipient,
-                               f"✅ BTS pick entry confirmed for {today} ({reason}).")
+                if reason == "match_game_unchecked":
+                    msg = f"✅ BTS pick entry: the batter is entered for {today}; the game could not be checked."
+                else:
+                    msg = f"✅ BTS pick entry confirmed for {today} ({reason})."
+                bts.dm.send_dm(dm_recipient, msg)
                 click.echo(f"check-pick-entered: confirmation DM sent to {dm_recipient}")
             except Exception as exc:
                 click.echo(f"check-pick-entered: confirmation DM failed: {exc}", err=True)
-        click.echo(f"check-pick-entered: {today} pick entered ({reason})")
+        if reason == "match_game_unchecked":
+            click.echo(f"check-pick-entered: {today} batter entered; the game could not be checked ({reason})")
+        else:
+            click.echo(f"check-pick-entered: {today} pick entered ({reason})")
         return
 
-    names = daily.pick.batter_name
-    if daily.double_down:
-        names += f" + DD {daily.double_down.batter_name}"
+    if not affected:
+        names = daily.pick.batter_name
+        if daily.double_down:
+            names += f" + DD {daily.double_down.batter_name}"
     # Report time to the submission cutoff (first pitch - 5), not to first
     # pitch — net of wall-clock spent in the auth/profile fetches above (their
     # bounded retries can add ~a minute, and a nag for an entry that LOCKED
@@ -2105,7 +2149,8 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
         mark({"date": today, "status": "alerted",
                                          "reason": reason, "checked_at": now.isoformat(),
                                          "escalations": prior_escalations})
-        click.echo("check-pick-entered: submission cutoff passed during fetch; "
+        step = "this check" if reason == "wrong_game" else "fetch"
+        click.echo(f"check-pick-entered: submission cutoff passed during {step}; "
                    "skipping the nag (entry can no longer change)")
         sys.exit(1)
 
@@ -2113,7 +2158,9 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
     # T-30 and T-15 (minutes to the submission cutoff) re-alert if the entry is
     # STILL missing. Each tier fires at most once; an alert sent at/below a
     # threshold consumes that tier too — one DM near the cutoff suffices.
-    if "initial" not in prior_escalations:
+    if reason == "wrong_game" and "wrong_game" not in prior_escalations:
+        tier = "wrong_game"
+    elif reason != "wrong_game" and "initial" not in prior_escalations:
         tier = "initial"
     elif "t30" not in prior_escalations and minutes_to_cutoff <= 30:
         tier = "t30"
@@ -2123,28 +2170,70 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
         mark({"date": today, "status": "alerted",
                                          "reason": reason, "checked_at": now.isoformat(),
                                          "escalations": prior_escalations})
-        click.echo(f"check-pick-entered: still not entered ({reason}); "
-                   f"re-verifying each run until cutoff")
+        if affected:
+            roles = " + ".join(slot["role"].replace("_", "-") for slot, _ in affected)
+            click.echo(f"check-pick-entered: {today} game verification unresolved ({roles}); "
+                       f"re-verifying each run until cutoff")
+        else:
+            click.echo(f"check-pick-entered: still not entered ({reason}); "
+                       f"re-verifying each run until cutoff")
         sys.exit(1)
 
-    if (decision is not None and decision.get("date") == today
-            and decision.get("delivery_status") == "locked_unconfirmed"):
-        from shlex import quote
+    locked_unconfirmed = (decision is not None and decision.get("date") == today
+                          and decision.get("delivery_status") == "locked_unconfirmed")
+    if affected:
+        def display_name(slot):
+            name = slot["batter_name"]
+            return name if isinstance(name, str) and name else f"batter {slot['batter_id']}"
 
-        entry = "No entry found in MLB" if reason == "no_pick" else "The MLB entry differs"
-        msg = (f"⚠️ Delivery of this pick was NOT confirmed. {names} is the pick the scheduler "
-               f"tried to send. {entry}. First pitch {first_pitch.strftime('%-I:%M %p ET')} "
-               f"({minutes_to_cutoff:.0f} min to submit). Check your DMs and MLB entry before "
-               f"entering anything, and run `bts season-contract status --picks-dir {quote(str(picks))}`.")
-    elif tier == "initial":
-        lead = ("BTS pick NOT entered" if reason == "no_pick"
-                else "BTS entry does NOT match the recommended pick")
-        msg = (f"\u26a0\ufe0f {lead} in MLB app: {names} — first pitch "
-               f"{first_pitch.strftime('%-I:%M %p ET')} "
-               f"({minutes_to_cutoff:.0f} min to submit). Fix it now!")
+        descriptions = []
+        for slot, result in affected:
+            role = slot["role"].replace("_", "-")
+            game_pk = slot["game_pk"]
+            game = game_pk if type(game_pk) is int else "ID unavailable"
+            detail = f"{role} {display_name(slot)}: recommended game {game}"
+            try:
+                pitch = datetime.fromisoformat(slot["game_time"].replace("Z", "+00:00"))
+                if pitch.tzinfo is None:
+                    pitch = pitch.replace(tzinfo=timezone.utc)
+                detail += f" (first pitch {pitch.astimezone(now.tzinfo).strftime('%-I:%M %p ET')})"
+            except (AttributeError, ValueError, OverflowError):
+                pass
+            if result is not None and result["state"] == "wrong_game":
+                observed, _ = units[result["row"]["unitId"]]
+                detail += f", the entry is recorded in game {observed}"
+            descriptions.append(detail)
+        legs = "; ".join(descriptions)
+        if locked_unconfirmed:
+            names = " + DD ".join(display_name(slot) for slot in slots)
+            msg = (f"⚠️ Delivery of this pick was NOT confirmed. The scheduler tried to send {names}. "
+                   f"MLB game evidence needs verification. {legs}. "
+                   f"Check your DMs and the MLB entry before making any change. "
+                   f"Run `bts season-contract status --picks-dir {quote(str(picks))}`.")
+        elif tier == "wrong_game":
+            msg = (f"⚠️ BTS entry game needs verification. {legs}. "
+                   "Check the delivered pick and the game shown in MLB for each listed leg. "
+                   "Change only a leg whose correct game you can verify and that MLB still lets you edit. "
+                   "Keep any correct leg as entered.")
+        else:
+            msg = (f"⏰ BTS entry game verification is still needed. {legs}. "
+                   "Check the delivered pick against the game shown in MLB.")
     else:
-        msg = (f"\u23f0 STILL NOT entered ({reason}): {names} — "
-               f"{minutes_to_cutoff:.0f} min left to submit!")
+        if locked_unconfirmed:
+            entry = "No entry found in MLB" if reason == "no_pick" else "The MLB entry differs"
+            msg = (f"⚠️ Delivery of this pick was NOT confirmed. {names} is the pick the scheduler "
+                   f"tried to send. {entry}. First pitch {first_pitch.strftime('%-I:%M %p ET')} "
+                   f"({minutes_to_cutoff:.0f} min to submit). Check your DMs and MLB entry before "
+                   f"entering anything, and run `bts season-contract status --picks-dir {quote(str(picks))}`.")
+        elif tier == "initial":
+            lead = ("BTS pick NOT entered" if reason == "no_pick"
+                    else "BTS entry does NOT match the recommended pick")
+            msg = (f"\u26a0\ufe0f {lead} in MLB app: {names} — first pitch "
+                   f"{first_pitch.strftime('%-I:%M %p ET')} "
+                   f"({minutes_to_cutoff:.0f} min to submit). Fix it now!")
+        else:
+            msg = (f"\u23f0 STILL NOT entered ({reason}): {names} — "
+                   f"{minutes_to_cutoff:.0f} min left to submit!")
     dm_sent = False
     if dm_recipient:
         try:
@@ -2158,16 +2247,22 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
     # recipient to reach) — a failed DM must stay retryable at every tier
     # (Codex review, 2026-07-03).
     if dm_sent or not dm_recipient:
-        consumed = set(prior_escalations) | {"initial"}
+        consumed = set(prior_escalations)
+        if reason != "wrong_game":
+            consumed.add("initial")
+        elif tier == "wrong_game":
+            consumed.add("wrong_game")
         for t_name, threshold in (("t30", 30), ("t15", 15)):
             if minutes_to_cutoff <= threshold:
                 consumed.add(t_name)
         mark({"date": today, "status": "alerted",
                                          "reason": reason, "checked_at": now.isoformat(),
                                          "escalations": sorted(consumed)})
-    elif tier == "initial" and not was_alerted:
-        mark({"date": today, "status": "dm_failed",
-                                         "reason": reason, "checked_at": now.isoformat()})
+    elif tier in ("initial", "wrong_game") and not was_alerted:
+        marker = {"date": today, "status": "dm_failed", "reason": reason, "checked_at": now.isoformat()}
+        if prior_wrong_game or reason == "wrong_game":
+            marker["escalations"] = prior_escalations
+        mark(marker)
     else:
         # Failed escalation DM: keep the marker unchanged so the tier retries.
         mark({"date": today, "status": "alerted",

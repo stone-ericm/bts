@@ -1,0 +1,10 @@
+nice: setpriority: Operation not permitted
+K4 archived sequence, outside cron lock: {'checked_at': '2027-03-24T18:30:00-04:00', 'date': '2027-03-24', 'escalations': ['initial'], 'reason': 'no_pick', 'receipt': 'b1f10013eae34e00a870de24cec45d7d', 'status': 'alerted'} {'checked_at': '2027-03-24T19:00:00-04:00', 'date': '2027-03-24', 'reason': 'match', 'receipt': 'a8f19c06c4f249aeabc186057a321e8f', 'status': 'confirmed'} ['✅ BTS pick entry confirmed for 2027-03-24 (match).']
+Absent watchdog: entry_unverifiable with no bound evidence; missing subsequent slot leaves {'exit': 0, 'outcome': {'date': '2027-03-24', 'state': 'entered_game_unverified', 'ok': True, 'detail': 'The batter entry matched before the cutoff; the game was not verified.', 'pick': 'Batter 1010'}, 'dm': []}
+F1 changes morning receipts: wrong-game-only would alert; later unresolved unbound match is clean
+Last actionable slot: 850-second response with no hard limit sends initial DM; 840-second cutoff and 19:00 retry lose it
+2027-03-14 10:00–23:45 slots 56 local 01:00 occurrences [('2027-03-14T01:00:00-05:00', 0)]
+2027-11-07 10:00–23:45 slots 56 local 01:00 occurrences [('2027-11-07T01:00:00-04:00', 0), ('2027-11-07T01:00:00-05:00', 1)]
+ET year boundary 2027-12-31 then 2028-01-01
+local advisory lock on directory succeeded
+local advisory lock on read-only regular file succeeded

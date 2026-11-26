@@ -1,0 +1,68 @@
+{
+  "control": {
+    "exit_code": 0,
+    "noticed": false,
+    "summary_lines": [
+      "tests/test_wr_f1b_lock.py .........s.s.s..........s                      [ 75%]",
+      "tests/test_wr_f1_game_pk_types.py ........                               [100%]",
+      "======================== 29 passed, 4 skipped in 50.18s ========================"
+    ]
+  },
+  "cron_mutations": {
+    "drop_minus_n": {
+      "exit_code": 1,
+      "noticed": true,
+      "summary_lines": [
+        "FAILED tests/test_wr_f1b_lock.py::test_generated_wrapper_order_and_interval",
+        "!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!",
+        "============================== 1 failed in 0.62s ==============================="
+      ]
+    },
+    "drop_limit": {
+      "exit_code": 1,
+      "noticed": true,
+      "summary_lines": [
+        "FAILED tests/test_wr_f1b_lock.py::test_generated_wrapper_order_and_interval",
+        "!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!",
+        "============================== 1 failed in 0.62s ==============================="
+      ]
+    },
+    "make_limit_900": {
+      "exit_code": 1,
+      "noticed": true,
+      "summary_lines": [
+        "FAILED tests/test_wr_f1b_lock.py::test_generated_wrapper_order_and_interval",
+        "!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!",
+        "============================== 1 failed in 0.62s ==============================="
+      ]
+    },
+    "make_limit_870_boundary": {
+      "exit_code": 1,
+      "noticed": true,
+      "summary_lines": [
+        "FAILED tests/test_wr_f1b_lock.py::test_generated_wrapper_order_and_interval",
+        "!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!",
+        "============================== 1 failed in 0.63s ==============================="
+      ]
+    },
+    "drop_verbose": {
+      "exit_code": 1,
+      "noticed": true,
+      "summary_lines": [
+        "FAILED tests/test_wr_f1b_lock.py::test_generated_wrapper_order_and_interval",
+        "!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!",
+        "============================== 1 failed in 0.62s ==============================="
+      ]
+    },
+    "swap_lock_and_limit": {
+      "exit_code": 1,
+      "noticed": true,
+      "summary_lines": [
+        "FAILED tests/test_wr_f1b_lock.py::test_generated_wrapper_order_and_interval",
+        "!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!",
+        "============================== 1 failed in 0.62s ==============================="
+      ]
+    }
+  },
+  "unnoticed": []
+}

@@ -1,0 +1,31 @@
+{
+  "base_bts_file": "/Users/eric/projects/bts-work/wr-rev-f1c-cb/carbon-review/wr-f1b-r1/_work_p01/base_archive/src/bts/__init__.py",
+  "cand_bts_file": "/Users/eric/projects/bts-work/wr-rev-f1c-cb/src/bts/__init__.py",
+  "diff_files": [
+    "M\tdocs/ops/pick-entry-receipt-v1.md",
+    "M\tscripts/cron-setup-hetzner.sh",
+    "M\tsrc/bts/cli.py",
+    "M\tsrc/bts/entry_receipt.py",
+    "A\ttests/test_wr_f1_game_pk_types.py",
+    "A\ttests/test_wr_f1_review.py",
+    "A\ttests/test_wr_f1_wrong_game.py",
+    "A\ttests/test_wr_f1b_lock.py"
+  ],
+  "cron_parity": {
+    "research_byte_identical": true,
+    "enter_other_lines_byte_identical": true,
+    "enter_line_count": 22,
+    "watchdog_line": "*/15 10-23 * * * cd /HOME/projects/bts && set -a && . ./.env && set +a && /usr/bin/flock -n /home/bts/.check-pick-entered.lock /usr/bin/timeout --verbose -k 30 840 /HOME/.local/bin/uv run bts check-pick-entered --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> /HOME/logs/cron.log 2>&1 # BTS-HETZNER"
+  },
+  "grid_counts": {
+    "total": 1008,
+    "identical_outside_wg": 589,
+    "a1a_wrong_game": 139,
+    "a1b_prior_unresolved": 81,
+    "r1_nonterminal_preserved": 87,
+    "full_proof_after_wg": 51,
+    "m10_raising_capture": 52,
+    "early_exit_with_wg_marker": 9
+  },
+  "unexpected_count": 0
+}
