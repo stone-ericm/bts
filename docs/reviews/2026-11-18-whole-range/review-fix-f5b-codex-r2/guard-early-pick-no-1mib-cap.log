@@ -1,0 +1,25 @@
+nice: setpriority: Operation not permitted
+early-pick-no-1mib-cap
+/tmp/wr-f5b-r2.4kVtCgCD/tmpi1x_0imm/src
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f5d-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_wr_f5b_watchdog.py F                                          [100%]
+
+=================================== FAILURES ===================================
+_______________ test_round2_oversized_early_pick_is_unavailable ________________
+tests/test_wr_f5b_watchdog.py:829: in test_round2_oversized_early_pick_is_unavailable
+    assert replay.check("05:15") == ("no_pick_file", [], [], False)
+E   AssertionError: assert ('already_con...[], [], False) == ('no_pick_fil...[], [], False)
+E     
+E     At index 0 diff: 'already_confirmed' != 'no_pick_file'
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/test_wr_f5b_watchdog.py::test_round2_oversized_early_pick_is_unavailable
+============================== 1 failed in 0.85s ===============================
+
+

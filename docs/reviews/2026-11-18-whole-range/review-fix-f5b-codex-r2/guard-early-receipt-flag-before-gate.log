@@ -1,0 +1,27 @@
+nice: setpriority: Operation not permitted
+early-receipt-flag-before-gate
+/tmp/wr-f5b-r2.4kVtCgCD/tmp9c8jk4g1/src
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f5d-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 2 items
+
+tests/test_wr_f5b_watchdog.py FF                                         [100%]
+
+=================================== FAILURES ===================================
+_ test_round2_local_gate_receipts_omit_early_flag[10:20-09:45-09:40-base_slot_available] _
+tests/test_wr_f5b_watchdog.py:842: in test_round2_local_gate_receipts_omit_early_flag
+    assert "early_cron_run" not in receipt
+E   AssertionError: assert 'early_cron_run' not in {'account': None, 'attempt_id': '812259364bcf4d02899692d4ae39e1c5', 'cutoff_at': '2027-03-24T10:15:00-04:00', 'degraded': [], ...}
+_ test_round2_local_gate_receipts_omit_early_flag[06:10-04:45-04:40-outside_window] _
+tests/test_wr_f5b_watchdog.py:842: in test_round2_local_gate_receipts_omit_early_flag
+    assert "early_cron_run" not in receipt
+E   AssertionError: assert 'early_cron_run' not in {'account': None, 'attempt_id': 'fdb46b1a52c74f838519a791eb3c1318', 'cutoff_at': '2027-03-24T06:05:00-04:00', 'degraded': [], ...}
+=========================== short test summary info ============================
+FAILED tests/test_wr_f5b_watchdog.py::test_round2_local_gate_receipts_omit_early_flag[10:20-09:45-09:40-base_slot_available]
+FAILED tests/test_wr_f5b_watchdog.py::test_round2_local_gate_receipts_omit_early_flag[06:10-04:45-04:40-outside_window]
+============================== 2 failed in 1.26s ===============================
+
+

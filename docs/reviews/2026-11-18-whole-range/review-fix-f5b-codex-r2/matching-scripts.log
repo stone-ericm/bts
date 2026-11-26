@@ -1,0 +1,11 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5d-cx/src/bts/__init__.py
+backup: data/health_state/pick_entry_check.early/2027-03-24.json included by data/health_state
+input sha256=ff876e002d3faf86…  21 resolved days (2027-03-24..2027-04-13), 21 slots
+calibrated-null season alarm surface (fixed observed schedule, 21 calendar check days, 20000 trials, seed 20260712):
+   thr         P(any day ≥ thr)      P(2 cal-consec WARN-band)
+  0.08     0.1410 [0.1362,0.1459]       0.0687 [0.0653,0.0723]
+  0.12     0.0364 [0.0339,0.0391]       0.0156 [0.0140,0.0174]
+  0.15     0.0126 [0.0111,0.0142]       0.0046 [0.0037,0.0056]
+  0.20     0.0003 [0.0002,0.0007]       0.0000 [0.0000,0.0002]
+  0.25     0.0001 [0.0000,0.0003]       0.0000 [0.0000,0.0002]

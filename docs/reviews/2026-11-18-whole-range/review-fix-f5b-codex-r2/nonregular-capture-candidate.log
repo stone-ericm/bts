@@ -1,0 +1,5 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5d-cx/src/bts/__init__.py
+05:00 fifo False present True exit 0 stdout reading 2027-03-24T085000Z.json.gz regular file
+check-pick-entered: 2027-03-24 pick entered (match)
+reading 2027-03-24T085000Z.json.gz regular file stderr  receipt count 1 early marker {'checked_at': '2027-03-24T05:00:00-04:00', 'date': '2027-03-24', 'observed_at': '2027-03-24T05:00:00-04:00', 'reason': 'match', 'receipt': 'abd7ee0539d0458cae3437e6f3d1177e', 'slots': [{'batter_id': 1010, 'batter_name': 'Batter 1010', 'game_pk': 101, 'game_time': '2027-03-24T06:10:00-04:00', 'role': 'pick'}], 'status': 'confirmed'}

@@ -1,0 +1,3 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /private/tmp/wr-f5b-r2.4kVtCgCD/r1/src/bts/__init__.py
+old live marker wrote by 09:44:50; new pick warning failed 09:45; old receipt 09:45:20; 10:00 outside window; displaced live marker; end-of-day alerts: [('CRITICAL', '2027-03-24: committed pick entry never confirmed AND the not-entered alert DM failed to send — the operator was never reached (reason=mismatch)')]

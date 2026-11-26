@@ -65,3 +65,5 @@ Held: crontab parity; 28 manual and original-hours cases equal to the base; heal
 4. **Text edits:** adopted verbatim from the report's "Edits" (the three files above).
 5. **Tests:** each of B1 (warning then pitch-only correction then confirmation: one all-clear; a UTC respelling: still terminal), B2 (a receipt over 64 KiB; the paused manual write) and B3 (each malformed field; the overflowing first pitch in the morning and in health) RED on `e66cc74c`; the reviewer's surviving scratch changes (preferring early to a same-date live marker; lifting the early-pick cap; setting the receipt flag before the gate; reader-only leg binding) each now fail a test. Every round-1 test stays green.
 6. **Files:** as round 1's list. No test that exists on the base changes beyond the two hour assertions; F5b's own test file may change only where this amendment changes behaviour.
+
+## Round 2 (2026-11-26 05:10): Codex xhigh BLOCK `WRF5BREV2-4cc7ff3d` (`review-fix-f5b-codex-r2/`); Carbon stopped (R70 item 5); F5b STOPS (`STOP-F5B.md`); BL-O4 goes to Eric (R68)

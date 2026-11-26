@@ -1,0 +1,6 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5d-cx/src/bts/__init__.py
+capture count 2 sealed receipt bytes 3017 observed health []
+capture count 326 sealed receipt bytes 74621 observed health []
+same-date live confirmed with no sealed receipt []
+paused before write 2027-03-24T04:55:00-04:00 2027-03-24T05:00:00-04:00 2027-03-24T05:01:00-04:00 []

@@ -1,0 +1,25 @@
+nice: setpriority: Operation not permitted
+no-health-leg-binding
+/tmp/wr-f5b-r2.4kVtCgCD/tmpnro93yun/src
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f5d-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_wr_f5b_watchdog.py F                                          [100%]
+
+=================================== FAILURES ===================================
+______________ test_round2_early_readers_bind_saved_legs[health] _______________
+tests/test_wr_f5b_watchdog.py:858: in test_round2_early_readers_bind_saved_legs
+    assert health_at(replay) == []
+E   AssertionError: assert [Alert(level=...ent_key=None)] == []
+E     
+E     Left contains one more item: Alert(level='CRITICAL', source='pick_entry', message='2027-03-24: committed pick entry never confirmed AND the not-entered alert DM failed to send — the operator was never reached (reason=no_pick)', incident_key=None)
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/test_wr_f5b_watchdog.py::test_round2_early_readers_bind_saved_legs[health]
+============================== 1 failed in 0.85s ===============================
+
+
