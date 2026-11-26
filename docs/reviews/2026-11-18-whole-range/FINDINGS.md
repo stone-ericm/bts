@@ -326,3 +326,7 @@ Eric asked for the watchdog to cover every game (BL-O4), so the lead rules F5's 
 
 ## Eric, 2026-11-26 01:51: F2b, option 2 ("2"), ACCEPTED (not passed)
 F2b's one check BLOCKed (`WRF2BCHK-062deb52`): both of F2's round-2 findings are fixed; the collision guard the session added introduced two defects (a non-strict path resolution that sees a false collision; an embedded NUL in a configured path that raises before the warning). Eric accepted option 2: the collision guard is DROPPED, the fixed B8a sentence is kept, and a written limit replaces the guard: "do not point `warn_attention_state` at `<status>.dated_used_mismatch.json`" (cost if someone does: the new warning's receipt overwrites that alert's status once). Merges on a green gate with no further check.
+
+## 2026-11-26 (bts-wr-fresh13): F3 and F2 merged (main da5a2f1c)
+- **F3 (C3-B1, visibility): MERGED, review PASSED.** `bts day-outcome` no longer reports a clean `deliberate_skip` when the day's contest state changed after the MDP skip was decided; the scheduler's skip is unchanged (R40). Round 1 BLOCK, round 2 under R70's bounded rule: Codex SIGN and Carbon SIGN; gate on `82c04543` green (11,227, the pinned 53).
+- **F2 (C2-B1's code side) with F2b: MERGED on Eric's ACCEPTANCE** (option 2, 2026-11-26): a separate WARN-only DM with its own status file when the saver flag disagrees with a dated observation saying the saver was used; the collision guard dropped, the written limit in B8a and `CLAUDE.md`. Gate on `e8c0b92e` green (11,202, the pinned 53).
