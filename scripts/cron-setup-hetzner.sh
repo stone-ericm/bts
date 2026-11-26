@@ -14,9 +14,11 @@
 #   */5  — healthchecks.io ping
 #   */5  — scheduler heartbeat staleness check (pings hc-ping /fail on stale)
 #   */30 — capture BTS public static JSONs (pregame consensus + lookups; content-deduped, no auth)
-#   */15 10-23 — DM if today's delivered pick was never entered in the MLB app (pre-first-pitch window).
-#                ONLY when [scheduler].entry_intent = "enter" (see below)
-#                A nonblocking lock serializes runs, and timeout sends TERM at 14 minutes and KILL 30 seconds later if needed.
+#   */15 10-23 — Every 15 minutes from 10:00 through 23:45 ET, the entry watchdog can DM about a missing,
+#                mismatching or game-unverified pick before the submission cutoff. This line is installed only for
+#                entry_intent = "enter" (see below). A slot skips if another invocation holds the same lock. After
+#                acquisition, timeout sends TERM at 14 minutes and sends KILL 30 seconds later if its monitored child
+#                is still running.
 #   20 */3 — restic 'ops' backup: data/picks + data/health_state to R2 (audit F5; needs RESTIC_PASSWORD in .env + scripts/install-restic-hetzner.sh)
 #   50 4  — restic 'archive' backup: leaderboard / hetzner_results / external
 #   35 5 Sun — restic prune (reclaims space from forgotten snapshots)

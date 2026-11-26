@@ -319,11 +319,14 @@ def _wait_for_unlock(lock):
 
 
 def _require_real_tools():
+    # On Linux (the Ubuntu test and deploy gates, and the box) the real tools are required: a missing tool fails
+    # instead of skipping, so CI cannot pass on the shims alone (F1b round 1 Codex note).
+    missing = pytest.fail if sys.platform.startswith("linux") else pytest.skip
     if not Path(FLOCK).is_file() or not Path(TIMEOUT).is_file():
-        pytest.skip(TOOLS_REQUIRED)
+        missing(TOOLS_REQUIRED)
     version = subprocess.run([TIMEOUT, "--version"], capture_output=True, timeout=HANG_BOUND)
     if version.returncode or b"GNU coreutils" not in version.stdout:
-        pytest.skip(TOOLS_REQUIRED)
+        missing(TOOLS_REQUIRED)
 
 
 @contextmanager

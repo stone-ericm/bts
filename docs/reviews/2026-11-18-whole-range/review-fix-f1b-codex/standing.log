@@ -1,0 +1,20 @@
+nice: setpriority: Operation not permitted
+directory match_game_unchecked ['✅ BTS pick entry: the batter is entered for 2027-03-24; the game could not be checked.']
+truncated match_game_unchecked ['✅ BTS pick entry: the batter is entered for 2027-03-24; the game could not be checked.']
+silent wrong_game []
+bad-json None check-pick-entered: 2027-03-24 pick entered (match)
+bad-shape AttributeError 
+bad-encoding UnicodeDecodeError 
+bad-tiers TypeError 
+marker-is-directory IsADirectoryError after the base-form DM
+saved game ID [101] match_game_unchecked check-pick-entered: game check unavailable (TypeError); batter match only
+check-pick-entered: entry receipt unavailable (TypeError) ['✅ BTS pick entry: the batter is entered for 2027-03-24; the game could not be checked.']
+same scoreable decision, no receipts entry_unverifiable vs all postponed {"date": "2027-03-24", "state": "no_games", "ok": true, "detail": "All 1 scheduled games were postponed or cancelled.", "pick": null}
+A6.5 later clean receipt entered_game_unverified marker remains unresolved
+KeyboardInterrupt 1 raised KeyboardInterrupt
+SystemExit 7 None
+ambiguous DM transport acceptance repeats the warning
+2027-03-14 56 separate slots, 900 real seconds apart
+2027-11-07 56 separate slots, 900 real seconds apart
+23:45 ET ends 23:59/23:59:30 nominally; a 61-second delay crosses midnight
+45-second forward step can put the next wall slot 855 elapsed seconds after the previous launch
