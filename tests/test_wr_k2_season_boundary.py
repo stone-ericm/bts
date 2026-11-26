@@ -1,7 +1,9 @@
 from datetime import date, datetime, timedelta
+import os
 from pathlib import Path
 import runpy
-from threading import Event
+import sys
+from threading import Event, Thread, current_thread
 
 import pytest
 
@@ -79,6 +81,7 @@ def startup(monkeypatch, tmp_path):
     import json
 
     bodies = []
+    workers = []
     config = {"orchestrator": {"picks_dir": str(tmp_path / "picks"),
                                "heartbeat_path": str(tmp_path / "heartbeat")},
               "scheduler": {"pick_delivery": "private"},
@@ -92,15 +95,21 @@ def startup(monkeypatch, tmp_path):
     def check(**kwargs):
         raise FirstCheck
 
+    class RecordWorker(Thread):
+        def start(self):
+            workers.append(self)
+            super().start()
+
+    monkeypatch.setattr(scheduler, "Thread", RecordWorker)
     monkeypatch.setattr(alert, "send_dm", send)
     monkeypatch.setattr(scheduler, "run_single_check", check)
     monkeypatch.setattr(scheduler, "_idle_until_next_wakeup", lambda *a: None)
     monkeypatch.setattr(scheduler, "notify_ready", lambda: None)
     monkeypatch.setattr(scheduler, "notify_watchdog", lambda: None)
 
-    def start(games, *, day=DAY, at=None, dry=False):
+    def start(games, *, day=DAY, at=None, dry=False, journal_delay=lambda: 0):
         now = datetime.fromisoformat(at or f"{day}T10:00").replace(tzinfo=scheduler.ET)
-        monkeypatch.setattr(scheduler, "_now_et", lambda: now)
+        monkeypatch.setattr(scheduler, "_now_et", lambda: now + timedelta(seconds=journal_delay()))
         def advance(seconds):
             nonlocal now
             now += timedelta(seconds=seconds)
@@ -111,20 +120,129 @@ def startup(monkeypatch, tmp_path):
             scheduler.run_day(day, config, dry_run=dry)
         except FirstCheck:
             pass
+        for worker in workers:
+            worker.join(1)
+            assert not worker.is_alive()
+        workers.clear()
 
     return start, bodies, config
 
 
-def test_warning_restart_and_count_change(startup, capsys):
+def test_warning_restart_and_count_change(startup, capfd):
     start, bodies, _ = startup
     start([game()])
     start([game(), game(gamePk=124)])
     start([game()])
     assert len(bodies) == 1
-    assert "At scheduler startup MLB listed at least one eligible regular-season game" in bodies[0]
+    assert "At scheduler startup MLB listed at least one regular-season game" in bodies[0]
     assert "The configured exclusive boundary is 2027-09-27" in bodies[0]
     assert len(bodies[0]) < 1000
-    assert capsys.readouterr().err.count("SEASON BOUNDARY BEHIND SCHEDULE") == 3
+    assert capfd.readouterr().err.count("SEASON BOUNDARY BEHIND SCHEDULE") == 3
+
+
+def test_warning_dm_describes_reported_status(startup):
+    start, bodies, _ = startup
+    start([game(status={"abstractGameCode": "F", "detailedState": "Final"})])
+    assert ("At scheduler startup MLB listed at least one regular-season game with that "
+            "official date and a reported status other than postponed or canceled.") in bodies[0]
+
+
+def test_warning_journal_describes_reported_status(startup, capfd):
+    start, _, _ = startup
+    start([game()])
+    assert ("1 regular-season game(s) with that official date and a reported status "
+            "other than postponed or canceled.") in capfd.readouterr().err
+
+
+def test_warning_journal_describes_past_check(startup, monkeypatch, capfd):
+    _, _, config = startup
+    now = datetime.fromisoformat(f"{DAY}T16:05").replace(tzinfo=scheduler.ET)
+    monkeypatch.setattr(scheduler, "_now_et", lambda: now)
+    workers = []
+
+    class RecordWorker(Thread):
+        def start(self):
+            workers.append(self)
+            super().start()
+
+    monkeypatch.setattr(scheduler, "Thread", RecordWorker)
+    scheduler._season_boundary_check(
+        DAY, [game()], [{"time_et": now}], config, Path(config["orchestrator"]["picks_dir"]))
+    for worker in workers:
+        worker.join(1)
+        assert not worker.is_alive()
+    assert "The first planned lineup check is due now or has already passed." in capfd.readouterr().err
+
+
+@pytest.mark.parametrize("at,pitch,first_check,stall", [
+    ("10:05:00", "13:15:00", "10:15:00", 720),
+    ("18:59:59", "19:05:00", "18:59:59", 2),
+], ids=["thin-slate-first-check", "restart-before-entry-cutoff"])
+def test_stalled_boundary_journal_preserves_first_check(
+        startup, monkeypatch, at, pitch, first_check, stall):
+    start, _, _ = startup
+    scheduler_thread = current_thread()
+    blocked = Event()
+    release = Event()
+    workers = []
+    checks = []
+    elapsed = 0
+    original_write = os.write
+    original_stderr = sys.stderr
+    def stall_warning():
+        nonlocal elapsed
+        if current_thread() is scheduler_thread:
+            elapsed += stall
+        else:
+            blocked.set()
+            assert release.wait(2)
+
+    class Journal:
+        def write(self, value):
+            if (current_thread() is scheduler_thread
+                    and value.startswith("SEASON BOUNDARY BEHIND SCHEDULE")):
+                stall_warning()
+            return original_stderr.write(value)
+
+        def flush(self):
+            original_stderr.flush()
+
+    def write(fd, data):
+        if fd == 2 and data.startswith(b"SEASON BOUNDARY BEHIND SCHEDULE"):
+            stall_warning()
+            return len(data)
+        return original_write(fd, data)
+
+    class ShortJoin(Thread):
+        def start(self):
+            workers.append(self)
+            super().start()
+
+        def join(self, timeout=None):
+            nonlocal elapsed
+            if timeout:
+                assert 59 < timeout <= 60
+                assert blocked.wait(1)
+                elapsed += timeout
+
+    def check(**kwargs):
+        checks.append((scheduler._now_et().strftime("%H:%M:%S"), kwargs["unavailable_game_pks"]))
+        raise FirstCheck
+
+    monkeypatch.setattr(scheduler, "run_single_check", check)
+    monkeypatch.setattr(scheduler, "Thread", ShortJoin)
+    monkeypatch.setattr(sys, "stderr", Journal())
+    monkeypatch.setattr(os, "write", write)
+    try:
+        start([game(gameDate=f"{DAY}T{pitch}-04:00")], at=f"{DAY}T{at}",
+              journal_delay=lambda: elapsed)
+        assert [(clock, set(unavailable)) for clock, unavailable in checks] == [(first_check, set())]
+        assert blocked.wait(1)
+    finally:
+        release.set()
+        for worker in workers:
+            Thread.join(worker, 2)
+            assert not worker.is_alive()
 
 
 def test_positive_day_grid(capsys):
@@ -154,7 +272,7 @@ def test_health_retains_raw_boundary():
     assert actual == expected
 
 
-def test_fallback_warning_and_unclassifiable_rows(startup, capsys):
+def test_fallback_warning_and_unclassifiable_rows(startup, capfd):
     start, bodies, _ = startup
     day = "2028-09-29"
     start([game(day), game(day, gamePk=124, officialDate="2028-09-30"),
@@ -162,7 +280,7 @@ def test_fallback_warning_and_unclassifiable_rows(startup, capsys):
            game(day, gamePk=127, status={"detailedState": " "})], day=day)
     assert len(bodies) == 1
     assert "The fallback exclusive boundary for the unconfigured year 2028 is 2028-09-28" in bodies[0]
-    assert "1 eligible regular-season game" in capsys.readouterr().err
+    assert "1 regular-season game(s) with that official date" in capfd.readouterr().err
 
 
 @pytest.mark.parametrize("outcome", [
@@ -210,7 +328,7 @@ def test_warning_invalid_receipt(startup, tmp_path, kind):
     assert unrelated.read_text() == "{}"
 
 
-def test_warning_receipts_keyed_to_slate(startup, capsys):
+def test_warning_receipts_keyed_to_slate(startup, capfd):
     start, bodies, _ = startup
     next_day = "2027-09-28"
     start([game()])
@@ -218,7 +336,7 @@ def test_warning_receipts_keyed_to_slate(startup, capsys):
     start([game()])
     start([game()], at=f"{next_day}T00:01")
     assert len(bodies) == 2
-    assert "first lineup check is due within 10 minutes" in capsys.readouterr().err
+    assert "The first planned lineup check is due now or has already passed." in capfd.readouterr().err
 
 
 def test_morning_runs_first_with_a_fresh_clock(startup, monkeypatch):
@@ -270,13 +388,20 @@ def test_saved_decision_keeps_schema(tmp_path, streak, best, objective):
         assert load_pick(DAY, picks).policy_decision["days_effective"] == 1
 
 
-def test_boundary_transport_can_outlive_wait(startup, monkeypatch, capsys):
+def test_boundary_transport_can_outlive_wait(startup, monkeypatch, capfd):
     start, _, _ = startup
-    from threading import Thread
 
     sending = Event()
     release = Event()
+    deadline_written = Event()
     workers = []
+    original_write = os.write
+
+    def write(fd, data):
+        size = original_write(fd, data)
+        if fd == 2 and b"still sending at its deadline" in data:
+            deadline_written.set()
+        return size
 
     def send(recipient, body):
         sending.set()
@@ -284,16 +409,21 @@ def test_boundary_transport_can_outlive_wait(startup, monkeypatch, capsys):
         return "message-id"
 
     class ThreadWithShortWait(Thread):
+        def start(self):
+            workers.append(self)
+            super().start()
+
         def join(self, timeout=None):
             assert 59 < timeout <= 60
-            workers.append(self)
             assert sending.wait(1)
 
     monkeypatch.setattr(alert, "send_dm", send)
+    monkeypatch.setattr(os, "write", write)
     monkeypatch.setattr(scheduler, "Thread", ThreadWithShortWait, raising=False)
     try:
         start([game()], at=f"{DAY}T15:55:00")
-        journal = capsys.readouterr().err
+        assert deadline_written.wait(1)
+        journal = capfd.readouterr().err
         assert "still sending at its deadline; continuing." in journal, journal
     finally:
         release.set()

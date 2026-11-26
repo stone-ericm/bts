@@ -2971,9 +2971,41 @@ def run_result_polling(
         _poll_interval_sleep(heartbeat_path, poll_interval_min * 60)
 
 
+def _write_season_boundary_line(line: str) -> None:
+    import os
+
+    try:
+        os.write(2, (line + "\n").encode("utf-8"))
+    except OSError:
+        pass
+
+
+def _season_boundary_failure_line(error: Exception) -> str:
+    return f"Season boundary check failed: {ascii(str(error))[:200]}"
+
+
+def _start_season_boundary_journal(producers: int):
+    from queue import Queue
+
+    lines: Queue[str | None] = Queue()
+
+    def write_journal() -> None:
+        # Each producer sends a sentinel after its last line. A timed-out
+        # dispatcher can still report a failure after the scheduler moves on.
+        for _ in range(producers):
+            while (line := lines.get()) is not None:
+                _write_season_boundary_line(line)
+
+    Thread(target=write_journal, daemon=True).start()
+    return lines
+
+
 def _report_season_boundary_failure(error: Exception) -> None:
     try:
-        print(f"Season boundary check failed: {ascii(str(error))[:200]}", file=sys.stderr)
+        line = _season_boundary_failure_line(error)
+        lines = _start_season_boundary_journal(producers=1)
+        lines.put_nowait(line)
+        lines.put_nowait(None)
     except Exception:
         pass
 
@@ -3004,7 +3036,8 @@ def _season_boundary_check(date: str, games: list[dict], runs: list[dict],
                        else f"The fallback exclusive boundary for the unconfigured year {slate_day.year}")
     message = (
         f"Season boundary behind the schedule for {slate_date} ET. "
-        "At scheduler startup MLB listed at least one eligible regular-season game on that date. "
+        "At scheduler startup MLB listed at least one regular-season game with that official date "
+        "and a reported status other than postponed or canceled. "
         f"{boundary_source} is {boundary}, giving a raw count of zero. "
         "With the raw count at zero, a fresh pick selection with an available predicted candidate "
         "uses the last-day policy. Please send this advisory to the BTS lead or Eric. "
@@ -3015,17 +3048,30 @@ def _season_boundary_check(date: str, games: list[dict], runs: list[dict],
     recipient = config.get("bluesky", {}).get("dm_recipient")
     first_check = min((run["time_et"] for run in runs), default=None)
 
-    def journal(reason: str | None) -> None:
-        suffix = f" Season boundary warning not sent: {reason}." if reason else ""
-        try:
-            print(f"SEASON BOUNDARY BEHIND SCHEDULE — {slate_date} ET: {count} eligible "
-                  f"regular-season game(s). {boundary_source} is {boundary}, giving a raw "
-                  f"count of zero.{suffix}", file=sys.stderr)
-        except Exception as error:
-            _report_season_boundary_failure(error)
+    reason = ""
+    deadline = None
+    if first_check is None:
+        reason = "no lineup check is planned."
+    else:
+        lead = (first_check - _now_et()).total_seconds()
+        if lead <= 0:
+            reason = "The first planned lineup check is due now or has already passed."
+        elif not recipient:
+            reason = "no DM recipient is configured."
+        elif lead < MORNING_CHECK_MIN_LEAD_MIN * 60:
+            reason = "first lineup check is due within 10 minutes."
+        elif lead < 330:
+            reason = "insufficient send budget."
+        else:
+            deadline = time.monotonic() + min(60, lead - 300)
 
-    def dispatch() -> None:
+    lines = _start_season_boundary_journal(producers=2 if deadline is not None else 1)
+
+    def dispatch(deadline: float) -> None:
         try:
+            if time.monotonic() >= deadline:
+                lines.put_nowait("Season boundary warning not sent: insufficient send budget.")
+                return
             dispatch_dm_for_health_alerts(
                 [], recipient, warn_attention=[Alert(
                     "WARN", "season_boundary", message, incident_key="season_boundary:behind_schedule",
@@ -3034,31 +3080,32 @@ def _season_boundary_check(date: str, games: list[dict], runs: list[dict],
                 now_et_date=slate_day, require_message_id=True,
             )
         except Exception as error:
-            _report_season_boundary_failure(error)
+            lines.put_nowait(_season_boundary_failure_line(error))
+        finally:
+            lines.put_nowait(None)
 
-    if first_check is None:
-        journal("no lineup check is planned")
-        return
-    if not recipient:
-        journal("no DM recipient is configured")
-        return
-    lead = (first_check - _now_et()).total_seconds()
-    if lead < MORNING_CHECK_MIN_LEAD_MIN * 60:
-        journal("first lineup check is due within 10 minutes")
-        return
-    if lead < 330:
-        journal("insufficient send budget")
-        return
-    deadline = time.monotonic() + min(60, lead - 300)
-    journal(None)
-    if time.monotonic() >= deadline:
-        print("Season boundary warning not sent: insufficient send budget.", file=sys.stderr)
-        return
-    worker = Thread(target=dispatch, daemon=True)
-    worker.start()
-    worker.join(max(0, deadline - time.monotonic()))
-    if worker.is_alive():
-        print("Season boundary warning still sending at its deadline; continuing.", file=sys.stderr)
+    suffix = f" Season boundary warning not sent: {reason}" if reason else ""
+    lines.put_nowait(
+        f"SEASON BOUNDARY BEHIND SCHEDULE — {slate_date} ET: {count} regular-season game(s) "
+        "with that official date and a reported status other than postponed or canceled. "
+        f"{boundary_source} is {boundary}, giving a raw count of zero.{suffix}"
+    )
+    try:
+        if deadline is not None:
+            try:
+                worker = Thread(target=dispatch, args=(deadline,), daemon=True)
+                worker.start()
+            except Exception as error:
+                lines.put_nowait(_season_boundary_failure_line(error))
+                lines.put_nowait(None)
+                return
+            worker.join(max(0, deadline - time.monotonic()))
+            if worker.is_alive():
+                lines.put_nowait("Season boundary warning still sending at its deadline; continuing.")
+    except Exception as error:
+        lines.put_nowait(_season_boundary_failure_line(error))
+    finally:
+        lines.put_nowait(None)
 
 
 def run_day(
