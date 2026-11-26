@@ -1,0 +1,495 @@
+diff --git a/src/bts/health/contest_state.py b/src/bts/health/contest_state.py
+index 0cb972ff..9b2d1146 100644
+--- a/src/bts/health/contest_state.py
++++ b/src/bts/health/contest_state.py
+@@ -26,6 +26,7 @@ from bts.util import read_regular_file_text
+ 
+ SOURCE = "contest_state"
+ SAVER_SOURCE = "saver_state"
++DATED_USED_MISMATCH = "saver_state:dated_used_mismatch"
+ 
+ # Under the Phase-1 snapshot/coverage split, source_date is derived from the
+ # per-round predictions array, which trails the live activeStreak counter by ~one
+@@ -205,6 +206,34 @@ def _check(picks_dir: Path, *, expected: bool, now: datetime, historical: bool)
+                          f"`{correction}`, replacing N and B with the active and best streaks MLB "
+                          "shows. Changing the saver flag does not correct this observation."),
+             ))
++        if state.saver_state == "used":
++            from bts.saver_state import _read_saver_state
++
++            year = now.astimezone(ZoneInfo("America/New_York")).year
++            try:
++                flag = _read_saver_state(picks_dir, season=year, historical=True)
++            except (ValueError, RecursionError):
++                return alerts
++            if flag.state in {"active", "not_earned"}:
++                if historical:
++                    message = (
++                        "The dated observation recorded the saver as used. "
++                        f"At this check the flag for season {year} read {flag.state}."
++                    )
++                else:
++                    message = (
++                        f"Streak Saver on {state.effective_date.isoformat()} ET. "
++                        "The dated observation says the saver was used. "
++                        f"The flag for season {year} read {flag.state} at this check. "
++                        "A later automatic decision may count a saver as available. "
++                        "Verify the current season's saver and prior entries in MLB before any correction. "
++                        "Use `bts season-contract status` for the scheduler's picks directory "
++                        "and follow checklist B8a for any correction."
++                    )
++                alerts.append(Alert(
++                    level="WARN", source=SAVER_SOURCE, message=message,
++                    incident_key=DATED_USED_MISMATCH,
++                ))
+         return alerts
+ 
+     # The flag belongs to the caller's current ET season, even when ledger coverage lags.
+diff --git a/src/bts/health/runner.py b/src/bts/health/runner.py
+index f2c83585..c39724b7 100644
+--- a/src/bts/health/runner.py
++++ b/src/bts/health/runner.py
+@@ -324,16 +324,33 @@ def run_all_checks(
+                 )
+ 
+     log_alerts(alerts)
++    mismatch_key = contest_state.DATED_USED_MISMATCH
++    digest_alerts = alerts
++    digest_attention = warn_attention
++    mismatch_attention = []
++    if any(alert.incident_key == mismatch_key for alert in alerts):
++        digest_alerts = [alert for alert in alerts if alert.incident_key != mismatch_key]
++        digest_attention = [alert for alert in warn_attention if alert.incident_key != mismatch_key]
++        mismatch_attention = [alert for alert in warn_attention if alert.incident_key == mismatch_key]
++    status_path = _path(health_dm_status_path)
+     dispatch_dm_for_health_alerts(
+-        alerts,
++        digest_alerts,
+         dm_recipient,
+-        warn_attention=warn_attention,
+-        status_path=_path(health_dm_status_path),
++        warn_attention=digest_attention,
++        status_path=status_path,
+         # Dedup by the PROCESSED day, not the wall date: a post-midnight EOD
+         # for date D must not consume D+1's "already sent today" budget
+         # (round-2 review #5).
+         now_et_date=processed_date,
+     )
++    if mismatch_attention:
++        dispatch_dm_for_health_alerts(
++            [],
++            dm_recipient,
++            warn_attention=mismatch_attention,
++            status_path=status_path.with_name(status_path.name + ".dated_used_mismatch.json"),
++            now_et_date=processed_date,
++        )
+     return alerts
+ 
+ 
+diff --git a/tests/test_contest_dated_cs4a.py b/tests/test_contest_dated_cs4a.py
+index e437d13b..fe91de98 100644
+--- a/tests/test_contest_dated_cs4a.py
++++ b/tests/test_contest_dated_cs4a.py
+@@ -318,7 +318,12 @@ def test_health_observation_saver_without_flag_read(tmp_path,monkeypatch,expecte
+     write(tmp_path,observation(active_streak=streak,best_streak=max(streak,14),saver_state=saver))
+     if flag: (tmp_path/'account_state/saver_state.json').write_text('{')
+     monkeypatch.setattr(flags,'load_saver_state',Mock(side_effect=AssertionError('flag read')))
++    if saver=='used':
++        bounded_read=Mock(wraps=flags._read_saver_state)
++        monkeypatch.setattr(flags,'_read_saver_state',bounded_read)
+     alerts=check(tmp_path,now=NOW,expected=expected)
++    if saver=='used':
++        bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+     warnings=[a for a in alerts if a.source=='saver_state']
+     assert len(warnings)==int(saver=='not_earned' and 10<=streak<=15)
+     assert not any('legacy/expired' in a.message for a in alerts)
+diff --git a/tests/test_wr_f2_saver_flag.py b/tests/test_wr_f2_saver_flag.py
+new file mode 100644
+index 00000000..edd0a936
+--- /dev/null
++++ b/tests/test_wr_f2_saver_flag.py
+@@ -0,0 +1,384 @@
++"""Dated saver disagreements through the CLI, health check and EOD delivery."""
++
++import datetime as dt
++import hashlib
++import json
++import os
++import signal
++import shlex
++from contextlib import contextmanager
++from pathlib import Path
++from unittest.mock import Mock
++from zoneinfo import ZoneInfo
++
++import pytest
++from click.testing import CliRunner
++
++from bts import cli, contest_state
++from bts.health import alert, contest_state as health, runner
++from bts.saver_state import load_saver_state
++from tests.test_season_contract_cs4b1 import contract, put
++from tests.test_season_contract_cs4b2 import automatic
++
++ET = ZoneInfo("America/New_York")
++DATETIME = dt.datetime
++DAY = DATETIME(2027, 7, 15, 22, tzinfo=ET)
++DECEMBER = DATETIME(2027, 12, 31, 23, 50, tzinfo=ET)
++INCIDENT = "saver_state:dated_used_mismatch"
++STATUS = "health_dm_delivery_status.json"
++MISMATCH_STATUS = STATUS + ".dated_used_mismatch.json"
++RECIPIENT = "offline.test"
++
++# SHA-256 of the ordered alerts, captured transport calls and status JSON
++# from the unchanged base. Each pair is (live, historical).
++BASE_SNAPSHOTS = {
++    "expired": ("c3e171d330ee4df86fe1b9071b3482a47d07d75521eda465f811f05e4801f480",
++                "f3f416e5f59823f0f026f71daa89a60d7c96d53a5939417542be950601534bbe"),
++    "automatic": ("98d4a68c815ff9789f7d38197df9365c710c6f91d88dfd8da308d66d344af319",
++                  "4fa190d6f721e743f0f4e84f07548267323f0edd217c86f3fdee869f856fe5a3"),
++    "legacy": ("50cd0198e89937f329602b466941d0d5511293cc002bbaf8889eaa6fd446d63f",
++               "d581d29bc886b6ef8a92e7cb9e7544821f92dfe686930d472d0314a545ef2345"),
++    "missing": ("7f1fbf09393a44e74c85d6434cce34fc35c55ebd4b9ca667ead4d59490a1aad6",
++                "45ef517804ab860656b096b87851f6b667e6854205910730970bb0f0aff542a1"),
++    "future": ("bb824052c11fdbd17fd2c471b3a5d291bbada615cd79eaa3f08205b1a2909dbe",
++               "c9808abe44b57bc89302632bf72cbcae90807f62ae07ce4f61414567dfef8120"),
++    "coverage": ("985d554049fa6f3d14471e0c5f27b742e5bf61f761d351ae1580929bec5fb67f",
++                 "897a551dae25d97e1b489f00ef9df4abc3ccfc61012ba9a59c41cf08a55094ba"),
++    "invalid": ("a98622b096897beaaee56946a020ee285d86a2ba41a93fbc33b8bf4cc4bf5563",
++                "bed6b786d4ccf320733f0ca54c5355c714e788790d0c12ea52e343122c1fdef3"),
++}
++
++
++@contextmanager
++def clock(monkeypatch, now):
++    class Clock(DATETIME):
++        @classmethod
++        def now(cls, tz=None):
++            return now.astimezone(tz) if tz else now.replace(tzinfo=None)
++
++    with monkeypatch.context() as patch:
++        for module in (dt, cli, alert, health, runner):
++            patch.setattr(module, "datetime", Clock)
++        yield
++
++
++def command(monkeypatch, picks, now, *args):
++    with clock(monkeypatch, now):
++        result = CliRunner().invoke(cli.cli, [*args, "--picks-dir", str(picks)])
++    assert result.exit_code == 0, (result.output, result.exception)
++
++
++def observation(monkeypatch, picks, now=DAY, state="used", streak=14):
++    command(monkeypatch, picks, now, "set-contest-streak", "--date", str(now.date()),
++            "--streak", str(streak), "--best-streak", str(max(streak, 15)),
++            "--saver", state)
++
++
++def flag(picks, state, year=DAY.year):
++    return put(picks, "saver_state.json", {"season": year, "state": state})
++
++
++def auto(picks, now, streak=14):
++    put(picks, "season_contract.json", contract(season=now.year))
++    return put(picks, "contest_streak.json", automatic(
++        season=now.year, active_streak=streak, best_streak=15,
++        source_date=str(now.date() - dt.timedelta(days=1)), recorded_at=now.isoformat(),
++    ))
++
++
++def eod(monkeypatch, picks, *, day=DAY, wall=None, transport=None, existing=()):
++    safe_run = runner._safe_run
++
++    def run_check(name, check):
++        if name == "contest_state":
++            return safe_run(name, check)
++        return list(existing) if name == "calibration" else []
++
++    transport = Mock(return_value="sent") if transport is None else transport
++    with clock(monkeypatch, wall or day), monkeypatch.context() as patch:
++        patch.setattr(alert, "send_dm", transport)
++        patch.setattr(runner, "_safe_run", run_check)
++        alerts = runner.run_all_checks(picks, picks.parent / "models", RECIPIENT,
++                                       today=day.date(), contest_state_expected=True)
++    return alerts, [call.args for call in transport.call_args_list]
++
++
++def status_path(picks, name=STATUS):
++    return picks.parent / "health_state" / name
++
++
++def mismatch(alerts):
++    return [item for item in alerts if item.incident_key == INCIDENT]
++
++
++def live_message(day, state):
++    return (
++        f"Streak Saver on {day.date()} ET. The dated observation says the saver was used. "
++        f"The flag for season {day.year} read {state} at this check. "
++        "A later automatic decision may count a saver as available. "
++        "Verify the current season's saver and prior entries in MLB before any correction. "
++        "Use `bts season-contract status` for the scheduler's picks directory "
++        "and follow checklist B8a for any correction."
++    )
++
++
++@pytest.mark.parametrize(("state", "streak"), [("active", 14), ("not_earned", 14),
++                                              ("not_earned", 9)])
++def test_m1_m2_live_warning_and_delivery(tmp_path, monkeypatch, state, streak):
++    picks = tmp_path / "oom" / "picks"
++    observation(monkeypatch, picks, streak=streak)
++    flag(picks, state)
++    expected = alert.Alert("WARN", "saver_state", live_message(DAY, state), incident_key=INCIDENT)
++    assert health.check(picks, now=DAY, expected=True) == [expected]
++    alerts, sends = eod(monkeypatch, picks)
++    assert alerts == [expected]
++    assert len(sends) == 1
++    recipient, body = sends[0]
++    assert recipient == RECIPIENT
++    assert expected.message in body
++    assert not status_path(picks).exists()
++    receipt = json.loads(status_path(picks, MISMATCH_STATUS).read_text())
++    assert receipt["sent_sources"] == [f"WARN_ATTENTION:{INCIDENT}"]
++    assert receipt["sent_day"] == str(DAY.date())
++
++
++@pytest.mark.parametrize("day", [DAY, DECEMBER])
++def test_m3_after_midnight_uses_processed_season_and_current_files(tmp_path, monkeypatch, day):
++    picks = tmp_path / "picks"
++    tomorrow = day.replace(hour=0, minute=5) + dt.timedelta(days=1)
++    observation(monkeypatch, picks, day)
++    flag(picks, "active", day.year)
++    alerts, sends = eod(monkeypatch, picks, day=day, wall=tomorrow)
++    warning, = mismatch(alerts)
++    reason = f"The dated observation recorded the saver as used. At this check the flag for season {day.year} read active."
++    assert warning.message == f"Prior slate {day.date()} ET. {reason} {health.HISTORICAL_POINTER}"
++    recipient, body = sends[0]
++    assert recipient == RECIPIENT
++    assert body.count(health.HISTORICAL_POINTER) == 1
++    assert body.index(reason) < body.index(" (1st observed day)") < body.index(health.HISTORICAL_POINTER)
++    assert "`" not in body and str(picks) not in body
++    assert json.loads(status_path(picks, MISMATCH_STATUS).read_text())["sent_day"] == str(day.date())
++    flag(picks, "active" if tomorrow.year != day.year else "used", tomorrow.year)
++    assert not mismatch(eod(monkeypatch, picks, day=day, wall=tomorrow)[0])
++    flag(picks, "active", day.year)
++    observation(monkeypatch, picks, tomorrow, state="active")
++    assert not mismatch(eod(monkeypatch, picks, day=day, wall=tomorrow)[0])
++
++
++@pytest.mark.parametrize("state", ["active", "not_earned"])
++def test_m4_m5_verified_repair_changes_next_automatic_read(tmp_path, monkeypatch, state):
++    picks = tmp_path / "picks"
++    observation(monkeypatch, picks)
++    flag(picks, state)
++    manual = picks / "account_state/contest_streak.manual.json"
++    original = manual.read_bytes()
++    tomorrow = DAY + dt.timedelta(days=1)
++    auto(picks, tomorrow, streak=9 if state == "not_earned" else 14)
++
++    def decision(now):
++        return contest_state.load_decision_streak_state(picks, now=now, require_contest_state=True)
++
++    assert not decision(DAY).saver_available
++    assert decision(tomorrow).saver_available
++    alerts, sends = eod(monkeypatch, picks)
++    assert mismatch(alerts) and len(sends) == 1
++    assert decision(tomorrow).saver_available
++    command(monkeypatch, picks, DAY, "saver-state", "--use", "--season", str(DAY.year))
++    assert load_saver_state(picks, season=DAY.year).state == "used"
++    assert manual.read_bytes() == original
++    assert not decision(tomorrow).saver_available
++    assert eod(monkeypatch, picks) == ([], [])
++
++
++@pytest.mark.parametrize("streak", range(10, 16))
++def test_k1_existing_dated_warning(tmp_path, monkeypatch, streak):
++    picks = tmp_path / "picks"
++    observation(monkeypatch, picks, state="not_earned", streak=streak)
++    live = health.check(picks, now=DAY, expected=True)
++    flag(picks, "active")
++    live_warning, = live
++    arguments = f"bts set-contest-streak --date {DAY.date()} --streak {streak} --best-streak 15"
++    directory = f"--picks-dir {shlex.quote(str(picks))}"
++    manual = picks / "account_state/contest_streak.manual.json"
++    assert live_warning == alert.Alert("WARN", "saver_state", (
++        f"Streak Saver not_earned in dated observation {manual}, season {DAY.year}, "
++        f"contradicts streak {streak}; counting the saver as spent. "
++        "Check MLB and run ONE correction to the observation. Earned and unused: "
++        f"`{arguments} --saver active {directory}`. Already used: "
++        f"`{arguments} --saver used {directory}`. Not earned: "
++        f"`bts set-contest-streak --date {DAY.date()} --streak N --best-streak B "
++        f"--saver not_earned {directory}`, replacing N and B with the active and best streaks MLB "
++        "shows. Changing the saver flag does not correct this observation."
++    ))
++    assert health.check(picks, now=DAY, expected=True) == live
++    prior = health.check(picks, now=DAY, expected=True, historical_day=DAY.date())
++    assert prior == [alert.Alert("WARN", "saver_state", health.historical_message(
++        DAY.date(), "The saver state in the dated observation contradicts its streak. The saver counted as spent.",
++    ))]
++
++
++@pytest.mark.parametrize("state", ["used", "uninitialized", "absent", "encoding", "list",
++                                  "other-season", "directory", "fifo", "invalid", "integer", "nested"])
++def test_k2_k3_unusable_flag_preserves_existing_alerts(tmp_path, monkeypatch, state):
++    picks = tmp_path / "picks"
++    observation(monkeypatch, picks)
++    # Give the contest check a coverage alert before it reaches the saver branch.
++    resolved = [DAY.date() + dt.timedelta(days=1)]
++    monkeypatch.setattr(health, "latest_resolved_pick_date", lambda _: resolved[0])
++    monkeypatch.setattr(health, "_scan_resolved_pick_dates", lambda *a, **kw: resolved)
++    monkeypatch.setattr(health, "resolved_pick_settlement_gap", lambda *a: 1)
++    modes = (None, DAY.date())
++    baseline = [health.check(picks, now=DAY, expected=True, historical_day=day) for day in modes]
++    assert all(items and items[0].source == "contest_state" for items in baseline)
++    path = picks / "account_state/saver_state.json"
++    if state == "fifo":
++        os.mkfifo(path)
++    elif state == "directory":
++        path.mkdir()
++    elif state == "other-season":
++        flag(picks, "active", DAY.year - 1)
++    elif state in ("used", "uninitialized"):
++        flag(picks, state)
++    elif state != "absent":
++        path.write_bytes({
++            "encoding": b"\xff", "list": b"[]", "invalid": b"{",
++            "integer": b'{"season":' + b"9" * 5000 + b"}",
++            "nested": b"[" * 3000 + b"]" * 3000,
++        }[state])
++
++    def timed_out(*_):
++        raise TimeoutError("saver flag check blocked")
++
++    previous_handler = signal.signal(signal.SIGALRM, timed_out)
++    signal.alarm(15)
++    try:
++        for day, expected in zip(modes, baseline):
++            assert health.check(picks, now=DAY, expected=True, historical_day=day) == expected
++    finally:
++        signal.alarm(0)
++        signal.signal(signal.SIGALRM, previous_handler)
++
++
++@pytest.mark.parametrize(("state", "streak"), [("active", 14), ("not_earned", 9)])
++@pytest.mark.parametrize("flag_state", ["active", "not_earned", "used", "uninitialized"])
++def test_k4_no_other_dated_observation_warns(tmp_path, monkeypatch, state, streak, flag_state):
++    picks = tmp_path / "picks"
++    observation(monkeypatch, picks, state=state, streak=streak)
++    flag(picks, flag_state)
++    assert health.check(picks, now=DAY, expected=True) == []
++    assert health.check(picks, now=DAY, expected=True, historical_day=DAY.date()) == []
++
++
++@pytest.mark.parametrize("first", ["used", "not_earned"])
++def test_same_day_reruns_preserve_both_incidents(tmp_path, monkeypatch, first):
++    # The existing message includes the picks path several times. Keep it short
++    # enough for the unchanged digest to fit the transport limit.
++    monkeypatch.chdir(tmp_path)
++    picks = Path("p")
++    flag(picks, "active")
++    second = "not_earned" if first == "used" else "used"
++    for state in (first, second):
++        observation(monkeypatch, picks, state=state)
++        alerts, sends = eod(monkeypatch, picks)
++        warning, = alerts
++        assert bool(mismatch(alerts)) == (state == "used")
++        assert len(sends) == 1 and warning.message in sends[0][1]
++    assert eod(monkeypatch, picks)[1] == []
++    assert json.loads(status_path(picks).read_text())["sent_sources"] == ["WARN_ATTENTION:saver_state"]
++    assert json.loads(status_path(picks, MISMATCH_STATUS).read_text())["sent_sources"] == [
++        f"WARN_ATTENTION:{INCIDENT}",
++    ]
++
++
++def test_existing_digest_sends_first_and_stays_below_chat_limit(tmp_path, monkeypatch):
++    picks = tmp_path / "picks"
++    observation(monkeypatch, picks)
++    flag(picks, "used")
++    existing = [alert.Alert("WARN", "pick_entry", "Existing operator alert. " * 36)]
++
++    def capped_transport(_, body):
++        # The bodies use one ASCII code point per grapheme except for bullets
++        # and other single-code-point punctuation in the formatter.
++        if len(body) > 1000:
++            raise ValueError("chat length limit")
++        return "sent"
++
++    base_alerts, base_sends = eod(monkeypatch, picks, existing=existing, transport=Mock(side_effect=capped_transport))
++    base_body = base_sends[0][1]
++    base_status = status_path(picks).read_bytes()
++    assert 900 < len(base_body) <= 1000
++    assert json.loads(base_status)["status"] == "sent"
++    status_path(picks).unlink()
++    flag(picks, "active")
++    alerts, sends = eod(monkeypatch, picks, existing=existing, transport=Mock(side_effect=capped_transport))
++    warning, = mismatch(alerts)
++    assert [item for item in alerts if item != warning] == base_alerts
++    assert sends[0] == base_sends[0] and warning.message in sends[1][1]
++    assert len(base_body) + len(sends[1][1]) > 1000
++    assert status_path(picks).read_bytes() == base_status
++    assert json.loads(status_path(picks, MISMATCH_STATUS).read_text())["status"] == "sent"
++
++
++def test_failed_send_and_interrupt_before_status_can_retry(tmp_path, monkeypatch):
++    picks = tmp_path / "picks"
++    observation(monkeypatch, picks)
++    path = flag(picks, "active")
++    before = path.read_bytes()
++    status = status_path(picks, MISMATCH_STATUS)
++    transport = Mock(side_effect=RuntimeError("offline"))
++    _, failed = eod(monkeypatch, picks, transport=transport)
++    assert failed and json.loads(status.read_text())["status"] == "failed"
++    transport.reset_mock(side_effect=True)
++    transport.side_effect = KeyboardInterrupt()
++    with pytest.raises(KeyboardInterrupt):
++        eod(monkeypatch, picks, transport=transport)
++    assert transport.call_count == 1
++    assert json.loads(status.read_text())["status"] == "failed"
++    assert path.read_bytes() == before
++    _, retried = eod(monkeypatch, picks, transport=Mock(return_value=""))
++    assert retried and json.loads(status.read_text())["status"] == "sent"
++    assert eod(monkeypatch, picks)[1] == []
++
++
++@pytest.mark.parametrize("scenario", ["expired", "automatic", "legacy", "missing",
++                                      "future", "coverage", "invalid"])
++@pytest.mark.parametrize("historical", [False, True])
++def test_k5_k6_k7_alerts_digest_and_status_match_base(tmp_path, monkeypatch, scenario, historical):
++    monkeypatch.chdir(tmp_path)
++    picks = Path("picks")
++    now = DAY
++    if scenario == "expired":
++        observation(monkeypatch, picks)
++        now += dt.timedelta(days=1)
++        auto(picks, now)
++    elif scenario in ("automatic", "coverage"):
++        auto(picks, now)
++    elif scenario == "legacy":
++        put(picks, "contest_streak.manual.json", {
++            "streak": 14, "source_date": str(now.date()),
++            "override_expires_at": (now + dt.timedelta(days=1)).isoformat(),
++        })
++    elif scenario == "future":
++        auto(picks, now + dt.timedelta(days=10)).with_name("season_contract.json").unlink()
++    elif scenario == "invalid":
++        observation(monkeypatch, picks)
++        manual = picks / "account_state/contest_streak.manual.json"
++        payload = json.loads(manual.read_text())
++        payload["saver_state"] = "bad"
++        manual.write_text(json.dumps(payload))
++    if scenario in ("expired", "automatic", "legacy", "coverage"):
++        flag(picks, "not_earned")
++    if scenario == "coverage":
++        resolved = [now.date(), (now + dt.timedelta(days=1)).date()]
++        monkeypatch.setattr(health, "_scan_resolved_pick_dates", lambda *a, **kw: resolved)
++        monkeypatch.setattr(health, "latest_resolved_pick_date", lambda _: max(resolved))
++        monkeypatch.setattr(health, "resolved_pick_settlement_gap", lambda *a: 2)
++        put(picks, "contest_streak.manual.json", {"override_expires_at": None})
++    wall = now + dt.timedelta(days=1) if historical else now
++    alerts, sends = eod(monkeypatch, picks, day=now, wall=wall)
++    assert not status_path(picks, MISMATCH_STATUS).exists()
++    recorded = status_path(picks).read_text()
++    snapshot = json.dumps([(a.level, a.source, a.message, a.incident_key) for a in alerts])
++    payload = snapshot + json.dumps(sends) + recorded
++    digest = hashlib.sha256(payload.encode()).hexdigest()
++    assert digest == BASE_SNAPSHOTS[scenario][historical], payload

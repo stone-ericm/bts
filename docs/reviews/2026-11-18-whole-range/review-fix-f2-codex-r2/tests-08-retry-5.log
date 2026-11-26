@@ -1,0 +1,26 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0 -- /Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/bin/python
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2b-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 16 items
+
+tests/test_wr_h2_caps.py::test_m1_dated_cli_selects_delivers_and_commits PASSED [  6%]
+tests/test_wr_h2_caps.py::test_m2_switched_fetch_trusts_high_best PASSED [ 12%]
+tests/test_wr_h2_caps.py::test_m3_dated_high_best PASSED                 [ 18%]
+tests/test_wr_h2_caps.py::test_m3_automatic_high_best_matches_target_actions PASSED [ 25%]
+tests/test_wr_h2_caps.py::test_m4_required_pick_survives_reload[dated] PASSED [ 31%]
+tests/test_wr_h2_caps.py::test_m4_required_pick_survives_reload[automatic] PASSED [ 37%]
+tests/test_wr_h2_caps.py::test_m5_walk_high_dated_state PASSED           [ 43%]
+tests/test_wr_h2_caps.py::test_k10_fresh_fetch_replaces_57_and_over_cap_leaves_it_intact PASSED [ 50%]
+tests/test_wr_h2_caps.py::test_k1_k2_k3_dated_checks PASSED              [ 56%]
+tests/test_wr_h2_caps.py::test_k4_automatic_reads[False] PASSED          [ 62%]
+tests/test_wr_h2_caps.py::test_k4_automatic_reads[True] PASSED           [ 68%]
+tests/test_wr_h2_caps.py::test_k5_fetch_validation PASSED                [ 75%]
+tests/test_wr_h2_caps.py::test_k6_dated_cli_rejects_before_writes PASSED [ 81%]
+tests/test_wr_h2_caps.py::test_k7_chosen_on_boundary_and_identity[dated] PASSED [ 87%]
+tests/test_wr_h2_caps.py::test_k7_chosen_on_boundary_and_identity[automatic] PASSED [ 93%]
+tests/test_wr_h2_caps.py::test_k8_parsed_best_requires_current_provenance PASSED [100%]
+
+============================== 16 passed in 0.45s ==============================

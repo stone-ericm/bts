@@ -1,0 +1,1282 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0 -- /Users/eric/projects/bts-work/wr-rev-f2-cb/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2-cb
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 311 items
+
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-used] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-uninitialized] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-absent] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-another_season] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-future_season] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-bool_true_season] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-bool_false_season] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-float_season] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-unreadable] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-invalid_utf8] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-utf8_bom] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-malformed_json] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-json_list] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-json_scalar] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-directory] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-named_pipe] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-symlink_to_fifo] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-unix_socket] FAILED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-dev_null_symlink] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-broken_symlink] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-symlink_loop] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-huge_integer_season] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-huge_integer_extra] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-deep_array_nesting] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-deep_object_nesting] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-used] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-uninitialized] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-absent] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-another_season] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-future_season] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-bool_true_season] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-bool_false_season] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-float_season] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-unreadable] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-invalid_utf8] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-utf8_bom] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-malformed_json] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-json_list] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-json_scalar] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-directory] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-named_pipe] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-symlink_to_fifo] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-unix_socket] FAILED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-dev_null_symlink] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-broken_symlink] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-symlink_loop] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-huge_integer_season] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-huge_integer_extra] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-deep_array_nesting] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-deep_object_nesting] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-0-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-0-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-9-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-9-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-10-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-10-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-12-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-12-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-15-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-15-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-16-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-16-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-57-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-57-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-58-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-58-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-400-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-400-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-0-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-0-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-9-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-9-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-10-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-10-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-12-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-12-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-15-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-15-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-16-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-16-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-57-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-57-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-58-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-58-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-400-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-400-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-0-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-0-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-9-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-9-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-10-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-10-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-12-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-12-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-15-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-15-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-16-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-16-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-57-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-57-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-58-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-58-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-400-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-400-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-0-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-0-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-9-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-9-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-10-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-10-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-12-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-12-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-15-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-15-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-16-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-16-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-57-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-57-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-58-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-58-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-400-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-400-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-0-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-0-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-9-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-9-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-10-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-10-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-12-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-12-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-15-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-15-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-16-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-16-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-57-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-57-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-58-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-58-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-400-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-400-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-0-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-0-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-9-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-9-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-10-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-10-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-12-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-12-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-15-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-15-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-16-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-16-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-57-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-57-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-58-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-58-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-400-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-400-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-0-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-0-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-9-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-9-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-10-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-10-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-12-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-12-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-15-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-15-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-16-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-16-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-57-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-57-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-58-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-58-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-400-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-400-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-0-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-0-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-9-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-9-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-10-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-10-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-12-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-12-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-15-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-15-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-16-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-16-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-57-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-57-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-58-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-58-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-400-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-400-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-0-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-0-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-9-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-9-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-10-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-10-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-12-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-12-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-15-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-15-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-16-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-16-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-57-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-57-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-58-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-58-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-400-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-400-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-0-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-0-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-9-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-9-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-10-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-10-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-12-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-12-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-15-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-15-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-16-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-16-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-57-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-57-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-58-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-58-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-400-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-400-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-0-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-0-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-9-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-9-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-10-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-10-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-12-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-12-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-15-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-15-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-16-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-16-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-57-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-57-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-58-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-58-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-400-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-400-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-0-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-0-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-9-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-9-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-10-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-10-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-12-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-12-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-15-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-15-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-16-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-16-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-57-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-57-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-58-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-58-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-400-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-400-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-0-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-0-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-9-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-9-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-10-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-10-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-12-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-12-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-15-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-15-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-16-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-16-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-57-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-57-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-58-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-58-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-400-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-400-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-0-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-0-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-9-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-9-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-10-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-10-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-12-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-12-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-15-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-15-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-16-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-16-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-57-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-57-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-58-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-58-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-400-active] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-400-not_earned] PASSED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_dec31_jan1_and_c1_processed_slate_year_boundaries FAILED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_adversarial_stat_oserror_on_flag_symlink[False-symlink_unsearchable_dir] 
+[ADVERSARIAL symlink_unsearchable_dir historical=False] eod_alerts=[Alert(level='CRITICAL', source='contest_state', message='contest-account streak state expected but missing at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_0/oom/picks/account_state', incident_key=None), Alert(level='CRITICAL', source='contest_state', message='Live decision refused: season 2026 switch is absent.\nAlternative dated path — TEMPLATE: `bts set-contest-streak --date 2026-11-26 --streak N --best-streak B --saver S --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_0/oom/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_0/oom/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_0/oom/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2026 --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_0/oom/picks`; then run `bts fetch-contest-streak --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_0/oom/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.', incident_key=None)] dms=[('ops.bsky.social', 'BTS health CRITICAL alert(s):\n- [contest_state] contest-account streak state expected but missing at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_0/oom/picks/account_state\n- [contest_state] Live decision refused: season 2026 switch is absent.\nAlternative dated path — TEMPLATE: `bts set-contest-streak --date 2026-11-26 --streak N --best-streak B --saver S --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_0/oom/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_0/oom/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_0/oom/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2026 --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_0/oom/picks`; then run `bts fetch-contest-streak --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_0/oom/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.')]
+FAILED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_adversarial_stat_oserror_on_flag_symlink[False-symlink_enametoolong] 
+[ADVERSARIAL symlink_enametoolong historical=False] eod_alerts=[Alert(level='CRITICAL', source='contest_state', message='contest-account streak state expected but missing at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_1/oom/picks/account_state', incident_key=None), Alert(level='CRITICAL', source='contest_state', message='Live decision refused: season 2026 switch is absent.\nAlternative dated path — TEMPLATE: `bts set-contest-streak --date 2026-11-26 --streak N --best-streak B --saver S --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_1/oom/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_1/oom/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_1/oom/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2026 --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_1/oom/picks`; then run `bts fetch-contest-streak --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_1/oom/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.', incident_key=None)] dms=[('ops.bsky.social', 'BTS health CRITICAL alert(s):\n- [contest_state] contest-account streak state expected but missing at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_1/oom/picks/account_state\n- [contest_state] Live decision refused: season 2026 switch is absent.\nAlternative dated path — TEMPLATE: `bts set-contest-streak --date 2026-11-26 --streak N --best-streak B --saver S --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_1/oom/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_1/oom/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_1/oom/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2026 --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_1/oom/picks`; then run `bts fetch-contest-streak --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_1/oom/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.')]
+FAILED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_adversarial_stat_oserror_on_flag_symlink[True-symlink_unsearchable_dir] 
+[ADVERSARIAL symlink_unsearchable_dir historical=True] eod_alerts=[Alert(level='CRITICAL', source='health_runner', message="Prior slate 2027-07-15 ET. The contest state health check failed before it could finish. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.", incident_key='health_runner:contest_state')] dms=[('ops.bsky.social', "BTS health CRITICAL alert(s):\n- [health_runner] Prior slate 2027-07-15 ET. The contest state health check failed before it could finish. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.")]
+FAILED
+.carbon-review/wr-f2-r1/probe_comparison.py::test_adversarial_stat_oserror_on_flag_symlink[True-symlink_enametoolong] 
+[ADVERSARIAL symlink_enametoolong historical=True] eod_alerts=[Alert(level='CRITICAL', source='health_runner', message="Prior slate 2027-07-15 ET. The contest state health check failed before it could finish. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.", incident_key='health_runner:contest_state')] dms=[('ops.bsky.social', "BTS health CRITICAL alert(s):\n- [health_runner] Prior slate 2027-07-15 ET. The contest state health check failed before it could finish. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.")]
+FAILED
+
+=================================== FAILURES ===================================
+____ test_flag_matrix_on_dated_used_with_collected_alert[False-unix_socket] ____
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_flag_matrix_on_dated_used19')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c112000>
+flag_case = 'unix_socket', historical = False
+
+    @pytest.mark.parametrize("flag_case", STANDARD_FLAG_CASES)
+    @pytest.mark.parametrize("historical", [False, True])
+    def test_flag_matrix_on_dated_used_with_collected_alert(tmp_path, monkeypatch, flag_case, historical):
+        picks = tmp_path / "picks"
+        cleanup_perms: list[Path] = []
+        # Seed resolved picks so contest_state collects a coverage WARN before reaching the saver branch.
+        resolved = [DAY.date() + dt.timedelta(days=1), DAY.date() + dt.timedelta(days=2)]
+        monkeypatch.setattr(health, "latest_resolved_pick_date", lambda _: max(resolved))
+        monkeypatch.setattr(health, "_scan_resolved_pick_dates", lambda *a, **kw: resolved)
+        monkeypatch.setattr(health, "resolved_pick_settlement_gap", lambda *a: 2)
+    
+        def alarm_handler(*_):
+            raise TimeoutError(f"Blocked reading {flag_case}")
+    
+        prev = signal.signal(signal.SIGALRM, alarm_handler)
+        with tempfile.TemporaryDirectory(dir="/tmp") as short_dir:
+            try:
+                for streak in (0, 9, 10, 14, 15, 16, 57, 58, 400):
+                    write_dated_obs(picks, DAY.date(), "used", streak=streak, best=max(streak, 15))
+>                   plant_flag(picks, flag_case, DAY.year, cleanup_perms, Path(short_dir))
+
+.carbon-review/wr-f2-r1/probe_comparison.py:165: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+picks = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_flag_matrix_on_dated_used19/picks')
+flag_case = 'unix_socket', year = 2027, cleanup_dirs = []
+short_tmp = PosixPath('/tmp/tmpnjlbng9h')
+
+    def plant_flag(picks: Path, flag_case: str, year: int, cleanup_dirs: list[Path], short_tmp: Path) -> None:
+        acct = picks / "account_state"
+        acct.mkdir(parents=True, exist_ok=True)
+        target = acct / "saver_state.json"
+        if target.exists() or target.is_symlink():
+            if target.is_dir() and not target.is_symlink():
+                target.rmdir()
+            else:
+                target.unlink()
+    
+        if flag_case == "absent":
+            return
+        if flag_case in ("active", "not_earned", "used", "uninitialized"):
+            write_json(target, {"season": year, "state": flag_case})
+        elif flag_case == "another_season":
+            write_json(target, {"season": year - 1, "state": "active"})
+        elif flag_case == "future_season":
+            write_json(target, {"season": year + 1, "state": "active"})
+        elif flag_case == "bool_true_season":
+            target.write_text('{"season": true, "state": "active"}', encoding="utf-8")
+        elif flag_case == "bool_false_season":
+            target.write_text('{"season": false, "state": "active"}', encoding="utf-8")
+        elif flag_case == "float_season":
+            target.write_text(f'{{"season": {year}.0, "state": "active"}}', encoding="utf-8")
+        elif flag_case == "unreadable":
+            write_json(target, {"season": year, "state": "active"})
+            target.chmod(0o000)
+            cleanup_dirs.append(target)
+        elif flag_case == "invalid_utf8":
+            target.write_bytes(b"\xff\xfe\xfd")
+        elif flag_case == "utf8_bom":
+            target.write_bytes(b"\xef\xbb\xbf" + json.dumps({"season": year, "state": "active"}).encode("utf-8"))
+        elif flag_case == "malformed_json":
+            target.write_text("{not-json", encoding="utf-8")
+        elif flag_case == "json_list":
+            target.write_text('["active"]', encoding="utf-8")
+        elif flag_case == "json_scalar":
+            target.write_text('"active"', encoding="utf-8")
+        elif flag_case == "directory":
+            target.mkdir()
+        elif flag_case == "named_pipe":
+            os.mkfifo(target)
+        elif flag_case == "symlink_to_fifo":
+            fifo = acct / "other.fifo"
+            if not fifo.exists():
+                os.mkfifo(fifo)
+            os.symlink(fifo, target)
+        elif flag_case == "unix_socket":
+            sock_path = short_tmp / f"s_{os.getpid()}_{len(cleanup_dirs)}.sock"
+            s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            try:
+>               s.bind(str(sock_path))
+E               OSError: [Errno 48] Address already in use
+
+.carbon-review/wr-f2-r1/probe_comparison.py:103: OSError
+____ test_flag_matrix_on_dated_used_with_collected_alert[True-unix_socket] _____
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_flag_matrix_on_dated_used46')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c110a40>
+flag_case = 'unix_socket', historical = True
+
+    @pytest.mark.parametrize("flag_case", STANDARD_FLAG_CASES)
+    @pytest.mark.parametrize("historical", [False, True])
+    def test_flag_matrix_on_dated_used_with_collected_alert(tmp_path, monkeypatch, flag_case, historical):
+        picks = tmp_path / "picks"
+        cleanup_perms: list[Path] = []
+        # Seed resolved picks so contest_state collects a coverage WARN before reaching the saver branch.
+        resolved = [DAY.date() + dt.timedelta(days=1), DAY.date() + dt.timedelta(days=2)]
+        monkeypatch.setattr(health, "latest_resolved_pick_date", lambda _: max(resolved))
+        monkeypatch.setattr(health, "_scan_resolved_pick_dates", lambda *a, **kw: resolved)
+        monkeypatch.setattr(health, "resolved_pick_settlement_gap", lambda *a: 2)
+    
+        def alarm_handler(*_):
+            raise TimeoutError(f"Blocked reading {flag_case}")
+    
+        prev = signal.signal(signal.SIGALRM, alarm_handler)
+        with tempfile.TemporaryDirectory(dir="/tmp") as short_dir:
+            try:
+                for streak in (0, 9, 10, 14, 15, 16, 57, 58, 400):
+                    write_dated_obs(picks, DAY.date(), "used", streak=streak, best=max(streak, 15))
+>                   plant_flag(picks, flag_case, DAY.year, cleanup_perms, Path(short_dir))
+
+.carbon-review/wr-f2-r1/probe_comparison.py:165: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+picks = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_flag_matrix_on_dated_used46/picks')
+flag_case = 'unix_socket', year = 2027, cleanup_dirs = []
+short_tmp = PosixPath('/tmp/tmpkrbrjkdr')
+
+    def plant_flag(picks: Path, flag_case: str, year: int, cleanup_dirs: list[Path], short_tmp: Path) -> None:
+        acct = picks / "account_state"
+        acct.mkdir(parents=True, exist_ok=True)
+        target = acct / "saver_state.json"
+        if target.exists() or target.is_symlink():
+            if target.is_dir() and not target.is_symlink():
+                target.rmdir()
+            else:
+                target.unlink()
+    
+        if flag_case == "absent":
+            return
+        if flag_case in ("active", "not_earned", "used", "uninitialized"):
+            write_json(target, {"season": year, "state": flag_case})
+        elif flag_case == "another_season":
+            write_json(target, {"season": year - 1, "state": "active"})
+        elif flag_case == "future_season":
+            write_json(target, {"season": year + 1, "state": "active"})
+        elif flag_case == "bool_true_season":
+            target.write_text('{"season": true, "state": "active"}', encoding="utf-8")
+        elif flag_case == "bool_false_season":
+            target.write_text('{"season": false, "state": "active"}', encoding="utf-8")
+        elif flag_case == "float_season":
+            target.write_text(f'{{"season": {year}.0, "state": "active"}}', encoding="utf-8")
+        elif flag_case == "unreadable":
+            write_json(target, {"season": year, "state": "active"})
+            target.chmod(0o000)
+            cleanup_dirs.append(target)
+        elif flag_case == "invalid_utf8":
+            target.write_bytes(b"\xff\xfe\xfd")
+        elif flag_case == "utf8_bom":
+            target.write_bytes(b"\xef\xbb\xbf" + json.dumps({"season": year, "state": "active"}).encode("utf-8"))
+        elif flag_case == "malformed_json":
+            target.write_text("{not-json", encoding="utf-8")
+        elif flag_case == "json_list":
+            target.write_text('["active"]', encoding="utf-8")
+        elif flag_case == "json_scalar":
+            target.write_text('"active"', encoding="utf-8")
+        elif flag_case == "directory":
+            target.mkdir()
+        elif flag_case == "named_pipe":
+            os.mkfifo(target)
+        elif flag_case == "symlink_to_fifo":
+            fifo = acct / "other.fifo"
+            if not fifo.exists():
+                os.mkfifo(fifo)
+            os.symlink(fifo, target)
+        elif flag_case == "unix_socket":
+            sock_path = short_tmp / f"s_{os.getpid()}_{len(cleanup_dirs)}.sock"
+            s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            try:
+>               s.bind(str(sock_path))
+E               OSError: [Errno 48] Address already in use
+
+.carbon-review/wr-f2-r1/probe_comparison.py:103: OSError
+____________ test_dec31_jan1_and_c1_processed_slate_year_boundaries ____________
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_dec31_jan1_and_c1_process0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c207020>
+
+    def test_dec31_jan1_and_c1_processed_slate_year_boundaries(tmp_path, monkeypatch):
+        picks = tmp_path / "picks"
+        # 1. Dec 31 23:59:59.999999 ET (UTC is already 2028-01-01T04:59:59.999999Z!)
+        nye_utc = NYE_LATE_ET.astimezone(dt.timezone.utc)
+        assert nye_utc.year == 2028
+        write_dated_obs(picks, dt.date(2027, 12, 31), "used", streak=14, best=15)
+        write_json(picks / "account_state" / "saver_state.json", {"season": 2027, "state": "active"})
+    
+        live_nye = health.check(picks, expected=True, now=nye_utc)
+        assert len(live_nye) == 1 and live_nye[0].incident_key == INCIDENT
+        assert "2027-12-31 ET" in live_nye[0].message and "season 2027 read active" in live_nye[0].message
+    
+        # If flag is for 2028 on Dec 31 ET, 2027 reads uninitialized -> no mismatch WARN!
+        write_json(picks / "account_state" / "saver_state.json", {"season": 2028, "state": "active"})
+        assert health.check(picks, expected=True, now=nye_utc) == []
+    
+        # 2. One microsecond later: 2028-01-01 00:00:00 ET, with new 2028-01-01 dated used observation:
+        write_dated_obs(picks, dt.date(2028, 1, 1), "used", streak=0, best=0)
+        # 2027 active flag must NOT trigger mismatch in 2028!
+        write_json(picks / "account_state" / "saver_state.json", {"season": 2027, "state": "active"})
+        assert health.check(picks, expected=True, now=NEW_YEAR_ET.astimezone(dt.timezone.utc)) == []
+        # 2028 not_earned flag MUST trigger mismatch in 2028!
+        write_json(picks / "account_state" / "saver_state.json", {"season": 2028, "state": "not_earned"})
+        jan1 = health.check(picks, expected=True, now=NEW_YEAR_ET.astimezone(dt.timezone.utc))
+        assert len(jan1) == 1 and "2028-01-01 ET" in jan1[0].message and "season 2028 read not_earned" in jan1[0].message
+    
+        # 3. After-midnight EOD run at 2028-01-01 00:05 ET for processed slate 2027-12-31 (C1 clock):
+        write_dated_obs(picks, dt.date(2027, 12, 31), "used", streak=14, best=15)
+        write_json(picks / "account_state" / "saver_state.json", {"season": 2027, "state": "not_earned"})
+    
+        class WallClock(REAL_DT):
+            @classmethod
+            def now(cls, tz=None):
+                return NEW_YEAR_0005_ET.astimezone(tz) if tz else NEW_YEAR_0005_ET.replace(tzinfo=None)
+    
+        dms = []
+        with patch.object(runner, "datetime", WallClock), \
+             patch.object(alert, "datetime", WallClock), \
+             patch.object(alert, "send_dm", side_effect=lambda r, b: dms.append((r, b)) or "ok"), \
+             patch.object(runner, "_safe_run", side_effect=lambda n, fn: runner._safe_run(n, fn) if n == "contest_state" else []):
+>           eod_alerts = runner.run_all_checks(
+                picks_dir=picks,
+                models_dir=tmp_path / "models",
+                dm_recipient="ops.bsky.social",
+                today=dt.date(2027, 12, 31),
+                contest_state_expected=True,
+            )
+
+.carbon-review/wr-f2-r1/probe_comparison.py:258: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/bts/health/runner.py:141: in run_all_checks
+    contest_alerts = _safe_run("contest_state", lambda: contest_state.check(
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1204: in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+.carbon-review/wr-f2-r1/probe_comparison.py:257: in <lambda>
+    patch.object(runner, "_safe_run", side_effect=lambda n, fn: runner._safe_run(n, fn) if n == "contest_state" else []):
+                                                                ^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   RecursionError: maximum recursion depth exceeded
+!!! Recursion detected (same locals & position)
+_ test_adversarial_stat_oserror_on_flag_symlink[False-symlink_unsearchable_dir] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c2f1760>
+hostile_symlink = 'symlink_unsearchable_dir', historical = False
+
+    @pytest.mark.parametrize("hostile_symlink", ["symlink_unsearchable_dir", "symlink_enametoolong"])
+    @pytest.mark.parametrize("historical", [False, True])
+    def test_adversarial_stat_oserror_on_flag_symlink(tmp_path, monkeypatch, hostile_symlink, historical):
+        """Adversarial check: a symlink at saver_state.json whose stat() raises OSError (EACCES or ENAMETOOLONG)
+        must treat the flag as unusable, must not raise where the base does not, must not drop collected alerts,
+        and must not make runner.run_all_checks page a crash CRITICAL (or an analytics_job_oom CRITICAL)."""
+        picks = tmp_path / "oom" / "picks"
+        cleanup_perms: list[Path] = []
+        write_dated_obs(picks, DAY.date(), "used", streak=14, best=15)
+        resolved = [DAY.date() + dt.timedelta(days=1), DAY.date() + dt.timedelta(days=2)]
+        monkeypatch.setattr(health, "latest_resolved_pick_date", lambda _: max(resolved))
+        monkeypatch.setattr(health, "_scan_resolved_pick_dates", lambda *a, **kw: resolved)
+        monkeypatch.setattr(health, "resolved_pick_settlement_gap", lambda *a: 2)
+    
+        baseline = health.check(
+            picks, expected=True, now=DAY, historical_day=DAY.date() if historical else None,
+        )
+        assert len(baseline) == 1 and baseline[0].source == "contest_state"
+    
+        with tempfile.TemporaryDirectory(dir="/tmp") as short_dir:
+            try:
+                plant_flag(picks, hostile_symlink, DAY.year, cleanup_perms, Path(short_dir))
+                # Check what runner.run_all_checks would send before asserting on direct check:
+                wall = DAY + dt.timedelta(hours=3) if historical else DAY
+    
+                class WallClock(REAL_DT):
+                    @classmethod
+                    def now(cls, tz=None):
+                        return wall.astimezone(tz) if tz else wall.replace(tzinfo=None)
+    
+                dms = []
+                real_safe_run = runner._safe_run
+                with patch.object(runner, "datetime", WallClock), \
+                     patch.object(alert, "datetime", WallClock), \
+                     patch.object(alert, "send_dm", side_effect=lambda r, b: dms.append((r, b)) or "ok"), \
+                     patch.object(runner, "_safe_run", side_effect=lambda n, fn: real_safe_run(n, fn) if n == "contest_state" else []):
+                    eod_alerts = runner.run_all_checks(
+                        picks_dir=picks,
+                        models_dir=tmp_path / "models",
+                        dm_recipient="ops.bsky.social",
+                        today=DAY.date(),
+                        contest_state_expected=True,
+                    )
+                print(f"\n[ADVERSARIAL {hostile_symlink} historical={historical}] eod_alerts={eod_alerts} dms={dms}")
+>               actual = health.check(
+                    picks, expected=True, now=DAY, historical_day=DAY.date() if historical else None,
+                )
+
+.carbon-review/wr-f2-r1/probe_comparison.py:313: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/bts/health/contest_state.py:70: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:214: in _check
+    flag = _read_saver_state(picks_dir, season=year, historical=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/saver_state.py:54: in _read_saver_state
+    if not path.exists():
+           ^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:860: in exists
+    self.stat(follow_symlinks=follow_symlinks)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_0/oom/picks/account_state/saver_state.json')
+
+    def stat(self, *, follow_symlinks=True):
+        """
+        Return the result of the stat() system call on this path, like
+        os.stat() does.
+        """
+>       return os.stat(self, follow_symlinks=follow_symlinks)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       PermissionError: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_0/oom/picks/account_state/saver_state.json'
+
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:840: PermissionError
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:47 [contest_state CRITICAL] contest-account streak state expected but missing at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_0/oom/picks/account_state
+ERROR    bts.health.alert:alert.py:47 [contest_state CRITICAL] Live decision refused: season 2026 switch is absent.
+Alternative dated path — TEMPLATE: `bts set-contest-streak --date 2026-11-26 --streak N --best-streak B --saver S --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_0/oom/picks`. Read N, B and S from MLB (active streak, best streak and saver state).
+Alternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_0/oom/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_0/oom/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2026 --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_0/oom/picks`; then run `bts fetch-contest-streak --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_0/oom/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.
+One repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.
+__ test_adversarial_stat_oserror_on_flag_symlink[False-symlink_enametoolong] ___
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c2f01d0>
+hostile_symlink = 'symlink_enametoolong', historical = False
+
+    @pytest.mark.parametrize("hostile_symlink", ["symlink_unsearchable_dir", "symlink_enametoolong"])
+    @pytest.mark.parametrize("historical", [False, True])
+    def test_adversarial_stat_oserror_on_flag_symlink(tmp_path, monkeypatch, hostile_symlink, historical):
+        """Adversarial check: a symlink at saver_state.json whose stat() raises OSError (EACCES or ENAMETOOLONG)
+        must treat the flag as unusable, must not raise where the base does not, must not drop collected alerts,
+        and must not make runner.run_all_checks page a crash CRITICAL (or an analytics_job_oom CRITICAL)."""
+        picks = tmp_path / "oom" / "picks"
+        cleanup_perms: list[Path] = []
+        write_dated_obs(picks, DAY.date(), "used", streak=14, best=15)
+        resolved = [DAY.date() + dt.timedelta(days=1), DAY.date() + dt.timedelta(days=2)]
+        monkeypatch.setattr(health, "latest_resolved_pick_date", lambda _: max(resolved))
+        monkeypatch.setattr(health, "_scan_resolved_pick_dates", lambda *a, **kw: resolved)
+        monkeypatch.setattr(health, "resolved_pick_settlement_gap", lambda *a: 2)
+    
+        baseline = health.check(
+            picks, expected=True, now=DAY, historical_day=DAY.date() if historical else None,
+        )
+        assert len(baseline) == 1 and baseline[0].source == "contest_state"
+    
+        with tempfile.TemporaryDirectory(dir="/tmp") as short_dir:
+            try:
+                plant_flag(picks, hostile_symlink, DAY.year, cleanup_perms, Path(short_dir))
+                # Check what runner.run_all_checks would send before asserting on direct check:
+                wall = DAY + dt.timedelta(hours=3) if historical else DAY
+    
+                class WallClock(REAL_DT):
+                    @classmethod
+                    def now(cls, tz=None):
+                        return wall.astimezone(tz) if tz else wall.replace(tzinfo=None)
+    
+                dms = []
+                real_safe_run = runner._safe_run
+                with patch.object(runner, "datetime", WallClock), \
+                     patch.object(alert, "datetime", WallClock), \
+                     patch.object(alert, "send_dm", side_effect=lambda r, b: dms.append((r, b)) or "ok"), \
+                     patch.object(runner, "_safe_run", side_effect=lambda n, fn: real_safe_run(n, fn) if n == "contest_state" else []):
+                    eod_alerts = runner.run_all_checks(
+                        picks_dir=picks,
+                        models_dir=tmp_path / "models",
+                        dm_recipient="ops.bsky.social",
+                        today=DAY.date(),
+                        contest_state_expected=True,
+                    )
+                print(f"\n[ADVERSARIAL {hostile_symlink} historical={historical}] eod_alerts={eod_alerts} dms={dms}")
+>               actual = health.check(
+                    picks, expected=True, now=DAY, historical_day=DAY.date() if historical else None,
+                )
+
+.carbon-review/wr-f2-r1/probe_comparison.py:313: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/bts/health/contest_state.py:70: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:214: in _check
+    flag = _read_saver_state(picks_dir, season=year, historical=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/saver_state.py:54: in _read_saver_state
+    if not path.exists():
+           ^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:860: in exists
+    self.stat(follow_symlinks=follow_symlinks)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_1/oom/picks/account_state/saver_state.json')
+
+    def stat(self, *, follow_symlinks=True):
+        """
+        Return the result of the stat() system call on this path, like
+        os.stat() does.
+        """
+>       return os.stat(self, follow_symlinks=follow_symlinks)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       OSError: [Errno 63] File name too long: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_1/oom/picks/account_state/saver_state.json'
+
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:840: OSError
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:47 [contest_state CRITICAL] contest-account streak state expected but missing at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_1/oom/picks/account_state
+ERROR    bts.health.alert:alert.py:47 [contest_state CRITICAL] Live decision refused: season 2026 switch is absent.
+Alternative dated path — TEMPLATE: `bts set-contest-streak --date 2026-11-26 --streak N --best-streak B --saver S --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_1/oom/picks`. Read N, B and S from MLB (active streak, best streak and saver state).
+Alternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_1/oom/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_1/oom/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2026 --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_1/oom/picks`; then run `bts fetch-contest-streak --picks-dir /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_1/oom/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.
+One repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.
+_ test_adversarial_stat_oserror_on_flag_symlink[True-symlink_unsearchable_dir] _
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c2e1940>
+hostile_symlink = 'symlink_unsearchable_dir', historical = True
+
+    @pytest.mark.parametrize("hostile_symlink", ["symlink_unsearchable_dir", "symlink_enametoolong"])
+    @pytest.mark.parametrize("historical", [False, True])
+    def test_adversarial_stat_oserror_on_flag_symlink(tmp_path, monkeypatch, hostile_symlink, historical):
+        """Adversarial check: a symlink at saver_state.json whose stat() raises OSError (EACCES or ENAMETOOLONG)
+        must treat the flag as unusable, must not raise where the base does not, must not drop collected alerts,
+        and must not make runner.run_all_checks page a crash CRITICAL (or an analytics_job_oom CRITICAL)."""
+        picks = tmp_path / "oom" / "picks"
+        cleanup_perms: list[Path] = []
+        write_dated_obs(picks, DAY.date(), "used", streak=14, best=15)
+        resolved = [DAY.date() + dt.timedelta(days=1), DAY.date() + dt.timedelta(days=2)]
+        monkeypatch.setattr(health, "latest_resolved_pick_date", lambda _: max(resolved))
+        monkeypatch.setattr(health, "_scan_resolved_pick_dates", lambda *a, **kw: resolved)
+        monkeypatch.setattr(health, "resolved_pick_settlement_gap", lambda *a: 2)
+    
+        baseline = health.check(
+            picks, expected=True, now=DAY, historical_day=DAY.date() if historical else None,
+        )
+        assert len(baseline) == 1 and baseline[0].source == "contest_state"
+    
+        with tempfile.TemporaryDirectory(dir="/tmp") as short_dir:
+            try:
+                plant_flag(picks, hostile_symlink, DAY.year, cleanup_perms, Path(short_dir))
+                # Check what runner.run_all_checks would send before asserting on direct check:
+                wall = DAY + dt.timedelta(hours=3) if historical else DAY
+    
+                class WallClock(REAL_DT):
+                    @classmethod
+                    def now(cls, tz=None):
+                        return wall.astimezone(tz) if tz else wall.replace(tzinfo=None)
+    
+                dms = []
+                real_safe_run = runner._safe_run
+                with patch.object(runner, "datetime", WallClock), \
+                     patch.object(alert, "datetime", WallClock), \
+                     patch.object(alert, "send_dm", side_effect=lambda r, b: dms.append((r, b)) or "ok"), \
+                     patch.object(runner, "_safe_run", side_effect=lambda n, fn: real_safe_run(n, fn) if n == "contest_state" else []):
+                    eod_alerts = runner.run_all_checks(
+                        picks_dir=picks,
+                        models_dir=tmp_path / "models",
+                        dm_recipient="ops.bsky.social",
+                        today=DAY.date(),
+                        contest_state_expected=True,
+                    )
+                print(f"\n[ADVERSARIAL {hostile_symlink} historical={historical}] eod_alerts={eod_alerts} dms={dms}")
+>               actual = health.check(
+                    picks, expected=True, now=DAY, historical_day=DAY.date() if historical else None,
+                )
+
+.carbon-review/wr-f2-r1/probe_comparison.py:313: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/bts/health/contest_state.py:70: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:214: in _check
+    flag = _read_saver_state(picks_dir, season=year, historical=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/saver_state.py:54: in _read_saver_state
+    if not path.exists():
+           ^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:860: in exists
+    self.stat(follow_symlinks=follow_symlinks)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_2/oom/picks/account_state/saver_state.json')
+
+    def stat(self, *, follow_symlinks=True):
+        """
+        Return the result of the stat() system call on this path, like
+        os.stat() does.
+        """
+>       return os.stat(self, follow_symlinks=follow_symlinks)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       PermissionError: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_2/oom/picks/account_state/saver_state.json'
+
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:840: PermissionError
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.runner:runner.py:67 health check 'contest_state' raised: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_2/oom/picks/account_state/saver_state.json'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/health/runner.py", line 65, in _safe_run
+    return fn()
+           ^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/health/runner.py", line 141, in <lambda>
+    contest_alerts = _safe_run("contest_state", lambda: contest_state.check(
+                                                        ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/health/contest_state.py", line 70, in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/health/contest_state.py", line 214, in _check
+    flag = _read_saver_state(picks_dir, season=year, historical=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/saver_state.py", line 54, in _read_saver_state
+    if not path.exists():
+           ^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 860, in exists
+    self.stat(follow_symlinks=follow_symlinks)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 840, in stat
+    return os.stat(self, follow_symlinks=follow_symlinks)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_2/oom/picks/account_state/saver_state.json'
+ERROR    bts.health.alert:alert.py:47 [health_runner CRITICAL] Prior slate 2027-07-15 ET. The contest state health check failed before it could finish. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+___ test_adversarial_stat_oserror_on_flag_symlink[True-symlink_enametoolong] ___
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c2f10d0>
+hostile_symlink = 'symlink_enametoolong', historical = True
+
+    @pytest.mark.parametrize("hostile_symlink", ["symlink_unsearchable_dir", "symlink_enametoolong"])
+    @pytest.mark.parametrize("historical", [False, True])
+    def test_adversarial_stat_oserror_on_flag_symlink(tmp_path, monkeypatch, hostile_symlink, historical):
+        """Adversarial check: a symlink at saver_state.json whose stat() raises OSError (EACCES or ENAMETOOLONG)
+        must treat the flag as unusable, must not raise where the base does not, must not drop collected alerts,
+        and must not make runner.run_all_checks page a crash CRITICAL (or an analytics_job_oom CRITICAL)."""
+        picks = tmp_path / "oom" / "picks"
+        cleanup_perms: list[Path] = []
+        write_dated_obs(picks, DAY.date(), "used", streak=14, best=15)
+        resolved = [DAY.date() + dt.timedelta(days=1), DAY.date() + dt.timedelta(days=2)]
+        monkeypatch.setattr(health, "latest_resolved_pick_date", lambda _: max(resolved))
+        monkeypatch.setattr(health, "_scan_resolved_pick_dates", lambda *a, **kw: resolved)
+        monkeypatch.setattr(health, "resolved_pick_settlement_gap", lambda *a: 2)
+    
+        baseline = health.check(
+            picks, expected=True, now=DAY, historical_day=DAY.date() if historical else None,
+        )
+        assert len(baseline) == 1 and baseline[0].source == "contest_state"
+    
+        with tempfile.TemporaryDirectory(dir="/tmp") as short_dir:
+            try:
+                plant_flag(picks, hostile_symlink, DAY.year, cleanup_perms, Path(short_dir))
+                # Check what runner.run_all_checks would send before asserting on direct check:
+                wall = DAY + dt.timedelta(hours=3) if historical else DAY
+    
+                class WallClock(REAL_DT):
+                    @classmethod
+                    def now(cls, tz=None):
+                        return wall.astimezone(tz) if tz else wall.replace(tzinfo=None)
+    
+                dms = []
+                real_safe_run = runner._safe_run
+                with patch.object(runner, "datetime", WallClock), \
+                     patch.object(alert, "datetime", WallClock), \
+                     patch.object(alert, "send_dm", side_effect=lambda r, b: dms.append((r, b)) or "ok"), \
+                     patch.object(runner, "_safe_run", side_effect=lambda n, fn: real_safe_run(n, fn) if n == "contest_state" else []):
+                    eod_alerts = runner.run_all_checks(
+                        picks_dir=picks,
+                        models_dir=tmp_path / "models",
+                        dm_recipient="ops.bsky.social",
+                        today=DAY.date(),
+                        contest_state_expected=True,
+                    )
+                print(f"\n[ADVERSARIAL {hostile_symlink} historical={historical}] eod_alerts={eod_alerts} dms={dms}")
+>               actual = health.check(
+                    picks, expected=True, now=DAY, historical_day=DAY.date() if historical else None,
+                )
+
+.carbon-review/wr-f2-r1/probe_comparison.py:313: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/bts/health/contest_state.py:70: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/health/contest_state.py:214: in _check
+    flag = _read_saver_state(picks_dir, season=year, historical=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/saver_state.py:54: in _read_saver_state
+    if not path.exists():
+           ^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:860: in exists
+    self.stat(follow_symlinks=follow_symlinks)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_3/oom/picks/account_state/saver_state.json')
+
+    def stat(self, *, follow_symlinks=True):
+        """
+        Return the result of the stat() system call on this path, like
+        os.stat() does.
+        """
+>       return os.stat(self, follow_symlinks=follow_symlinks)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       OSError: [Errno 63] File name too long: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_3/oom/picks/account_state/saver_state.json'
+
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:840: OSError
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.runner:runner.py:67 health check 'contest_state' raised: [Errno 63] File name too long: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_3/oom/picks/account_state/saver_state.json'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/health/runner.py", line 65, in _safe_run
+    return fn()
+           ^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/health/runner.py", line 141, in <lambda>
+    contest_alerts = _safe_run("contest_state", lambda: contest_state.check(
+                                                        ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/health/contest_state.py", line 70, in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/health/contest_state.py", line 214, in _check
+    flag = _read_saver_state(picks_dir, season=year, historical=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/saver_state.py", line 54, in _read_saver_state
+    if not path.exists():
+           ^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 860, in exists
+    self.stat(follow_symlinks=follow_symlinks)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 840, in stat
+    return os.stat(self, follow_symlinks=follow_symlinks)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OSError: [Errno 63] File name too long: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_3/oom/picks/account_state/saver_state.json'
+ERROR    bts.health.alert:alert.py:47 [health_runner CRITICAL] Prior slate 2027-07-15 ET. The contest state health check failed before it could finish. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-used]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-uninitialized]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-absent]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-another_season]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-future_season]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-bool_true_season]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-bool_false_season]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-float_season]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-unreadable]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-invalid_utf8]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-utf8_bom]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-malformed_json]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-json_list]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-json_scalar]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-directory]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-named_pipe]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-symlink_to_fifo]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-dev_null_symlink]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-broken_symlink]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-symlink_loop]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-huge_integer_season]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-huge_integer_extra]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-deep_array_nesting]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-deep_object_nesting]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-used]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-uninitialized]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-absent]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-another_season]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-future_season]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-bool_true_season]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-bool_false_season]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-float_season]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-unreadable]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-invalid_utf8]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-utf8_bom]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-malformed_json]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-json_list]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-json_scalar]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-directory]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-named_pipe]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-symlink_to_fifo]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-dev_null_symlink]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-broken_symlink]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-symlink_loop]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-huge_integer_season]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-huge_integer_extra]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-deep_array_nesting]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-deep_object_nesting]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-0-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-0-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-9-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-9-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-10-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-10-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-12-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-12-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-15-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-15-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-16-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-16-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-57-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-57-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-58-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-58-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-400-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-active-400-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-0-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-0-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-9-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-9-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-10-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-10-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-12-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-12-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-15-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-15-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-16-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-16-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-57-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-57-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-58-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-58-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-400-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-not_earned-400-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-0-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-0-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-9-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-9-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-10-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-10-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-12-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-12-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-15-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-15-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-16-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-16-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-57-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-57-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-58-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-58-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-400-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-used-400-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-0-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-0-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-9-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-9-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-10-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-10-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-12-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-12-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-15-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-15-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-16-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-16-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-57-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-57-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-58-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-58-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-400-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-uninitialized-400-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-0-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-0-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-9-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-9-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-10-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-10-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-12-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-12-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-15-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-15-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-16-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-16-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-57-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-57-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-58-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-58-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-400-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-absent-400-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-0-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-0-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-9-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-9-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-10-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-10-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-12-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-12-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-15-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-15-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-16-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-16-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-57-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-57-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-58-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-58-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-400-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-named_pipe-400-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-0-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-0-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-9-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-9-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-10-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-10-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-12-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-12-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-15-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-15-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-16-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-16-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-57-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-57-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-58-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-58-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-400-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[False-huge_integer_season-400-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-0-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-0-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-9-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-9-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-10-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-10-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-12-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-12-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-15-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-15-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-16-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-16-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-57-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-57-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-58-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-58-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-400-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-active-400-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-0-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-0-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-9-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-9-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-10-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-10-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-12-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-12-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-15-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-15-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-16-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-16-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-57-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-57-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-58-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-58-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-400-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-not_earned-400-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-0-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-0-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-9-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-9-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-10-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-10-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-12-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-12-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-15-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-15-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-16-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-16-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-57-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-57-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-58-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-58-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-400-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-used-400-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-0-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-0-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-9-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-9-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-10-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-10-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-12-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-12-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-15-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-15-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-16-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-16-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-57-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-57-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-58-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-58-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-400-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-uninitialized-400-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-0-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-0-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-9-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-9-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-10-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-10-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-12-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-12-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-15-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-15-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-16-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-16-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-57-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-57-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-58-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-58-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-400-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-absent-400-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-0-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-0-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-9-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-9-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-10-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-10-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-12-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-12-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-15-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-15-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-16-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-16-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-57-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-57-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-58-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-58-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-400-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-named_pipe-400-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-0-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-0-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-9-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-9-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-10-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-10-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-12-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-12-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-15-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-15-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-16-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-16-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-57-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-57-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-58-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-58-not_earned]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-400-active]
+PASSED .carbon-review/wr-f2-r1/probe_comparison.py::test_non_used_dated_observations_never_emit_mismatch[True-huge_integer_season-400-not_earned]
+FAILED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[False-unix_socket] - OSError: [Errno 48] Address already in use
+FAILED .carbon-review/wr-f2-r1/probe_comparison.py::test_flag_matrix_on_dated_used_with_collected_alert[True-unix_socket] - OSError: [Errno 48] Address already in use
+FAILED .carbon-review/wr-f2-r1/probe_comparison.py::test_dec31_jan1_and_c1_processed_slate_year_boundaries - RecursionError: maximum recursion depth exceeded
+FAILED .carbon-review/wr-f2-r1/probe_comparison.py::test_adversarial_stat_oserror_on_flag_symlink[False-symlink_unsearchable_dir] - PermissionError: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_0/oom/picks/account_state/saver_state.json'
+FAILED .carbon-review/wr-f2-r1/probe_comparison.py::test_adversarial_stat_oserror_on_flag_symlink[False-symlink_enametoolong] - OSError: [Errno 63] File name too long: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_1/oom/picks/account_state/saver_state.json'
+FAILED .carbon-review/wr-f2-r1/probe_comparison.py::test_adversarial_stat_oserror_on_flag_symlink[True-symlink_unsearchable_dir] - PermissionError: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_2/oom/picks/account_state/saver_state.json'
+FAILED .carbon-review/wr-f2-r1/probe_comparison.py::test_adversarial_stat_oserror_on_flag_symlink[True-symlink_enametoolong] - OSError: [Errno 63] File name too long: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1985/test_adversarial_stat_oserror_3/oom/picks/account_state/saver_state.json'
+======================== 7 failed, 304 passed in 0.66s =========================

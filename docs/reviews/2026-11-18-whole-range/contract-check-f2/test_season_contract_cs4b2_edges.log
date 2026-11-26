@@ -1,0 +1,11 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-f2/.codex-review/wr-f2-check/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 20 items
+
+tests/test_season_contract_cs4b2_edges.py ....................           [100%]
+
+============================== 20 passed in 2.13s ==============================

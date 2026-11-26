@@ -1,0 +1,22 @@
+nice: setpriority: Operation not permitted
+send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: simulated chat length rejection
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-chk-f2/.codex-review/wr-f2-check/scratch/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-chk-f2/.codex-review/wr-f2-check/probe_overflow.py", line 13, in transport
+    raise ValueError("simulated chat length rejection")
+ValueError: simulated chat length rejection
+[health_dm_delivery CRITICAL] health alert DM delivery failed
+DM length 686
+base sent
+DM length 1205
+candidate failed

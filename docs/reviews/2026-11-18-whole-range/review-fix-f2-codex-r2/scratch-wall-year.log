@@ -1,0 +1,24 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/f2-mutation-2d424dr2/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2b-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 786 items
+
+tests/test_wr_f2_saver_flag.py F
+
+=================================== FAILURES ===================================
+_______________ test_m1_m2_live_warning_and_delivery[active-14] ________________
+tests/test_wr_f2_saver_flag.py:133: in test_m1_m2_live_warning_and_delivery
+    assert health.check(picks, now=DAY, expected=True) == [expected]
+E   assert [] == [Alert(level=...ed_mismatch')]
+E     
+E     Right contains one more item: Alert(level='WARN', source='saver_state', message="Streak Saver on 2027-07-15 ET. The dated observation says the saver...list B8a. Follow B8a's saver reconciliation steps for any correction.", incident_key='saver_state:dated_used_mismatch')
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[active-14]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+============================== 1 failed in 0.47s ===============================
+wall-year: tests caught the change

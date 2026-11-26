@@ -26,6 +26,7 @@ from bts.util import read_regular_file_text
 
 SOURCE = "contest_state"
 SAVER_SOURCE = "saver_state"
+DATED_USED_MISMATCH = "saver_state:dated_used_mismatch"
 
 # Under the Phase-1 snapshot/coverage split, source_date is derived from the
 # per-round predictions array, which trails the live activeStreak counter by ~one
@@ -205,6 +206,34 @@ def _check(picks_dir: Path, *, expected: bool, now: datetime, historical: bool) 
                          f"`{correction}`, replacing N and B with the active and best streaks MLB "
                          "shows. Changing the saver flag does not correct this observation."),
             ))
+        if state.saver_state == "used":
+            from bts.saver_state import _read_saver_state
+
+            year = now.astimezone(ZoneInfo("America/New_York")).year
+            try:
+                flag = _read_saver_state(picks_dir, season=year, historical=True)
+            except (OSError, ValueError, RecursionError):
+                return alerts
+            if flag.state in {"active", "not_earned"}:
+                if historical:
+                    message = (
+                        "The dated observation recorded the saver as used. "
+                        f"At this check the flag for season {year} read {flag.state}."
+                    )
+                else:
+                    message = (
+                        f"Streak Saver on {state.effective_date.isoformat()} ET. "
+                        "The dated observation says the saver was used. "
+                        f"The flag for season {year} read {flag.state} at this check. "
+                        "A later automatic decision may count a saver as available. "
+                        "Verify the current season's saver and prior entries in MLB before any correction. "
+                        "Use the `bts season-contract status` command with the scheduler's picks directory "
+                        "as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction."
+                    )
+                alerts.append(Alert(
+                    level="WARN", source=SAVER_SOURCE, message=message,
+                    incident_key=DATED_USED_MISMATCH,
+                ))
         return alerts
 
     # The flag belongs to the caller's current ET season, even when ledger coverage lags.

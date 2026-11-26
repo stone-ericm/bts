@@ -318,7 +318,12 @@ def test_health_observation_saver_without_flag_read(tmp_path,monkeypatch,expecte
     write(tmp_path,observation(active_streak=streak,best_streak=max(streak,14),saver_state=saver))
     if flag: (tmp_path/'account_state/saver_state.json').write_text('{')
     monkeypatch.setattr(flags,'load_saver_state',Mock(side_effect=AssertionError('flag read')))
+    if saver=='used':
+        bounded_read=Mock(wraps=flags._read_saver_state)
+        monkeypatch.setattr(flags,'_read_saver_state',bounded_read)
     alerts=check(tmp_path,now=NOW,expected=expected)
+    if saver=='used':
+        bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
     warnings=[a for a in alerts if a.source=='saver_state']
     assert len(warnings)==int(saver=='not_earned' and 10<=streak<=15)
     assert not any('legacy/expired' in a.message for a in alerts)

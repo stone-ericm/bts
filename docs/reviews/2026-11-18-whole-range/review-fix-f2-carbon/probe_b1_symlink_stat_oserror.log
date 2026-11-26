@@ -1,0 +1,419 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0 -- /Users/eric/projects/bts-work/wr-rev-f2-cb/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2-cb
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 7 items
+
+.carbon-review/wr-f2-r1/probe_b1_symlink_stat_oserror.py::test_unix_socket_flag_preserves_collected_alerts[False] PASSED
+.carbon-review/wr-f2-r1/probe_b1_symlink_stat_oserror.py::test_unix_socket_flag_preserves_collected_alerts[True] PASSED
+.carbon-review/wr-f2-r1/probe_b1_symlink_stat_oserror.py::test_dec31_after_midnight_eod_c1_clock PASSED
+.carbon-review/wr-f2-r1/probe_b1_symlink_stat_oserror.py::test_base_vs_candidate_on_stat_oserror_symlink[False-unsearchable_dir] 
+[base kind=unsearchable_dir hist=False] -> {
+  "bts_file": "/Users/eric/projects/bts-work/wr-rev-f2-cb/.carbon-review/wr-f2-r1/base_archive/src/bts/__init__.py",
+  "direct": [
+    [
+      "WARN",
+      "contest_state",
+      "contest coverage lag: 2 settled picks are newer than source_date=2027-07-15 (/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat0/base/oom/picks/account_state/contest_streak.manual.json); latest resolved pick 2027-07-17. The predictions array trails the live activeStreak counter by >=2 -- usually a transient settlement lag (a broken fetch DMs separately)",
+      null
+    ]
+  ],
+  "direct_raised": null,
+  "eod": [
+    [
+      "WARN",
+      "contest_state",
+      "contest coverage lag: 2 settled picks are newer than source_date=2027-07-15 (/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat0/base/oom/picks/account_state/contest_streak.manual.json); latest resolved pick 2027-07-17. The predictions array trails the live activeStreak counter by >=2 -- usually a transient settlement lag (a broken fetch DMs separately)",
+      null
+    ],
+    [
+      "CRITICAL",
+      "analytics_job_oom",
+      "OOM evidence detected: contest_state: contest coverage lag: 2 settled picks are newer than source_date=2027-07-15 (/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat0/base/oom/picks/account_state/contest_streak.manual.json); latest resolved pick 2027-07-17. The predictions array trails the live activeStreak counter by >=2 -- usually a transient settlement lag (a broken fetch DMs separately)",
+      null
+    ]
+  ],
+  "dms": [
+    [
+      "ops.bsky.social",
+      "BTS health CRITICAL alert(s):\n- [analytics_job_oom] OOM evidence detected: contest_state: contest coverage lag: 2 settled picks are newer than source_date=2027-07-15 (/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat0/base/oom/picks/account_state/contest_streak.manual.json); latest resolved pick 2027-07-17. The predictions array trails the live activeStreak counter by >=2 -- usually a transient settlement lag (a broken fetch DMs separately)"
+    ]
+  ]
+}
+
+[candidate kind=unsearchable_dir hist=False] -> {
+  "bts_file": "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/__init__.py",
+  "direct": null,
+  "direct_raised": "PermissionError: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat0/candidate/oom/picks/account_state/saver_state.json'",
+  "eod": [
+    [
+      "CRITICAL",
+      "health_runner",
+      "health check 'contest_state' crashed: PermissionError: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat0/candidate/oom/picks/account_state/saver_state.json'",
+      "health_runner:contest_state"
+    ]
+  ],
+  "dms": [
+    [
+      "ops.bsky.social",
+      "BTS health CRITICAL alert(s):\n- [health_runner] health check 'contest_state' crashed: PermissionError: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat0/candidate/oom/picks/account_state/saver_state.json'"
+    ]
+  ]
+}
+FAILED
+.carbon-review/wr-f2-r1/probe_b1_symlink_stat_oserror.py::test_base_vs_candidate_on_stat_oserror_symlink[False-enametoolong] 
+[base kind=enametoolong hist=False] -> {
+  "bts_file": "/Users/eric/projects/bts-work/wr-rev-f2-cb/.carbon-review/wr-f2-r1/base_archive/src/bts/__init__.py",
+  "direct": [
+    [
+      "WARN",
+      "contest_state",
+      "contest coverage lag: 2 settled picks are newer than source_date=2027-07-15 (/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat1/base/oom/picks/account_state/contest_streak.manual.json); latest resolved pick 2027-07-17. The predictions array trails the live activeStreak counter by >=2 -- usually a transient settlement lag (a broken fetch DMs separately)",
+      null
+    ]
+  ],
+  "direct_raised": null,
+  "eod": [
+    [
+      "WARN",
+      "contest_state",
+      "contest coverage lag: 2 settled picks are newer than source_date=2027-07-15 (/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat1/base/oom/picks/account_state/contest_streak.manual.json); latest resolved pick 2027-07-17. The predictions array trails the live activeStreak counter by >=2 -- usually a transient settlement lag (a broken fetch DMs separately)",
+      null
+    ],
+    [
+      "CRITICAL",
+      "analytics_job_oom",
+      "OOM evidence detected: contest_state: contest coverage lag: 2 settled picks are newer than source_date=2027-07-15 (/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat1/base/oom/picks/account_state/contest_streak.manual.json); latest resolved pick 2027-07-17. The predictions array trails the live activeStreak counter by >=2 -- usually a transient settlement lag (a broken fetch DMs separately)",
+      null
+    ]
+  ],
+  "dms": [
+    [
+      "ops.bsky.social",
+      "BTS health CRITICAL alert(s):\n- [analytics_job_oom] OOM evidence detected: contest_state: contest coverage lag: 2 settled picks are newer than source_date=2027-07-15 (/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat1/base/oom/picks/account_state/contest_streak.manual.json); latest resolved pick 2027-07-17. The predictions array trails the live activeStreak counter by >=2 -- usually a transient settlement lag (a broken fetch DMs separately)"
+    ]
+  ]
+}
+
+[candidate kind=enametoolong hist=False] -> {
+  "bts_file": "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/__init__.py",
+  "direct": null,
+  "direct_raised": "OSError: [Errno 63] File name too long: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat1/candidate/oom/picks/account_state/saver_state.json'",
+  "eod": [
+    [
+      "CRITICAL",
+      "health_runner",
+      "health check 'contest_state' crashed: OSError: [Errno 63] File name too long: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat1/candidate/oom/picks/account_state/saver_state.json'",
+      "health_runner:contest_state"
+    ]
+  ],
+  "dms": [
+    [
+      "ops.bsky.social",
+      "BTS health CRITICAL alert(s):\n- [health_runner] health check 'contest_state' crashed: OSError: [Errno 63] File name too long: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat1/candidate/oom/picks/account_state/saver_state.json'"
+    ]
+  ]
+}
+FAILED
+.carbon-review/wr-f2-r1/probe_b1_symlink_stat_oserror.py::test_base_vs_candidate_on_stat_oserror_symlink[True-unsearchable_dir] 
+[base kind=unsearchable_dir hist=True] -> {
+  "bts_file": "/Users/eric/projects/bts-work/wr-rev-f2-cb/.carbon-review/wr-f2-r1/base_archive/src/bts/__init__.py",
+  "direct": [
+    [
+      "WARN",
+      "contest_state",
+      "Prior slate 2027-07-15 ET. Coverage trails by more than one settled pick. The predictions array can trail the live counter. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.",
+      null
+    ]
+  ],
+  "direct_raised": null,
+  "eod": [
+    [
+      "WARN",
+      "contest_state",
+      "Prior slate 2027-07-15 ET. Coverage trails by more than one settled pick. The predictions array can trail the live counter. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.",
+      null
+    ]
+  ],
+  "dms": []
+}
+
+[candidate kind=unsearchable_dir hist=True] -> {
+  "bts_file": "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/__init__.py",
+  "direct": null,
+  "direct_raised": "PermissionError: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat2/candidate/oom/picks/account_state/saver_state.json'",
+  "eod": [
+    [
+      "CRITICAL",
+      "health_runner",
+      "Prior slate 2027-07-15 ET. The contest state health check failed before it could finish. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.",
+      "health_runner:contest_state"
+    ]
+  ],
+  "dms": [
+    [
+      "ops.bsky.social",
+      "BTS health CRITICAL alert(s):\n- [health_runner] Prior slate 2027-07-15 ET. The contest state health check failed before it could finish. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files."
+    ]
+  ]
+}
+FAILED
+.carbon-review/wr-f2-r1/probe_b1_symlink_stat_oserror.py::test_base_vs_candidate_on_stat_oserror_symlink[True-enametoolong] 
+[base kind=enametoolong hist=True] -> {
+  "bts_file": "/Users/eric/projects/bts-work/wr-rev-f2-cb/.carbon-review/wr-f2-r1/base_archive/src/bts/__init__.py",
+  "direct": [
+    [
+      "WARN",
+      "contest_state",
+      "Prior slate 2027-07-15 ET. Coverage trails by more than one settled pick. The predictions array can trail the live counter. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.",
+      null
+    ]
+  ],
+  "direct_raised": null,
+  "eod": [
+    [
+      "WARN",
+      "contest_state",
+      "Prior slate 2027-07-15 ET. Coverage trails by more than one settled pick. The predictions array can trail the live counter. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.",
+      null
+    ]
+  ],
+  "dms": []
+}
+
+[candidate kind=enametoolong hist=True] -> {
+  "bts_file": "/Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/__init__.py",
+  "direct": null,
+  "direct_raised": "OSError: [Errno 63] File name too long: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat3/candidate/oom/picks/account_state/saver_state.json'",
+  "eod": [
+    [
+      "CRITICAL",
+      "health_runner",
+      "Prior slate 2027-07-15 ET. The contest state health check failed before it could finish. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.",
+      "health_runner:contest_state"
+    ]
+  ],
+  "dms": [
+    [
+      "ops.bsky.social",
+      "BTS health CRITICAL alert(s):\n- [health_runner] Prior slate 2027-07-15 ET. The contest state health check failed before it could finish. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files."
+    ]
+  ]
+}
+FAILED
+
+=================================== FAILURES ===================================
+____ test_base_vs_candidate_on_stat_oserror_symlink[False-unsearchable_dir] ____
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat0')
+symlink_kind = 'unsearchable_dir', historical = False
+
+    @pytest.mark.parametrize("symlink_kind", ["unsearchable_dir", "enametoolong"])
+    @pytest.mark.parametrize("historical", [False, True])
+    def test_base_vs_candidate_on_stat_oserror_symlink(tmp_path, symlink_kind, historical):
+        out = {}
+        for label, src_dir in [("base", BASE_SRC), ("candidate", CANDIDATE_SRC)]:
+            sub = tmp_path / label
+            sub.mkdir()
+            proc = subprocess.run(
+                [sys.executable, "-c", COMPARE_SYMLINK_SNIPPET, str(src_dir), str(sub),
+                 symlink_kind, "1" if historical else "0"],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=True,
+            )
+            out[label] = json.loads(proc.stdout)
+            print(f"\n[{label} kind={symlink_kind} hist={historical}] -> {json.dumps(out[label], indent=2)}")
+    
+        # Base does not raise, preserves the collected coverage WARN, and sends 0 DMs:
+        assert out["base"]["direct_raised"] is None
+        assert len(out["base"]["direct"]) == 1 and out["base"]["direct"][0][0] == "WARN"
+>       assert out["base"]["dms"] == []
+E       AssertionError: assert [['ops.bsky.social', 'BTS health CRITICAL alert(s):\n- [analytics_job_oom] OOM evidence detected: contest_state: contest coverage lag: 2 settled picks are newer than source_date=2027-07-15 (/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat0/base/oom/picks/account_state/contest_streak.manual.json); latest resolved pick 2027-07-17. The predictions array trails the live activeStreak counter by >=2 -- usually a transient settlement lag (a broken fetch DMs separately)']] == []
+E         
+E         Left contains one more item: ['ops.bsky.social', 'BTS health CRITICAL alert(s):\n- [analytics_job_oom] OOM evidence detected: contest_state: contes...ray trails the live activeStreak counter by >=2 -- usually a transient settlement lag (a broken fetch DMs separately)']
+E         
+E         Full diff:
+E         - []
+E         + [
+E         +     [
+E         +         'ops.bsky.social',
+E         +         'BTS health CRITICAL alert(s):\n'
+E         +         '- [analytics_job_oom] OOM evidence detected: contest_state: contest '
+E         +         'coverage lag: 2 settled picks are newer than source_date=2027-07-15 '
+E         +         '(/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat0/base/oom/picks/account_state/contest_streak.manual.json); '
+E         +         'latest resolved pick 2027-07-17. The predictions array trails the '
+E         +         'live activeStreak counter by >=2 -- usually a transient settlement '
+E         +         'lag (a broken fetch DMs separately)',
+E         +     ],
+E         + ]
+
+.carbon-review/wr-f2-r1/probe_b1_symlink_stat_oserror.py:227: AssertionError
+______ test_base_vs_candidate_on_stat_oserror_symlink[False-enametoolong] ______
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat1')
+symlink_kind = 'enametoolong', historical = False
+
+    @pytest.mark.parametrize("symlink_kind", ["unsearchable_dir", "enametoolong"])
+    @pytest.mark.parametrize("historical", [False, True])
+    def test_base_vs_candidate_on_stat_oserror_symlink(tmp_path, symlink_kind, historical):
+        out = {}
+        for label, src_dir in [("base", BASE_SRC), ("candidate", CANDIDATE_SRC)]:
+            sub = tmp_path / label
+            sub.mkdir()
+            proc = subprocess.run(
+                [sys.executable, "-c", COMPARE_SYMLINK_SNIPPET, str(src_dir), str(sub),
+                 symlink_kind, "1" if historical else "0"],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=True,
+            )
+            out[label] = json.loads(proc.stdout)
+            print(f"\n[{label} kind={symlink_kind} hist={historical}] -> {json.dumps(out[label], indent=2)}")
+    
+        # Base does not raise, preserves the collected coverage WARN, and sends 0 DMs:
+        assert out["base"]["direct_raised"] is None
+        assert len(out["base"]["direct"]) == 1 and out["base"]["direct"][0][0] == "WARN"
+>       assert out["base"]["dms"] == []
+E       AssertionError: assert [['ops.bsky.social', 'BTS health CRITICAL alert(s):\n- [analytics_job_oom] OOM evidence detected: contest_state: contest coverage lag: 2 settled picks are newer than source_date=2027-07-15 (/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat1/base/oom/picks/account_state/contest_streak.manual.json); latest resolved pick 2027-07-17. The predictions array trails the live activeStreak counter by >=2 -- usually a transient settlement lag (a broken fetch DMs separately)']] == []
+E         
+E         Left contains one more item: ['ops.bsky.social', 'BTS health CRITICAL alert(s):\n- [analytics_job_oom] OOM evidence detected: contest_state: contes...ray trails the live activeStreak counter by >=2 -- usually a transient settlement lag (a broken fetch DMs separately)']
+E         
+E         Full diff:
+E         - []
+E         + [
+E         +     [
+E         +         'ops.bsky.social',
+E         +         'BTS health CRITICAL alert(s):\n'
+E         +         '- [analytics_job_oom] OOM evidence detected: contest_state: contest '
+E         +         'coverage lag: 2 settled picks are newer than source_date=2027-07-15 '
+E         +         '(/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat1/base/oom/picks/account_state/contest_streak.manual.json); '
+E         +         'latest resolved pick 2027-07-17. The predictions array trails the '
+E         +         'live activeStreak counter by >=2 -- usually a transient settlement '
+E         +         'lag (a broken fetch DMs separately)',
+E         +     ],
+E         + ]
+
+.carbon-review/wr-f2-r1/probe_b1_symlink_stat_oserror.py:227: AssertionError
+____ test_base_vs_candidate_on_stat_oserror_symlink[True-unsearchable_dir] _____
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat2')
+symlink_kind = 'unsearchable_dir', historical = True
+
+    @pytest.mark.parametrize("symlink_kind", ["unsearchable_dir", "enametoolong"])
+    @pytest.mark.parametrize("historical", [False, True])
+    def test_base_vs_candidate_on_stat_oserror_symlink(tmp_path, symlink_kind, historical):
+        out = {}
+        for label, src_dir in [("base", BASE_SRC), ("candidate", CANDIDATE_SRC)]:
+            sub = tmp_path / label
+            sub.mkdir()
+            proc = subprocess.run(
+                [sys.executable, "-c", COMPARE_SYMLINK_SNIPPET, str(src_dir), str(sub),
+                 symlink_kind, "1" if historical else "0"],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=True,
+            )
+            out[label] = json.loads(proc.stdout)
+            print(f"\n[{label} kind={symlink_kind} hist={historical}] -> {json.dumps(out[label], indent=2)}")
+    
+        # Base does not raise, preserves the collected coverage WARN, and sends 0 DMs:
+        assert out["base"]["direct_raised"] is None
+        assert len(out["base"]["direct"]) == 1 and out["base"]["direct"][0][0] == "WARN"
+        assert out["base"]["dms"] == []
+    
+        # Contract requires candidate to match base when saver_state.json is unusable/non-regular:
+>       assert out["candidate"]["direct_raised"] is None
+E       assert "PermissionError: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat2/candidate/oom/picks/account_state/saver_state.json'" is None
+
+.carbon-review/wr-f2-r1/probe_b1_symlink_stat_oserror.py:230: AssertionError
+______ test_base_vs_candidate_on_stat_oserror_symlink[True-enametoolong] _______
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat3')
+symlink_kind = 'enametoolong', historical = True
+
+    @pytest.mark.parametrize("symlink_kind", ["unsearchable_dir", "enametoolong"])
+    @pytest.mark.parametrize("historical", [False, True])
+    def test_base_vs_candidate_on_stat_oserror_symlink(tmp_path, symlink_kind, historical):
+        out = {}
+        for label, src_dir in [("base", BASE_SRC), ("candidate", CANDIDATE_SRC)]:
+            sub = tmp_path / label
+            sub.mkdir()
+            proc = subprocess.run(
+                [sys.executable, "-c", COMPARE_SYMLINK_SNIPPET, str(src_dir), str(sub),
+                 symlink_kind, "1" if historical else "0"],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=True,
+            )
+            out[label] = json.loads(proc.stdout)
+            print(f"\n[{label} kind={symlink_kind} hist={historical}] -> {json.dumps(out[label], indent=2)}")
+    
+        # Base does not raise, preserves the collected coverage WARN, and sends 0 DMs:
+        assert out["base"]["direct_raised"] is None
+        assert len(out["base"]["direct"]) == 1 and out["base"]["direct"][0][0] == "WARN"
+        assert out["base"]["dms"] == []
+    
+        # Contract requires candidate to match base when saver_state.json is unusable/non-regular:
+>       assert out["candidate"]["direct_raised"] is None
+E       assert "OSError: [Errno 63] File name too long: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat3/candidate/oom/picks/account_state/saver_state.json'" is None
+
+.carbon-review/wr-f2-r1/probe_b1_symlink_stat_oserror.py:230: AssertionError
+==================================== PASSES ====================================
+____________________ test_dec31_after_midnight_eod_c1_clock ____________________
+------------------------------ Captured log call -------------------------------
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Prior slate 2027-12-31 ET. The dated observation recorded the saver as used. At this check the flag for season 2027 read not_earned. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+=========================== short test summary info ============================
+PASSED .carbon-review/wr-f2-r1/probe_b1_symlink_stat_oserror.py::test_unix_socket_flag_preserves_collected_alerts[False]
+PASSED .carbon-review/wr-f2-r1/probe_b1_symlink_stat_oserror.py::test_unix_socket_flag_preserves_collected_alerts[True]
+PASSED .carbon-review/wr-f2-r1/probe_b1_symlink_stat_oserror.py::test_dec31_after_midnight_eod_c1_clock
+FAILED .carbon-review/wr-f2-r1/probe_b1_symlink_stat_oserror.py::test_base_vs_candidate_on_stat_oserror_symlink[False-unsearchable_dir] - AssertionError: assert [['ops.bsky.social', 'BTS health CRITICAL alert(s):\n- [analytics_job_oom] OOM evidence detected: contest_state: contest coverage lag: 2 settled picks are newer than source_date=2027-07-15 (/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat0/base/oom/picks/account_state/contest_streak.manual.json); latest resolved pick 2027-07-17. The predictions array trails the live activeStreak counter by >=2 -- usually a transient settlement lag (a broken fetch DMs separately)']] == []
+  
+  Left contains one more item: ['ops.bsky.social', 'BTS health CRITICAL alert(s):\n- [analytics_job_oom] OOM evidence detected: contest_state: contes...ray trails the live activeStreak counter by >=2 -- usually a transient settlement lag (a broken fetch DMs separately)']
+  
+  Full diff:
+  - []
+  + [
+  +     [
+  +         'ops.bsky.social',
+  +         'BTS health CRITICAL alert(s):\n'
+  +         '- [analytics_job_oom] OOM evidence detected: contest_state: contest '
+  +         'coverage lag: 2 settled picks are newer than source_date=2027-07-15 '
+  +         '(/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat0/base/oom/picks/account_state/contest_streak.manual.json); '
+  +         'latest resolved pick 2027-07-17. The predictions array trails the '
+  +         'live activeStreak counter by >=2 -- usually a transient settlement '
+  +         'lag (a broken fetch DMs separately)',
+  +     ],
+  + ]
+FAILED .carbon-review/wr-f2-r1/probe_b1_symlink_stat_oserror.py::test_base_vs_candidate_on_stat_oserror_symlink[False-enametoolong] - AssertionError: assert [['ops.bsky.social', 'BTS health CRITICAL alert(s):\n- [analytics_job_oom] OOM evidence detected: contest_state: contest coverage lag: 2 settled picks are newer than source_date=2027-07-15 (/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat1/base/oom/picks/account_state/contest_streak.manual.json); latest resolved pick 2027-07-17. The predictions array trails the live activeStreak counter by >=2 -- usually a transient settlement lag (a broken fetch DMs separately)']] == []
+  
+  Left contains one more item: ['ops.bsky.social', 'BTS health CRITICAL alert(s):\n- [analytics_job_oom] OOM evidence detected: contest_state: contes...ray trails the live activeStreak counter by >=2 -- usually a transient settlement lag (a broken fetch DMs separately)']
+  
+  Full diff:
+  - []
+  + [
+  +     [
+  +         'ops.bsky.social',
+  +         'BTS health CRITICAL alert(s):\n'
+  +         '- [analytics_job_oom] OOM evidence detected: contest_state: contest '
+  +         'coverage lag: 2 settled picks are newer than source_date=2027-07-15 '
+  +         '(/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat1/base/oom/picks/account_state/contest_streak.manual.json); '
+  +         'latest resolved pick 2027-07-17. The predictions array trails the '
+  +         'live activeStreak counter by >=2 -- usually a transient settlement '
+  +         'lag (a broken fetch DMs separately)',
+  +     ],
+  + ]
+FAILED .carbon-review/wr-f2-r1/probe_b1_symlink_stat_oserror.py::test_base_vs_candidate_on_stat_oserror_symlink[True-unsearchable_dir] - assert "PermissionError: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat2/candidate/oom/picks/account_state/saver_state.json'" is None
+FAILED .carbon-review/wr-f2-r1/probe_b1_symlink_stat_oserror.py::test_base_vs_candidate_on_stat_oserror_symlink[True-enametoolong] - assert "OSError: [Errno 63] File name too long: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2006/test_base_vs_candidate_on_stat3/candidate/oom/picks/account_state/saver_state.json'" is None
+========================= 4 failed, 3 passed in 1.90s ==========================

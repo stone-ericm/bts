@@ -1,0 +1,11 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f2-cx/src/bts/__init__.py
+Installed decoder accepts the test's 3000 levels
+Installed decoder raises at 20000 levels
+historical=False: unchanged alerts with real RecursionError
+historical=True: unchanged alerts with real RecursionError
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f2-cx/.codex-review/wr-f2-r1/false-green-deep-nd7xca5w/src/bts/__init__.py
+Installed decoder accepts the test's 3000 levels
+Installed decoder raises at 20000 levels
+historical=False: mutant raised RecursionError
+historical=True: mutant raised RecursionError

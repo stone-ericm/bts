@@ -1,0 +1,15 @@
+nice: setpriority: Operation not permitted
+LIVE DM
+BTS health WARN attention:
+- [saver_state] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction. (1st observed day)
+Wrong dated side with a correct flag, same-day dated correction, and dashboard/MLB recheck held
+HISTORICAL DM
+BTS health WARN attention:
+- [saver_state] Prior slate 2027-12-31 ET. The dated observation recorded the saver as used. At this check the flag for season 2027 read not_earned. (1st observed day) This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+Dec 31 used the ET year; January status read the new season and did not edit it
+  FALLBACK REFRESH: pick unchanged (Steven Kwan 99.0%)
+  FALLBACK REFRESH: should_lock=True
+  FALLBACK REFRESH: pick unchanged (Steven Kwan 99.0%)
+  FALLBACK REFRESH: should_lock=True
+Next morning: verified repair for either flag changed the future automatic read and preserved the saved pick
+B8a counterexample: 2027-08-19 alert read active, dashboard then wrote used, MLB still active. Next automatic 2027-08-20 at streak 9: checklist's retained used => skip; reconciled active => single (real MDP policy, .79/.80)

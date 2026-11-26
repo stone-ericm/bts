@@ -1,0 +1,37 @@
+nice: setpriority: Operation not permitted
+active
+Streak Saver: today's dated observation says MLB used the saver, but the saver flag for season 2027 reads active. When no dated observation is in effect, the live decision reads the flag and counts this saver as still in hand. Mark it used: `bts saver-state --use --season 2027 --picks-dir '/Users/eric/projects/bts-work/wr-chk-f2/.codex-review/wr-f2-check/command-tn8ggikx/active with space'"'"'s'`. Run it in 2027 ET away from midnight. It changes only the flag; the dated observation stays as it is.
+Prior slate 2027-07-15 ET. The dated observation says the saver was used while the saver flag does not. The saver flag may still count it as in hand. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+literal shell 0 Marked saver used.
+saver_state: used (season 2027) 
+CLI changed ['saver_state.json', 'saver_state.lock', 'saver_transitions.jsonl']
+2027-07-16T10:00:00-04:00 0 Saver is already used.
+saver_state: used (season 2027)
+not_earned
+Streak Saver: today's dated observation says MLB used the saver, but the saver flag for season 2027 reads not_earned. When no dated observation is in effect, the live decision reads the flag and counts this saver as still in hand. Mark it used: `bts saver-state --use --season 2027 --picks-dir '/Users/eric/projects/bts-work/wr-chk-f2/.codex-review/wr-f2-check/command-tn8ggikx/not_earned with space'"'"'s'`. Run it in 2027 ET away from midnight. It changes only the flag; the dated observation stays as it is.
+Prior slate 2027-07-15 ET. The dated observation says the saver was used while the saver flag does not. The saver flag may still count it as in hand. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+literal shell 0 Marked saver used (it was not_earned). To take this back run `bts saver-state --init not_earned --force --season 2027`.
+saver_state: used (season 2027) 
+CLI changed ['saver_state.json', 'saver_state.lock', 'saver_transitions.jsonl']
+2027-07-16T10:00:00-04:00 0 Saver is already used.
+saver_state: used (season 2027)
+December Streak Saver: today's dated observation says MLB used the saver, but the saver flag for season 2027 reads active. When no dated observation is in effect, the live decision reads the flag and counts this saver as still in hand. Mark it used: `bts saver-state --use --season 2027 --picks-dir '/Users/eric/projects/bts-work/wr-chk-f2/.codex-review/wr-f2-check/command-tn8ggikx/Dec retains old flag'`. Run it in 2027 ET away from midnight. It changes only the flag; the dated observation stays as it is.
+2028-01-01T00:01:00-05:00 0 Marked saver used.
+saver_state: used (season 2027)
+2028-01-01T00:01:00-05:00 1 Error: saver is uninitialized; run `bts saver-state --init used --season 2027`
+saver_state: uninitialized (season 2027)
+next-day unsynchronized
+2027-07-16T10:00:00-04:00 0 Marked saver used.
+saver_state: used (season 2027)
+corrected
+2027-07-15T22:00:00-04:00 0 Marked saver used.
+saver_state: used (season 2027)
+dashboard used
+2027-07-15T22:00:00-04:00 0 Saver is already used.
+saver_state: used (season 2027)
+dashboard undo
+2027-07-15T22:00:00-04:00 0 Marked saver used.
+saver_state: used (season 2027)
+earned again
+2027-07-16T10:00:00-04:00 0 Marked saver used.
+saver_state: used (season 2027)

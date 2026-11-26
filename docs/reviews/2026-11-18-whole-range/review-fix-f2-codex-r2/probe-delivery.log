@@ -1,0 +1,16 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f2b-cx/src/bts/__init__.py
+1,000-grapheme digest, both incident orders in both modes, processed dates and labels held
+Unknown-outcome alert failed: read receipt at /tmp/f2-dm-84tukera/symlink/health_state/health_dm_delivery_status.json.dated_used_mismatch.json: receipt must be an unaliased regular file
+Unknown-outcome alert failed: read receipt at /tmp/f2-dm-84tukera/symlink/health_state/health_dm_delivery_status.json.dated_used_mismatch.json: receipt must be an unaliased regular file
+Unknown-outcome alert failed: read receipt at /tmp/f2-dm-84tukera/hardlink/health_state/health_dm_delivery_status.json.dated_used_mismatch.json: receipt must be an unaliased regular file
+Unknown-outcome alert failed: read receipt at /tmp/f2-dm-84tukera/hardlink/health_state/health_dm_delivery_status.json.dated_used_mismatch.json: receipt must be an unaliased regular file
+Unknown-outcome alert failed: read receipt at /tmp/f2-dm-84tukera/directory/health_state/health_dm_delivery_status.json.dated_used_mismatch.json: receipt must be an unaliased regular file
+Unknown-outcome alert failed: read receipt at /tmp/f2-dm-84tukera/directory/health_state/health_dm_delivery_status.json.dated_used_mismatch.json: receipt must be an unaliased regular file
+Unknown-outcome alert failed: read receipt at /tmp/f2-dm-84tukera/fifo/health_state/health_dm_delivery_status.json.dated_used_mismatch.json: receipt must be an unaliased regular file
+Unknown-outcome alert failed: read receipt at /tmp/f2-dm-84tukera/fifo/health_state/health_dm_delivery_status.json.dated_used_mismatch.json: receipt must be an unaliased regular file
+Known limit 8: malformed persisted mismatch streak stopped both dispatches
+Both receipt aliases, directory, FIFO, root fallback, and named override verified
+Unknown-outcome alert failed: transport: offline transport fixture
+Unknown-outcome alert failed: transport: send_dm returned no usable message id
+Thrown and blank sends and interrupts on either dispatch; retries used only persisted state

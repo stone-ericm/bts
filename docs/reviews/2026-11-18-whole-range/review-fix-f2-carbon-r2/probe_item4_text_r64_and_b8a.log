@@ -1,0 +1,27 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f2b-cb/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0 -- /Users/eric/projects/bts-work/wr-rev-f2b-cb/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2b-cb
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 2 items
+
+.carbon-review/wr-f2-r2/probe_item4_text_r64_and_b8a.py::test_render_live_and_historical_messages_and_check_r64_invariants PASSED
+.carbon-review/wr-f2-r2/probe_item4_text_r64_and_b8a.py::test_five_worst_ordinary_states_following_dm_and_b8a_verbatim   FALLBACK REFRESH: pick unchanged (Steven Kwan 99.0%)
+  FALLBACK REFRESH: should_lock=True
+  FALLBACK REFRESH: pick unchanged (Steven Kwan 99.0%)
+  FALLBACK REFRESH: should_lock=True
+PASSED
+
+==================================== PASSES ====================================
+________ test_five_worst_ordinary_states_following_dm_and_b8a_verbatim _________
+------------------------------ Captured log call -------------------------------
+WARNING  matplotlib:__init__.py:541 /Users/eric/.matplotlib is not a writable directory
+WARNING  matplotlib:__init__.py:554 Matplotlib created a temporary cache directory at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/matplotlib-lu_ucu8_ because there was an issue with the default path (/Users/eric/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+=========================== short test summary info ============================
+PASSED .carbon-review/wr-f2-r2/probe_item4_text_r64_and_b8a.py::test_render_live_and_historical_messages_and_check_r64_invariants
+PASSED .carbon-review/wr-f2-r2/probe_item4_text_r64_and_b8a.py::test_five_worst_ordinary_states_following_dm_and_b8a_verbatim
+============================== 2 passed in 0.64s ===============================
+exit=0

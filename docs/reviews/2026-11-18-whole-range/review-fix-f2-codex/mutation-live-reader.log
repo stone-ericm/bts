@@ -1,0 +1,9 @@
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f2-cx/.codex-review/wr-f2-r1/mutation-live-reader-dcu0a6x3/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 134 items
+
+tests/test_wr_f2_saver_flag.py ....................

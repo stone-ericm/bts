@@ -1,0 +1,8 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f2-cx/src/bts/__init__.py
+Both same-day incident orders on live and historical runs retained separate receipts. Historical label precedes the pointer. Consecutive days across January 1 each sent.
+Near-limit digest and receipt unchanged. Grapheme counts reference, digest, mismatch: [1000, 1000, 446]
+Thrown transport errors isolated in either dispatch and retried. Empty IDs recorded sent. Interrupt before either receipt write left the expected partial set; restart retried and then deduped.
+mismatch status symlink to saver flag: overwritten with bts_health_dm_delivery_status_v1; flag state now None
+status override '/': existing digest sent; mismatch derivation raised PosixPath('/') has an empty name; no-mismatch control returned
+FIFO, directory and malformed mismatch receipts preserved the existing digest.

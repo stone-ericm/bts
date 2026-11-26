@@ -324,16 +324,41 @@ def run_all_checks(
                 )
 
     log_alerts(alerts)
+    mismatch_key = contest_state.DATED_USED_MISMATCH
+    digest_alerts = alerts
+    digest_attention = warn_attention
+    mismatch_attention = []
+    if any(alert.incident_key == mismatch_key for alert in alerts):
+        digest_alerts = [alert for alert in alerts if alert.incident_key != mismatch_key]
+        digest_attention = [alert for alert in warn_attention if alert.incident_key != mismatch_key]
+        mismatch_attention = [alert for alert in warn_attention if alert.incident_key == mismatch_key]
+    status_path = _path(health_dm_status_path)
     dispatch_dm_for_health_alerts(
-        alerts,
+        digest_alerts,
         dm_recipient,
-        warn_attention=warn_attention,
-        status_path=_path(health_dm_status_path),
+        warn_attention=digest_attention,
+        status_path=status_path,
         # Dedup by the PROCESSED day, not the wall date: a post-midnight EOD
         # for date D must not consume D+1's "already sent today" budget
         # (round-2 review #5).
         now_et_date=processed_date,
     )
+    if mismatch_attention:
+        suffix = ".dated_used_mismatch.json"
+        try:
+            mismatch_status = status_path.with_name(status_path.name + suffix)
+        except Exception:
+            mismatch_status = (
+                picks_dir.parent / "health_state" / ("health_dm_delivery_status.json" + suffix)
+            )
+        dispatch_dm_for_health_alerts(
+            [],
+            dm_recipient,
+            warn_attention=mismatch_attention,
+            status_path=mismatch_status,
+            now_et_date=processed_date,
+            require_message_id=True,
+        )
     return alerts
 
 

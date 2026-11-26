@@ -1,0 +1,19 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0 -- /Users/eric/projects/bts-work/wr-rev-f2-cb/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2-cb
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 1 item
+
+.carbon-review/wr-f2-r1/probe_base_parity_clean.py::test_paired_grid_byte_identical_outside_dated_used 
+[base] bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f2-cb/.carbon-review/wr-f2-r1/base_archive/src/bts/__init__.py | grid cases = 432
+
+[candidate] bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f2-cb/src/bts/__init__.py | grid cases = 432
+PASSED
+
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED .carbon-review/wr-f2-r1/probe_base_parity_clean.py::test_paired_grid_byte_identical_outside_dated_used
+============================== 1 passed in 37.39s ==============================

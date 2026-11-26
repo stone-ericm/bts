@@ -1,0 +1,68 @@
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f2-cx/.codex-review/wr-f2-r1/mutation-include-used-rom8gac6/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 134 items
+
+tests/test_wr_f2_saver_flag.py ...F.FF......F....................F...... [ 30%]
+.........                                                                [ 37%]
+tests/test_contest_dated_cs4a.py ....................................... [ 66%]
+.............................................                            [100%]
+
+=================================== FAILURES ===================================
+_____ test_m3_after_midnight_uses_processed_season_and_current_files[day0] _____
+tests/test_wr_f2_saver_flag.py:162: in test_m3_after_midnight_uses_processed_season_and_current_files
+    assert not mismatch(eod(monkeypatch, picks, day=day, wall=tomorrow)[0])
+E   assert not [Alert(level='WARN', source='saver_state', message="Prior slate 2027-07-15 ET. The dated observation recorded the save...l for current diagnosis. Season contract status shows current files.", incident_key='saver_state:dated_used_mismatch')]
+E    +  where [Alert(level='WARN', source='saver_state', message="Prior slate 2027-07-15 ET. The dated observation recorded the save...l for current diagnosis. Season contract status shows current files.", incident_key='saver_state:dated_used_mismatch')] = mismatch([Alert(level='WARN', source='saver_state', message="Prior slate 2027-07-15 ET. The dated observation recorded the save...l for current diagnosis. Season contract status shows current files.", incident_key='saver_state:dated_used_mismatch')])
+------------------------------ Captured log call -------------------------------
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Prior slate 2027-07-15 ET. The dated observation recorded the saver as used. At this check the flag for season 2027 read active. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Prior slate 2027-07-15 ET. The dated observation recorded the saver as used. At this check the flag for season 2027 read used. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+________ test_m4_m5_verified_repair_changes_next_automatic_read[active] ________
+tests/test_wr_f2_saver_flag.py:190: in test_m4_m5_verified_repair_changes_next_automatic_read
+    assert eod(monkeypatch, picks) == ([], [])
+E   assert ([Alert(level...smatch')], []) == ([], [])
+E     
+E     At index 0 diff: [Alert(level='WARN', source='saver_state', message="Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read used at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use `bts season-contract status` for the scheduler's picks directory and follow checklist B8a for any correction.", incident_key='saver_state:dated_used_mismatch')] != []
+E     Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use `bts season-contract status` for the scheduler's picks directory and follow checklist B8a for any correction.
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read used at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use `bts season-contract status` for the scheduler's picks directory and follow checklist B8a for any correction.
+______ test_m4_m5_verified_repair_changes_next_automatic_read[not_earned] ______
+tests/test_wr_f2_saver_flag.py:190: in test_m4_m5_verified_repair_changes_next_automatic_read
+    assert eod(monkeypatch, picks) == ([], [])
+E   assert ([Alert(level...smatch')], []) == ([], [])
+E     
+E     At index 0 diff: [Alert(level='WARN', source='saver_state', message="Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read used at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use `bts season-contract status` for the scheduler's picks directory and follow checklist B8a for any correction.", incident_key='saver_state:dated_used_mismatch')] != []
+E     Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read not_earned at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use `bts season-contract status` for the scheduler's picks directory and follow checklist B8a for any correction.
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read used at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use `bts season-contract status` for the scheduler's picks directory and follow checklist B8a for any correction.
+___________ test_k2_k3_unusable_flag_preserves_existing_alerts[used] ___________
+tests/test_wr_f2_saver_flag.py:256: in test_k2_k3_unusable_flag_preserves_existing_alerts
+    assert health.check(picks, now=DAY, expected=True, historical_day=day) == expected
+E   assert [Alert(level=...ed_mismatch')] == [Alert(level=...ent_key=None)]
+E     
+E     Left contains one more item: Alert(level='WARN', source='saver_state', message="Streak Saver on 2027-07-15 ET. The dated observation says the saver...eduler's picks directory and follow checklist B8a for any correction.", incident_key='saver_state:dated_used_mismatch')
+E     Use -v to get more diff
+_________ test_existing_digest_sends_first_and_stays_below_chat_limit __________
+tests/test_wr_f2_saver_flag.py:315: in test_existing_digest_sends_first_and_stays_below_chat_limit
+    assert [item for item in alerts if item != warning] == base_alerts
+E   assert [Alert(level=...ent_key=None)] == [Alert(level=...ed_mismatch')]
+E     
+E     Right contains one more item: Alert(level='WARN', source='saver_state', message="Streak Saver on 2027-07-15 ET. The dated observation says the saver...eduler's picks directory and follow checklist B8a for any correction.", incident_key='saver_state:dated_used_mismatch')
+E     Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  bts.health.alert:alert.py:49 [pick_entry WARN] Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. 
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read used at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use `bts season-contract status` for the scheduler's picks directory and follow checklist B8a for any correction.
+WARNING  bts.health.alert:alert.py:49 [pick_entry WARN] Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. 
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use `bts season-contract status` for the scheduler's picks directory and follow checklist B8a for any correction.
+=========================== short test summary info ============================
+FAILED tests/test_wr_f2_saver_flag.py::test_m3_after_midnight_uses_processed_season_and_current_files[day0]
+FAILED tests/test_wr_f2_saver_flag.py::test_m4_m5_verified_repair_changes_next_automatic_read[active]
+FAILED tests/test_wr_f2_saver_flag.py::test_m4_m5_verified_repair_changes_next_automatic_read[not_earned]
+FAILED tests/test_wr_f2_saver_flag.py::test_k2_k3_unusable_flag_preserves_existing_alerts[used]
+FAILED tests/test_wr_f2_saver_flag.py::test_existing_digest_sends_first_and_stays_below_chat_limit
+======================== 5 failed, 129 passed in 0.91s =========================

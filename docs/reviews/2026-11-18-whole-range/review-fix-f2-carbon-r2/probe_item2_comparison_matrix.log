@@ -1,0 +1,27 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f2b-cb/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0 -- /Users/eric/projects/bts-work/wr-rev-f2b-cb/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2b-cb
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 4 items
+
+.carbon-review/wr-f2-r2/probe_item2_comparison_matrix.py::test_decoder_200k_genuinely_hits_recursion_error PASSED
+.carbon-review/wr-f2-r2/probe_item2_comparison_matrix.py::test_full_flag_vs_dated_matrix_and_alert_preservation 
+Verified 1266 flag-vs-dated checks across 31 flag states and streaks up to 400.
+PASSED
+.carbon-review/wr-f2-r2/probe_item2_comparison_matrix.py::test_non_in_effect_and_invalid_dated_states_never_emit_mismatch PASSED
+.carbon-review/wr-f2-r2/probe_item2_comparison_matrix.py::test_year_boundary_utc_rollover_and_c1_processed_slate_clock PASSED
+
+==================================== PASSES ====================================
+_________ test_year_boundary_utc_rollover_and_c1_processed_slate_clock _________
+------------------------------ Captured log call -------------------------------
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Prior slate 2027-12-31 ET. The dated observation recorded the saver as used. At this check the flag for season 2027 read active. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+=========================== short test summary info ============================
+PASSED .carbon-review/wr-f2-r2/probe_item2_comparison_matrix.py::test_decoder_200k_genuinely_hits_recursion_error
+PASSED .carbon-review/wr-f2-r2/probe_item2_comparison_matrix.py::test_full_flag_vs_dated_matrix_and_alert_preservation
+PASSED .carbon-review/wr-f2-r2/probe_item2_comparison_matrix.py::test_non_in_effect_and_invalid_dated_states_never_emit_mismatch
+PASSED .carbon-review/wr-f2-r2/probe_item2_comparison_matrix.py::test_year_boundary_utc_rollover_and_c1_processed_slate_clock
+============================== 4 passed in 1.04s ===============================

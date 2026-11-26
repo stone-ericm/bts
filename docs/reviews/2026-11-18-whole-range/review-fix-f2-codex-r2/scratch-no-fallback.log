@@ -1,0 +1,35 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/f2-mutation-y3e5a8ke/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2b-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 786 items
+
+tests/test_wr_f2_saver_flag.py ......................................F
+
+=================================== FAILURES ===================================
+________ test_root_receipt_override_preserves_digest_and_sends_mismatch ________
+tests/test_wr_f2_saver_flag.py:390: in test_root_receipt_override_preserves_digest_and_sends_mismatch
+    alerts, sends = eod(monkeypatch, picks, existing=existing, overrides=overrides)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_wr_f2_saver_flag.py:101: in eod
+    alerts = runner.run_all_checks(picks, picks.parent / "models", RECIPIENT,
+/tmp/f2-mutation-y3e5a8ke/src/bts/health/runner.py:348: in run_all_checks
+    mismatch_status = status_path.with_name(status_path.name + suffix)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:631: in with_name
+    raise ValueError("%r has an empty name" % (self,))
+E   ValueError: PosixPath('/') has an empty name
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:47 [offline-probe CRITICAL] Pre-existing critical alert
+WARNING  bts.health.alert:alert.py:142 could not write health DM delivery status at /: not a regular file
+ERROR    bts.health.alert:alert.py:47 [offline-probe CRITICAL] Pre-existing critical alert
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.
+WARNING  bts.health.alert:alert.py:142 could not write health DM delivery status at /: not a regular file
+=========================== short test summary info ============================
+FAILED tests/test_wr_f2_saver_flag.py::test_root_receipt_override_preserves_digest_and_sends_mismatch
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+========================= 1 failed, 38 passed in 0.82s =========================
+no-fallback: tests caught the change

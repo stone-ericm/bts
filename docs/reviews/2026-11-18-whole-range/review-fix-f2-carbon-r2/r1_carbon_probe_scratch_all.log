@@ -1,0 +1,12 @@
+nice: setpriority: Operation not permitted
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cb/docs/reviews/2026-11-18-whole-range/review-fix-f2-carbon/probe_scratch_all.py", line 103, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cb/docs/reviews/2026-11-18-whole-range/review-fix-f2-carbon/probe_scratch_all.py", line 46, in main
+    shutil.copytree(ORIG_SRC / "bts", scratch_src / "bts")
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/shutil.py", line 598, in copytree
+    with os.scandir(src) as itr:
+         ^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/eric/projects/bts-work/wr-rev-f2b-cb/docs/reviews/src/bts'
+exit=1

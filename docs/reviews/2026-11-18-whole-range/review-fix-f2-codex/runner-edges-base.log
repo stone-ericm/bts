@@ -1,0 +1,6 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f2-cx/.codex-review/wr-f2-r1/base/src/bts/__init__.py
+symlink: flag preserved=True, day-two saver_available=True, DMs=1
+hardlink: flag preserved=True, day-two saver_available=True, DMs=1
+Root receipt path: first DM sent and runner returns normally
+Corrupt attention metadata: base sends its critical DM

@@ -1,0 +1,5 @@
+nice: setpriority: Operation not permitted
+wrong marking at streak 9 single -> skip
+missing flag after low-best fetch not_earned True
+suggested after old-season failure ['bts', 'saver-state', '--init', 'used', '--season', '2027']
+old-season init replaced new-year active flag

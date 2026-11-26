@@ -1,0 +1,17 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2b-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 65 items
+
+tests/test_wr_e_texts.py ..................................................  MORNING STATE CHECK — stale contest reading: last accepted fetch 0001-01-01T00:00:00.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000+00:00, about 17764238.00 hours ago
+.  DELIVERY REFUSED (test) — Steven Kwan: submission cutoff 18:35 ET passed 0.0 min ago; not delivering an unenterable pick.
+.  DELIVERY REFUSED (test) — game 101 is Postponed; not delivering a pick on it.
+..WARNING: scheduler_state for 2027-07-15 was corrupt (JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)); quarantined to scheduler_state.json.corrupt-20261126T053703Z and starting with fresh state
+.......  Skip DM failed (planted send failure); will retry next cycle.
+  Skip DM failed (planted send failure); will retry next cycle.
+....
+
+============================== 65 passed in 1.50s ==============================

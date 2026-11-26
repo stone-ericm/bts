@@ -1,0 +1,11 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2-cb
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 12 items / 1 deselected / 11 selected
+
+tests/test_web_saver.py ...........                                      [100%]
+
+======================= 11 passed, 1 deselected in 0.20s =======================

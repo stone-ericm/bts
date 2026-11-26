@@ -1,0 +1,34 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2b-cb
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 827 items
+
+tests/test_stale_delivery_cs4c_review.py ............................... [  3%]
+................                                                         [  5%]
+tests/test_streak_season_cs2.py ........................................ [ 10%]
+........................................................................ [ 19%]
+........................................................................ [ 27%]
+.................................................................        [ 35%]
+tests/test_streak_season_cs2_review.py ................                  [ 37%]
+tests/test_thin_slate_checks.py ..............                           [ 39%]
+tests/test_wr_a_calendar.py ........                                     [ 40%]
+tests/test_wr_a_pick.py ...............................                  [ 44%]
+tests/test_wr_a_review_carbon.py .........................               [ 47%]
+tests/test_wr_b_contract.py ........................                     [ 50%]
+tests/test_wr_b_edges.py ............................................... [ 55%]
+..........................                                               [ 58%]
+tests/test_wr_b_r2_review_adopt.py ...........                           [ 60%]
+tests/test_wr_c1_clock.py .....                                          [ 60%]
+tests/test_wr_c1_history.py .........................................    [ 65%]
+tests/test_wr_c2_carbon_v2.py .....................                      [ 68%]
+tests/test_wr_c2_r2_carbon.py ..................                         [ 70%]
+tests/test_wr_c2_receipt_identity.py ................................... [ 74%]
+........................................................................ [ 83%]
+....................................                                     [ 87%]
+tests/test_wr_c2_recovery.py ........................................... [ 92%]
+..........................................................               [100%]
+
+============================= 827 passed in 10.25s =============================

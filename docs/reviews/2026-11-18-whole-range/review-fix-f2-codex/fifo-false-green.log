@@ -1,0 +1,29 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f2-cx/.codex-review/wr-f2-r1/false-green-fifo-dknks0zs/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 85 items
+
+tests/test_wr_f2_saver_flag.py Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cx/.codex-review/wr-f2-r1/probe_test_false_greens.py", line 75, in <module>
+    fifo_child(source)
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cx/.codex-review/wr-f2-r1/probe_test_false_greens.py", line 60, in fifo_child
+    test = subprocess.run(args, cwd=REPO, env=use_source(source), timeout=45, check=False)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py", line 550, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py", line 1209, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py", line 2141, in _communicate
+    self.wait(timeout=self._remaining_time(endtime))
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py", line 1264, in wait
+    return self._wait(timeout=timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py", line 2045, in _wait
+    raise TimeoutExpired(self.args, timeout)
+subprocess.TimeoutExpired: Command '['/Users/eric/projects/bts-work/wr-rev-f2-cx/.venv/bin/python', '-c', "import bts, pytest, sys; print('bts.__file__ =', bts.__file__, flush=True); raise SystemExit(pytest.main(sys.argv[1:]))", '-p', 'no:cacheprovider', '-q', '--tb=short', '--durations=2', '-rA', 'tests/test_wr_f2_saver_flag.py::test_k2_k3_unusable_flag_preserves_existing_alerts[fifo]', 'tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read']' timed out after 44.99998575000791 seconds

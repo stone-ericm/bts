@@ -1,0 +1,33 @@
+nice: setpriority: Operation not permitted
+[0_control_unmodified] -> SURVIVED (UNNOTICED) (rc=0)
+    ........................................................................ [ 94%]
+    ...                                                                      [ 95%]
+    tests/health/test_runner.py .....................                        [ 97%]
+    tests/health/test_contest_state.py ................                      [100%]
+    
+    ============================= 777 passed in 1.73s ==============================
+[1_drop_incident_key] -> KILLED (rc=1)
+    E     
+    E     ...Full output truncated (2 lines hidden), use '-vv' to show
+    =========================== short test summary info ============================
+    FAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[active-14]
+    !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ============================== 1 failed in 0.33s ===============================
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/.carbon-review/wr-f2-r1/probe_scratch_mutations.py", line 331, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cb/.carbon-review/wr-f2-r1/probe_scratch_mutations.py", line 302, in main
+    proc = subprocess.run(
+           ^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py", line 550, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py", line 1209, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py", line 2116, in _communicate
+    self._check_timeout(endtime, orig_timeout, stdout, stderr)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py", line 1253, in _check_timeout
+    raise TimeoutExpired(
+subprocess.TimeoutExpired: Command '['/Users/eric/projects/bts-work/wr-rev-f2-cb/.venv/bin/python', '-m', 'pytest', '-q', '--tb=short', '-x', 'tests/test_wr_f2_saver_flag.py', 'tests/test_contest_dated_cs4a.py', 'tests/health/test_runner.py', 'tests/health/test_contest_state.py']' timed out after 35 seconds

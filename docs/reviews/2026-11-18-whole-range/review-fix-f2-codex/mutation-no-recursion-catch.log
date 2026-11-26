@@ -1,0 +1,14 @@
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f2-cx/.codex-review/wr-f2-r1/mutation-no-recursion-catch-7u815egw/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 134 items
+
+tests/test_wr_f2_saver_flag.py ......................................... [ 30%]
+.........                                                                [ 37%]
+tests/test_contest_dated_cs4a.py ....................................... [ 66%]
+.............................................                            [100%]
+
+============================= 134 passed in 0.86s ==============================

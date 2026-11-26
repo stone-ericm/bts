@@ -1,0 +1,55 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0 -- /Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/bin/python
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2b-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 45 items
+
+tests/test_wr_w15_health.py::test_missing_status_is_silent PASSED        [  2%]
+tests/test_wr_w15_health.py::test_nonmatching_status_names_are_ignored PASSED [  4%]
+tests/test_wr_w15_health.py::test_late_d_health_can_read_d_after_d_plus_one PASSED [  6%]
+tests/test_wr_w15_health.py::test_attention_delivery_both_reasons_and_processed_day_dedup PASSED [  8%]
+tests/test_wr_w15_health.py::test_operator_text_describes_the_observation_and_recovery_route PASSED [ 11%]
+tests/test_wr_w15_health.py::test_malformed_fields_warn[schema_version-other] PASSED [ 13%]
+tests/test_wr_w15_health.py::test_malformed_fields_warn[reason-unknown] PASSED [ 15%]
+tests/test_wr_w15_health.py::test_malformed_fields_warn[recorded_at-2027-01-01T05:01:00+00:00] PASSED [ 17%]
+tests/test_wr_w15_health.py::test_malformed_fields_warn[recorded_at-2026-12-31T15:00:00+01:00] PASSED [ 20%]
+tests/test_wr_w15_health.py::test_malformed_fields_warn[recorded_date_et-2027-01-01] PASSED [ 22%]
+tests/test_wr_w15_health.py::test_malformed_fields_warn[cache_path-] PASSED [ 24%]
+tests/test_wr_w15_health.py::test_malformed_fields_warn[dropped-True] PASSED [ 26%]
+tests/test_wr_w15_health.py::test_malformed_fields_warn[dropped-0] PASSED [ 28%]
+tests/test_wr_w15_health.py::test_malformed_fields_warn[recovered_from_cache--1] PASSED [ 31%]
+tests/test_wr_w15_health.py::test_malformed_fields_warn[rescanned-0] PASSED [ 33%]
+tests/test_wr_w15_health.py::test_malformed_fields_warn[unusable_feed-0.0] PASSED [ 35%]
+tests/test_wr_w15_health.py::test_malformed_fields_warn[without_feed-0] PASSED [ 37%]
+tests/test_wr_w15_health.py::test_malformed_fields_warn[game_ids-value12] PASSED [ 40%]
+tests/test_wr_w15_health.py::test_malformed_fields_warn[game_ids-value13] PASSED [ 42%]
+tests/test_wr_w15_health.py::test_malformed_fields_warn[game_ids-value14] PASSED [ 44%]
+tests/test_wr_w15_health.py::test_malformed_fields_warn[game_ids-value15] PASSED [ 46%]
+tests/test_wr_w15_health.py::test_malformed_fields_warn[game_ids-value16] PASSED [ 48%]
+tests/test_wr_w15_health.py::test_malformed_fields_warn[identity-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA] PASSED [ 51%]
+tests/test_wr_w15_health.py::test_malformed_fields_warn[identity-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb] PASSED [ 53%]
+tests/test_wr_w15_health.py::test_malformed_fields_warn[preserved-../probable_pitcher_lookup.20270101T045900Z.0123456789ab.json] PASSED [ 55%]
+tests/test_wr_w15_health.py::test_malformed_fields_warn[original_sha256-bad] PASSED [ 57%]
+tests/test_wr_w15_health.py::test_malformed_unreadable_envelope_warns[dropped-0] PASSED [ 60%]
+tests/test_wr_w15_health.py::test_malformed_unreadable_envelope_warns[recovered_from_cache-0] PASSED [ 62%]
+tests/test_wr_w15_health.py::test_malformed_unreadable_envelope_warns[rescanned-None] PASSED [ 64%]
+tests/test_wr_w15_health.py::test_malformed_unreadable_envelope_warns[unusable_feed-0] PASSED [ 66%]
+tests/test_wr_w15_health.py::test_malformed_unreadable_envelope_warns[without_feed-0] PASSED [ 68%]
+tests/test_wr_w15_health.py::test_malformed_unreadable_envelope_warns[game_ids-value5] PASSED [ 71%]
+tests/test_wr_w15_health.py::test_malformed_status_files_warn[encoding] PASSED [ 73%]
+tests/test_wr_w15_health.py::test_malformed_status_files_warn[oversized] PASSED [ 75%]
+tests/test_wr_w15_health.py::test_malformed_status_files_warn[directory] PASSED [ 77%]
+tests/test_wr_w15_health.py::test_malformed_status_files_warn[symlink] PASSED [ 80%]
+tests/test_wr_w15_health.py::test_malformed_status_files_warn[bad-name] PASSED [ 82%]
+tests/test_wr_w15_health.py::test_bad_status_directory_warns[file] PASSED [ 84%]
+tests/test_wr_w15_health.py::test_bad_status_directory_warns[symlink] PASSED [ 86%]
+tests/test_wr_w15_health.py::test_bad_status_directory_warns[fifo] PASSED [ 88%]
+tests/test_wr_w15_health.py::test_fifo_status_file_is_bounded PASSED     [ 91%]
+tests/test_wr_w15_health.py::test_same_day_changed_incident_remains_visible PASSED [ 93%]
+tests/test_wr_w15_health.py::test_producer_midnight_and_year_boundary PASSED [ 95%]
+tests/test_wr_w15_health.py::test_sixteen_records_send_one_bounded_warning[False] PASSED [ 97%]
+tests/test_wr_w15_health.py::test_sixteen_records_send_one_bounded_warning[True] PASSED [100%]
+
+============================== 45 passed in 0.66s ==============================

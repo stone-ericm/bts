@@ -1,0 +1,23 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2b-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 226 items
+
+tests/test_contest_state.py .................                            [  7%]
+tests/test_contest_state_decoder_limits.py ............                  [ 12%]
+tests/test_contest_state_defensive_reads.py ............................ [ 25%]
+.........................                                                [ 36%]
+tests/test_decision_saver_fallback.py ...                                [ 37%]
+tests/test_e3_missed_pick_alert.py .......                               [ 40%]
+tests/test_entry_intent.py ............................................. [ 60%]
+.......                                                                  [ 63%]
+tests/test_f2_b1_stat_oserror_regression.py ....                         [ 65%]
+tests/test_health_endpoint.py ............                               [ 70%]
+tests/test_incident_2026_08_30.py ....                                   [ 72%]
+tests/test_incident_register_2026.py ................................... [ 88%]
+...........................                                              [100%]
+
+============================= 226 passed in 12.06s =============================

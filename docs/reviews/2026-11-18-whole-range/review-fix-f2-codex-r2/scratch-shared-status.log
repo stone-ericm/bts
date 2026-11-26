@@ -1,0 +1,26 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/f2-mutation-3usgpkzt/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2b-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 786 items
+
+tests/test_wr_f2_saver_flag.py F
+
+=================================== FAILURES ===================================
+_______________ test_m1_m2_live_warning_and_delivery[active-14] ________________
+tests/test_wr_f2_saver_flag.py:140: in test_m1_m2_live_warning_and_delivery
+    assert not status_path(picks).exists()
+E   AssertionError: assert not True
+E    +  where True = exists()
+E    +    where exists = PosixPath('/private/tmp/f2-mutation-3usgpkzt/pytest/test_m1_m2_live_warning_and_de0/oom/health_state/health_dm_delivery_status.json').exists
+E    +      where PosixPath('/private/tmp/f2-mutation-3usgpkzt/pytest/test_m1_m2_live_warning_and_de0/oom/health_state/health_dm_delivery_status.json') = status_path(PosixPath('/private/tmp/f2-mutation-3usgpkzt/pytest/test_m1_m2_live_warning_and_de0/oom/picks'))
+------------------------------ Captured log call -------------------------------
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.
+=========================== short test summary info ============================
+FAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[active-14]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+============================== 1 failed in 0.47s ===============================
+shared-status: tests caught the change

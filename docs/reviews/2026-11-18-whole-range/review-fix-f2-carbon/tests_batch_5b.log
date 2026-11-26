@@ -1,0 +1,38 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2-cb
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 760 items
+
+tests/test_wr_a_calendar.py ........                                     [  1%]
+tests/test_wr_a_pick.py ...............................                  [  5%]
+tests/test_wr_a_review_carbon.py .........................               [  8%]
+tests/test_wr_b_contract.py ........................                     [ 11%]
+tests/test_wr_b_edges.py ............................................... [ 17%]
+..........................                                               [ 21%]
+tests/test_wr_b_r2_review_adopt.py ...........                           [ 22%]
+tests/test_wr_c1_clock.py .....                                          [ 23%]
+tests/test_wr_c1_history.py .........................................    [ 28%]
+tests/test_wr_c2_carbon_v2.py .....................                      [ 31%]
+tests/test_wr_c2_r2_carbon.py ..................                         [ 33%]
+tests/test_wr_c2_receipt_identity.py ................................... [ 38%]
+........................................................................ [ 47%]
+....................................                                     [ 52%]
+tests/test_wr_c2_recovery.py ........................................... [ 58%]
+..........................................................               [ 65%]
+tests/test_wr_c3_r2_entered_pick_blockers.py .........                   [ 67%]
+tests/test_wr_e_texts.py ............................................... [ 73%]
+..................                                                       [ 75%]
+tests/test_wr_g_guard.py ............................................    [ 81%]
+tests/test_wr_h2_caps.py ................                                [ 83%]
+tests/test_wr_w15_health.py ............................................ [ 89%]
+.                                                                        [ 89%]
+tests/test_wr_w15b.py .................................................. [ 96%]
+........                                                                 [ 97%]
+tests/scripts/test_state_segment_policy_candidate_screen.py .....        [ 97%]
+tests/validate/test_ope.py ................                              [ 99%]
+tests/test_lightgbm_optional.py .                                        [100%]
+
+======================== 760 passed in 76.00s (0:01:16) ========================

@@ -1,0 +1,6 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f2-cx/src/bts/__init__.py
+symlink: flag preserved=False, day-two saver_available=False, DMs=2
+hardlink: flag preserved=False, day-two saver_available=False, DMs=2
+Root receipt path: first DM sent; mismatch raises PosixPath('/') has an empty name
+Corrupt attention metadata: runner raises invalid literal for int() with base 10: 'bad' before either transport call

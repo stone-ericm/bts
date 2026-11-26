@@ -1,0 +1,28 @@
+# STOP: change set F2 (a WARN when the saver flag disagrees with a dated observation that says MLB used the saver), after round 2
+
+Written 2026-11-26 00:42 ET by `bts-wr-fresh13`. **Not merged. `main` is unchanged** (nothing tells the operator that the saver flag disagrees with a dated `used` observation: C2-B1's code side stays open; its text side landed with Ea). Branch `fix/wr-f2` (pushed): round 1 `2e20fdfc`, round 2 `3b7d5a18`, records to this file. Round 2 was F2's last; this was the session's third counted BLOCK, so the session stops (F3, F4 and F5b not built; F3's contract version 1 is on `fix/wr-f3` `5f9aa38e`, unchecked).
+
+## What was built
+On a day with an in-effect dated observation that says `used`, the end-of-day contest-state check reads the current-season saver flag (bounded regular-file read, live and after-midnight historical mode; any `OSError`, `ValueError` or `RecursionError` = unusable flag, earlier alerts kept) and, when it reads `active` or `not_earned`, adds one WARN (source `saver_state`, incident key `saver_state:dated_used_mismatch`), with no path or correction command in its text. The end-of-day runner sends the existing digest first, exactly as on the base with this incident left out, then this incident as a separate WARN-only DM through the dispatcher's acknowledgement mode (`require_message_id=True`; receipt `<status file>.dated_used_mismatch.json`, a default path when the status path has no name). Two sentences added to checklist row B8a.
+
+## Verdicts
+- Contract check: BUILD WITH THESE EDITS `WRCHKF2-f8ef3e6e` (`contract-check-f2/`; Amendment 1).
+- Round 1: Codex BLOCK `WRF2REV1-6475edec` (four findings: an `OSError` from the flag path; an aliased receipt written through to the flag; a nameless status path; B8a with no recheck) and Carbon BLOCK `WRF2CARB1-7abb62c5` (the same `OSError` finding). Round 2 closed all of them (Amendment 2 items 1 to 9).
+- **Round 2: Codex xhigh BLOCK `WRF2REV2-bffdf88c`** (`review-fix-f2-codex-r2/`; the reviewer was stopped once by the provider's content filter and finished after one plain continuation). Every round-1 finding closed; 540 paired base cases equal; 1,882 comparison cases; 80 test files; 12 of 13 scratch changes noticed (the 13th is a no-op reorder of two disjoint branches). Two new findings:
+  1. **Two configurable paths can name the same file.** With the supported override `warn_attention_state` set to exactly `<digest status path>.dated_used_mismatch.json`, the mismatch receipt replaces the attention-state file, so the next day's repeated WARN restarts its streak at one and is not sent. Fix named: when the derived receipt names the configured attention-state file, dispatch without storing the receipt. (Needs a deliberately colliding override; no shipped configuration does this.)
+  2. **R64, the new B8a sentence.** "If MLB shows it not used, the dated observation was the mistaken side and the flag is right: leave the flag as it is" is false when a second operator has, in between, marked the flag used on the strength of the wrong dated row: the status command then shows both as `used`, the sentence says to leave the flag, and the next automatic day counts a saver MLB shows unused as spent (the reviewer's replay: streak 9 with probabilities .79/.80 skips instead of playing a single). Replacement text named: "If MLB shows the saver has not been used, compare the current flag and any still-effective dated observation independently with MLB. Leave the flag as it is only if it agrees with MLB. If it differs, have Eric verify the current ET season and prior entries and reconcile the flag before the next automatic pick. For a wrong dated observation still in effect, use B8a's prior-entry and pick-timing checks before correcting it."
+- Carbon round 2: **SIGN** `WRF2CARB2-4c9142a4` (`review-fix-f2-carbon-r2/`), no findings: all round-1 items closed, 400 paired base cases, 1,266 comparison checks, delivery at the exact 1,000-grapheme limit, the R64 walk of five sequences; it did not find either of Codex's two.
+- Gate on `44a4a922` (00:26 to 00:55): 11,194 passed, failing set exactly the pinned 53.
+
+## The session's own mistakes on F2
+1. Amendment 2 item 2 described the acknowledgement mode as replacing an aliased receipt; it refuses it (the author stopped; item 9).
+2. The new B8a bullet (finding 2) was my own text, not a reviewer's; I wrote "the flag is right" from the two-party case and did not walk it through the case the same round's other sentence was written for (a second operator acting in between).
+3. I did not list the runner's other configurable state paths when I chose a receipt name derived from one of them (finding 1).
+
+## Ways forward for the lead (R57: the lead rules)
+1. **Land F2 as it stands plus the two named fixes, on a fresh verdict limited to them** (recommended by the session): the reviewer's B8a replacement sentence verbatim, and the collision check (`if mismatch receipt == configured attention-state path: dispatch with status_path=None`), each with its RED test; one fresh Codex check limited to those two changes under R64.
+2. Land F2 as it stands, with finding 1 as a written limit and the reviewer's B8a sentence applied (text only), by Eric's acceptance.
+3. Leave C2-B1's code side open for 2027 (the operator relies on Ea's text in the stale-reading warnings and B8a's saver paragraph).
+
+## After the stop (2026-11-26 00:58)
+Lead ruling R70 (`docs/audit/2026-11-26-workflow-review/`): a third counted BLOCK is a pause to diagnose; the session continues, BLOCKs count per piece. Ruling R69: F2b = the reviewer's B8a sentence verbatim and the collision check, each RED first, then ONE fresh Codex check limited to them under R64 (Amendment 3 in `kickoff-fix-f2.md`).

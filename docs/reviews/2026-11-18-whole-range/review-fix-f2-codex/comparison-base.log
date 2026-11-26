@@ -1,0 +1,4 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f2-cx/.codex-review/wr-f2-r1/base/src/bts/__init__.py
+714 raw checks across 17 flag cases, seven streaks, three dated states and both modes
+December 31 23:52 ET (already January UTC), January 1 00:04 ET and December rerun in January verified
