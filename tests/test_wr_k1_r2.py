@@ -41,8 +41,14 @@ def review_replays(monkeypatch):
 
 @pytest.mark.parametrize("slate,clock,overnight", BOUNDARIES, ids=["same-day", "midnight", "new-year"])
 @pytest.mark.parametrize("case", SOURCES)
-def test_scheduler_alert_dates(review_replays, case, slate, clock, overnight):
+def test_scheduler_alert_dates(review_replays, case, slate, clock, overnight, monkeypatch):
     callers, _ = review_replays
+    if slate == "2027-12-31":
+        # These replays test the dedup date across the year boundary, not the season boundary.
+        # Keep the synthetic December slate inside a season (positive stored days) so change
+        # set K2's last-day floor for a zero-day slate does not alter the fixture's decision path.
+        from bts import strategy
+        monkeypatch.setitem(strategy.SEASON_END_DATES, 2027, "2028-01-02")
     result = callers.replay(case, slate, clock, overnight)
     assert [row[0] for row in result["trace"]] == SOURCES[case]
     assert all(row[4] == slate for row in result["trace"])

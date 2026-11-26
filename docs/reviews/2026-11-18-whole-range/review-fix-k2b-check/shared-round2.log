@@ -1,0 +1,8 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/wr-k2b-check.ZDOAOpj3/round2/src/bts/__init__.py
+shared pipe 510 warning False [('2027-09-27T18:59:59-04:00', [])] warning bytes 0 blocked None
+shared pipe 510 warning True [('2027-09-27T19:00:01-04:00', [301])] warning bytes 332 blocked '\n[18:59 ET] Running lineup check...'
+shared pipe 700 warning False [('2027-09-27T18:59:59-04:00', [])] warning bytes 0 blocked None
+shared pipe 700 warning True [('2027-09-27T18:59:59-04:00', [])] warning bytes 332 blocked None
+shared pipe 730 warning False [('2027-09-27T18:59:59-04:00', [])] warning bytes 0 blocked None
+shared pipe 730 warning True [('2027-09-27T18:59:59-04:00', [])] warning bytes 332 blocked None

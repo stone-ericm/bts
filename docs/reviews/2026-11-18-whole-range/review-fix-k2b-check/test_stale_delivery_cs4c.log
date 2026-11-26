@@ -1,0 +1,13 @@
+nice: setpriority: Operation not permitted
+bts: /Users/eric/projects/bts-work/wr-chk-k2b/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-k2b
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 62 items
+
+tests/test_stale_delivery_cs4c.py ...................................... [ 61%]
+........................                                                 [100%]
+
+============================== 62 passed in 2.31s ==============================
