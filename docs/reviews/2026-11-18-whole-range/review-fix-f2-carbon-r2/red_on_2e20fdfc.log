@@ -1,0 +1,26 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2b-cb
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 59 items
+
+tests/test_wr_f2_saver_flag.py FFF................................FFFFF. [ 69%]
+..............                                                           [ 93%]
+tests/test_f2_b1_stat_oserror_regression.py FFFF                         [100%]
+
+=========================== short test summary info ============================
+FAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[active-14]
+FAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[not_earned-14]
+FAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[not_earned-9]
+FAILED tests/test_wr_f2_saver_flag.py::test_failed_send_and_interrupt_before_status_can_retry
+FAILED tests/test_wr_f2_saver_flag.py::test_receipt_alias_preserves_saver_flag[symlink]
+FAILED tests/test_wr_f2_saver_flag.py::test_receipt_alias_preserves_saver_flag[hardlink]
+FAILED tests/test_wr_f2_saver_flag.py::test_root_receipt_override_preserves_digest_and_sends_mismatch
+FAILED tests/test_wr_f2_saver_flag.py::test_consecutive_days_and_changed_body_are_eligible
+FAILED tests/test_f2_b1_stat_oserror_regression.py::test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm[False-unsearchable_dir]
+FAILED tests/test_f2_b1_stat_oserror_regression.py::test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm[False-enametoolong]
+FAILED tests/test_f2_b1_stat_oserror_regression.py::test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm[True-unsearchable_dir]
+FAILED tests/test_f2_b1_stat_oserror_regression.py::test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm[True-enametoolong]
+======================== 12 failed, 47 passed in 0.89s =========================
+r1_exit=1

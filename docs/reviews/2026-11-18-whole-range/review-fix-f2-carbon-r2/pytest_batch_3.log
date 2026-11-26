@@ -1,0 +1,37 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2b-cb
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 665 items
+
+tests/test_contest_state_defensive_reads.py ............................ [  4%]
+.........................                                                [  7%]
+tests/test_decision_saver_fallback.py ...                                [  8%]
+tests/test_e3_missed_pick_alert.py .......                               [  9%]
+tests/test_entry_intent.py ............................................. [ 16%]
+.......                                                                  [ 17%]
+tests/test_health_endpoint.py ............                               [ 19%]
+tests/test_incident_2026_08_30.py ....                                   [ 19%]
+tests/test_incident_register_2026.py ................................... [ 24%]
+...........................                                              [ 29%]
+tests/test_late_delivery_guard.py ........                               [ 30%]
+tests/test_live_gate_cs6a.py ........................................... [ 36%]
+.............                                                            [ 38%]
+tests/test_live_gate_cs6a_review.py ........                             [ 39%]
+tests/test_morning_state_cs6b1.py ...................................... [ 45%]
+.......................                                                  [ 49%]
+tests/test_morning_state_cs6b1_review.py .................               [ 51%]
+tests/test_pick_chosen_on_cs5a.py ...................................... [ 57%]
+........................................................................ [ 68%]
+.............................................................            [ 77%]
+tests/test_pickpath_review_pp1.py ....                                   [ 77%]
+tests/test_pickpath_review_pp2.py ...................................... [ 83%]
+ss....ss....ss....ss.........                                            [ 87%]
+tests/test_postponed_delivery_guard.py ........................          [ 91%]
+tests/test_private_mode_transport.py ........                            [ 92%]
+tests/test_saved_pick_cs5a_review.py ................................... [ 98%]
+.............                                                            [100%]
+
+======================= 657 passed, 8 skipped in 12.68s ========================

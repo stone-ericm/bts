@@ -1,0 +1,12 @@
+nice: setpriority: Operation not permitted
+Unknown-outcome alert failed: read receipt at /Users/eric/projects/bts-work/wr-rev-f2b-cb/docs/reviews/2026-11-18-whole-range/review-fix-f2-codex/wr-f2-p9zbwl8d/symlink/health_state/health_dm_delivery_status.json.dated_used_mismat
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f2b-cb/src/bts/__init__.py
+symlink: flag preserved=True, day-two saver_available=True, DMs=2
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cb/docs/reviews/2026-11-18-whole-range/review-fix-f2-codex/probe_runner_edges.py", line 79, in <module>
+    alias(directory, base)
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cb/docs/reviews/2026-11-18-whole-range/review-fix-f2-codex/probe_runner_edges.py", line 36, in alias
+    assert preserved is expected_base and decision.saver_available is expected_base
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+exit=1

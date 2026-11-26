@@ -1,0 +1,54 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0 -- /Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/bin/python
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2b-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 44 items
+
+tests/test_wr_g_guard.py::test_regenerate_csv PASSED                     [  2%]
+tests/test_wr_g_guard.py::test_raw_and_guarded_lookup_grid PASSED        [  4%]
+tests/test_wr_g_guard.py::test_affected_rows_and_independent_clamps PASSED [  6%]
+tests/test_wr_g_guard.py::test_resolver_and_direct_bar_grid[0-46] PASSED [  9%]
+tests/test_wr_g_guard.py::test_resolver_and_direct_bar_grid[46-93] PASSED [ 11%]
+tests/test_wr_g_guard.py::test_resolver_and_direct_bar_grid[93-140] PASSED [ 13%]
+tests/test_wr_g_guard.py::test_resolver_and_direct_bar_grid[140-188] PASSED [ 15%]
+tests/test_wr_g_guard.py::test_lookup_edge_shapes PASSED                 [ 18%]
+tests/test_wr_g_guard.py::test_guard_journal[50-180-0.83-False-True-True-] PASSED [ 20%]
+tests/test_wr_g_guard.py::test_guard_journal[50-180-0.96-False-True-True-single/single] PASSED [ 22%]
+tests/test_wr_g_guard.py::test_guard_journal[1-29-0.72-False-True-True-double/double] PASSED [ 25%]
+tests/test_wr_g_guard.py::test_guard_journal[1-29-0.72-False-False-True-double/single] PASSED [ 27%]
+tests/test_wr_g_guard.py::test_guard_journal[1-29-0.72-False-True-False-double/single] PASSED [ 29%]
+tests/test_wr_g_guard.py::test_malformed_donor_cells[1-expected0] PASSED [ 31%]
+tests/test_wr_g_guard.py::test_malformed_donor_cells[3-expected1] PASSED [ 34%]
+tests/test_wr_g_guard.py::test_malformed_queried_cell PASSED             [ 36%]
+tests/test_wr_g_guard.py::test_guard_journal_saver_index[50-180-False-unavailable] PASSED [ 38%]
+tests/test_wr_g_guard.py::test_guard_journal_saver_index[42-38-True-available] PASSED [ 40%]
+tests/test_wr_g_guard.py::test_guard_journal_saver_index[50-180-0-unavailable0] PASSED [ 43%]
+tests/test_wr_g_guard.py::test_guard_journal_saver_index[42-38-1-available0] PASSED [ 45%]
+tests/test_wr_g_guard.py::test_guard_journal_saver_index[50-180-0-unavailable1] PASSED [ 47%]
+tests/test_wr_g_guard.py::test_guard_journal_saver_index[42-38-1-available1] PASSED [ 50%]
+tests/test_wr_g_guard.py::test_tail_ignores_reach57_donor PASSED         [ 52%]
+tests/test_wr_g_guard.py::test_decision_round_trip_and_skip_predicate PASSED [ 54%]
+tests/test_wr_g_guard.py::test_pick_readers_and_fresh_recovered_commits PASSED [ 56%]
+tests/test_wr_g_guard.py::test_interrupt_before_save_and_atomic_replace PASSED [ 59%]
+tests/test_wr_g_guard.py::test_real_commit_replaces_prior_decision[confirmed_after_recovery] PASSED [ 61%]
+tests/test_wr_g_guard.py::test_real_commit_replaces_prior_decision[private_to_dm] PASSED [ 63%]
+tests/test_wr_g_guard.py::test_real_commit_replaces_prior_decision[refused_then_repicked] PASSED [ 65%]
+tests/test_wr_g_guard.py::test_real_commit_replaces_prior_decision[prior_process_missing_pick] PASSED [ 68%]
+tests/test_wr_g_guard.py::test_real_commit_replaces_prior_decision[earlier_same_date_run] PASSED [ 70%]
+tests/test_wr_g_guard.py::test_real_commit_replaces_prior_decision[undecodable] PASSED [ 72%]
+tests/test_wr_g_guard.py::test_guarded_delivery_records_selected_batter[warmup] PASSED [ 75%]
+tests/test_wr_g_guard.py::test_guarded_delivery_records_selected_batter[dm] PASSED [ 77%]
+tests/test_wr_g_guard.py::test_guarded_delivery_records_selected_batter[public] PASSED [ 79%]
+tests/test_wr_g_guard.py::test_delivery_and_restart[direct] PASSED       [ 81%]
+tests/test_wr_g_guard.py::test_delivery_and_restart[classify] PASSED     [ 84%]
+tests/test_wr_g_guard.py::test_delivery_and_restart[empty_dm] PASSED     [ 86%]
+tests/test_wr_g_guard.py::test_delivery_and_restart[cached] PASSED       [ 88%]
+tests/test_wr_g_guard.py::test_delivery_and_restart[private_interrupt] PASSED [ 90%]
+tests/test_wr_g_guard.py::test_restart_after_decision_before_flag_save PASSED [ 93%]
+tests/test_wr_g_guard.py::test_unaffected_controls PASSED                [ 95%]
+tests/test_wr_g_guard.py::test_corrupt_directory_and_fifo PASSED         [ 97%]
+tests/test_wr_g_guard.py::test_year_boundary PASSED                      [100%]
+
+============================== 44 passed in 3.38s ==============================

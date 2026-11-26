@@ -1,0 +1,14 @@
+tests/health/test_f4_exception_propagation.py
+tests/health/test_late_delivery.py
+tests/test_cli_integration.py
+tests/test_cli_schedule_date.py
+tests/test_cold_start_integration.py
+tests/test_contest_state_defensive_reads.py
+tests/test_entry_intent.py
+tests/test_incident_register_2026.py
+tests/test_live_gate_cs6a.py
+tests/test_scheduler_decision_record_integration.py
+tests/test_scheduler_eve_of_break.py
+tests/test_thin_slate_checks.py
+tests/test_wr_a_pick.py
+tests/test_wr_a_review_carbon.py

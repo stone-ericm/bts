@@ -1,0 +1,19 @@
+nice: setpriority: Operation not permitted
+  FALLBACK REFRESH: pick unchanged (Steven Kwan 99.0%)
+  FALLBACK REFRESH: should_lock=True
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f2b-cb/src/bts/__init__.py
+LIVE DM
+BTS health WARN attention:
+- [saver_state] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction. (1st observed day)
+Wrong dated side: real status shows the disagreement; corrected current dated row leaves flag active. Rerunning the printed command later sees the correction when --picks-dir is supplied.
+Dashboard changes before rechecking: real status sees used and then active; no stale command in DM.
+Intervening scoring/observation correction after B8a verification: CLI --use accepts the dashboard's restored active state and writes used. The ordinary CLI guard compares the current state, not the snapshot checked by the operator.
+Next morning after a real automatic pick was saved: verified used repair changes the following decision read, leaves the saved pick and expired observation bytes unchanged.
+DECEMBER LIVE DM
+BTS health WARN attention:
+- [saver_state] Streak Saver on 2027-12-31 ET. The dated observation says the saver was used. The flag for season 2027 read not_earned at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction. (1st observed day)
+HISTORICAL DM
+BTS health WARN attention:
+- [saver_state] Prior slate 2027-12-31 ET. The dated observation recorded the saver as used. At this check the flag for season 2027 read not_earned. (1st observed day) This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+Late December reads ET season despite UTC rollover. Next ET year, B8a's D-year guard prohibits acting on the old DM, and read-only status leaves the current season untouched.
+exit=0

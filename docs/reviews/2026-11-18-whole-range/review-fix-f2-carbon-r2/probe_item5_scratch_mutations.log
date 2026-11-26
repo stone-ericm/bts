@@ -1,0 +1,207 @@
+nice: setpriority: Operation not permitted
+[0_control_unmodified] -> UNNOTICED
+    rc=0
+    ........................................................................ [ 76%]
+    ........................................................................ [ 85%]
+    ........................................................................ [ 94%]
+    ...                                                                      [ 95%]
+    tests/health/test_runner.py .....................                        [ 97%]
+    tests/health/test_contest_state.py ................                      [100%]
+    
+    ============================= 786 passed in 2.11s ==============================
+[1_drop_incident_key] -> KILLED
+    rc=1
+    E     
+    E     At index 0 diff: Alert(level='WARN', source='saver_state', message="Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.", incident_key=None) != Alert(level='WARN', source='saver_state', me...
+    E     
+    E     ...Full output truncated (2 lines hidden), use '-vv' to show
+    =========================== short test summary info ============================
+    FAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[active-14]
+    !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ============================== 1 failed in 0.37s ===============================
+[2_use_load_saver_state] -> KILLED
+    cs4a_killed=True (================= 1 failed, 4 passed, 606 deselected in 0.37s ==================); f2_fifo_killed=True (====================== 1 failed, 54 deselected in 15.34s =======================)
+[3_use_wall_clock_year] -> KILLED
+    rc=1
+    E   assert [] == [Alert(level=...ed_mismatch')]
+    E     
+    E     Right contains one more item: Alert(level='WARN', source='saver_state', message="Streak Saver on 2027-07-15 ET. The dated observation says the saver...list B8a. Follow B8a's saver reconciliation steps for any correction.", incident_key='saver_state:dated_used_mismatch')
+    E     Use -v to get more diff
+    =========================== short test summary info ============================
+    FAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[active-14]
+    !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ============================== 1 failed in 0.33s ===============================
+[4_warn_on_used_flag_too] -> KILLED
+    rc=1
+    E    +  where [Alert(level='WARN', source='saver_state', message="Prior slate 2027-07-15 ET. The dated observation recorded the save...l for current diagnosis. Season contract status shows current files.", incident_key='saver_state:dated_used_mismatch')] = mismatch([Alert(level='WARN', source='saver_state', message="Prior slate 2027-07-15 ET. The dated observation recorded the save...l for current diagnosis. Season contract status shows current files.", incident_key='saver_state:dated_used_mismatch')])
+    ------------------------------ Captured log call -------------------------------
+    WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Prior slate 2027-07-15 ET. The dated observation recorded the saver as used. At this check the flag for season 2027 read active. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+    WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Prior slate 2027-07-15 ET. The dated observation recorded the saver as used. At this check the flag for season 2027 read used. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+    =========================== short test summary info ============================
+    FAILED tests/test_wr_f2_saver_flag.py::test_m3_after_midnight_uses_processed_season_and_current_files[day0]
+    !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ========================= 1 failed, 3 passed in 0.41s ==========================
+[5_send_inside_existing_digest] -> KILLED
+    rc=1
+    E    +    where exists = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2121/test_m1_m2_live_warning_and_de0/oom/health_state/health_dm_delivery_status.json').exists
+    E    +      where PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2121/test_m1_m2_live_warning_and_de0/oom/health_state/health_dm_delivery_status.json') = status_path(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2121/test_m1_m2_live_warning_and_de0/oom/picks'))
+    ------------------------------ Captured log call -------------------------------
+    WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.
+    =========================== short test summary info ============================
+    FAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[active-14]
+    !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ============================== 1 failed in 0.35s ===============================
+[6_dispatch_mismatch_before_digest] -> KILLED
+    rc=1
+    ------------------------------ Captured log call -------------------------------
+    WARNING  bts.health.alert:alert.py:49 [pick_entry WARN] Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. 
+    WARNING  bts.health.alert:alert.py:49 [pick_entry WARN] Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. 
+    WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.
+    =========================== short test summary info ============================
+    FAILED tests/test_wr_f2_saver_flag.py::test_existing_digest_sends_first_and_stays_below_chat_limit
+    !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ========================= 1 failed, 34 passed in 0.57s =========================
+[7_share_digest_status_file] -> KILLED
+    rc=1
+    E    +    where exists = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2123/test_m1_m2_live_warning_and_de0/oom/health_state/health_dm_delivery_status.json').exists
+    E    +      where PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2123/test_m1_m2_live_warning_and_de0/oom/health_state/health_dm_delivery_status.json') = status_path(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2123/test_m1_m2_live_warning_and_de0/oom/picks'))
+    ------------------------------ Captured log call -------------------------------
+    WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.
+    =========================== short test summary info ============================
+    FAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[active-14]
+    !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ============================== 1 failed in 0.36s ===============================
+[8_drop_recursion_error] -> KILLED
+    rc=1
+    ../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+        obj, end = self.scan_once(s, idx)
+                   ^^^^^^^^^^^^^^^^^^^^^^
+    E   RecursionError: maximum recursion depth exceeded while decoding a JSON array from a unicode string
+    =========================== short test summary info ============================
+    FAILED tests/test_wr_f2_saver_flag.py::test_k2_k3_unusable_flag_preserves_existing_alerts[nested]
+    !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ========================= 1 failed, 23 passed in 0.50s =========================
+[9_drop_oserror] -> KILLED
+    rc=1
+        return os.stat(self, follow_symlinks=follow_symlinks)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    PermissionError: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2125/test_dated_used_flag_symlink_s0/data/picks/account_state/saver_state.json'
+    ERROR    bts.health.alert:alert.py:47 [health_runner CRITICAL] health check 'contest_state' crashed: PermissionError: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2125/test_dated_used_flag_symlink_s0/data/picks/account_state/saver_state.json'
+    =========================== short test summary info ============================
+    FAILED tests/test_f2_b1_stat_oserror_regression.py::test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm[False-unsearchable_dir]
+    !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ========================= 1 failed, 55 passed in 0.87s =========================
+[10a_put_guarded_used_block_before_not_earned] -> UNNOTICED
+    rc=0
+    ........................................................................ [ 76%]
+    ........................................................................ [ 85%]
+    ........................................................................ [ 94%]
+    ...                                                                      [ 95%]
+    tests/health/test_runner.py .....................                        [ 97%]
+    tests/health/test_contest_state.py ................                      [100%]
+    
+    ============================= 786 passed in 1.94s ==============================
+[10b_put_unguarded_flag_read_before_not_earned] -> KILLED
+    rc=1
+    E   AssertionError: assert [] == [Alert(level=...ent_key=None)]
+    E     
+    E     Right contains one more item: Alert(level='WARN', source='saver_state', message='Streak Saver not_earned in dated observation /private/var/folders/5... the active and best streaks MLB shows. Changing the saver flag does not correct this observation.', incident_key=None)
+    E     Use -v to get more diff
+    =========================== short test summary info ============================
+    FAILED tests/test_wr_f2_saver_flag.py::test_k1_existing_dated_warning[10] - A...
+    !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ========================= 1 failed, 7 passed in 0.47s ==========================
+[11_drop_require_message_id] -> KILLED
+    rc=1
+    RuntimeError: offline
+    ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+    WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.
+    WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.
+    =========================== short test summary info ============================
+    FAILED tests/test_wr_f2_saver_flag.py::test_failed_send_and_interrupt_before_status_can_retry
+    !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ========================= 1 failed, 35 passed in 0.60s =========================
+[12_drop_default_receipt_fallback] -> KILLED
+    rc=1
+    WARNING  bts.health.alert:alert.py:142 could not write health DM delivery status at /: not a regular file
+    ERROR    bts.health.alert:alert.py:47 [offline-probe CRITICAL] Pre-existing critical alert
+    WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.
+    WARNING  bts.health.alert:alert.py:142 could not write health DM delivery status at /: not a regular file
+    =========================== short test summary info ============================
+    FAILED tests/test_wr_f2_saver_flag.py::test_root_receipt_override_preserves_digest_and_sends_mismatch
+    !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ========================= 1 failed, 38 passed in 0.68s =========================
+
+SUMMARY_JSON:
+[
+  {
+    "mutation": "0_control_unmodified",
+    "killed": false,
+    "detail": "rc=0\n........................................................................ [ 76%]\n........................................................................ [ 85%]\n........................................................................ [ 94%]\n...                                                                      [ 95%]\ntests/health/test_runner.py .....................                        [ 97%]\ntests/health/test_contest_state.py ................                      [100%]\n\n============================= 786 passed in 2.11s =============================="
+  },
+  {
+    "mutation": "1_drop_incident_key",
+    "killed": true,
+    "detail": "rc=1\nE     \nE     At index 0 diff: Alert(level='WARN', source='saver_state', message=\"Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.\", incident_key=None) != Alert(level='WARN', source='saver_state', me...\nE     \nE     ...Full output truncated (2 lines hidden), use '-vv' to show\n=========================== short test summary info ============================\nFAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[active-14]\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n============================== 1 failed in 0.37s ==============================="
+  },
+  {
+    "mutation": "2_use_load_saver_state",
+    "killed": true,
+    "detail": "cs4a_killed=True (================= 1 failed, 4 passed, 606 deselected in 0.37s ==================); f2_fifo_killed=True (====================== 1 failed, 54 deselected in 15.34s =======================)"
+  },
+  {
+    "mutation": "3_use_wall_clock_year",
+    "killed": true,
+    "detail": "rc=1\nE   assert [] == [Alert(level=...ed_mismatch')]\nE     \nE     Right contains one more item: Alert(level='WARN', source='saver_state', message=\"Streak Saver on 2027-07-15 ET. The dated observation says the saver...list B8a. Follow B8a's saver reconciliation steps for any correction.\", incident_key='saver_state:dated_used_mismatch')\nE     Use -v to get more diff\n=========================== short test summary info ============================\nFAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[active-14]\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n============================== 1 failed in 0.33s ==============================="
+  },
+  {
+    "mutation": "4_warn_on_used_flag_too",
+    "killed": true,
+    "detail": "rc=1\nE    +  where [Alert(level='WARN', source='saver_state', message=\"Prior slate 2027-07-15 ET. The dated observation recorded the save...l for current diagnosis. Season contract status shows current files.\", incident_key='saver_state:dated_used_mismatch')] = mismatch([Alert(level='WARN', source='saver_state', message=\"Prior slate 2027-07-15 ET. The dated observation recorded the save...l for current diagnosis. Season contract status shows current files.\", incident_key='saver_state:dated_used_mismatch')])\n------------------------------ Captured log call -------------------------------\nWARNING  bts.health.alert:alert.py:49 [saver_state WARN] Prior slate 2027-07-15 ET. The dated observation recorded the saver as used. At this check the flag for season 2027 read active. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.\nWARNING  bts.health.alert:alert.py:49 [saver_state WARN] Prior slate 2027-07-15 ET. The dated observation recorded the saver as used. At this check the flag for season 2027 read used. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.\n=========================== short test summary info ============================\nFAILED tests/test_wr_f2_saver_flag.py::test_m3_after_midnight_uses_processed_season_and_current_files[day0]\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n========================= 1 failed, 3 passed in 0.41s =========================="
+  },
+  {
+    "mutation": "5_send_inside_existing_digest",
+    "killed": true,
+    "detail": "rc=1\nE    +    where exists = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2121/test_m1_m2_live_warning_and_de0/oom/health_state/health_dm_delivery_status.json').exists\nE    +      where PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2121/test_m1_m2_live_warning_and_de0/oom/health_state/health_dm_delivery_status.json') = status_path(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2121/test_m1_m2_live_warning_and_de0/oom/picks'))\n------------------------------ Captured log call -------------------------------\nWARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.\n=========================== short test summary info ============================\nFAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[active-14]\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n============================== 1 failed in 0.35s ==============================="
+  },
+  {
+    "mutation": "6_dispatch_mismatch_before_digest",
+    "killed": true,
+    "detail": "rc=1\n------------------------------ Captured log call -------------------------------\nWARNING  bts.health.alert:alert.py:49 [pick_entry WARN] Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. \nWARNING  bts.health.alert:alert.py:49 [pick_entry WARN] Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. \nWARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.\n=========================== short test summary info ============================\nFAILED tests/test_wr_f2_saver_flag.py::test_existing_digest_sends_first_and_stays_below_chat_limit\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n========================= 1 failed, 34 passed in 0.57s ========================="
+  },
+  {
+    "mutation": "7_share_digest_status_file",
+    "killed": true,
+    "detail": "rc=1\nE    +    where exists = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2123/test_m1_m2_live_warning_and_de0/oom/health_state/health_dm_delivery_status.json').exists\nE    +      where PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2123/test_m1_m2_live_warning_and_de0/oom/health_state/health_dm_delivery_status.json') = status_path(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2123/test_m1_m2_live_warning_and_de0/oom/picks'))\n------------------------------ Captured log call -------------------------------\nWARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.\n=========================== short test summary info ============================\nFAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[active-14]\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n============================== 1 failed in 0.36s ==============================="
+  },
+  {
+    "mutation": "8_drop_recursion_error",
+    "killed": true,
+    "detail": "rc=1\n../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode\n    obj, end = self.scan_once(s, idx)\n               ^^^^^^^^^^^^^^^^^^^^^^\nE   RecursionError: maximum recursion depth exceeded while decoding a JSON array from a unicode string\n=========================== short test summary info ============================\nFAILED tests/test_wr_f2_saver_flag.py::test_k2_k3_unusable_flag_preserves_existing_alerts[nested]\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n========================= 1 failed, 23 passed in 0.50s ========================="
+  },
+  {
+    "mutation": "9_drop_oserror",
+    "killed": true,
+    "detail": "rc=1\n    return os.stat(self, follow_symlinks=follow_symlinks)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nPermissionError: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2125/test_dated_used_flag_symlink_s0/data/picks/account_state/saver_state.json'\nERROR    bts.health.alert:alert.py:47 [health_runner CRITICAL] health check 'contest_state' crashed: PermissionError: [Errno 13] Permission denied: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2125/test_dated_used_flag_symlink_s0/data/picks/account_state/saver_state.json'\n=========================== short test summary info ============================\nFAILED tests/test_f2_b1_stat_oserror_regression.py::test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm[False-unsearchable_dir]\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n========================= 1 failed, 55 passed in 0.87s ========================="
+  },
+  {
+    "mutation": "10a_put_guarded_used_block_before_not_earned",
+    "killed": false,
+    "detail": "rc=0\n........................................................................ [ 76%]\n........................................................................ [ 85%]\n........................................................................ [ 94%]\n...                                                                      [ 95%]\ntests/health/test_runner.py .....................                        [ 97%]\ntests/health/test_contest_state.py ................                      [100%]\n\n============================= 786 passed in 1.94s =============================="
+  },
+  {
+    "mutation": "10b_put_unguarded_flag_read_before_not_earned",
+    "killed": true,
+    "detail": "rc=1\nE   AssertionError: assert [] == [Alert(level=...ent_key=None)]\nE     \nE     Right contains one more item: Alert(level='WARN', source='saver_state', message='Streak Saver not_earned in dated observation /private/var/folders/5... the active and best streaks MLB shows. Changing the saver flag does not correct this observation.', incident_key=None)\nE     Use -v to get more diff\n=========================== short test summary info ============================\nFAILED tests/test_wr_f2_saver_flag.py::test_k1_existing_dated_warning[10] - A...\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n========================= 1 failed, 7 passed in 0.47s =========================="
+  },
+  {
+    "mutation": "11_drop_require_message_id",
+    "killed": true,
+    "detail": "rc=1\nRuntimeError: offline\nERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed\nWARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.\nWARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.\n=========================== short test summary info ============================\nFAILED tests/test_wr_f2_saver_flag.py::test_failed_send_and_interrupt_before_status_can_retry\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n========================= 1 failed, 35 passed in 0.60s ========================="
+  },
+  {
+    "mutation": "12_drop_default_receipt_fallback",
+    "killed": true,
+    "detail": "rc=1\nWARNING  bts.health.alert:alert.py:142 could not write health DM delivery status at /: not a regular file\nERROR    bts.health.alert:alert.py:47 [offline-probe CRITICAL] Pre-existing critical alert\nWARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.\nWARNING  bts.health.alert:alert.py:142 could not write health DM delivery status at /: not a regular file\n=========================== short test summary info ============================\nFAILED tests/test_wr_f2_saver_flag.py::test_root_receipt_override_preserves_digest_and_sends_mismatch\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n========================= 1 failed, 38 passed in 0.68s ========================="
+  }
+]

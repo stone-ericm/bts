@@ -1,0 +1,27 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2b-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 627 items
+
+tests/test_saved_pick_paths_cs5a.py .................................... [  5%]
+..ss..ss.........................................................        [ 16%]
+tests/test_saver_cs3.py ................................................ [ 23%]
+........................................................................ [ 35%]
+................................................................         [ 45%]
+tests/test_saver_cs3_review.py ......................                    [ 48%]
+tests/test_saver_state.py ................                               [ 51%]
+tests/test_scheduler.py ................................................ [ 59%]
+............................                                             [ 63%]
+tests/test_scheduler_decision_record_integration.py .................... [ 66%]
+....                                                                     [ 67%]
+tests/test_scheduler_eve_of_break.py ..........                          [ 69%]
+tests/test_season_contract_cs4b1.py .................................... [ 74%]
+..................................................................       [ 85%]
+tests/test_season_contract_cs4b1_edges.py .............................. [ 90%]
+.......................................................                  [ 98%]
+tests/test_season_contract_cs4b1_review.py .......                       [100%]
+
+======================== 623 passed, 4 skipped in 4.67s ========================

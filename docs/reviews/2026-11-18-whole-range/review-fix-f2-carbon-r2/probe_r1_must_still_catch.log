@@ -1,0 +1,82 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f2b-cb/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0 -- /Users/eric/projects/bts-work/wr-rev-f2b-cb/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2b-cb
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 8 items
+
+.carbon-review/wr-f2-r2/probe_r1_must_still_catch.py::test_codex_f2_receipt_alias_refused_flag_preserved_and_retries[symlink] Unknown-outcome alert failed: read receipt at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2094/test_codex_f2_receipt_alias_re0/symlink/health_state/health_dm_delivery_status.json.dated_used_misma
+Unknown-outcome alert failed: read receipt at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2094/test_codex_f2_receipt_alias_re0/symlink/health_state/health_dm_delivery_status.json.dated_used_misma
+PASSED
+.carbon-review/wr-f2-r2/probe_r1_must_still_catch.py::test_codex_f2_receipt_alias_refused_flag_preserved_and_retries[hardlink] Unknown-outcome alert failed: read receipt at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2094/test_codex_f2_receipt_alias_re1/hardlink/health_state/health_dm_delivery_status.json.dated_used_mism
+Unknown-outcome alert failed: read receipt at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2094/test_codex_f2_receipt_alias_re1/hardlink/health_state/health_dm_delivery_status.json.dated_used_mism
+PASSED
+.carbon-review/wr-f2-r2/probe_r1_must_still_catch.py::test_codex_f3_empty_basename_override_falls_back_to_default_receipt[/] PASSED
+.carbon-review/wr-f2-r2/probe_r1_must_still_catch.py::test_codex_f3_empty_basename_override_falls_back_to_default_receipt[] PASSED
+.carbon-review/wr-f2-r2/probe_r1_must_still_catch.py::test_codex_f3_empty_basename_override_falls_back_to_default_receipt[.] PASSED
+.carbon-review/wr-f2-r2/probe_r1_must_still_catch.py::test_codex_f3_empty_basename_override_falls_back_to_default_receipt[/.] PASSED
+.carbon-review/wr-f2-r2/probe_r1_must_still_catch.py::test_codex_f4_and_edit_operator_b8a_recheck_prevents_overwriting_undo PASSED
+.carbon-review/wr-f2-r2/probe_r1_must_still_catch.py::test_codex_and_carbon_notes_n1_n2_fifo_alarm_and_known_limit_8 PASSED
+
+==================================== PASSES ====================================
+___ test_codex_f2_receipt_alias_refused_flag_preserved_and_retries[symlink] ____
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:47 [offline-probe CRITICAL] A pre-existing critical alert
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.
+ERROR    bts.health.alert:alert.py:47 [offline-probe CRITICAL] A pre-existing critical alert
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.
+___ test_codex_f2_receipt_alias_refused_flag_preserved_and_retries[hardlink] ___
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:47 [offline-probe CRITICAL] A pre-existing critical alert
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.
+ERROR    bts.health.alert:alert.py:47 [offline-probe CRITICAL] A pre-existing critical alert
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.
+____ test_codex_f3_empty_basename_override_falls_back_to_default_receipt[/] ____
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:47 [offline-probe CRITICAL] A pre-existing critical alert
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.
+WARNING  bts.health.alert:alert.py:142 could not write health DM delivery status at /: not a regular file
+ERROR    bts.health.alert:alert.py:47 [offline-probe CRITICAL] A pre-existing critical alert
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.
+WARNING  bts.health.alert:alert.py:142 could not write health DM delivery status at /: not a regular file
+____ test_codex_f3_empty_basename_override_falls_back_to_default_receipt[] _____
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:47 [offline-probe CRITICAL] A pre-existing critical alert
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.
+WARNING  bts.health.alert:alert.py:142 could not write health DM delivery status at .: not a regular file
+ERROR    bts.health.alert:alert.py:47 [offline-probe CRITICAL] A pre-existing critical alert
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.
+WARNING  bts.health.alert:alert.py:142 could not write health DM delivery status at .: not a regular file
+____ test_codex_f3_empty_basename_override_falls_back_to_default_receipt[.] ____
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:47 [offline-probe CRITICAL] A pre-existing critical alert
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.
+WARNING  bts.health.alert:alert.py:142 could not write health DM delivery status at .: not a regular file
+ERROR    bts.health.alert:alert.py:47 [offline-probe CRITICAL] A pre-existing critical alert
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.
+WARNING  bts.health.alert:alert.py:142 could not write health DM delivery status at .: not a regular file
+___ test_codex_f3_empty_basename_override_falls_back_to_default_receipt[/.] ____
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:47 [offline-probe CRITICAL] A pre-existing critical alert
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.
+WARNING  bts.health.alert:alert.py:142 could not write health DM delivery status at /: not a regular file
+ERROR    bts.health.alert:alert.py:47 [offline-probe CRITICAL] A pre-existing critical alert
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.
+WARNING  bts.health.alert:alert.py:142 could not write health DM delivery status at /: not a regular file
+____ test_codex_f4_and_edit_operator_b8a_recheck_prevents_overwriting_undo _____
+------------------------------ Captured log call -------------------------------
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.
+=========================== short test summary info ============================
+PASSED .carbon-review/wr-f2-r2/probe_r1_must_still_catch.py::test_codex_f2_receipt_alias_refused_flag_preserved_and_retries[symlink]
+PASSED .carbon-review/wr-f2-r2/probe_r1_must_still_catch.py::test_codex_f2_receipt_alias_refused_flag_preserved_and_retries[hardlink]
+PASSED .carbon-review/wr-f2-r2/probe_r1_must_still_catch.py::test_codex_f3_empty_basename_override_falls_back_to_default_receipt[/]
+PASSED .carbon-review/wr-f2-r2/probe_r1_must_still_catch.py::test_codex_f3_empty_basename_override_falls_back_to_default_receipt[]
+PASSED .carbon-review/wr-f2-r2/probe_r1_must_still_catch.py::test_codex_f3_empty_basename_override_falls_back_to_default_receipt[.]
+PASSED .carbon-review/wr-f2-r2/probe_r1_must_still_catch.py::test_codex_f3_empty_basename_override_falls_back_to_default_receipt[/.]
+PASSED .carbon-review/wr-f2-r2/probe_r1_must_still_catch.py::test_codex_f4_and_edit_operator_b8a_recheck_prevents_overwriting_undo
+PASSED .carbon-review/wr-f2-r2/probe_r1_must_still_catch.py::test_codex_and_carbon_notes_n1_n2_fifo_alarm_and_known_limit_8
+============================== 8 passed in 0.05s ===============================
+exit=0

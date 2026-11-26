@@ -1,0 +1,712 @@
+diff --git a/docs/ops/2027-season-start.md b/docs/ops/2027-season-start.md
+index 1e4e849d..3179264b 100644
+--- a/docs/ops/2027-season-start.md
++++ b/docs/ops/2027-season-start.md
+@@ -28,7 +28,7 @@
+ | B4a | **The g2 fixes of 2026-11-14** (merge `f53c019`): `bts data build` is a no-op for a season with no regular-season game yet, the prediction refresh then uses the earlier seasons, `bts day-outcome` gains `entered_game_unverified` and reads an all-void schedule as `no_games`, one day-outcome cron run. They ride B4's whole-range review and deploy. On the box before the opener: run `bts data build --seasons 2027` once and expect exit 0 with the "no regular-season games" line and no `pa_2027.parquet`. | Claude; Eric approves the deploy | the command's output; the rehearsal note `docs/audit/2026-11-14-cold-start-rehearsal.md` |
+ | B7 | **Reseed the park-drag store for 2027.** From March of a new year `bts park-drag-refresh` (cron 07:45) fails with "store season 2026 is behind 2027" until the producer store under `data/external/park_drag/` is reseeded from the analysis pipeline (`src/bts/features/park_drag_producer.py`, module docstring). It feeds the shadow model only; production picks do not depend on it. **The reseed must be a POPULATED store, installed after the first regular-season game:** a header-only store makes the refresh crash before it fetches anything (audit finding F5, left as is by ruling R41). | Claude | a clean `park_drag.log` run after the first 2027 regular-season game |
+ | B8 | **Season rollover of the streak state, before the first pick.** Nothing in the code checks which season `data/picks/account_state/contest_streak.json` or `data/picks/streak.json` belongs to; last season's values would be used on Opening Night (roadmap, season-start hazards 1 and 2). Until the code guard lands: after A4's fetch against the live 2027 contest, confirm the decision state reads streak 0 with the saver available (`.venv/bin/python -c "from pathlib import Path; from bts.contest_state import load_decision_streak_state as f; print(f(Path('data/picks')))"`), and expect the `contest_state` health check to report a missing `source_date` until the first 2027 pick settles. Do not switch delivery on before this reads 0. | Claude; Eric for A4's capture | the printed decision state, dated before the first 2027 pick |
+-| B8a | **The season-boundary build of 2026-11-15 to 11-17 replaces B8's manual check** (change sets 1 to 4b-2, 6a, 5a, 4c, 6b-1 and 6b-2 on `main` as of 2026-11-18; 5b was NOT built and a malformed `decision.json` is an open hazard, both Eric's to decide; the whole-range review before the deploy is still to come; none of it may be deployed before that). In this order, BEFORE the deploy and before the scheduler is started on the restored box: <ul><li>In `~/.bts-orchestrator.toml` set `contest_state_required = true` under `[scheduler]` AND `contest_state_expected = true` under `[health_checks]`, with `pick_delivery = "dm"` and `entry_intent = "enter"` (A5). With DM delivery and neither setting, `bts schedule` exits 2 before its first heartbeat and says why on stderr only: the deploy's restart can fail before the canary, or the canary can roll back to code without the gate.</li><li>Run the target revision's `bts entry-intent --config ~/.bts-orchestrator.toml`: it must print `enter` and exit 0. Then `bash scripts/cron-setup-hetzner.sh show` and `install`.</li><li>The snapshot is from October: stop the scheduler, run `bts season-contract revoke --season 2027 --reason "restored from the offseason snapshot"` (it sets aside any manual observation and last season's saver flag), then `bts season-contract status`.</li><li>Each day until the post-enable `bts fetch-contest-streak` succeeds and `bts season-contract status` reports `automatic path alone: accepted` for the active ET season: `bts set-contest-streak --date <today> --streak N --best-streak B --saver S` with N, B and S read from MLB. While the automatic path is refused, a day without a usable dated observation has no pick. The refusal names this command. **Enter it in the morning, before the scheduler's first lineup check.** The scheduler reads the state when it starts the day (10:00 ET, or an hour before an early first game) and DMs `Morning check for <date>: no usable contest state was found at startup …` with the time of the first lineup check (change set 6b-1; no morning DM when that check is under ten minutes away, as on a 06:10 opener). An observation entered or corrected AFTER the day's pick was chosen does not re-pick by itself: the earlier pick is refused at delivery (change set 5a) and a new one is chosen only if a later lineup check or the fallback refresh still runs and its prediction succeeds. If none remains, that day has no pick. **Do not restart the scheduler to force a re-pick**: a restart can run two prediction passes and miss the cutoff, sleeps to the regular check on a thin slate, and mid-send leaves the day locked as unconfirmed (`build/cs5b-check/contract-check.md`).</li><li>Let `bts fetch-contest-streak` run (it records readings in the ledger only). When `bts season-contract status` shows readings that match MLB for some days: stop the scheduler, wait for any fetch, `bts season-contract enable --season 2027`, run `bts fetch-contest-streak`, then check that `bts season-contract status` reports `automatic path alone: accepted` for the active ET season. If the fetch fails or automatic status is refused, follow the diagnostics, keep filing daily dated observations and restart live scheduling with today's accepted dated observation while cutover is pending. If interrupted, verify fetch completion and current status before stopping daily observations. After the first successful, accepted automatic fetch, read `bts saver-state` for the active ET year. Initialize only if it reports `uninitialized`, using the actual MLB saver state with `bts saver-state --init <MLB state> --season <ET year>`. Recheck the ET day and year before acting on earlier output. If a concurrent fetch initializes the flag first, reread it. Restart the scheduler.</li><li>**Expected false alarms in the first days (ruling R39; do not chase them):** `park_drag_freshness` pages `CRITICAL` at the end of Opening Night and until the first 07:45 refresh that sees a game (the table's last game is last September); and if the season is switched to automatic within its first two days, the contest-state health check can page `CRITICAL` for a missing `source_date` until MLB's ledger shows the first settled pick. Anything else, or either of these lasting past the third day, is real. A third expected alarm, only if Opening Night's pick locks while one team's lineup is still unposted (a thin early lock, ruling R18): the live-forward research capture for that date fails its row count (nine rows where ten are expected), `analytics_artifacts_missing` pages `CRITICAL`, and the resolution alert for that date warns from day 4 and is `CRITICAL` from day 7 without ageing out (ruling R41). It costs that one date's research capture and no pick; to quiet it, ask Claude to archive that date's capture directory by hand.</li><li>After the switch, live delivery remains eligible when the automatic timestamp is stale and the other delivery checks pass. A confirmed delivery using an automatic contest reading normally saves its timestamp status as `automatic_reading`. A delivery using a dated observation has no automatic timestamp. Startup or confirmed delivery can send a stale warning, deduplicated by warning ET date after successful dispatch (change set 4c; wording of 2026-11-24). The warning's terms: DIR is the absolute path of the scheduler's picks directory; "status" is `bts season-contract status --picks-dir DIR`; N and B are MLB's active and best streak, and S is `not_earned`, `active` or `used` as MLB shows the saver; D is the date the warning prints. When a dated manual row is in effect, compare MLB with that row's streak, best and saver. Otherwise compare with the accepted automatic streak and best and the current-season saver flag. **On a morning warning:** before the first lineup check, if prior entries are settled or absent and MLB differs from status, use `bts set-contest-streak --date D --streak N --best-streak B --saver S --picks-dir DIR` on D ET only. If the first lineup check has started, have Eric verify any pending or delivered pick against MLB before acting on it. **On a warning after a delivery:** use the warning's command only if the delivered pick's slate and today's ET date both equal D, and MLB has settled every prior entry or confirmed its absence after its entry window closed. The sent pick and saver flag stay as they were. **For a later slate date:** For any date later than the pick's slate, including D when the warning was sent after midnight ET, wait until MLB has settled all prior entries or confirmed their absence after their entry windows closed. Then compare MLB with status and, if they differ, run `bts set-contest-streak --date TODAY --streak N --best-streak B --saver S --picks-dir DIR` with TODAY set to the current ET date before its first lineup check. If that check has started, have Eric verify MLB and any pending or delivered pick before acting on the pick. While the slate is unlocked, if MLB differs from status and a later lineup check or fallback refresh remains, have Eric run the same command when no lineup check, fallback refresh or send is in progress, unless only the season best differs and Eric verifies that the policy would choose the same saved, unsent pick using MLB's state. In that case, wait for confirmed delivery and file only if it is still TODAY ET and MLB still differs from status. **Known limit of this rule (accepted by Eric on 2026-11-25 after six checks; it is not checked further):** once the day's first lineup check has started, the code trades two rare harms and no sentence removes both. If nothing is filed, a pick can go out on the stale reading. If a correction is filed, a pick already saved on the automatic reading is refused at delivery, and the day has a pick only if a later lineup check or the fallback refresh still produces one. Do not restart the scheduler to force a re-pick. **The saver:** a dated observation does not change the saver flag. In D's ET year away from midnight, if MLB shows this season's saver used, check `bts saver-state --picks-dir DIR`. For `active` or `not_earned`, run `bts saver-state --use --picks-dir DIR`. For `uninitialized`, recheck the current ET day and year and confirm MLB shows used for that season, then run `bts saver-state --init used --season YEAR --picks-dir DIR` with the verified current ET year; if initialization races, reread the flag. Read the latest fetch status in `health_state/contest_streak_fetch_status.json` beside the picks directory. If it reports a failure, read the fetch's error messages. If the warning says the timestamp is in the future, check the scheduler host's clock.</li></ul> Do not run `bts schedule --dry-run` on the box as a probe: it writes the heartbeat and can idle. | Eric runs the box commands; Claude prepares them | `bts entry-intent` exit 0; `status` output before `enable`; post-enable fetch exit 0, `automatic path alone: accepted` for the active ET season, and the active-year saver read; the first day's morning DM (or the journal line `Morning state check: dated contest state accepted`) and the pick after the dated observation |
++| B8a | **The season-boundary build of 2026-11-15 to 11-17 replaces B8's manual check** (change sets 1 to 4b-2, 6a, 5a, 4c, 6b-1 and 6b-2 on `main` as of 2026-11-18; 5b was NOT built and a malformed `decision.json` is an open hazard, both Eric's to decide; the whole-range review before the deploy is still to come; none of it may be deployed before that). In this order, BEFORE the deploy and before the scheduler is started on the restored box: <ul><li>In `~/.bts-orchestrator.toml` set `contest_state_required = true` under `[scheduler]` AND `contest_state_expected = true` under `[health_checks]`, with `pick_delivery = "dm"` and `entry_intent = "enter"` (A5). With DM delivery and neither setting, `bts schedule` exits 2 before its first heartbeat and says why on stderr only: the deploy's restart can fail before the canary, or the canary can roll back to code without the gate.</li><li>Run the target revision's `bts entry-intent --config ~/.bts-orchestrator.toml`: it must print `enter` and exit 0. Then `bash scripts/cron-setup-hetzner.sh show` and `install`.</li><li>The snapshot is from October: stop the scheduler, run `bts season-contract revoke --season 2027 --reason "restored from the offseason snapshot"` (it sets aside any manual observation and last season's saver flag), then `bts season-contract status`.</li><li>Each day until the post-enable `bts fetch-contest-streak` succeeds and `bts season-contract status` reports `automatic path alone: accepted` for the active ET season: `bts set-contest-streak --date <today> --streak N --best-streak B --saver S` with N, B and S read from MLB. While the automatic path is refused, a day without a usable dated observation has no pick. The refusal names this command. **Enter it in the morning, before the scheduler's first lineup check.** The scheduler reads the state when it starts the day (10:00 ET, or an hour before an early first game) and DMs `Morning check for <date>: no usable contest state was found at startup …` with the time of the first lineup check (change set 6b-1; no morning DM when that check is under ten minutes away, as on a 06:10 opener). An observation entered or corrected AFTER the day's pick was chosen does not re-pick by itself: the earlier pick is refused at delivery (change set 5a) and a new one is chosen only if a later lineup check or the fallback refresh still runs and its prediction succeeds. If none remains, that day has no pick. **Do not restart the scheduler to force a re-pick**: a restart can run two prediction passes and miss the cutoff, sleeps to the regular check on a thin slate, and mid-send leaves the day locked as unconfirmed (`build/cs5b-check/contract-check.md`).</li><li>Let `bts fetch-contest-streak` run (it records readings in the ledger only). When `bts season-contract status` shows readings that match MLB for some days: stop the scheduler, wait for any fetch, `bts season-contract enable --season 2027`, run `bts fetch-contest-streak`, then check that `bts season-contract status` reports `automatic path alone: accepted` for the active ET season. If the fetch fails or automatic status is refused, follow the diagnostics, keep filing daily dated observations and restart live scheduling with today's accepted dated observation while cutover is pending. If interrupted, verify fetch completion and current status before stopping daily observations. After the first successful, accepted automatic fetch, read `bts saver-state` for the active ET year. Initialize only if it reports `uninitialized`, using the actual MLB saver state with `bts saver-state --init <MLB state> --season <ET year>`. Recheck the ET day and year before acting on earlier output. If a concurrent fetch initializes the flag first, reread it. Restart the scheduler.</li><li>**Expected false alarms in the first days (ruling R39; do not chase them):** `park_drag_freshness` pages `CRITICAL` at the end of Opening Night and until the first 07:45 refresh that sees a game (the table's last game is last September); and if the season is switched to automatic within its first two days, the contest-state health check can page `CRITICAL` for a missing `source_date` until MLB's ledger shows the first settled pick. Anything else, or either of these lasting past the third day, is real. A third expected alarm, only if Opening Night's pick locks while one team's lineup is still unposted (a thin early lock, ruling R18): the live-forward research capture for that date fails its row count (nine rows where ten are expected), `analytics_artifacts_missing` pages `CRITICAL`, and the resolution alert for that date warns from day 4 and is `CRITICAL` from day 7 without ageing out (ruling R41). It costs that one date's research capture and no pick; to quiet it, ask Claude to archive that date's capture directory by hand.</li><li>After the switch, live delivery remains eligible when the automatic timestamp is stale and the other delivery checks pass. A confirmed delivery using an automatic contest reading normally saves its timestamp status as `automatic_reading`. A delivery using a dated observation has no automatic timestamp. Startup or confirmed delivery can send a stale warning, deduplicated by warning ET date after successful dispatch (change set 4c; wording of 2026-11-24). The warning's terms: DIR is the absolute path of the scheduler's picks directory; "status" is `bts season-contract status --picks-dir DIR`; N and B are MLB's active and best streak, and S is `not_earned`, `active` or `used` as MLB shows the saver; D is the date the warning prints. When a dated manual row is in effect, compare MLB with that row's streak, best and saver. Otherwise compare with the accepted automatic streak and best and the current-season saver flag. **On a morning warning:** before the first lineup check, if prior entries are settled or absent and MLB differs from status, use `bts set-contest-streak --date D --streak N --best-streak B --saver S --picks-dir DIR` on D ET only. If the first lineup check has started, have Eric verify any pending or delivered pick against MLB before acting on it. **On a warning after a delivery:** use the warning's command only if the delivered pick's slate and today's ET date both equal D, and MLB has settled every prior entry or confirmed its absence after its entry window closed. The sent pick and saver flag stay as they were. **For a later slate date:** For any date later than the pick's slate, including D when the warning was sent after midnight ET, wait until MLB has settled all prior entries or confirmed their absence after their entry windows closed. Then compare MLB with status and, if they differ, run `bts set-contest-streak --date TODAY --streak N --best-streak B --saver S --picks-dir DIR` with TODAY set to the current ET date before its first lineup check. If that check has started, have Eric verify MLB and any pending or delivered pick before acting on the pick. While the slate is unlocked, if MLB differs from status and a later lineup check or fallback refresh remains, have Eric run the same command when no lineup check, fallback refresh or send is in progress, unless only the season best differs and Eric verifies that the policy would choose the same saved, unsent pick using MLB's state. In that case, wait for confirmed delivery and file only if it is still TODAY ET and MLB still differs from status. **Known limit of this rule (accepted by Eric on 2026-11-25 after six checks; it is not checked further):** once the day's first lineup check has started, the code trades two rare harms and no sentence removes both. If nothing is filed, a pick can go out on the stale reading. If a correction is filed, a pick already saved on the automatic reading is refused at delivery, and the day has a pick only if a later lineup check or the fallback refresh still produces one. Do not restart the scheduler to force a re-pick. **The saver:** a dated observation does not change the saver flag. In D's ET year away from midnight, if MLB shows this season's saver used, check `bts saver-state --picks-dir DIR`. For `active` or `not_earned`, run `bts saver-state --use --picks-dir DIR`. For `uninitialized`, recheck the current ET day and year and confirm MLB shows used for that season, then run `bts saver-state --init used --season YEAR --picks-dir DIR` with the verified current ET year; if initialization races, reread the flag. Coordinate saver corrections with anyone using the dashboard. Immediately before writing, refresh MLB and the scheduler's flag. If either changed since your verification, stop and reconcile the current state before retrying. Read the latest fetch status in `health_state/contest_streak_fetch_status.json` beside the picks directory. If it reports a failure, read the fetch's error messages. If the warning says the timestamp is in the future, check the scheduler host's clock.</li><li>**On the end-of-day warning that begins `Streak Saver on D ET. The dated observation says the saver was used.`** (change set F2): D is the ET date the warning prints. Run `bts season-contract status --picks-dir DIR` (DIR as above) and compare the dated row's saver and the saver flag with MLB. If MLB shows this season's saver used, follow **The saver** in the bullet above. If MLB shows it not used, the dated observation was the mistaken side and the flag is right: leave the flag as it is (a dated observation applies only on its own date).</li></ul> Do not run `bts schedule --dry-run` on the box as a probe: it writes the heartbeat and can idle. | Eric runs the box commands; Claude prepares them | `bts entry-intent` exit 0; `status` output before `enable`; post-enable fetch exit 0, `automatic path alone: accepted` for the active ET season, and the active-year saver read; the first day's morning DM (or the journal line `Morning state check: dated contest state accepted`) and the pick after the dated observation |
+ | B8b | **From the whole-range review (2026-11-19), until the open items land:** (1) during the days the season runs on dated observations, do NOT act on a contest-state alert that arrives between midnight ET and the morning wake after a late game: it is judged at the wall clock, after yesterday's observation expired, and its command template is dated before MLB has settled the night's pick; read `bts season-contract status` in the morning instead. (2) **Preserve the files in place during triage and make changes only as part of verified recovery directed by the BTS lead or Eric.** On a replay warning (`bts reconcile` prints `Season replay unavailable for <date> (<reason>); streak retained, not recalculated.`) or failed reconcile, preserve the files and paste the exact warning or error, ET run time, host, and receipt path if available into the supervised BTS lead Claude session (`bts-lead`), or send them to Eric for handoff if the session is unavailable. If yesterday's correction is at risk and the cutoff is still ahead, contact the lead or Eric immediately for assessment before 08:00 ET. After the cutoff, record any missed correction, and in either case get a decision before the next affected selection, grade, or entry check. If the pick file is unreadable or disagrees with the commitment, verify the pick, game and entry against MLB and the original delivery or private lock, and have the lead coordinate recovery before relying on automated entry checks, grading, or the dashboard. When this warning appears, the replay leaves `streak.json` unrecalculated and later grading can advance an incorrect model count or saver. On other failures, verify whether replay saved before deciding what needs recovery. Required live delivery uses a valid contest observation and refuses to pick without one. Model-only recommendations, previews, and shadow picks can already be affected, so investigate before the next model-dependent use and confirm a successful full replay after addressing the blockers. Never set a file aside on the strength of an empty MLB entry or a missing, false, or unreadable decision alone, because a private lock can precede its decision and successful delivery can precede its durable acknowledgement or post marker (`docs/reviews/2026-11-18-whole-range/STOP-C3.md`, `STOP-C3V.md`, `review-c3v-operator-text/`). (3) A deploy that fails its canary must not be allowed to roll back to `619abda7` on a live 2027 box (that code reads every 2027 date as zero days left and rewrites state the new code then refuses): stop outward sending and page instead (Eric's decision pending, W12). (4) **Change sets H and H2 (2026-11-25) deploy together, and a rollback past H2 needs a check first.** H makes the policy play every day from streak 57; H2 lets the state checks accept a streak or best above 57 (up to 400). Never deploy code that has H without H2: after a hit at 57 the fetch would refuse MLB's 58 and the old 57 would stay in use with no alert for 14 hours. Before reverting to any code older than H2, have the lead verify the ACTIVE and the BEST streak in both observation files (`contest_streak.json`, `contest_streak.manual.json`) and in any pending pick's `chosen_on`: the older code refuses a file holding a value above 57, and an expired dated observation holding one can block a valid automatic observation. Where the older code can represent the current state, replace the files with verified current state; get a fresh selection for a pending pick whose metadata it cannot read. Picks already committed stay scoreable. | Eric / Claude | `docs/reviews/2026-11-18-whole-range/FINDINGS.md` |
+ | B8c | **Right after the restore, before anything else runs (found 2026-11-19 while checking the deploy-workflow change, `docs/reviews/2026-11-18-whole-range/contract-check-deploy/`):** the snapshot boots with the OCTOBER code (`619abda7`) checked out and the October crontab installed. That code reads every 2027 date as zero days left, rewrites `streak.json` without its season tag, and its `fetch-contest-streak` cron lines (01:10, 02:10, 10:30, 13:30) write the automatic reading in the old format, which the new code then refuses. So, in this order: (1) stop the scheduler and the dashboard and disable the bts user's crontab (`crontab -l > ~/crontab.restored && crontab -r`) BEFORE the first boot reaches 01:00 ET; (2) deploy current code; (3) put both contest-state settings in the box's configuration (row B8a); (4) `bash scripts/cron-setup-hetzner.sh install` from the current checkout; (5) only then start the scheduler. Do not let a failed deploy leave the old code checked out with cron running. | Eric / Claude | `crontab -l` empty until step 4; `git -C ~/projects/bts rev-parse HEAD` is the deployed commit before cron is reinstalled |
+ | B5 | **Add 2028 to `bts.strategy.SEASON_END_DATES`** when its schedule is published. Store the day after the last regular-season game day. Recheck the 2027 boundary if its September 26 playing finale moves. | Claude | the `tail_policy` health check silent for the year |
+diff --git a/src/bts/health/contest_state.py b/src/bts/health/contest_state.py
+index 0cb972ff..3cd621c1 100644
+--- a/src/bts/health/contest_state.py
++++ b/src/bts/health/contest_state.py
+@@ -26,6 +26,7 @@ from bts.util import read_regular_file_text
+ 
+ SOURCE = "contest_state"
+ SAVER_SOURCE = "saver_state"
++DATED_USED_MISMATCH = "saver_state:dated_used_mismatch"
+ 
+ # Under the Phase-1 snapshot/coverage split, source_date is derived from the
+ # per-round predictions array, which trails the live activeStreak counter by ~one
+@@ -205,6 +206,34 @@ def _check(picks_dir: Path, *, expected: bool, now: datetime, historical: bool)
+                          f"`{correction}`, replacing N and B with the active and best streaks MLB "
+                          "shows. Changing the saver flag does not correct this observation."),
+             ))
++        if state.saver_state == "used":
++            from bts.saver_state import _read_saver_state
++
++            year = now.astimezone(ZoneInfo("America/New_York")).year
++            try:
++                flag = _read_saver_state(picks_dir, season=year, historical=True)
++            except (OSError, ValueError, RecursionError):
++                return alerts
++            if flag.state in {"active", "not_earned"}:
++                if historical:
++                    message = (
++                        "The dated observation recorded the saver as used. "
++                        f"At this check the flag for season {year} read {flag.state}."
++                    )
++                else:
++                    message = (
++                        f"Streak Saver on {state.effective_date.isoformat()} ET. "
++                        "The dated observation says the saver was used. "
++                        f"The flag for season {year} read {flag.state} at this check. "
++                        "A later automatic decision may count a saver as available. "
++                        "Verify the current season's saver and prior entries in MLB before any correction. "
++                        "Use the `bts season-contract status` command with the scheduler's picks directory "
++                        "as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction."
++                    )
++                alerts.append(Alert(
++                    level="WARN", source=SAVER_SOURCE, message=message,
++                    incident_key=DATED_USED_MISMATCH,
++                ))
+         return alerts
+ 
+     # The flag belongs to the caller's current ET season, even when ledger coverage lags.
+diff --git a/src/bts/health/runner.py b/src/bts/health/runner.py
+index f2c83585..a8817a5a 100644
+--- a/src/bts/health/runner.py
++++ b/src/bts/health/runner.py
+@@ -324,16 +324,41 @@ def run_all_checks(
+                 )
+ 
+     log_alerts(alerts)
++    mismatch_key = contest_state.DATED_USED_MISMATCH
++    digest_alerts = alerts
++    digest_attention = warn_attention
++    mismatch_attention = []
++    if any(alert.incident_key == mismatch_key for alert in alerts):
++        digest_alerts = [alert for alert in alerts if alert.incident_key != mismatch_key]
++        digest_attention = [alert for alert in warn_attention if alert.incident_key != mismatch_key]
++        mismatch_attention = [alert for alert in warn_attention if alert.incident_key == mismatch_key]
++    status_path = _path(health_dm_status_path)
+     dispatch_dm_for_health_alerts(
+-        alerts,
++        digest_alerts,
+         dm_recipient,
+-        warn_attention=warn_attention,
+-        status_path=_path(health_dm_status_path),
++        warn_attention=digest_attention,
++        status_path=status_path,
+         # Dedup by the PROCESSED day, not the wall date: a post-midnight EOD
+         # for date D must not consume D+1's "already sent today" budget
+         # (round-2 review #5).
+         now_et_date=processed_date,
+     )
++    if mismatch_attention:
++        suffix = ".dated_used_mismatch.json"
++        try:
++            mismatch_status = status_path.with_name(status_path.name + suffix)
++        except Exception:
++            mismatch_status = (
++                picks_dir.parent / "health_state" / ("health_dm_delivery_status.json" + suffix)
++            )
++        dispatch_dm_for_health_alerts(
++            [],
++            dm_recipient,
++            warn_attention=mismatch_attention,
++            status_path=mismatch_status,
++            now_et_date=processed_date,
++            require_message_id=True,
++        )
+     return alerts
+ 
+ 
+diff --git a/tests/test_contest_dated_cs4a.py b/tests/test_contest_dated_cs4a.py
+index e437d13b..fe91de98 100644
+--- a/tests/test_contest_dated_cs4a.py
++++ b/tests/test_contest_dated_cs4a.py
+@@ -318,7 +318,12 @@ def test_health_observation_saver_without_flag_read(tmp_path,monkeypatch,expecte
+     write(tmp_path,observation(active_streak=streak,best_streak=max(streak,14),saver_state=saver))
+     if flag: (tmp_path/'account_state/saver_state.json').write_text('{')
+     monkeypatch.setattr(flags,'load_saver_state',Mock(side_effect=AssertionError('flag read')))
++    if saver=='used':
++        bounded_read=Mock(wraps=flags._read_saver_state)
++        monkeypatch.setattr(flags,'_read_saver_state',bounded_read)
+     alerts=check(tmp_path,now=NOW,expected=expected)
++    if saver=='used':
++        bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+     warnings=[a for a in alerts if a.source=='saver_state']
+     assert len(warnings)==int(saver=='not_earned' and 10<=streak<=15)
+     assert not any('legacy/expired' in a.message for a in alerts)
+diff --git a/tests/test_f2_b1_stat_oserror_regression.py b/tests/test_f2_b1_stat_oserror_regression.py
+new file mode 100644
+index 00000000..1b7037d8
+--- /dev/null
++++ b/tests/test_f2_b1_stat_oserror_regression.py
+@@ -0,0 +1,101 @@
++"""Drop-in regression test for B1: stat()-failing saver_state.json symlinks on an in-effect dated used observation."""
++
++from __future__ import annotations
++
++import datetime as dt
++import json
++import os
++import sys
++from pathlib import Path
++from unittest.mock import patch
++from zoneinfo import ZoneInfo
++
++import pytest
++
++from bts.health import alert, contest_state as health, runner
++
++ET = ZoneInfo("America/New_York")
++REAL_DT = dt.datetime
++DAY = REAL_DT(2027, 7, 15, 22, 30, tzinfo=ET)
++
++
++def _write_dated_used(picks: Path) -> None:
++    acct = picks / "account_state"
++    acct.mkdir(parents=True, exist_ok=True)
++    exp = REAL_DT.combine(DAY.date(), dt.time.max, ET)
++    (acct / "contest_streak.manual.json").write_text(json.dumps({
++        "schema_version": "bts_contest_streak_manual_v3",
++        "effective_date": "2027-07-15",
++        "season": 2027,
++        "expires_at": exp.isoformat(),
++        "active_streak": 14,
++        "best_streak": 15,
++        "saver_state": "used",
++        "recorded_at": "2027-07-15T20:00:00Z",
++        "source": "cli_dated",
++    }), encoding="utf-8")
++
++
++@pytest.mark.parametrize("symlink_kind", ["unsearchable_dir", "enametoolong"])
++@pytest.mark.parametrize("historical", [False, True])
++def test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm(
++    tmp_path, monkeypatch, symlink_kind, historical,
++):
++    picks = tmp_path / "data" / "picks"
++    _write_dated_used(picks)
++    resolved = [dt.date(2027, 7, 16), dt.date(2027, 7, 17)]
++    monkeypatch.setattr(health, "latest_resolved_pick_date", lambda _: max(resolved))
++    monkeypatch.setattr(health, "_scan_resolved_pick_dates", lambda *a, **kw: resolved)
++    monkeypatch.setattr(health, "resolved_pick_settlement_gap", lambda *a: 2)
++
++    baseline = health.check(
++        picks, expected=True, now=DAY, historical_day=DAY.date() if historical else None,
++    )
++    assert len(baseline) == 1 and baseline[0].source == "contest_state" and baseline[0].level == "WARN"
++
++    locked_dir = None
++    target = picks / "account_state" / "saver_state.json"
++    if symlink_kind == "unsearchable_dir":
++        locked_dir = picks / "account_state" / "locked_sub"
++        locked_dir.mkdir()
++        (locked_dir / "s.json").write_text('{"season": 2027, "state": "active"}', encoding="utf-8")
++        locked_dir.chmod(0o000)
++        os.symlink(locked_dir / "s.json", target)
++    else:
++        os.symlink("x" * 300, target)
++
++    wall = DAY + dt.timedelta(hours=3) if historical else DAY
++
++    class WallClock(REAL_DT):
++        @classmethod
++        def now(cls, tz=None):
++            return wall.astimezone(tz) if tz else wall.replace(tzinfo=None)
++
++    try:
++        dms = []
++        orig_safe_run = runner._safe_run
++        with patch.object(runner, "datetime", WallClock), \
++             patch.object(alert, "datetime", WallClock), \
++             patch.object(health, "datetime", WallClock), \
++             patch.object(alert, "send_dm", side_effect=lambda r, b: dms.append((r, b)) or "ok"), \
++             patch.object(runner, "_safe_run", side_effect=lambda n, fn: orig_safe_run(n, fn) if n == "contest_state" else []):
++            eod_alerts = runner.run_all_checks(
++                picks_dir=picks,
++                models_dir=tmp_path / "data" / "models",
++                dm_recipient="ops.bsky.social",
++                today=DAY.date(),
++                contest_state_expected=True,
++            )
++        actual = health.check(
++            picks, expected=True, now=DAY, historical_day=DAY.date() if historical else None,
++        )
++        assert actual == baseline
++        assert eod_alerts == baseline
++        assert dms == []
++    finally:
++        if locked_dir is not None:
++            locked_dir.chmod(0o700)
++
++
++if __name__ == "__main__":
++    sys.exit(pytest.main([__file__, "-v", "-rA"]))
+diff --git a/tests/test_wr_f2_saver_flag.py b/tests/test_wr_f2_saver_flag.py
+new file mode 100644
+index 00000000..656ff16b
+--- /dev/null
++++ b/tests/test_wr_f2_saver_flag.py
+@@ -0,0 +1,473 @@
++"""Dated saver disagreements through the CLI, health check and EOD delivery."""
++
++import datetime as dt
++import hashlib
++import json
++import os
++import signal
++import shlex
++from contextlib import contextmanager
++from pathlib import Path
++from unittest.mock import Mock
++from zoneinfo import ZoneInfo
++
++import pytest
++from click.testing import CliRunner
++
++from bts import cli, contest_state
++from bts.health import alert, contest_state as health, runner
++from bts.saver_state import load_saver_state
++from tests.test_season_contract_cs4b1 import contract, put
++from tests.test_season_contract_cs4b2 import automatic
++
++ET = ZoneInfo("America/New_York")
++DATETIME = dt.datetime
++DAY = DATETIME(2027, 7, 15, 22, tzinfo=ET)
++DECEMBER = DATETIME(2027, 12, 31, 23, 50, tzinfo=ET)
++INCIDENT = "saver_state:dated_used_mismatch"
++STATUS = "health_dm_delivery_status.json"
++MISMATCH_STATUS = STATUS + ".dated_used_mismatch.json"
++RECIPIENT = "offline.test"
++
++# SHA-256 of the ordered alerts, captured transport calls and status JSON
++# from the unchanged base. Each pair is (live, historical).
++BASE_SNAPSHOTS = {
++    "expired": ("c3e171d330ee4df86fe1b9071b3482a47d07d75521eda465f811f05e4801f480",
++                "f3f416e5f59823f0f026f71daa89a60d7c96d53a5939417542be950601534bbe"),
++    "automatic": ("98d4a68c815ff9789f7d38197df9365c710c6f91d88dfd8da308d66d344af319",
++                  "4fa190d6f721e743f0f4e84f07548267323f0edd217c86f3fdee869f856fe5a3"),
++    "legacy": ("50cd0198e89937f329602b466941d0d5511293cc002bbaf8889eaa6fd446d63f",
++               "d581d29bc886b6ef8a92e7cb9e7544821f92dfe686930d472d0314a545ef2345"),
++    "missing": ("7f1fbf09393a44e74c85d6434cce34fc35c55ebd4b9ca667ead4d59490a1aad6",
++                "45ef517804ab860656b096b87851f6b667e6854205910730970bb0f0aff542a1"),
++    "future": ("bb824052c11fdbd17fd2c471b3a5d291bbada615cd79eaa3f08205b1a2909dbe",
++               "c9808abe44b57bc89302632bf72cbcae90807f62ae07ce4f61414567dfef8120"),
++    "coverage": ("985d554049fa6f3d14471e0c5f27b742e5bf61f761d351ae1580929bec5fb67f",
++                 "897a551dae25d97e1b489f00ef9df4abc3ccfc61012ba9a59c41cf08a55094ba"),
++    "invalid": ("a98622b096897beaaee56946a020ee285d86a2ba41a93fbc33b8bf4cc4bf5563",
++                "bed6b786d4ccf320733f0ca54c5355c714e788790d0c12ea52e343122c1fdef3"),
++}
++
++
++@contextmanager
++def clock(monkeypatch, now):
++    class Clock(DATETIME):
++        @classmethod
++        def now(cls, tz=None):
++            return now.astimezone(tz) if tz else now.replace(tzinfo=None)
++
++    with monkeypatch.context() as patch:
++        for module in (dt, cli, alert, health, runner):
++            patch.setattr(module, "datetime", Clock)
++        yield
++
++
++def command(monkeypatch, picks, now, *args):
++    with clock(monkeypatch, now):
++        result = CliRunner().invoke(cli.cli, [*args, "--picks-dir", str(picks)])
++    assert result.exit_code == 0, (result.output, result.exception)
++
++
++def observation(monkeypatch, picks, now=DAY, state="used", streak=14):
++    command(monkeypatch, picks, now, "set-contest-streak", "--date", str(now.date()),
++            "--streak", str(streak), "--best-streak", str(max(streak, 15)),
++            "--saver", state)
++
++
++def flag(picks, state, year=DAY.year):
++    return put(picks, "saver_state.json", {"season": year, "state": state})
++
++
++def auto(picks, now, streak=14):
++    put(picks, "season_contract.json", contract(season=now.year))
++    return put(picks, "contest_streak.json", automatic(
++        season=now.year, active_streak=streak, best_streak=15,
++        source_date=str(now.date() - dt.timedelta(days=1)), recorded_at=now.isoformat(),
++    ))
++
++
++def eod(monkeypatch, picks, *, day=DAY, wall=None, transport=None, existing=(), overrides=None):
++    safe_run = runner._safe_run
++
++    def run_check(name, check):
++        if name == "contest_state":
++            return safe_run(name, check)
++        return list(existing) if name == "calibration" else []
++
++    transport = Mock(return_value="sent") if transport is None else transport
++    with clock(monkeypatch, wall or day), monkeypatch.context() as patch:
++        patch.setattr(alert, "send_dm", transport)
++        patch.setattr(runner, "_safe_run", run_check)
++        alerts = runner.run_all_checks(picks, picks.parent / "models", RECIPIENT,
++                                       today=day.date(), contest_state_expected=True,
++                                       thresholds_overrides=overrides)
++    return alerts, [call.args for call in transport.call_args_list]
++
++
++def status_path(picks, name=STATUS):
++    return picks.parent / "health_state" / name
++
++
++def mismatch(alerts):
++    return [item for item in alerts if item.incident_key == INCIDENT]
++
++
++def live_message(day, state):
++    return (
++        f"Streak Saver on {day.date()} ET. The dated observation says the saver was used. "
++        f"The flag for season {day.year} read {state} at this check. "
++        "A later automatic decision may count a saver as available. "
++        "Verify the current season's saver and prior entries in MLB before any correction. "
++        "Use the `bts season-contract status` command with the scheduler's picks directory "
++        "as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction."
++    )
++
++
++@pytest.mark.parametrize(("state", "streak"), [("active", 14), ("not_earned", 14),
++                                              ("not_earned", 9)])
++def test_m1_m2_live_warning_and_delivery(tmp_path, monkeypatch, state, streak):
++    picks = tmp_path / "oom" / "picks"
++    observation(monkeypatch, picks, streak=streak)
++    flag(picks, state)
++    expected = alert.Alert("WARN", "saver_state", live_message(DAY, state), incident_key=INCIDENT)
++    assert health.check(picks, now=DAY, expected=True) == [expected]
++    alerts, sends = eod(monkeypatch, picks)
++    assert alerts == [expected]
++    assert len(sends) == 1
++    recipient, body = sends[0]
++    assert recipient == RECIPIENT
++    assert body == f"BTS health WARN attention:\n- [saver_state] {expected.message} (1st observed day)"
++    assert not status_path(picks).exists()
++    receipt = json.loads(status_path(picks, MISMATCH_STATUS).read_text())
++    assert receipt["sent_sources"] == [f"WARN_ATTENTION:{INCIDENT}"]
++    assert receipt["sent_day"] == str(DAY.date())
++
++
++@pytest.mark.parametrize("day", [DAY, DECEMBER])
++def test_m3_after_midnight_uses_processed_season_and_current_files(tmp_path, monkeypatch, day):
++    picks = tmp_path / "picks"
++    tomorrow = day.replace(hour=0, minute=5) + dt.timedelta(days=1)
++    observation(monkeypatch, picks, day)
++    flag(picks, "active", day.year)
++    alerts, sends = eod(monkeypatch, picks, day=day, wall=tomorrow)
++    warning, = mismatch(alerts)
++    reason = f"The dated observation recorded the saver as used. At this check the flag for season {day.year} read active."
++    assert warning.message == f"Prior slate {day.date()} ET. {reason} {health.HISTORICAL_POINTER}"
++    recipient, body = sends[0]
++    assert recipient == RECIPIENT
++    assert body.count(health.HISTORICAL_POINTER) == 1
++    assert body.index(reason) < body.index(" (1st observed day)") < body.index(health.HISTORICAL_POINTER)
++    assert "`" not in body and str(picks) not in body
++    assert json.loads(status_path(picks, MISMATCH_STATUS).read_text())["sent_day"] == str(day.date())
++    flag(picks, "active" if tomorrow.year != day.year else "used", tomorrow.year)
++    assert not mismatch(eod(monkeypatch, picks, day=day, wall=tomorrow)[0])
++    flag(picks, "active", day.year)
++    observation(monkeypatch, picks, tomorrow, state="active")
++    assert not mismatch(eod(monkeypatch, picks, day=day, wall=tomorrow)[0])
++
++
++@pytest.mark.parametrize("state", ["active", "not_earned"])
++def test_m4_m5_verified_repair_changes_next_automatic_read(tmp_path, monkeypatch, state):
++    picks = tmp_path / "picks"
++    observation(monkeypatch, picks)
++    flag(picks, state)
++    manual = picks / "account_state/contest_streak.manual.json"
++    original = manual.read_bytes()
++    tomorrow = DAY + dt.timedelta(days=1)
++    auto(picks, tomorrow, streak=9 if state == "not_earned" else 14)
++
++    def decision(now):
++        return contest_state.load_decision_streak_state(picks, now=now, require_contest_state=True)
++
++    assert not decision(DAY).saver_available
++    assert decision(tomorrow).saver_available
++    alerts, sends = eod(monkeypatch, picks)
++    assert mismatch(alerts) and len(sends) == 1
++    assert decision(tomorrow).saver_available
++    command(monkeypatch, picks, DAY, "saver-state", "--use", "--season", str(DAY.year))
++    assert load_saver_state(picks, season=DAY.year).state == "used"
++    assert manual.read_bytes() == original
++    assert not decision(tomorrow).saver_available
++    assert eod(monkeypatch, picks) == ([], [])
++
++
++@pytest.mark.parametrize("streak", range(10, 16))
++def test_k1_existing_dated_warning(tmp_path, monkeypatch, streak):
++    picks = tmp_path / "picks"
++    observation(monkeypatch, picks, state="not_earned", streak=streak)
++    live = health.check(picks, now=DAY, expected=True)
++    (picks / "account_state/saver_state.json").write_bytes(decoder_limit())
++    live_warning, = live
++    arguments = f"bts set-contest-streak --date {DAY.date()} --streak {streak} --best-streak 15"
++    directory = f"--picks-dir {shlex.quote(str(picks))}"
++    manual = picks / "account_state/contest_streak.manual.json"
++    assert live_warning == alert.Alert("WARN", "saver_state", (
++        f"Streak Saver not_earned in dated observation {manual}, season {DAY.year}, "
++        f"contradicts streak {streak}; counting the saver as spent. "
++        "Check MLB and run ONE correction to the observation. Earned and unused: "
++        f"`{arguments} --saver active {directory}`. Already used: "
++        f"`{arguments} --saver used {directory}`. Not earned: "
++        f"`bts set-contest-streak --date {DAY.date()} --streak N --best-streak B "
++        f"--saver not_earned {directory}`, replacing N and B with the active and best streaks MLB "
++        "shows. Changing the saver flag does not correct this observation."
++    ))
++    assert health.check(picks, now=DAY, expected=True) == live
++    prior = health.check(picks, now=DAY, expected=True, historical_day=DAY.date())
++    assert prior == [alert.Alert("WARN", "saver_state", health.historical_message(
++        DAY.date(), "The saver state in the dated observation contradicts its streak. The saver counted as spent.",
++    ))]
++
++
++@pytest.mark.parametrize("state", ["used", "uninitialized", "absent", "encoding", "list",
++                                  "other-season", "directory", "fifo", "invalid", "integer", "nested"])
++def test_k2_k3_unusable_flag_preserves_existing_alerts(tmp_path, monkeypatch, state):
++    picks = tmp_path / "picks"
++    observation(monkeypatch, picks)
++    # Give the contest check a coverage alert before it reaches the saver branch.
++    resolved = [DAY.date() + dt.timedelta(days=1)]
++    monkeypatch.setattr(health, "latest_resolved_pick_date", lambda _: resolved[0])
++    monkeypatch.setattr(health, "_scan_resolved_pick_dates", lambda *a, **kw: resolved)
++    monkeypatch.setattr(health, "resolved_pick_settlement_gap", lambda *a: 1)
++    modes = (None, DAY.date())
++    baseline = [health.check(picks, now=DAY, expected=True, historical_day=day) for day in modes]
++    assert all(items and items[0].source == "contest_state" for items in baseline)
++    path = picks / "account_state/saver_state.json"
++    if state == "fifo":
++        os.mkfifo(path)
++    elif state == "directory":
++        path.mkdir()
++    elif state == "other-season":
++        flag(picks, "active", DAY.year - 1)
++    elif state in ("used", "uninitialized"):
++        flag(picks, state)
++    elif state != "absent":
++        path.write_bytes({
++            "encoding": b"\xff", "list": b"[]", "invalid": b"{",
++            "integer": b'{"season":' + b"9" * 5000 + b"}",
++            "nested": decoder_limit() if state == "nested" else b"",
++        }[state])
++
++    for day, expected in zip(modes, baseline):
++        with flag_read_deadline():
++            assert health.check(picks, now=DAY, expected=True, historical_day=day) == expected
++
++
++def decoder_limit():
++    payload = b"[" * 200_000 + b"]" * 200_000
++    with pytest.raises(RecursionError):
++        json.loads(payload)
++    return payload
++
++
++@contextmanager
++def flag_read_deadline():
++    class FlagReadTimeout(BaseException):
++        pass
++
++    def timed_out(*_):
++        raise FlagReadTimeout("saver flag check blocked")
++
++    previous_handler = signal.signal(signal.SIGALRM, timed_out)
++    signal.alarm(15)
++    try:
++        yield
++    finally:
++        signal.alarm(0)
++        signal.signal(signal.SIGALRM, previous_handler)
++
++
++@pytest.mark.parametrize(("state", "streak"), [("active", 14), ("not_earned", 9)])
++@pytest.mark.parametrize("flag_state", ["active", "not_earned", "used", "uninitialized"])
++def test_k4_no_other_dated_observation_warns(tmp_path, monkeypatch, state, streak, flag_state):
++    picks = tmp_path / "picks"
++    observation(monkeypatch, picks, state=state, streak=streak)
++    flag(picks, flag_state)
++    assert health.check(picks, now=DAY, expected=True) == []
++    assert health.check(picks, now=DAY, expected=True, historical_day=DAY.date()) == []
++
++
++@pytest.mark.parametrize("first", ["used", "not_earned"])
++def test_same_day_reruns_preserve_both_incidents(tmp_path, monkeypatch, first):
++    # The existing message includes the picks path several times. Keep it short
++    # enough for the unchanged digest to fit the transport limit.
++    monkeypatch.chdir(tmp_path)
++    picks = Path("p")
++    flag(picks, "active")
++    second = "not_earned" if first == "used" else "used"
++    for state in (first, second):
++        observation(monkeypatch, picks, state=state)
++        alerts, sends = eod(monkeypatch, picks)
++        warning, = alerts
++        assert bool(mismatch(alerts)) == (state == "used")
++        assert len(sends) == 1 and warning.message in sends[0][1]
++    assert eod(monkeypatch, picks)[1] == []
++    assert json.loads(status_path(picks).read_text())["sent_sources"] == ["WARN_ATTENTION:saver_state"]
++    assert json.loads(status_path(picks, MISMATCH_STATUS).read_text())["sent_sources"] == [
++        f"WARN_ATTENTION:{INCIDENT}",
++    ]
++
++
++def test_existing_digest_sends_first_and_stays_below_chat_limit(tmp_path, monkeypatch):
++    picks = tmp_path / "picks"
++    observation(monkeypatch, picks)
++    flag(picks, "used")
++    existing = [alert.Alert("WARN", "pick_entry", "Existing operator alert. " * 36)]
++
++    def capped_transport(_, body):
++        # The bodies use one ASCII code point per grapheme except for bullets
++        # and other single-code-point punctuation in the formatter.
++        if len(body) > 1000:
++            raise ValueError("chat length limit")
++        return "sent"
++
++    base_alerts, base_sends = eod(monkeypatch, picks, existing=existing, transport=Mock(side_effect=capped_transport))
++    base_body = base_sends[0][1]
++    base_status = status_path(picks).read_bytes()
++    assert 900 < len(base_body) <= 1000
++    assert json.loads(base_status)["status"] == "sent"
++    status_path(picks).unlink()
++    flag(picks, "active")
++    alerts, sends = eod(monkeypatch, picks, existing=existing, transport=Mock(side_effect=capped_transport))
++    warning, = mismatch(alerts)
++    assert [item for item in alerts if item != warning] == base_alerts
++    assert sends[0] == base_sends[0] and warning.message in sends[1][1]
++    assert len(base_body) + len(sends[1][1]) > 1000
++    assert status_path(picks).read_bytes() == base_status
++    assert json.loads(status_path(picks, MISMATCH_STATUS).read_text())["status"] == "sent"
++
++
++def test_failed_send_and_interrupt_before_status_can_retry(tmp_path, monkeypatch):
++    picks = tmp_path / "picks"
++    observation(monkeypatch, picks)
++    path = flag(picks, "active")
++    before = path.read_bytes()
++    status = status_path(picks, MISMATCH_STATUS)
++    transport = Mock(side_effect=RuntimeError("offline"))
++    _, failed = eod(monkeypatch, picks, transport=transport)
++    assert failed and json.loads(status.read_text())["status"] == "failed"
++    transport.reset_mock(side_effect=True)
++    transport.side_effect = KeyboardInterrupt()
++    with pytest.raises(KeyboardInterrupt):
++        eod(monkeypatch, picks, transport=transport)
++    assert transport.call_count == 1
++    assert json.loads(status.read_text())["status"] == "failed"
++    assert path.read_bytes() == before
++    _, retried = eod(monkeypatch, picks, transport=Mock(return_value=""))
++    assert retried and json.loads(status.read_text())["status"] == "failed"
++    assert eod(monkeypatch, picks)[1] == retried
++    assert eod(monkeypatch, picks)[1] == []
++
++
++@pytest.mark.parametrize("kind", ["symlink", "hardlink"])
++def test_receipt_alias_preserves_saver_flag(tmp_path, monkeypatch, kind):
++    picks = tmp_path / "picks"
++    observation(monkeypatch, picks)
++    path = flag(picks, "active")
++    before = path.read_bytes()
++    receipt = status_path(picks, MISMATCH_STATUS)
++    receipt.parent.mkdir()
++    if kind == "symlink":
++        receipt.symlink_to(path)
++    else:
++        os.link(path, receipt)
++    alerts, sends = eod(monkeypatch, picks)
++    assert mismatch(alerts) and len(sends) == 1
++    assert path.read_bytes() == before
++    assert receipt.is_symlink() == (kind == "symlink")
++    assert receipt.samefile(path)
++    assert eod(monkeypatch, picks)[1] == sends
++
++
++def test_root_receipt_override_preserves_digest_and_sends_mismatch(tmp_path, monkeypatch):
++    picks = tmp_path / "picks"
++    observation(monkeypatch, picks)
++    flag(picks, "used")
++    existing = [alert.Alert("CRITICAL", "offline-probe", "Pre-existing critical alert")]
++    overrides = {"health_dm_delivery_status": "/"}
++    _, baseline = eod(monkeypatch, picks, existing=existing, overrides=overrides)
++    assert len(baseline) == 1
++    flag(picks, "active")
++    alerts, sends = eod(monkeypatch, picks, existing=existing, overrides=overrides)
++    warning, = mismatch(alerts)
++    assert sends[:1] == baseline
++    assert len(sends) == 2 and warning.message in sends[1][1]
++    assert json.loads(status_path(picks, MISMATCH_STATUS).read_text())["message_id"] == "sent"
++
++
++def test_consecutive_days_and_changed_body_are_eligible(tmp_path, monkeypatch):
++    picks = tmp_path / "picks"
++    for offset in range(3):
++        day = DAY + dt.timedelta(days=offset)
++        observation(monkeypatch, picks, day)
++        flag(picks, "active")
++        _, sends = eod(monkeypatch, picks, day=day)
++        label = ("1st observed day", "2nd consecutive day", "3rd consecutive day")[offset]
++        assert len(sends) == 1 and f"({label})" in sends[0][1]
++        assert eod(monkeypatch, picks, day=day)[1] == []
++    flag(picks, "not_earned")
++    _, sends = eod(monkeypatch, picks, day=day)
++    assert len(sends) == 1 and "read not_earned" in sends[0][1]
++
++
++def test_b8a_saver_reconciliation_text():
++    checklist = Path(__file__).resolve().parents[1] / "docs/ops/2027-season-start.md"
++    row, = (line for line in checklist.read_text().splitlines() if line.startswith("| B8a |"))
++    stale, warning = row.split("if initialization races, reread the flag. ", 1)[1].split("</li>", 1)
++    addition, _, _ = stale.partition(" Read the latest fetch status")
++    assert addition == (
++        "Coordinate saver corrections with anyone using the dashboard. "
++        "Immediately before writing, refresh MLB and the scheduler's flag. "
++        "If either changed since your verification, stop and reconcile the current state before retrying."
++    )
++    assert warning.split("</li>", 1)[0] + "</li>" == (
++        "<li>**On the end-of-day warning that begins `Streak Saver on D ET. The dated observation "
++        "says the saver was used.`** (change set F2): D is the ET date the warning prints. Run "
++        "`bts season-contract status --picks-dir DIR` (DIR as above) and compare the dated row's saver "
++        "and the saver flag with MLB. If MLB shows this season's saver used, follow **The saver** "
++        "in the bullet above. If MLB shows it not used, the dated observation was the mistaken side "
++        "and the flag is right: leave the flag as it is (a dated observation applies only on its own date).</li>"
++    )
++
++
++@pytest.mark.parametrize("scenario", ["expired", "automatic", "legacy", "missing",
++                                      "future", "coverage", "invalid"])
++@pytest.mark.parametrize("historical", [False, True])
++def test_k5_k6_k7_alerts_digest_and_status_match_base(tmp_path, monkeypatch, scenario, historical):
++    monkeypatch.chdir(tmp_path)
++    picks = Path("picks")
++    now = DAY
++    if scenario == "expired":
++        observation(monkeypatch, picks)
++        now += dt.timedelta(days=1)
++        auto(picks, now)
++    elif scenario in ("automatic", "coverage"):
++        auto(picks, now)
++    elif scenario == "legacy":
++        put(picks, "contest_streak.manual.json", {
++            "streak": 14, "source_date": str(now.date()),
++            "override_expires_at": (now + dt.timedelta(days=1)).isoformat(),
++        })
++    elif scenario == "future":
++        auto(picks, now + dt.timedelta(days=10)).with_name("season_contract.json").unlink()
++    elif scenario == "invalid":
++        observation(monkeypatch, picks)
++        manual = picks / "account_state/contest_streak.manual.json"
++        payload = json.loads(manual.read_text())
++        payload["saver_state"] = "bad"
++        manual.write_text(json.dumps(payload))
++    if scenario in ("expired", "automatic", "legacy", "coverage"):
++        flag(picks, "not_earned")
++    if scenario == "coverage":
++        resolved = [now.date(), (now + dt.timedelta(days=1)).date()]
++        monkeypatch.setattr(health, "_scan_resolved_pick_dates", lambda *a, **kw: resolved)
++        monkeypatch.setattr(health, "latest_resolved_pick_date", lambda _: max(resolved))
++        monkeypatch.setattr(health, "resolved_pick_settlement_gap", lambda *a: 2)
++        put(picks, "contest_streak.manual.json", {"override_expires_at": None})
++    wall = now + dt.timedelta(days=1) if historical else now
++    alerts, sends = eod(monkeypatch, picks, day=now, wall=wall)
++    assert not status_path(picks, MISMATCH_STATUS).exists()
++    recorded = status_path(picks).read_text()
++    snapshot = json.dumps([(a.level, a.source, a.message, a.incident_key) for a in alerts])
++    payload = snapshot + json.dumps(sends) + recorded
++    digest = hashlib.sha256(payload.encode()).hexdigest()
++    assert digest == BASE_SNAPSHOTS[scenario][historical], payload

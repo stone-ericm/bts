@@ -1,0 +1,25 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/f2-mutation-l6_dp3ut/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2b-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 786 items
+
+tests/test_wr_f2_saver_flag.py F
+
+=================================== FAILURES ===================================
+_______________ test_m1_m2_live_warning_and_delivery[active-14] ________________
+tests/test_wr_f2_saver_flag.py:133: in test_m1_m2_live_warning_and_delivery
+    assert health.check(picks, now=DAY, expected=True) == [expected]
+E   assert [Alert(level=...ent_key=None)] == [Alert(level=...ed_mismatch')]
+E     
+E     At index 0 diff: Alert(level='WARN', source='saver_state', message="Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.", incident_key=None) != Alert(level='WARN', source='saver_state', me...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+=========================== short test summary info ============================
+FAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[active-14]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+============================== 1 failed in 0.46s ===============================
+no-key: tests caught the change

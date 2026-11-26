@@ -1,0 +1,105 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0 -- /Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/bin/python
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2b-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 65 items
+
+tests/test_wr_e_texts.py::test_skip_surfaces[fields0-Candidate used in the decision: A (T) 75.0%. Reason: Stopped!] PASSED [  1%]
+tests/test_wr_e_texts.py::test_skip_surfaces[fields1-Candidate used in the decision: A (T) 75.0%, below the streak-8 bar (75.0%) using unrounded values.] PASSED [  3%]
+tests/test_wr_e_texts.py::test_skip_surfaces[fields2-Candidate used in the decision: A (T) 75.0%, at or above the streak-8 bar (75.0%).] PASSED [  4%]
+tests/test_wr_e_texts.py::test_skip_surfaces[fields3-Candidate used in the decision: A (T) 75.0%. No probability comparison is available for this check.] PASSED [  6%]
+tests/test_wr_e_texts.py::test_skip_surfaces[fields4-No candidate was chosen. Top model prediction (eligibility unverified): A (T) 75.0%.] PASSED [  7%]
+tests/test_wr_e_texts.py::test_skip_surfaces[fields5-Candidate used in the decision: A (<T&>) 75.0%. Reason: <stop & check>.] PASSED [  9%]
+tests/test_wr_e_texts.py::test_skip_surfaces[fields6-Candidate used in the decision: A (T) 75.0%. Reason: Stopped!] PASSED [ 10%]
+tests/test_wr_e_texts.py::test_skip_surfaces[fields7-Top model prediction (eligibility unverified): A (T) 75.0%, below the streak-8 bar (80.0%) using unrounded values.] PASSED [ 12%]
+tests/test_wr_e_texts.py::test_skip_surfaces[fields8-Candidate used in the decision: A (T) 75.0%. No probability comparison is available for this check.] PASSED [ 13%]
+tests/test_wr_e_texts.py::test_skip_surfaces[fields9-Candidate used in the decision: A (T) 75.0%. Reason: Stop  here!] PASSED [ 15%]
+tests/test_wr_e_texts.py::test_skip_streak_basis[missing] PASSED         [ 16%]
+tests/test_wr_e_texts.py::test_skip_streak_basis[unknown] PASSED         [ 18%]
+tests/test_wr_e_texts.py::test_skip_streak_basis[decision] PASSED        [ 20%]
+tests/test_wr_e_texts.py::test_skip_streak_basis[no_decision] PASSED     [ 21%]
+tests/test_wr_e_texts.py::test_skip_stored_text_surfaces[whole-words] PASSED [ 23%]
+tests/test_wr_e_texts.py::test_skip_stored_text_surfaces[longer-word] PASSED [ 24%]
+tests/test_wr_e_texts.py::test_b8a_follow_up PASSED                      [ 26%]
+tests/test_wr_e_texts.py::test_malformed_persisted_fields[None] PASSED   [ 27%]
+tests/test_wr_e_texts.py::test_malformed_persisted_fields[0.99] PASSED   [ 29%]
+tests/test_wr_e_texts.py::test_malformed_persisted_fields[bad2] PASSED   [ 30%]
+tests/test_wr_e_texts.py::test_malformed_persisted_fields[bad3] PASSED   [ 32%]
+tests/test_wr_e_texts.py::test_malformed_persisted_fields[True] PASSED   [ 33%]
+tests/test_wr_e_texts.py::test_malformed_persisted_fields[nan] PASSED    [ 35%]
+tests/test_wr_e_texts.py::test_malformed_persisted_fields[inf] PASSED    [ 36%]
+tests/test_wr_e_texts.py::test_malformed_persisted_fields[10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000] PASSED [ 38%]
+tests/test_wr_e_texts.py::test_out_of_range_skip_numbers_are_missing[best_p-1e+308] PASSED [ 40%]
+tests/test_wr_e_texts.py::test_out_of_range_skip_numbers_are_missing[best_p-1.5e+308] PASSED [ 41%]
+tests/test_wr_e_texts.py::test_out_of_range_skip_numbers_are_missing[best_p--0.1] PASSED [ 43%]
+tests/test_wr_e_texts.py::test_out_of_range_skip_numbers_are_missing[best_p-1.0000001] PASSED [ 44%]
+tests/test_wr_e_texts.py::test_out_of_range_skip_numbers_are_missing[best_p-2] PASSED [ 46%]
+tests/test_wr_e_texts.py::test_out_of_range_skip_numbers_are_missing[bar-1e+308] PASSED [ 47%]
+tests/test_wr_e_texts.py::test_out_of_range_skip_numbers_are_missing[bar-1.5e+308] PASSED [ 49%]
+tests/test_wr_e_texts.py::test_out_of_range_skip_numbers_are_missing[bar--0.1] PASSED [ 50%]
+tests/test_wr_e_texts.py::test_out_of_range_skip_numbers_are_missing[bar-1.0000001] PASSED [ 52%]
+tests/test_wr_e_texts.py::test_out_of_range_skip_numbers_are_missing[bar-2] PASSED [ 53%]
+tests/test_wr_e_texts.py::test_skip_number_edges_are_valid[0] PASSED     [ 55%]
+tests/test_wr_e_texts.py::test_skip_number_edges_are_valid[0.0] PASSED   [ 56%]
+tests/test_wr_e_texts.py::test_skip_number_edges_are_valid[1] PASSED     [ 58%]
+tests/test_wr_e_texts.py::test_skip_number_edges_are_valid[1.0] PASSED   [ 60%]
+tests/test_wr_e_texts.py::test_run_single_check_skip_journal[K1] PASSED  [ 61%]
+tests/test_wr_e_texts.py::test_run_single_check_skip_journal[stored-reason] PASSED [ 63%]
+tests/test_wr_e_texts.py::test_run_single_check_skip_journal[K3] PASSED  [ 64%]
+tests/test_wr_e_texts.py::test_run_single_check_skip_journal[K4] PASSED  [ 66%]
+tests/test_wr_e_texts.py::test_run_single_check_skip_journal[longer-word] PASSED [ 67%]
+tests/test_wr_e_texts.py::test_candidate_with_raising_class_lookup_preserves_base_summary PASSED [ 69%]
+tests/test_wr_e_texts.py::test_candidate_override PASSED                 [ 70%]
+tests/test_wr_e_texts.py::test_shipped_skip_comparisons[date0-state0-No probability comparison is available for this check.] PASSED [ 72%]
+tests/test_wr_e_texts.py::test_shipped_skip_comparisons[date1-state1-below the] PASSED [ 73%]
+tests/test_wr_e_texts.py::test_former_at_or_above_state_plays_since_the_skip_guard PASSED [ 75%]
+tests/test_wr_e_texts.py::test_stale_warning_maximum_detail[delivery] PASSED [ 76%]
+tests/test_wr_e_texts.py::test_stale_warning_maximum_detail[morning] PASSED [ 78%]
+tests/test_wr_e_texts.py::test_refusal_message_and_record[late] PASSED   [ 80%]
+tests/test_wr_e_texts.py::test_refusal_message_and_record[postponed] PASSED [ 81%]
+tests/test_wr_e_texts.py::test_base_summary_gates PASSED                 [ 83%]
+tests/test_wr_e_texts.py::test_state_compatibility PASSED                [ 84%]
+tests/test_wr_e_texts.py::test_real_lineup_skip_return_against_base[removed] PASSED [ 86%]
+tests/test_wr_e_texts.py::test_real_lineup_skip_return_against_base[none_eligible] PASSED [ 87%]
+tests/test_wr_e_texts.py::test_real_lineup_skip_return_against_base[status_failure] Timeout (0:00:08)!
+Thread 0x00000001fc58d740 (most recent call first):
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/src/bts/util.py", line 68 in retry_urlopen
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/src/bts/picks.py", line 908 in get_game_statuses
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/src/bts/strategy.py", line 577 in select_pick
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/src/bts/orchestrator.py", line 293 in run_and_pick
+  File "63669c42:src/bts/scheduler.py", line 1907 in run_single_check
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/tests/test_wr_e_texts.py", line 389 in test_real_lineup_skip_return_against_base
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/_pytest/python.py", line 166 in pytest_pyfunc_call
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/pluggy/_callers.py", line 121 in _multicall
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/_pytest/python.py", line 1720 in runtest
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/_pytest/runner.py", line 179 in pytest_runtest_call
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/pluggy/_callers.py", line 121 in _multicall
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/_pytest/runner.py", line 245 in <lambda>
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/_pytest/runner.py", line 353 in from_call
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/_pytest/runner.py", line 244 in call_and_report
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/_pytest/runner.py", line 137 in runtestprotocol
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/_pytest/runner.py", line 118 in pytest_runtest_protocol
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/pluggy/_callers.py", line 121 in _multicall
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/_pytest/main.py", line 396 in pytest_runtestloop
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/pluggy/_callers.py", line 121 in _multicall
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/_pytest/main.py", line 372 in _main
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/_pytest/main.py", line 318 in wrap_session
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/_pytest/main.py", line 365 in pytest_cmdline_main
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/pluggy/_callers.py", line 121 in _multicall
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/_pytest/config/__init__.py", line 199 in main
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/_pytest/config/__init__.py", line 223 in console_main
+  File "/Users/eric/projects/bts-work/wr-rev-f2b-cx/.venv/lib/python3.12/site-packages/pytest/__main__.py", line 9 in <module>
+  File "<frozen runpy>", line 88 in _run_code
+  File "<frozen runpy>", line 198 in _run_module_as_main

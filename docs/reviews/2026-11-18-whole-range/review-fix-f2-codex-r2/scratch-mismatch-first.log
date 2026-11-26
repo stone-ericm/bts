@@ -1,0 +1,29 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/f2-mutation-fs30cuos/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2b-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 786 items
+
+tests/test_wr_f2_saver_flag.py ..................................F
+
+=================================== FAILURES ===================================
+_________ test_existing_digest_sends_first_and_stays_below_chat_limit __________
+tests/test_wr_f2_saver_flag.py:333: in test_existing_digest_sends_first_and_stays_below_chat_limit
+    assert sends[0] == base_sends[0] and warning.message in sends[1][1]
+E   assert (('offline.tes...bserved day)') == ('offline.tes...bserved day)')
+E     
+E     At index 1 diff: "BTS health WARN attention:\n- [saver_state] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction. (1st observed day)" != 'BTS health WARN attention:\n- [pick_entry] Existin...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show)
+------------------------------ Captured log call -------------------------------
+WARNING  bts.health.alert:alert.py:49 [pick_entry WARN] Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. 
+WARNING  bts.health.alert:alert.py:49 [pick_entry WARN] Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. 
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use the `bts season-contract status` command with the scheduler's picks directory as shown in checklist B8a. Follow B8a's saver reconciliation steps for any correction.
+=========================== short test summary info ============================
+FAILED tests/test_wr_f2_saver_flag.py::test_existing_digest_sends_first_and_stays_below_chat_limit
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+========================= 1 failed, 34 passed in 0.69s =========================
+mismatch-first: tests caught the change

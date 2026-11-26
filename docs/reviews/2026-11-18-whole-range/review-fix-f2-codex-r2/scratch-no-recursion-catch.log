@@ -1,0 +1,40 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/f2-mutation-q5ta4odn/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2b-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 786 items
+
+tests/test_wr_f2_saver_flag.py .......................F
+
+=================================== FAILURES ===================================
+__________ test_k2_k3_unusable_flag_preserves_existing_alerts[nested] __________
+tests/test_wr_f2_saver_flag.py:252: in test_k2_k3_unusable_flag_preserves_existing_alerts
+    assert health.check(picks, now=DAY, expected=True, historical_day=day) == expected
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/f2-mutation-q5ta4odn/src/bts/health/contest_state.py:70: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/f2-mutation-q5ta4odn/src/bts/health/contest_state.py:214: in _check
+    flag = _read_saver_state(picks_dir, season=year, historical=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/f2-mutation-q5ta4odn/src/bts/saver_state.py:58: in _read_saver_state
+    d = json.loads(raw)
+        ^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+E   RecursionError: maximum recursion depth exceeded while decoding a JSON array from a unicode string
+=========================== short test summary info ============================
+FAILED tests/test_wr_f2_saver_flag.py::test_k2_k3_unusable_flag_preserves_existing_alerts[nested]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+========================= 1 failed, 23 passed in 0.62s =========================
+no-recursion-catch: tests caught the change

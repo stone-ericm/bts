@@ -1,0 +1,25 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2b-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 453 items
+
+tests/health/test_alert.py .......................                       [  5%]
+tests/health/test_alert_status_cs6b2.py ................................ [ 12%]
+........................................................................ [ 28%]
+........................................................................ [ 43%]
+........................................................................ [ 59%]
+........................................................................ [ 75%]
+.................                                                        [ 79%]
+tests/health/test_alert_status_cs6b2_carbon_r2.py ...........            [ 81%]
+tests/health/test_alert_status_cs6b2_review.py ...............           [ 85%]
+tests/health/test_contest_state.py ................                      [ 88%]
+tests/health/test_f4_exception_propagation.py .........                  [ 90%]
+tests/health/test_h6_resurface.py ....                                   [ 91%]
+tests/health/test_late_delivery.py ............                          [ 94%]
+tests/health/test_runner.py .....................                        [ 98%]
+tests/scripts/test_state_segment_policy_candidate_screen.py .....        [100%]
+
+============================= 453 passed in 2.14s ==============================

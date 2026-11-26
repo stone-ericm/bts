@@ -1,0 +1,5 @@
+nice: setpriority: Operation not permitted
+Git scope verified: {"r1_files": ["src/bts/health/contest_state.py", "src/bts/health/runner.py", "tests/test_contest_dated_cs4a.py", "tests/test_wr_f2_saver_flag.py"], "r2_files": ["docs/ops/2027-season-start.md", "src/bts/health/contest_state.py", "src/bts/health/runner.py", "tests/test_contest_dated_cs4a.py", "tests/test_f2_b1_stat_oserror_regression.py", "tests/test_wr_f2_saver_flag.py"], "cs4a_added_lines": 5, "ops_exact_match": true}
+[base] bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f2b-cb/.carbon-review/wr-f2-r2/base_archive/src/bts/__init__.py
+[candidate] bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f2b-cb/src/bts/__init__.py
+PASS: 400 paired base-vs-candidate cases (including 8 scheduler.run_day runs) matched byte-for-byte.

@@ -1,0 +1,62 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/f2-mutation-cxhrqb5c/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2b-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 786 items
+
+tests/test_wr_f2_saver_flag.py ......................................... [  5%]
+..............                                                           [  6%]
+tests/test_f2_b1_stat_oserror_regression.py F
+
+=================================== FAILURES ===================================
+_ test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm[False-unsearchable_dir] _
+tests/test_f2_b1_stat_oserror_regression.py:89: in test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm
+    actual = health.check(
+/tmp/f2-mutation-cxhrqb5c/src/bts/health/contest_state.py:70: in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/f2-mutation-cxhrqb5c/src/bts/health/contest_state.py:214: in _check
+    flag = _read_saver_state(picks_dir, season=year, historical=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/f2-mutation-cxhrqb5c/src/bts/saver_state.py:54: in _read_saver_state
+    if not path.exists():
+           ^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:860: in exists
+    self.stat(follow_symlinks=follow_symlinks)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:840: in stat
+    return os.stat(self, follow_symlinks=follow_symlinks)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   PermissionError: [Errno 13] Permission denied: '/private/tmp/f2-mutation-cxhrqb5c/pytest/test_dated_used_flag_symlink_s0/data/picks/account_state/saver_state.json'
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.runner:runner.py:67 health check 'contest_state' raised: [Errno 13] Permission denied: '/private/tmp/f2-mutation-cxhrqb5c/pytest/test_dated_used_flag_symlink_s0/data/picks/account_state/saver_state.json'
+Traceback (most recent call last):
+  File "/tmp/f2-mutation-cxhrqb5c/src/bts/health/runner.py", line 65, in _safe_run
+    return fn()
+           ^^^^
+  File "/tmp/f2-mutation-cxhrqb5c/src/bts/health/runner.py", line 141, in <lambda>
+    contest_alerts = _safe_run("contest_state", lambda: contest_state.check(
+                                                        ^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/f2-mutation-cxhrqb5c/src/bts/health/contest_state.py", line 70, in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/f2-mutation-cxhrqb5c/src/bts/health/contest_state.py", line 214, in _check
+    flag = _read_saver_state(picks_dir, season=year, historical=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/f2-mutation-cxhrqb5c/src/bts/saver_state.py", line 54, in _read_saver_state
+    if not path.exists():
+           ^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 860, in exists
+    self.stat(follow_symlinks=follow_symlinks)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 840, in stat
+    return os.stat(self, follow_symlinks=follow_symlinks)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: '/private/tmp/f2-mutation-cxhrqb5c/pytest/test_dated_used_flag_symlink_s0/data/picks/account_state/saver_state.json'
+ERROR    bts.health.alert:alert.py:47 [health_runner CRITICAL] health check 'contest_state' crashed: PermissionError: [Errno 13] Permission denied: '/private/tmp/f2-mutation-cxhrqb5c/pytest/test_dated_used_flag_symlink_s0/data/picks/account_state/saver_state.json'
+=========================== short test summary info ============================
+FAILED tests/test_f2_b1_stat_oserror_regression.py::test_dated_used_flag_symlink_stat_oserror_preserves_alerts_and_sends_no_crash_dm[False-unsearchable_dir]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+========================= 1 failed, 55 passed in 0.97s =========================
+no-oserror-catch: tests caught the change

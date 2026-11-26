@@ -1,0 +1,19 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2b-cb
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 237 items
+
+tests/test_wr_c3_r2_entered_pick_blockers.py .........                   [  3%]
+tests/test_wr_e_texts.py ............................................... [ 23%]
+..................                                                       [ 31%]
+tests/test_wr_g_guard.py ............................................    [ 49%]
+tests/test_wr_h2_caps.py ................                                [ 56%]
+tests/test_wr_w15_health.py ............................................ [ 75%]
+.                                                                        [ 75%]
+tests/test_wr_w15b.py .................................................. [ 96%]
+........                                                                 [100%]
+
+============================= 237 passed in 36.90s =============================

@@ -1,0 +1,88 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2b-cb
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 12 items
+
+tests/test_web_saver.py .........F..                                     [100%]
+
+=================================== FAILURES ===================================
+_________________ test_do_post_saver_transition_socket_wiring __________________
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2145/test_do_post_saver_transition_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10d0a8ce0>
+
+    def test_do_post_saver_transition_socket_wiring(tmp_path, monkeypatch):
+        _setup(tmp_path, "active")
+        # The HTTP handler takes the wall clock; keep it in the fixture's season.
+        import bts.web as web
+        class Clock(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return NOW.astimezone(tz) if tz else NOW.replace(tzinfo=None)
+        monkeypatch.setattr(web, "datetime", Clock)
+        srv = _serve(tmp_path, monkeypatch)
+        try:
+            port = srv.server_address[1]
+    
+>           r = _post(port, {"expected_prior": "active", "new_state": "used"})
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_web_saver.py:143: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_web_saver.py:119: in _post
+    conn.request("POST", path, urlencode(body), headers)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/http/client.py:1386: in request
+    self._send_request(method, url, body, headers, encode_chunked)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/http/client.py:1432: in _send_request
+    self.endheaders(body, encode_chunked=encode_chunked)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/http/client.py:1381: in endheaders
+    self._send_output(message_body, encode_chunked=encode_chunked)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/http/client.py:1141: in _send_output
+    self.send(msg)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/http/client.py:1085: in send
+    self.connect()
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/http/client.py:1051: in connect
+    self.sock = self._create_connection(
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/socket.py:865: in create_connection
+    raise exceptions[0]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+address = ('127.0.0.1', 62987), timeout = 5, source_address = None
+
+    def create_connection(address, timeout=_GLOBAL_DEFAULT_TIMEOUT,
+                          source_address=None, *, all_errors=False):
+        """Connect to *address* and return the socket object.
+    
+        Convenience function.  Connect to *address* (a 2-tuple ``(host,
+        port)``) and return the socket object.  Passing the optional
+        *timeout* parameter will set the timeout on the socket instance
+        before attempting to connect.  If no *timeout* is supplied, the
+        global default timeout setting returned by :func:`getdefaulttimeout`
+        is used.  If *source_address* is set it must be a tuple of (host, port)
+        for the socket to bind as a source address before making the connection.
+        A host of '' or port 0 tells the OS to use the default. When a connection
+        cannot be created, raises the last error if *all_errors* is False,
+        and an ExceptionGroup of all errors if *all_errors* is True.
+        """
+    
+        host, port = address
+        exceptions = []
+        for res in getaddrinfo(host, port, 0, SOCK_STREAM):
+            af, socktype, proto, canonname, sa = res
+            sock = None
+            try:
+                sock = socket(af, socktype, proto)
+                if timeout is not _GLOBAL_DEFAULT_TIMEOUT:
+                    sock.settimeout(timeout)
+                if source_address:
+                    sock.bind(source_address)
+>               sock.connect(sa)
+E               PermissionError: [Errno 1] Operation not permitted
+
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/socket.py:850: PermissionError
+=========================== short test summary info ============================
+FAILED tests/test_web_saver.py::test_do_post_saver_transition_socket_wiring
+========================= 1 failed, 11 passed in 0.79s =========================
+web_exit=1
