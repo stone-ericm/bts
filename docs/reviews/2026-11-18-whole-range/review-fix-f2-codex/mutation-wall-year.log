@@ -1,0 +1,390 @@
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f2-cx/.codex-review/wr-f2-r1/mutation-wall-year-z4jl_557/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 134 items
+
+tests/test_wr_f2_saver_flag.py FFF.F.............F...................... [ 30%]
+.........                                                                [ 37%]
+tests/test_contest_dated_cs4a.py ....FF....FF....FF....FF....FF....FF... [ 66%]
+.FF....FF....FF....FF....FF....FF....FF....FF                            [100%]
+
+=================================== FAILURES ===================================
+_______________ test_m1_m2_live_warning_and_delivery[active-14] ________________
+tests/test_wr_f2_saver_flag.py:132: in test_m1_m2_live_warning_and_delivery
+    assert health.check(picks, now=DAY, expected=True) == [expected]
+E   assert [] == [Alert(level=...ed_mismatch')]
+E     
+E     Right contains one more item: Alert(level='WARN', source='saver_state', message="Streak Saver on 2027-07-15 ET. The dated observation says the saver...eduler's picks directory and follow checklist B8a for any correction.", incident_key='saver_state:dated_used_mismatch')
+E     Use -v to get more diff
+_____________ test_m1_m2_live_warning_and_delivery[not_earned-14] ______________
+tests/test_wr_f2_saver_flag.py:132: in test_m1_m2_live_warning_and_delivery
+    assert health.check(picks, now=DAY, expected=True) == [expected]
+E   assert [] == [Alert(level=...ed_mismatch')]
+E     
+E     Right contains one more item: Alert(level='WARN', source='saver_state', message="Streak Saver on 2027-07-15 ET. The dated observation says the saver...eduler's picks directory and follow checklist B8a for any correction.", incident_key='saver_state:dated_used_mismatch')
+E     Use -v to get more diff
+______________ test_m1_m2_live_warning_and_delivery[not_earned-9] ______________
+tests/test_wr_f2_saver_flag.py:132: in test_m1_m2_live_warning_and_delivery
+    assert health.check(picks, now=DAY, expected=True) == [expected]
+E   assert [] == [Alert(level=...ed_mismatch')]
+E     
+E     Right contains one more item: Alert(level='WARN', source='saver_state', message="Streak Saver on 2027-07-15 ET. The dated observation says the saver...eduler's picks directory and follow checklist B8a for any correction.", incident_key='saver_state:dated_used_mismatch')
+E     Use -v to get more diff
+_____ test_m3_after_midnight_uses_processed_season_and_current_files[day1] _____
+tests/test_wr_f2_saver_flag.py:152: in test_m3_after_midnight_uses_processed_season_and_current_files
+    warning, = mismatch(alerts)
+    ^^^^^^^^
+E   ValueError: not enough values to unpack (expected 1, got 0)
+_______ test_k2_k3_unusable_flag_preserves_existing_alerts[other-season] _______
+tests/test_wr_f2_saver_flag.py:256: in test_k2_k3_unusable_flag_preserves_existing_alerts
+    assert health.check(picks, now=DAY, expected=True, historical_day=day) == expected
+E   assert [Alert(level=...ed_mismatch')] == [Alert(level=...ent_key=None)]
+E     
+E     Left contains one more item: Alert(level='WARN', source='saver_state', message="Streak Saver on 2027-07-15 ET. The dated observation says the saver...eduler's picks directory and follow checklist B8a for any correction.", incident_key='saver_state:dated_used_mismatch')
+E     Use -v to get more diff
+______ test_health_observation_saver_without_flag_read[None-0-used-False] ______
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_4'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_4'), season=2026, historical=True)
+______ test_health_observation_saver_without_flag_read[None-0-used-True] _______
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_5'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_5'), season=2026, historical=True)
+______ test_health_observation_saver_without_flag_read[None-9-used-False] ______
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_10'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_10'), season=2026, historical=True)
+______ test_health_observation_saver_without_flag_read[None-9-used-True] _______
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_11'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_11'), season=2026, historical=True)
+_____ test_health_observation_saver_without_flag_read[None-10-used-False] ______
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_16'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_16'), season=2026, historical=True)
+______ test_health_observation_saver_without_flag_read[None-10-used-True] ______
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_17'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_17'), season=2026, historical=True)
+_____ test_health_observation_saver_without_flag_read[None-12-used-False] ______
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_22'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_22'), season=2026, historical=True)
+______ test_health_observation_saver_without_flag_read[None-12-used-True] ______
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_23'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_23'), season=2026, historical=True)
+_____ test_health_observation_saver_without_flag_read[None-15-used-False] ______
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_28'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_28'), season=2026, historical=True)
+______ test_health_observation_saver_without_flag_read[None-15-used-True] ______
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_29'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_29'), season=2026, historical=True)
+_____ test_health_observation_saver_without_flag_read[None-16-used-False] ______
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_34'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_34'), season=2026, historical=True)
+______ test_health_observation_saver_without_flag_read[None-16-used-True] ______
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_35'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_35'), season=2026, historical=True)
+_____ test_health_observation_saver_without_flag_read[None-57-used-False] ______
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_40'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_40'), season=2026, historical=True)
+______ test_health_observation_saver_without_flag_read[None-57-used-True] ______
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_41'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_41'), season=2026, historical=True)
+____ test_health_observation_saver_without_flag_read[corrupt-0-used-False] _____
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_46'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_46'), season=2026, historical=True)
+_____ test_health_observation_saver_without_flag_read[corrupt-0-used-True] _____
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_47'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_47'), season=2026, historical=True)
+____ test_health_observation_saver_without_flag_read[corrupt-9-used-False] _____
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_52'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_52'), season=2026, historical=True)
+_____ test_health_observation_saver_without_flag_read[corrupt-9-used-True] _____
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_53'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_53'), season=2026, historical=True)
+____ test_health_observation_saver_without_flag_read[corrupt-10-used-False] ____
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_58'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_58'), season=2026, historical=True)
+____ test_health_observation_saver_without_flag_read[corrupt-10-used-True] _____
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_59'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_59'), season=2026, historical=True)
+____ test_health_observation_saver_without_flag_read[corrupt-12-used-False] ____
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_64'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_64'), season=2026, historical=True)
+____ test_health_observation_saver_without_flag_read[corrupt-12-used-True] _____
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_65'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_65'), season=2026, historical=True)
+____ test_health_observation_saver_without_flag_read[corrupt-15-used-False] ____
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_70'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_70'), season=2026, historical=True)
+____ test_health_observation_saver_without_flag_read[corrupt-15-used-True] _____
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_71'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_71'), season=2026, historical=True)
+____ test_health_observation_saver_without_flag_read[corrupt-16-used-False] ____
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_76'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_76'), season=2026, historical=True)
+____ test_health_observation_saver_without_flag_read[corrupt-16-used-True] _____
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_77'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_77'), season=2026, historical=True)
+____ test_health_observation_saver_without_flag_read[corrupt-57-used-False] ____
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_82'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_82'), season=2026, historical=True)
+____ test_health_observation_saver_without_flag_read[corrupt-57-used-True] _____
+tests/test_contest_dated_cs4a.py:326: in test_health_observation_saver_without_flag_read
+    bounded_read.assert_called_once_with(tmp_path,season=2027,historical=True)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_83'), season=2027, historical=True)
+E     Actual: mock(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1972/test_health_observation_saver_83'), season=2026, historical=True)
+=========================== short test summary info ============================
+FAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[active-14]
+FAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[not_earned-14]
+FAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[not_earned-9]
+FAILED tests/test_wr_f2_saver_flag.py::test_m3_after_midnight_uses_processed_season_and_current_files[day1]
+FAILED tests/test_wr_f2_saver_flag.py::test_k2_k3_unusable_flag_preserves_existing_alerts[other-season]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-0-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-0-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-9-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-9-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-10-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-10-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-12-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-12-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-15-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-15-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-16-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-16-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-57-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-57-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-0-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-0-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-9-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-9-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-10-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-10-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-12-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-12-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-15-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-15-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-16-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-16-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-57-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-57-used-True]
+======================== 33 failed, 101 passed in 1.45s ========================

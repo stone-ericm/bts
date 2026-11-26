@@ -1,0 +1,44 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 520 items
+
+tests/test_season_contract_cs4b2_review.py ............                  [  2%]
+tests/test_stale_delivery_cs4c.py ...................................... [  9%]
+........................                                                 [ 14%]
+tests/test_stale_delivery_cs4c_carbon.py ....................            [ 18%]
+tests/test_stale_delivery_cs4c_review.py ............................... [ 24%]
+................                                                         [ 27%]
+tests/test_streak_season_cs2.py ........................................ [ 34%]
+........................................................................ [ 48%]
+........................................................................ [ 62%]
+.................................................................        [ 75%]
+tests/test_streak_season_cs2_review.py ................                  [ 78%]
+tests/test_thin_slate_checks.py ..............                           [ 80%]
+tests/test_web_saver.py .........F..                                     [ 83%]
+tests/test_wr_a_calendar.py ........                                     [ 84%]
+tests/test_wr_a_pick.py ...............................                  [ 90%]
+tests/test_wr_a_review_carbon.py .........................               [ 95%]
+tests/test_wr_b_contract.py ........................                     [100%]
+
+=================================== FAILURES ===================================
+_________________ test_do_post_saver_transition_socket_wiring __________________
+tests/test_web_saver.py:139: in test_do_post_saver_transition_socket_wiring
+    srv = _serve(tmp_path, monkeypatch)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_web_saver.py:107: in _serve
+    srv = HTTPServer(("127.0.0.1", 0), web.Handler)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/socketserver.py:457: in __init__
+    self.server_bind()
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/http/server.py:140: in server_bind
+    socketserver.TCPServer.server_bind(self)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/socketserver.py:478: in server_bind
+    self.socket.bind(self.server_address)
+E   PermissionError: [Errno 1] Operation not permitted
+=========================== short test summary info ============================
+FAILED tests/test_web_saver.py::test_do_post_saver_transition_socket_wiring
+======================== 1 failed, 519 passed in 4.22s =========================

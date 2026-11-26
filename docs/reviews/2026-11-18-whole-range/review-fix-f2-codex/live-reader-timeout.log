@@ -1,0 +1,44 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f2-cx/.codex-review/wr-f2-r1/fifo-reader-7t0k8v3b/src/bts/__init__.py
+historical=False: check returned normally, alarm count=1
+historical=True: check returned normally, alarm count=2
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 84 items
+
+tests/test_contest_dated_cs4a.py ....FF....FF....FF....FF....FF....FF... [ 46%]
+.FF....FF....FF....FF....FF....FF....FF....FF                            [100%]
+
+=========================== short test summary info ============================
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-0-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-0-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-9-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-9-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-10-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-10-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-12-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-12-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-15-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-15-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-16-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-16-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-57-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[None-57-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-0-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-0-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-9-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-9-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-10-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-10-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-12-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-12-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-15-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-15-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-16-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-16-used-True]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-57-used-False]
+FAILED tests/test_contest_dated_cs4a.py::test_health_observation_saver_without_flag_read[corrupt-57-used-True]
+======================== 28 failed, 56 passed in 0.42s =========================

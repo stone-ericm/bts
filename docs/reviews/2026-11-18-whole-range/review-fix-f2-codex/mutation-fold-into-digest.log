@@ -1,0 +1,156 @@
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f2-cx/.codex-review/wr-f2-r1/mutation-fold-into-digest-lysg6o_z/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 134 items
+
+tests/test_wr_f2_saver_flag.py FFFFF...........................FFFF..... [ 30%]
+.........                                                                [ 37%]
+tests/test_contest_dated_cs4a.py ....................................... [ 66%]
+.............................................                            [100%]
+
+=================================== FAILURES ===================================
+_______________ test_m1_m2_live_warning_and_delivery[active-14] ________________
+tests/test_wr_f2_saver_flag.py:139: in test_m1_m2_live_warning_and_delivery
+    assert not status_path(picks).exists()
+E   AssertionError: assert not True
+E    +  where True = exists()
+E    +    where exists = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1974/test_m1_m2_live_warning_and_de0/oom/health_state/health_dm_delivery_status.json').exists
+E    +      where PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1974/test_m1_m2_live_warning_and_de0/oom/health_state/health_dm_delivery_status.json') = status_path(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1974/test_m1_m2_live_warning_and_de0/oom/picks'))
+------------------------------ Captured log call -------------------------------
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use `bts season-contract status` for the scheduler's picks directory and follow checklist B8a for any correction.
+_____________ test_m1_m2_live_warning_and_delivery[not_earned-14] ______________
+tests/test_wr_f2_saver_flag.py:139: in test_m1_m2_live_warning_and_delivery
+    assert not status_path(picks).exists()
+E   AssertionError: assert not True
+E    +  where True = exists()
+E    +    where exists = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1974/test_m1_m2_live_warning_and_de1/oom/health_state/health_dm_delivery_status.json').exists
+E    +      where PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1974/test_m1_m2_live_warning_and_de1/oom/health_state/health_dm_delivery_status.json') = status_path(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1974/test_m1_m2_live_warning_and_de1/oom/picks'))
+------------------------------ Captured log call -------------------------------
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read not_earned at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use `bts season-contract status` for the scheduler's picks directory and follow checklist B8a for any correction.
+______________ test_m1_m2_live_warning_and_delivery[not_earned-9] ______________
+tests/test_wr_f2_saver_flag.py:139: in test_m1_m2_live_warning_and_delivery
+    assert not status_path(picks).exists()
+E   AssertionError: assert not True
+E    +  where True = exists()
+E    +    where exists = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1974/test_m1_m2_live_warning_and_de2/oom/health_state/health_dm_delivery_status.json').exists
+E    +      where PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1974/test_m1_m2_live_warning_and_de2/oom/health_state/health_dm_delivery_status.json') = status_path(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1974/test_m1_m2_live_warning_and_de2/oom/picks'))
+------------------------------ Captured log call -------------------------------
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read not_earned at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use `bts season-contract status` for the scheduler's picks directory and follow checklist B8a for any correction.
+_____ test_m3_after_midnight_uses_processed_season_and_current_files[day0] _____
+tests/test_wr_f2_saver_flag.py:160: in test_m3_after_midnight_uses_processed_season_and_current_files
+    assert json.loads(status_path(picks, MISMATCH_STATUS).read_text())["sent_day"] == str(day.date())
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1974/test_m3_after_midnight_uses_pr0/health_state/health_dm_delivery_status.json.dated_used_mismatch.json'
+------------------------------ Captured log call -------------------------------
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Prior slate 2027-07-15 ET. The dated observation recorded the saver as used. At this check the flag for season 2027 read active. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+_____ test_m3_after_midnight_uses_processed_season_and_current_files[day1] _____
+tests/test_wr_f2_saver_flag.py:160: in test_m3_after_midnight_uses_processed_season_and_current_files
+    assert json.loads(status_path(picks, MISMATCH_STATUS).read_text())["sent_day"] == str(day.date())
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1974/test_m3_after_midnight_uses_pr1/health_state/health_dm_delivery_status.json.dated_used_mismatch.json'
+------------------------------ Captured log call -------------------------------
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Prior slate 2027-12-31 ET. The dated observation recorded the saver as used. At this check the flag for season 2027 read active. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+______________ test_same_day_reruns_preserve_both_incidents[used] ______________
+/Users/eric/projects/bts-work/wr-rev-f2-cx/tests/test_wr_f2_saver_flag.py:287: in test_same_day_reruns_preserve_both_incidents
+    assert json.loads(status_path(picks).read_text())["sent_sources"] == ["WARN_ATTENTION:saver_state"]
+E   AssertionError: assert ['WARN_ATTENT...sed_mismatch'] == ['WARN_ATTENTION:saver_state']
+E     
+E     Left contains one more item: 'WARN_ATTENTION:saver_state:dated_used_mismatch'
+E     Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use `bts season-contract status` for the scheduler's picks directory and follow checklist B8a for any correction.
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver not_earned in dated observation p/account_state/contest_streak.manual.json, season 2027, contradicts streak 14; counting the saver as spent. Check MLB and run ONE correction to the observation. Earned and unused: `bts set-contest-streak --date 2027-07-15 --streak 14 --best-streak 15 --saver active --picks-dir p`. Already used: `bts set-contest-streak --date 2027-07-15 --streak 14 --best-streak 15 --saver used --picks-dir p`. Not earned: `bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver not_earned --picks-dir p`, replacing N and B with the active and best streaks MLB shows. Changing the saver flag does not correct this observation.
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver not_earned in dated observation p/account_state/contest_streak.manual.json, season 2027, contradicts streak 14; counting the saver as spent. Check MLB and run ONE correction to the observation. Earned and unused: `bts set-contest-streak --date 2027-07-15 --streak 14 --best-streak 15 --saver active --picks-dir p`. Already used: `bts set-contest-streak --date 2027-07-15 --streak 14 --best-streak 15 --saver used --picks-dir p`. Not earned: `bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver not_earned --picks-dir p`, replacing N and B with the active and best streaks MLB shows. Changing the saver flag does not correct this observation.
+___________ test_same_day_reruns_preserve_both_incidents[not_earned] ___________
+/Users/eric/projects/bts-work/wr-rev-f2-cx/tests/test_wr_f2_saver_flag.py:287: in test_same_day_reruns_preserve_both_incidents
+    assert json.loads(status_path(picks).read_text())["sent_sources"] == ["WARN_ATTENTION:saver_state"]
+E   AssertionError: assert ['WARN_ATTENT...sed_mismatch'] == ['WARN_ATTENTION:saver_state']
+E     
+E     Left contains one more item: 'WARN_ATTENTION:saver_state:dated_used_mismatch'
+E     Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver not_earned in dated observation p/account_state/contest_streak.manual.json, season 2027, contradicts streak 14; counting the saver as spent. Check MLB and run ONE correction to the observation. Earned and unused: `bts set-contest-streak --date 2027-07-15 --streak 14 --best-streak 15 --saver active --picks-dir p`. Already used: `bts set-contest-streak --date 2027-07-15 --streak 14 --best-streak 15 --saver used --picks-dir p`. Not earned: `bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver not_earned --picks-dir p`, replacing N and B with the active and best streaks MLB shows. Changing the saver flag does not correct this observation.
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use `bts season-contract status` for the scheduler's picks directory and follow checklist B8a for any correction.
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use `bts season-contract status` for the scheduler's picks directory and follow checklist B8a for any correction.
+_________ test_existing_digest_sends_first_and_stays_below_chat_limit __________
+tests/test_wr_f2_saver_flag.py:316: in test_existing_digest_sends_first_and_stays_below_chat_limit
+    assert sends[0] == base_sends[0] and warning.message in sends[1][1]
+E   assert (('offline.tes...bserved day)') == ('offline.tes...bserved day)')
+E     
+E     At index 1 diff: "BTS health WARN attention:\n- [pick_entry] Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operat...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show)
+------------------------------ Captured log call -------------------------------
+WARNING  bts.health.alert:alert.py:49 [pick_entry WARN] Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. 
+WARNING  bts.health.alert:alert.py:49 [pick_entry WARN] Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. Existing operator alert. 
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use `bts season-contract status` for the scheduler's picks directory and follow checklist B8a for any correction.
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: chat length limit
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cx/.codex-review/wr-f2-r1/mutation-fold-into-digest-lysg6o_z/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cx/tests/test_wr_f2_saver_flag.py", line 303, in capped_transport
+    raise ValueError("chat length limit")
+ValueError: chat length limit
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+____________ test_failed_send_and_interrupt_before_status_can_retry ____________
+tests/test_wr_f2_saver_flag.py:330: in test_failed_send_and_interrupt_before_status_can_retry
+    assert failed and json.loads(status.read_text())["status"] == "failed"
+                                 ^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1974/test_failed_send_and_interrupt0/health_state/health_dm_delivery_status.json.dated_used_mismatch.json'
+------------------------------ Captured log call -------------------------------
+WARNING  bts.health.alert:alert.py:49 [saver_state WARN] Streak Saver on 2027-07-15 ET. The dated observation says the saver was used. The flag for season 2027 read active at this check. A later automatic decision may count a saver as available. Verify the current season's saver and prior entries in MLB before any correction. Use `bts season-contract status` for the scheduler's picks directory and follow checklist B8a for any correction.
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: offline
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f2-cx/.codex-review/wr-f2-r1/mutation-fold-into-digest-lysg6o_z/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: offline
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+=========================== short test summary info ============================
+FAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[active-14]
+FAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[not_earned-14]
+FAILED tests/test_wr_f2_saver_flag.py::test_m1_m2_live_warning_and_delivery[not_earned-9]
+FAILED tests/test_wr_f2_saver_flag.py::test_m3_after_midnight_uses_processed_season_and_current_files[day0]
+FAILED tests/test_wr_f2_saver_flag.py::test_m3_after_midnight_uses_processed_season_and_current_files[day1]
+FAILED tests/test_wr_f2_saver_flag.py::test_same_day_reruns_preserve_both_incidents[used]
+FAILED tests/test_wr_f2_saver_flag.py::test_same_day_reruns_preserve_both_incidents[not_earned]
+FAILED tests/test_wr_f2_saver_flag.py::test_existing_digest_sends_first_and_stays_below_chat_limit
+FAILED tests/test_wr_f2_saver_flag.py::test_failed_send_and_interrupt_before_status_can_retry
+======================== 9 failed, 125 passed in 0.91s =========================
