@@ -1,5 +1,0 @@
-nice: setpriority: Operation not permitted
-plant 2027-07-15 ["2027-07-15 dated/57/57/used/0.96: longest-streak action 'skip', expected 'single'", "2027-07-15 dated/57/57/used/0.96: longest-streak objective 'reach57'"]
-plant 2027-09-26 ["2027-09-26 dated/57/57/used/0.96: longest-streak action 'single', expected 'double'", "2027-09-26 dated/57/57/used/0.96: longest-streak objective 'reach57'"]
-checker with missing effective days, source and artifact provenance: []
-4,599 original rows and 612 warnings exactly match G, 219 added rows with 210 valid plays and nine post-finale skips

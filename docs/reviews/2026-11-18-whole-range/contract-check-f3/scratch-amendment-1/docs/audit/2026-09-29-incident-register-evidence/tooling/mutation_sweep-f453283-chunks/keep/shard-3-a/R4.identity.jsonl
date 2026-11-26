@@ -1,1 +1,0 @@
-{"node": "tests.scripts.incident_register.test_runner::test_a_session_that_never_finishes_is_rejected", "kind": "assertion"}

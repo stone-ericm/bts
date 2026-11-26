@@ -1,4 +1,0 @@
-nice: setpriority: Operation not permitted
-bts /Users/eric/projects/bts-work/wr-check-h2/.codex-review/wr-h-check2/scratch/src/bts/__init__.py walk /Users/eric/projects/bts-work/wr-check-h2/.codex-review/wr-h-check2/scratch/scripts/audit/season_walk/walk.py
-saved totals 4599 612 guard key count 0 policy_guard key count 0 findings by state Counter({'56': 314, '55': 157, '50': 141})
-existing 2289 changed fields Counter() changed shapes 0 problem comparison 280 True

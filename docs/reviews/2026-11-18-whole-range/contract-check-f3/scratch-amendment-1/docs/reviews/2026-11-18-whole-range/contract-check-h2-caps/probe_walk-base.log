@@ -1,3 +1,0 @@
-nice: setpriority: Operation not permitted
-/Users/eric/projects/bts-work/wr-check-h2b/src/bts/contest_state.py dates 2027-03-01 2027-10-05
-new rows 219 Counter({None: 219}) 219 ['2027-03-01 dated/58/60/used/0.96: error ContestStateError: Live decision refused: season 2027 switch is absent.', '2027-03-02 dated/58/60/used/0.96: error ContestStateError: Live decision refused: season 2027 switch is absent.', '2027-03-03 dated/58/60/used/0.96: error ContestStateError: Live decision refused: season 2027 switch is absent.']

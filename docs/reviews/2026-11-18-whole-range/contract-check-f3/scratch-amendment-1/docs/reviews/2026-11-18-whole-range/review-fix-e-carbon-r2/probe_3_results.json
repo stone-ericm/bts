@@ -1,9 +1,0 @@
-{
-  "hostile_summaries_tested": 327600,
-  "k2_cases": 4368,
-  "non_k2_cases": 323232,
-  "zero_exceptions_on_decoded_json": true,
-  "all_banners_escaped": true,
-  "below_the_strictly_k2_only": true,
-  "base_head_roundtrip_ok": true
-}

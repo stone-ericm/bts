@@ -1,8 +1,0 @@
-K1-K3, K9 verified (live + historical, precedence, switch 1..5, saver).
-K4 verified (live + historical, non-int best as missing, bounds).
-K5 & K10 verified (dry-run, real, recipient on/off, cooldown in/out, 14h stale boundary).
-K6 verified.
-K7 verified across all 4 pick loaders and saved_pick_refusal.
-K8 verified (401 untrusted never authorizes tail stop; 400 trusted does).
-problems=1
-PROBLEM: K9 historical health on valid dated 400/400 alerted

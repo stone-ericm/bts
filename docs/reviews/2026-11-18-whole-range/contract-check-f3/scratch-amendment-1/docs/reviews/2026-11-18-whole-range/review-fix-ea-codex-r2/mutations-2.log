@@ -1,9 +1,0 @@
-nice: setpriority: Operation not permitted
-old-heading DETECTED
-old-pointer DETECTED
-no-first-check-guard DETECTED
-restore-k5-streak DETECTED
-restore-late-headline DETECTED
-restore-later-date DETECTED
-drop-stored-no-decision-streak DETECTED
-candidate-class-lookup-raises DETECTED

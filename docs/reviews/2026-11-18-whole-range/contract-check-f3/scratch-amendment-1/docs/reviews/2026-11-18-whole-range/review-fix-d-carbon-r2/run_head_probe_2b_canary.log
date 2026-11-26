@@ -1,8 +1,0 @@
-Traceback (most recent call last):
-  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/r2/run_head/.codex-review/wr-d/probe_2b_canary.py", line 235, in <module>
-    raise SystemExit(main())
-                     ^^^^^^
-  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/r2/run_head/.codex-review/wr-d/probe_2b_canary.py", line 126, in main
-    assert res.exit_code == 0 and "research; contest state skipped" in res.output
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AssertionError

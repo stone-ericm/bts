@@ -1,7 +1,0 @@
-Python 3.9.6 no-hold comparisons 372
-without guard, same fresh sleeping input
-monitor_base (0, '[2027-07-15T18:00:00+00:00] stale=False  reason=fresh sleeping\n', '', [('GET', '', '')])
-monitor_head (1, 'Deploy hold lookup failed. See INCIDENT.md §4.\nFailure ping received HTTP 2xx: verified.\n', '', [('POST', '/fail', 'Deploy hold lookup failed. See INCIDENT.md §4.')])
-missing state.lock, with neither record (1, 'Deploy hold lookup failed. See INCIDENT.md §4.\nFailure ping received HTTP 2xx: verified.\n', '', [('POST', '/fail', 'Deploy hold lookup failed. See INCIDENT.md §4.')])
-hold overlay: 108 hold runs plus FIFO and dangling symlink, using fresh sleeping control
-release freshness: old/equal fail materially even asleep, newer fresh succeeds

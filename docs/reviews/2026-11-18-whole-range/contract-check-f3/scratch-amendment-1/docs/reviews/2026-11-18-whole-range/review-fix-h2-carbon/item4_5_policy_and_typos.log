@@ -1,7 +1,0 @@
-Item 4 verified: 1208628 below-57 comparisons (guard_hits=6559, tail_stops=29792) and 1152 >=57 checks; zero action differences vs best capped at 57.
-Item 5 verified: 75/57 caught, 75/75 & 57/157 & 12/157 & auto 5/157 saver earn & R33 75->0 reuse & dated 58/157->58/58 correction match contract.
-problems=4
-PROBLEM: Case 5.2a 57/157 wrong: {'day': '2027-09-26', 'state': 'dated/57/157/used/0.96', 'in_season': True, 'expected_days_left': 1, 'error': 'ContestStateError: Live decision refused: season 2027 switch is absent.', 'setup': [], 'action': None, 'source': None, 'objective': None, 'named': False, 'days_left': 1, 'days_effective': None, 'batter': None, 'double': None, 'no_pick_reason': None, 'saver_available': None, 'chosen_on_kind': None, 'reason': None, 'pick_bar': None, 'skip_dm': None, 'skip_bar': None, 'best_p': None}
-PROBLEM: Case 5.2b 12/15 vs 12/157 wrong: None vs None
-PROBLEM: Case 5.2b skip_dm wrong: None
-PROBLEM: Case 5.5 refusal alert text wrong: []

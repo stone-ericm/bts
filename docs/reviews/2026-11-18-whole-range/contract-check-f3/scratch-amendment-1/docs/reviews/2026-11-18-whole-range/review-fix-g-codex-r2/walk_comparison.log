@@ -1,6 +1,0 @@
-nice: setpriority: Operation not permitted
-Traceback (most recent call last):
-  File "/Users/eric/projects/bts-work/wr-rev-g2-codex/.codex-review/wr-g2/walk_comparison.py", line 33, in <module>
-    assert saved_body + b"\n" == (HERE / "walk.txt").read_bytes()
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AssertionError

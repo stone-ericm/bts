@@ -1,8 +1,0 @@
-Traceback (most recent call last):
-  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/r2/run_head/.codex-review/wr-d/probe_4c_monitor.py", line 343, in <module>
-    raise SystemExit(main())
-                     ^^^^^^
-  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/r2/run_head/.codex-review/wr-d/probe_4c_monitor.py", line 231, in main
-    assert hold_matrix["young_pending_live_active"][0] == 0 and hold_matrix["young_pending_live_active"][2] == []
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AssertionError

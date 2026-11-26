@@ -1,6 +1,0 @@
-boolean whole entry: [] AttributeError: 'bool' object has no attribute 'get'
-regular file in place of raw root: [] NotADirectoryError: [Errno 20] Not a directory: 'data/raw'
-isdigit raw stem outside guarded extraction: [] ValueError: invalid literal for int() with base 10: '²'
-signed cache key is accepted, corresponding signed raw filename is ignored
-status directory rename fails: IsADirectoryError
-ordinary regular-cache replacement error propagates: [] PermissionError: fixture permission denied

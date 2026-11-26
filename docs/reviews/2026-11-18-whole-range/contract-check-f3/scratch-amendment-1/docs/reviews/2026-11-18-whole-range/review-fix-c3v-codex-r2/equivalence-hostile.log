@@ -1,1 +1,0 @@
-{"matching_cases": 233, "states_before_newline": {"saved": 97, "unavailable": 93, "not_reached": 40, "unpublished": 2}, "newline_stderr": "Season replay unavailable for 2027-04-16\\n (no final result on the pick); streak retained, not recalculated.\n", "newline_receipt": {"blocked_date": "2027-04-16\n", "reason": "no final result on the pick", "state": "unavailable"}}

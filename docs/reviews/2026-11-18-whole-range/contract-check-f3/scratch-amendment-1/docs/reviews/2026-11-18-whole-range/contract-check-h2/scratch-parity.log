@@ -1,4 +1,0 @@
-nice: setpriority: Operation not permitted
-bts /Users/eric/projects/bts-work/wr-check-h2/.codex-review/wr-h-check2/scratch/src/bts/__init__.py
-parity 250163 cases, 3664 guards e6a59260d838b960a9da123cf2a65b40ddc955235b8e8da94d6de79bfd63db4f
-G comparison clauses evaluated without stopping at the first failure Counter({'decision fields equal (line 150)': 5610, 'bar == old_bar (line 131)': 374, 'old.action != skip at p == bar (line 157)': np.int64(374)})

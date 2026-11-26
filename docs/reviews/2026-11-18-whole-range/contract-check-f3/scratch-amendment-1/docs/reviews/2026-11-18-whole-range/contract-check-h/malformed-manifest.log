@@ -1,5 +1,0 @@
-nice: setpriority: Operation not permitted
-tail loader TypeError int() argument must be a string, a bytes-like object or a real number, not 'NoneType'
-strategy loader TypeError int() argument must be a string, a bytes-like object or a real number, not 'NoneType'
-effective pick bar TypeError int() argument must be a string, a bytes-like object or a real number, not 'NoneType'
-health TypeError int() argument must be a string, a bytes-like object or a real number, not 'NoneType'

@@ -1,3 +1,0 @@
-nice: setpriority: Operation not permitted
-C31 delivery-slate: tests/test_wr_e_texts.py::test_stale_warning_maximum_detail[delivery] failed on its expected rendered words (exit 1).
-C31 stored-substring: tests/test_wr_e_texts.py::test_skip_stored_text_surfaces[longer-word] failed on its expected rendered words (exit 1).

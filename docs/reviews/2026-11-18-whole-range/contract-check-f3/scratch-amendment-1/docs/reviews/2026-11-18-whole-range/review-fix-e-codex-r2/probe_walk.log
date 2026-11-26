@@ -1,6 +1,0 @@
-nice: setpriority: Operation not permitted
-Traceback (most recent call last):
-  File "/Users/eric/projects/bts-work/wr-rev2-e-codex/.codex-review/wr-e-r2/probe_walk.py", line 35, in <module>
-    assert any("skip message" in problem for problem in failure)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AssertionError

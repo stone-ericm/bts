@@ -1,6 +1,0 @@
-nice: setpriority: Operation not permitted
-census_out_of_range: CAUGHT FAILED tests/test_boundary_shadow_census_g.py::test_invalid_guard_keeps_raw_parity_check[999-998-0.96-double-skip]
-census_accept_play: CAUGHT FAILED tests/test_boundary_shadow_census_g.py::test_invalid_guard_keeps_raw_parity_check[4-3-0.83-double-single]
-public_guard: CAUGHT FAILED tests/test_wr_g_guard.py::test_guarded_delivery_records_selected_batter[public]
-census_unguarded: SURVIVED all named non-socket tests
-allow_voided_clamp_slots: CAUGHT FAILED tests/test_wr_g_guard.py::test_guarded_delivery_records_selected_batter[warmup]

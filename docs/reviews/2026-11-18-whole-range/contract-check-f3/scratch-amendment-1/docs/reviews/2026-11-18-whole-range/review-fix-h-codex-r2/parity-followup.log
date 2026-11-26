@@ -1,9 +1,0 @@
-nice: setpriority: Operation not permitted
-bts.__file__ /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp7nklaiif/src/bts/__init__.py
-H commit unknown scoreable; H write False
-parity 61435 guard cells 1511 raw 0 271 effective 0 240 e8698a7321638c18865600ea6855cd4e4635f11d4dc0fe51db9cb238a161a4c5
-legacy display loader exception propagated on base
-bts.__file__ /Users/eric/projects/bts-work/wr-rev-h2-cx/src/bts/__init__.py
-H commit longest_streak scoreable; H write True
-parity 61435 guard cells 1511 raw 0 271 effective 0 240 e8698a7321638c18865600ea6855cd4e4635f11d4dc0fe51db9cb238a161a4c5
-legacy display loader exception converted to None under A2

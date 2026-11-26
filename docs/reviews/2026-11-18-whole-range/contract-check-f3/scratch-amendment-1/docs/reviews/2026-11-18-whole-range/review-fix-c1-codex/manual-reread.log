@@ -1,5 +1,0 @@
-reread fifo {'attempts': ['os.open', 'os.open'], 'reasons': ['A legacy or expired manual override file is present.'], 'alerts': [['WARN', 'contest_state']]}
-reread directory {'attempts': ['os.open', 'os.open'], 'reasons': ['A legacy or expired manual override file is present.'], 'alerts': [['WARN', 'contest_state']]}
-reread malformed {'attempts': ['os.open', 'os.open'], 'reasons': ['A legacy or expired manual override file is present.'], 'alerts': [['WARN', 'contest_state']]}
-reread non-UTF8 {'attempts': ['os.open', 'os.open'], 'reasons': ['The contest state health check failed before it could finish.'], 'alerts': [['CRITICAL', 'health_runner']]}
-reread fifo-link {'attempts': ['os.open', 'os.open'], 'reasons': ['A legacy or expired manual override file is present.'], 'alerts': [['WARN', 'contest_state']]}

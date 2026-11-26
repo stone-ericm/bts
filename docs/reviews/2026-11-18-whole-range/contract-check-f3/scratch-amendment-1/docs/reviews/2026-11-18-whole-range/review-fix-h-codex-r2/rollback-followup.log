@@ -1,6 +1,0 @@
-nice: setpriority: Operation not permitted
-  6 new confirmed lineup(s). Running predictions...
-  Policy: objective=longest_streak action=single streak=57 best=57 (trusted) effective_best=None days=74 tail=dc5d0c992443
-  Pick: Batter 0 (T0) 84.0% → should_lock=True
-  LOCKED (review delivery) — Pick DM sent: rollback-capture
-/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpvzcx6nwu/src/bts/__init__.py parsed the actual delivery, normalized unknown, single remains scoreable

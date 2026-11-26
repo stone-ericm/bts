@@ -1,2 +1,0 @@
-nice -n 19 .venv/bin/python .carbon-review/whole-range/run_mutations.py
-nice -n 19 .venv/bin/python -m pytest -q .carbon-review/whole-range/test_slice3_interactions.py .carbon-review/whole-range/test_slice3_clocks_and_years.py .carbon-review/whole-range/test_slice3_fail_closed.py

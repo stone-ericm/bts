@@ -1,4 +1,0 @@
-nice: setpriority: Operation not permitted
-/Users/eric/projects/bts-work/wr-check-h2b/.codex-review/wr-h2-check/scratch/src/bts/contest_state.py dates 2027-07-01 2027-08-31
-new rows 62 Counter({'single': 62}) 0 []
-existing rows 1364 differences 0 [] findings []

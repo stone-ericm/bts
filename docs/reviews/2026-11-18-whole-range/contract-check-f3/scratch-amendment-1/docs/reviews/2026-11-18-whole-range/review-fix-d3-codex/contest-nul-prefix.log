@@ -1,9 +1,0 @@
-contest-nul-inside-prefix {'status': 0, 'head': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'enabled': 'enabled', 'stopped': False, 'attempt': 'bts_deploy_attempt_v1 123 1 bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa committed - - - -\n', 'stderr': ''}
-Pre-deploy SHA: aaaaaaa
-Checking requested target bbbbbbb.
-Waiting 30s for services to stabilize...
-Deploy canary: not a live configuration (delivery private); contest state not checked.
-================================
-Deployed bbbbbbb
-CANARY PASSED — bbbbbbb passed the deploy checks
-================================

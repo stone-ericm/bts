@@ -1,1 +1,0 @@
-{"node": "tests.scripts.incident_register.test_r9_counterexamples::test_an_unsupported_class_namespace_never_falls_through_to_a_base", "kind": "assertion"}

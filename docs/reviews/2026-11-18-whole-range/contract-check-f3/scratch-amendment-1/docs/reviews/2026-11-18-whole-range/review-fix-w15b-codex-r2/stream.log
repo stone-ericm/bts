@@ -1,3 +1,0 @@
-Legacy P2 utf-8 b'WARNING: unreadable probable-pitcher cache oom/caf\xc3\xa9`\nnext/models/cache.json (JSONDecodeError); rebuilding it from raw feeds\n'
-Legacy P2 ascii b'WARNING: unreadable probable-pitcher cache oom/caf\\xe9`\nnext/models/cache.json (JSONDecodeError); rebuilding it from raw feeds\n'
-FD proxy lacks errors attribute: b'' -> b'WARNING: probable-pitcher cache: dropped 1 invalid entry (0 recovered from valid cache entries, 0 rescanned from raw feeds, 0 with unusable feeds, 1 without feeds); first game ids: 100\n'

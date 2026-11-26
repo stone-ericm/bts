@@ -1,8 +1,0 @@
-initial: deploy canary 2027-07-15T09:00:00-04:00: contest state refused
-operator wrote: Observation written at data/picks/account_state/contest_streak.manual.json: date=2027-07-15 streak=12 best=14 saver=not_earned reason=None
-contest_streak: 12 (best 14, saver not_earned) for 2027-07-15, in effect today
-default status: live decision now: accepted; source=contest; streak=12; status=fresh; saver=not_earned
-configured status: live decision now: refused; Live decision refused: season 2027 switch is absent.
-retry: deploy canary 2027-07-15T09:00:00-04:00: contest state refused
-Base workflow in a revert: reset history ['bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'] despite a pending hold
-Base workflow rollback output: Pre-deploy SHA: aaaaaaa | Deployed aaaaaaa | Waiting 30s for services to stabilize... | ================================ | CANARY FAILED — rolling back to aaaaaaa | Reasons: |  |   - dashboard HTTP check failed (127.0.0.1:3003) | ================================ | Rolled back cleanly to aaaaaaa

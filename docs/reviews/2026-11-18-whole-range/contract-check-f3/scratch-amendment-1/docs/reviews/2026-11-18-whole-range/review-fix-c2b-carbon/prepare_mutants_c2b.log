@@ -1,9 +1,0 @@
-prepared m1_drop_keyset_check
-prepared m2_accept_superset_keys
-prepared m3_drop_duplicate_member_rejection
-prepared m4_drop_body_hash_comparison
-prepared m5a_hash_constant
-prepared m5b_hash_alert_message
-prepared m6a_compare_sent_day_only
-prepared m6b_keyset_and_sent_day_only
-ALL 8 SCRATCH MUTANTS PREPARED

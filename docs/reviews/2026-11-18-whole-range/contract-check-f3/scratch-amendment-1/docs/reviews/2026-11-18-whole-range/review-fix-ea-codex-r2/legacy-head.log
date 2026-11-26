@@ -1,4 +1,0 @@
-nice: setpriority: Operation not permitted
-WARNING: scheduler_state for 2027-07-15 was corrupt (JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)); quarantined to scheduler_state.json.corrupt-20270715T223500Z and starting with fresh state
-Branch dashboard after same-day upgrade: <div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Top model prediction (eligibility unverified): Batter 0 (T0) 99.0%, at or above the streak-10 bar (79.6%). Streak used at this check: 10.</span></div>
-Directory in place of scheduler_state.json: dashboard ignores, scheduler loader raises.

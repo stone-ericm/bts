@@ -1,7 +1,0 @@
-nice: setpriority: Operation not permitted
-/Users/eric/.matplotlib is not a writable directory
-Matplotlib created a temporary cache directory at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/matplotlib-dzgcvl4f because there was an issue with the default path (/Users/eric/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
-  0 new confirmed lineup(s). Running predictions...
-  Pick: Steven Kwan (CLE) 82.0% → should_lock=True
-CONTEST STATE ERROR — pick delivery blocked: Saved pick for 2027-07-15 was not delivered because it was chosen on automatic. The live state is dated (effective date 2027-07-15, active streak 14, best streak 15, saver used). A later scheduled check or fallback refresh may choose a replacement, if one remains.
-before transport calls 0 delivered False

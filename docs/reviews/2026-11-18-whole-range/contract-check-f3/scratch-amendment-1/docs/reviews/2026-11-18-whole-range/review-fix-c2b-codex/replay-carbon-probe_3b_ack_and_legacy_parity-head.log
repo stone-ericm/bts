@@ -1,7 +1,0 @@
-Traceback (most recent call last):
-  File "/Users/eric/projects/bts-work/wr-review-c2b/.codex-review/wr-c2b/replay/carbon/probe_3b_ack_and_legacy_parity.py", line 437, in <module>
-    main()
-  File "/Users/eric/projects/bts-work/wr-review-c2b/.codex-review/wr-c2b/replay/carbon/probe_3b_ack_and_legacy_parity.py", line 375, in main
-    assert rec1 == {
-           ^^^^^^^^^
-AssertionError: {'body_sha256': '349183d31296312d5858178d4304a170bbb7f62d6ea2a1e7fc16bac6ad7206d7', 'message_id': 'msg-123', 'schema_version': 'bts_health_dm_delivery_status_v1', 'sent_day': '2027-07-15', 'sent_sources': ['CRITICAL:late_delivery'], 'status': 'sent'}

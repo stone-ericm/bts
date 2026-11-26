@@ -1,9 +1,0 @@
-nice: setpriority: Operation not permitted
-============================= test session starts ==============================
-platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0 -- /Users/eric/projects/bts-work/wr-check-h2b/.venv/bin/python
-rootdir: /Users/eric/projects/bts-work/wr-check-h2b/.codex-review/wr-h2-check/scratch
-configfile: pyproject.toml
-plugins: anyio-4.13.0
-collecting ... collected 8 items
-
-tests/test_shadow_scheduler.py::TestRunShadowPrediction::test_wraps_prediction_with_heartbeat_watchdog 

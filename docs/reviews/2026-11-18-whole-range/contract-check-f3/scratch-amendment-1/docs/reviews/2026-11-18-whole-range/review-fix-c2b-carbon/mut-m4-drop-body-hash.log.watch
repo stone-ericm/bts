@@ -1,2 +1,0 @@
-2026-11-20 01:15:21 started pid 69370: env PYTHONPATH=.codex-review/wr-c2b/mutants/m4_drop_body_hash_comparison/src TZ=America/New_York PYTHONDONTWRITEBYTECODE=1 MPLCONFIGDIR=.codex-review/wr-c2b/.mplconfig .venv/bin/python -m pytest -p no:cacheprovider -q tests/test_wr_c2_recovery.py tests/test_wr_c2_carbon_v2.py tests/test_wr_c2_r2_carbon.py tests/test_wr_c2_receipt_identity.py
-2026-11-20 01:16:21 exited rc=1

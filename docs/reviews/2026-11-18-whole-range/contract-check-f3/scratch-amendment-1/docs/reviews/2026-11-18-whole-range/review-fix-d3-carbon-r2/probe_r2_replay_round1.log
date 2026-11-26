@@ -1,7 +1,0 @@
-Python 3.11 LC_ALL=C capture-contest with UTF-8 em-dash: OK
-R1 (Codex 1 — containment clock failure once & always in deploy & recovery): FIXED
-R2 (Codex 2 / Carbon B1 — original late-signal & post-begun read-failure inputs): FIXED
-R3 (Codex 3 — blank/unknown ControlGroup with populated subtree): FIXED
-R4 (Codex 4 / Carbon B3 — URL glob rejection & --globoff): FIXED
-R5 (Codex 5 / Carbon B2 — commit-record numeric & timeout statuses): FIXED
-R7 (Codex NUL byte inside canary prefix): FIXED

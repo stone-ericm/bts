@@ -1,7 +1,0 @@
-Traceback (most recent call last):
-  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.codex-review/wr-c2-r2/replay/carbon-round1/probe_5b_operator_text_and_watchdog.py", line 260, in <module>
-    main()
-  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.codex-review/wr-c2-r2/replay/carbon-round1/probe_5b_operator_text_and_watchdog.py", line 113, in main
-    assert "live decision now: accepted; source=contest:manual_cli; streak=46; status=fresh; saver=used" in status_at_recovery[0]
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AssertionError

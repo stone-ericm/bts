@@ -1,8 +1,0 @@
-nice: setpriority: Operation not permitted
-  FALLBACK REFRESH: no fresh pick available, using cached
-  LOCKED (fallback) — Pick DM sent: synthetic
-tail policy: tail lookup failed (); forced fallback -> single
-cached fallback True no_valid_predictions True {'schema_version': 'bts_daily_decision_v3', 'date': '2027-07-15', 'action': 'single', 'source': 'mdp', 'primary': None, 'double_down': None, 'second_candidate': None, 'streak': 0, 'saver_available': None, 'state_source': 'contest', 'state_status': 'fresh', 'allow_double': True, 'contest_source_date': '2027-07-15', 'delivery_status': 'delivered', 'scoreable': True, 'objective': 'longest_streak', 'best_streak': 57, 'best_status': 'trusted', 'effective_best': None, 'tail_policy_sha256': 'dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4', 'degraded_reason': None, 'finalized_at': '2027-07-15T16:00:00Z'}
-existing tail rule propagated KeyboardInterrupt
-existing tail rule propagated SystemExit
-existing tail rule <class 'ValueError'> ('single', 'tail lookup failed (); forced fallback')

@@ -1,5 +1,0 @@
-nice: setpriority: Operation not permitted
-400 0 wrote <picks>/account_state/contest_streak.json for season 2027: active_streak=58 best_streak=58 source_date=2027-09-25
-400 2 fetch-contest-streak: profile/rounds shape or fetch error: seasonBestStreak must be <= 400
-400 2 fetch-contest-streak: profile/rounds shape or fetch error: profile predictions must be a list
-400 2 fetch-contest-streak: profile/rounds shape or fetch error: int() argument must be a string, a bytes-like object or a real number, not 'list'

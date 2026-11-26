@@ -1,7 +1,0 @@
-Traceback (most recent call last):
-  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.codex-review/wr-c2-r2/replay/carbon/probe_5f_operator_text_and_watchdog.py", line 264, in <module>
-    main()
-  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.codex-review/wr-c2-r2/replay/carbon/probe_5f_operator_text_and_watchdog.py", line 204, in main
-    assert sent.call_count == 0
-           ^^^^^^^^^^^^^^^^^^^^
-AssertionError

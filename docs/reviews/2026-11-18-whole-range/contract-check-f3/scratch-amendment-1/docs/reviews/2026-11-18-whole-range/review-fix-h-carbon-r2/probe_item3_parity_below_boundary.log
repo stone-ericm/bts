@@ -1,7 +1,0 @@
-nice: setpriority: Operation not permitted
-OK: mdp.py untouched (git blob f2a6d1331cdf9e46c83beffff2451815a9d21389, sha256 84a86c8f7a8c7a48)
-[base_0a2bec10] IMPORTED=/Users/eric/projects/bts-work/wr-rev-h2-cb/.carbon-review/wr-h2/scratch-base-0a2bec10-6tn9jo06/src/bts/__init__.py
-[base_0a2bec10] {'cases': 96800, 'guards': 1511, 'raw_min': 0, 'raw_max': 271, 'raw_len': 272, 'eff_min': 0, 'eff_max': 240, 'eff_len': 182, 'digest': '43797bde346f0de4e22d3b454bf14d710990b4c877ebb67f35da4cbbba31242e', 'bar_err_behavior': 'raised:RuntimeError'}
-[head_84805852] IMPORTED=/Users/eric/projects/bts-work/wr-rev-h2-cb/src/bts/__init__.py
-[head_84805852] {'cases': 96800, 'guards': 1511, 'raw_min': 0, 'raw_max': 271, 'raw_len': 272, 'eff_min': 0, 'eff_max': 240, 'eff_len': 182, 'digest': '43797bde346f0de4e22d3b454bf14d710990b4c877ebb67f35da4cbbba31242e', 'bar_err_behavior': 'returned:None'}
-OK: Exact parity across 96800 cases + 5 live select/commit flows (raw days 0..271 [272 distinct], effective days 0..240 [182 distinct], guards=1511, sha256=43797bde346f0de4e22d3b454bf14d710990b4c877ebb67f35da4cbbba31242e)

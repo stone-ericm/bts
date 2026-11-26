@@ -1,2 +1,0 @@
-{"case": "A5-order", "old_after_edit": {"startup": ["dm"], "boot_link": "enabled", "emitted": "  Morning state check: dated contest state accepted (streak 12).\n"}, "new_a5": {"startup": ["private"], "boot_link": "enabled", "emitted": ""}, "new_b8a_after_edit": {"startup": [], "boot_link": "disabled"}}
-{"case": "B8a-omitted-saver-directory", "before": "saver_state: uninitialized (season 2027)\n", "default": "Initialized saver flag: used (season 2027)\nsaver_state: used (season 2027)\n", "configured": "saver_state: uninitialized (season 2027)\n"}

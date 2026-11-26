@@ -1,3 +1,0 @@
-nice: setpriority: Operation not permitted
-bts /Users/eric/projects/bts-work/wr-rev-h2c-cx/src/bts/__init__.py cap 400
-4912 results compared, differences by site {'S1': 200, 'S2': 132, 'S3': 70, 'S4': 26, 'S5': 41, 'S6': 110}

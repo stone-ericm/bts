@@ -1,7 +1,0 @@
-no-escaping mutation-archives/no-escaping/src/bts/cli.py
-escape-receipt mutation-archives/escape-receipt/src/bts/reconcile_receipt.py
-repr mutation-archives/repr/src/bts/cli.py
-M5b mutation-archives/M5b/src/bts/picks.py
-M5c mutation-archives/M5c/src/bts/picks.py
-M5d mutation-archives/M5d/src/bts/picks.py
-M6 mutation-archives/M6/src/bts/cli.py

@@ -1,4 +1,0 @@
-  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.codex-review/wr-c2-r2/replay/carbon/probe_4_damaged_receipts_and_interrupts.py", line 212
-    redirect_stderr(err):
-    ^^^^^^^^^^^^^^^^^^^^
-SyntaxError: too many statically nested blocks

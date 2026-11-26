@@ -1,2 +1,0 @@
-nice: setpriority: Operation not permitted
-bts /Users/eric/projects/bts-work/wr-rev-h2c-cx/.codex-review/wr-h2c/base/src/bts/__init__.py cap 57

@@ -1,7 +1,0 @@
-{
-  "total_summaries_tested": 745,
-  "k2_cases": 563,
-  "non_k2_cases": 182,
-  "bidirectional_state_compat": true,
-  "corrupt_and_directory_checked": true
-}

@@ -1,4 +1,0 @@
-  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.codex-review/wr-c2-r2/replay/carbon-round1/probe_1_restart_and_base_parity.py", line 192
-    redirect_stderr(StringIO()):
-    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-SyntaxError: too many statically nested blocks

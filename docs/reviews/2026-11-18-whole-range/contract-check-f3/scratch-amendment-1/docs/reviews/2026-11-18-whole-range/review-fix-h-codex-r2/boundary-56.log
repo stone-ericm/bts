@@ -1,4 +1,0 @@
-rule cases 36400
-boundary 56
-dispatch 2016 legacy boolean exceptions 144
-fresh selection and walk state follow boundary

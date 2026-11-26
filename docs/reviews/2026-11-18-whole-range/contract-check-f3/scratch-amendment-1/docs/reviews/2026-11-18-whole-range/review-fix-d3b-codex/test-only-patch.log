@@ -1,6 +1,0 @@
-nice: setpriority: Operation not permitted
-Original assertion fails on the current B8a row.
-Patched assertion passes on the unchanged B8a row.
-'automatic path alone: refused' -> rejected
-'Initialize regardless of its status' -> rejected
-'read `bts saver-state-typo --show' -> accepted

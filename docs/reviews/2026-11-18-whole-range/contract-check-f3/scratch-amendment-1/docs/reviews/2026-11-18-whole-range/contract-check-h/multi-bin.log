@@ -1,5 +1,0 @@
-nice: setpriority: Operation not permitted
-refused [0.7146, 0.8097] [0.5403, 0.5944] stop rule violated at 4094 consulted cells (first (s, m, d, saver, q) = (7, 7, 9, 0, 0)): skip iff min(target, s + 2d) <= m
-loads 2 [0.75, 0.75] [0.5, 0.5]
-refused [0.75, 0.875] [0.5, 0.5] stop rule violated at 3253 consulted cells (first (s, m, d, saver, q) = (6, 6, 10, 0, 0)): skip iff min(target, s + 2d) <= m
-refused [0.75, 0.875] [0.5, 0.625] stop rule violated at 3103 consulted cells (first (s, m, d, saver, q) = (6, 6, 19, 1, 0)): skip iff min(target, s + 2d) <= m

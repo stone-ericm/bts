@@ -1,8 +1,0 @@
-nice: setpriority: Operation not permitted
-Traceback (most recent call last):
-  File "/Users/eric/projects/bts-work/wr-chk-ea3/.codex-review/wr-ea3/probe_display.py", line 154, in <module>
-    b8a()
-  File "/Users/eric/projects/bts-work/wr-chk-ea3/.codex-review/wr-ea3/probe_display.py", line 38, in b8a
-    assert bullet.count(value) == 1, value
-           ^^^^^^^^^^^^^^^^^^^^^^^^
-AssertionError: After the switch, live delivery remains eligible when the automatic timestamp is stale and the other delivery checks pass.` |

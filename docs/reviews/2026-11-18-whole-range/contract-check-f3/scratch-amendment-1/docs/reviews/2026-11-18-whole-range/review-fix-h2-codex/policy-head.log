@@ -1,4 +1,0 @@
-nice: setpriority: Operation not permitted
-/Users/eric/projects/bts-work/wr-rev-h2c-cx/src/bts/__init__.py
-boundary: zero days, 57/58/100/399/400, both savers and double restrictions
-range 0 57 raw day counts 270 bin probes 15 actions {'reach57': 1314540, 'emax_season_best': 70560} guarded cells 8537 total 1385100 digest e1401b7f488d485d82e4eceebd2bddd553a331d4c17b05ec076e159b04a0f919

@@ -1,9 +1,0 @@
-f53c0192 merge g2-fix: the pre-season data build no-op, the Opening Night refresh, day-outcome receipts, one health message
-=== 2026-03-25 start 2026-11-14 03:16:43
-=== 2026-03-25 rc=0 end 2026-11-14 03:19:21
-=== 2026-03-26 start 2026-11-14 03:19:21
-=== 2026-03-26 rc=0 end 2026-11-14 03:21:10
-=== swapped in the frozen pa_2026.parquet
-=== 2027-03-24 start 2026-11-14 03:21:10
-=== 2027-03-24 rc=0 end 2026-11-14 03:23:00
-ALL DONE 2026-11-14 03:23:00

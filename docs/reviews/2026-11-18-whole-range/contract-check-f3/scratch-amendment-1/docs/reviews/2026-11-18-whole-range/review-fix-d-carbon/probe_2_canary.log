@@ -1,4 +1,0 @@
-Traceback (most recent call last):
-  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/probe_2_canary.py", line 20, in <module>
-    from tests.test_contest_dated_cs4a import observation, write
-ModuleNotFoundError: No module named 'tests'

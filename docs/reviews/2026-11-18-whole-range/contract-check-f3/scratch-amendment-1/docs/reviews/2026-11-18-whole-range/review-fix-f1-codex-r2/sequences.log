@@ -1,7 +1,0 @@
-nice: setpriority: Operation not permitted
-bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f1b-cx/src/bts/__init__.py
-54 orders across first warning, intermediate state and three DM outcomes
-full proof then capture change success {"attempted_dm": ["✅ BTS pick entry confirmed for 2027-03-24 (match)."], "dm": ["✅ BTS pick entry confirmed for 2027-03-24 (match)."], "marker": {"checked_at": "2027-03-24T19:20:00-04:00", "date": "2027-03-24", "escalations": ["wrong_game"], "reason": "match", "receipt": "89d3d31de88143bcbc1a7a576861bfcf", "status": "confirmed"}}
-full proof then capture change failure {"attempted_dm": ["✅ BTS pick entry confirmed for 2027-03-24 (match)."], "dm": [], "marker": {"checked_at": "2027-03-24T19:20:00-04:00", "date": "2027-03-24", "escalations": ["wrong_game"], "reason": "match", "receipt": "2cea5107f67d47f9a04a4f12758203fb", "status": "confirmed"}}
-full proof then capture change none {"attempted_dm": [], "dm": [], "marker": {"checked_at": "2027-03-24T19:20:00-04:00", "date": "2027-03-24", "escalations": ["wrong_game"], "reason": "match", "receipt": "e0779669581d4205a558a1188ccc0d46", "status": "confirmed"}}
-unreadable prior marker loses state per R1 {"checked_at": "2027-03-24T19:00:00-04:00", "date": "2027-03-24", "reason": "match", "receipt": "46c0825a7e574e009d3911286d12fd61", "status": "confirmed"}

@@ -1,3 +1,0 @@
-PATCHED under repeated calls with dir at cache path: {'first_call': 0.5, 'last_call': 0.5, 'num_0_5': 70, 'num_nan': 0}
-PATCHED broken-pipe stderr subprocess: returncode=0, stdout='FEATURES_OK rows=1'
-ALL PROBE 5F FIX VERIFICATIONS PASSED

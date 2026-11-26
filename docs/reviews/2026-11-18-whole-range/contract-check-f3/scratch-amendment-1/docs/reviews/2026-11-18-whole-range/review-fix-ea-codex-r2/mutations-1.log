@@ -1,9 +1,0 @@
-nice: setpriority: Operation not permitted
-old-journal-k1 DETECTED
-old-journal-k3 DETECTED
-old-journal-k4 DETECTED
-unescaped-name DETECTED
-unescaped-team DETECTED
-unescaped-reason DETECTED
-old-refusal-late DETECTED
-old-refusal-void DETECTED

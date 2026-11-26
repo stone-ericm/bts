@@ -1,7 +1,0 @@
-Traceback (most recent call last):
-  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.codex-review/wr-c2-r2/replay/carbon/probe_2b_isolation_and_dedup.py", line 311, in <module>
-    main()
-  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.codex-review/wr-c2-r2/replay/carbon/probe_2b_isolation_and_dedup.py", line 202, in main
-    assert [c.kwargs["date"] for c in spy_run_day.call_args_list] == [d2, d1]
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AssertionError

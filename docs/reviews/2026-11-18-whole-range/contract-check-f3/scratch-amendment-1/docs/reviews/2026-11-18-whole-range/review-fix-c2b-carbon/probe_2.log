@@ -1,7 +1,0 @@
-Traceback (most recent call last):
-  File "/Users/eric/projects/bts-work/wr-review-c2b-carbon/.codex-review/wr-c2b/probe_2_round2_identity_and_reverse_dedup.py", line 306, in <module>
-    main()
-  File "/Users/eric/projects/bts-work/wr-review-c2b-carbon/.codex-review/wr-c2b/probe_2_round2_identity_and_reverse_dedup.py", line 277, in main
-    assert p_ident_head_raw.returncode != 0 and "body_sha256" in (p_ident_head_raw.stdout + p_ident_head_raw.stderr)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AssertionError

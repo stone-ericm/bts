@@ -1,6 +1,0 @@
-nice: setpriority: Operation not permitted
-OK: Unmutated walk test baseline passed in scratch tree
-CAUGHT walk_drop_days_effective_check: FAILED tests/scripts/season_walk/test_season_walk.py::test_r4_longest_walk_flags_incomplete_policy_fields[days_effective-None-effective days]
-CAUGHT walk_drop_source_check: FAILED tests/scripts/season_walk/test_season_walk.py::test_r4_longest_walk_flags_incomplete_policy_fields[source-None-decision source]
-CAUGHT walk_drop_missing_artifacts_check: FAILED tests/scripts/season_walk/test_season_walk.py::test_r4_longest_walk_flags_incomplete_policy_fields[artifacts-None-policy artifacts]
-CAUGHT walk_drop_longest_action_check: FAILED tests/scripts/season_walk/test_season_walk.py::test_longest_walk_flags_wrong_action_even_with_legacy_objective[skip]

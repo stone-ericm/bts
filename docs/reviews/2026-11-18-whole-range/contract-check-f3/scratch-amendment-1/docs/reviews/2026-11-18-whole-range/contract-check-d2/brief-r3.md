@@ -1,9 +1,0 @@
-# Third check of the D2 contract (version 3)
-
-Same rules as your first brief, including: no pytest, no wrapper runs, and while a `victoria3` process exists every probe is small, `nice -n 19`, seconds each. Probes in `.codex-review/wr-check-d2/r3/`.
-
-This clone is at `21a39901`. The contract `docs/reviews/2026-11-18-whole-range/kickoff-fix-deploy-v6.md` is now version 3. Instead of your switch checkpoint in the per-run evidence, the job record itself (`jobs.json`) always exists once a box is provisioned and has three states (`provisioned`, `switching` with per-artifact before and after hashes, `installed`); there is no missing-record recovery path. The provisioning hold shape is defined (C1f). The manager-environment digest is dropped by ruling D2-S1 (treat D2-S1 as decided; classify its consequences as NOTE unless you find an ordinary sequence in which a held box runs a state writer, or a pick is sent, with no hold and no alert). Your round-2 texts are adopted in "Adopted from contract check 2". Your earlier reports are archived in `docs/reviews/2026-11-18-whole-range/contract-check-d2/`.
-
-Answer the contract's "Questions the contract check must answer (third check)", with probes where a sequence is involved. This is the last contract check for this version of D2: if a design question remains, say the smallest design change precisely; if only wording remains, give replacement text so the verdict can be BUILD WITH THESE EDITS.
-
-Deliverable: `.codex-review/wr-check-d2/contract-check-r3.md`, under 100 lines, verdict first (BUILD FROM THIS / BUILD WITH THESE EDITS with replacement texts / NOT YET with the smallest design change). End with what you ran and did not run. When complete print `WRCHKD2R3-<first 8 hex characters of the sha256 of contract-check-r3.md>` on its own line and `DONE`.

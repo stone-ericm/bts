@@ -1,7 +1,0 @@
-Traceback (most recent call last):
-  File "/Users/eric/projects/bts-work/wr-review-c2b/.codex-review/wr-c2b/replay/carbon/probe_4b_damaged_receipts_and_interrupts.py", line 359, in <module>
-    main()
-  File "/Users/eric/projects/bts-work/wr-review-c2b/.codex-review/wr-c2b/replay/carbon/probe_4b_damaged_receipts_and_interrupts.py", line 239, in main
-    assert sent.call_count == 0
-           ^^^^^^^^^^^^^^^^^^^^
-AssertionError

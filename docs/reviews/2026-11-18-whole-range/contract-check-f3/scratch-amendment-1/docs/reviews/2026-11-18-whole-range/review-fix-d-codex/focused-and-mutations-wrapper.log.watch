@@ -1,2 +1,0 @@
-2026-11-20 16:45:51 started pid 97803: env TZ=America/New_York PYTHONDONTWRITEBYTECODE=1 .venv/bin/python .codex-review/wr-d/test_probe.py all
-2026-11-20 16:51:52 exited rc=0

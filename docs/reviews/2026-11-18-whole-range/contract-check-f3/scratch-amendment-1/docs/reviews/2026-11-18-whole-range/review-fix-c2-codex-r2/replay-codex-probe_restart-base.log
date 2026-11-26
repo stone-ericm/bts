@@ -1,2 +1,0 @@
-usage: probe_restart.py [-h] [--comparison COMPARISON] {base,head}
-probe_restart.py: error: unrecognized arguments: /Users/eric/projects/bts-work/wr-c2-r2-codex/.codex-review/wr-c2-r2/replay/restart-base.json

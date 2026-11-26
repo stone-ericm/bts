@@ -1,3 +1,0 @@
-nice: setpriority: Operation not permitted
-/Users/eric/.matplotlib is not a writable directory
-Matplotlib created a temporary cache directory at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/matplotlib-gtf4byii because there was an issue with the default path (/Users/eric/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.

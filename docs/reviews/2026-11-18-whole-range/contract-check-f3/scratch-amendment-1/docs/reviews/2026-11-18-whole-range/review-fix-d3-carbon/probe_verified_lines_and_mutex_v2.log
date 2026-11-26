@@ -1,4 +1,0 @@
-Item 2a: all 12 hostile stop-verification cases -> unverified (0 false greens)
-Item 2b: marker verification (dangling symlink, live FIFO, swapped inode) -> OK
-Item 2c: bad envs/symlink/codes all unverified; curl glob URL passed? True has_-g=False
-Item 3: all malformed/special/oversized paths and attempt/run orderings -> OK

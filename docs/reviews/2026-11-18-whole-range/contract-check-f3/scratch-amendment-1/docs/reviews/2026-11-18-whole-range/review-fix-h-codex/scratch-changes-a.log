@@ -1,6 +1,0 @@
-nice: setpriority: Operation not permitted
-double-first-tie exit 1 ================== 1 failed, 31 passed, 1 deselected in 1.76s ==================
-early-action exit 1 ================== 1 failed, 1 passed, 1 deselected in 0.97s ===================
-allow-two-bins exit 1 ================== 1 failed, 43 passed, 1 deselected in 1.82s ==================
-allow-nonpositive exit 1 ================== 1 failed, 46 passed, 1 deselected in 1.85s ==================
-extend-at-zero exit 1 ================== 1 failed, 59 passed, 1 deselected in 1.88s ==================

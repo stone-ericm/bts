@@ -1,3 +1,0 @@
-nice: setpriority: Operation not permitted
-bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f1-cx/.codex-review/wr-f1-r1/candidate/src/bts/__init__.py
-cutoff during capture read {"before_cutoff": true, "published_at": "2027-03-24T19:35:01-04:00", "response_completed_at": "2027-03-24T19:34:00-04:00", "stdout": "check-pick-entered: submission cutoff passed during fetch; skipping the nag (entry can no longer change)\n"}
