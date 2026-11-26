@@ -50,7 +50,7 @@ Gate; a fresh Codex xhigh review and a Carbon review; at most two rounds; merge 
 2. The skip itself is not re-decided (R40); the report comes the next morning.
 3. Only the last request line for D is compared.
 
-## Amendment 1 (2026-11-26 01:20, `bts-wr-fresh13`, after the contract check `WRCHKF3-275302f2`, BUILD WITH THESE EDITS; `contract-check-f3/`). It overrides the text above wherever they differ.
+## Amendment 1 (2026-11-26 01:11, `bts-wr-fresh13`, after the contract check `WRCHKF3-275302f2`, BUILD WITH THESE EDITS; `contract-check-f3/`). It overrides the text above wherever they differ.
 
 The check reproduced both faults (a 16:10 skip on streak 30; a dated streak 1 filed at 16:30, or a revoke; 08:30 `deliberate_skip`, exit 0, no DM). It found version 1 unbuildable as written: (a) the request log records attempts, not installed observations (a failed install leaves a valid line; a request line can precede the skip); (b) every skip record holds `state_source: "contest"` (dated, automatic and legacy alike), so rule (ii)'s "automatic kind" never matches; (c) the files cannot order a correction against the skip, because the skip's decision time is not recorded; (d) the text claimed an order, said "Nothing needs doing for D now", and used a literal `DIR`. Its remedy records skip provenance (selection time, observation kind, live requirement) in the scheduler and its saved state.
 
