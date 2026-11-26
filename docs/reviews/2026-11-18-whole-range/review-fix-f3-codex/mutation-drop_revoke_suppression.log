@@ -1,0 +1,516 @@
+bts.__file__=/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f3-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 83 items
+
+tests/test_wr_f3_skip_state_review.py .................................. [ 40%]
+..................................F.F.........F.F                        [100%]
+
+=================================== FAILURES ===================================
+______________________ test_archive_selection[True-True] _______________________
+
+report = namespace(account=PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2240/test_...cli_report=<function report.<locals>.cli_report at 0x10d655760>, check=<function report.<locals>.check at 0x10d6556c0>)
+tie = True, matching_archive = True
+
+    @pytest.mark.parametrize("tie,matching_archive", [(True, True), (True, False), (False, True)])
+    def test_archive_selection(report, tie, matching_archive):
+        report.setup()
+        for name, data in {
+            "contest_streak.manual.revoked-a.json": evidence("archive", active_streak=30 if matching_archive else 2),
+            "contest_streak.manual.revoked-b.json": evidence(
+                "archive", recorded_at=f"{DATE}T10:{'00' if tie else '01'}:00-04:00"),
+            EVIDENCE["switch"]: evidence("switch"),
+        }.items():
+            (report.account / name).write_text(json.dumps(data))
+        if tie and matching_archive:
+>           report.check()
+
+tests/test_wr_f3_skip_state_review.py:294: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_wr_f3_skip_state_review.py:128: in check
+    assert_report(outcome, result, sends, day, state, detail, code, send_fails=send_fails)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+outcome = DayOutcome(date='2027-04-02', state='skip_state_review', detail='The policy recorded a skip for 2027-04-02 using strea...7-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.', pick=None)
+result = <Result SystemExit(1)>
+sends = [('operator.bsky.social', 'BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 usin...ion on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.')]
+day = '2027-04-02', state = 'deliberate_skip'
+detail = 'The policy skipped the day.', code = 0, pick = None
+send_fails = False
+
+    def assert_report(outcome, result, sends, day, state, detail, code, pick=None, send_fails=False):
+        expected = {"date": day, "state": state, "ok": code == 0, "detail": detail, "pick": pick}
+        message = f"BTS day check {day}: {state.replace('_', ' ').upper()}. {detail}"
+        if pick:
+            message += f" Pick: {pick}."
+        print(json.dumps({"state": state, "actual": outcome.as_dict(), "exit": result.exit_code, "DM": sends}))
+>       assert outcome.as_dict() == expected
+E       AssertionError: assert {'date': '202...k': None, ...} == {'date': '202...k': None, ...}
+E         
+E         Omitting 2 identical items, use -vv to show
+E         Differing items:
+E         {'state': 'skip_state_review'} != {'state': 'deliberate_skip'}
+E         {'ok': False} != {'ok': True}
+E         {'detail': 'The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. The s...tion on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.'} != {'detail': 'The policy skipped the day.'}
+E         Use -v to get more diff
+
+tests/test_wr_f3_skip_state_review.py:58: AssertionError
+----------------------------- Captured stdout call -----------------------------
+{"state": "deliberate_skip", "actual": {"date": "2027-04-02", "state": "skip_state_review", "ok": false, "detail": "The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.", "pick": null}, "exit": 1, "DM": [["operator.bsky.social", "BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver."]]}
+______________________ test_archive_selection[False-True] ______________________
+
+report = namespace(account=PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2240/test_...cli_report=<function report.<locals>.cli_report at 0x10d6ff240>, check=<function report.<locals>.check at 0x10d6ffa60>)
+tie = False, matching_archive = True
+
+    @pytest.mark.parametrize("tie,matching_archive", [(True, True), (True, False), (False, True)])
+    def test_archive_selection(report, tie, matching_archive):
+        report.setup()
+        for name, data in {
+            "contest_streak.manual.revoked-a.json": evidence("archive", active_streak=30 if matching_archive else 2),
+            "contest_streak.manual.revoked-b.json": evidence(
+                "archive", recorded_at=f"{DATE}T10:{'00' if tie else '01'}:00-04:00"),
+            EVIDENCE["switch"]: evidence("switch"),
+        }.items():
+            (report.account / name).write_text(json.dumps(data))
+        if tie and matching_archive:
+            report.check()
+        else:
+            reason = (f"The season switch records a revocation on {DATE} at 16:00 ET." if tie else
+                      f"An archived dated observation for {DATE} records streak 1 and policy saver availability unavailable.")
+>           report.check("skip_state_review", review_detail(DATE, [reason]), code=1)
+
+tests/test_wr_f3_skip_state_review.py:298: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_wr_f3_skip_state_review.py:128: in check
+    assert_report(outcome, result, sends, day, state, detail, code, send_fails=send_fails)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+outcome = DayOutcome(date='2027-04-02', state='skip_state_review', detail='The policy recorded a skip for 2027-04-02 using strea...7-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.', pick=None)
+result = <Result SystemExit(1)>
+sends = [('operator.bsky.social', 'BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 usin...ion on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.')]
+day = '2027-04-02', state = 'skip_state_review'
+detail = 'The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. An archived date... saver availability unavailable. Check MLB for unsettled entries and verify the current streak, season best and saver.'
+code = 1, pick = None, send_fails = False
+
+    def assert_report(outcome, result, sends, day, state, detail, code, pick=None, send_fails=False):
+        expected = {"date": day, "state": state, "ok": code == 0, "detail": detail, "pick": pick}
+        message = f"BTS day check {day}: {state.replace('_', ' ').upper()}. {detail}"
+        if pick:
+            message += f" Pick: {pick}."
+        print(json.dumps({"state": state, "actual": outcome.as_dict(), "exit": result.exit_code, "DM": sends}))
+>       assert outcome.as_dict() == expected
+E       AssertionError: assert {'date': '202...k': None, ...} == {'date': '202...k': None, ...}
+E         
+E         Omitting 4 identical items, use -vv to show
+E         Differing items:
+E         {'detail': 'The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. An ar...tion on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.'} != {'detail': 'The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. An ar...saver availability unavailable. Check MLB for unsettled entries and verify the current streak, season best and saver.'}
+E         Use -v to get more diff
+
+tests/test_wr_f3_skip_state_review.py:58: AssertionError
+----------------------------- Captured stdout call -----------------------------
+{"state": "skip_state_review", "actual": {"date": "2027-04-02", "state": "skip_state_review", "ok": false, "detail": "The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. An archived dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.", "pick": null}, "exit": 1, "DM": [["operator.bsky.social", "BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. An archived dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver."]]}
+___________________________ test_scheduler_skip[K2d] ___________________________
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2240/test_scheduler_skip_K2d_0')
+name = 'K2d'
+
+    @pytest.mark.parametrize("name", EXPECTED)
+    def test_scheduler_skip(tmp_path, name):
+        root = tmp_path
+        with carbon._harness(root, START) as env:
+            clock, picks_dir = env["clock"], env["picks_dir"]
+            account = picks_dir / "account_state"
+            manual = account / "contest_streak.manual.json"
+            runner = CliRunner()
+            check_times = []
+            cfg = root / "config.toml"
+            env["confirmed"][101] = {"home", "away"}
+    
+            def command(*args, exit_code=0):
+                with patch("datetime.datetime", carbon._make_Clock(clock)):
+                    result = runner.invoke(cli.cli, [*args, "--picks-dir", str(picks_dir)])
+                assert result.exit_code == exit_code, (args, result.output, result.exception)
+                return result.output
+    
+            def dated(streak, saver="used", *, best=30, day=DAY, exit_code=0):
+                return command("set-contest-streak", "--date", day, "--streak", str(streak),
+                               "--best-streak", str(best), "--saver", saver, exit_code=exit_code)
+    
+            def revoke():
+                command("season-contract", "revoke", "--season", "2027", "--reason", "restored from snapshot")
+    
+            def enable():
+                command("season-contract", "enable", "--season", "2027")
+    
+            def fetch(streak):
+                with MonkeyPatch.context() as mp:
+                    _mock_fetch(mp, {"activeStreak": streak, "seasonBestStreak": 30,
+                                     "predictions": [{"roundId": 1, "result": "hit"}]},
+                                {1: START.date()})
+                    command("fetch-contest-streak", "--expected-username", "stonehengee")
+    
+            def interleaved_dated_commands():
+                write = util.atomic_write_text
+                nested = False
+    
+                def delay_before_install(path, text):
+                    nonlocal nested
+                    if path == manual and not nested:
+                        nested = True
+                        clock[0] = START.replace(hour=9, minute=1)
+                        dated(1, "not_earned")
+                        clock[0] = START.replace(hour=9, minute=2)
+                        revoke()
+                    write(path, text)
+    
+                with patch.object(util, "atomic_write_text", side_effect=delay_before_install):
+                    dated(30)
+                live = json.loads(manual.read_text())
+                archived, = account.glob("contest_streak.manual.revoked-*.json")
+                retired = json.loads(archived.read_text())
+                assert live["active_streak"] == 30 and live["recorded_at"] < retired["recorded_at"]
+                assert retired["active_streak"] == 1
+    
+            carbon._write_auto_obs(picks_dir, START - dt.timedelta(days=1), 30,
+                                   source_date=DAY, saver_flag="used", recorded_at=START.isoformat())
+            clock[0] = START.replace(hour=9)
+            if name in {"M3", "K2a", "K2b"}:
+                dated(30)
+            if name == "K2c":
+                (account / "season_contract.json").unlink()
+                enable()
+                fetch(30)
+            if name == "K2d":
+                revoke()
+                clock[0] = START.replace(hour=9, minute=5)
+                dated(30)
+            if name == "K2c_after_same_day_revoke":
+                revoke()
+                clock[0] = START.replace(hour=9, minute=2)
+                enable()
+                fetch(30)
+            if name == "K2a_current_outranked_by_archive":
+                interleaved_dated_commands()
+            clock[0] = START
+    
+            def cascade(_tiers, day):
+                check_times.append(clock[0].strftime("%H:%M"))
+                if len(check_times) == 1:
+                    return carbon._pred_frame(day, p1=0.72, p2=None), "local"
+                if name == "M2":
+                    return carbon._pred_frame(day, p1=0.88, p2=None), "local"
+                return None, None
+    
+            changed = False
+    
+            def sleep(secs, *_args, **_kwargs):
+                nonlocal changed
+                target = clock[0] + dt.timedelta(seconds=max(secs, 0))
+                at = START.replace(hour=16, minute=30)
+                if check_times and not changed and clock[0] < at <= target:
+                    env["advance"]((at - clock[0]).total_seconds())
+                    changed = True
+                    if name in {"M1", "M4"}:
+                        dated(1, "not_earned")
+                        env["advance"](60)
+                    if name in {"M2", "M4"}:
+                        revoke()
+                    if name == "M3":
+                        dated(30, "active")
+                    if name == "K2b":
+                        before = manual.read_bytes()
+                        with patch.object(util, "atomic_write_text", side_effect=PermissionError("install denied")):
+                            message = dated(1, "not_earned", exit_code=1)
+                        assert "request was appended" in message and before == manual.read_bytes()
+                        log = (account / "contest_manual_requests.jsonl").read_text().splitlines()
+                        assert json.loads(log[-1])["active_streak"] == 1
+                env["advance"]((target - clock[0]).total_seconds())
+    
+            with patch.object(orchestrator, "run_cascade", side_effect=cascade), \
+                 patch.object(scheduler, "_watchdog_ping_sleep", side_effect=sleep):
+                scheduler.run_day(DAY, env["config"])
+    
+            decision = daily_decision.load_decision(DAY, picks_dir)
+            assert (decision["action"], decision["source"], decision["streak"], decision["saver_available"]) == (
+                "skip", "mdp", 30, False), decision
+            assert check_times == ["16:10", "17:10", "18:10"] and changed
+            assert not (picks_dir / f"{DAY}.json").exists()
+    
+            config = {"scheduler": {"pick_delivery": "dm", "entry_intent": "enter"}}
+            cfg.write_text('[scheduler]\npick_delivery = "dm"\nentry_intent = "enter"\n')
+            before = snapshot(picks_dir)
+            n = len(env["pick_dms"])
+            clock[0] = START.replace(day=25, hour=8, minute=30)
+            outcome = day_outcome.gather(DAY, picks_dir, config, expected_username="operator")
+            result = runner.invoke(cli.cli, ["day-outcome", "--date", DAY, "--config", str(cfg),
+                                           "--picks-dir", str(picks_dir), "--expected-username", "operator",
+                                           "--dm-recipient", RECIPIENT])
+            reasons = EXPECTED[name]
+            expected = review_detail(DAY, {
+                "M1": [f"The installed dated observation for {DAY} records streak 1 and policy saver availability available."],
+                "M2": [f"The season switch records a revocation on {DAY} at 16:30 ET."],
+                "M3": [f"The installed dated observation for {DAY} records streak 30 and policy saver availability available."],
+                "M4": [f"An archived dated observation for {DAY} records streak 1 and policy saver availability available.",
+                       f"The season switch records a revocation on {DAY} at 16:31 ET."],
+            }.get(name, [])) if reasons else "The policy skipped the day."
+>           assert_report(outcome, result, env["pick_dms"][n:], DAY,
+                          "skip_state_review" if reasons else "deliberate_skip", expected, int(bool(reasons)))
+
+tests/test_wr_f3_skip_state_review.py:448: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+outcome = DayOutcome(date='2027-03-24', state='skip_state_review', detail='The policy recorded a skip for 2027-03-24 using strea...7-03-24 at 09:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.', pick=None)
+result = <Result SystemExit(1)>
+sends = [('operator.bsky.social', 'BTS day check 2027-03-24: SKIP STATE REVIEW. The policy recorded a skip for 2027-03-24 usin...ion on 2027-03-24 at 09:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.')]
+day = '2027-03-24', state = 'deliberate_skip'
+detail = 'The policy skipped the day.', code = 0, pick = None
+send_fails = False
+
+    def assert_report(outcome, result, sends, day, state, detail, code, pick=None, send_fails=False):
+        expected = {"date": day, "state": state, "ok": code == 0, "detail": detail, "pick": pick}
+        message = f"BTS day check {day}: {state.replace('_', ' ').upper()}. {detail}"
+        if pick:
+            message += f" Pick: {pick}."
+        print(json.dumps({"state": state, "actual": outcome.as_dict(), "exit": result.exit_code, "DM": sends}))
+>       assert outcome.as_dict() == expected
+E       AssertionError: assert {'date': '202...k': None, ...} == {'date': '202...k': None, ...}
+E         
+E         Omitting 2 identical items, use -vv to show
+E         Differing items:
+E         {'state': 'skip_state_review'} != {'state': 'deliberate_skip'}
+E         {'ok': False} != {'ok': True}
+E         {'detail': 'The policy recorded a skip for 2027-03-24 using streak 30 and policy saver availability unavailable. The s...tion on 2027-03-24 at 09:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.'} != {'detail': 'The policy skipped the day.'}
+E         Use -v to get more diff
+
+tests/test_wr_f3_skip_state_review.py:58: AssertionError
+----------------------------- Captured stdout call -----------------------------
+{"state": "deliberate_skip", "actual": {"date": "2027-03-24", "state": "skip_state_review", "ok": false, "detail": "The policy recorded a skip for 2027-03-24 using streak 30 and policy saver availability unavailable. The season switch records a revocation on 2027-03-24 at 09:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.", "pick": null}, "exit": 1, "DM": [["operator.bsky.social", "BTS day check 2027-03-24: SKIP STATE REVIEW. The policy recorded a skip for 2027-03-24 using streak 30 and policy saver availability unavailable. The season switch records a revocation on 2027-03-24 at 09:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver."]]}
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-03-24...
+  1 games, 3 scheduled checks:
+    16:10 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    18:10 ET — 1 game(s)
+  Morning state check: dated contest state accepted (streak 30).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  SKIP — Candidate used in the decision: Steven Kwan (CLE) 72.0%, below the streak-30 bar (82.5%) using unrounded values. Streak used at this check: 30.
+  Sleeping until 17:10 ET (60 min)...
+
+[17:10 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Sleeping until 18:10 ET (60 min)...
+
+[18:10 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+____________ test_scheduler_skip[K2a_current_outranked_by_archive] _____________
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2240/test_scheduler_skip_K2a_curren0')
+name = 'K2a_current_outranked_by_archive'
+
+    @pytest.mark.parametrize("name", EXPECTED)
+    def test_scheduler_skip(tmp_path, name):
+        root = tmp_path
+        with carbon._harness(root, START) as env:
+            clock, picks_dir = env["clock"], env["picks_dir"]
+            account = picks_dir / "account_state"
+            manual = account / "contest_streak.manual.json"
+            runner = CliRunner()
+            check_times = []
+            cfg = root / "config.toml"
+            env["confirmed"][101] = {"home", "away"}
+    
+            def command(*args, exit_code=0):
+                with patch("datetime.datetime", carbon._make_Clock(clock)):
+                    result = runner.invoke(cli.cli, [*args, "--picks-dir", str(picks_dir)])
+                assert result.exit_code == exit_code, (args, result.output, result.exception)
+                return result.output
+    
+            def dated(streak, saver="used", *, best=30, day=DAY, exit_code=0):
+                return command("set-contest-streak", "--date", day, "--streak", str(streak),
+                               "--best-streak", str(best), "--saver", saver, exit_code=exit_code)
+    
+            def revoke():
+                command("season-contract", "revoke", "--season", "2027", "--reason", "restored from snapshot")
+    
+            def enable():
+                command("season-contract", "enable", "--season", "2027")
+    
+            def fetch(streak):
+                with MonkeyPatch.context() as mp:
+                    _mock_fetch(mp, {"activeStreak": streak, "seasonBestStreak": 30,
+                                     "predictions": [{"roundId": 1, "result": "hit"}]},
+                                {1: START.date()})
+                    command("fetch-contest-streak", "--expected-username", "stonehengee")
+    
+            def interleaved_dated_commands():
+                write = util.atomic_write_text
+                nested = False
+    
+                def delay_before_install(path, text):
+                    nonlocal nested
+                    if path == manual and not nested:
+                        nested = True
+                        clock[0] = START.replace(hour=9, minute=1)
+                        dated(1, "not_earned")
+                        clock[0] = START.replace(hour=9, minute=2)
+                        revoke()
+                    write(path, text)
+    
+                with patch.object(util, "atomic_write_text", side_effect=delay_before_install):
+                    dated(30)
+                live = json.loads(manual.read_text())
+                archived, = account.glob("contest_streak.manual.revoked-*.json")
+                retired = json.loads(archived.read_text())
+                assert live["active_streak"] == 30 and live["recorded_at"] < retired["recorded_at"]
+                assert retired["active_streak"] == 1
+    
+            carbon._write_auto_obs(picks_dir, START - dt.timedelta(days=1), 30,
+                                   source_date=DAY, saver_flag="used", recorded_at=START.isoformat())
+            clock[0] = START.replace(hour=9)
+            if name in {"M3", "K2a", "K2b"}:
+                dated(30)
+            if name == "K2c":
+                (account / "season_contract.json").unlink()
+                enable()
+                fetch(30)
+            if name == "K2d":
+                revoke()
+                clock[0] = START.replace(hour=9, minute=5)
+                dated(30)
+            if name == "K2c_after_same_day_revoke":
+                revoke()
+                clock[0] = START.replace(hour=9, minute=2)
+                enable()
+                fetch(30)
+            if name == "K2a_current_outranked_by_archive":
+                interleaved_dated_commands()
+            clock[0] = START
+    
+            def cascade(_tiers, day):
+                check_times.append(clock[0].strftime("%H:%M"))
+                if len(check_times) == 1:
+                    return carbon._pred_frame(day, p1=0.72, p2=None), "local"
+                if name == "M2":
+                    return carbon._pred_frame(day, p1=0.88, p2=None), "local"
+                return None, None
+    
+            changed = False
+    
+            def sleep(secs, *_args, **_kwargs):
+                nonlocal changed
+                target = clock[0] + dt.timedelta(seconds=max(secs, 0))
+                at = START.replace(hour=16, minute=30)
+                if check_times and not changed and clock[0] < at <= target:
+                    env["advance"]((at - clock[0]).total_seconds())
+                    changed = True
+                    if name in {"M1", "M4"}:
+                        dated(1, "not_earned")
+                        env["advance"](60)
+                    if name in {"M2", "M4"}:
+                        revoke()
+                    if name == "M3":
+                        dated(30, "active")
+                    if name == "K2b":
+                        before = manual.read_bytes()
+                        with patch.object(util, "atomic_write_text", side_effect=PermissionError("install denied")):
+                            message = dated(1, "not_earned", exit_code=1)
+                        assert "request was appended" in message and before == manual.read_bytes()
+                        log = (account / "contest_manual_requests.jsonl").read_text().splitlines()
+                        assert json.loads(log[-1])["active_streak"] == 1
+                env["advance"]((target - clock[0]).total_seconds())
+    
+            with patch.object(orchestrator, "run_cascade", side_effect=cascade), \
+                 patch.object(scheduler, "_watchdog_ping_sleep", side_effect=sleep):
+                scheduler.run_day(DAY, env["config"])
+    
+            decision = daily_decision.load_decision(DAY, picks_dir)
+            assert (decision["action"], decision["source"], decision["streak"], decision["saver_available"]) == (
+                "skip", "mdp", 30, False), decision
+            assert check_times == ["16:10", "17:10", "18:10"] and changed
+            assert not (picks_dir / f"{DAY}.json").exists()
+    
+            config = {"scheduler": {"pick_delivery": "dm", "entry_intent": "enter"}}
+            cfg.write_text('[scheduler]\npick_delivery = "dm"\nentry_intent = "enter"\n')
+            before = snapshot(picks_dir)
+            n = len(env["pick_dms"])
+            clock[0] = START.replace(day=25, hour=8, minute=30)
+            outcome = day_outcome.gather(DAY, picks_dir, config, expected_username="operator")
+            result = runner.invoke(cli.cli, ["day-outcome", "--date", DAY, "--config", str(cfg),
+                                           "--picks-dir", str(picks_dir), "--expected-username", "operator",
+                                           "--dm-recipient", RECIPIENT])
+            reasons = EXPECTED[name]
+            expected = review_detail(DAY, {
+                "M1": [f"The installed dated observation for {DAY} records streak 1 and policy saver availability available."],
+                "M2": [f"The season switch records a revocation on {DAY} at 16:30 ET."],
+                "M3": [f"The installed dated observation for {DAY} records streak 30 and policy saver availability available."],
+                "M4": [f"An archived dated observation for {DAY} records streak 1 and policy saver availability available.",
+                       f"The season switch records a revocation on {DAY} at 16:31 ET."],
+            }.get(name, [])) if reasons else "The policy skipped the day."
+>           assert_report(outcome, result, env["pick_dms"][n:], DAY,
+                          "skip_state_review" if reasons else "deliberate_skip", expected, int(bool(reasons)))
+
+tests/test_wr_f3_skip_state_review.py:448: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+outcome = DayOutcome(date='2027-03-24', state='skip_state_review', detail='The policy recorded a skip for 2027-03-24 using strea...7-03-24 at 09:02 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.', pick=None)
+result = <Result SystemExit(1)>
+sends = [('operator.bsky.social', 'BTS day check 2027-03-24: SKIP STATE REVIEW. The policy recorded a skip for 2027-03-24 usin...ion on 2027-03-24 at 09:02 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.')]
+day = '2027-03-24', state = 'deliberate_skip'
+detail = 'The policy skipped the day.', code = 0, pick = None
+send_fails = False
+
+    def assert_report(outcome, result, sends, day, state, detail, code, pick=None, send_fails=False):
+        expected = {"date": day, "state": state, "ok": code == 0, "detail": detail, "pick": pick}
+        message = f"BTS day check {day}: {state.replace('_', ' ').upper()}. {detail}"
+        if pick:
+            message += f" Pick: {pick}."
+        print(json.dumps({"state": state, "actual": outcome.as_dict(), "exit": result.exit_code, "DM": sends}))
+>       assert outcome.as_dict() == expected
+E       AssertionError: assert {'date': '202...k': None, ...} == {'date': '202...k': None, ...}
+E         
+E         Omitting 2 identical items, use -vv to show
+E         Differing items:
+E         {'state': 'skip_state_review'} != {'state': 'deliberate_skip'}
+E         {'ok': False} != {'ok': True}
+E         {'detail': 'The policy recorded a skip for 2027-03-24 using streak 30 and policy saver availability unavailable. The s...tion on 2027-03-24 at 09:02 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.'} != {'detail': 'The policy skipped the day.'}
+E         Use -v to get more diff
+
+tests/test_wr_f3_skip_state_review.py:58: AssertionError
+----------------------------- Captured stdout call -----------------------------
+{"state": "deliberate_skip", "actual": {"date": "2027-03-24", "state": "skip_state_review", "ok": false, "detail": "The policy recorded a skip for 2027-03-24 using streak 30 and policy saver availability unavailable. The season switch records a revocation on 2027-03-24 at 09:02 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.", "pick": null}, "exit": 1, "DM": [["operator.bsky.social", "BTS day check 2027-03-24: SKIP STATE REVIEW. The policy recorded a skip for 2027-03-24 using streak 30 and policy saver availability unavailable. The season switch records a revocation on 2027-03-24 at 09:02 ET. Check MLB for unsettled entries and verify the current streak, season best and saver."]]}
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-03-24...
+  1 games, 3 scheduled checks:
+    16:10 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    18:10 ET — 1 game(s)
+  Morning state check: dated contest state accepted (streak 30).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  SKIP — Candidate used in the decision: Steven Kwan (CLE) 72.0%, below the streak-30 bar (82.5%) using unrounded values. Streak used at this check: 30.
+  Sleeping until 17:10 ET (60 min)...
+
+[17:10 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Sleeping until 18:10 ET (60 min)...
+
+[18:10 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+=========================== short test summary info ============================
+FAILED tests/test_wr_f3_skip_state_review.py::test_archive_selection[True-True]
+FAILED tests/test_wr_f3_skip_state_review.py::test_archive_selection[False-True]
+FAILED tests/test_wr_f3_skip_state_review.py::test_scheduler_skip[K2d] - Asse...
+FAILED tests/test_wr_f3_skip_state_review.py::test_scheduler_skip[K2a_current_outranked_by_archive]
+========================= 4 failed, 79 passed in 0.78s =========================

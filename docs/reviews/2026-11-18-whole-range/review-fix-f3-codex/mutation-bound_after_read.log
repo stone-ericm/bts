@@ -1,0 +1,12 @@
+bts.__file__=/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f3-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 83 items
+
+tests/test_wr_f3_skip_state_review.py .................................. [ 40%]
+.................................................                        [100%]
+
+============================== 83 passed in 0.73s ==============================

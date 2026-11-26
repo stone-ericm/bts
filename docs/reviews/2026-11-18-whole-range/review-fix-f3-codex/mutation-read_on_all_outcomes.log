@@ -1,0 +1,1113 @@
+bts.__file__=/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f3-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 83 items
+
+tests/test_wr_f3_skip_state_review.py .................................. [ 40%]
+..................FFFFFFFFFFFFFFF................                        [100%]
+
+=================================== FAILURES ===================================
+_____ test_K3_K4_base_outcome[entered-decision0-schedule0-enter-receipts0] _____
+
+report = namespace(account=PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_...cli_report=<function report.<locals>.cli_report at 0x10dde7920>, check=<function report.<locals>.check at 0x10dde6ac0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10db12810>
+state = 'entered'
+decision = {'action': 'single', 'date': '2027-04-02', 'delivery_status': 'delivered', 'double_down': None, ...}
+schedule = ({},), intent = 'enter'
+receipts = [{'account': {'username': 'stonehengee'}, 'degraded': [], 'et_date': '2027-04-02', 'observation': {'before_cutoff': True, 'response_completed_at': '2027-04-02T17:31:00-04:00'}, ...}]
+
+    @pytest.mark.parametrize("state,decision,schedule,intent,receipts", [
+        ("entered", _decision(), ({},), "enter", [_receipt()]),
+        ("entered_game_unverified", _decision(), ({},), "enter", [BATTER_ONLY]),
+        ("entered_late", _decision(), ({},), "enter", [_receipt(before_cutoff=False)]),
+        ("not_entered", _decision(), ({},), "enter", [_receipt(confirmed=False, reason="no_pick")]),
+        ("entry_unverifiable", _decision(), ({},), "enter", []),
+        ("no_decision", None, ({},), "enter", []),
+        ("no_games", SKIP, (), "enter", []),
+        ("no_games", SKIP, ({"status": {"detailedState": "Postponed"}},), "enter", []),
+        ("commit_not_scoreable", _decision(scoreable=False), ({},), "enter", []),
+        ("research_commit", _decision(delivery_status="private_locked"), ({},), "research", []),
+        ("delivered_under_research", _decision(), ({},), "research", []),
+        ("contradiction", _decision(), (), "enter", []),
+        ("intent_unknown", SKIP, ({},), "broken", []),
+        ("schedule_unverifiable", SKIP, OSError("offline"), "enter", []),
+        ("skip_not_deliberate", SKIP | {"source": "other"}, ({},), "enter", []),
+    ])
+    def test_K3_K4_base_outcome(report, monkeypatch, state, decision, schedule, intent, receipts):
+        config = report.setup(decision, schedule=schedule, intent=intent)
+        monkeypatch.setattr(entry_receipt, "_sha", lambda _: SHA)
+        monkeypatch.setattr(entry_receipt, "discover", lambda *_: receipts)
+        base = day_outcome.classify_day(
+            date=DATE, games=None if isinstance(schedule, Exception) else len(schedule),
+            decision=decision, decision_sha256=SHA, receipts=receipts, intent=intent,
+            void_games=int(bool(schedule) and isinstance(schedule, tuple) and "status" in schedule[0]),
+            expected_username="stonehengee",
+        )
+        assert base.state == state
+        for kind in EVIDENCE:
+            (report.account / EVIDENCE[kind]).write_text(json.dumps(evidence(kind)))
+        real_open = os.open
+    
+        def open_file(path, *args, **kwargs):
+            assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+            return real_open(path, *args, **kwargs)
+    
+        monkeypatch.setattr(os, "open", open_file)
+>       outcome = day_outcome.gather(DATE, report.picks, config, expected_username="stonehengee")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_wr_f3_skip_state_review.py:271: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:289: in gather
+    _read_evidence(Path(picks_dir) / 'account_state' / 'contest_streak.manual.json')
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:157: in _read_evidence
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere0/picks/account_state/contest_streak.manual.json')
+args = (4,), kwargs = {}, @py_assert1 = <built-in function fspath>
+@py_assert4 = '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere0/picks/account_state/contest_streak.manual.json'
+@py_assert7 = {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere0/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere0/picks/account_state/season_contract.json'}
+@py_assert6 = False
+@py_format9 = "'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere0/...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere0/picks/account_state/season_contract.json'}"
+@py_format11 = "assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_e...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere0/picks/account_state/season_contract.json'}"
+
+    def open_file(path, *args, **kwargs):
+>       assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+E       AssertionError: assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere0/picks/account_state/contest_streak.manual.json' not in {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere0/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere0/picks/account_state/season_contract.json'}
+E        +  where '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere0/picks/account_state/contest_streak.manual.json' = <built-in function fspath>(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere0/picks/account_state/contest_streak.manual.json'))
+E        +    where <built-in function fspath> = os.fspath
+
+tests/test_wr_f3_skip_state_review.py:267: AssertionError
+_ test_K3_K4_base_outcome[entered_game_unverified-decision1-schedule1-enter-receipts1] _
+
+report = namespace(account=PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_...cli_report=<function report.<locals>.cli_report at 0x10dde7ba0>, check=<function report.<locals>.check at 0x10de500e0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10d5fdf40>
+state = 'entered_game_unverified'
+decision = {'action': 'single', 'date': '2027-04-02', 'delivery_status': 'delivered', 'double_down': None, ...}
+schedule = ({},), intent = 'enter'
+receipts = [{'account': {'username': 'stonehengee'}, 'degraded': [], 'et_date': '2027-04-02', 'observation': {'before_cutoff': True, 'response_completed_at': '2027-04-02T17:31:00-04:00'}, ...}]
+
+    @pytest.mark.parametrize("state,decision,schedule,intent,receipts", [
+        ("entered", _decision(), ({},), "enter", [_receipt()]),
+        ("entered_game_unverified", _decision(), ({},), "enter", [BATTER_ONLY]),
+        ("entered_late", _decision(), ({},), "enter", [_receipt(before_cutoff=False)]),
+        ("not_entered", _decision(), ({},), "enter", [_receipt(confirmed=False, reason="no_pick")]),
+        ("entry_unverifiable", _decision(), ({},), "enter", []),
+        ("no_decision", None, ({},), "enter", []),
+        ("no_games", SKIP, (), "enter", []),
+        ("no_games", SKIP, ({"status": {"detailedState": "Postponed"}},), "enter", []),
+        ("commit_not_scoreable", _decision(scoreable=False), ({},), "enter", []),
+        ("research_commit", _decision(delivery_status="private_locked"), ({},), "research", []),
+        ("delivered_under_research", _decision(), ({},), "research", []),
+        ("contradiction", _decision(), (), "enter", []),
+        ("intent_unknown", SKIP, ({},), "broken", []),
+        ("schedule_unverifiable", SKIP, OSError("offline"), "enter", []),
+        ("skip_not_deliberate", SKIP | {"source": "other"}, ({},), "enter", []),
+    ])
+    def test_K3_K4_base_outcome(report, monkeypatch, state, decision, schedule, intent, receipts):
+        config = report.setup(decision, schedule=schedule, intent=intent)
+        monkeypatch.setattr(entry_receipt, "_sha", lambda _: SHA)
+        monkeypatch.setattr(entry_receipt, "discover", lambda *_: receipts)
+        base = day_outcome.classify_day(
+            date=DATE, games=None if isinstance(schedule, Exception) else len(schedule),
+            decision=decision, decision_sha256=SHA, receipts=receipts, intent=intent,
+            void_games=int(bool(schedule) and isinstance(schedule, tuple) and "status" in schedule[0]),
+            expected_username="stonehengee",
+        )
+        assert base.state == state
+        for kind in EVIDENCE:
+            (report.account / EVIDENCE[kind]).write_text(json.dumps(evidence(kind)))
+        real_open = os.open
+    
+        def open_file(path, *args, **kwargs):
+            assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+            return real_open(path, *args, **kwargs)
+    
+        monkeypatch.setattr(os, "open", open_file)
+>       outcome = day_outcome.gather(DATE, report.picks, config, expected_username="stonehengee")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_wr_f3_skip_state_review.py:271: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:289: in gather
+    _read_evidence(Path(picks_dir) / 'account_state' / 'contest_streak.manual.json')
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:157: in _read_evidence
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere1/picks/account_state/contest_streak.manual.json')
+args = (4,), kwargs = {}, @py_assert1 = <built-in function fspath>
+@py_assert4 = '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere1/picks/account_state/contest_streak.manual.json'
+@py_assert7 = {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere1/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere1/picks/account_state/season_contract.json'}
+@py_assert6 = False
+@py_format9 = "'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere1/...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere1/picks/account_state/season_contract.json'}"
+@py_format11 = "assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_e...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere1/picks/account_state/season_contract.json'}"
+
+    def open_file(path, *args, **kwargs):
+>       assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+E       AssertionError: assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere1/picks/account_state/contest_streak.manual.json' not in {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere1/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere1/picks/account_state/season_contract.json'}
+E        +  where '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere1/picks/account_state/contest_streak.manual.json' = <built-in function fspath>(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere1/picks/account_state/contest_streak.manual.json'))
+E        +    where <built-in function fspath> = os.fspath
+
+tests/test_wr_f3_skip_state_review.py:267: AssertionError
+__ test_K3_K4_base_outcome[entered_late-decision2-schedule2-enter-receipts2] ___
+
+report = namespace(account=PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_...cli_report=<function report.<locals>.cli_report at 0x10dde6ac0>, check=<function report.<locals>.check at 0x10dde77e0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10db11910>
+state = 'entered_late'
+decision = {'action': 'single', 'date': '2027-04-02', 'delivery_status': 'delivered', 'double_down': None, ...}
+schedule = ({},), intent = 'enter'
+receipts = [{'account': {'username': 'stonehengee'}, 'degraded': [], 'et_date': '2027-04-02', 'observation': {'before_cutoff': False, 'response_completed_at': '2027-04-02T17:31:00-04:00'}, ...}]
+
+    @pytest.mark.parametrize("state,decision,schedule,intent,receipts", [
+        ("entered", _decision(), ({},), "enter", [_receipt()]),
+        ("entered_game_unverified", _decision(), ({},), "enter", [BATTER_ONLY]),
+        ("entered_late", _decision(), ({},), "enter", [_receipt(before_cutoff=False)]),
+        ("not_entered", _decision(), ({},), "enter", [_receipt(confirmed=False, reason="no_pick")]),
+        ("entry_unverifiable", _decision(), ({},), "enter", []),
+        ("no_decision", None, ({},), "enter", []),
+        ("no_games", SKIP, (), "enter", []),
+        ("no_games", SKIP, ({"status": {"detailedState": "Postponed"}},), "enter", []),
+        ("commit_not_scoreable", _decision(scoreable=False), ({},), "enter", []),
+        ("research_commit", _decision(delivery_status="private_locked"), ({},), "research", []),
+        ("delivered_under_research", _decision(), ({},), "research", []),
+        ("contradiction", _decision(), (), "enter", []),
+        ("intent_unknown", SKIP, ({},), "broken", []),
+        ("schedule_unverifiable", SKIP, OSError("offline"), "enter", []),
+        ("skip_not_deliberate", SKIP | {"source": "other"}, ({},), "enter", []),
+    ])
+    def test_K3_K4_base_outcome(report, monkeypatch, state, decision, schedule, intent, receipts):
+        config = report.setup(decision, schedule=schedule, intent=intent)
+        monkeypatch.setattr(entry_receipt, "_sha", lambda _: SHA)
+        monkeypatch.setattr(entry_receipt, "discover", lambda *_: receipts)
+        base = day_outcome.classify_day(
+            date=DATE, games=None if isinstance(schedule, Exception) else len(schedule),
+            decision=decision, decision_sha256=SHA, receipts=receipts, intent=intent,
+            void_games=int(bool(schedule) and isinstance(schedule, tuple) and "status" in schedule[0]),
+            expected_username="stonehengee",
+        )
+        assert base.state == state
+        for kind in EVIDENCE:
+            (report.account / EVIDENCE[kind]).write_text(json.dumps(evidence(kind)))
+        real_open = os.open
+    
+        def open_file(path, *args, **kwargs):
+            assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+            return real_open(path, *args, **kwargs)
+    
+        monkeypatch.setattr(os, "open", open_file)
+>       outcome = day_outcome.gather(DATE, report.picks, config, expected_username="stonehengee")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_wr_f3_skip_state_review.py:271: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:289: in gather
+    _read_evidence(Path(picks_dir) / 'account_state' / 'contest_streak.manual.json')
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:157: in _read_evidence
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere2/picks/account_state/contest_streak.manual.json')
+args = (4,), kwargs = {}, @py_assert1 = <built-in function fspath>
+@py_assert4 = '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere2/picks/account_state/contest_streak.manual.json'
+@py_assert7 = {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere2/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere2/picks/account_state/season_contract.json'}
+@py_assert6 = False
+@py_format9 = "'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere2/...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere2/picks/account_state/season_contract.json'}"
+@py_format11 = "assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_e...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere2/picks/account_state/season_contract.json'}"
+
+    def open_file(path, *args, **kwargs):
+>       assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+E       AssertionError: assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere2/picks/account_state/contest_streak.manual.json' not in {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere2/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere2/picks/account_state/season_contract.json'}
+E        +  where '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere2/picks/account_state/contest_streak.manual.json' = <built-in function fspath>(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entere2/picks/account_state/contest_streak.manual.json'))
+E        +    where <built-in function fspath> = os.fspath
+
+tests/test_wr_f3_skip_state_review.py:267: AssertionError
+___ test_K3_K4_base_outcome[not_entered-decision3-schedule3-enter-receipts3] ___
+
+report = namespace(account=PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_...cli_report=<function report.<locals>.cli_report at 0x10de50040>, check=<function report.<locals>.check at 0x10de50e00>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10db12c30>
+state = 'not_entered'
+decision = {'action': 'single', 'date': '2027-04-02', 'delivery_status': 'delivered', 'double_down': None, ...}
+schedule = ({},), intent = 'enter'
+receipts = [{'account': {'username': 'stonehengee'}, 'degraded': [], 'et_date': '2027-04-02', 'observation': {'before_cutoff': True, 'response_completed_at': '2027-04-02T17:31:00-04:00'}, ...}]
+
+    @pytest.mark.parametrize("state,decision,schedule,intent,receipts", [
+        ("entered", _decision(), ({},), "enter", [_receipt()]),
+        ("entered_game_unverified", _decision(), ({},), "enter", [BATTER_ONLY]),
+        ("entered_late", _decision(), ({},), "enter", [_receipt(before_cutoff=False)]),
+        ("not_entered", _decision(), ({},), "enter", [_receipt(confirmed=False, reason="no_pick")]),
+        ("entry_unverifiable", _decision(), ({},), "enter", []),
+        ("no_decision", None, ({},), "enter", []),
+        ("no_games", SKIP, (), "enter", []),
+        ("no_games", SKIP, ({"status": {"detailedState": "Postponed"}},), "enter", []),
+        ("commit_not_scoreable", _decision(scoreable=False), ({},), "enter", []),
+        ("research_commit", _decision(delivery_status="private_locked"), ({},), "research", []),
+        ("delivered_under_research", _decision(), ({},), "research", []),
+        ("contradiction", _decision(), (), "enter", []),
+        ("intent_unknown", SKIP, ({},), "broken", []),
+        ("schedule_unverifiable", SKIP, OSError("offline"), "enter", []),
+        ("skip_not_deliberate", SKIP | {"source": "other"}, ({},), "enter", []),
+    ])
+    def test_K3_K4_base_outcome(report, monkeypatch, state, decision, schedule, intent, receipts):
+        config = report.setup(decision, schedule=schedule, intent=intent)
+        monkeypatch.setattr(entry_receipt, "_sha", lambda _: SHA)
+        monkeypatch.setattr(entry_receipt, "discover", lambda *_: receipts)
+        base = day_outcome.classify_day(
+            date=DATE, games=None if isinstance(schedule, Exception) else len(schedule),
+            decision=decision, decision_sha256=SHA, receipts=receipts, intent=intent,
+            void_games=int(bool(schedule) and isinstance(schedule, tuple) and "status" in schedule[0]),
+            expected_username="stonehengee",
+        )
+        assert base.state == state
+        for kind in EVIDENCE:
+            (report.account / EVIDENCE[kind]).write_text(json.dumps(evidence(kind)))
+        real_open = os.open
+    
+        def open_file(path, *args, **kwargs):
+            assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+            return real_open(path, *args, **kwargs)
+    
+        monkeypatch.setattr(os, "open", open_file)
+>       outcome = day_outcome.gather(DATE, report.picks, config, expected_username="stonehengee")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_wr_f3_skip_state_review.py:271: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:289: in gather
+    _read_evidence(Path(picks_dir) / 'account_state' / 'contest_streak.manual.json')
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:157: in _read_evidence
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_not_en0/picks/account_state/contest_streak.manual.json')
+args = (4,), kwargs = {}, @py_assert1 = <built-in function fspath>
+@py_assert4 = '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_not_en0/picks/account_state/contest_streak.manual.json'
+@py_assert7 = {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_not_en0/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_not_en0/picks/account_state/season_contract.json'}
+@py_assert6 = False
+@py_format9 = "'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_not_en0/...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_not_en0/picks/account_state/season_contract.json'}"
+@py_format11 = "assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_n...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_not_en0/picks/account_state/season_contract.json'}"
+
+    def open_file(path, *args, **kwargs):
+>       assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+E       AssertionError: assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_not_en0/picks/account_state/contest_streak.manual.json' not in {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_not_en0/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_not_en0/picks/account_state/season_contract.json'}
+E        +  where '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_not_en0/picks/account_state/contest_streak.manual.json' = <built-in function fspath>(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_not_en0/picks/account_state/contest_streak.manual.json'))
+E        +    where <built-in function fspath> = os.fspath
+
+tests/test_wr_f3_skip_state_review.py:267: AssertionError
+_ test_K3_K4_base_outcome[entry_unverifiable-decision4-schedule4-enter-receipts4] _
+
+report = namespace(account=PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_...cli_report=<function report.<locals>.cli_report at 0x10de50180>, check=<function report.<locals>.check at 0x10de519e0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10db14da0>
+state = 'entry_unverifiable'
+decision = {'action': 'single', 'date': '2027-04-02', 'delivery_status': 'delivered', 'double_down': None, ...}
+schedule = ({},), intent = 'enter', receipts = []
+
+    @pytest.mark.parametrize("state,decision,schedule,intent,receipts", [
+        ("entered", _decision(), ({},), "enter", [_receipt()]),
+        ("entered_game_unverified", _decision(), ({},), "enter", [BATTER_ONLY]),
+        ("entered_late", _decision(), ({},), "enter", [_receipt(before_cutoff=False)]),
+        ("not_entered", _decision(), ({},), "enter", [_receipt(confirmed=False, reason="no_pick")]),
+        ("entry_unverifiable", _decision(), ({},), "enter", []),
+        ("no_decision", None, ({},), "enter", []),
+        ("no_games", SKIP, (), "enter", []),
+        ("no_games", SKIP, ({"status": {"detailedState": "Postponed"}},), "enter", []),
+        ("commit_not_scoreable", _decision(scoreable=False), ({},), "enter", []),
+        ("research_commit", _decision(delivery_status="private_locked"), ({},), "research", []),
+        ("delivered_under_research", _decision(), ({},), "research", []),
+        ("contradiction", _decision(), (), "enter", []),
+        ("intent_unknown", SKIP, ({},), "broken", []),
+        ("schedule_unverifiable", SKIP, OSError("offline"), "enter", []),
+        ("skip_not_deliberate", SKIP | {"source": "other"}, ({},), "enter", []),
+    ])
+    def test_K3_K4_base_outcome(report, monkeypatch, state, decision, schedule, intent, receipts):
+        config = report.setup(decision, schedule=schedule, intent=intent)
+        monkeypatch.setattr(entry_receipt, "_sha", lambda _: SHA)
+        monkeypatch.setattr(entry_receipt, "discover", lambda *_: receipts)
+        base = day_outcome.classify_day(
+            date=DATE, games=None if isinstance(schedule, Exception) else len(schedule),
+            decision=decision, decision_sha256=SHA, receipts=receipts, intent=intent,
+            void_games=int(bool(schedule) and isinstance(schedule, tuple) and "status" in schedule[0]),
+            expected_username="stonehengee",
+        )
+        assert base.state == state
+        for kind in EVIDENCE:
+            (report.account / EVIDENCE[kind]).write_text(json.dumps(evidence(kind)))
+        real_open = os.open
+    
+        def open_file(path, *args, **kwargs):
+            assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+            return real_open(path, *args, **kwargs)
+    
+        monkeypatch.setattr(os, "open", open_file)
+>       outcome = day_outcome.gather(DATE, report.picks, config, expected_username="stonehengee")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_wr_f3_skip_state_review.py:271: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:289: in gather
+    _read_evidence(Path(picks_dir) / 'account_state' / 'contest_streak.manual.json')
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:157: in _read_evidence
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entry_0/picks/account_state/contest_streak.manual.json')
+args = (4,), kwargs = {}, @py_assert1 = <built-in function fspath>
+@py_assert4 = '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entry_0/picks/account_state/contest_streak.manual.json'
+@py_assert7 = {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entry_0/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entry_0/picks/account_state/season_contract.json'}
+@py_assert6 = False
+@py_format9 = "'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entry_0/...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entry_0/picks/account_state/season_contract.json'}"
+@py_format11 = "assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_e...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entry_0/picks/account_state/season_contract.json'}"
+
+    def open_file(path, *args, **kwargs):
+>       assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+E       AssertionError: assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entry_0/picks/account_state/contest_streak.manual.json' not in {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entry_0/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entry_0/picks/account_state/season_contract.json'}
+E        +  where '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entry_0/picks/account_state/contest_streak.manual.json' = <built-in function fspath>(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_entry_0/picks/account_state/contest_streak.manual.json'))
+E        +    where <built-in function fspath> = os.fspath
+
+tests/test_wr_f3_skip_state_review.py:267: AssertionError
+_____ test_K3_K4_base_outcome[no_decision-None-schedule5-enter-receipts5] ______
+
+report = namespace(account=PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_...cli_report=<function report.<locals>.cli_report at 0x10de502c0>, check=<function report.<locals>.check at 0x10de52020>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10db16f90>
+state = 'no_decision', decision = None, schedule = ({},), intent = 'enter'
+receipts = []
+
+    @pytest.mark.parametrize("state,decision,schedule,intent,receipts", [
+        ("entered", _decision(), ({},), "enter", [_receipt()]),
+        ("entered_game_unverified", _decision(), ({},), "enter", [BATTER_ONLY]),
+        ("entered_late", _decision(), ({},), "enter", [_receipt(before_cutoff=False)]),
+        ("not_entered", _decision(), ({},), "enter", [_receipt(confirmed=False, reason="no_pick")]),
+        ("entry_unverifiable", _decision(), ({},), "enter", []),
+        ("no_decision", None, ({},), "enter", []),
+        ("no_games", SKIP, (), "enter", []),
+        ("no_games", SKIP, ({"status": {"detailedState": "Postponed"}},), "enter", []),
+        ("commit_not_scoreable", _decision(scoreable=False), ({},), "enter", []),
+        ("research_commit", _decision(delivery_status="private_locked"), ({},), "research", []),
+        ("delivered_under_research", _decision(), ({},), "research", []),
+        ("contradiction", _decision(), (), "enter", []),
+        ("intent_unknown", SKIP, ({},), "broken", []),
+        ("schedule_unverifiable", SKIP, OSError("offline"), "enter", []),
+        ("skip_not_deliberate", SKIP | {"source": "other"}, ({},), "enter", []),
+    ])
+    def test_K3_K4_base_outcome(report, monkeypatch, state, decision, schedule, intent, receipts):
+        config = report.setup(decision, schedule=schedule, intent=intent)
+        monkeypatch.setattr(entry_receipt, "_sha", lambda _: SHA)
+        monkeypatch.setattr(entry_receipt, "discover", lambda *_: receipts)
+        base = day_outcome.classify_day(
+            date=DATE, games=None if isinstance(schedule, Exception) else len(schedule),
+            decision=decision, decision_sha256=SHA, receipts=receipts, intent=intent,
+            void_games=int(bool(schedule) and isinstance(schedule, tuple) and "status" in schedule[0]),
+            expected_username="stonehengee",
+        )
+        assert base.state == state
+        for kind in EVIDENCE:
+            (report.account / EVIDENCE[kind]).write_text(json.dumps(evidence(kind)))
+        real_open = os.open
+    
+        def open_file(path, *args, **kwargs):
+            assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+            return real_open(path, *args, **kwargs)
+    
+        monkeypatch.setattr(os, "open", open_file)
+>       outcome = day_outcome.gather(DATE, report.picks, config, expected_username="stonehengee")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_wr_f3_skip_state_review.py:271: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:289: in gather
+    _read_evidence(Path(picks_dir) / 'account_state' / 'contest_streak.manual.json')
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:157: in _read_evidence
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_dec0/picks/account_state/contest_streak.manual.json')
+args = (4,), kwargs = {}, @py_assert1 = <built-in function fspath>
+@py_assert4 = '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_dec0/picks/account_state/contest_streak.manual.json'
+@py_assert7 = {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_dec0/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_dec0/picks/account_state/season_contract.json'}
+@py_assert6 = False
+@py_format9 = "'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_dec0/...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_dec0/picks/account_state/season_contract.json'}"
+@py_format11 = "assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_n...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_dec0/picks/account_state/season_contract.json'}"
+
+    def open_file(path, *args, **kwargs):
+>       assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+E       AssertionError: assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_dec0/picks/account_state/contest_streak.manual.json' not in {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_dec0/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_dec0/picks/account_state/season_contract.json'}
+E        +  where '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_dec0/picks/account_state/contest_streak.manual.json' = <built-in function fspath>(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_dec0/picks/account_state/contest_streak.manual.json'))
+E        +    where <built-in function fspath> = os.fspath
+
+tests/test_wr_f3_skip_state_review.py:267: AssertionError
+____ test_K3_K4_base_outcome[no_games-decision6-schedule6-enter-receipts6] _____
+
+report = namespace(account=PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_...cli_report=<function report.<locals>.cli_report at 0x10de522a0>, check=<function report.<locals>.check at 0x10de51d00>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10db169f0>
+state = 'no_games'
+decision = {'action': 'skip', 'date': '2027-04-02', 'delivery_status': 'delivered', 'double_down': None, ...}
+schedule = (), intent = 'enter', receipts = []
+
+    @pytest.mark.parametrize("state,decision,schedule,intent,receipts", [
+        ("entered", _decision(), ({},), "enter", [_receipt()]),
+        ("entered_game_unverified", _decision(), ({},), "enter", [BATTER_ONLY]),
+        ("entered_late", _decision(), ({},), "enter", [_receipt(before_cutoff=False)]),
+        ("not_entered", _decision(), ({},), "enter", [_receipt(confirmed=False, reason="no_pick")]),
+        ("entry_unverifiable", _decision(), ({},), "enter", []),
+        ("no_decision", None, ({},), "enter", []),
+        ("no_games", SKIP, (), "enter", []),
+        ("no_games", SKIP, ({"status": {"detailedState": "Postponed"}},), "enter", []),
+        ("commit_not_scoreable", _decision(scoreable=False), ({},), "enter", []),
+        ("research_commit", _decision(delivery_status="private_locked"), ({},), "research", []),
+        ("delivered_under_research", _decision(), ({},), "research", []),
+        ("contradiction", _decision(), (), "enter", []),
+        ("intent_unknown", SKIP, ({},), "broken", []),
+        ("schedule_unverifiable", SKIP, OSError("offline"), "enter", []),
+        ("skip_not_deliberate", SKIP | {"source": "other"}, ({},), "enter", []),
+    ])
+    def test_K3_K4_base_outcome(report, monkeypatch, state, decision, schedule, intent, receipts):
+        config = report.setup(decision, schedule=schedule, intent=intent)
+        monkeypatch.setattr(entry_receipt, "_sha", lambda _: SHA)
+        monkeypatch.setattr(entry_receipt, "discover", lambda *_: receipts)
+        base = day_outcome.classify_day(
+            date=DATE, games=None if isinstance(schedule, Exception) else len(schedule),
+            decision=decision, decision_sha256=SHA, receipts=receipts, intent=intent,
+            void_games=int(bool(schedule) and isinstance(schedule, tuple) and "status" in schedule[0]),
+            expected_username="stonehengee",
+        )
+        assert base.state == state
+        for kind in EVIDENCE:
+            (report.account / EVIDENCE[kind]).write_text(json.dumps(evidence(kind)))
+        real_open = os.open
+    
+        def open_file(path, *args, **kwargs):
+            assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+            return real_open(path, *args, **kwargs)
+    
+        monkeypatch.setattr(os, "open", open_file)
+>       outcome = day_outcome.gather(DATE, report.picks, config, expected_username="stonehengee")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_wr_f3_skip_state_review.py:271: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:289: in gather
+    _read_evidence(Path(picks_dir) / 'account_state' / 'contest_streak.manual.json')
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:157: in _read_evidence
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_gam0/picks/account_state/contest_streak.manual.json')
+args = (4,), kwargs = {}, @py_assert1 = <built-in function fspath>
+@py_assert4 = '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_gam0/picks/account_state/contest_streak.manual.json'
+@py_assert7 = {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_gam0/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_gam0/picks/account_state/season_contract.json'}
+@py_assert6 = False
+@py_format9 = "'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_gam0/...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_gam0/picks/account_state/season_contract.json'}"
+@py_format11 = "assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_n...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_gam0/picks/account_state/season_contract.json'}"
+
+    def open_file(path, *args, **kwargs):
+>       assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+E       AssertionError: assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_gam0/picks/account_state/contest_streak.manual.json' not in {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_gam0/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_gam0/picks/account_state/season_contract.json'}
+E        +  where '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_gam0/picks/account_state/contest_streak.manual.json' = <built-in function fspath>(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_gam0/picks/account_state/contest_streak.manual.json'))
+E        +    where <built-in function fspath> = os.fspath
+
+tests/test_wr_f3_skip_state_review.py:267: AssertionError
+____ test_K3_K4_base_outcome[no_games-decision7-schedule7-enter-receipts7] _____
+
+report = namespace(account=PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_...cli_report=<function report.<locals>.cli_report at 0x10de525c0>, check=<function report.<locals>.check at 0x10de52340>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10db19130>
+state = 'no_games'
+decision = {'action': 'skip', 'date': '2027-04-02', 'delivery_status': 'delivered', 'double_down': None, ...}
+schedule = ({'status': {'detailedState': 'Postponed'}},), intent = 'enter'
+receipts = []
+
+    @pytest.mark.parametrize("state,decision,schedule,intent,receipts", [
+        ("entered", _decision(), ({},), "enter", [_receipt()]),
+        ("entered_game_unverified", _decision(), ({},), "enter", [BATTER_ONLY]),
+        ("entered_late", _decision(), ({},), "enter", [_receipt(before_cutoff=False)]),
+        ("not_entered", _decision(), ({},), "enter", [_receipt(confirmed=False, reason="no_pick")]),
+        ("entry_unverifiable", _decision(), ({},), "enter", []),
+        ("no_decision", None, ({},), "enter", []),
+        ("no_games", SKIP, (), "enter", []),
+        ("no_games", SKIP, ({"status": {"detailedState": "Postponed"}},), "enter", []),
+        ("commit_not_scoreable", _decision(scoreable=False), ({},), "enter", []),
+        ("research_commit", _decision(delivery_status="private_locked"), ({},), "research", []),
+        ("delivered_under_research", _decision(), ({},), "research", []),
+        ("contradiction", _decision(), (), "enter", []),
+        ("intent_unknown", SKIP, ({},), "broken", []),
+        ("schedule_unverifiable", SKIP, OSError("offline"), "enter", []),
+        ("skip_not_deliberate", SKIP | {"source": "other"}, ({},), "enter", []),
+    ])
+    def test_K3_K4_base_outcome(report, monkeypatch, state, decision, schedule, intent, receipts):
+        config = report.setup(decision, schedule=schedule, intent=intent)
+        monkeypatch.setattr(entry_receipt, "_sha", lambda _: SHA)
+        monkeypatch.setattr(entry_receipt, "discover", lambda *_: receipts)
+        base = day_outcome.classify_day(
+            date=DATE, games=None if isinstance(schedule, Exception) else len(schedule),
+            decision=decision, decision_sha256=SHA, receipts=receipts, intent=intent,
+            void_games=int(bool(schedule) and isinstance(schedule, tuple) and "status" in schedule[0]),
+            expected_username="stonehengee",
+        )
+        assert base.state == state
+        for kind in EVIDENCE:
+            (report.account / EVIDENCE[kind]).write_text(json.dumps(evidence(kind)))
+        real_open = os.open
+    
+        def open_file(path, *args, **kwargs):
+            assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+            return real_open(path, *args, **kwargs)
+    
+        monkeypatch.setattr(os, "open", open_file)
+>       outcome = day_outcome.gather(DATE, report.picks, config, expected_username="stonehengee")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_wr_f3_skip_state_review.py:271: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:289: in gather
+    _read_evidence(Path(picks_dir) / 'account_state' / 'contest_streak.manual.json')
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:157: in _read_evidence
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_gam1/picks/account_state/contest_streak.manual.json')
+args = (4,), kwargs = {}, @py_assert1 = <built-in function fspath>
+@py_assert4 = '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_gam1/picks/account_state/contest_streak.manual.json'
+@py_assert7 = {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_gam1/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_gam1/picks/account_state/season_contract.json'}
+@py_assert6 = False
+@py_format9 = "'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_gam1/...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_gam1/picks/account_state/season_contract.json'}"
+@py_format11 = "assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_n...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_gam1/picks/account_state/season_contract.json'}"
+
+    def open_file(path, *args, **kwargs):
+>       assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+E       AssertionError: assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_gam1/picks/account_state/contest_streak.manual.json' not in {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_gam1/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_gam1/picks/account_state/season_contract.json'}
+E        +  where '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_gam1/picks/account_state/contest_streak.manual.json' = <built-in function fspath>(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_no_gam1/picks/account_state/contest_streak.manual.json'))
+E        +    where <built-in function fspath> = os.fspath
+
+tests/test_wr_f3_skip_state_review.py:267: AssertionError
+_ test_K3_K4_base_outcome[commit_not_scoreable-decision8-schedule8-enter-receipts8] _
+
+report = namespace(account=PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_...cli_report=<function report.<locals>.cli_report at 0x10dde6ac0>, check=<function report.<locals>.check at 0x10dde77e0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10db151f0>
+state = 'commit_not_scoreable'
+decision = {'action': 'single', 'date': '2027-04-02', 'delivery_status': 'delivered', 'double_down': None, ...}
+schedule = ({},), intent = 'enter', receipts = []
+
+    @pytest.mark.parametrize("state,decision,schedule,intent,receipts", [
+        ("entered", _decision(), ({},), "enter", [_receipt()]),
+        ("entered_game_unverified", _decision(), ({},), "enter", [BATTER_ONLY]),
+        ("entered_late", _decision(), ({},), "enter", [_receipt(before_cutoff=False)]),
+        ("not_entered", _decision(), ({},), "enter", [_receipt(confirmed=False, reason="no_pick")]),
+        ("entry_unverifiable", _decision(), ({},), "enter", []),
+        ("no_decision", None, ({},), "enter", []),
+        ("no_games", SKIP, (), "enter", []),
+        ("no_games", SKIP, ({"status": {"detailedState": "Postponed"}},), "enter", []),
+        ("commit_not_scoreable", _decision(scoreable=False), ({},), "enter", []),
+        ("research_commit", _decision(delivery_status="private_locked"), ({},), "research", []),
+        ("delivered_under_research", _decision(), ({},), "research", []),
+        ("contradiction", _decision(), (), "enter", []),
+        ("intent_unknown", SKIP, ({},), "broken", []),
+        ("schedule_unverifiable", SKIP, OSError("offline"), "enter", []),
+        ("skip_not_deliberate", SKIP | {"source": "other"}, ({},), "enter", []),
+    ])
+    def test_K3_K4_base_outcome(report, monkeypatch, state, decision, schedule, intent, receipts):
+        config = report.setup(decision, schedule=schedule, intent=intent)
+        monkeypatch.setattr(entry_receipt, "_sha", lambda _: SHA)
+        monkeypatch.setattr(entry_receipt, "discover", lambda *_: receipts)
+        base = day_outcome.classify_day(
+            date=DATE, games=None if isinstance(schedule, Exception) else len(schedule),
+            decision=decision, decision_sha256=SHA, receipts=receipts, intent=intent,
+            void_games=int(bool(schedule) and isinstance(schedule, tuple) and "status" in schedule[0]),
+            expected_username="stonehengee",
+        )
+        assert base.state == state
+        for kind in EVIDENCE:
+            (report.account / EVIDENCE[kind]).write_text(json.dumps(evidence(kind)))
+        real_open = os.open
+    
+        def open_file(path, *args, **kwargs):
+            assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+            return real_open(path, *args, **kwargs)
+    
+        monkeypatch.setattr(os, "open", open_file)
+>       outcome = day_outcome.gather(DATE, report.picks, config, expected_username="stonehengee")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_wr_f3_skip_state_review.py:271: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:289: in gather
+    _read_evidence(Path(picks_dir) / 'account_state' / 'contest_streak.manual.json')
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:157: in _read_evidence
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_commit0/picks/account_state/contest_streak.manual.json')
+args = (4,), kwargs = {}, @py_assert1 = <built-in function fspath>
+@py_assert4 = '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_commit0/picks/account_state/contest_streak.manual.json'
+@py_assert7 = {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_commit0/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_commit0/picks/account_state/season_contract.json'}
+@py_assert6 = False
+@py_format9 = "'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_commit0/...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_commit0/picks/account_state/season_contract.json'}"
+@py_format11 = "assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_c...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_commit0/picks/account_state/season_contract.json'}"
+
+    def open_file(path, *args, **kwargs):
+>       assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+E       AssertionError: assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_commit0/picks/account_state/contest_streak.manual.json' not in {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_commit0/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_commit0/picks/account_state/season_contract.json'}
+E        +  where '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_commit0/picks/account_state/contest_streak.manual.json' = <built-in function fspath>(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_commit0/picks/account_state/contest_streak.manual.json'))
+E        +    where <built-in function fspath> = os.fspath
+
+tests/test_wr_f3_skip_state_review.py:267: AssertionError
+_ test_K3_K4_base_outcome[research_commit-decision9-schedule9-research-receipts9] _
+
+report = namespace(account=PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_...cli_report=<function report.<locals>.cli_report at 0x10dde7ba0>, check=<function report.<locals>.check at 0x10dde63e0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10797a420>
+state = 'research_commit'
+decision = {'action': 'single', 'date': '2027-04-02', 'delivery_status': 'private_locked', 'double_down': None, ...}
+schedule = ({},), intent = 'research', receipts = []
+
+    @pytest.mark.parametrize("state,decision,schedule,intent,receipts", [
+        ("entered", _decision(), ({},), "enter", [_receipt()]),
+        ("entered_game_unverified", _decision(), ({},), "enter", [BATTER_ONLY]),
+        ("entered_late", _decision(), ({},), "enter", [_receipt(before_cutoff=False)]),
+        ("not_entered", _decision(), ({},), "enter", [_receipt(confirmed=False, reason="no_pick")]),
+        ("entry_unverifiable", _decision(), ({},), "enter", []),
+        ("no_decision", None, ({},), "enter", []),
+        ("no_games", SKIP, (), "enter", []),
+        ("no_games", SKIP, ({"status": {"detailedState": "Postponed"}},), "enter", []),
+        ("commit_not_scoreable", _decision(scoreable=False), ({},), "enter", []),
+        ("research_commit", _decision(delivery_status="private_locked"), ({},), "research", []),
+        ("delivered_under_research", _decision(), ({},), "research", []),
+        ("contradiction", _decision(), (), "enter", []),
+        ("intent_unknown", SKIP, ({},), "broken", []),
+        ("schedule_unverifiable", SKIP, OSError("offline"), "enter", []),
+        ("skip_not_deliberate", SKIP | {"source": "other"}, ({},), "enter", []),
+    ])
+    def test_K3_K4_base_outcome(report, monkeypatch, state, decision, schedule, intent, receipts):
+        config = report.setup(decision, schedule=schedule, intent=intent)
+        monkeypatch.setattr(entry_receipt, "_sha", lambda _: SHA)
+        monkeypatch.setattr(entry_receipt, "discover", lambda *_: receipts)
+        base = day_outcome.classify_day(
+            date=DATE, games=None if isinstance(schedule, Exception) else len(schedule),
+            decision=decision, decision_sha256=SHA, receipts=receipts, intent=intent,
+            void_games=int(bool(schedule) and isinstance(schedule, tuple) and "status" in schedule[0]),
+            expected_username="stonehengee",
+        )
+        assert base.state == state
+        for kind in EVIDENCE:
+            (report.account / EVIDENCE[kind]).write_text(json.dumps(evidence(kind)))
+        real_open = os.open
+    
+        def open_file(path, *args, **kwargs):
+            assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+            return real_open(path, *args, **kwargs)
+    
+        monkeypatch.setattr(os, "open", open_file)
+>       outcome = day_outcome.gather(DATE, report.picks, config, expected_username="stonehengee")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_wr_f3_skip_state_review.py:271: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:289: in gather
+    _read_evidence(Path(picks_dir) / 'account_state' / 'contest_streak.manual.json')
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:157: in _read_evidence
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_resear0/picks/account_state/contest_streak.manual.json')
+args = (4,), kwargs = {}, @py_assert1 = <built-in function fspath>
+@py_assert4 = '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_resear0/picks/account_state/contest_streak.manual.json'
+@py_assert7 = {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_resear0/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_resear0/picks/account_state/season_contract.json'}
+@py_assert6 = False
+@py_format9 = "'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_resear0/...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_resear0/picks/account_state/season_contract.json'}"
+@py_format11 = "assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_r...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_resear0/picks/account_state/season_contract.json'}"
+
+    def open_file(path, *args, **kwargs):
+>       assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+E       AssertionError: assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_resear0/picks/account_state/contest_streak.manual.json' not in {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_resear0/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_resear0/picks/account_state/season_contract.json'}
+E        +  where '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_resear0/picks/account_state/contest_streak.manual.json' = <built-in function fspath>(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_resear0/picks/account_state/contest_streak.manual.json'))
+E        +    where <built-in function fspath> = os.fspath
+
+tests/test_wr_f3_skip_state_review.py:267: AssertionError
+_ test_K3_K4_base_outcome[delivered_under_research-decision10-schedule10-research-receipts10] _
+
+report = namespace(account=PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_...cli_report=<function report.<locals>.cli_report at 0x1074faa20>, check=<function report.<locals>.check at 0x1074fb240>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1078271a0>
+state = 'delivered_under_research'
+decision = {'action': 'single', 'date': '2027-04-02', 'delivery_status': 'delivered', 'double_down': None, ...}
+schedule = ({},), intent = 'research', receipts = []
+
+    @pytest.mark.parametrize("state,decision,schedule,intent,receipts", [
+        ("entered", _decision(), ({},), "enter", [_receipt()]),
+        ("entered_game_unverified", _decision(), ({},), "enter", [BATTER_ONLY]),
+        ("entered_late", _decision(), ({},), "enter", [_receipt(before_cutoff=False)]),
+        ("not_entered", _decision(), ({},), "enter", [_receipt(confirmed=False, reason="no_pick")]),
+        ("entry_unverifiable", _decision(), ({},), "enter", []),
+        ("no_decision", None, ({},), "enter", []),
+        ("no_games", SKIP, (), "enter", []),
+        ("no_games", SKIP, ({"status": {"detailedState": "Postponed"}},), "enter", []),
+        ("commit_not_scoreable", _decision(scoreable=False), ({},), "enter", []),
+        ("research_commit", _decision(delivery_status="private_locked"), ({},), "research", []),
+        ("delivered_under_research", _decision(), ({},), "research", []),
+        ("contradiction", _decision(), (), "enter", []),
+        ("intent_unknown", SKIP, ({},), "broken", []),
+        ("schedule_unverifiable", SKIP, OSError("offline"), "enter", []),
+        ("skip_not_deliberate", SKIP | {"source": "other"}, ({},), "enter", []),
+    ])
+    def test_K3_K4_base_outcome(report, monkeypatch, state, decision, schedule, intent, receipts):
+        config = report.setup(decision, schedule=schedule, intent=intent)
+        monkeypatch.setattr(entry_receipt, "_sha", lambda _: SHA)
+        monkeypatch.setattr(entry_receipt, "discover", lambda *_: receipts)
+        base = day_outcome.classify_day(
+            date=DATE, games=None if isinstance(schedule, Exception) else len(schedule),
+            decision=decision, decision_sha256=SHA, receipts=receipts, intent=intent,
+            void_games=int(bool(schedule) and isinstance(schedule, tuple) and "status" in schedule[0]),
+            expected_username="stonehengee",
+        )
+        assert base.state == state
+        for kind in EVIDENCE:
+            (report.account / EVIDENCE[kind]).write_text(json.dumps(evidence(kind)))
+        real_open = os.open
+    
+        def open_file(path, *args, **kwargs):
+            assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+            return real_open(path, *args, **kwargs)
+    
+        monkeypatch.setattr(os, "open", open_file)
+>       outcome = day_outcome.gather(DATE, report.picks, config, expected_username="stonehengee")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_wr_f3_skip_state_review.py:271: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:289: in gather
+    _read_evidence(Path(picks_dir) / 'account_state' / 'contest_streak.manual.json')
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:157: in _read_evidence
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_delive0/picks/account_state/contest_streak.manual.json')
+args = (4,), kwargs = {}, @py_assert1 = <built-in function fspath>
+@py_assert4 = '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_delive0/picks/account_state/contest_streak.manual.json'
+@py_assert7 = {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_delive0/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_delive0/picks/account_state/season_contract.json'}
+@py_assert6 = False
+@py_format9 = "'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_delive0/...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_delive0/picks/account_state/season_contract.json'}"
+@py_format11 = "assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_d...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_delive0/picks/account_state/season_contract.json'}"
+
+    def open_file(path, *args, **kwargs):
+>       assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+E       AssertionError: assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_delive0/picks/account_state/contest_streak.manual.json' not in {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_delive0/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_delive0/picks/account_state/season_contract.json'}
+E        +  where '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_delive0/picks/account_state/contest_streak.manual.json' = <built-in function fspath>(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_delive0/picks/account_state/contest_streak.manual.json'))
+E        +    where <built-in function fspath> = os.fspath
+
+tests/test_wr_f3_skip_state_review.py:267: AssertionError
+_ test_K3_K4_base_outcome[contradiction-decision11-schedule11-enter-receipts11] _
+
+report = namespace(account=PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_...cli_report=<function report.<locals>.cli_report at 0x10de50900>, check=<function report.<locals>.check at 0x10de505e0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1078279b0>
+state = 'contradiction'
+decision = {'action': 'single', 'date': '2027-04-02', 'delivery_status': 'delivered', 'double_down': None, ...}
+schedule = (), intent = 'enter', receipts = []
+
+    @pytest.mark.parametrize("state,decision,schedule,intent,receipts", [
+        ("entered", _decision(), ({},), "enter", [_receipt()]),
+        ("entered_game_unverified", _decision(), ({},), "enter", [BATTER_ONLY]),
+        ("entered_late", _decision(), ({},), "enter", [_receipt(before_cutoff=False)]),
+        ("not_entered", _decision(), ({},), "enter", [_receipt(confirmed=False, reason="no_pick")]),
+        ("entry_unverifiable", _decision(), ({},), "enter", []),
+        ("no_decision", None, ({},), "enter", []),
+        ("no_games", SKIP, (), "enter", []),
+        ("no_games", SKIP, ({"status": {"detailedState": "Postponed"}},), "enter", []),
+        ("commit_not_scoreable", _decision(scoreable=False), ({},), "enter", []),
+        ("research_commit", _decision(delivery_status="private_locked"), ({},), "research", []),
+        ("delivered_under_research", _decision(), ({},), "research", []),
+        ("contradiction", _decision(), (), "enter", []),
+        ("intent_unknown", SKIP, ({},), "broken", []),
+        ("schedule_unverifiable", SKIP, OSError("offline"), "enter", []),
+        ("skip_not_deliberate", SKIP | {"source": "other"}, ({},), "enter", []),
+    ])
+    def test_K3_K4_base_outcome(report, monkeypatch, state, decision, schedule, intent, receipts):
+        config = report.setup(decision, schedule=schedule, intent=intent)
+        monkeypatch.setattr(entry_receipt, "_sha", lambda _: SHA)
+        monkeypatch.setattr(entry_receipt, "discover", lambda *_: receipts)
+        base = day_outcome.classify_day(
+            date=DATE, games=None if isinstance(schedule, Exception) else len(schedule),
+            decision=decision, decision_sha256=SHA, receipts=receipts, intent=intent,
+            void_games=int(bool(schedule) and isinstance(schedule, tuple) and "status" in schedule[0]),
+            expected_username="stonehengee",
+        )
+        assert base.state == state
+        for kind in EVIDENCE:
+            (report.account / EVIDENCE[kind]).write_text(json.dumps(evidence(kind)))
+        real_open = os.open
+    
+        def open_file(path, *args, **kwargs):
+            assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+            return real_open(path, *args, **kwargs)
+    
+        monkeypatch.setattr(os, "open", open_file)
+>       outcome = day_outcome.gather(DATE, report.picks, config, expected_username="stonehengee")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_wr_f3_skip_state_review.py:271: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:289: in gather
+    _read_evidence(Path(picks_dir) / 'account_state' / 'contest_streak.manual.json')
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:157: in _read_evidence
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_contra0/picks/account_state/contest_streak.manual.json')
+args = (4,), kwargs = {}, @py_assert1 = <built-in function fspath>
+@py_assert4 = '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_contra0/picks/account_state/contest_streak.manual.json'
+@py_assert7 = {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_contra0/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_contra0/picks/account_state/season_contract.json'}
+@py_assert6 = False
+@py_format9 = "'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_contra0/...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_contra0/picks/account_state/season_contract.json'}"
+@py_format11 = "assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_c...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_contra0/picks/account_state/season_contract.json'}"
+
+    def open_file(path, *args, **kwargs):
+>       assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+E       AssertionError: assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_contra0/picks/account_state/contest_streak.manual.json' not in {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_contra0/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_contra0/picks/account_state/season_contract.json'}
+E        +  where '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_contra0/picks/account_state/contest_streak.manual.json' = <built-in function fspath>(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_contra0/picks/account_state/contest_streak.manual.json'))
+E        +    where <built-in function fspath> = os.fspath
+
+tests/test_wr_f3_skip_state_review.py:267: AssertionError
+_ test_K3_K4_base_outcome[intent_unknown-decision12-schedule12-broken-receipts12] _
+
+report = namespace(account=PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_...cli_report=<function report.<locals>.cli_report at 0x10de50fe0>, check=<function report.<locals>.check at 0x10de51f80>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1078e6660>
+state = 'intent_unknown'
+decision = {'action': 'skip', 'date': '2027-04-02', 'delivery_status': 'delivered', 'double_down': None, ...}
+schedule = ({},), intent = 'broken', receipts = []
+
+    @pytest.mark.parametrize("state,decision,schedule,intent,receipts", [
+        ("entered", _decision(), ({},), "enter", [_receipt()]),
+        ("entered_game_unverified", _decision(), ({},), "enter", [BATTER_ONLY]),
+        ("entered_late", _decision(), ({},), "enter", [_receipt(before_cutoff=False)]),
+        ("not_entered", _decision(), ({},), "enter", [_receipt(confirmed=False, reason="no_pick")]),
+        ("entry_unverifiable", _decision(), ({},), "enter", []),
+        ("no_decision", None, ({},), "enter", []),
+        ("no_games", SKIP, (), "enter", []),
+        ("no_games", SKIP, ({"status": {"detailedState": "Postponed"}},), "enter", []),
+        ("commit_not_scoreable", _decision(scoreable=False), ({},), "enter", []),
+        ("research_commit", _decision(delivery_status="private_locked"), ({},), "research", []),
+        ("delivered_under_research", _decision(), ({},), "research", []),
+        ("contradiction", _decision(), (), "enter", []),
+        ("intent_unknown", SKIP, ({},), "broken", []),
+        ("schedule_unverifiable", SKIP, OSError("offline"), "enter", []),
+        ("skip_not_deliberate", SKIP | {"source": "other"}, ({},), "enter", []),
+    ])
+    def test_K3_K4_base_outcome(report, monkeypatch, state, decision, schedule, intent, receipts):
+        config = report.setup(decision, schedule=schedule, intent=intent)
+        monkeypatch.setattr(entry_receipt, "_sha", lambda _: SHA)
+        monkeypatch.setattr(entry_receipt, "discover", lambda *_: receipts)
+        base = day_outcome.classify_day(
+            date=DATE, games=None if isinstance(schedule, Exception) else len(schedule),
+            decision=decision, decision_sha256=SHA, receipts=receipts, intent=intent,
+            void_games=int(bool(schedule) and isinstance(schedule, tuple) and "status" in schedule[0]),
+            expected_username="stonehengee",
+        )
+        assert base.state == state
+        for kind in EVIDENCE:
+            (report.account / EVIDENCE[kind]).write_text(json.dumps(evidence(kind)))
+        real_open = os.open
+    
+        def open_file(path, *args, **kwargs):
+            assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+            return real_open(path, *args, **kwargs)
+    
+        monkeypatch.setattr(os, "open", open_file)
+>       outcome = day_outcome.gather(DATE, report.picks, config, expected_username="stonehengee")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_wr_f3_skip_state_review.py:271: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:289: in gather
+    _read_evidence(Path(picks_dir) / 'account_state' / 'contest_streak.manual.json')
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:157: in _read_evidence
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_intent0/picks/account_state/contest_streak.manual.json')
+args = (4,), kwargs = {}, @py_assert1 = <built-in function fspath>
+@py_assert4 = '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_intent0/picks/account_state/contest_streak.manual.json'
+@py_assert7 = {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_intent0/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_intent0/picks/account_state/season_contract.json'}
+@py_assert6 = False
+@py_format9 = "'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_intent0/...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_intent0/picks/account_state/season_contract.json'}"
+@py_format11 = "assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_i...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_intent0/picks/account_state/season_contract.json'}"
+
+    def open_file(path, *args, **kwargs):
+>       assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+E       AssertionError: assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_intent0/picks/account_state/contest_streak.manual.json' not in {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_intent0/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_intent0/picks/account_state/season_contract.json'}
+E        +  where '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_intent0/picks/account_state/contest_streak.manual.json' = <built-in function fspath>(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_intent0/picks/account_state/contest_streak.manual.json'))
+E        +    where <built-in function fspath> = os.fspath
+
+tests/test_wr_f3_skip_state_review.py:267: AssertionError
+_ test_K3_K4_base_outcome[schedule_unverifiable-decision13-schedule13-enter-receipts13] _
+
+report = namespace(account=PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_...cli_report=<function report.<locals>.cli_report at 0x10de51580>, check=<function report.<locals>.check at 0x10de50680>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x107432b10>
+state = 'schedule_unverifiable'
+decision = {'action': 'skip', 'date': '2027-04-02', 'delivery_status': 'delivered', 'double_down': None, ...}
+schedule = OSError('offline'), intent = 'enter', receipts = []
+
+    @pytest.mark.parametrize("state,decision,schedule,intent,receipts", [
+        ("entered", _decision(), ({},), "enter", [_receipt()]),
+        ("entered_game_unverified", _decision(), ({},), "enter", [BATTER_ONLY]),
+        ("entered_late", _decision(), ({},), "enter", [_receipt(before_cutoff=False)]),
+        ("not_entered", _decision(), ({},), "enter", [_receipt(confirmed=False, reason="no_pick")]),
+        ("entry_unverifiable", _decision(), ({},), "enter", []),
+        ("no_decision", None, ({},), "enter", []),
+        ("no_games", SKIP, (), "enter", []),
+        ("no_games", SKIP, ({"status": {"detailedState": "Postponed"}},), "enter", []),
+        ("commit_not_scoreable", _decision(scoreable=False), ({},), "enter", []),
+        ("research_commit", _decision(delivery_status="private_locked"), ({},), "research", []),
+        ("delivered_under_research", _decision(), ({},), "research", []),
+        ("contradiction", _decision(), (), "enter", []),
+        ("intent_unknown", SKIP, ({},), "broken", []),
+        ("schedule_unverifiable", SKIP, OSError("offline"), "enter", []),
+        ("skip_not_deliberate", SKIP | {"source": "other"}, ({},), "enter", []),
+    ])
+    def test_K3_K4_base_outcome(report, monkeypatch, state, decision, schedule, intent, receipts):
+        config = report.setup(decision, schedule=schedule, intent=intent)
+        monkeypatch.setattr(entry_receipt, "_sha", lambda _: SHA)
+        monkeypatch.setattr(entry_receipt, "discover", lambda *_: receipts)
+        base = day_outcome.classify_day(
+            date=DATE, games=None if isinstance(schedule, Exception) else len(schedule),
+            decision=decision, decision_sha256=SHA, receipts=receipts, intent=intent,
+            void_games=int(bool(schedule) and isinstance(schedule, tuple) and "status" in schedule[0]),
+            expected_username="stonehengee",
+        )
+        assert base.state == state
+        for kind in EVIDENCE:
+            (report.account / EVIDENCE[kind]).write_text(json.dumps(evidence(kind)))
+        real_open = os.open
+    
+        def open_file(path, *args, **kwargs):
+            assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+            return real_open(path, *args, **kwargs)
+    
+        monkeypatch.setattr(os, "open", open_file)
+>       outcome = day_outcome.gather(DATE, report.picks, config, expected_username="stonehengee")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_wr_f3_skip_state_review.py:271: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:289: in gather
+    _read_evidence(Path(picks_dir) / 'account_state' / 'contest_streak.manual.json')
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:157: in _read_evidence
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_schedu0/picks/account_state/contest_streak.manual.json')
+args = (4,), kwargs = {}, @py_assert1 = <built-in function fspath>
+@py_assert4 = '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_schedu0/picks/account_state/contest_streak.manual.json'
+@py_assert7 = {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_schedu0/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_schedu0/picks/account_state/season_contract.json'}
+@py_assert6 = False
+@py_format9 = "'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_schedu0/...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_schedu0/picks/account_state/season_contract.json'}"
+@py_format11 = "assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_s...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_schedu0/picks/account_state/season_contract.json'}"
+
+    def open_file(path, *args, **kwargs):
+>       assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+E       AssertionError: assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_schedu0/picks/account_state/contest_streak.manual.json' not in {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_schedu0/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_schedu0/picks/account_state/season_contract.json'}
+E        +  where '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_schedu0/picks/account_state/contest_streak.manual.json' = <built-in function fspath>(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_schedu0/picks/account_state/contest_streak.manual.json'))
+E        +    where <built-in function fspath> = os.fspath
+
+tests/test_wr_f3_skip_state_review.py:267: AssertionError
+_ test_K3_K4_base_outcome[skip_not_deliberate-decision14-schedule14-enter-receipts14] _
+
+report = namespace(account=PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_...cli_report=<function report.<locals>.cli_report at 0x10de51800>, check=<function report.<locals>.check at 0x10de50180>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10db13b60>
+state = 'skip_not_deliberate'
+decision = {'action': 'skip', 'date': '2027-04-02', 'delivery_status': 'delivered', 'double_down': None, ...}
+schedule = ({},), intent = 'enter', receipts = []
+
+    @pytest.mark.parametrize("state,decision,schedule,intent,receipts", [
+        ("entered", _decision(), ({},), "enter", [_receipt()]),
+        ("entered_game_unverified", _decision(), ({},), "enter", [BATTER_ONLY]),
+        ("entered_late", _decision(), ({},), "enter", [_receipt(before_cutoff=False)]),
+        ("not_entered", _decision(), ({},), "enter", [_receipt(confirmed=False, reason="no_pick")]),
+        ("entry_unverifiable", _decision(), ({},), "enter", []),
+        ("no_decision", None, ({},), "enter", []),
+        ("no_games", SKIP, (), "enter", []),
+        ("no_games", SKIP, ({"status": {"detailedState": "Postponed"}},), "enter", []),
+        ("commit_not_scoreable", _decision(scoreable=False), ({},), "enter", []),
+        ("research_commit", _decision(delivery_status="private_locked"), ({},), "research", []),
+        ("delivered_under_research", _decision(), ({},), "research", []),
+        ("contradiction", _decision(), (), "enter", []),
+        ("intent_unknown", SKIP, ({},), "broken", []),
+        ("schedule_unverifiable", SKIP, OSError("offline"), "enter", []),
+        ("skip_not_deliberate", SKIP | {"source": "other"}, ({},), "enter", []),
+    ])
+    def test_K3_K4_base_outcome(report, monkeypatch, state, decision, schedule, intent, receipts):
+        config = report.setup(decision, schedule=schedule, intent=intent)
+        monkeypatch.setattr(entry_receipt, "_sha", lambda _: SHA)
+        monkeypatch.setattr(entry_receipt, "discover", lambda *_: receipts)
+        base = day_outcome.classify_day(
+            date=DATE, games=None if isinstance(schedule, Exception) else len(schedule),
+            decision=decision, decision_sha256=SHA, receipts=receipts, intent=intent,
+            void_games=int(bool(schedule) and isinstance(schedule, tuple) and "status" in schedule[0]),
+            expected_username="stonehengee",
+        )
+        assert base.state == state
+        for kind in EVIDENCE:
+            (report.account / EVIDENCE[kind]).write_text(json.dumps(evidence(kind)))
+        real_open = os.open
+    
+        def open_file(path, *args, **kwargs):
+            assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+            return real_open(path, *args, **kwargs)
+    
+        monkeypatch.setattr(os, "open", open_file)
+>       outcome = day_outcome.gather(DATE, report.picks, config, expected_username="stonehengee")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_wr_f3_skip_state_review.py:271: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:289: in gather
+    _read_evidence(Path(picks_dir) / 'account_state' / 'contest_streak.manual.json')
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:157: in _read_evidence
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_skip_n0/picks/account_state/contest_streak.manual.json')
+args = (4,), kwargs = {}, @py_assert1 = <built-in function fspath>
+@py_assert4 = '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_skip_n0/picks/account_state/contest_streak.manual.json'
+@py_assert7 = {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_skip_n0/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_skip_n0/picks/account_state/season_contract.json'}
+@py_assert6 = False
+@py_format9 = "'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_skip_n0/...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_skip_n0/picks/account_state/season_contract.json'}"
+@py_format11 = "assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_s...6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_skip_n0/picks/account_state/season_contract.json'}"
+
+    def open_file(path, *args, **kwargs):
+>       assert os.fspath(path) not in {str(report.account / name) for name in EVIDENCE.values()}
+E       AssertionError: assert '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_skip_n0/picks/account_state/contest_streak.manual.json' not in {'/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_skip_n0/...c6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_skip_n0/picks/account_state/season_contract.json'}
+E        +  where '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_skip_n0/picks/account_state/contest_streak.manual.json' = <built-in function fspath>(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2237/test_K3_K4_base_outcome_skip_n0/picks/account_state/contest_streak.manual.json'))
+E        +    where <built-in function fspath> = os.fspath
+
+tests/test_wr_f3_skip_state_review.py:267: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_f3_skip_state_review.py::test_K3_K4_base_outcome[entered-decision0-schedule0-enter-receipts0]
+FAILED tests/test_wr_f3_skip_state_review.py::test_K3_K4_base_outcome[entered_game_unverified-decision1-schedule1-enter-receipts1]
+FAILED tests/test_wr_f3_skip_state_review.py::test_K3_K4_base_outcome[entered_late-decision2-schedule2-enter-receipts2]
+FAILED tests/test_wr_f3_skip_state_review.py::test_K3_K4_base_outcome[not_entered-decision3-schedule3-enter-receipts3]
+FAILED tests/test_wr_f3_skip_state_review.py::test_K3_K4_base_outcome[entry_unverifiable-decision4-schedule4-enter-receipts4]
+FAILED tests/test_wr_f3_skip_state_review.py::test_K3_K4_base_outcome[no_decision-None-schedule5-enter-receipts5]
+FAILED tests/test_wr_f3_skip_state_review.py::test_K3_K4_base_outcome[no_games-decision6-schedule6-enter-receipts6]
+FAILED tests/test_wr_f3_skip_state_review.py::test_K3_K4_base_outcome[no_games-decision7-schedule7-enter-receipts7]
+FAILED tests/test_wr_f3_skip_state_review.py::test_K3_K4_base_outcome[commit_not_scoreable-decision8-schedule8-enter-receipts8]
+FAILED tests/test_wr_f3_skip_state_review.py::test_K3_K4_base_outcome[research_commit-decision9-schedule9-research-receipts9]
+FAILED tests/test_wr_f3_skip_state_review.py::test_K3_K4_base_outcome[delivered_under_research-decision10-schedule10-research-receipts10]
+FAILED tests/test_wr_f3_skip_state_review.py::test_K3_K4_base_outcome[contradiction-decision11-schedule11-enter-receipts11]
+FAILED tests/test_wr_f3_skip_state_review.py::test_K3_K4_base_outcome[intent_unknown-decision12-schedule12-broken-receipts12]
+FAILED tests/test_wr_f3_skip_state_review.py::test_K3_K4_base_outcome[schedule_unverifiable-decision13-schedule13-enter-receipts13]
+FAILED tests/test_wr_f3_skip_state_review.py::test_K3_K4_base_outcome[skip_not_deliberate-decision14-schedule14-enter-receipts14]
+======================== 15 failed, 68 passed in 0.88s =========================

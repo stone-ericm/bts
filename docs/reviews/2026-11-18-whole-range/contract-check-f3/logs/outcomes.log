@@ -1,0 +1,31 @@
+nice: setpriority: Operation not permitted
+entered identical JSON and message
+entered_game_unverified identical JSON and message
+entered_late identical JSON and message
+not_entered identical JSON and message
+entry_unverifiable identical JSON and message
+no_decision identical JSON and message
+no_games identical JSON and message
+no_games_all_void identical JSON and message
+commit_not_scoreable identical JSON and message
+research_commit identical JSON and message
+delivered_under_research identical JSON and message
+contradiction identical JSON and message
+intent_unknown identical JSON and message
+schedule_unverifiable identical JSON and message
+skip_not_deliberate identical JSON and message
+research MDP skip deliberate_skip skip_state_changed
+Hypothetical action record carrying automatic: BTS day check 2027-04-02: SKIP STATE CHANGED. The policy skipped the day on streak 30 (saver available: False, from the automatic state), and the contest state for 2027-04-02 changed afterwards: a dated observation for 2027-04-02 gives streak 1 (saver available: True); the season switch was revoked at 23:50:00 ET; the season switch was enabled at 10:00:00 ET. The scheduler does not re-decide a skip, so no pick was made on the changed state. Nothing needs doing for 2027-04-02 now; check that the current state is right before the next slate with `bts season-contract status --picks-dir DIR`.
+Proxy for contest == automatic hypothesis, with a same-morning enable before final skip: BTS day check 2027-04-02: SKIP STATE CHANGED. The policy skipped the day on streak 30 (saver available: False, from the automatic state), and the contest state for 2027-04-02 changed afterwards: the season switch was enabled at 10:00:00 ET. The scheduler does not re-decide a skip, so no pick was made on the changed state. Nothing needs doing for 2027-04-02 now; check that the current state is right before the next slate with `bts season-contract status --picks-dir DIR`.
+Both evidence files, ignored: directory
+Both evidence files, ignored: FIFO
+Both evidence files, ignored: undecodable
+Both evidence files, ignored: JSON list
+Both evidence files, ignored: other date
+Both evidence files, ignored: malformed
+Both evidence files, ignored: long integer
+Both evidence files, ignored: deep nesting
+Both evidence files, simulated EACCES
+Valid request survives broken JSON, then gets masked by a last matching object with no values
+Valid request survives malformed switch
+Failed send stays 1; invalid config stays 2: BTS day check 2027-04-02: THE CHECK COULD NOT RUN (TOMLDecodeError). The day's end state is unknown.

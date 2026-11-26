@@ -1,0 +1,16 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0 -- /Users/eric/projects/bts-work/wr-rev-f3-cb/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/eric/projects/bts-work/wr-rev-f3-cb
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 1 item
+
+.carbon-review/wr-f3-r1/test_probe_1_parity.py::test_item1_diff_and_base_parity base bts.__file__:        /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2248/test_item1_diff_and_base_parit0/base_archive_src/src/bts/__init__.py
+base day_outcome.__file__: /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2248/test_item1_diff_and_base_parit0/base_archive_src/src/bts/day_outcome.py
+head bts.__file__:        /Users/eric/projects/bts-work/wr-rev-f3-cb/src/bts/__init__.py
+head day_outcome.__file__: /Users/eric/projects/bts-work/wr-rev-f3-cb/src/bts/day_outcome.py
+PASSED
+
+============================== 1 passed in 1.42s ===============================
