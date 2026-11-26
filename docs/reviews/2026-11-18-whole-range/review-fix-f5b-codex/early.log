@@ -1,0 +1,11 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/__init__.py
+actual missing all-clear missing-entry installed DMs ['⚠️ BTS pick NOT entered in MLB app: Batter 1010 — first pitch 6:10 AM ET (65 min to submit). Fix it now!'] [] []
+actual missing all-clear missing-entry manual DMs ['⚠️ BTS pick NOT entered in MLB app: Batter 1010 — first pitch 6:10 AM ET (65 min to submit). Fix it now!'] ['✅ BTS pick entry confirmed for 2027-03-24 (match).'] []
+actual missing all-clear wrong-game installed DMs ['⚠️ BTS entry game needs verification. pick Batter 1010: recommended game 101 (first pitch 6:10 AM ET), the entry is recorded in game 102. Check the delivered pick and the game shown in MLB for each listed leg. Change only a leg whose correct game you can verify and that MLB still lets you edit. Keep any correct leg as entered.'] [] []
+actual missing all-clear wrong-game manual DMs ['⚠️ BTS entry game needs verification. pick Batter 1010: recommended game 101 (first pitch 6:10 AM ET), the entry is recorded in game 102. Check the delivered pick and the game shown in MLB for each listed leg. Change only a leg whose correct game you can verify and that MLB still lets you edit. Keep any correct leg as entered.'] ['✅ BTS pick entry confirmed for 2027-03-24 (match).'] []
+same spelling already_confirmed []
+same 06:10 ET instant, UTC spelling observed ['cookies', 'login', 'profile', 'pending', 'rounds', 'players']
+corrupt early confirmed field observed_at already_confirmed {'confirmed_by': '90d3b44381ef4d57940559c6aa02b770'}
+corrupt early confirmed field receipt already_confirmed {'confirmed_by': ['not', 'an', 'id']}
+restart, unconfirmed send and invalid destination raised KeyboardInterrupt early marker unavailable (IsADirectoryError)

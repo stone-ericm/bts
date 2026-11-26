@@ -1,0 +1,33 @@
+nice: setpriority: Operation not permitted
+Usage: bts check-pick-entered [OPTIONS]
+
+  DM if today's delivered pick was never entered in the MLB app.
+
+  Each watchdog CLI invocation attempts to publish one entry receipt and its
+  seal.
+
+  v2 (2026-07-03, RE-ENABLED in cron): entry is now detected from the UNION of
+  two sources — the profile endpoint (settled rows only; v1's sole source and
+  why v1 false-alarmed every pre-pitch day and was disabled 2026-06-12) and
+  GET api/predictions (discovered via the app JS bundle), which exposes the
+  pending same-day row before settlement. Any fetch failure skips quietly
+  WITHOUT consuming the once-per-day marker, so a transient error can never
+  produce the v1 false-alarm class — the next cron run retries.
+
+  The installed watchdog launches every 15 minutes ET. It prints the outcome
+  when it skips a check. An eligible early check uses the dated early ledger.
+  Manual and original-hours checks use the live ledger. While eligible, an
+  unresolved entry is checked again, with throttled reminders at 30 and 15
+  minutes to cutoff and an all-clear when a warned entry is confirmed.
+
+Options:
+  --picks-dir TEXT          Picks directory
+  --expected-username TEXT  Refuse if session identity differs
+  --dm-recipient TEXT       Bluesky handle for the not-entered DM
+  --window-min INTEGER      Check only within this many minutes before first
+                            pitch
+  --now-et TEXT             Test override: naive ET datetime ISO
+  --cron                    Before 10:00 ET, defer an in-window check of a
+                            committed pick if a nominal 10:00–23:45 ET
+                            quarter-hour is also inside that window.
+  --help                    Show this message and exit.

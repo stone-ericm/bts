@@ -1,0 +1,3 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /private/tmp/wr-f5b-r2.4kVtCgCD/base/src/bts/__init__.py
+10:00 fifo True present True exit 0 stdout check-pick-entered: outside window (-230 min to pitch) stderr  receipt count 1 early marker None

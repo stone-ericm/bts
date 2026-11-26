@@ -1,0 +1,4 @@
+nice: setpriority: Operation not permitted
+base 10:00 lock exit 0 [('flock', 54888), ('timeout', 54888), ('timeout-child', 54889), ('uv', 54889), ('uv-child', 54890), ('child', 54890), ('ready', 54890)]
+f5 10:00 lock exit 1 [('flock', 54896)]
+if allowed through, the base's sole 10:00 run alerts: (1, 'SystemExit', 'observed', None, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], ['⚠️ BTS pick NOT entered in MLB app: Batter 1010 — first pitch 10:06 AM ET (1 min to submit). Fix it now!'], 'alerted')

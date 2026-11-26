@@ -1,0 +1,39 @@
+nice: setpriority: Operation not permitted
+no-installed-cron-flag /private/tmp/wr-f5b-r1.IOC8VR/tmphulwj78r/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /private/tmp/wr-f5b-r1.IOC8VR/tmphulwj78r
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 60 items
+
+tests/test_wr_f5b_watchdog.py F
+
+=================================== FAILURES ===================================
+___________________ test_m1_wrapped_schedule_and_flag[show] ____________________
+
+box = <tests.test_entry_intent.box.<locals>.Box object at 0x10f64d2b0>
+action = 'show'
+
+    @pytest.mark.parametrize("action", ["show", "install"])
+    def test_m1_wrapped_schedule_and_flag(box, action):
+        box.config.write_text(ENTER)
+        result = box.run(action)
+        assert result.returncode == 0, result.stderr
+        lines = result.stdout.splitlines() if action == "show" else box.lines()
+        line = watchdog(lines)
+        assert line.startswith("*/15 * * * * ")
+        assert "/usr/bin/flock -n /home/bts/.check-pick-entered.lock /usr/bin/timeout --verbose -k 30 840 " in line
+>       assert "--cron" in shlex.split(line)
+E       AssertionError: assert '--cron' in ['*/15', '*', '*', '*', '*', 'cd', ...]
+E        +  where ['*/15', '*', '*', '*', '*', 'cd', ...] = <function split at 0x108f63420>('*/15 * * * * cd /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2467/test_m1_wrapped_s...2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2467/test_m1_wrapped_schedule_and_f0/home/logs/cron.log 2>&1 # BTS-HETZNER')
+E        +    where <function split at 0x108f63420> = shlex.split
+
+tests/test_wr_f5b_watchdog.py:76: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_f5b_watchdog.py::test_m1_wrapped_schedule_and_flag[show]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+============================== 1 failed in 0.84s ===============================
+
+
+no-installed-cron-flag DETECTED

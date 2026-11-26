@@ -1,0 +1,34 @@
+nice: setpriority: Operation not permitted
+gate-starts-1015 /private/tmp/wr-f5b-r1.IOC8VR/tmp52gqevrd/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /private/tmp/wr-f5b-r1.IOC8VR/tmp52gqevrd
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 60 items
+
+tests/test_wr_f5b_watchdog.py ......................F
+
+=================================== FAILURES ===================================
+_____________________ test_r5_r6_sole_original_slot[10:06] _____________________
+
+replay = <tests.test_wr_f5b_watchdog.replay.<locals>.Replay object at 0x10d46da60>
+pitch = '10:06'
+
+    @pytest.mark.parametrize("pitch", ["10:06", "10:15", "10:20"])
+    def test_r5_r6_sole_original_slot(replay, pitch):
+        replay.pick(pitch, deliver="09:40")
+>       assert replay.check("09:45") == ("base_slot_available", [], [], False)
+E       AssertionError: assert ('observed', ...'], [], False) == ('base_slot_a...[], [], False)
+E         
+E         At index 0 diff: 'observed' != 'base_slot_available'
+E         Use -v to get more diff
+
+tests/test_wr_f5b_watchdog.py:397: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_f5b_watchdog.py::test_r5_r6_sole_original_slot[10:06] - ...
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+======================== 1 failed, 22 passed in 11.87s =========================
+
+
+gate-starts-1015 DETECTED

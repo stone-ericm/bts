@@ -1,0 +1,2527 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f5c-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 49 items
+
+tests/test_audit_driver.py FFFFFFFFFFFFFFFFFFFFFFFFFFFEEEEEEEEEEEFFFEEEE [ 91%]
+EFFF                                                                     [100%]
+
+==================================== ERRORS ====================================
+__ ERROR at setup of TestTeardownRetrieved.test_all_ok_tears_down_everything ___
+
+    @pytest.fixture
+    def boxes():
+>       from audit_driver import Box
+
+tests/test_audit_driver.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_ ERROR at setup of TestTeardownRetrieved.test_one_partial_preserves_only_that_box _
+
+    @pytest.fixture
+    def boxes():
+>       from audit_driver import Box
+
+tests/test_audit_driver.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+____ ERROR at setup of TestTeardownRetrieved.test_all_partial_preserves_all ____
+
+    @pytest.fixture
+    def boxes():
+>       from audit_driver import Box
+
+tests/test_audit_driver.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_ ERROR at setup of TestTeardownRetrieved.test_missing_key_defaults_to_preserve _
+
+    @pytest.fixture
+    def boxes():
+>       from audit_driver import Box
+
+tests/test_audit_driver.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+___ ERROR at setup of TestTeardownRetrieved.test_empty_results_preserves_all ___
+
+    @pytest.fixture
+    def boxes():
+>       from audit_driver import Box
+
+tests/test_audit_driver.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+______ ERROR at setup of TestTeardownRetrieved.test_empty_boxes_list_noop ______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10b17f290>
+
+    @pytest.fixture
+    def captured_log(monkeypatch):
+        """Replace audit_driver.log with a list-appender; returns the list."""
+>       from audit_driver import log as _original_log  # noqa: F401 — force import first
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_audit_driver.py:564: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+____ ERROR at setup of TestTeardownRetrieved.test_malformed_values_preserve ____
+
+    @pytest.fixture
+    def boxes():
+>       from audit_driver import Box
+
+tests/test_audit_driver.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_ ERROR at setup of TestTeardownRetrieved.test_provider_delete_raises_on_one_box _
+
+    @pytest.fixture
+    def boxes():
+>       from audit_driver import Box
+
+tests/test_audit_driver.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_ ERROR at setup of TestTeardownRetrieved.test_retrieve_results_none_raises_typeerror _
+
+    @pytest.fixture
+    def boxes():
+>       from audit_driver import Box
+
+tests/test_audit_driver.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+____ ERROR at setup of TestTeardownRetrieved.test_stray_key_logged_no_crash ____
+
+    @pytest.fixture
+    def boxes():
+>       from audit_driver import Box
+
+tests/test_audit_driver.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_ ERROR at setup of TestTeardownAllReturn.test_teardown_all_returns_count_of_successful_deletes _
+
+    @pytest.fixture
+    def boxes():
+>       from audit_driver import Box
+
+tests/test_audit_driver.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_ ERROR at setup of TestAuditAttachRetrieveMode.test_select_boxes_for_attach_preserves_original_order _
+
+    @pytest.fixture
+    def boxes():
+>       from audit_driver import Box
+
+tests/test_audit_driver.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_ ERROR at setup of TestAuditAttachRetrieveMode.test_select_boxes_for_attach_rejects_unknown_box _
+
+    @pytest.fixture
+    def boxes():
+>       from audit_driver import Box
+
+tests/test_audit_driver.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+____ ERROR at setup of TestPollResilience.test_one_timeout_doesnt_kill_poll ____
+
+    @pytest.fixture
+    def boxes():
+>       from audit_driver import Box
+
+tests/test_audit_driver.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_ ERROR at setup of TestPollResilience.test_one_generic_exception_doesnt_kill_poll _
+
+    @pytest.fixture
+    def boxes():
+>       from audit_driver import Box
+
+tests/test_audit_driver.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+____ ERROR at setup of TestPollResilience.test_done_marker_still_recognized ____
+
+    @pytest.fixture
+    def boxes():
+>       from audit_driver import Box
+
+tests/test_audit_driver.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+=================================== FAILURES ===================================
+______ TestKeychainFallback.test_fallback_to_env_var_when_keychain_misses ______
+
+self = <tests.test_audit_driver.TestKeychainFallback object at 0x10b180b00>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10b17c8c0>
+
+    def test_fallback_to_env_var_when_keychain_misses(self, monkeypatch):
+>       from audit_driver import _keychain
+
+tests/test_audit_driver.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+__ TestKeychainFallback.test_raises_when_neither_keychain_nor_env_has_secret ___
+
+self = <tests.test_audit_driver.TestKeychainFallback object at 0x10b180260>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10b9d82c0>
+
+    def test_raises_when_neither_keychain_nor_env_has_secret(self, monkeypatch):
+>       from audit_driver import _keychain
+
+tests/test_audit_driver.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+___ TestKeychainFallback.test_fallback_to_env_alias_when_primary_env_misses ____
+
+self = <tests.test_audit_driver.TestKeychainFallback object at 0x10b1806e0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x110107440>
+
+    def test_fallback_to_env_alias_when_primary_env_misses(self, monkeypatch):
+>       from audit_driver import _keychain
+
+tests/test_audit_driver.py:43: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_____________ TestKeychainFallback.test_error_mentions_env_aliases _____________
+
+self = <tests.test_audit_driver.TestKeychainFallback object at 0x10b180350>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x110595e80>
+
+    def test_error_mentions_env_aliases(self, monkeypatch):
+>       from audit_driver import _keychain
+
+tests/test_audit_driver.py:54: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+________ TestOCIReadinessHelpers.test_ad_order_rotates_from_next_cursor ________
+
+self = <tests.test_audit_driver.TestOCIReadinessHelpers object at 0x10b1814c0>
+
+    def test_ad_order_rotates_from_next_cursor(self):
+>       provider = self._provider(["AD-1", "AD-2", "AD-3"], cursor=1)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_audit_driver.py:79: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_audit_driver.py:71: in _provider
+    from audit_driver import OCIProvider
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+________ TestOCIReadinessHelpers.test_mark_ad_used_advances_next_cursor ________
+
+self = <tests.test_audit_driver.TestOCIReadinessHelpers object at 0x105a48da0>
+
+    def test_mark_ad_used_advances_next_cursor(self):
+>       provider = self._provider(["AD-1", "AD-2", "AD-3"])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_audit_driver.py:84: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_audit_driver.py:71: in _provider
+    from audit_driver import OCIProvider
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_ TestOCIReadinessHelpers.test_service_error_classification_for_next_ad[error0-True] _
+
+self = <tests.test_audit_driver.TestOCIReadinessHelpers object at 0x105a48e30>
+error = namespace(code='LimitExceeded', status=400), expected = True
+
+    @pytest.mark.parametrize(
+        ("error", "expected"),
+        [
+            (SimpleNamespace(code="LimitExceeded", status=400), True),
+            (SimpleNamespace(code="OutOfCapacity", status=400), True),
+            (SimpleNamespace(code=None, status=503), True),
+            (SimpleNamespace(code="NotAuthorizedOrNotFound", status=404), False),
+        ],
+    )
+    def test_service_error_classification_for_next_ad(self, error, expected):
+>       from audit_driver import OCIProvider
+
+tests/test_audit_driver.py:101: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_ TestOCIReadinessHelpers.test_service_error_classification_for_next_ad[error1-True] _
+
+self = <tests.test_audit_driver.TestOCIReadinessHelpers object at 0x10b0275f0>
+error = namespace(code='OutOfCapacity', status=400), expected = True
+
+    @pytest.mark.parametrize(
+        ("error", "expected"),
+        [
+            (SimpleNamespace(code="LimitExceeded", status=400), True),
+            (SimpleNamespace(code="OutOfCapacity", status=400), True),
+            (SimpleNamespace(code=None, status=503), True),
+            (SimpleNamespace(code="NotAuthorizedOrNotFound", status=404), False),
+        ],
+    )
+    def test_service_error_classification_for_next_ad(self, error, expected):
+>       from audit_driver import OCIProvider
+
+tests/test_audit_driver.py:101: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_ TestOCIReadinessHelpers.test_service_error_classification_for_next_ad[error2-True] _
+
+self = <tests.test_audit_driver.TestOCIReadinessHelpers object at 0x10b17ce90>
+error = namespace(code=None, status=503), expected = True
+
+    @pytest.mark.parametrize(
+        ("error", "expected"),
+        [
+            (SimpleNamespace(code="LimitExceeded", status=400), True),
+            (SimpleNamespace(code="OutOfCapacity", status=400), True),
+            (SimpleNamespace(code=None, status=503), True),
+            (SimpleNamespace(code="NotAuthorizedOrNotFound", status=404), False),
+        ],
+    )
+    def test_service_error_classification_for_next_ad(self, error, expected):
+>       from audit_driver import OCIProvider
+
+tests/test_audit_driver.py:101: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_ TestOCIReadinessHelpers.test_service_error_classification_for_next_ad[error3-False] _
+
+self = <tests.test_audit_driver.TestOCIReadinessHelpers object at 0x10b17d100>
+error = namespace(code='NotAuthorizedOrNotFound', status=404), expected = False
+
+    @pytest.mark.parametrize(
+        ("error", "expected"),
+        [
+            (SimpleNamespace(code="LimitExceeded", status=400), True),
+            (SimpleNamespace(code="OutOfCapacity", status=400), True),
+            (SimpleNamespace(code=None, status=503), True),
+            (SimpleNamespace(code="NotAuthorizedOrNotFound", status=404), False),
+        ],
+    )
+    def test_service_error_classification_for_next_ad(self, error, expected):
+>       from audit_driver import OCIProvider
+
+tests/test_audit_driver.py:101: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+____ TestOCIReadinessHelpers.test_create_tries_next_ad_after_limit_exceeded ____
+
+self = <tests.test_audit_driver.TestOCIReadinessHelpers object at 0x10b17ffe0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x110597ef0>
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2472/test_create_tries_next_ad_afte0')
+
+    def test_create_tries_next_ad_after_limit_exceeded(
+        self, monkeypatch, tmp_path,
+    ):
+>       import audit_driver
+
+tests/test_audit_driver.py:108: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+______ TestValidationSplit.test_default_legacy_split_renders_test_seasons ______
+
+self = <tests.test_audit_driver.TestValidationSplit object at 0x105a48ec0>
+
+    def test_default_legacy_split_renders_test_seasons(self):
+>       from audit_driver import render_screen_command, resolve_validation_split
+
+tests/test_audit_driver.py:182: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+___ TestValidationSplit.test_split_flags_render_without_legacy_test_seasons ____
+
+self = <tests.test_audit_driver.TestValidationSplit object at 0x10b183380>
+
+    def test_split_flags_render_without_legacy_test_seasons(self):
+>       from audit_driver import render_screen_command, resolve_validation_split
+
+tests/test_audit_driver.py:197: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_ TestValidationSplit.test_profile_seasons_default_to_full_surface_for_legacy_split _
+
+self = <tests.test_audit_driver.TestValidationSplit object at 0x10b1802c0>
+
+    def test_profile_seasons_default_to_full_surface_for_legacy_split(self):
+>       from audit_driver import resolve_profile_seasons, resolve_validation_split
+
+tests/test_audit_driver.py:213: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_ TestValidationSplit.test_profile_seasons_default_to_full_surface_plus_split_seasons _
+
+self = <tests.test_audit_driver.TestValidationSplit object at 0x10b180770>
+
+    def test_profile_seasons_default_to_full_surface_plus_split_seasons(self):
+>       from audit_driver import resolve_profile_seasons, resolve_validation_split
+
+tests/test_audit_driver.py:230: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_____ TestValidationSplit.test_profile_seasons_reject_missing_split_season _____
+
+self = <tests.test_audit_driver.TestValidationSplit object at 0x10b17fe30>
+
+    def test_profile_seasons_reject_missing_split_season(self):
+>       from audit_driver import resolve_profile_seasons, resolve_validation_split
+
+tests/test_audit_driver.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+________ TestValidationSplit.test_rejects_mixed_legacy_and_split_flags _________
+
+self = <tests.test_audit_driver.TestValidationSplit object at 0x10b17ec00>
+
+    def test_rejects_mixed_legacy_and_split_flags(self):
+>       from audit_driver import resolve_validation_split
+
+tests/test_audit_driver.py:260: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_________ TestValidationSplit.test_rejects_half_specified_split_flags __________
+
+self = <tests.test_audit_driver.TestValidationSplit object at 0x10b17f860>
+
+    def test_rejects_half_specified_split_flags(self):
+>       from audit_driver import resolve_validation_split
+
+tests/test_audit_driver.py:270: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+___________ TestValidationSplit.test_rejects_overlapping_split_flags ___________
+
+self = <tests.test_audit_driver.TestValidationSplit object at 0x10b17f380>
+
+    def test_rejects_overlapping_split_flags(self):
+>       from audit_driver import resolve_validation_split
+
+tests/test_audit_driver.py:286: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_____________ TestValidationSplit.test_writes_local_split_metadata _____________
+
+self = <tests.test_audit_driver.TestValidationSplit object at 0x10b17e930>
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2472/test_writes_local_split_metada0')
+
+    def test_writes_local_split_metadata(self, tmp_path):
+>       from audit_driver import _write_validation_split_metadata, resolve_validation_split
+
+tests/test_audit_driver.py:296: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_ TestValidationSplit.test_seed_metadata_records_provider_box_and_determinism __
+
+self = <tests.test_audit_driver.TestValidationSplit object at 0x10b17edb0>
+
+    def test_seed_metadata_records_provider_box_and_determinism(self):
+>       from audit_driver import Box, _seed_audit_metadata, resolve_validation_split
+
+tests/test_audit_driver.py:326: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_ TestValidationSplit.test_audit_driver_provenance_base_records_determinism_intent _
+
+self = <tests.test_audit_driver.TestValidationSplit object at 0x10b17f1a0>
+
+    def test_audit_driver_provenance_base_records_determinism_intent(self):
+>       from audit_driver import _audit_driver_provenance_base
+
+tests/test_audit_driver.py:365: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_ TestValidationSplit.test_launch_queue_command_uses_split_flags_and_seed_metadata _
+
+self = <tests.test_audit_driver.TestValidationSplit object at 0x10b17e6c0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x11059a600>
+
+    def test_launch_queue_command_uses_split_flags_and_seed_metadata(
+        self, monkeypatch,
+    ):
+>       import audit_driver
+
+tests/test_audit_driver.py:379: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_____ TestValidationSplit.test_render_profile_command_logs_pa_predictions ______
+
+self = <tests.test_audit_driver.TestValidationSplit object at 0x10b17ddf0>
+
+    def test_render_profile_command_logs_pa_predictions(self):
+>       from audit_driver import render_profile_command
+
+tests/test_audit_driver.py:430: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+__ TestValidationSplit.test_render_profile_command_threads_estimated_pa_mode ___
+
+self = <tests.test_audit_driver.TestValidationSplit object at 0x10b17e090>
+
+    def test_render_profile_command_threads_estimated_pa_mode(self):
+>       from audit_driver import render_profile_command
+
+tests/test_audit_driver.py:446: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_ TestValidationSplit.test_launch_profile_queue_command_uses_profile_artifacts_and_metadata _
+
+self = <tests.test_audit_driver.TestValidationSplit object at 0x10b17e480>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1105bc410>
+
+    def test_launch_profile_queue_command_uses_profile_artifacts_and_metadata(
+        self, monkeypatch,
+    ):
+>       import audit_driver
+
+tests/test_audit_driver.py:459: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+__ TestValidationSplit.test_retrieve_profile_one_fetches_simulation_seed_dirs __
+
+self = <tests.test_audit_driver.TestValidationSplit object at 0x10b17d7c0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x11059b110>
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2472/test_retrieve_profile_one_fetc0')
+
+    def test_retrieve_profile_one_fetches_simulation_seed_dirs(
+        self, monkeypatch, tmp_path,
+    ):
+>       import audit_driver
+
+tests/test_audit_driver.py:513: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+______ TestAuditAttachRetrieveMode.test_screen_mode_uses_phase1_retrieve _______
+
+self = <tests.test_audit_driver.TestAuditAttachRetrieveMode object at 0x10b17cad0>
+
+    def test_screen_mode_uses_phase1_retrieve(self):
+>       import audit_attach
+
+tests/test_audit_driver.py:720: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_attach.py:44: in <module>
+    from audit_driver import (
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_ TestAuditAttachRetrieveMode.test_profiles_mode_uses_simulation_seed_retrieve _
+
+self = <tests.test_audit_driver.TestAuditAttachRetrieveMode object at 0x10b17c560>
+
+    def test_profiles_mode_uses_simulation_seed_retrieve(self):
+>       import audit_attach
+
+tests/test_audit_driver.py:726: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_attach.py:44: in <module>
+    from audit_driver import (
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_____________ TestAuditAttachRetrieveMode.test_unknown_mode_raises _____________
+
+self = <tests.test_audit_driver.TestAuditAttachRetrieveMode object at 0x10b17c290>
+
+    def test_unknown_mode_raises(self):
+>       import audit_attach
+
+tests/test_audit_driver.py:735: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_attach.py:44: in <module>
+    from audit_driver import (
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+______ TestStage1SeedDirsViaSymlinks.test_stage1_seed_dirs_clean_creation ______
+
+self = <tests.test_audit_driver.TestStage1SeedDirsViaSymlinks object at 0x10b17c530>
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2472/test_stage1_seed_dirs_clean_cr0')
+
+    def test_stage1_seed_dirs_clean_creation(self, tmp_path):
+>       from audit_driver import _stage1_seed_dirs_via_symlinks
+
+tests/test_audit_driver.py:852: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+________ TestStage1SeedDirsViaSymlinks.test_stage1_seed_dirs_idempotent ________
+
+self = <tests.test_audit_driver.TestStage1SeedDirsViaSymlinks object at 0x10b17fa10>
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2472/test_stage1_seed_dirs_idempote0')
+
+    def test_stage1_seed_dirs_idempotent(self, tmp_path):
+>       from audit_driver import _stage1_seed_dirs_via_symlinks
+
+tests/test_audit_driver.py:874: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+_ TestStage1SeedDirsViaSymlinks.test_stage1_seed_dirs_integration_with_aggregate _
+
+self = <tests.test_audit_driver.TestStage1SeedDirsViaSymlinks object at 0x10b17eff0>
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2472/test_stage1_seed_dirs_integrat0')
+
+    def test_stage1_seed_dirs_integration_with_aggregate(self, tmp_path):
+>       from audit_driver import _stage1_seed_dirs_via_symlinks
+
+tests/test_audit_driver.py:891: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/audit_driver.py:131: in <module>
+    RSYNC_BIN = _resolve_rsync_bin()
+                ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _resolve_rsync_bin() -> str:
+        """Return a path to GNU rsync 3.x, never macOS openrsync.
+    
+        Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+        / rsync version 2.6.9 compatible'). It cannot complete the protocol
+        handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+        'unexpected end of file' — which silently dropped every box on the first
+        fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+        also GNU. Fail loudly rather than hand back openrsync.
+        """
+        candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+        on_path = shutil.which("rsync")
+        if on_path:
+            candidates.append(on_path)
+        for cand in candidates:
+            if not cand or not os.path.exists(cand):
+                continue
+            try:
+                out = subprocess.run(
+                    [cand, "--version"], capture_output=True, text=True, timeout=10
+                ).stdout
+            except Exception:
+                continue
+            if "openrsync" in out.lower():
+                continue
+            if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+                return cand
+>       raise RuntimeError(
+            "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+            "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+            "arch -arm64 /opt/homebrew/bin/brew install rsync"
+        )
+E       RuntimeError: No GNU rsync 3.x found — only macOS openrsync, which can't talk to the Ubuntu fleet (causes 'unexpected end of file'). Install it: arch -arm64 /opt/homebrew/bin/brew install rsync
+
+scripts/audit_driver.py:124: RuntimeError
+=========================== short test summary info ============================
+FAILED tests/test_audit_driver.py::TestKeychainFallback::test_fallback_to_env_var_when_keychain_misses
+FAILED tests/test_audit_driver.py::TestKeychainFallback::test_raises_when_neither_keychain_nor_env_has_secret
+FAILED tests/test_audit_driver.py::TestKeychainFallback::test_fallback_to_env_alias_when_primary_env_misses
+FAILED tests/test_audit_driver.py::TestKeychainFallback::test_error_mentions_env_aliases
+FAILED tests/test_audit_driver.py::TestOCIReadinessHelpers::test_ad_order_rotates_from_next_cursor
+FAILED tests/test_audit_driver.py::TestOCIReadinessHelpers::test_mark_ad_used_advances_next_cursor
+FAILED tests/test_audit_driver.py::TestOCIReadinessHelpers::test_service_error_classification_for_next_ad[error0-True]
+FAILED tests/test_audit_driver.py::TestOCIReadinessHelpers::test_service_error_classification_for_next_ad[error1-True]
+FAILED tests/test_audit_driver.py::TestOCIReadinessHelpers::test_service_error_classification_for_next_ad[error2-True]
+FAILED tests/test_audit_driver.py::TestOCIReadinessHelpers::test_service_error_classification_for_next_ad[error3-False]
+FAILED tests/test_audit_driver.py::TestOCIReadinessHelpers::test_create_tries_next_ad_after_limit_exceeded
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_default_legacy_split_renders_test_seasons
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_split_flags_render_without_legacy_test_seasons
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_profile_seasons_default_to_full_surface_for_legacy_split
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_profile_seasons_default_to_full_surface_plus_split_seasons
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_profile_seasons_reject_missing_split_season
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_rejects_mixed_legacy_and_split_flags
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_rejects_half_specified_split_flags
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_rejects_overlapping_split_flags
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_writes_local_split_metadata
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_seed_metadata_records_provider_box_and_determinism
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_audit_driver_provenance_base_records_determinism_intent
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_launch_queue_command_uses_split_flags_and_seed_metadata
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_render_profile_command_logs_pa_predictions
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_render_profile_command_threads_estimated_pa_mode
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_launch_profile_queue_command_uses_profile_artifacts_and_metadata
+FAILED tests/test_audit_driver.py::TestValidationSplit::test_retrieve_profile_one_fetches_simulation_seed_dirs
+FAILED tests/test_audit_driver.py::TestAuditAttachRetrieveMode::test_screen_mode_uses_phase1_retrieve
+FAILED tests/test_audit_driver.py::TestAuditAttachRetrieveMode::test_profiles_mode_uses_simulation_seed_retrieve
+FAILED tests/test_audit_driver.py::TestAuditAttachRetrieveMode::test_unknown_mode_raises
+FAILED tests/test_audit_driver.py::TestStage1SeedDirsViaSymlinks::test_stage1_seed_dirs_clean_creation
+FAILED tests/test_audit_driver.py::TestStage1SeedDirsViaSymlinks::test_stage1_seed_dirs_idempotent
+FAILED tests/test_audit_driver.py::TestStage1SeedDirsViaSymlinks::test_stage1_seed_dirs_integration_with_aggregate
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_all_ok_tears_down_everything
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_one_partial_preserves_only_that_box
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_all_partial_preserves_all
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_missing_key_defaults_to_preserve
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_empty_results_preserves_all
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_empty_boxes_list_noop
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_malformed_values_preserve
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_provider_delete_raises_on_one_box
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_retrieve_results_none_raises_typeerror
+ERROR tests/test_audit_driver.py::TestTeardownRetrieved::test_stray_key_logged_no_crash
+ERROR tests/test_audit_driver.py::TestTeardownAllReturn::test_teardown_all_returns_count_of_successful_deletes
+ERROR tests/test_audit_driver.py::TestAuditAttachRetrieveMode::test_select_boxes_for_attach_preserves_original_order
+ERROR tests/test_audit_driver.py::TestAuditAttachRetrieveMode::test_select_boxes_for_attach_rejects_unknown_box
+ERROR tests/test_audit_driver.py::TestPollResilience::test_one_timeout_doesnt_kill_poll
+ERROR tests/test_audit_driver.py::TestPollResilience::test_one_generic_exception_doesnt_kill_poll
+ERROR tests/test_audit_driver.py::TestPollResilience::test_done_marker_still_recognized
+======================== 33 failed, 16 errors in 1.64s =========================

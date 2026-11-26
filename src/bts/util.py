@@ -22,6 +22,21 @@ class MissingFileTargetError(FileNotFoundError):
     """The target was missing at stat or open during a bounded read."""
 
 
+def read_bounded_file_bytes(path: Path, max_bytes: int) -> bytes:
+    """Read up to the limit from an opened regular file without waiting for a FIFO."""
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise NotRegularFileError(f"{path}: not a regular file")
+        with io.open(fd, "rb", closefd=False) as handle:
+            raw = handle.read(max_bytes + 1)
+        if len(raw) > max_bytes:
+            raise FileReadLimitError(f"{path}: exceeds read limit")
+        return raw
+    finally:
+        os.close(fd)
+
+
 def read_regular_file_text(path: Path, *, max_bytes: int | None = None) -> str:
     """Read UTF-8 from a regular file, optionally rejecting inputs above a byte limit."""
     try:

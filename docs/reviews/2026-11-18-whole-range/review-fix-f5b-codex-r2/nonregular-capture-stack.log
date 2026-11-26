@@ -1,0 +1,25 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5d-cx/src/bts/__init__.py
+05:00 fifo False present True exit 0 stdout reading 2027-03-24T085000Z.json.gz regular file
+check-pick-entered: 2027-03-24 pick entered (match)
+reading 2027-03-24T085000Z.json.gz regular file stderr  receipt count 1 early marker {'checked_at': '2027-03-24T05:00:00-04:00', 'date': '2027-03-24', 'observed_at': '2027-03-24T05:00:00-04:00', 'reason': 'match', 'receipt': '2366fecf1d034fd7b136a4f1a607a138', 'slots': [{'batter_id': 1010, 'batter_name': 'Batter 1010', 'game_pk': 101, 'game_time': '2027-03-24T06:10:00-04:00', 'role': 'pick'}], 'status': 'confirmed'}
+Fatal Python error: Aborted
+
+Current thread 0x00000001fc58d740 (most recent call first):
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 1013 in open
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 1019 in read_bytes
+  File "/Users/eric/projects/bts-work/wr-rev-f5d-cx/.codex-review/wr-f5b-r2/nonregular_capture.py", line 28 in watch_read
+  File "/Users/eric/projects/bts-work/wr-rev-f5d-cx/src/bts/entry_receipt.py", line 211 in load_units
+  File "/Users/eric/projects/bts-work/wr-rev-f5d-cx/src/bts/entry_receipt.py", line 398 in record
+  File "/Users/eric/projects/bts-work/wr-rev-f5d-cx/src/bts/entry_receipt.py", line 428 in publish
+  File "/Users/eric/projects/bts-work/wr-rev-f5d-cx/src/bts/cli.py", line 1942 in check_pick_entered
+  File "/Users/eric/projects/bts-work/wr-rev-f5d-cx/.venv/lib/python3.12/site-packages/click/core.py", line 824 in invoke
+  File "/Users/eric/projects/bts-work/wr-rev-f5d-cx/.venv/lib/python3.12/site-packages/click/core.py", line 1269 in invoke
+  File "/Users/eric/projects/bts-work/wr-rev-f5d-cx/.venv/lib/python3.12/site-packages/click/core.py", line 1873 in invoke
+  File "/Users/eric/projects/bts-work/wr-rev-f5d-cx/.venv/lib/python3.12/site-packages/click/core.py", line 1406 in main
+  File "/Users/eric/projects/bts-work/wr-rev-f5d-cx/.venv/lib/python3.12/site-packages/click/testing.py", line 504 in invoke
+  File "/Users/eric/projects/bts-work/wr-rev-f5d-cx/.codex-review/f5-records/docs/reviews/2026-11-18-whole-range/review-fix-f5-codex/probe_support.py", line 138 in invoke
+  File "/Users/eric/projects/bts-work/wr-rev-f5d-cx/.codex-review/wr-f5b-r2/nonregular_capture.py", line 34 in suspect_capture
+  File "/Users/eric/projects/bts-work/wr-rev-f5d-cx/.codex-review/wr-f5b-r2/nonregular_capture.py", line 56 in <module>
+
+Extension modules: numpy._core._multiarray_umath, numpy.linalg._umath_linalg, pyarrow.lib, numpy.random._common, numpy.random.bit_generator, numpy.random._bounded_integers, numpy.random._pcg64, numpy.random._generator, numpy.random._mt19937, numpy.random._philox, numpy.random._sfc64, numpy.random.mtrand, _cyutility, pandas._libs._cyutility, pandas._libs.tslibs.ccalendar, pandas._libs.tslibs.np_datetime, pandas._libs.tslibs.dtypes, pandas._libs.tslibs.base, pandas._libs.tslibs.nattype, pandas._libs.tslibs.timezones, pandas._libs.properties, pandas._libs.tslibs.fields, pandas._libs.tslibs.timedeltas, pandas._libs.tslibs.tzconversion, pandas._libs.tslibs.timestamps, pandas._libs.tslibs.offsets, pandas._libs.tslibs.strptime, pandas._libs.tslibs.parsing, pandas._libs.tslibs.conversion, pandas._libs.tslibs.period, pandas._libs.tslibs.vectorized, pandas._libs.ops_dispatch, pandas._libs.missing, pandas._libs.hashtable, pandas._libs.algos, pandas._libs.interval, pandas._libs.lib, pyarrow._compute, pandas._libs.ops, pandas._libs.hashing, pandas._libs.arrays, pandas._libs.tslib, pandas._libs.sparse, pandas._libs.internals, pandas._libs.indexing, pandas._libs.index, pandas._libs.writers, pandas._libs.join, pandas._libs.window.aggregations, pandas._libs.window.indexers, pandas._libs.reshape, pandas._libs.groupby, pandas._libs.json, pandas._libs.parsers, pandas._libs.testing, pyarrow._parquet, pyarrow._fs, pyarrow._azurefs, pyarrow._hdfs, pyarrow._gcsfs, pyarrow._s3fs (total: 61)

@@ -166,7 +166,7 @@ def test_enter_install_adds_entry_cron_and_fetch_recipient(box):
     assert res.returncode == 0, res.stderr
     enter = box.lines()
     entry = [ln for ln in enter if ENTRY_CMD in ln]
-    assert len(entry) == 1 and entry[0].startswith("*/15 10-23 * * * ")
+    assert len(entry) == 1 and entry[0].startswith("*/15 * * * * ")
     fetch_cmd = "bts fetch-contest-streak"
     recipient = " --dm-recipient stonehengee.bsky.social"
     fetch = [ln for ln in enter if fetch_cmd in ln]

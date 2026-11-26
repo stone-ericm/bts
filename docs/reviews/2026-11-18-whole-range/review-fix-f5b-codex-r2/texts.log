@@ -1,0 +1,7 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5d-cx/src/bts/__init__.py
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f5d-cx/.codex-review/wr-f5b-r2/operator_text.py", line 40, in <module>
+    assert text in help_text, text
+           ^^^^^^^^^^^^^^^^^
+AssertionError: Before 10:00 ET, defer an in-window check of a committed pick if a nominal 10:00–23:45 ET quarter-hour is also inside that window.

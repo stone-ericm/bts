@@ -1,0 +1,35 @@
+nice: setpriority: Operation not permitted
+gate control 0 R5/R6 10:06 (0, None, 'base_slot_available', None, [], [], None) (1, 'SystemExit', 'observed', None, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], ['⚠️ BTS entry game needs verification. pick Batter 1010: recommended game 101 (first pitch 10:06 AM ET), the entry is recorded in game 102. Check the delivered pick and the game shown in MLB for each listed leg. Change only a leg whose correct game you can verify and that MLB still lets you edit. Keep any correct leg as entered.'], 'alerted')
+R5/R6 10:15 (0, None, 'base_slot_available', None, [], [], None) (1, 'SystemExit', 'observed', None, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], ['⚠️ BTS entry game needs verification. pick Batter 1010: recommended game 101 (first pitch 10:15 AM ET), the entry is recorded in game 102. Check the delivered pick and the game shown in MLB for each listed leg. Change only a leg whose correct game you can verify and that MLB still lets you edit. Keep any correct leg as entered.'], 'alerted')
+R5/R6 10:20 (0, None, 'base_slot_available', None, [], [], None) (1, 'SystemExit', 'observed', None, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], ['⚠️ BTS entry game needs verification. pick Batter 1010: recommended game 101 (first pitch 10:20 AM ET), the entry is recorded in game 102. Check the delivered pick and the game shown in MLB for each listed leg. Change only a leg whose correct game you can verify and that MLB still lets you edit. Keep any correct leg as entered.'], 'alerted')
+ 
+gate changed source 1 R5/R6 10:06 (0, None, 'observed', True, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], [], 'confirmed') (1, 'SystemExit', 'observed', None, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], ['⚠️ BTS entry game needs verification. pick Batter 1010: recommended game 101 (first pitch 10:06 AM ET), the entry is recorded in game 102. Check the delivered pick and the game shown in MLB for each listed leg. Change only a leg whose correct game you can verify and that MLB still lets you edit. Keep any correct leg as entered.'], 'alerted')
+ Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-chk-f5b/.codex-review/wr-f5b-check/contract_rows.py", line 114, in <module>
+    gate(root)
+  File "/Users/eric/projects/bts-work/wr-chk-f5b/.codex-review/wr-f5b-check/contract_rows.py", line 51, in gate
+    assert early["receipt"]["outcome"] == "base_slot_available" and not early["calls"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+
+ledger control 0 source /Users/eric/projects/bts-work/wr-chk-f5b/.codex-review/scratch-f5b/candidate/src/bts/contest_fetch.py
+ 
+ledger changed source 1 source /Users/eric/projects/bts-work/wr-chk-f5b/.codex-review/scratch-f5b/tmp59g32e9b/ledger/bts/contest_fetch.py
+ Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-chk-f5b/.codex-review/wr-f5b-check/mutations.py", line 59, in <module>
+    manual(Path(temp))
+  File "/Users/eric/projects/bts-work/wr-chk-f5b/.codex-review/wr-f5b-check/mutations.py", line 22, in manual
+    assert len(r["sent"]) == 1 and r["sent"][0].startswith("⏰"), r
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'exit': 1, 'exception': 'SystemExit', 'stdout': 'check-pick-entered: DM sent to stonehengee.bsky.social\n', 'stderr': '', 'calls': ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], 'marker': {'checked_at': '2027-03-24T10:20:00-04:00', 'date': '2027-03-24', 'escalations': ['initial', 't30'], 'reason': 'no_pick', 'receipt': 'c8d64de9949d43a2b5577ecc17816b01', 'status': 'alerted'}, 'marker_changed': True, 'sent': ['⚠️ BTS pick NOT entered in MLB app: Batter 1010 — first pitch 10:50 AM ET (25 min to submit). Fix it now!'], 'attempts': ['⚠️ BTS pick NOT entered in MLB app: Batter 1010 — first pitch 10:50 AM ET (25 min to submit). Fix it now!'], 'receipt': {'account': {'expected_username': 'stonehengee', 'user_id': 'fixture', 'username': 'stonehengee'}, 'attempt_id': 'c8d64de9949d43a2b5577ecc17816b01', 'cutoff_at': '2027-03-24T10:45:00-04:00', 'degraded': [], 'detail': None, 'error': None, 'et_date': '2027-03-24', 'exit_code': 1, 'failed_at': None, 'marker_status': 'alerted', 'minutes_to_pitch': 30.0, 'observation': {'before_cutoff': True, 'entered_bts_ids': [], 'resolved_mlb_ids': [], 'response_completed_at': '2027-03-24T10:20:00-04:00', 'rows': {'pending': [], 'profile': []}, 'sources': {'crosswalk_sha256': '1ade9cb7fb74de3649f83e646c38a4910667cb08460406acc032c68669451f64', 'pending_sha256': '4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945', 'profile_sha256': 'fd65c33c243044fef6076e6037110485acbbf93e2a53666d40636e3e8b276bcf', 'rounds_sha256': 'd7a90b5e4bd189276fac6e71c82777c1909cc00d1f1f8d380e95bd4fd6d73ae5', 'units': None}}, 'outcome': 'observed', 'producer': {'command': 'check-pick-entered', 'revision': 'review-fixed-revision'}, 'published_at': '2027-03-24T10:20:00-04:00', 'qualification': {'all_confirmed': False, 'slots': [{'batter_id': 1010, 'game_pk': 101, 'role': 'pick', 'row': None, 'state': 'missing'}]}, 'references': None, 'schema': 'bts_pick_entry_receipt_v1', 'season': 2027, 'selection': {'commit': {'decision_sha256': '8e291a05ab0534d94f9a398beca7301a22cd7ea50f1eb6fa4d68ecb24a16d921', 'decision_valid': True, 'delivery_status': 'delivered', 'scoreable': True}, 'delivery': {'bluesky_posted': False, 'bluesky_uri': None, 'delivered_at': '2027-03-24T09:40:00-04:00', 'notification_channel': 'bluesky_dm', 'notification_id': 'fixture', 'notification_sent': True}, 'pick_file_sha256': 'fa27a3a0dcc6512a8f229566ce910b45bced57799eabbd1732f12ee82149bc7f', 'slots': [{'batter_id': 1010, 'batter_name': 'Batter 1010', 'game_pk': 101, 'game_time': '2027-03-24T10:50:00-04:00', 'role': 'pick'}]}, 'started_at': '2027-03-24T10:20:00-04:00', 'verifier': {'game_qualified': False, 'ok': False, 'reason': 'no_pick', 'required_mlb_ids': [1010]}}}
+
+precedence control 0 R13 live confirmed beats early dm_failed
+ 
+precedence changed source 1  Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-chk-f5b/.codex-review/wr-f5b-check/contract_rows.py", line 118, in <module>
+    live_precedence(root)
+  File "/Users/eric/projects/bts-work/wr-chk-f5b/.codex-review/wr-f5b-check/contract_rows.py", line 85, in live_precedence
+    assert health(w) == []
+           ^^^^^^^^^^^^^^^
+AssertionError
+

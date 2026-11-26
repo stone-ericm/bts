@@ -1,0 +1,98 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/__init__.py
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/__init__.py
+closing fixture: ['05:15'] (0, {'date': '2027-03-24', 'state': 'entered', 'ok': True, 'detail': 'The entry was confirmed in 1 of 96 checks before the cutoff.', 'pick': 'Batter 1', 'streak_problem': None}, [])
+bind-wrong [('09:45', 'base_slot_available', 0), ('10:00', 'observed', 1), ('10:15', 'observed', 1), ('10:30', 'observed', 1), ('10:45', 'outside_window', 0)] entry_unverifiable
+remove-entry [('09:45', 'base_slot_available', 0), ('10:00', 'observed', 1), ('10:15', 'observed', 1), ('10:30', 'observed', 1), ('10:45', 'outside_window', 0)] not_entered
+late-commit [('09:45', 'not_committed', 0), ('10:00', 'observed', 1), ('10:15', 'observed', 1), ('10:30', 'observed', 1), ('10:45', 'outside_window', 0)] not_entered
+R1 (0, None, 'observed', True, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], [], 'confirmed') no installed slot [(1, 'SystemExit', 'observed', None, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], ['⚠️ BTS entry game needs verification. pick Batter 1010: recommended game 101 (first pitch 10:50 AM ET), the entry is recorded in game 102. Check the delivered pick and the game shown in MLB for each listed leg. Change only a leg whose correct game you can verify and that MLB still lets you edit. Keep any correct leg as entered.'], 'alerted'), (1, 'SystemExit', 'observed', None, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], ['⏰ BTS entry game verification is still needed. pick Batter 1010: recommended game 101 (first pitch 10:50 AM ET), the entry is recorded in game 102. Check the delivered pick against the game shown in MLB.'], 'alerted'), (1, 'SystemExit', 'observed', None, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], ['⏰ BTS entry game verification is still needed. pick Batter 1010: recommended game 101 (first pitch 10:50 AM ET), the entry is recorded in game 102. Check the delivered pick against the game shown in MLB.'], 'alerted')] (1, {'date': '2027-03-24', 'state': 'entry_unverifiable', 'ok': False, 'detail': 'No check both observed the account and confirmed this pick, and none observed its absence (observed x4). Whether it was entered is unknown.', 'pick': 'Batter 1010', 'streak_problem': None}, ['BTS day check 2027-03-24: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (observed x4). Whether it was entered is unknown. Pick: Batter 1010.'])
+R2 (0, None, 'observed', True, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], [], 'confirmed') no installed slot [(1, 'SystemExit', 'observed', None, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], ['⚠️ BTS entry game needs verification. pick Batter 1010: recommended game 102 (first pitch 10:50 AM ET), the entry is recorded in game 101. Check the delivered pick and the game shown in MLB for each listed leg. Change only a leg whose correct game you can verify and that MLB still lets you edit. Keep any correct leg as entered.'], 'alerted'), (1, 'SystemExit', 'observed', None, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], ['⏰ BTS entry game verification is still needed. pick Batter 1010: recommended game 102 (first pitch 10:50 AM ET), the entry is recorded in game 101. Check the delivered pick against the game shown in MLB.'], 'alerted'), (1, 'SystemExit', 'observed', None, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], ['⏰ BTS entry game verification is still needed. pick Batter 1010: recommended game 102 (first pitch 10:50 AM ET), the entry is recorded in game 101. Check the delivered pick against the game shown in MLB.'], 'alerted')] (1, {'date': '2027-03-24', 'state': 'entry_unverifiable', 'ok': False, 'detail': 'No check both observed the account and confirmed this pick, and none observed its absence (observed x4). Whether it was entered is unknown.', 'pick': 'Batter 1010', 'streak_problem': None}, ['BTS day check 2027-03-24: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (observed x4). Whether it was entered is unknown. Pick: Batter 1010.'])
+R3 (1, 'SystemExit', 'observed', True, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], ['⚠️ BTS pick NOT entered in MLB app: Batter 1010 — first pitch 10:05 AM ET (15 min to submit). Fix it now!'], 'alerted') no installed slot [(1, 'SystemExit', 'observed', None, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], ['⚠️ BTS pick NOT entered in MLB app: Batter 1010 — first pitch 10:06 AM ET (1 min to submit). Fix it now!'], 'alerted'), (0, None, 'outside_window', None, [], [], None), (0, None, 'outside_window', None, [], [], None)] (1, {'date': '2027-03-24', 'state': 'not_entered', 'ok': False, 'detail': 'Not entered: 1 successful account checks saw no matching entry and none confirmed one.', 'pick': 'Batter 1010', 'streak_problem': None}, ['BTS day check 2027-03-24: NOT ENTERED. Not entered: 1 successful account checks saw no matching entry and none confirmed one. Pick: Batter 1010.'])
+R7 (1, 'SystemExit', 'observed', True, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], ['⚠️ BTS pick NOT entered in MLB app: Batter 1010 — first pitch 10:05 AM ET (15 min to submit). Fix it now!'], 'alerted') (0, None, 'observed', None, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], [], 'present_unverified') [(1, 'SystemExit', 'observed', None, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], ['⚠️ BTS pick NOT entered in MLB app: Batter 1010 — first pitch 10:06 AM ET (1 min to submit). Fix it now!'], 'alerted'), (0, None, 'outside_window', None, [], [], None), (0, None, 'outside_window', None, [], [], None)] (1, {'date': '2027-03-24', 'state': 'not_entered', 'ok': False, 'detail': 'Not entered: 1 successful account checks saw no matching entry and none confirmed one.', 'pick': 'Batter 1010', 'streak_problem': None}, ['BTS day check 2027-03-24: NOT ENTERED. Not entered: 1 successful account checks saw no matching entry and none confirmed one. Pick: Batter 1010.'])
+R8-R13 (0, None, 'observed', True, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], [], 'confirmed') no installed slot [(1, 'SystemExit', 'observed', None, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], ['⚠️ BTS entry game needs verification. pick Batter 1010: recommended game 101 (first pitch 10:50 AM ET), the entry is recorded in game 102. Check the delivered pick and the game shown in MLB for each listed leg. Change only a leg whose correct game you can verify and that MLB still lets you edit. Keep any correct leg as entered.'], 'alerted')] (1, {'date': '2027-03-24', 'state': 'entry_unverifiable', 'ok': False, 'detail': 'No check both observed the account and confirmed this pick, and none observed its absence (observed x2). Whether it was entered is unknown.', 'pick': 'Batter 1010', 'streak_problem': None}, ['BTS day check 2027-03-24: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (observed x2). Whether it was entered is unknown. Pick: Batter 1010.'])
+R5/R6 10:06 (0, None, 'base_slot_available', None, [], [], None) (1, 'SystemExit', 'observed', None, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], ['⚠️ BTS entry game needs verification. pick Batter 1010: recommended game 101 (first pitch 10:06 AM ET), the entry is recorded in game 102. Check the delivered pick and the game shown in MLB for each listed leg. Change only a leg whose correct game you can verify and that MLB still lets you edit. Keep any correct leg as entered.'], 'alerted')
+R5/R6 10:15 (0, None, 'base_slot_available', None, [], [], None) (1, 'SystemExit', 'observed', None, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], ['⚠️ BTS entry game needs verification. pick Batter 1010: recommended game 101 (first pitch 10:15 AM ET), the entry is recorded in game 102. Check the delivered pick and the game shown in MLB for each listed leg. Change only a leg whose correct game you can verify and that MLB still lets you edit. Keep any correct leg as entered.'], 'alerted')[pick_entry CRITICAL] 2027-03-23: committed pick entry never confirmed AND the not-entered alert DM failed to send — the operator was never reached (reason=no_pick)
+health check 'pick_entry' raised: 'utf-8' codec can't decode byte 0xff in position 11: invalid start byte
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/health/runner.py", line 65, in _safe_run
+    return fn()
+           ^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/health/runner.py", line 159, in <lambda>
+    alerts.extend(_safe_run("pick_entry", lambda: pick_entry.check(
+                                                  ^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/f5-records/docs/reviews/2026-11-18-whole-range/review-fix-f5-codex-r2/fallback_recovery.py", line 19, in <lambda>
+    patch.object(pick_entry, "check", lambda picks, today: check(picks, today, NOW)), \
+                                                           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/health/pick_entry.py", line 117, in check
+    marker = json.loads(marker_path.read_text())
+                        ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 1028, in read_text
+    return f.read()
+           ^^^^^^^^
+  File "<frozen codecs>", line 322, in decode
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 11: invalid start byte
+[health_runner CRITICAL] health check 'pick_entry' crashed: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 11: invalid start byte
+health check 'pick_entry' raised: 'utf-8' codec can't decode byte 0xff in position 11: invalid start byte
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/docs/reviews/2026-11-18-whole-range/contract-check-f5b/contract_rows.py", line 144, in <module>
+    fallback_recovery.decode_failure(root / "R11", mode)
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/f5-records/docs/reviews/2026-11-18-whole-range/review-fix-f5-codex-r2/fallback_recovery.py", line 53, in decode_failure
+    assert levels == (["CRITICAL"] if version == "base" else []) and len(levels) == len(messages)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/health/runner.py", line 65, in _safe_run
+    return fn()
+           ^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/health/runner.py", line 159, in <lambda>
+    alerts.extend(_safe_run("pick_entry", lambda: pick_entry.check(
+                                                  ^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/f5-records/docs/reviews/2026-11-18-whole-range/review-fix-f5-codex-r2/fallback_recovery.py", line 19, in <lambda>
+    patch.object(pick_entry, "check", lambda picks, today: check(picks, today, NOW)), \
+                                                           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/health/pick_entry.py", line 117, in check
+    marker = json.loads(marker_path.read_text())
+                        ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 1028, in read_text
+    return f.read()
+           ^^^^^^^^
+  File "<frozen codecs>", line 322, in decode
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 11: invalid start byte
+[health_runner CRITICAL] health check 'pick_entry' crashed: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 11: invalid start byte
+
+R5/R6 10:20 (0, None, 'base_slot_available', None, [], [], None) (1, 'SystemExit', 'observed', None, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], ['⚠️ BTS entry game needs verification. pick Batter 1010: recommended game 101 (first pitch 10:20 AM ET), the entry is recorded in game 102. Check the delivered pick and the game shown in MLB for each listed leg. Change only a leg whose correct game you can verify and that MLB still lets you edit. Keep any correct leg as entered.'], 'alerted')
+candidate /Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/__init__.py
+09:45 base_slot_available 10:00 observed ['⚠️ BTS entry game needs verification. pick Batter 1010: recommended game 101 (first pitch 10:20 AM ET), the entry is recorded in game 102. Check the delivered pick and the game shown in MLB for each listed leg. Change only a leg whose correct game you can verify and that MLB still lets you edit. Keep any correct leg as entered.']
+R13 live confirmed beats early dm_failed
+R4: real March 23 CRITICAL after March 24 early run
+all-clear 09:15 observed True ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'] {} ['⚠️ BTS entry game needs verification. pick Batter 1010: recommended game 101 (first pitch 10:05 AM ET), the entry is recorded in game 102. Check the delivered pick and the game shown in MLB for each listed leg. Change only a leg whose correct game you can verify and that MLB still lets you edit. Keep any correct leg as entered.']
+all-clear 09:30 observed True ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'] {} ['✅ BTS pick entry confirmed for 2027-03-24 (match).']
+all-clear 09:45 already_confirmed True [] {} []
+all-clear 10:00 observed None ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'] {'checked_at': '2027-03-24T10:00:00-04:00', 'date': '2027-03-24', 'reason': 'match', 'status': 'confirmed'} []
+R9 messages [('all-clear 09:15', ['⚠️ BTS entry game needs verification. pick Batter 1010: recommended game 101 (first pitch 10:05 AM ET), the entry is recorded in game 102. Check the delivered pick and the game shown in MLB for each listed leg. Change only a leg whose correct game you can verify and that MLB still lets you edit. Keep any correct leg as entered.']), ('all-clear 09:30', ['✅ BTS pick entry confirmed for 2027-03-24 (match).']), ('all-clear 09:45', []), ('all-clear 10:00', [])]
+R12 [] []
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/docs/reviews/2026-11-18-whole-range/contract-check-f5b/contract_rows.py", line 144, in <module>
+    fallback_recovery.decode_failure(root / "R11", mode)
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/f5-records/docs/reviews/2026-11-18-whole-range/review-fix-f5-codex-r2/fallback_recovery.py", line 53, in decode_failure
+    assert levels == (["CRITICAL"] if version == "base" else []) and len(levels) == len(messages)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/wr-f5b-r1/replay_archives.py", line 92, in <module>
+    archived_main(path, args)
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/wr-f5b-r1/replay_archives.py", line 43, in archived_main
+    runpy.run_path(str(path), run_name='__main__')
+  File "<frozen runpy>", line 287, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/docs/reviews/2026-11-18-whole-range/contract-check-f5b/contract_rows.py", line 148, in <module>
+    assert levels == ["CRITICAL"] and "UnicodeDecodeError" in sent[0]
+                                                              ~~~~^^^
+IndexError: list index out of range

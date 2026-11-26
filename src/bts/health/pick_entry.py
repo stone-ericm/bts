@@ -14,8 +14,10 @@ import logging
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
+from bts import entry_receipt, receipt_io
 from bts.health.alert import Alert
 from bts.picks import SUBMISSION_CUTOFF_MIN
+from bts.util import read_bounded_file_bytes
 
 log = logging.getLogger(__name__)
 
@@ -52,6 +54,50 @@ def _earliest_cutoff_utc(picks_dir: Path, today: date) -> datetime | None:
     return min(times) - timedelta(minutes=SUBMIT_CUTOFF_MIN)
 
 
+def _live_receipt_follows(picks_dir: Path, et_date: str, observed: datetime) -> bool:
+    root = entry_receipt.receipts_root(picks_dir) / et_date
+    for path in receipt_io.discover(root):
+        try:
+            receipt = json.loads(read_bounded_file_bytes(path, entry_receipt.RECEIPT_READ_LIMIT).decode("utf-8"))
+        except (OSError, ValueError, RecursionError):
+            continue
+        if (not isinstance(receipt, dict) or receipt.get("schema") != entry_receipt.SCHEMA
+                or receipt.get("et_date") != et_date or receipt.get("early_cron_run") is True
+                or receipt.get("outcome") != "observed" or receipt.get("exit_code") not in (0, 1)
+                or receipt.get("marker_status") not in ("alerted", "dm_failed", "confirmed", "present_unverified")):
+            continue
+        # A normal exit establishes that the marker write returned before publication.
+        published = entry_receipt.aware_timestamp(receipt.get("published_at"))
+        if published is not None and published > observed:
+            return True
+    return False
+
+
+def _early_alerts(picks_dir: Path, today: date, now: datetime) -> list[Alert]:
+    et_date = today.isoformat()
+    marker = entry_receipt.read_early_marker(picks_dir, et_date)
+    status = marker.get("status")
+    if status not in ("alerted", "dm_failed"):
+        return []
+    observed_at = marker.get("observed_at", marker["checked_at"])
+    observed = entry_receipt.aware_timestamp(observed_at)
+    if observed is None or _live_receipt_follows(picks_dir, et_date, observed):
+        return []
+    daily, _, _, cutoff = entry_receipt.read_early_pick(picks_dir, et_date)
+    if daily is None:
+        if status == "dm_failed":
+            return [Alert(level="CRITICAL", source=SOURCE,
+                          message=f"{et_date}: early entry warning DM failed at {observed_at}; "
+                                  "the current selection is unknown")]
+        return []
+    if (entry_receipt.slot_identities(entry_receipt.selection_slots(daily))
+            != entry_receipt.slot_identities(marker["slots"])):
+        return []
+    if now < cutoff:
+        return []
+    return _marker_alerts(et_date, marker)
+
+
 def check(
     picks_dir: Path,
     today: date | None = None,
@@ -67,9 +113,13 @@ def check(
     try:
         marker = json.loads(marker_path.read_text())
     except (OSError, json.JSONDecodeError):
-        return []
+        return _early_alerts(picks_dir, today, now)
     if marker.get("date") != today.isoformat():
-        return []
+        try:
+            live_date = date.fromisoformat(marker.get("date"))
+        except (TypeError, ValueError):
+            live_date = None
+        return [] if live_date is not None and live_date >= today else _early_alerts(picks_dir, today, now)
     status = marker.get("status")
     if status not in ("alerted", "dm_failed"):
         return []
@@ -78,12 +128,16 @@ def check(
     if cutoff is not None and now < cutoff:
         return []  # entry window still open — the live escalations own this
 
-    if status == "dm_failed":
+    return _marker_alerts(today.isoformat(), marker)
+
+
+def _marker_alerts(et_date: str, marker: dict) -> list[Alert]:
+    if marker["status"] == "dm_failed":
         return [Alert(
             level="CRITICAL",
             source=SOURCE,
             message=(
-                f"{today.isoformat()}: committed pick entry never confirmed AND "
+                f"{et_date}: committed pick entry never confirmed AND "
                 f"the not-entered alert DM failed to send — the operator was "
                 f"never reached (reason={marker.get('reason')})"
             ),
@@ -92,7 +146,7 @@ def check(
         level="WARN",
         source=SOURCE,
         message=(
-            f"{today.isoformat()}: committed pick entry never confirmed by the "
+            f"{et_date}: committed pick entry never confirmed by the "
             f"submission cutoff (last status=alerted, "
             f"reason={marker.get('reason')}) — check the contest account and "
             f"the settled result"

@@ -1,0 +1,31 @@
+nice: setpriority: Operation not permitted
+date-only /private/tmp/wr-f5b-r1.IOC8VR/tmp_of_3rey/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /private/tmp/wr-f5b-r1.IOC8VR/tmp_of_3rey
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 60 items
+
+tests/test_wr_f5b_watchdog.py .................................F
+
+=================================== FAILURES ===================================
+__________________ test_pitch_correction_reopens_confirmation __________________
+
+replay = <tests.test_wr_f5b_watchdog.replay.<locals>.Replay object at 0x108f58080>
+
+    def test_pitch_correction_reopens_confirmation(replay):
+        replay.pick("06:10", deliver="04:55")
+        replay.check("05:00")
+        replay.pick("06:20", deliver="04:55")
+>       assert "pending" in replay.check("05:15")[1]
+E       AssertionError: assert 'pending' in []
+
+tests/test_wr_f5b_watchdog.py:467: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_f5b_watchdog.py::test_pitch_correction_reopens_confirmation
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+======================== 1 failed, 33 passed in 16.37s =========================
+
+
+date-only DETECTED

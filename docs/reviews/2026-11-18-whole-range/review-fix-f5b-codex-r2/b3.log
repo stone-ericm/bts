@@ -1,0 +1,8 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5d-cx/src/bts/__init__.py
+observed_at unparseable ignored invalid confirmation, checked the account, sent initial warning
+observed_at offset missing ignored invalid confirmation, checked the account, sent initial warning
+observed_at prior ET date ignored invalid confirmation, checked the account, sent initial warning
+receipt list-valued ignored invalid confirmation, checked the account, sent initial warning
+morning 1 entry_unverifiable ['BTS day check 2027-03-24: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (observed x1). Whether it was entered is unknown. Pick: Batter 1010.']
+health CRITICAL 2027-03-24: early entry warning DM failed at 2027-03-24T05:00:00-04:00; the current selection is unknown

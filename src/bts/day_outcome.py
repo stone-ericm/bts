@@ -140,9 +140,14 @@ def _binds(rec: dict, *, date: str, decision_sha256: str | None, expected_userna
 
 
 def _entry_state(receipts: list[dict], *, date: str, decision_sha256: str | None,
-                 expected_username: str | None) -> tuple[str, str]:
+                 expected_username: str | None, picks_dir: Path | None) -> tuple[str, str]:
     bound = [r for r in receipts
              if _binds(r, date=date, decision_sha256=decision_sha256, expected_username=expected_username)]
+    early = [r for r in bound if r.get("early_cron_run") is True]
+    if early:
+        bound = [r for r in bound if r.get("early_cron_run") is not True]
+        if picks_dir is not None:
+            bound.extend(_eligible_early_observations(early, bound, picks_dir, date))
     confirmed = [r for r in bound if (r.get("qualification") or {}).get("all_confirmed") is True]
     in_time = [r for r in confirmed if (r.get("observation") or {}).get("before_cutoff") is True]
     if in_time:
@@ -170,9 +175,30 @@ def _entry_state(receipts: list[dict], *, date: str, decision_sha256: str | None
                                   f"its absence ({seen}). Whether it was entered is unknown.")
 
 
+def _eligible_early_observations(early, live, picks_dir: Path, date: str) -> list[dict]:
+    from bts import entry_receipt
+
+    daily, _, pitch, cutoff = entry_receipt.read_early_pick(picks_dir, date)
+    if daily is None or entry_receipt.has_original_slot(Date.fromisoformat(date), pitch):
+        return []
+    identities = entry_receipt.slot_identities(entry_receipt.selection_slots(daily))
+    latest_live = max((stamp for r in live if
+                       (stamp := entry_receipt.aware_timestamp(
+                           (r.get("observation") or {}).get("response_completed_at"))) is not None), default=None)
+    eligible = []
+    for receipt in early:
+        if entry_receipt.slot_identities(receipt["selection"].get("slots")) != identities:
+            continue
+        observation = receipt.get("observation") or {}
+        stamp = entry_receipt.aware_timestamp(observation.get("response_completed_at"))
+        if stamp is not None and (latest_live is None or latest_live <= stamp):
+            eligible.append({**receipt, "observation": {**observation, "before_cutoff": stamp < cutoff}})
+    return eligible
+
+
 def classify_day(*, date: str, games: int | None, decision: dict | None, decision_sha256: str | None,
                  receipts: list[dict], intent: str | None, expected_username: str | None,
-                 void_games: int = 0) -> DayOutcome:
+                 void_games: int = 0, picks_dir: Path | None = None) -> DayOutcome:
     """Name the day's end state. `games` is the number of regular-season games scheduled that date, or None when the
     schedule could not be read; `void_games` counts postponed/cancelled games. `receipts` are the day's SEALED
     entry receipts (`entry_receipt.discover`)."""
@@ -211,7 +237,7 @@ def classify_day(*, date: str, games: int | None, decision: dict | None, decisio
         return out("delivered_under_research", f"Research mode, but the pick's delivery status is "
                                                f"{decision.get('delivery_status')!r}.", pick)
     state, detail = _entry_state(receipts, date=date, decision_sha256=decision_sha256,
-                                 expected_username=expected_username)
+                                 expected_username=expected_username, picks_dir=picks_dir)
     return out(state, detail, pick)
 
 
@@ -358,7 +384,8 @@ def gather(date: str, picks_dir, config: dict, *, expected_username: str | None,
     outcome = classify_day(date=date, games=games, void_games=void_games,
                            decision=decision, decision_sha256=entry_receipt._sha(raw),
                            receipts=entry_receipt.discover(picks_dir, date),
-                           intent=intent.intent if intent.ok else None, expected_username=expected_username)
+                           intent=intent.intent if intent.ok else None, expected_username=expected_username,
+                           picks_dir=Path(picks_dir))
     if outcome.state == "deliberate_skip":
         outcome = _skip_review(date, picks_dir, decision, intent.intent) or outcome
     return replace(outcome, streak_problem=_streak_problem(Path(picks_dir) / "streak.json"))

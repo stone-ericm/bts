@@ -1,0 +1,102 @@
+{
+  "missing": [
+    [],
+    [],
+    []
+  ],
+  "directory": [
+    [],
+    [],
+    []
+  ],
+  "fifo": [
+    "ReadTimedOut",
+    "ReadTimedOut",
+    "ReadTimedOut"
+  ],
+  "json-list": [
+    "AttributeError",
+    "AttributeError",
+    "AttributeError"
+  ],
+  "json-null": [
+    "AttributeError",
+    "AttributeError",
+    "AttributeError"
+  ],
+  "json-scalar": [
+    "AttributeError",
+    "AttributeError",
+    "AttributeError"
+  ],
+  "bad-encoding": [
+    "UnicodeDecodeError",
+    "UnicodeDecodeError",
+    "UnicodeDecodeError"
+  ],
+  "malformed": [
+    [],
+    [],
+    []
+  ],
+  "partial": [
+    [],
+    [],
+    []
+  ],
+  "confirmed": [
+    [],
+    [],
+    []
+  ],
+  "unknown": [
+    [],
+    [],
+    []
+  ],
+  "unverified": [
+    [],
+    [],
+    []
+  ],
+  "alerted": [
+    [],
+    [
+      [
+        "WARN",
+        "2027-03-24: committed pick entry never confirmed by the submission cutoff (last status=alerted, reason=None) \u2014 check the contest account and the settled result"
+      ]
+    ],
+    [
+      [
+        "WARN",
+        "2027-03-24: committed pick entry never confirmed by the submission cutoff (last status=alerted, reason=None) \u2014 check the contest account and the settled result"
+      ]
+    ]
+  ],
+  "dm-failed": [
+    [],
+    [
+      [
+        "CRITICAL",
+        "2027-03-24: committed pick entry never confirmed AND the not-entered alert DM failed to send \u2014 the operator was never reached (reason=None)"
+      ]
+    ],
+    [
+      [
+        "CRITICAL",
+        "2027-03-24: committed pick entry never confirmed AND the not-entered alert DM failed to send \u2014 the operator was never reached (reason=None)"
+      ]
+    ]
+  ],
+  "stale": [
+    [],
+    [],
+    []
+  ],
+  "future": [
+    [],
+    [],
+    []
+  ]
+}

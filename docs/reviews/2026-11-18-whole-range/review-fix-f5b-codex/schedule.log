@@ -1,0 +1,16 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/__init__.py
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/wr-f5b-r1/parity_probe.py", line 126, in <module>
+    schedules(root, scratch / 'base')
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/wr-f5b-r1/parity_probe.py", line 17, in schedules
+    lines = {v: installed(root, path, intent, seed) for v, path in paths.items()}
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/wr-f5b-r1/review_support.py", line 71, in installed
+    box = test_entry_intent.box.__wrapped__(root)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/tests/test_entry_intent.py", line 118, in box
+    (home / "projects" / "bts").mkdir(parents=True)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 1311, in mkdir
+    os.mkdir(self, mode)
+FileExistsError: [Errno 17] File exists: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpqtz2q15y/home/projects/bts'

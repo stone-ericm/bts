@@ -1,0 +1,21 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/__init__.py
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/__init__.py
+R10 with a genuine non-early absence (1, {'date': '2027-03-24', 'state': 'not_entered', 'ok': False, 'detail': 'Not entered: 1 successful account checks saw no matching entry and none confirmed one.', 'pick': 'Batter 1010', 'streak_problem': None}, ['BTS day check 2027-03-24: NOT ENTERED. Not entered: 1 successful account checks saw no matching entry and none confirmed one. Pick: Batter 1010.'])
+genuine early receipt plus F3 and F4 (1, {'date': '2027-03-24', 'state': 'skip_state_review', 'ok': False, 'detail': 'The policy recorded a skip for 2027-03-24 using streak 30 and policy saver availability unavailable. The installed dated observation for 2027-03-24 records streak 1 and policy saver availability unavailable. Check MLB for unsettled entries and verify the current streak, season best and saver.', 'pick': None, 'streak_problem': 'not a JSON object'}, ['BTS day check 2027-03-24: SKIP STATE REVIEW. The policy recorded a skip for 2027-03-24 using streak 30 and policy saver availability unavailable. The installed dated observation for 2027-03-24 records streak 1 and policy saver availability unavailable. Check MLB for unsettled entries and verify the current streak, season best and saver. Also: The local model streak file (streak.json) needs review (not a JSON object). Grading or replay may be affected. Preserve the files in place during triage. Follow B8b item 2 in docs/ops/2027-season-start.md before the next affected job. Give the BTS lead this alert, the host and ET run time, and any grading or reconcile errors, receipt paths and health alerts. If the lead session is unavailable, escalate through Eric. The 08:00 ET correction cutoff still applies.'])
+live crosswalk gap suppresses early CRITICAL
+all-clear interrupted after marker replacement (1, 'SystemExit', 'observed', True, ['cookies', 'login', 'profile', 'pending', 'rounds', 'players'], [], 'confirmed')
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/wr-f5b-r1/replay_archives.py", line 92, in <module>
+    archived_main(path, args)
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/wr-f5b-r1/replay_archives.py", line 43, in archived_main
+    runpy.run_path(str(path), run_name='__main__')
+  File "<frozen runpy>", line 287, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/docs/reviews/2026-11-18-whole-range/contract-check-f5b/standing.py", line 83, in <module>
+    same_date_unresolved(root)
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/docs/reviews/2026-11-18-whole-range/contract-check-f5b/standing.py", line 71, in same_date_unresolved
+    assert blocked["exception"] == "ReadBlocked" and not blocked["calls"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

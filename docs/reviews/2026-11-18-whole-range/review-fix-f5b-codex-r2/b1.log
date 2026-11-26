@@ -1,0 +1,11 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5d-cx/src/bts/__init__.py
+missing entry early cron one all-clear
+missing entry manual one all-clear
+wrong game early cron one all-clear
+wrong game manual one all-clear
+2027-03-24T10:10:00Z terminal, zero account calls
+2027-03-24T10:10:00 terminal, zero account calls
+failed no warning sent and no all-clear attempted
+late no warning sent and no all-clear attempted
+without-recipient no warning sent and no all-clear attempted

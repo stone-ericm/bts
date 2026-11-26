@@ -1,0 +1,26 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5d-cx/src/bts/__init__.py
+live missing ['CRITICAL']
+live directory ['CRITICAL']
+live fifo ReadTimedOut
+live invalid-utf8 UnicodeDecodeError
+live invalid-json ['CRITICAL']
+live list AttributeError
+live null AttributeError
+live scalar AttributeError
+live older ['CRITICAL']
+live newer []
+live same-quiet []
+live same-unrecognized []
+live same-failed ['CRITICAL']
+early missing []
+early directory []
+early fifo []
+early list []
+early utf8 []
+early oversize []
+early date []
+early tier []
+early pick-fifo [('CRITICAL', '2027-03-24: early entry warning DM failed at 2027-03-24T05:00:00-04:00; the current selection is unknown')]
+early pick-list [('CRITICAL', '2027-03-24: early entry warning DM failed at 2027-03-24T05:00:00-04:00; the current selection is unknown')]
+early pick-oversize [('CRITICAL', '2027-03-24: early entry warning DM failed at 2027-03-24T05:00:00-04:00; the current selection is unknown')]

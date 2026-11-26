@@ -1,0 +1,3 @@
+nice: setpriority: Operation not permitted
+bts: /Users/eric/projects/bts-work/wr-chk-f5b/.codex-review/scratch-f5b/candidate/src/bts/__init__.py
+receipt at 2027-03-24T09:55:00-04:00 final cutoff 09:50 ET (0, {'date': '2027-03-24', 'state': 'entered', 'ok': True, 'detail': 'The entry was confirmed in 1 of 1 checks before the cutoff.', 'pick': 'Batter 1010', 'streak_problem': None}, [])

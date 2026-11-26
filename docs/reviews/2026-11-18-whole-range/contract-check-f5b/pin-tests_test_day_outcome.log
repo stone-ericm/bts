@@ -1,0 +1,12 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-f5b/.codex-review/scratch-f5b/candidate
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 56 items
+
+tests/test_day_outcome.py .............................................. [ 82%]
+..........                                                               [100%]
+
+============================== 56 passed in 0.36s ==============================

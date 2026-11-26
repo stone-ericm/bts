@@ -1,0 +1,31 @@
+nice: setpriority: Operation not permitted
+no-writer-leg-binding /private/tmp/wr-f5b-r1.IOC8VR/tmp6bo0eptq/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /private/tmp/wr-f5b-r1.IOC8VR/tmp6bo0eptq
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 60 items
+
+tests/test_wr_f5b_watchdog.py ...................................F
+
+=================================== FAILURES ===================================
+_____________ test_early_replacement_does_not_inherit_spent_tiers ______________
+
+replay = <tests.test_wr_f5b_watchdog.replay.<locals>.Replay object at 0x10d4b2990>
+
+    def test_early_replacement_does_not_inherit_spent_tiers(replay):
+        replay.pick("06:10", deliver="04:55")
+        assert "BTS pick NOT entered" in replay.check("05:30", present=False)[2][0]
+        replay.pick("06:10", deliver="05:35", game=102)
+>       assert "BTS pick NOT entered" in replay.check("05:45", present=False)[2][0]
+E       AssertionError: assert 'BTS pick NOT entered' in '⏰ STILL NOT entered (no_pick): Batter 1 — 20 min left to submit!'
+
+tests/test_wr_f5b_watchdog.py:484: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_f5b_watchdog.py::test_early_replacement_does_not_inherit_spent_tiers
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+======================== 1 failed, 35 passed in 17.13s =========================
+
+
+no-writer-leg-binding DETECTED

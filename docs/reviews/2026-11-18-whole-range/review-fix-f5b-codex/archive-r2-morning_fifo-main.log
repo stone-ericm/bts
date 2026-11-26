@@ -1,0 +1,17 @@
+nice: setpriority: Operation not permitted
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/__init__.py
+actual morning: (1, {'date': '2027-03-24', 'state': 'entry_unverifiable', 'ok': False, 'detail': 'No check both observed the account and confirmed this pick, and none observed its absence (observed x1). Whether it was entered is unknown.', 'pick': 'Batter 1010', 'streak_problem': None}, ['BTS day check 2027-03-24: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (observed x1). Whether it was entered is unknown. Pick: Batter 1010.'])
+bts.__file__: /Users/eric/projects/bts-work/wr-rev-f5c-cx/src/bts/__init__.py
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/wr-f5b-r1/replay_archives.py", line 88, in <module>
+    archived_main(path, [dirname, 'f5'])
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/wr-f5b-r1/replay_archives.py", line 43, in archived_main
+    runpy.run_path(str(path), run_name='__main__')
+  File "<frozen runpy>", line 287, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/f5-records/docs/reviews/2026-11-18-whole-range/review-fix-f5-codex-r2/morning_fifo.py", line 48, in <module>
+    read(Path(sys.argv[1]), sys.argv[2])
+  File "/Users/eric/projects/bts-work/wr-rev-f5c-cx/.codex-review/f5-records/docs/reviews/2026-11-18-whole-range/review-fix-f5-codex-r2/morning_fifo.py", line 28, in read
+    raise AssertionError("expected the early-receipt path to open the FIFO")
+AssertionError: expected the early-receipt path to open the FIFO

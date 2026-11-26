@@ -1,0 +1,49 @@
+nice: setpriority: Operation not permitted
+early-writes-live /private/tmp/wr-f5b-r1.IOC8VR/tmpxj817piw/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /private/tmp/wr-f5b-r1.IOC8VR/tmpxj817piw
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 60 items
+
+tests/test_wr_f5b_watchdog.py ..........F
+
+=================================== FAILURES ===================================
+______________________ test_early_slate[M7-confirmed-M2] _______________________
+
+installed = '*/15 * * * * cd /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2459/test_early_slate_...2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2459/test_early_slate_M7_confirmed_0/home/logs/cron.log 2>&1 # BTS-HETZNER'
+replay = <tests.test_wr_f5b_watchdog.replay.<locals>.Replay object at 0x110f38ef0>
+pitch = '06:10', start = '05:00', end = '06:15'
+expected = ['05:15', '05:30', '05:45', '06:00'], present = True
+
+    @pytest.mark.parametrize("pitch, start, end, expected", [
+        pytest.param("06:10", "05:00", "06:15", ["05:15", "05:30", "05:45", "06:00"], id="M2"),
+        pytest.param("10:05", "09:00", "10:00", ["09:00", "09:15", "09:30", "09:45"], id="M3"),
+    ])
+    @pytest.mark.parametrize("present", [False, True], ids=["missing", "M7-confirmed"])
+    def test_early_slate(installed, replay, pitch, start, end, expected, present):
+        replay.units(RIGHT)
+        if pitch == "10:05":
+            replay.pick(pitch, deliver="08:55")
+        observed = {}
+        for at in slots(installed):
+            if start <= at <= end:
+                if pitch == "06:10" and at == expected[0]:
+                    replay.pick(pitch)
+                observed[at] = replay.check(at, present=present)
+        reads = [at for at, result in observed.items() if "pending" in result[1]]
+>       assert reads == (expected[:1] if present else expected)
+E       AssertionError: assert ['05:15', '05...:45', '06:00'] == ['05:15']
+E         
+E         Left contains 3 more items, first extra item: '05:30'
+E         Use -v to get more diff
+
+tests/test_wr_f5b_watchdog.py:275: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_f5b_watchdog.py::test_early_slate[M7-confirmed-M2] - Ass...
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+========================= 1 failed, 10 passed in 6.81s =========================
+
+
+early-writes-live DETECTED

@@ -1,0 +1,113 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f5d-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 77 items / 66 deselected / 11 selected
+
+tests/test_wr_f5b_watchdog.py FFFFFFFFFFF                                [100%]
+
+=================================== FAILURES ===================================
+_________ test_round2_pitch_correction_keeps_pending_all_clear[False] __________
+tests/test_wr_f5b_watchdog.py:716: in test_round2_pitch_correction_keeps_pending_all_clear
+    assert len(clears) == 1 and "entry confirmed" in clears[0]
+E   assert (0 == 1)
+E    +  where 0 = len([])
+__________ test_round2_pitch_correction_keeps_pending_all_clear[True] __________
+tests/test_wr_f5b_watchdog.py:716: in test_round2_pitch_correction_keeps_pending_all_clear
+    assert len(clears) == 1 and "entry confirmed" in clears[0]
+E   assert (0 == 1)
+E    +  where 0 = len([])
+_______________ test_round2_equivalent_utc_pitch_stays_terminal ________________
+tests/test_wr_f5b_watchdog.py:728: in test_round2_equivalent_utc_pitch_stays_terminal
+    assert replay.check("05:15") == ("already_confirmed", [], [], False)
+E   AssertionError: assert ('observed', ...'], [], False) == ('already_con...[], [], False)
+E     
+E     At index 0 diff: 'observed' != 'already_confirmed'
+E     Use -v to get more diff
+_ test_round2_sealed_live_recovery_suppresses_displaced_early_failure[season-inventory] _
+tests/test_wr_f5b_watchdog.py:774: in test_round2_sealed_live_recovery_suppresses_displaced_early_failure
+    assert health_at(replay) == []
+E   AssertionError: assert [Alert(level=...ent_key=None)] == []
+E     
+E     Left contains one more item: Alert(level='CRITICAL', source='pick_entry', message='2027-03-24: committed pick entry never confirmed AND the not-entered alert DM failed to send — the operator was never reached (reason=no_pick)', incident_key=None)
+E     Use -v to get more diff
+_ test_round2_sealed_live_recovery_suppresses_displaced_early_failure[paused-write] _
+tests/test_wr_f5b_watchdog.py:774: in test_round2_sealed_live_recovery_suppresses_displaced_early_failure
+    assert health_at(replay) == []
+E   AssertionError: assert [Alert(level=...ent_key=None)] == []
+E     
+E     Left contains one more item: Alert(level='CRITICAL', source='pick_entry', message='2027-03-24: committed pick entry never confirmed AND the not-entered alert DM failed to send — the operator was never reached (reason=no_pick)', incident_key=None)
+E     Use -v to get more diff
+_ test_round2_malformed_early_confirmation_is_ignored[observed_at-not a datetime] _
+tests/test_wr_f5b_watchdog.py:790: in test_round2_malformed_early_confirmation_is_ignored
+    assert outcome == "observed" and calls and len(warnings) == 1
+E   AssertionError: assert ('already_confirmed' == 'observed'
+E     
+E     - observed
+E     + already_confirmed)
+_ test_round2_malformed_early_confirmation_is_ignored[observed_at-2027-03-24T05:00:00] _
+tests/test_wr_f5b_watchdog.py:790: in test_round2_malformed_early_confirmation_is_ignored
+    assert outcome == "observed" and calls and len(warnings) == 1
+E   AssertionError: assert ('already_confirmed' == 'observed'
+E     
+E     - observed
+E     + already_confirmed)
+_ test_round2_malformed_early_confirmation_is_ignored[observed_at-2027-03-23T05:00:00-04:00] _
+tests/test_wr_f5b_watchdog.py:790: in test_round2_malformed_early_confirmation_is_ignored
+    assert outcome == "observed" and calls and len(warnings) == 1
+E   AssertionError: assert ('already_confirmed' == 'observed'
+E     
+E     - observed
+E     + already_confirmed)
+_____ test_round2_malformed_early_confirmation_is_ignored[receipt-value3] ______
+tests/test_wr_f5b_watchdog.py:790: in test_round2_malformed_early_confirmation_is_ignored
+    assert outcome == "observed" and calls and len(warnings) == 1
+E   AssertionError: assert ('already_confirmed' == 'observed'
+E     
+E     - observed
+E     + already_confirmed)
+_________ test_round2_overflowing_pick_cutoff_is_unavailable[morning] __________
+tests/test_wr_f5b_watchdog.py:810: in test_round2_overflowing_pick_cutoff_is_unavailable
+    assert code == 1 and "ENTRY UNVERIFIABLE" in dms[0]
+                                                 ^^^^^^
+E   IndexError: list index out of range
+__________ test_round2_overflowing_pick_cutoff_is_unavailable[health] __________
+/tmp/wr-f5b-r2.4kVtCgCD/r1/src/bts/health/pick_entry.py:117: in check
+    marker = json.loads(marker_path.read_text())
+                        ^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2500/test_round2_overflowing_pick_c1/health_state/pick_entry_check.json'
+
+During handling of the above exception, another exception occurred:
+tests/test_wr_f5b_watchdog.py:806: in test_round2_overflowing_pick_cutoff_is_unavailable
+    alert, = health_at(replay)
+             ^^^^^^^^^^^^^^^^^
+tests/test_wr_f5b_watchdog.py:608: in health_at
+    return pick_entry.check(replay.picks_dir, date.fromisoformat(day),
+/tmp/wr-f5b-r2.4kVtCgCD/r1/src/bts/health/pick_entry.py:119: in check
+    return _early_alerts(picks_dir, today, now)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/wr-f5b-r2.4kVtCgCD/r1/src/bts/health/pick_entry.py:99: in _early_alerts
+    if now < first_pitch - timedelta(minutes=SUBMIT_CUTOFF_MIN):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   OverflowError: date value out of range
+=========================== short test summary info ============================
+FAILED tests/test_wr_f5b_watchdog.py::test_round2_pitch_correction_keeps_pending_all_clear[False]
+FAILED tests/test_wr_f5b_watchdog.py::test_round2_pitch_correction_keeps_pending_all_clear[True]
+FAILED tests/test_wr_f5b_watchdog.py::test_round2_equivalent_utc_pitch_stays_terminal
+FAILED tests/test_wr_f5b_watchdog.py::test_round2_sealed_live_recovery_suppresses_displaced_early_failure[season-inventory]
+FAILED tests/test_wr_f5b_watchdog.py::test_round2_sealed_live_recovery_suppresses_displaced_early_failure[paused-write]
+FAILED tests/test_wr_f5b_watchdog.py::test_round2_malformed_early_confirmation_is_ignored[observed_at-not a datetime]
+FAILED tests/test_wr_f5b_watchdog.py::test_round2_malformed_early_confirmation_is_ignored[observed_at-2027-03-24T05:00:00]
+FAILED tests/test_wr_f5b_watchdog.py::test_round2_malformed_early_confirmation_is_ignored[observed_at-2027-03-23T05:00:00-04:00]
+FAILED tests/test_wr_f5b_watchdog.py::test_round2_malformed_early_confirmation_is_ignored[receipt-value3]
+FAILED tests/test_wr_f5b_watchdog.py::test_round2_overflowing_pick_cutoff_is_unavailable[morning]
+FAILED tests/test_wr_f5b_watchdog.py::test_round2_overflowing_pick_cutoff_is_unavailable[health]
+====================== 11 failed, 66 deselected in 5.15s =======================
