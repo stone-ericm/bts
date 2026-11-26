@@ -50,7 +50,7 @@ def scheduler_fallbacks():
                       patch.object(p.sch,'run_single_check',lambda **kw:result),
                       patch.object(p.sch,'run_and_pick',refuse),
                       patch.object(p.sch,'heartbeat_watchdog',lambda *a,**kw:contextlib.nullcontext()),
-                      patch.object(p.sch,'_alert_contest_state_failure',lambda *a:alerts.append(str(a[-1]))),
+                      patch.object(p.sch,'_alert_contest_state_failure',lambda *a, slate_date=None:alerts.append(str(a[-1]))),
                       patch.object(p.sch,'_next_day_wakeup',lambda *a:now+p.dt.timedelta(days=1)),
                       patch.object(p.sch,'_idle_until_next_wakeup',lambda *a:None),
                       patch.object(p.sch,'_watchdog_ping_sleep',lambda *a:None),

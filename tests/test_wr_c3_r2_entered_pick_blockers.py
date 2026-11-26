@@ -257,7 +257,7 @@ def test_entered_pick_never_skipped_by_season_replay(tmp_path, monkeypatch, base
                         contest_state, "load_decision_streak_state",
                         lambda *a, **k: (_ for _ in ()).throw(contest_state.ContestStateError("stale")),
                     )
-                    mp.setattr(scheduler, "_alert_contest_state_failure", lambda *a: None)
+                    mp.setattr(scheduler, "_alert_contest_state_failure", lambda *a, slate_date=None: None)
                     mp.setattr(scheduler, "_maybe_alert_missed_pick", lambda *a: None)
                     mp.setattr(scheduler, "_idle_until_next_wakeup", lambda *a: None)
                     mp.setattr(scheduler, "notify_ready", lambda: None)
