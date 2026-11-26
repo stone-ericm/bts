@@ -1,0 +1,5 @@
+nice: setpriority: Operation not permitted
+scratch bts.__file__ = /tmp/wr-f4-mutation-early-sh31bjy9/src/bts/__init__.py
+......................................................................   [100%]
+70 passed in 40.57s
+early: pytest exit=0
