@@ -151,7 +151,7 @@ def test_m4_required_pick_survives_reload(live, monkeypatch, kind):
 def test_m5_walk_high_dated_state():
     high = walk.State("dated", 58, 60, "used", .96)
     rows = walk.walk(DAY, DAY + timedelta(days=1), states=(high,))
-    assert [row["action"] for row in rows] == ["double", "skip"]
+    assert [row["action"] for row in rows] == ["double", "double"]
     assert walk.check(rows) == []
 
 

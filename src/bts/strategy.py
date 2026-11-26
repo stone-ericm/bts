@@ -44,7 +44,8 @@ _mdp_cache: dict | None = None
 # September 28 so the pick path keeps working, and the tail_policy health check
 # WARNs until the year is added (a stale single constant silently read every
 # 2027 date as zero days left = skip all season; found 2026-11-12).
-# The 2027 playing finale is September 26. Recheck the boundary if it moves.
+# The 2027 playing finale is September 26. Fresh selection with a candidate uses
+# at least one day. Verify a moved finale and update the exclusive boundary.
 SEASON_END_DATES = {2026: "2026-09-28", 2027: "2027-09-27"}
 _DEFAULT_SEASON_END_MMDD = "09-28"
 # The 2026 audit scripts (gate_b rebaseline, mdp aggressiveness, boundary-shadow
@@ -122,7 +123,7 @@ def _load_mdp():
 
 
 def _mdp_action_from(mdp: dict | None, p_game_hit: float, streak: int, date: str,
-                     saver: bool) -> tuple[str | None, dict | None]:
+                     saver: bool, *, min_days: int = 0) -> tuple[str | None, dict | None]:
     """Look up the optimal MDP action from an *injected* policy.
 
     Returns (None, None) when there is no policy, so the caller falls back to the heuristic.
@@ -135,7 +136,7 @@ def _mdp_action_from(mdp: dict | None, p_game_hit: float, streak: int, date: str
 
     from bts.simulate.mdp import lookup_action_guarded
 
-    days_remaining = _days_remaining(date)
+    days_remaining = max(_days_remaining(date), min_days)
 
     return lookup_action_guarded(
         mdp["policy_table"], mdp["boundaries"],
@@ -147,7 +148,8 @@ _UNSET = object()
 
 
 def effective_pick_bar(streak: int, date: str, saver: bool, mdp=_UNSET,
-                       best_streak: int | None = None, best_status: str | None = None) -> float | None:
+                       best_streak: int | None = None, best_status: str | None = None,
+                       *, min_days: int = 0) -> float | None:
     """The smallest p_game_hit the policy will play at (streak, date, saver): the
     lower edge of the first non-skip quality bin (0.0 when even the bottom bin
     plays). Heuristic path (no base policy while 57 is reachable) -> SKIP_THRESHOLD.
@@ -155,11 +157,11 @@ def effective_pick_bar(streak: int, date: str, saver: bool, mdp=_UNSET,
     the season best is beatable, None at the terminal stop). The longest-streak
     bar is 0.0. Returns None when every bin skips or the display calculation fails."""
     try:
-        if _regime(None, streak, date)[0] == OBJECTIVE_LONGEST:
+        if _regime(None, streak, date, min_days=min_days)[0] == OBJECTIVE_LONGEST:
             return 0.0
         if mdp is _UNSET:
             mdp = _load_mdp()
-        objective, d_eff = _regime(mdp, streak, date)
+        objective, d_eff = _regime(mdp, streak, date, min_days=min_days)
         if objective == OBJECTIVE_TAIL:
             _, best_for_lookup = _normalize_best(best_streak, best_status)
             tail = mdp.get("tail") if mdp else None
@@ -179,7 +181,7 @@ def effective_pick_bar(streak: int, date: str, saver: bool, mdp=_UNSET,
         reps = ([boundaries[0] - 1e-9] if boundaries else [0.0]) + boundaries
         floors = [0.0] + boundaries
         for rep_p, floor in zip(reps, floors):
-            action, _ = _mdp_action_from(mdp, rep_p, streak, date, saver)
+            action, _ = _mdp_action_from(mdp, rep_p, streak, date, saver, min_days=min_days)
             if action != "skip":
                 return floor
         return None
@@ -224,6 +226,7 @@ class DecisionContext:
     mdp: dict | None            # injected MDP policy (None -> heuristic / forced tail rule)
     best_streak: int | None = None   # contest season-best as supplied (None = unknown)
     best_status: str | None = None   # "trusted" | "untrusted" | None (contest_state decides)
+    min_days: int = 0
 
 
 @dataclass
@@ -253,9 +256,9 @@ def _days_remaining(date: str) -> int:
     return max(0, (end - today).days)
 
 
-def _regime(mdp: dict | None, streak: int, date: str) -> tuple[str, int]:
-    """Resolve the objective and its effective days from the raw slate date."""
-    days = _days_remaining(date)
+def _regime(mdp: dict | None, streak: int, date: str, *, min_days: int = 0) -> tuple[str, int]:
+    """Resolve the objective and effective days with the caller's day-count floor."""
+    days = max(_days_remaining(date), min_days)
     if mdp_objective(streak, days) == OBJECTIVE_LONGEST:
         return OBJECTIVE_LONGEST, min(days, LONGEST_STREAK_HORIZON)
     season_length = int((mdp or {}).get("season_length") or 180)
@@ -307,7 +310,7 @@ def resolve_policy_decision(ctx: DecisionContext, streak: int, saver: bool) -> P
     Then the ``allow_double`` clamp and the "double must be executable (a
     different-game second pick exists)" guard. No IO.
     """
-    objective, d_eff = _regime(ctx.mdp, streak, ctx.date)
+    objective, d_eff = _regime(ctx.mdp, streak, ctx.date, min_days=ctx.min_days)
     best_status, best_for_lookup = _normalize_best(ctx.best_streak, ctx.best_status)
     degraded = None
     effective_m = None
@@ -329,7 +332,8 @@ def resolve_policy_decision(ctx: DecisionContext, streak: int, saver: bool) -> P
             reason = (f"season-best {effective_m} can't be beaten with {d_eff} days left "
                       f"(max reachable {min(57, streak + 2 * d_eff)}); no pick")
     else:
-        mdp_action, guard = _mdp_action_from(ctx.mdp, ctx.primary_p, streak, ctx.date, saver)
+        mdp_action, guard = _mdp_action_from(ctx.mdp, ctx.primary_p, streak, ctx.date, saver,
+                                            min_days=ctx.min_days)
         if mdp_action is not None:
             policy_action, source = mdp_action, "mdp"
         else:
@@ -349,7 +353,8 @@ def resolve_policy_decision(ctx: DecisionContext, streak: int, saver: bool) -> P
     pick_bar = None
     if action == "skip":
         pick_bar = effective_pick_bar(streak, ctx.date, saver, mdp=ctx.mdp,
-                                      best_streak=ctx.best_streak, best_status=ctx.best_status)
+                                      best_streak=ctx.best_streak, best_status=ctx.best_status,
+                                      min_days=ctx.min_days)
     return PolicyDecision(
         action=action, policy_action=policy_action, source=source, objective=objective,
         streak=int(streak), days_effective=d_eff, best_supplied=ctx.best_streak,
@@ -637,7 +642,7 @@ def select_pick(
              if saver_available is None else saver_available)
     second_row = diff_game.iloc[0] if len(diff_game) >= 1 else None
     try:
-        longest = _regime(None, streak, date)[0] == OBJECTIVE_LONGEST
+        longest = _regime(None, streak, date, min_days=1)[0] == OBJECTIVE_LONGEST
     except Exception:
         # A date the day count rejects is reported where it always was: by the
         # decision itself, after the saver read (the legacy path below).
@@ -658,6 +663,7 @@ def select_pick(
         mdp=mdp,
         best_streak=best_streak,
         best_status=best_status,
+        min_days=1,
     )
     decision = resolve_policy_decision(ctx, streak, saver)
     action, source = decision.action, decision.source

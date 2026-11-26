@@ -218,7 +218,7 @@ class TestBtsRun:
         self, _load_mdp_mock, mock_pipeline, mock_mdp, _detailed_statuses, _should_post, tmp_path,
         run_clock, covered_automatic,
     ):
-        def action(_mdp, _p, streak, _date, saver):
+        def action(_mdp, _p, streak, _date, saver, *, min_days=0):
             assert streak == 7
             assert saver is False
             return "skip", None
@@ -258,7 +258,7 @@ class TestBtsPreview:
     def test_preview_uses_fresh_contest_streak_for_projected_pick(
         self, _load_mdp_mock, mock_pipeline, mock_mdp, _detailed_statuses, tmp_path,
     ):
-        def action(_mdp, _p, streak, _date, saver):
+        def action(_mdp, _p, streak, _date, saver, *, min_days=0):
             assert streak == 7
             assert saver is False
             return "skip", None

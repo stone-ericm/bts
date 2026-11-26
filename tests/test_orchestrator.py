@@ -265,7 +265,7 @@ class TestRunAndPick:
         import pandas as pd
         from bts.orchestrator import run_and_pick
 
-        def action(_mdp, _p, streak, _date, saver):
+        def action(_mdp, _p, streak, _date, saver, *, min_days=0):
             assert streak == 7
             assert saver is False
             return "skip", None

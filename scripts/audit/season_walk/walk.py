@@ -11,10 +11,11 @@ refuse), no real data, no 2026 or 2027 outcomes.
 
 Checks (``check``): no error; the policy's day count equals the count of calendar dates from the
 date through the 2027 finale (2027-09-26) inclusive, 0 after it, and its effective count is that
-clamped to the table length; every date yields a pick or a NAMED skip (a skip that carries the
+floored when the slate supplies candidates and clamped to the table length; candidate slates
+yield a pick or a NAMED skip (a skip that carries the
 policy's structured decision); every decision comes from the MDP (the shipped artifacts loaded);
 the saver the policy sees matches the documented rule; the pick records the contest-state kind
-it was chosen on; after the finale every action is a skip; on the finale streak 56 plays; a skip's
+it was chosen on; on the finale and makeup slate streak 56 plays; a skip's
 operator notice (``scheduler.format_skip_dm`` over ``build_skip_summary``, as the scheduler builds
 it from the same decision) never says the best candidate is below a bar that candidate clears.
 ``boundary_checks`` covers the stored boundary, the year boundary and the season-end fallback.
@@ -48,6 +49,7 @@ REPO = Path(__file__).resolve().parents[3]
 
 FIRST_GAME_DAY = date(2027, 3, 24)
 LAST_GAME_DAY = date(2027, 9, 26)     # CLAUDE.md: the 2027 playing finale
+MAKEUP_GAME_DAY = date(2027, 9, 27)   # Explicit slate on the stored exclusive boundary
 WALK_START = date(2027, 3, 1)
 WALK_END = date(2027, 10, 5)
 SEASON_LENGTH = 180                   # the shipped table's season length
@@ -224,7 +226,7 @@ def _config(picks: Path) -> dict:
             "health_checks": {"contest_state_expected": True}}
 
 
-def walk_one(day: date, state: State) -> dict:
+def walk_one(day: date, state: State, *, empty_slate: bool = False) -> dict:
     """One date, one contest state, through ``orchestrator.run_and_pick``."""
     from bts import orchestrator, picks as picks_module, strategy
     rec = dict(day=day.isoformat(), state=state.label(), in_season=in_season(day),
@@ -233,7 +235,10 @@ def walk_one(day: date, state: State) -> dict:
                batter=None, double=None, no_pick_reason=None, saver_available=None,
                chosen_on_kind=None, reason=None, pick_bar=None, skip_dm=None, skip_bar=None,
                best_p=None)
+    rec["slate"] = "empty" if empty_slate else "makeup" if day == MAKEUP_GAME_DAY else "synthetic"
     frame = _predictions(day, state.top_p)
+    if empty_slate:
+        frame = frame.iloc[:0]
     statuses = {int(pk): {"abstract": "P", "detailed": "Scheduled"} for pk in frame["game_pk"]}
     with tempfile.TemporaryDirectory(prefix="season-walk-") as tmp:
         picks = Path(tmp) / "picks"
@@ -276,7 +281,7 @@ def walk_one(day: date, state: State) -> dict:
         rec["batter"] = daily.pick.batter_name
         rec["double"] = daily.double_down.batter_name if daily.double_down else None
         rec["chosen_on_kind"] = (daily.chosen_on or {}).get("kind")
-        if state.streak >= LONGEST_STREAK_FROM and rec["days_left"] > 0:
+        if decision is not None and decision.objective == OBJECTIVE_LONGEST:
             chosen = picks_module._valid_chosen_on(daily.chosen_on)
             rec["chosen_on_valid"] = bool(
                 chosen and chosen["required"] and chosen["kind"] == state.kind
@@ -293,16 +298,23 @@ def check(records: list[dict]) -> list[str]:
             continue
         if r.get("setup"):
             problems.append(f"{where}: setup problems {r['setup']}")
-        expected = r.get("expected_days_left", expected_days_left(date.fromisoformat(r["day"])))
+        day = date.fromisoformat(r["day"])
+        expected = expected_days_left(day)
         if r.get("days_left") != expected:
             problems.append(f"{where}: days left {r.get('days_left')}, expected {expected}")
+        if r.get("slate") == "empty":
+            if r.get("action") is not None or r.get("days_effective") is not None:
+                problems.append(f"{where}: empty slate produced a decision")
+            continue
         state = r["state"].split("/")
-        longest = int(state[1]) >= LONGEST_STREAK_FROM and expected > 0
+        # Frozen records predate the floor. Every current nonempty fixture goes through selection.
+        decision_days = max(1, expected) if "slate" in r else expected
+        longest = int(state[1]) >= LONGEST_STREAK_FROM and decision_days > 0
         horizon = LONGEST_STREAK_HORIZON if longest else SEASON_LENGTH
         days_effective = r.get("days_effective")
-        if (longest or days_effective is not None) and days_effective != min(expected, horizon):
+        if (longest or days_effective is not None) and days_effective != min(decision_days, horizon):
             problems.append(f"{where}: effective days {days_effective}, expected "
-                            f"{min(expected, horizon)}")
+                            f"{min(decision_days, horizon)}")
         picked = r.get("action") in {"single", "double"} and r.get("batter") is not None
         named_skip = r.get("action") == "skip" and r.get("named") is True
         if not (picked or named_skip):
@@ -318,7 +330,7 @@ def check(records: list[dict]) -> list[str]:
         if longest:
             if not art:
                 problems.append(f"{where}: policy artifacts missing")
-            want_action = "double" if expected <= 3 else "single"
+            want_action = "double" if decision_days <= 3 else "single"
             if r.get("action") != want_action:
                 problems.append(f"{where}: longest-streak action {r.get('action')!r}, expected {want_action!r}")
             if r.get("objective") != OBJECTIVE_LONGEST:
@@ -337,10 +349,9 @@ def check(records: list[dict]) -> list[str]:
             if r["best_p"] >= bar:
                 problems.append(f"{where}: skip message calls the best ({r['best_p']:.1%}) below a bar "
                                 f"it clears ({bar:.1%}): {dm}")
-        day = date.fromisoformat(r["day"])
-        if day > LAST_GAME_DAY and r.get("action") != "skip":
+        if day > LAST_GAME_DAY and "slate" not in r and r.get("action") != "skip":
             problems.append(f"{where}: after the finale but action {r.get('action')!r}")
-        if day == LAST_GAME_DAY and state[1] == "56" and r.get("action") == "skip":
+        if (day == LAST_GAME_DAY or r.get("slate") == "makeup") and state[1] == "56" and r.get("action") == "skip":
             problems.append(f"{where}: last game day at streak 56 skipped")
     return problems
 

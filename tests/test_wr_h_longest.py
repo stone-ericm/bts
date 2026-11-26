@@ -467,9 +467,9 @@ def test_r3_fresh_selection_dispatch_precedes_loader(tmp_path, monkeypatch):
     calls = []
     regime = strategy._regime
 
-    def record_regime(*args):
+    def record_regime(*args, **kwargs):
         calls.append("regime")
-        return regime(*args)
+        return regime(*args, **kwargs)
 
     def fail_loader():
         calls.append("load")
