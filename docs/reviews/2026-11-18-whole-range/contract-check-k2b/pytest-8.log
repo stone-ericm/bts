@@ -1,0 +1,23 @@
+nice: setpriority: Operation not permitted
+Strategy: /Users/eric/projects/bts-work/wr-chk-k2/.codex-review/scratch-k2-am1/src/bts/strategy.py
+Scheduler: /Users/eric/projects/bts-work/wr-chk-k2/.codex-review/scratch-k2-am1/src/bts/scheduler.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-k2
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 382 items
+
+tests/test_wr_a_review_carbon.py .........................               [  6%]
+tests/test_wr_a_schedule.py ........................                     [ 12%]
+tests/test_wr_c1_history.py .........................................    [ 23%]
+tests/test_wr_c2_carbon_v2.py .....................                      [ 29%]
+tests/test_wr_c2_r2_carbon.py ..................                         [ 33%]
+tests/test_wr_c2_receipt_identity.py ................................... [ 42%]
+........................................................................ [ 61%]
+....................................                                     [ 71%]
+tests/test_wr_c2_recovery.py ........................................... [ 82%]
+..........................................................               [ 97%]
+tests/test_wr_c3_r2_entered_pick_blockers.py .........                   [100%]
+
+============================= 382 passed in 11.67s =============================

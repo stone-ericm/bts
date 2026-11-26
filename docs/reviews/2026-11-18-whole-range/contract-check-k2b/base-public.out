@@ -1,0 +1,42 @@
+{
+  "run-prior_date": {
+    "setup": [],
+    "exit": 0,
+    "output": "[23:20 UTC] Running predictions for 2027-09-27...\n\n================================================================================\nBTS PICKS \u2014 2027-09-27\n================================================================================\n#    Batter                 Team  Pos vs Pitcher              P(PA) P(Game)  Flags\n--------------------------------------------------------------------------------\n1    Batter 0               T0      1 Pitcher 0              80.0%  80.0%  \n2    Batter 1               T1      2 Pitcher 1              79.0%  79.0%  \n3    Batter 2               T2      3 Pitcher 2              75.0%  75.0%  \nSkipping \u2014 Batter 0 (T0) at 80.0% below threshold. Streak holds at 57.\n  Posted skip to Bluesky: at://stub\n",
+    "posts": [
+      "Sitting today out. Top pick: Batter 0 (T0) at 80.0% \u2014 below our threshold.\n\nStreak holds at 57."
+    ],
+    "objective": null,
+    "saved_game_time": null
+  },
+  "run-postseason": {
+    "setup": [],
+    "exit": 0,
+    "output": "[21:00 UTC] Running predictions for 2027-09-27...\n\n================================================================================\nBTS PICKS \u2014 2027-09-27\n================================================================================\n#    Batter                 Team  Pos vs Pitcher              P(PA) P(Game)  Flags\n--------------------------------------------------------------------------------\n1    Batter 0               T0      1 Pitcher 0              80.0%  80.0%  \n2    Batter 1               T1      2 Pitcher 1              79.0%  79.0%  \n3    Batter 2               T2      3 Pitcher 2              75.0%  75.0%  \nSkipping \u2014 Batter 0 (T0) at 80.0% below threshold. Streak holds at 57.\n  Posted skip to Bluesky: at://stub\n",
+    "posts": [
+      "Sitting today out. Top pick: Batter 0 (T0) at 80.0% \u2014 below our threshold.\n\nStreak holds at 57."
+    ],
+    "objective": null,
+    "saved_game_time": null
+  },
+  "orchestrate-prior_date": {
+    "setup": [],
+    "exit": 1,
+    "output": "Skipping \u2014 Batter 0 at 80.0% below threshold. Streak holds at 57.\n  Posted skip to Bluesky: at://stub\n",
+    "posts": [
+      "Sitting today out. Top pick: Batter 0 (T0) at 80.0% \u2014 below our threshold.\n\nStreak holds at 57."
+    ],
+    "objective": null,
+    "saved_game_time": null
+  },
+  "orchestrate-postseason": {
+    "setup": [],
+    "exit": 1,
+    "output": "Skipping \u2014 Batter 0 at 80.0% below threshold. Streak holds at 57.\n  Posted skip to Bluesky: at://stub\n",
+    "posts": [
+      "Sitting today out. Top pick: Batter 0 (T0) at 80.0% \u2014 below our threshold.\n\nStreak holds at 57."
+    ],
+    "objective": null,
+    "saved_game_time": null
+  }
+}

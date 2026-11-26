@@ -1,0 +1,747 @@
+{
+  "real_slots": {
+    "postseason": [],
+    "spring": [],
+    "projected": [
+      [
+        70000,
+        true
+      ],
+      [
+        70000,
+        true
+      ],
+      [
+        70001,
+        true
+      ],
+      [
+        70001,
+        true
+      ],
+      [
+        70002,
+        true
+      ],
+      [
+        70002,
+        true
+      ]
+    ],
+    "resume": [],
+    "wrong_day_response_future": [
+      [
+        70000,
+        true
+      ],
+      [
+        70000,
+        true
+      ]
+    ],
+    "missing_game_type": [
+      [
+        70000,
+        true
+      ],
+      [
+        70000,
+        true
+      ]
+    ]
+  },
+  "prediction_schedule_error": "JSONDecodeError",
+  "run_regular": {
+    "setup": [],
+    "exit": 0,
+    "text": "[16:00 UTC] Running predictions for 2027-09-27...\n\n================================================================================\nBTS PICKS \u2014 2027-09-27\n================================================================================\n#    Batter                 Team  Pos vs Pitcher              P(PA) P(Game)  Flags\n--------------------------------------------------------------------------------\n1    Batter 0               T0      1 Pitcher 0              80.0%  80.0%  \n2    Batter 1               T1      2 Pitcher 1              79.0%  79.0%  \n3    Batter 2               T2      3 Pitcher 2              75.0%  75.0%  \nPick: Batter 0 (80.0%) vs Pitcher 0\n  DOUBLE DOWN: + Batter 1 (79.0%), P(both): 63.2%\n  Saved to /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpu_fk7j5l/run-regular/picks/2027-09-27.json\n  Posted to Bluesky: at://stub\n",
+    "posts": [
+      "Today's picks (double down):\nBatter 0 (T0) vs Pitcher 0 \u2014 80.0%\nBatter 1 (T1) vs Pitcher 1 \u2014 79.0%\nP(both): 63.2%\n\nStreak: 57"
+    ],
+    "pick": {
+      "date": "2027-09-27",
+      "run_time": "2027-09-27T16:00:00+00:00",
+      "pick": {
+        "batter_name": "Batter 0",
+        "batter_id": 100,
+        "team": "T0",
+        "lineup_position": 1,
+        "pitcher_name": "Pitcher 0",
+        "pitcher_id": 900,
+        "p_game_hit": 0.8,
+        "flags": [],
+        "projected_lineup": false,
+        "game_pk": 70000,
+        "game_time": "2027-09-27T23:05:00Z",
+        "pitcher_team": "U0"
+      },
+      "double_down": {
+        "batter_name": "Batter 1",
+        "batter_id": 101,
+        "team": "T1",
+        "lineup_position": 2,
+        "pitcher_name": "Pitcher 1",
+        "pitcher_id": 901,
+        "p_game_hit": 0.79,
+        "flags": [],
+        "projected_lineup": false,
+        "game_pk": 70001,
+        "game_time": "2027-09-27T23:05:00Z",
+        "pitcher_team": "U1"
+      },
+      "runner_up": {
+        "batter_name": "Batter 1",
+        "p_game_hit": 0.79
+      },
+      "bluesky_posted": true,
+      "bluesky_uri": "at://stub",
+      "notification_sent": false,
+      "notification_channel": null,
+      "notification_id": null,
+      "delivery_attempted": false,
+      "delivered_at": null,
+      "result": null,
+      "slot_results": null,
+      "shadow_model_version": null,
+      "model_git_sha": "0a4d7ea771f33dbd052bb1498e66cc36b5d465c1",
+      "model_pickle_sha256": null,
+      "policy_npz_sha256": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
+      "feature_env_schema_version": "bts_feature_env_v1",
+      "feature_env": {
+        "BTS_LGBM_DETERMINISTIC": "0",
+        "BTS_LGBM_RANDOM_STATE": "42",
+        "BTS_PITCHER_HR_30G_MIN_PERIODS": "7",
+        "BTS_ROOKIE_GATE_K": "20",
+        "BTS_USE_CALIBRATION": "0"
+      },
+      "feature_env_hash": "fb1841abbb3f269053f4687d291405c4c08ef1c9a87eda8f4f0663804b481ebe",
+      "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+      "policy_decision": {
+        "action": "double",
+        "policy_action": "double",
+        "source": "mdp",
+        "objective": "longest_streak",
+        "streak": 57,
+        "days_effective": 1,
+        "best_supplied": 57,
+        "best_status": "trusted",
+        "effective_best": null,
+        "tail_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+        "degraded_reason": null,
+        "reason": null,
+        "pick_bar": null,
+        "guard": null
+      },
+      "chosen_on": {
+        "schema": "bts_pick_chosen_on_v1",
+        "required": true,
+        "kind": "dated",
+        "streak": 57,
+        "saver_available": false,
+        "dated": {
+          "effective_date": "2027-09-27",
+          "active_streak": 57,
+          "best_streak": 57,
+          "saver_state": "used"
+        }
+      },
+      "automatic_reading": null
+    }
+  },
+  "run_empty": {
+    "setup": [],
+    "exit": 0,
+    "text": "[16:00 UTC] Running predictions for 2027-09-27...\nNo games found for this date.\n",
+    "posts": [],
+    "pick": null
+  },
+  "run_stale_offday": {
+    "setup": [],
+    "exit": 0,
+    "text": "[16:00 UTC] Running predictions for 2027-09-27...\n\n================================================================================\nBTS PICKS \u2014 2027-09-27\n================================================================================\n#    Batter                 Team  Pos vs Pitcher              P(PA) P(Game)  Flags\n--------------------------------------------------------------------------------\n1    Batter 0               T0      1 Pitcher 0              80.0%  80.0%  \n2    Batter 1               T1      2 Pitcher 1              79.0%  79.0%  \n3    Batter 2               T2      3 Pitcher 2              75.0%  75.0%  \nSkipping \u2014 Batter 0 (T0) at 80.0% below threshold. Streak holds at 57.\n  Posted skip to Bluesky: at://stub\n",
+    "posts": [
+      "Sitting today out. Top pick: Batter 0 (T0) at 80.0% \u2014 below our threshold.\n\nStreak holds at 57."
+    ],
+    "pick": null
+  },
+  "run_foreign_regular": {
+    "setup": [],
+    "exit": 0,
+    "text": "[16:00 UTC] Running predictions for 2027-09-27...\n\n================================================================================\nBTS PICKS \u2014 2027-09-27\n================================================================================\n#    Batter                 Team  Pos vs Pitcher              P(PA) P(Game)  Flags\n--------------------------------------------------------------------------------\n1    Batter 0               T0      1 Pitcher 0              80.0%  80.0%  \n2    Batter 1               T1      2 Pitcher 1              79.0%  79.0%  \n3    Batter 2               T2      3 Pitcher 2              75.0%  75.0%  \nPick: Batter 0 (80.0%) vs Pitcher 0\n  DOUBLE DOWN: + Batter 1 (79.0%), P(both): 63.2%\n  Saved to /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpu_fk7j5l/run-foreign_regular/picks/2027-09-27.json\n  Posted to Bluesky: at://stub\n",
+    "posts": [
+      "Today's picks (double down):\nBatter 0 (T0) vs Pitcher 0 \u2014 80.0%\nBatter 1 (T1) vs Pitcher 1 \u2014 79.0%\nP(both): 63.2%\n\nStreak: 57"
+    ],
+    "pick": {
+      "date": "2027-09-27",
+      "run_time": "2027-09-27T16:00:00+00:00",
+      "pick": {
+        "batter_name": "Batter 0",
+        "batter_id": 100,
+        "team": "T0",
+        "lineup_position": 1,
+        "pitcher_name": "Pitcher 0",
+        "pitcher_id": 900,
+        "p_game_hit": 0.8,
+        "flags": [],
+        "projected_lineup": false,
+        "game_pk": 70000,
+        "game_time": "2027-09-26T23:05:00Z",
+        "pitcher_team": "U0"
+      },
+      "double_down": {
+        "batter_name": "Batter 1",
+        "batter_id": 101,
+        "team": "T1",
+        "lineup_position": 2,
+        "pitcher_name": "Pitcher 1",
+        "pitcher_id": 901,
+        "p_game_hit": 0.79,
+        "flags": [],
+        "projected_lineup": false,
+        "game_pk": 70001,
+        "game_time": "2027-09-26T23:05:00Z",
+        "pitcher_team": "U1"
+      },
+      "runner_up": {
+        "batter_name": "Batter 1",
+        "p_game_hit": 0.79
+      },
+      "bluesky_posted": true,
+      "bluesky_uri": "at://stub",
+      "notification_sent": false,
+      "notification_channel": null,
+      "notification_id": null,
+      "delivery_attempted": false,
+      "delivered_at": null,
+      "result": null,
+      "slot_results": null,
+      "shadow_model_version": null,
+      "model_git_sha": "0a4d7ea771f33dbd052bb1498e66cc36b5d465c1",
+      "model_pickle_sha256": null,
+      "policy_npz_sha256": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
+      "feature_env_schema_version": "bts_feature_env_v1",
+      "feature_env": {
+        "BTS_LGBM_DETERMINISTIC": "0",
+        "BTS_LGBM_RANDOM_STATE": "42",
+        "BTS_PITCHER_HR_30G_MIN_PERIODS": "7",
+        "BTS_ROOKIE_GATE_K": "20",
+        "BTS_USE_CALIBRATION": "0"
+      },
+      "feature_env_hash": "fb1841abbb3f269053f4687d291405c4c08ef1c9a87eda8f4f0663804b481ebe",
+      "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+      "policy_decision": {
+        "action": "double",
+        "policy_action": "double",
+        "source": "mdp",
+        "objective": "longest_streak",
+        "streak": 57,
+        "days_effective": 1,
+        "best_supplied": 57,
+        "best_status": "trusted",
+        "effective_best": null,
+        "tail_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+        "degraded_reason": null,
+        "reason": null,
+        "pick_bar": null,
+        "guard": null
+      },
+      "chosen_on": {
+        "schema": "bts_pick_chosen_on_v1",
+        "required": true,
+        "kind": "dated",
+        "streak": 57,
+        "saver_available": false,
+        "dated": {
+          "effective_date": "2027-09-27",
+          "active_streak": 57,
+          "best_streak": 57,
+          "saver_state": "used"
+        }
+      },
+      "automatic_reading": null
+    }
+  },
+  "run_invalid_nonregular_rows": {
+    "setup": [],
+    "exit": 0,
+    "text": "[16:00 UTC] Running predictions for 2027-09-27...\n\n================================================================================\nBTS PICKS \u2014 2027-09-27\n================================================================================\n#    Batter                 Team  Pos vs Pitcher              P(PA) P(Game)  Flags\n--------------------------------------------------------------------------------\n1    Batter 0               T0      1 Pitcher 0              80.0%  80.0%  \n2    Batter 1               T1      2 Pitcher 1              79.0%  79.0%  \n3    Batter 2               T2      3 Pitcher 2              75.0%  75.0%  \nPick: Batter 0 (80.0%) vs Pitcher 0\n  DOUBLE DOWN: + Batter 1 (79.0%), P(both): 63.2%\n  Saved to /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpu_fk7j5l/run-invalid_nonregular_rows/picks/2027-09-27.json\n  Posted to Bluesky: at://stub\n",
+    "posts": [
+      "Today's picks (double down):\nBatter 0 (T0) vs Pitcher 0 \u2014 80.0%\nBatter 1 (T1) vs Pitcher 1 \u2014 79.0%\nP(both): 63.2%\n\nStreak: 57"
+    ],
+    "pick": {
+      "date": "2027-09-27",
+      "run_time": "2027-09-27T16:00:00+00:00",
+      "pick": {
+        "batter_name": "Batter 0",
+        "batter_id": 100,
+        "team": "T0",
+        "lineup_position": 1,
+        "pitcher_name": "Pitcher 0",
+        "pitcher_id": 900,
+        "p_game_hit": 0.8,
+        "flags": [],
+        "projected_lineup": false,
+        "game_pk": 70000,
+        "game_time": "2027-09-27T23:05:00Z",
+        "pitcher_team": "U0"
+      },
+      "double_down": {
+        "batter_name": "Batter 1",
+        "batter_id": 101,
+        "team": "T1",
+        "lineup_position": 2,
+        "pitcher_name": "Pitcher 1",
+        "pitcher_id": 901,
+        "p_game_hit": 0.79,
+        "flags": [],
+        "projected_lineup": false,
+        "game_pk": 70001,
+        "game_time": "2027-09-27T23:05:00Z",
+        "pitcher_team": "U1"
+      },
+      "runner_up": {
+        "batter_name": "Batter 1",
+        "p_game_hit": 0.79
+      },
+      "bluesky_posted": true,
+      "bluesky_uri": "at://stub",
+      "notification_sent": false,
+      "notification_channel": null,
+      "notification_id": null,
+      "delivery_attempted": false,
+      "delivered_at": null,
+      "result": null,
+      "slot_results": null,
+      "shadow_model_version": null,
+      "model_git_sha": "0a4d7ea771f33dbd052bb1498e66cc36b5d465c1",
+      "model_pickle_sha256": null,
+      "policy_npz_sha256": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
+      "feature_env_schema_version": "bts_feature_env_v1",
+      "feature_env": {
+        "BTS_LGBM_DETERMINISTIC": "0",
+        "BTS_LGBM_RANDOM_STATE": "42",
+        "BTS_PITCHER_HR_30G_MIN_PERIODS": "7",
+        "BTS_ROOKIE_GATE_K": "20",
+        "BTS_USE_CALIBRATION": "0"
+      },
+      "feature_env_hash": "fb1841abbb3f269053f4687d291405c4c08ef1c9a87eda8f4f0663804b481ebe",
+      "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+      "policy_decision": {
+        "action": "double",
+        "policy_action": "double",
+        "source": "mdp",
+        "objective": "longest_streak",
+        "streak": 57,
+        "days_effective": 1,
+        "best_supplied": 57,
+        "best_status": "trusted",
+        "effective_best": null,
+        "tail_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+        "degraded_reason": null,
+        "reason": null,
+        "pick_bar": null,
+        "guard": null
+      },
+      "chosen_on": {
+        "schema": "bts_pick_chosen_on_v1",
+        "required": true,
+        "kind": "dated",
+        "streak": 57,
+        "saver_available": false,
+        "dated": {
+          "effective_date": "2027-09-27",
+          "active_streak": 57,
+          "best_streak": 57,
+          "saver_state": "used"
+        }
+      },
+      "automatic_reading": null
+    }
+  },
+  "preview_regular": {
+    "setup": [],
+    "exit": 0,
+    "text": "[preview] Running predictions for 2027-09-27...\n[preview] Batter 0 (T0) 80.0% vs Pitcher 0\n[preview] + Batter 1 (T1) 79.0%\n[preview] Saved to /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpu_fk7j5l/preview-regular/picks/2027-09-27.json (PROJECTED \u2014 scheduler will re-evaluate)\n",
+    "posts": [],
+    "pick": {
+      "date": "2027-09-27",
+      "run_time": "2027-09-27T16:00:00+00:00",
+      "pick": {
+        "batter_name": "Batter 0",
+        "batter_id": 100,
+        "team": "T0",
+        "lineup_position": 1,
+        "pitcher_name": "Pitcher 0",
+        "pitcher_id": 900,
+        "p_game_hit": 0.8,
+        "flags": [],
+        "projected_lineup": false,
+        "game_pk": 70000,
+        "game_time": "2027-09-27T23:05:00Z",
+        "pitcher_team": "U0"
+      },
+      "double_down": {
+        "batter_name": "Batter 1",
+        "batter_id": 101,
+        "team": "T1",
+        "lineup_position": 2,
+        "pitcher_name": "Pitcher 1",
+        "pitcher_id": 901,
+        "p_game_hit": 0.79,
+        "flags": [],
+        "projected_lineup": false,
+        "game_pk": 70001,
+        "game_time": "2027-09-27T23:05:00Z",
+        "pitcher_team": "U1"
+      },
+      "runner_up": {
+        "batter_name": "Batter 1",
+        "p_game_hit": 0.79
+      },
+      "bluesky_posted": false,
+      "bluesky_uri": null,
+      "notification_sent": false,
+      "notification_channel": null,
+      "notification_id": null,
+      "delivery_attempted": false,
+      "delivered_at": null,
+      "result": null,
+      "slot_results": null,
+      "shadow_model_version": null,
+      "model_git_sha": "0a4d7ea771f33dbd052bb1498e66cc36b5d465c1",
+      "model_pickle_sha256": null,
+      "policy_npz_sha256": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
+      "feature_env_schema_version": "bts_feature_env_v1",
+      "feature_env": {
+        "BTS_LGBM_DETERMINISTIC": "0",
+        "BTS_LGBM_RANDOM_STATE": "42",
+        "BTS_PITCHER_HR_30G_MIN_PERIODS": "7",
+        "BTS_ROOKIE_GATE_K": "20",
+        "BTS_USE_CALIBRATION": "0"
+      },
+      "feature_env_hash": "fb1841abbb3f269053f4687d291405c4c08ef1c9a87eda8f4f0663804b481ebe",
+      "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+      "policy_decision": {
+        "action": "double",
+        "policy_action": "double",
+        "source": "mdp",
+        "objective": "longest_streak",
+        "streak": 57,
+        "days_effective": 1,
+        "best_supplied": 57,
+        "best_status": "trusted",
+        "effective_best": null,
+        "tail_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+        "degraded_reason": null,
+        "reason": null,
+        "pick_bar": null,
+        "guard": null
+      },
+      "chosen_on": {
+        "schema": "bts_pick_chosen_on_v1",
+        "required": false,
+        "kind": "dated",
+        "streak": 57,
+        "saver_available": false,
+        "dated": {
+          "effective_date": "2027-09-27",
+          "active_streak": 57,
+          "best_streak": 57,
+          "saver_state": "used"
+        }
+      },
+      "automatic_reading": null
+    }
+  },
+  "preview_empty": {
+    "setup": [],
+    "exit": 0,
+    "text": "[preview] Running predictions for 2027-09-27...\n[preview] No games found for 2027-09-27.\n",
+    "posts": [],
+    "pick": null
+  },
+  "preview_stale_offday": {
+    "setup": [],
+    "exit": 0,
+    "text": "[preview] Running predictions for 2027-09-27...\n[preview] Skip day \u2014 Batter 0 at 80.0% below threshold.\n",
+    "posts": [],
+    "pick": null
+  },
+  "preview_foreign_regular": {
+    "setup": [],
+    "exit": 0,
+    "text": "[preview] Running predictions for 2027-09-27...\n[preview] Batter 0 (T0) 80.0% vs Pitcher 0\n[preview] + Batter 1 (T1) 79.0%\n[preview] Saved to /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpu_fk7j5l/preview-foreign_regular/picks/2027-09-27.json (PROJECTED \u2014 scheduler will re-evaluate)\n",
+    "posts": [],
+    "pick": {
+      "date": "2027-09-27",
+      "run_time": "2027-09-27T16:00:00+00:00",
+      "pick": {
+        "batter_name": "Batter 0",
+        "batter_id": 100,
+        "team": "T0",
+        "lineup_position": 1,
+        "pitcher_name": "Pitcher 0",
+        "pitcher_id": 900,
+        "p_game_hit": 0.8,
+        "flags": [],
+        "projected_lineup": false,
+        "game_pk": 70000,
+        "game_time": "2027-09-26T23:05:00Z",
+        "pitcher_team": "U0"
+      },
+      "double_down": {
+        "batter_name": "Batter 1",
+        "batter_id": 101,
+        "team": "T1",
+        "lineup_position": 2,
+        "pitcher_name": "Pitcher 1",
+        "pitcher_id": 901,
+        "p_game_hit": 0.79,
+        "flags": [],
+        "projected_lineup": false,
+        "game_pk": 70001,
+        "game_time": "2027-09-26T23:05:00Z",
+        "pitcher_team": "U1"
+      },
+      "runner_up": {
+        "batter_name": "Batter 1",
+        "p_game_hit": 0.79
+      },
+      "bluesky_posted": false,
+      "bluesky_uri": null,
+      "notification_sent": false,
+      "notification_channel": null,
+      "notification_id": null,
+      "delivery_attempted": false,
+      "delivered_at": null,
+      "result": null,
+      "slot_results": null,
+      "shadow_model_version": null,
+      "model_git_sha": "0a4d7ea771f33dbd052bb1498e66cc36b5d465c1",
+      "model_pickle_sha256": null,
+      "policy_npz_sha256": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
+      "feature_env_schema_version": "bts_feature_env_v1",
+      "feature_env": {
+        "BTS_LGBM_DETERMINISTIC": "0",
+        "BTS_LGBM_RANDOM_STATE": "42",
+        "BTS_PITCHER_HR_30G_MIN_PERIODS": "7",
+        "BTS_ROOKIE_GATE_K": "20",
+        "BTS_USE_CALIBRATION": "0"
+      },
+      "feature_env_hash": "fb1841abbb3f269053f4687d291405c4c08ef1c9a87eda8f4f0663804b481ebe",
+      "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+      "policy_decision": {
+        "action": "double",
+        "policy_action": "double",
+        "source": "mdp",
+        "objective": "longest_streak",
+        "streak": 57,
+        "days_effective": 1,
+        "best_supplied": 57,
+        "best_status": "trusted",
+        "effective_best": null,
+        "tail_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+        "degraded_reason": null,
+        "reason": null,
+        "pick_bar": null,
+        "guard": null
+      },
+      "chosen_on": {
+        "schema": "bts_pick_chosen_on_v1",
+        "required": false,
+        "kind": "dated",
+        "streak": 57,
+        "saver_available": false,
+        "dated": {
+          "effective_date": "2027-09-27",
+          "active_streak": 57,
+          "best_streak": 57,
+          "saver_state": "used"
+        }
+      },
+      "automatic_reading": null
+    }
+  },
+  "preview_invalid_nonregular_rows": {
+    "setup": [],
+    "exit": 0,
+    "text": "[preview] Running predictions for 2027-09-27...\n[preview] Batter 0 (T0) 80.0% vs Pitcher 0\n[preview] + Batter 1 (T1) 79.0%\n[preview] Saved to /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpu_fk7j5l/preview-invalid_nonregular_rows/picks/2027-09-27.json (PROJECTED \u2014 scheduler will re-evaluate)\n",
+    "posts": [],
+    "pick": {
+      "date": "2027-09-27",
+      "run_time": "2027-09-27T16:00:00+00:00",
+      "pick": {
+        "batter_name": "Batter 0",
+        "batter_id": 100,
+        "team": "T0",
+        "lineup_position": 1,
+        "pitcher_name": "Pitcher 0",
+        "pitcher_id": 900,
+        "p_game_hit": 0.8,
+        "flags": [],
+        "projected_lineup": false,
+        "game_pk": 70000,
+        "game_time": "2027-09-27T23:05:00Z",
+        "pitcher_team": "U0"
+      },
+      "double_down": {
+        "batter_name": "Batter 1",
+        "batter_id": 101,
+        "team": "T1",
+        "lineup_position": 2,
+        "pitcher_name": "Pitcher 1",
+        "pitcher_id": 901,
+        "p_game_hit": 0.79,
+        "flags": [],
+        "projected_lineup": false,
+        "game_pk": 70001,
+        "game_time": "2027-09-27T23:05:00Z",
+        "pitcher_team": "U1"
+      },
+      "runner_up": {
+        "batter_name": "Batter 1",
+        "p_game_hit": 0.79
+      },
+      "bluesky_posted": false,
+      "bluesky_uri": null,
+      "notification_sent": false,
+      "notification_channel": null,
+      "notification_id": null,
+      "delivery_attempted": false,
+      "delivered_at": null,
+      "result": null,
+      "slot_results": null,
+      "shadow_model_version": null,
+      "model_git_sha": "0a4d7ea771f33dbd052bb1498e66cc36b5d465c1",
+      "model_pickle_sha256": null,
+      "policy_npz_sha256": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
+      "feature_env_schema_version": "bts_feature_env_v1",
+      "feature_env": {
+        "BTS_LGBM_DETERMINISTIC": "0",
+        "BTS_LGBM_RANDOM_STATE": "42",
+        "BTS_PITCHER_HR_30G_MIN_PERIODS": "7",
+        "BTS_ROOKIE_GATE_K": "20",
+        "BTS_USE_CALIBRATION": "0"
+      },
+      "feature_env_hash": "fb1841abbb3f269053f4687d291405c4c08ef1c9a87eda8f4f0663804b481ebe",
+      "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+      "policy_decision": {
+        "action": "double",
+        "policy_action": "double",
+        "source": "mdp",
+        "objective": "longest_streak",
+        "streak": 57,
+        "days_effective": 1,
+        "best_supplied": 57,
+        "best_status": "trusted",
+        "effective_best": null,
+        "tail_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+        "degraded_reason": null,
+        "reason": null,
+        "pick_bar": null,
+        "guard": null
+      },
+      "chosen_on": {
+        "schema": "bts_pick_chosen_on_v1",
+        "required": false,
+        "kind": "dated",
+        "streak": 57,
+        "saver_available": false,
+        "dated": {
+          "effective_date": "2027-09-27",
+          "active_streak": 57,
+          "best_streak": 57,
+          "saver_state": "used"
+        }
+      },
+      "automatic_reading": null
+    }
+  },
+  "orchestrator_regular": {
+    "setup": [],
+    "decision": {
+      "action": "double",
+      "policy_action": "double",
+      "source": "mdp",
+      "objective": "longest_streak",
+      "streak": 57,
+      "days_effective": 1,
+      "best_supplied": 57,
+      "best_status": "trusted",
+      "effective_best": null,
+      "tail_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+      "degraded_reason": null,
+      "reason": null,
+      "pick_bar": null,
+      "guard": null
+    },
+    "no_pick_reason": null
+  },
+  "orchestrator_empty": {
+    "setup": [],
+    "decision": null,
+    "no_pick_reason": null
+  },
+  "orchestrator_stale_offday": {
+    "setup": [],
+    "decision": null,
+    "no_pick_reason": "no_eligible"
+  },
+  "orchestrator_foreign_regular": {
+    "setup": [],
+    "decision": {
+      "action": "double",
+      "policy_action": "double",
+      "source": "mdp",
+      "objective": "longest_streak",
+      "streak": 57,
+      "days_effective": 1,
+      "best_supplied": 57,
+      "best_status": "trusted",
+      "effective_best": null,
+      "tail_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+      "degraded_reason": null,
+      "reason": null,
+      "pick_bar": null,
+      "guard": null
+    },
+    "no_pick_reason": null
+  },
+  "orchestrator_invalid_nonregular_rows": {
+    "setup": [],
+    "decision": {
+      "action": "double",
+      "policy_action": "double",
+      "source": "mdp",
+      "objective": "longest_streak",
+      "streak": 57,
+      "days_effective": 1,
+      "best_supplied": 57,
+      "best_status": "trusted",
+      "effective_best": null,
+      "tail_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+      "degraded_reason": null,
+      "reason": null,
+      "pick_bar": null,
+      "guard": null
+    },
+    "no_pick_reason": null
+  },
+  "no_verified_candidate_skip_notice": {
+    "setup": [],
+    "summary": {
+      "best_batter": "Batter 0",
+      "best_team": "T0",
+      "best_p": 0.8,
+      "streak": 57,
+      "basis": "no_decision",
+      "candidate_verified": false
+    },
+    "rendered": "BTS 2027-09-27: No pick at this check. No candidate was chosen. Top model prediction (eligibility unverified): Batter 0 (T0) 80.0%."
+  },
+  "decide_action_without_schedule": [
+    "skip",
+    "mdp"
+  ],
+  "invalid_date": "ValueError: invalid literal for int() with base 10: 'bad-'"
+}

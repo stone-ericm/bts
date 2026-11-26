@@ -1,0 +1,49 @@
+nice: setpriority: Operation not permitted
+Strategy: /Users/eric/projects/bts-work/wr-chk-k2/.codex-review/scratch-k2-am1/src/bts/strategy.py
+Scheduler: /Users/eric/projects/bts-work/wr-chk-k2/.codex-review/scratch-k2-am1/src/bts/scheduler.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-k2
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 442 items
+
+tests/test_morning_state_cs6b1_review.py .................               [  3%]
+tests/test_orchestrator.py ............F                                 [  6%]
+tests/test_pickpath_review_pp1.py ....                                   [  7%]
+tests/test_pickpath_review_pp2.py ...................................... [ 16%]
+ss....ss....ss....ss.........                                            [ 22%]
+tests/test_private_mode_transport.py ........                            [ 24%]
+tests/test_saved_pick_cs5a_review.py ................................... [ 32%]
+.............                                                            [ 35%]
+tests/test_saved_pick_paths_cs5a.py .................................... [ 43%]
+..ss..ss.........................................................        [ 58%]
+tests/test_saver_cs3.py ................................................ [ 69%]
+........................................................................ [ 85%]
+................................................................         [100%]
+
+=================================== FAILURES ===================================
+________ TestRunAndPick.test_uses_fresh_contest_streak_for_live_action _________
+tests/test_orchestrator.py:294: in test_uses_fresh_contest_streak_for_live_action
+    predictions, sel, tier = run_and_pick(config, "2026-04-01")
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/scratch-k2-am1/src/bts/orchestrator.py:293: in run_and_pick
+    sel = select_pick(
+.codex-review/scratch-k2-am1/src/bts/strategy.py:667: in select_pick
+    decision = resolve_policy_decision(ctx, streak, saver)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/scratch-k2-am1/src/bts/strategy.py:334: in resolve_policy_decision
+    mdp_action, guard = _mdp_action_from(
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1204: in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: TestRunAndPick.test_uses_fresh_contest_streak_for_live_action.<locals>.action() got an unexpected keyword argument 'min_days'
+=========================== short test summary info ============================
+FAILED tests/test_orchestrator.py::TestRunAndPick::test_uses_fresh_contest_streak_for_live_action
+================== 1 failed, 429 passed, 12 skipped in 3.25s ===================
