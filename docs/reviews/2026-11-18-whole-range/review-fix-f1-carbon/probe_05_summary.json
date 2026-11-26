@@ -1,0 +1,69 @@
+{
+  "total_mutations": 11,
+  "caught_count": 6,
+  "survived_count": 5,
+  "survived": [
+    "1b_allow_bool_game_pk_via_isinstance",
+    "3b_drop_reason_from_prior_wrong_game",
+    "5b_confirm_when_any_leg_confirmed_case_b",
+    "7_drop_wrong_game_in_all_clear_guard",
+    "8_drop_legacy_wrong_game_exclusion"
+  ],
+  "results": [
+    {
+      "mutation": "1a_drop_int_game_pk_check",
+      "caught": true,
+      "detail": "================= 1 failed, 213 passed, 2 deselected in 1.15s =================="
+    },
+    {
+      "mutation": "1b_allow_bool_game_pk_via_isinstance",
+      "caught": false,
+      "detail": "SURVIVED (all tests passed)"
+    },
+    {
+      "mutation": "2_drop_shared_batter_condition",
+      "caught": true,
+      "detail": "================= 2 failed, 212 passed, 2 deselected in 1.17s =================="
+    },
+    {
+      "mutation": "3a_drop_case_b",
+      "caught": true,
+      "detail": "================= 1 failed, 213 passed, 2 deselected in 1.16s =================="
+    },
+    {
+      "mutation": "3b_drop_reason_from_prior_wrong_game",
+      "caught": false,
+      "detail": "SURVIVED (all tests passed)"
+    },
+    {
+      "mutation": "4_first_alert_consumes_initial",
+      "caught": true,
+      "detail": "================= 13 failed, 201 passed, 2 deselected in 1.15s ================="
+    },
+    {
+      "mutation": "5a_confirm_when_any_leg_confirmed_case_a",
+      "caught": true,
+      "detail": "================= 1 failed, 213 passed, 2 deselected in 1.18s =================="
+    },
+    {
+      "mutation": "5b_confirm_when_any_leg_confirmed_case_b",
+      "caught": false,
+      "detail": "SURVIVED (all tests passed)"
+    },
+    {
+      "mutation": "6_swap_first_and_reminder_texts",
+      "caught": true,
+      "detail": "================= 12 failed, 202 passed, 2 deselected in 1.16s ================="
+    },
+    {
+      "mutation": "7_drop_wrong_game_in_all_clear_guard",
+      "caught": false,
+      "detail": "SURVIVED (all tests passed)"
+    },
+    {
+      "mutation": "8_drop_legacy_wrong_game_exclusion",
+      "caught": false,
+      "detail": "SURVIVED (all tests passed)"
+    }
+  ]
+}
