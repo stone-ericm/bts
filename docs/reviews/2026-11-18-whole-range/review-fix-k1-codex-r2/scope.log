@@ -1,0 +1,18 @@
+nice: setpriority: Operation not permitted
+Base-to-round-two and base-to-round-one production diffs are byte-identical
+The whole checklist differs from the base by exactly the authorized B8a replacement
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-k1b-cx/.codex-review/wr-k1-r2/check_scope.py", line 43, in <module>
+    main()
+  File "/Users/eric/projects/bts-work/wr-rev-k1b-cx/.codex-review/wr-k1-r2/check_scope.py", line 38, in main
+    assert git("diff", "--check", BASE, ROUND_TWO) == b""
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-k1b-cx/.codex-review/wr-k1-r2/check_scope.py", line 21, in git
+    return subprocess.check_output(["git", *args], timeout=5)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py", line 466, in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['git', 'diff', '--check', 'a5fa7466', 'bf3d4f02']' returned non-zero exit status 2.

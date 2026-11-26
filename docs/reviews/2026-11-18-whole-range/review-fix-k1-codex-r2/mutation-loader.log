@@ -1,0 +1,34 @@
+nice: setpriority: Operation not permitted
+loader, scheduler.py:1355, slate_date=date -> slate_date=None
+scheduler: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrk1-r2-date-28jhafp0/bts/scheduler.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k1b-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_wr_k1_r2.py F                                                 [100%]
+
+=================================== FAILURES ===================================
+_________________ test_scheduler_alert_dates[loader-midnight] __________________
+tests/test_wr_k1_r2.py:46: in test_scheduler_alert_dates
+    result = callers.replay(case, slate, clock, overnight)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+docs/reviews/2026-11-18-whole-range/review-fix-k1-codex/replay_callers.py:20: in replay
+    return original(case, *args)
+           ^^^^^^^^^^^^^^^^^^^^^
+docs/reviews/2026-11-18-whole-range/review-fix-k1-codex/probe_callers.py:160: in replay
+    assert chosen == (requested_day if current else None)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_k1_r2.py::test_scheduler_alert_dates[loader-midnight] - ...
+============================== 1 failed in 1.62s ===============================
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-k1b-cx/.codex-review/wr-k1-r2/check_date_mutation.py", line 59, in <module>
+    main(sys.argv[1])
+  File "/Users/eric/projects/bts-work/wr-rev-k1b-cx/.codex-review/wr-k1-r2/check_date_mutation.py", line 54, in main
+    assert "assert None == '2027-06-14'" in result.stdout
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
