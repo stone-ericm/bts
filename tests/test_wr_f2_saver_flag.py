@@ -39,6 +39,11 @@ NEW_B8A = (
     "flag before the next automatic pick. For a wrong dated observation still in effect, use "
     "B8a's prior-entry and pick-timing checks before correcting it."
 )
+ATTENTION_LIMIT_B8A = (
+    " Do not set `warn_attention_state` under `[health_checks.thresholds]` to the end-of-day DM status file's path "
+    "followed by `.dated_used_mismatch.json`: this warning's receipt would then replace the attention state and a "
+    "repeated warning the next day would not be sent (an accepted limit, Eric 2026-11-26)."
+)
 
 # SHA-256 of the ordered alerts, captured transport calls and status JSON
 # from the unchanged base. Each pair is (live, historical).
@@ -435,11 +440,13 @@ def test_b8a_saver_reconciliation_text():
         "says the saver was used.`** (change set F2): D is the ET date the warning prints. Run "
         "`bts season-contract status --picks-dir DIR` (DIR as above) and compare the dated row's saver "
         "and the saver flag with MLB. If MLB shows this season's saver used, follow **The saver** "
-        f"in the bullet above. {NEW_B8A}</li>"
+        f"in the bullet above. {NEW_B8A}{ATTENTION_LIMIT_B8A}</li>"
     )
 
 
-@pytest.mark.parametrize("spelling", ["identical", "dot", "relative", "symlink", "hardlink"])
+# F2b, Eric 2026-11-26 (option 2): no collision guard. A receipt name that is the attention-state file itself
+# ("identical", "dot", "relative" spellings) is an accepted limit; aliases are refused by the acknowledgement mode.
+@pytest.mark.parametrize("spelling", ["symlink", "hardlink"])
 def test_e1_e2_mismatch_preserves_attention(tmp_path, monkeypatch, spelling):
     monkeypatch.chdir(tmp_path)
     picks = tmp_path / "picks"
@@ -472,7 +479,7 @@ def test_e1_e2_mismatch_preserves_attention(tmp_path, monkeypatch, spelling):
     assert len(sends) == 1 and warning.message in sends[0][1]
     day_one = json.loads(attention.read_text())
     assert day_one["sources"]["calibration_drift"]["streak"] == 1
-    assert dispatch.call_args.kwargs["status_path"] is None
+    assert dispatch.call_args.kwargs["status_path"] == receipt
     assert eod(monkeypatch, picks, existing=[repeated], overrides=overrides)[1] == sends
 
     tomorrow = DAY + dt.timedelta(days=1)
@@ -533,7 +540,7 @@ def test_e6_b8a_rechecks_flag_after_dashboard_change(tmp_path, monkeypatch):
 def test_e7_other_b8a_text_matches_round_two():
     checklist = Path(__file__).resolve().parents[1] / "docs/ops/2027-season-start.md"
     row, = (line for line in checklist.read_bytes().splitlines() if line.startswith(b"| B8a |"))
-    original = row.replace(NEW_B8A.encode(), OLD_B8A.encode())
+    original = row.replace((NEW_B8A + ATTENTION_LIMIT_B8A).encode(), OLD_B8A.encode())
     assert hashlib.sha256(original).hexdigest() == (
         "21b6dd612d9019555a4436b0b3f68b5493d5751d466bda8a32dfabf5a156739d"
     )
