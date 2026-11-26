@@ -8,8 +8,17 @@ cron runs the check.
 
 Clean states: `no_games`, `deliberate_skip`, `entered` or `entered_game_unverified` (intent "enter"),
 `research_commit` (intent "research"). The game-unverified state is a batter-only match, not a game confirmation.
-Everything else is a problem. Missing or failed evidence is reported as unverifiable, never as a quiet pass, and
-"not entered" is claimed only from a successful observation of the account (the receipt's consumer rules).
+Everything else is a problem. "not entered" is claimed only from a successful observation of the account
+(the receipt's consumer rules).
+
+A deliberate MDP skip can prompt `skip_state_review` if the selected dated observation for that day records
+a different streak or policy saver availability. The report uses a valid installed observation when present
+and otherwise checks retained archives. In enter mode it also prompts review if the switch remains revoked
+for that season, the revocation was on the skip date in ET, and no valid retained dated observation matches
+both inputs.
+
+Missing or unusable optional contest evidence can leave a deliberate skip clean. The base outcome checks
+report missing schedule, decision or entry evidence where required.
 
 Limits: an entry made on a day the policy skipped is not seen (the entry checker observes the account only for a
 committed pick); a confirmation proves the entry at its observation time, not through the cutoff; grading and
@@ -181,9 +190,14 @@ def _dated_evidence(path: Path, day: Date) -> tuple[datetime, tuple[int, bool]] 
         return None
     if observation.effective_date != day:
         return None
+    recorded_at = datetime.fromisoformat(observation.recorded_at)
+    try:
+        recorded_at.astimezone(ET)
+    except OverflowError:
+        return None
     available = policy_saver_available(SaverState(state=observation.saver_state, season=day.year),
                                        observation.streak)
-    return datetime.fromisoformat(observation.recorded_at), (observation.streak, available)
+    return recorded_at, (observation.streak, available)
 
 
 def _archives(account: Path):

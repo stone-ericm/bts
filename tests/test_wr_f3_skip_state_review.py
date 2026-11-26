@@ -36,6 +36,7 @@ EXPECTED = {
     "M1": ("dated",), "M2": ("revoke",), "M3": ("dated",), "M4": ("dated", "revoke"),
     "K1": (), "K2a": (), "K2b": (), "K2c": (), "K2d": (),
     "K2c_after_same_day_revoke": (), "K2a_current_outranked_by_archive": (),
+    "K2e": ("dated",),
 }
 
 
@@ -196,6 +197,60 @@ def test_overflowing_revocation(report):
     (report.account / EVIDENCE["current"]).write_text(json.dumps(evidence("current")))
     reason = f"The installed dated observation for {DATE} records streak 1 and policy saver availability unavailable."
     report.check("skip_state_review", review_detail(DATE, [reason]), code=1)
+
+
+@pytest.mark.parametrize("kind", ["current", "archive"])
+@pytest.mark.parametrize("recorded_at", ["0001-01-01T00:00:00Z", "9999-12-31T23:59:59-12:00"])
+def test_overflowing_dated_observation(report, kind, recorded_at):
+    report.setup()
+    (report.account / EVIDENCE[kind]).write_text(json.dumps(evidence(kind, recorded_at=recorded_at)))
+    report.check()
+
+
+def test_overflowing_matching_archive_preserves_review(report):
+    report.setup()
+    (report.account / EVIDENCE["switch"]).write_text(json.dumps(evidence("switch")))
+    (report.account / EVIDENCE["archive"]).write_text(json.dumps(evidence("archive")))
+    matching = evidence("archive", active_streak=30, recorded_at="9999-12-31T23:59:59-12:00")
+    (report.account / "contest_streak.manual.revoked-overflow.json").write_text(json.dumps(matching))
+    report.check("skip_state_review", review_detail(DATE, [
+        f"An archived dated observation for {DATE} records streak 1 and policy saver availability unavailable.",
+        f"The season switch records a revocation on {DATE} at 16:00 ET.",
+    ]), code=1)
+
+
+def test_evidence_read_byte_limit(report, monkeypatch):
+    report.setup()
+    path = report.account / EVIDENCE["current"]
+    path.write_text(json.dumps(evidence("current", padding="x" * (256 * 1024))))
+    target = path.stat()
+    real_read = os.read
+    bytes_read = []
+
+    def count_read(fd, size):
+        chunk = real_read(fd, size)
+        if os.path.samestat(os.fstat(fd), target):
+            bytes_read.append(len(chunk))
+        return chunk
+
+    with monkeypatch.context() as patches:
+        patches.setattr(os, "read", count_read)
+        assert day_outcome._read_evidence(path) is None
+    assert 0 < sum(bytes_read) <= 64 * 1024 + 1
+    report.check()
+
+
+@pytest.mark.parametrize("source", ["module docstring", "CLAUDE.md"])
+def test_review_evidence_documentation(source):
+    text = day_outcome.__doc__ if source == "module docstring" else (ROOT / source).read_text()
+    text = " ".join(text.split())
+    assert ("A deliberate MDP skip can prompt `skip_state_review` if the selected dated observation for that day "
+            "records a different streak or policy saver availability. The report uses a valid installed observation "
+            "when present and otherwise checks retained archives. In enter mode it also prompts review if the switch "
+            "remains revoked for that season, the revocation was on the skip date in ET, and no valid retained dated "
+            "observation matches both inputs.") in text
+    assert ("Missing or unusable optional contest evidence can leave a deliberate skip clean. The base outcome checks "
+            "report missing schedule, decision or entry evidence where required.") in text
 
 
 def test_K7_year_boundary(report):
@@ -381,6 +436,14 @@ def test_scheduler_skip(tmp_path, name):
             clock[0] = START.replace(hour=9, minute=2)
             enable()
             fetch(30)
+        if name == "K2e":
+            dated(1, "not_earned")
+            clock[0] = START.replace(hour=9, minute=1)
+            revoke()
+            clock[0] = START.replace(hour=9, minute=2)
+            enable()
+            fetch(30)
+            assert not manual.exists()
         if name == "K2a_current_outranked_by_archive":
             interleaved_dated_commands()
         clock[0] = START
@@ -444,6 +507,7 @@ def test_scheduler_skip(tmp_path, name):
             "M3": [f"The installed dated observation for {DAY} records streak 30 and policy saver availability available."],
             "M4": [f"An archived dated observation for {DAY} records streak 1 and policy saver availability available.",
                    f"The season switch records a revocation on {DAY} at 16:31 ET."],
+            "K2e": [f"An archived dated observation for {DAY} records streak 1 and policy saver availability available."],
         }.get(name, [])) if reasons else "The policy skipped the day."
         assert_report(outcome, result, env["pick_dms"][n:], DAY,
                       "skip_state_review" if reasons else "deliberate_skip", expected, int(bool(reasons)))
