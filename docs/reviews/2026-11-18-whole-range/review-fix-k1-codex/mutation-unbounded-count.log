@@ -1,0 +1,34 @@
+nice: setpriority: Operation not permitted
+Mutation unbounded-count at /tmp/wr-k1-r1.gVhpaf/mutation/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k1-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 97 items
+
+tests/test_wr_k1_refusal_dm.py ......................................... [ 42%]
+..........F.............................................                 [100%]
+
+=================================== FAILURES ===================================
+___________________ test_e1_e2_e3_inventory[synthetic-huge] ____________________
+tests/test_wr_k1_refusal_dm.py:225: in test_e1_e2_e3_inventory
+    assert result == "sent" and len(body) < DM_MAX_CODE_POINTS
+E   AssertionError: assert ('failed' == 'sent'
+E     
+E     - sent
+E     + failed)
+----------------------------- Captured stdout call -----------------------------
+RENDER ["synthetic", "huge", ["BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...\nSee the scheduler journal for this refusal. To inspect current state, run bts season-contract status with --picks-dir set to the scheduler's absolute picks directory. For live repair, use the season-start checklist (B8a). Before changing state for a new slate, verify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.", "⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...\nSee the scheduler journal for this refusal. To inspect current state, run bts season-contract status with --picks-dir set to the scheduler's absolute picks directory. For live repair, use the season-start checklist (B8a). Before changing state for a new slate, verify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open."]]
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: length rejected
+Traceback (most recent call last):
+  File "/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/tests/test_wr_k1_refusal_dm.py", line 69, in send
+    raise RuntimeError("length rejected")
+RuntimeError: length rejected
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+=========================== short test summary info ============================
+FAILED tests/test_wr_k1_refusal_dm.py::test_e1_e2_e3_inventory[synthetic-huge]
+========================= 1 failed, 96 passed in 2.37s =========================

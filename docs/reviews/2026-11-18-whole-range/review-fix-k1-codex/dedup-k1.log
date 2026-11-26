@@ -1,0 +1,64 @@
+nice: setpriority: Operation not permitted
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 00:01 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 07:59 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 23:29 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 00:01 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 00:06 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 00:00 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 00:01 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 07:59 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 00:01 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 00:06 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  0 new confirmed lineup(s). Running predictions...
+bts: /Users/eric/projects/bts-work/wr-rev-k1-cx/src/bts/__init__.py
+2027-06-14 contest_state old then new [1, 1]
+2027-06-14 contest_state old starts before midnight [1, 0, 0]
+2027-06-14 contest_state new-old-new [1, 1, 1]
+2027-06-14 contest_state old starts after midnight [1, 0]
+2027-06-14 missed_pick old then new [1, 1]
+2027-06-14 missed_pick old starts before midnight [1, 0, 0]
+2027-06-14 missed_pick new-old-new [1, 1, 1]
+2027-06-14 missed_pick old starts after midnight [1, 0]
+2027-06-14 late_delivery old then new [1, 1]
+2027-06-14 late_delivery old starts before midnight [1, 0, 0]
+2027-06-14 late_delivery new-old-new [1, 1, 1]
+2027-06-14 late_delivery old starts after midnight [1, 0]
+2027-06-14 postponed_pick old then new [1, 1]
+2027-06-14 postponed_pick old starts before midnight [1, 0, 0]
+2027-06-14 postponed_pick new-old-new [1, 1, 1]
+2027-06-14 postponed_pick old starts after midnight [1, 0]
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/.codex-review/wr-k1-r1/probe_dedup.py", line 118, in <module>
+    run()
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/.codex-review/wr-k1-r1/probe_dedup.py", line 97, in run
+    (eod if eod_first else in_day)()
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/.codex-review/wr-k1-r1/probe_dedup.py", line 92, in in_day
+    result = scheduler.run_single_check(old, [1], set(), config(root), 0.03)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/src/bts/scheduler.py", line 2019, in run_single_check
+    predictions, sel, tier = run_and_pick(
+                             ^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/src/bts/orchestrator.py", line 272, in run_and_pick
+    predictions, tier_name = run_cascade(config["tiers"], date)
+                                         ~~~~~~^^^^^^^^^
+KeyError: 'tiers'

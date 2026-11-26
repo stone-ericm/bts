@@ -1,0 +1,29 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k1-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 486 items
+
+tests/test_morning_state_cs6b1.py ...................................... [  7%]
+.......................                                                  [ 12%]
+tests/test_morning_state_cs6b1_carbon.py .................               [ 16%]
+tests/test_morning_state_cs6b1_review.py .................               [ 19%]
+tests/test_pickpath_review_pp1.py ....                                   [ 20%]
+tests/test_pickpath_review_pp2.py ...................................... [ 28%]
+ss....ss....ss....ss.........                                            [ 34%]
+tests/test_postponed_delivery_guard.py ........................          [ 39%]
+tests/test_saved_pick_paths_cs5a.py .................................... [ 46%]
+..ss..ss.........................................................        [ 59%]
+tests/test_saver_cs3_review.py ......................                    [ 64%]
+tests/test_scheduler_decision_record_integration.py .................... [ 68%]
+....                                                                     [ 69%]
+tests/test_season_contract_cs4b2_edges.py ....................           [ 73%]
+tests/test_stale_delivery_cs4c.py ...................................... [ 81%]
+........................                                                 [ 86%]
+tests/test_stale_delivery_cs4c_carbon.py ....................            [ 90%]
+tests/test_stale_delivery_cs4c_review.py ............................... [ 96%]
+................                                                         [100%]
+
+======================= 474 passed, 12 skipped in 6.99s ========================
