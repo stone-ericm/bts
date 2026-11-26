@@ -358,3 +358,8 @@ K2 stopped after round 2 (`WRK2REV2-17651cb0`): the day-count floor holds (a mak
 
 ## Lead, 2026-11-26 16:03: R71 widened
 K2b's gate hit two further `test_screen.py` tests with the same "files changed during the run" message (each clean five times alone and once in file order). R71 now covers any `test_screen.py` test failing with that message in its own scratch repository; every other extra gate failure keeps R70 item 6's repeats.
+
+## Eric, 2026-11-26 18:54 ("1. 2 / 2. 2 / 3. 3")
+- **K1b: option 2.** One more fresh Codex check limited to the reviewer's quoted B8a sentence (`--picks-dir "$DIR"`); SIGN or SIGN WITH EDITS merges K1 with K1b on K1's green gate; a BLOCK comes back to Eric.
+- **K2b: option 2.** The stale-boundary journal line is moved to after the day's lineup checks (so a nearly full stderr pipe cannot delay a check), then one fresh Codex check limited to that move; SIGN merges on a green gate; a BLOCK comes back to Eric.
+- **SW2: option 3.** At streaks 51 to 56 the shipped table's idling while 31 or more days remain stays as it is and is folded into the longest-streak policy work (D7) with the late-phase cutpoint fix (P1): the re-solved table must be checked for an all-skip region before it ships. Today's behaviour is a written limit until then.
