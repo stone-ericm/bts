@@ -336,3 +336,8 @@ F2b's one check BLOCKed (`WRF2BCHK-062deb52`): both of F2's round-2 findings are
 
 ## 2026-11-26 (bts-wr-fresh13): F4 merged (main bf78b642)
 - **F4 (BL-O3, visibility): MERGED, review PASSED.** An unparseable `streak.json` (a JSON list, or otherwise unreadable) no longer reads as a clean day at 08:30. Round 1: Codex SIGN WITH EDITS (edits applied, one not adopted with its reason recorded) and Carbon SIGN; gate on `82fdb42a` green under R71 (11,288 passed, the pinned 53 plus the known-flaky `test_the_runs_load_no_conftest`). The checklist conflict with F2 (rows B8a and B8b are adjacent lines) was resolved as main's B8a plus F4's B8b.
+
+## Eric, 2026-11-26 11:18 ("agreed with recommendations"): F5b ACCEPTED as it stands; Gemini trust narrowed
+- **F5b: ACCEPTED (not passed)**, merged as `4bdf7620` on its green gate (`962a9b36`; main had changed only in docs since its base) with both written limits (an end-of-day alert missed in a rare send sequence; a named pipe at a units capture path stalling an early check until its run limit). BL-O4 is closed: the watchdog covers every game.
+- **Gemini (`agy`):** `/Users/eric` removed from `trustedWorkspaces` (project folders only).
+- **Change set F is complete** (F1+F1b, F2, F3, F4, F5b). Next: freeze the head and run the closing test ONCE (R70 item 7).
