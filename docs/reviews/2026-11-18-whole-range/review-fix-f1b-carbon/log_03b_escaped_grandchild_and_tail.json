@@ -1,0 +1,19 @@
+{
+  "escaped_and_lock_edges": {
+    "escaped_grandchild_holds_lock_with_exit_124_until_reaped": true,
+    "unlinked_inode_allows_concurrent_run_matching_amendment5_limit": true,
+    "stale_readonly_and_dir_locks_succeed": true,
+    "unopenable_locks_log_to_cron_log_and_skip": true
+  },
+  "midnight_dst_and_markers": {
+    "run_2345_crossing_midnight_isolated_from_next_day": true,
+    "nye_utc_year_limit_verified": true,
+    "dst_56_slots_all_900s_apart": true,
+    "inherited_malformed_marker_exceptions": {
+      "json_list": "AttributeError",
+      "json_null": "AttributeError",
+      "bad_utf8": "UnicodeDecodeError",
+      "non_iter_escalations": "TypeError"
+    }
+  }
+}
