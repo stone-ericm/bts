@@ -1,0 +1,12 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-f5/.codex-review/wr-f5-check/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 2 items
+
+tests/test_entry_intent.py .                                             [ 50%]
+tests/test_wr_f1b_lock.py .                                              [100%]
+
+============================== 2 passed in 1.52s ===============================

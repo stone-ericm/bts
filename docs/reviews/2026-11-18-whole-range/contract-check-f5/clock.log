@@ -1,0 +1,5 @@
+nice: setpriority: Operation not permitted
+spring-gap start 2027-03-14T01:45:00-05:00 pitch 2027-03-14T03:05:00-04:00 actual minutes 20.0 reported minutes 80.0 outcome outside_window fetches []
+fall-too-early start 2027-11-07T01:00:00-04:00 pitch 2027-11-07T01:55:00-05:00 actual minutes 115.0 reported minutes 55.0 outcome observed fetches ['profile', 'pending', 'rounds', 'crosswalk']
+fall-first-fold start 2027-11-07T01:45:00-04:00 pitch 2027-11-07T01:55:00-05:00 actual minutes 70.0 reported minutes 10.0 outcome observed fetches ['profile', 'pending', 'rounds', 'crosswalk']
+fall-second-fold start 2027-11-07T01:45:00-05:00 pitch 2027-11-07T01:55:00-05:00 actual minutes 10.0 reported minutes 10.0 outcome observed fetches ['profile', 'pending', 'rounds', 'crosswalk']

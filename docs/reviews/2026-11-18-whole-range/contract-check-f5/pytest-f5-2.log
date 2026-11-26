@@ -1,0 +1,22 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-f5/.codex-review/wr-f5-check/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 27 items
+
+tests/test_wr_f1b_lock.py F........s.s.s..........s                      [ 92%]
+tests/test_wr_f1b_carbon_regressions.py ..                               [100%]
+
+=================================== FAILURES ===================================
+__________________ test_generated_wrapper_order_and_interval ___________________
+tests/test_wr_f1b_lock.py:59: in test_generated_wrapper_order_and_interval
+    assert schedule == ["*/15", "10-23", "*", "*", "*"]
+E   AssertionError: assert ['*/15', '*', '*', '*', '*'] == ['*/15', '10-...'*', '*', '*']
+E     
+E     At index 1 diff: '*' != '10-23'
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/test_wr_f1b_lock.py::test_generated_wrapper_order_and_interval
+=================== 1 failed, 22 passed, 4 skipped in 59.35s ===================

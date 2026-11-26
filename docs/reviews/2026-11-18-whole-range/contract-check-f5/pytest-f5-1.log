@@ -1,0 +1,23 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-f5/.codex-review/wr-f5-check/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 55 items
+
+tests/test_entry_intent.py ..........................F.................. [ 81%]
+.......                                                                  [ 94%]
+tests/test_audit_f6_review_probes.py ...                                 [100%]
+
+=================================== FAILURES ===================================
+____________ test_enter_install_adds_entry_cron_and_fetch_recipient ____________
+tests/test_entry_intent.py:169: in test_enter_install_adds_entry_cron_and_fetch_recipient
+    assert len(entry) == 1 and entry[0].startswith("*/15 10-23 * * * ")
+E   AssertionError: assert (1 == 1 and False)
+E    +  where 1 = len(['*/15 * * * * cd /Users/eric/projects/bts-work/wr-chk-f5/.codex-review/wr-f5-check/pytest-f5-1/test_enter_install_add...wr-chk-f5/.codex-review/wr-f5-check/pytest-f5-1/test_enter_install_adds_entry_0/home/logs/cron.log 2>&1 # BTS-HETZNER'])
+E    +  and   False = <built-in method startswith of str object at 0x78ccabbc00>('*/15 10-23 * * * ')
+E    +    where <built-in method startswith of str object at 0x78ccabbc00> = '*/15 * * * * cd /Users/eric/projects/bts-work/wr-chk-f5/.codex-review/wr-f5-check/pytest-f5-1/test_enter_install_adds.../wr-chk-f5/.codex-review/wr-f5-check/pytest-f5-1/test_enter_install_adds_entry_0/home/logs/cron.log 2>&1 # BTS-HETZNER'.startswith
+=========================== short test summary info ============================
+FAILED tests/test_entry_intent.py::test_enter_install_adds_entry_cron_and_fetch_recipient
+======================== 1 failed, 54 passed in 10.54s =========================
