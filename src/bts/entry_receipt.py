@@ -174,6 +174,18 @@ def qualify(slots: list[dict], rows: dict, crosswalk: dict, units: dict | None) 
     return {"slots": out, "all_confirmed": bool(out) and all(x["state"] == "confirmed" for x in out)}
 
 
+def selection_slots(daily) -> list[dict]:
+    return [{"role": role, "batter_id": p.batter_id, "batter_name": p.batter_name, "game_pk": p.game_pk,
+             "game_time": p.game_time}
+            for role, p in (("pick", daily.pick), ("double_down", daily.double_down)) if p is not None]
+
+
+def qualify_run(slots, profile, pending, rounds, crosswalk, picks_dir, target):
+    rows = target_rows(profile, pending, rounds, target)
+    units, _ = load_units(picks_dir, target.year)
+    return qualify(slots, rows, crosswalk, units), units
+
+
 def _serialize(rec: dict) -> bytes:
     return (json.dumps(rec, indent=1, sort_keys=True, default=str) + "\n").encode()
 
@@ -258,9 +270,7 @@ class EntryReceipt:
         if self._daily is None:
             return None
         d = self._daily
-        slots = [{"role": role, "batter_id": p.batter_id, "batter_name": p.batter_name, "game_pk": p.game_pk,
-                  "game_time": p.game_time}
-                 for role, p in (("pick", d.pick), ("double_down", d.double_down)) if p is not None]
+        slots = selection_slots(d)
         dec = self._dec or {}
         return {"slots": slots,
                 "delivery": {"notification_sent": d.notification_sent, "notification_channel": d.notification_channel,

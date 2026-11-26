@@ -44,6 +44,8 @@
 | `degraded` | names of receipt hooks that failed (their fields may be missing) |
 | `published_at` | when the receipt was built |
 
+The watchdog checks game qualification separately from publication, so an unresolved wrong-game observation can change the receipt's `marker_status` and `exit_code` while the receipt's `verifier` still records the batter-only match.
+
 **Clocks:** in production every time is the wall clock. Under the `--now-et` test override, times are the anchored instant, advanced by process time after the run's own fetch start.
 
 **Never stored:** cookies, the session id (`xsid`), any token, or any exception message.
