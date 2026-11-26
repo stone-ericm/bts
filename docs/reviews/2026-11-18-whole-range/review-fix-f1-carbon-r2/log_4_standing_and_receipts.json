@@ -1,0 +1,8 @@
+{
+  "capture_shapes_checked": 25,
+  "fifo_both_paths": "verified",
+  "interrupts_and_lost_ack": "verified",
+  "inherited_marker_faults_parity": "verified",
+  "dec31_utc_year_boundary_a6_6": "verified",
+  "receipt_and_day_outcome_states": "verified"
+}
