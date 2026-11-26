@@ -174,7 +174,7 @@ def test_delivery_snapshot_and_guards(tmp_path, monkeypatch, mode, stamp_saved_p
     monkeypatch.setattr(sch, "_void_committed_games", lambda *a: {})
     monkeypatch.setattr(sch, "_trigger_live_forward_capture_on_lock", lambda *a: None)
     alerts, sends, reads = [], [], []
-    monkeypatch.setattr(sch, "_alert_contest_state_failure", lambda *a: alerts.append(str(a[-1])))
+    monkeypatch.setattr(sch, "_alert_contest_state_failure", lambda *a, slate_date=None: alerts.append(str(a[-1])))
     monkeypatch.setattr("bts.dm.send_dm", lambda *a: sends.append(a) or "captured")
     put(tmp_path, "contest_streak.json", automatic())
     put(tmp_path, "season_contract.json", contract())

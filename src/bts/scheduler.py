@@ -50,9 +50,34 @@ def _contest_state_required(config: dict) -> bool:
     )
 
 
-def _alert_contest_state_failure(config: dict, error: Exception) -> None:
+def _alert_contest_state_failure(
+    config: dict, error: Exception, *, slate_date: str | None = None,
+) -> None:
     """Best-effort immediate alert for fail-closed contest-state decisions."""
     from bts.health.alert import Alert, dispatch_dm_for_health_alerts
+
+    try:
+        parsed_date = date_type.fromisoformat(slate_date)
+    except (TypeError, ValueError):
+        parsed_date = None
+    date_kwargs = {"now_et_date": parsed_date} if parsed_date is not None else {}
+    date_label = parsed_date.isoformat() if parsed_date is not None else "this slate"
+    try:
+        lines = str.splitlines(str(error))
+    except Exception:
+        lines = [type.__getattribute__(type(error), "__name__")]
+    reason = str.strip(lines[0]) if lines else ""
+    reason = reason.encode("utf-8", errors="replace").decode("utf-8") or "(no reason text)"
+    if len(reason) > 400:
+        reason = reason[:397] + "..."
+    message = (
+        f"No pick was sent for {date_label} at this check. Reason: {reason}\n"
+        "See the scheduler journal for this refusal. To inspect current state, "
+        "run bts season-contract status with --picks-dir set to the scheduler's absolute picks directory. "
+        "For live repair, use the season-start checklist (B8a). Before changing state for a new slate, "
+        "verify in MLB that prior entries settled or were absent. "
+        "Use a later official pick only while its entry window is open."
+    )
 
     dm_recipient = config.get("bluesky", {}).get("dm_recipient")
     picks_dir = Path(config["orchestrator"]["picks_dir"])
@@ -60,9 +85,10 @@ def _alert_contest_state_failure(config: dict, error: Exception) -> None:
         picks_dir.parent / "health_state" / "health_dm_delivery_status.json"
     )
     dispatch_dm_for_health_alerts(
-        [Alert("CRITICAL", "contest_state", str(error))],
+        [Alert("CRITICAL", "contest_state", message)],
         dm_recipient,
         status_path=status_path,
+        **date_kwargs,
     )
 
 
@@ -223,7 +249,9 @@ def _morning_state_check(
         )
 
 
-def _alert_missed_pick(config: dict, daily, mins_to_game: float) -> None:
+def _alert_missed_pick(
+    config: dict, daily, mins_to_game: float, *, slate_date: str | None = None,
+) -> None:
     """E3: DM the operator that no pick was delivered as first pitch nears."""
     from bts.health.alert import Alert, dispatch_dm_for_health_alerts
 
@@ -238,10 +266,16 @@ def _alert_missed_pick(config: dict, daily, mins_to_game: float) -> None:
         name = daily.pick.batter_name if daily and getattr(daily, "pick", None) else "?"
         msg = (f"NO PICK DELIVERED with ~{mins_to_game:.0f} min to first pitch "
                f"(top pick: {name}). Deliver manually if you want to keep the streak alive.")
+    try:
+        parsed_date = date_type.fromisoformat(slate_date)
+    except (TypeError, ValueError):
+        parsed_date = None
+    date_kwargs = {"now_et_date": parsed_date} if parsed_date is not None else {}
     dispatch_dm_for_health_alerts(
         [Alert("CRITICAL", "missed_pick", msg)],
         dm_recipient,
         status_path=status_path,
+        **date_kwargs,
     )
 
 
@@ -291,7 +325,7 @@ def _maybe_alert_missed_pick(
         mins = (earliest_game_et - _now_et()).total_seconds() / 60
         print(f"  MISSED-PICK ALERT — no delivery with ~{mins:.0f}min to first pitch.",
               file=sys.stderr)
-        _alert_missed_pick(config, daily, mins)
+        _alert_missed_pick(config, daily, mins, slate_date=date)
 
 
 def fetch_schedule(date: str) -> list[dict]:
@@ -1318,14 +1352,14 @@ def _deliver_and_lock_pick(
         decision_state = load_decision_streak_state(picks_dir, require_contest_state=required)
     except ContestStateError as e:
         print(f"  CONTEST STATE ERROR — pick delivery blocked: {e}", file=sys.stderr)
-        _alert_contest_state_failure(config, e)
+        _alert_contest_state_failure(config, e, slate_date=date)
         return False
     if required:
         refusal = saved_pick_refusal(daily, decision_state)
         if refusal is not None:
             print(f"CONTEST STATE ERROR — pick delivery blocked: {refusal}", file=sys.stderr)
             try:
-                _alert_contest_state_failure(config, ContestStateError(refusal))
+                _alert_contest_state_failure(config, ContestStateError(refusal), slate_date=date)
             except Exception as alert_error:
                 print(f"  Contest-state alert failed: {alert_error}", file=sys.stderr)
             return False
@@ -1992,7 +2026,7 @@ def run_single_check(
             _log_policy_decision(sel)
     except ContestStateError as e:
         print(f"  CONTEST STATE ERROR — no pick made: {e}", file=sys.stderr)
-        _alert_contest_state_failure(config, e)
+        _alert_contest_state_failure(config, e, slate_date=date)
         return {"skipped": False, "new_lineups": new_count, "should_post": False,
                 "pick_result": None, "pick_name": None, "pick_p": None,
                 # run_and_pick raised — no selection produced this cycle.
@@ -2532,10 +2566,16 @@ def _refuse_late_delivery(daily, config: dict, picks_dir: Path, state: Scheduler
            "Use a later official pick message only while the entry window is open. "
            "A manual entry can differ from a later recommendation. "
            "The entry check may report a mismatch if it verifies the entry in time.")
+    try:
+        parsed_date = date_type.fromisoformat(date)
+    except (TypeError, ValueError):
+        parsed_date = None
+    date_kwargs = {"now_et_date": parsed_date} if parsed_date is not None else {}
     dispatch_dm_for_health_alerts(
         [Alert("CRITICAL", "late_delivery", msg)],
         config.get("bluesky", {}).get("dm_recipient"),
         status_path=picks_dir.parent / "health_state" / "health_dm_delivery_status.json",
+        **date_kwargs,
     )
 
 
@@ -2589,10 +2629,16 @@ def _refuse_void_game_delivery(daily, config: dict, picks_dir: Path, state: Sche
            "Use a later official pick message only while the entry window is open. "
            "A manual entry can differ from a later recommendation. "
            "The entry check may report a mismatch if it verifies the entry in time.")
+    try:
+        parsed_date = date_type.fromisoformat(date)
+    except (TypeError, ValueError):
+        parsed_date = None
+    date_kwargs = {"now_et_date": parsed_date} if parsed_date is not None else {}
     dispatch_dm_for_health_alerts(
         [Alert("CRITICAL", "postponed_pick", msg)],
         config.get("bluesky", {}).get("dm_recipient"),
         status_path=picks_dir.parent / "health_state" / "health_dm_delivery_status.json",
+        **date_kwargs,
     )
 
 
@@ -3302,7 +3348,7 @@ def run_day(
                                 f"  FALLBACK BLOCKED — contest state invalid: {e}",
                                 file=sys.stderr,
                             )
-                            _alert_contest_state_failure(config, e)
+                            _alert_contest_state_failure(config, e, slate_date=date)
                             continue
                         refresh_duration = round(time.monotonic() - refresh_t0, 1)
                         daily = refresh.daily
@@ -3455,7 +3501,7 @@ def run_day(
                         f"  FALLBACK BLOCKED — contest state invalid: {e}",
                         file=sys.stderr,
                     )
-                    _alert_contest_state_failure(config, e)
+                    _alert_contest_state_failure(config, e, slate_date=date)
                     daily = None
                 else:
                     # Honor a STANDING genuine MDP skip (C1 / GH #144). This is the

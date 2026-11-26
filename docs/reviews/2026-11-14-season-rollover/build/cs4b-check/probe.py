@@ -219,7 +219,7 @@ def callers():
         for q in [patch.object(cs,'load_decision_streak_state',refuse),patch.object(sch,'_now_et',lambda:NOW),
                   patch.object(sch,'_void_committed_games',lambda *a:{}),
                   patch.object(sch,'_trigger_live_forward_capture_on_lock',lambda *a:None),
-                  patch.object(sch,'_alert_contest_state_failure',lambda *a:alerts.append(str(a[-1]))),
+                  patch.object(sch,'_alert_contest_state_failure',lambda *a, slate_date=None:alerts.append(str(a[-1]))),
                   patch('bts.dm.send_dm',lambda *a:sent.append(a)),patch.object(alert,'send_dm',lambda *a:sent.append(a))]:
             stack.enter_context(q)
         delivery=[]
