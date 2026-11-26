@@ -257,8 +257,9 @@ def test_m7_cutoff_passes_during_fetch(wrong):
     assert_wrong(result, escalation=[])
     assert result["dm"] == []
     assert result["stdout"] == (
-        "check-pick-entered: submission cutoff passed during fetch; skipping the nag (entry can no longer change)\n"
+        "check-pick-entered: submission cutoff passed during this check; skipping the nag (entry can no longer change)\n"
     )
+    assert result["marker"]["game_unresolved"] is True
 
 
 def test_m8_removal_still_gets_initial_alert(wrong):

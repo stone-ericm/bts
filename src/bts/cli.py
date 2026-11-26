@@ -1993,11 +1993,6 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
 
     status_path = picks.parent / "health_state" / "pick_entry_check.json"
 
-    def mark(marker):
-        # The marker names this run's receipt, so a later already-confirmed run can reference the confirming one.
-        marker["receipt"] = rec.attempt_id
-        rec.marker(marker["status"])
-        _atomic_write_json(status_path, marker)
     # "confirmed" is the ONLY terminal state (audit F1): an "alerted" day keeps
     # RE-VERIFYING on every run until the entry appears or the window closes —
     # a delivered warning is not verified remediation (the 7/08 missed DD leg
@@ -2016,11 +2011,23 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
             click.echo(f"check-pick-entered: already confirmed for {today}")
             return
     was_alerted = prior.get("status") == "alerted"
-    # Markers written before the escalation ladder lack the field: the initial
-    # alert has by definition already fired on an "alerted" marker.
-    prior_escalations = list(prior.get("escalations")
-                             or (["initial"] if was_alerted and prior.get("reason") != "wrong_game" else []))
-    prior_wrong_game = prior.get("reason") == "wrong_game" or "wrong_game" in prior_escalations
+    prior_escalations = list(prior.get("escalations") or [])
+    prior_wrong_game = (
+        prior.get("game_unresolved") is True
+        or prior.get("reason") == "wrong_game"
+        or "wrong_game" in prior_escalations
+    )
+    # Older alerted markers imply an initial alert unless they record a game observation.
+    if was_alerted and not prior_escalations and not prior_wrong_game:
+        prior_escalations = ["initial"]
+
+    def mark(marker):
+        if marker["status"] != "confirmed" and (reason == "wrong_game" or prior_wrong_game):
+            marker["game_unresolved"] = True
+        # The marker names this run's receipt, so a later already-confirmed run can reference the confirming one.
+        marker["receipt"] = rec.attempt_id
+        rec.marker(marker["status"])
+        _atomic_write_json(status_path, marker)
 
     from bts.leaderboard.auth import (
         load_session_cookies, extract_uid, fetch_login_session, AuthError,
@@ -2122,9 +2129,10 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
             click.echo(f"check-pick-entered: {today} pick entered ({reason})")
         return
 
-    names = str(daily.pick.batter_name) if affected else daily.pick.batter_name
-    if daily.double_down:
-        names += f" + DD {daily.double_down.batter_name}"
+    if not affected:
+        names = daily.pick.batter_name
+        if daily.double_down:
+            names += f" + DD {daily.double_down.batter_name}"
     # Report time to the submission cutoff (first pitch - 5), not to first
     # pitch — net of wall-clock spent in the auth/profile fetches above (their
     # bounded retries can add ~a minute, and a nag for an entry that LOCKED
@@ -2141,7 +2149,8 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
         mark({"date": today, "status": "alerted",
                                          "reason": reason, "checked_at": now.isoformat(),
                                          "escalations": prior_escalations})
-        click.echo("check-pick-entered: submission cutoff passed during fetch; "
+        step = "this check" if reason == "wrong_game" else "fetch"
+        click.echo(f"check-pick-entered: submission cutoff passed during {step}; "
                    "skipping the nag (entry can no longer change)")
         sys.exit(1)
 
@@ -2173,13 +2182,16 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
     locked_unconfirmed = (decision is not None and decision.get("date") == today
                           and decision.get("delivery_status") == "locked_unconfirmed")
     if affected:
+        def display_name(slot):
+            name = slot["batter_name"]
+            return name if isinstance(name, str) and name else f"batter {slot['batter_id']}"
+
         descriptions = []
         for slot, result in affected:
             role = slot["role"].replace("_", "-")
-            name = slot["batter_name"]
-            if not isinstance(name, str) or not name:
-                name = f"batter {slot['batter_id']}"
-            detail = f"{role} {name}: recommended game {slot['game_pk']}"
+            game_pk = slot["game_pk"]
+            game = game_pk if type(game_pk) is int else "ID unavailable"
+            detail = f"{role} {display_name(slot)}: recommended game {game}"
             try:
                 pitch = datetime.fromisoformat(slot["game_time"].replace("Z", "+00:00"))
                 if pitch.tzinfo is None:
@@ -2193,6 +2205,7 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
             descriptions.append(detail)
         legs = "; ".join(descriptions)
         if locked_unconfirmed:
+            names = " + DD ".join(display_name(slot) for slot in slots)
             msg = (f"⚠️ Delivery of this pick was NOT confirmed. The scheduler tried to send {names}. "
                    f"MLB game evidence needs verification. {legs}. "
                    f"Check your DMs and the MLB entry before making any change. "
