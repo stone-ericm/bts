@@ -1,0 +1,64 @@
+nice: setpriority: Operation not permitted
+/Users/eric/.matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/matplotlib-96yfh74n because there was an issue with the default path (/Users/eric/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+health check 'streak_validation' raised: 'list' object has no attribute 'get'
+Traceback (most recent call last):
+  File "/tmp/wr-f4-r1.ITqF8AYX/src/bts/health/runner.py", line 65, in _safe_run
+    return fn()
+           ^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f4-cx/.codex-review/wr-f4-r1/probe_operator.py", line 73, in <lambda>
+    critical = runner._safe_run("streak_validation", lambda: streak_validation.check(world.directory))
+                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/wr-f4-r1.ITqF8AYX/src/bts/health/streak_validation.py", line 46, in check
+    streak = data.get("streak")
+             ^^^^^^^^
+AttributeError: 'list' object has no attribute 'get'
+health check 'streak_validation' raised: 'list' object has no attribute 'get'
+Traceback (most recent call last):
+  File "/tmp/wr-f4-r1.ITqF8AYX/src/bts/health/runner.py", line 65, in _safe_run
+    return fn()
+           ^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f4-cx/.codex-review/wr-f4-r1/probe_operator.py", line 73, in <lambda>
+    critical = runner._safe_run("streak_validation", lambda: streak_validation.check(world.directory))
+                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/wr-f4-r1.ITqF8AYX/src/bts/health/streak_validation.py", line 46, in check
+    streak = data.get("streak")
+             ^^^^^^^^
+AttributeError: 'list' object has no attribute 'get'
+base bts.__file__ = /tmp/wr-f4-r1.ITqF8AYX/src/bts/__init__.py
+BL-O3 entered_game_unverified: scheduler/01:00 AttributeError, both replays warn and fail, independent CRITICAL kept, 08:30 exit=0 ordinary report DM=0, state untouched
+BL-O3 entered: scheduler/01:00 AttributeError, both replays warn and fail, independent CRITICAL kept, 08:30 exit=0 ordinary report DM=0, state untouched
+Complete replay on a replaceable FIFO blocks in the existing scorer read; bounded after 120 ms. An atomic rename can replace that same FIFO.
+nice: setpriority: Operation not permitted
+/Users/eric/.matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/matplotlib-ettv2fhz because there was an issue with the default path (/Users/eric/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+health check 'streak_validation' raised: 'list' object has no attribute 'get'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f4-cx/src/bts/health/runner.py", line 65, in _safe_run
+    return fn()
+           ^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f4-cx/.codex-review/wr-f4-r1/probe_operator.py", line 73, in <lambda>
+    critical = runner._safe_run("streak_validation", lambda: streak_validation.check(world.directory))
+                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f4-cx/src/bts/health/streak_validation.py", line 46, in check
+    streak = data.get("streak")
+             ^^^^^^^^
+AttributeError: 'list' object has no attribute 'get'
+health check 'streak_validation' raised: 'list' object has no attribute 'get'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f4-cx/src/bts/health/runner.py", line 65, in _safe_run
+    return fn()
+           ^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f4-cx/.codex-review/wr-f4-r1/probe_operator.py", line 73, in <lambda>
+    critical = runner._safe_run("streak_validation", lambda: streak_validation.check(world.directory))
+                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f4-cx/src/bts/health/streak_validation.py", line 46, in check
+    streak = data.get("streak")
+             ^^^^^^^^
+AttributeError: 'list' object has no attribute 'get'
+candidate bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f4-cx/src/bts/__init__.py
+BL-O3 entered_game_unverified: scheduler/01:00 AttributeError, both replays warn and fail, independent CRITICAL kept, 08:30 exit=1 ordinary report DM=1, state untouched
+BL-O3 entered: scheduler/01:00 AttributeError, both replays warn and fail, independent CRITICAL kept, 08:30 exit=1 ordinary report DM=1, state untouched
+07:40 saved a correction before display failure; verified 08:20 full replay rebuilt the regular file and left the 08:00-frozen result unchanged
+Standalone advisory after successful reconcile: no replay error/receipt of failure to hand off; the report itself is the triage trigger
+Complete replay on a replaceable FIFO blocks in the existing scorer read; bounded after 120 ms. An atomic rename can replace that same FIFO.

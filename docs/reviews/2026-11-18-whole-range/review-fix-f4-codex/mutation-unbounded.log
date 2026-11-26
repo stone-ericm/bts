@@ -1,0 +1,18 @@
+nice: setpriority: Operation not permitted
+scratch bts.__file__ = /tmp/wr-f4-mutation-unbounded-f2hxqrwh/src/bts/__init__.py
+............................................F
+=================================== FAILURES ===================================
+_______________________ test_m2_bad_contents[read-limit] _______________________
+tests/test_wr_f4_streak_file.py:258: in test_m2_bad_contents
+    assert_problem(run_report(*args), before, reason)
+tests/test_wr_f4_streak_file.py:145: in assert_problem
+    assert result.exit_code == 1, (result.output, result.exception)
+E   AssertionError: ('{"date": "2027-04-02", "state": "entered", "ok": true, "detail": "The entry was confirmed in 1 of 1 checks before the cutoff.", "pick": "Kwan", "streak_problem": null}
+E     ', None)
+E   assert 0 == 1
+E    +  where 0 = <Result okay>.exit_code
+=========================== short test summary info ============================
+FAILED tests/test_wr_f4_streak_file.py::test_m2_bad_contents[read-limit] - As...
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 44 passed in 1.82s
+unbounded: pytest exit=1

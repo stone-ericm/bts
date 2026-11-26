@@ -1,0 +1,12 @@
+nice: setpriority: Operation not permitted
+nesting test: 6000
+loaded: accepted, streak 0 candidate status and exception: 1 SystemExit candidate JSON: {"date": "2027-03-24", "state": "no_decision", "ok": false, "detail": "1 games were scheduled and the day has no decision record: no pick was committed and no skip was decided.", "pick": null, "streak_problem": null}
+nesting test: 12000
+loaded: RecursionError candidate status and exception: 1 RecursionError candidate JSON: 
+already resolved, corrupt file: Already resolved: Batter 1 — hit. Skipping.
+reconcile error with correction already saved: 1 AttributeError("'list' object has no attribute 'get'") Reconciling last 8 days of picks...
+Season replay unavailable for 2027-03-23 (no final result on the pick); streak retained, not recalculated.
+
+receipt before failed CLI last read: ['completed']
+complete replay after cutoff: Reconciling last 8 days of picks...
+No scoring changes detected. Streak: 0 {"streak": 0, "saver_available": true, "updated": "2027-03-25T12:20:00+00:00", "applied_dates": [], "season": 2027}

@@ -1,0 +1,18 @@
+nice: setpriority: Operation not permitted
+scratch bts.__file__ = /tmp/wr-f4-mutation-early-m2g7fsmn/src/bts/__init__.py
+F
+=================================== FAILURES ===================================
+______________________ test_reads_once_after_skip_review _______________________
+.codex-review/wr-f4-r1/probe_order.py:33: in test_reads_once_after_skip_review
+    assert events == ["classified", "read"], (events, result.stdout, chat.attempted)
+E   AssertionError: (['read', 'classified'], '{"date": "2027-04-02", "state": "deliberate_skip", "ok": true, "detail": "The policy skipped the day.", "pick": null, "streak_problem": null}
+E     ', [])
+E   assert ['read', 'classified'] == ['classified', 'read']
+E     
+E     At index 0 diff: 'read' != 'classified'
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED .codex-review/wr-f4-r1/probe_order.py::test_reads_once_after_skip_review
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed in 0.31s
+early: pytest exit=1

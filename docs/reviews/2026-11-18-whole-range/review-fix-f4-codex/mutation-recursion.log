@@ -1,0 +1,24 @@
+nice: setpriority: Operation not permitted
+scratch bts.__file__ = /tmp/wr-f4-mutation-recursion-oj1r985z/src/bts/__init__.py
+..............................................F
+=================================== FAILURES ===================================
+_____________ test_k4_decoder_limits_preserve_no_decision[nesting] _____________
+tests/test_wr_f4_streak_file.py:271: in test_k4_decoder_limits_preserve_no_decision
+    assert_problem(run_report(*args), before, f"JSON exceeds decoder limits ({error})")
+tests/test_wr_f4_streak_file.py:147: in assert_problem
+    assert json.loads(result.stdout) == before | {"ok": False, "streak_problem": reason}
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:356: in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+E   json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+=========================== short test summary info ============================
+FAILED tests/test_wr_f4_streak_file.py::test_k4_decoder_limits_preserve_no_decision[nesting]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 46 passed in 1.81s
+recursion: pytest exit=1

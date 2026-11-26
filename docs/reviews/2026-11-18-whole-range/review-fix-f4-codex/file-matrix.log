@@ -1,0 +1,107 @@
+nice: setpriority: Operation not permitted
+absent: None
+object: None
+empty: not valid JSON
+syntax: not valid JSON
+invalid UTF-8: cannot be read (UnicodeDecodeError)
+raw array: not a JSON object
+raw string: not a JSON object
+raw bool: not a JSON object
+raw int: not a JSON object
+raw float: not a JSON object
+raw null: not a JSON object
+raw parseable large: not a JSON object
+raw too large: JSON exceeds decoder limits (ValueError)
+object too large: JSON exceeds decoder limits (ValueError)
+huge allowed: None
+max digits allowed: None
+wrong applied_dates: None
+mixed applied_dates: None
+malformed saver metadata: None
+missing count and current tag: None
+prior tag: None
+unknown tag: None
+prior tag and bad count: streak is not a non-negative integer
+bad count with saver disabled: streak is not a non-negative integer
+bad count with applied date: streak is not a non-negative integer
+NaN in other member: None
+Infinity count: streak is not a non-negative integer
+duplicate streak keys: None
+negative zero: None
+exactly 1 MiB: None
+over 1 MiB: exceeds 1 MiB
+b'' b'"3"': streak is not a non-negative integer
+b'' b'true': streak is not a non-negative integer
+b'' b'-1': streak is not a non-negative integer
+b'' b'3.0': streak is not a non-negative integer
+b'' b'null': streak is not a non-negative integer
+b'"season":2027,' b'"3"': streak is not a non-negative integer
+b'"season":2027,' b'true': streak is not a non-negative integer
+b'"season":2027,' b'-1': streak is not a non-negative integer
+b'"season":2027,' b'3.0': streak is not a non-negative integer
+b'"season":2027,' b'null': streak is not a non-negative integer
+nesting-2300: None
+nesting-6000: None
+nesting-12000: JSON exceeds decoder limits (RecursionError)
+dir: not a regular file
+fifo: not a regular file
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f4-cx/.codex-review/wr-f4-r1/probe_file_matrix.py", line 88, in <module>
+    sock.bind(str(path))
+PermissionError: [Errno 1] Operation not permitted
+absent: None
+object: None
+empty: not valid JSON
+syntax: not valid JSON
+invalid UTF-8: cannot be read (UnicodeDecodeError)
+raw array: not a JSON object
+raw string: not a JSON object
+raw bool: not a JSON object
+raw int: not a JSON object
+raw float: not a JSON object
+raw null: not a JSON object
+raw parseable large: not a JSON object
+raw too large: JSON exceeds decoder limits (ValueError)
+object too large: JSON exceeds decoder limits (ValueError)
+huge allowed: None
+max digits allowed: None
+wrong applied_dates: None
+mixed applied_dates: None
+malformed saver metadata: None
+missing count and current tag: None
+prior tag: None
+unknown tag: None
+prior tag and bad count: streak is not a non-negative integer
+bad count with saver disabled: streak is not a non-negative integer
+bad count with applied date: streak is not a non-negative integer
+NaN in other member: None
+Infinity count: streak is not a non-negative integer
+duplicate streak keys: None
+negative zero: None
+exactly 1 MiB: None
+over 1 MiB: exceeds 1 MiB
+b'' b'"3"': streak is not a non-negative integer
+b'' b'true': streak is not a non-negative integer
+b'' b'-1': streak is not a non-negative integer
+b'' b'3.0': streak is not a non-negative integer
+b'' b'null': streak is not a non-negative integer
+b'"season":2027,' b'"3"': streak is not a non-negative integer
+b'"season":2027,' b'true': streak is not a non-negative integer
+b'"season":2027,' b'-1': streak is not a non-negative integer
+b'"season":2027,' b'3.0': streak is not a non-negative integer
+b'"season":2027,' b'null': streak is not a non-negative integer
+nesting-2300: None
+nesting-6000: None
+nesting-12000: JSON exceeds decoder limits (RecursionError)
+dir: not a regular file
+fifo: not a regular file
+socket: not a regular file
+loop: cannot be read (OSError)
+dangling: None
+mode-zero: cannot be read (PermissionError)
+symlink-to-fifo: not a regular file
+symlink-to-regular: not a JSON object
+growth after the first real read: [(1048577, 2), (1048575, 1048575)] (requested, read); exceeds 1 MiB
+rename FIFO over regular file at open: descriptor caught, no read
+descriptor opened then os.read raised EIO: exit=1, reason='cannot be read (OSError)', DMs=1 (expected 'cannot be read (OSError)')
+descriptor opened then os.read raised ENOENT: exit=0, reason=None, DMs=0 (expected 'cannot be read (FileNotFoundError)')

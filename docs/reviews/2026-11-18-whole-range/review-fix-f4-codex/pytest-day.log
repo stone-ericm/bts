@@ -1,0 +1,21 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f4-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 294 items
+
+tests/test_wr_f4_streak_file.py ........................................ [ 13%]
+................                                                         [ 19%]
+tests/test_day_outcome.py .............................................. [ 34%]
+..........                                                               [ 38%]
+tests/test_day_outcome_entry_sequence.py ............................... [ 48%]
+....                                                                     [ 50%]
+tests/test_wr_f3_skip_state_review.py .................................. [ 61%]
+..........................................................               [ 81%]
+tests/test_entry_intent.py ............................................. [ 96%]
+.......                                                                  [ 98%]
+tests/test_audit_f6_review_probes.py ...                                 [100%]
+
+============================= 294 passed in 16.38s =============================

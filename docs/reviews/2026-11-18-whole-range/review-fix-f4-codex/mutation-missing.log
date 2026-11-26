@@ -1,0 +1,13 @@
+nice: setpriority: Operation not permitted
+scratch bts.__file__ = /tmp/wr-f4-mutation-missing-lkixlucn/src/bts/__init__.py
+F
+=================================== FAILURES ===================================
+_____________________ test_k1_k2_every_day_state[entered] ______________________
+tests/test_wr_f4_streak_file.py:162: in test_k1_k2_every_day_state
+    assert before["ok"] is clean
+E   assert False is True
+=========================== short test summary info ============================
+FAILED tests/test_wr_f4_streak_file.py::test_k1_k2_every_day_state[entered]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed in 0.38s
+missing: pytest exit=1

@@ -51,7 +51,7 @@ def review_detail(day, reasons):
 
 
 def assert_report(outcome, result, sends, day, state, detail, code, pick=None, send_fails=False):
-    expected = {"date": day, "state": state, "ok": code == 0, "detail": detail, "pick": pick}
+    expected = {"date": day, "state": state, "ok": code == 0, "detail": detail, "pick": pick, "streak_problem": None}
     message = f"BTS day check {day}: {state.replace('_', ' ').upper()}. {detail}"
     if pick:
         message += f" Pick: {pick}."

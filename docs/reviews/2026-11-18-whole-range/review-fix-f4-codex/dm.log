@@ -1,0 +1,22 @@
+nice: setpriority: Operation not permitted
+base bts.__file__ = /tmp/wr-f4-r1.ITqF8AYX/src/bts/__init__.py
+ordinary accented pick: good [(145, 145)] accepted=1; broken [(145, 145)] accepted=1
+1000 code points: good [(528, 528)] accepted=1; broken [(528, 528)] accepted=1
+1001 code points: good [(529, 529)] accepted=1; broken [(529, 529)] accepted=1
+833 base code points: good [(833, 833)] accepted=1; broken [(833, 833)] accepted=1
+graphemes fit, combined code points do not: good [(733, 433)] accepted=1; broken [(733, 433)] accepted=1
+1000 base graphemes, over 1000 base code points: good [(3601, 1000)] accepted=1; broken [(3601, 1000)] accepted=1
+1001 base graphemes: good [(1001, 1001)] accepted=0; broken [(1001, 1001)] accepted=0
+long detail without pick: good [(801, 801)] accepted=1; broken [(801, 801)] accepted=1
+clean with long pick: good [] accepted=0; broken [] accepted=0
+nice: setpriority: Operation not permitted
+candidate bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f4-cx/src/bts/__init__.py
+ordinary accented pick: good [(145, 145)] accepted=1; broken [(617, 617)] accepted=1
+1000 code points: good [(528, 528)] accepted=1; broken [(1000, 1000)] accepted=1
+1001 code points: good [(529, 529)] accepted=1; broken [(260, 260)] accepted=1
+833 base code points: good [(833, 833)] accepted=1; broken [(260, 260)] accepted=1
+graphemes fit, combined code points do not: good [(733, 433)] accepted=1; broken [(260, 260)] accepted=1
+1000 base graphemes, over 1000 base code points: good [(3601, 1000)] accepted=1; broken [(260, 260)] accepted=1
+1001 base graphemes: good [(1001, 1001)] accepted=0; broken [(260, 260)] accepted=1
+long detail without pick: good [(801, 801)] accepted=1; broken [(268, 268)] accepted=1
+clean with long pick: good [] accepted=0; broken [(279, 279)] accepted=1

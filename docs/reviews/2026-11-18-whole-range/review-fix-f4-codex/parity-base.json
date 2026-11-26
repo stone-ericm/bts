@@ -1,0 +1,1222 @@
+{
+  "reports": {
+    "entered/absent": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"entered\", \"ok\": true, \"detail\": \"The entry was confirmed in 1 of 1 checks before the cutoff.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [],
+      []
+    ],
+    "entered/empty-object": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"entered\", \"ok\": true, \"detail\": \"The entry was confirmed in 1 of 1 checks before the cutoff.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [],
+      []
+    ],
+    "entered/zero": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"entered\", \"ok\": true, \"detail\": \"The entry was confirmed in 1 of 1 checks before the cutoff.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [],
+      []
+    ],
+    "entered/legacy": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"entered\", \"ok\": true, \"detail\": \"The entry was confirmed in 1 of 1 checks before the cutoff.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [],
+      []
+    ],
+    "entered/prior": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"entered\", \"ok\": true, \"detail\": \"The entry was confirmed in 1 of 1 checks before the cutoff.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [],
+      []
+    ],
+    "entered/unknown": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"entered\", \"ok\": true, \"detail\": \"The entry was confirmed in 1 of 1 checks before the cutoff.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [],
+      []
+    ],
+    "entered/at-limit": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"entered\", \"ok\": true, \"detail\": \"The entry was confirmed in 1 of 1 checks before the cutoff.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [],
+      []
+    ],
+    "entered_game_unverified/absent": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"entered_game_unverified\", \"ok\": true, \"detail\": \"The batter entry matched before the cutoff; the game was not verified.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [],
+      []
+    ],
+    "entered_game_unverified/empty-object": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"entered_game_unverified\", \"ok\": true, \"detail\": \"The batter entry matched before the cutoff; the game was not verified.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [],
+      []
+    ],
+    "entered_game_unverified/zero": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"entered_game_unverified\", \"ok\": true, \"detail\": \"The batter entry matched before the cutoff; the game was not verified.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [],
+      []
+    ],
+    "entered_game_unverified/legacy": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"entered_game_unverified\", \"ok\": true, \"detail\": \"The batter entry matched before the cutoff; the game was not verified.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [],
+      []
+    ],
+    "entered_game_unverified/prior": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"entered_game_unverified\", \"ok\": true, \"detail\": \"The batter entry matched before the cutoff; the game was not verified.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [],
+      []
+    ],
+    "entered_game_unverified/unknown": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"entered_game_unverified\", \"ok\": true, \"detail\": \"The batter entry matched before the cutoff; the game was not verified.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [],
+      []
+    ],
+    "entered_game_unverified/at-limit": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"entered_game_unverified\", \"ok\": true, \"detail\": \"The batter entry matched before the cutoff; the game was not verified.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [],
+      []
+    ],
+    "deliberate_skip/absent": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n",
+      "",
+      [],
+      []
+    ],
+    "deliberate_skip/empty-object": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n",
+      "",
+      [],
+      []
+    ],
+    "deliberate_skip/zero": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n",
+      "",
+      [],
+      []
+    ],
+    "deliberate_skip/legacy": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n",
+      "",
+      [],
+      []
+    ],
+    "deliberate_skip/prior": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n",
+      "",
+      [],
+      []
+    ],
+    "deliberate_skip/unknown": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n",
+      "",
+      [],
+      []
+    ],
+    "deliberate_skip/at-limit": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n",
+      "",
+      [],
+      []
+    ],
+    "no_games/absent": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"no_games\", \"ok\": true, \"detail\": \"No regular-season games.\", \"pick\": null}\n",
+      "",
+      [],
+      []
+    ],
+    "no_games/empty-object": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"no_games\", \"ok\": true, \"detail\": \"No regular-season games.\", \"pick\": null}\n",
+      "",
+      [],
+      []
+    ],
+    "no_games/zero": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"no_games\", \"ok\": true, \"detail\": \"No regular-season games.\", \"pick\": null}\n",
+      "",
+      [],
+      []
+    ],
+    "no_games/legacy": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"no_games\", \"ok\": true, \"detail\": \"No regular-season games.\", \"pick\": null}\n",
+      "",
+      [],
+      []
+    ],
+    "no_games/prior": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"no_games\", \"ok\": true, \"detail\": \"No regular-season games.\", \"pick\": null}\n",
+      "",
+      [],
+      []
+    ],
+    "no_games/unknown": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"no_games\", \"ok\": true, \"detail\": \"No regular-season games.\", \"pick\": null}\n",
+      "",
+      [],
+      []
+    ],
+    "no_games/at-limit": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"no_games\", \"ok\": true, \"detail\": \"No regular-season games.\", \"pick\": null}\n",
+      "",
+      [],
+      []
+    ],
+    "research_commit/absent": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"research_commit\", \"ok\": true, \"detail\": \"Research mode: the pick was saved privately.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [],
+      []
+    ],
+    "research_commit/empty-object": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"research_commit\", \"ok\": true, \"detail\": \"Research mode: the pick was saved privately.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [],
+      []
+    ],
+    "research_commit/zero": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"research_commit\", \"ok\": true, \"detail\": \"Research mode: the pick was saved privately.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [],
+      []
+    ],
+    "research_commit/legacy": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"research_commit\", \"ok\": true, \"detail\": \"Research mode: the pick was saved privately.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [],
+      []
+    ],
+    "research_commit/prior": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"research_commit\", \"ok\": true, \"detail\": \"Research mode: the pick was saved privately.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [],
+      []
+    ],
+    "research_commit/unknown": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"research_commit\", \"ok\": true, \"detail\": \"Research mode: the pick was saved privately.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [],
+      []
+    ],
+    "research_commit/at-limit": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"research_commit\", \"ok\": true, \"detail\": \"Research mode: the pick was saved privately.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [],
+      []
+    ],
+    "delivered_under_research/absent": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"delivered_under_research\", \"ok\": false, \"detail\": \"Research mode, but the pick's delivery status is 'delivered'.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: DELIVERED UNDER RESEARCH. Research mode, but the pick's delivery status is 'delivered'. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: DELIVERED UNDER RESEARCH. Research mode, but the pick's delivery status is 'delivered'. Pick: Kwan."
+      ]
+    ],
+    "delivered_under_research/empty-object": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"delivered_under_research\", \"ok\": false, \"detail\": \"Research mode, but the pick's delivery status is 'delivered'.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: DELIVERED UNDER RESEARCH. Research mode, but the pick's delivery status is 'delivered'. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: DELIVERED UNDER RESEARCH. Research mode, but the pick's delivery status is 'delivered'. Pick: Kwan."
+      ]
+    ],
+    "delivered_under_research/zero": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"delivered_under_research\", \"ok\": false, \"detail\": \"Research mode, but the pick's delivery status is 'delivered'.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: DELIVERED UNDER RESEARCH. Research mode, but the pick's delivery status is 'delivered'. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: DELIVERED UNDER RESEARCH. Research mode, but the pick's delivery status is 'delivered'. Pick: Kwan."
+      ]
+    ],
+    "delivered_under_research/legacy": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"delivered_under_research\", \"ok\": false, \"detail\": \"Research mode, but the pick's delivery status is 'delivered'.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: DELIVERED UNDER RESEARCH. Research mode, but the pick's delivery status is 'delivered'. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: DELIVERED UNDER RESEARCH. Research mode, but the pick's delivery status is 'delivered'. Pick: Kwan."
+      ]
+    ],
+    "delivered_under_research/prior": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"delivered_under_research\", \"ok\": false, \"detail\": \"Research mode, but the pick's delivery status is 'delivered'.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: DELIVERED UNDER RESEARCH. Research mode, but the pick's delivery status is 'delivered'. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: DELIVERED UNDER RESEARCH. Research mode, but the pick's delivery status is 'delivered'. Pick: Kwan."
+      ]
+    ],
+    "delivered_under_research/unknown": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"delivered_under_research\", \"ok\": false, \"detail\": \"Research mode, but the pick's delivery status is 'delivered'.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: DELIVERED UNDER RESEARCH. Research mode, but the pick's delivery status is 'delivered'. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: DELIVERED UNDER RESEARCH. Research mode, but the pick's delivery status is 'delivered'. Pick: Kwan."
+      ]
+    ],
+    "delivered_under_research/at-limit": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"delivered_under_research\", \"ok\": false, \"detail\": \"Research mode, but the pick's delivery status is 'delivered'.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: DELIVERED UNDER RESEARCH. Research mode, but the pick's delivery status is 'delivered'. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: DELIVERED UNDER RESEARCH. Research mode, but the pick's delivery status is 'delivered'. Pick: Kwan."
+      ]
+    ],
+    "intent_unknown/absent": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"intent_unknown\", \"ok\": false, \"detail\": \"scheduler.entry_intent is missing or invalid, so what the day should look like is undefined.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: INTENT UNKNOWN. scheduler.entry_intent is missing or invalid, so what the day should look like is undefined."
+      ],
+      [
+        "BTS day check 2027-04-02: INTENT UNKNOWN. scheduler.entry_intent is missing or invalid, so what the day should look like is undefined."
+      ]
+    ],
+    "intent_unknown/empty-object": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"intent_unknown\", \"ok\": false, \"detail\": \"scheduler.entry_intent is missing or invalid, so what the day should look like is undefined.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: INTENT UNKNOWN. scheduler.entry_intent is missing or invalid, so what the day should look like is undefined."
+      ],
+      [
+        "BTS day check 2027-04-02: INTENT UNKNOWN. scheduler.entry_intent is missing or invalid, so what the day should look like is undefined."
+      ]
+    ],
+    "intent_unknown/zero": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"intent_unknown\", \"ok\": false, \"detail\": \"scheduler.entry_intent is missing or invalid, so what the day should look like is undefined.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: INTENT UNKNOWN. scheduler.entry_intent is missing or invalid, so what the day should look like is undefined."
+      ],
+      [
+        "BTS day check 2027-04-02: INTENT UNKNOWN. scheduler.entry_intent is missing or invalid, so what the day should look like is undefined."
+      ]
+    ],
+    "intent_unknown/legacy": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"intent_unknown\", \"ok\": false, \"detail\": \"scheduler.entry_intent is missing or invalid, so what the day should look like is undefined.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: INTENT UNKNOWN. scheduler.entry_intent is missing or invalid, so what the day should look like is undefined."
+      ],
+      [
+        "BTS day check 2027-04-02: INTENT UNKNOWN. scheduler.entry_intent is missing or invalid, so what the day should look like is undefined."
+      ]
+    ],
+    "intent_unknown/prior": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"intent_unknown\", \"ok\": false, \"detail\": \"scheduler.entry_intent is missing or invalid, so what the day should look like is undefined.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: INTENT UNKNOWN. scheduler.entry_intent is missing or invalid, so what the day should look like is undefined."
+      ],
+      [
+        "BTS day check 2027-04-02: INTENT UNKNOWN. scheduler.entry_intent is missing or invalid, so what the day should look like is undefined."
+      ]
+    ],
+    "intent_unknown/unknown": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"intent_unknown\", \"ok\": false, \"detail\": \"scheduler.entry_intent is missing or invalid, so what the day should look like is undefined.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: INTENT UNKNOWN. scheduler.entry_intent is missing or invalid, so what the day should look like is undefined."
+      ],
+      [
+        "BTS day check 2027-04-02: INTENT UNKNOWN. scheduler.entry_intent is missing or invalid, so what the day should look like is undefined."
+      ]
+    ],
+    "intent_unknown/at-limit": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"intent_unknown\", \"ok\": false, \"detail\": \"scheduler.entry_intent is missing or invalid, so what the day should look like is undefined.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: INTENT UNKNOWN. scheduler.entry_intent is missing or invalid, so what the day should look like is undefined."
+      ],
+      [
+        "BTS day check 2027-04-02: INTENT UNKNOWN. scheduler.entry_intent is missing or invalid, so what the day should look like is undefined."
+      ]
+    ],
+    "schedule_unverifiable/absent": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"schedule_unverifiable\", \"ok\": false, \"detail\": \"The schedule could not be read, so whether a pick was due is unknown.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: SCHEDULE UNVERIFIABLE. The schedule could not be read, so whether a pick was due is unknown."
+      ],
+      [
+        "BTS day check 2027-04-02: SCHEDULE UNVERIFIABLE. The schedule could not be read, so whether a pick was due is unknown."
+      ]
+    ],
+    "schedule_unverifiable/empty-object": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"schedule_unverifiable\", \"ok\": false, \"detail\": \"The schedule could not be read, so whether a pick was due is unknown.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: SCHEDULE UNVERIFIABLE. The schedule could not be read, so whether a pick was due is unknown."
+      ],
+      [
+        "BTS day check 2027-04-02: SCHEDULE UNVERIFIABLE. The schedule could not be read, so whether a pick was due is unknown."
+      ]
+    ],
+    "schedule_unverifiable/zero": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"schedule_unverifiable\", \"ok\": false, \"detail\": \"The schedule could not be read, so whether a pick was due is unknown.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: SCHEDULE UNVERIFIABLE. The schedule could not be read, so whether a pick was due is unknown."
+      ],
+      [
+        "BTS day check 2027-04-02: SCHEDULE UNVERIFIABLE. The schedule could not be read, so whether a pick was due is unknown."
+      ]
+    ],
+    "schedule_unverifiable/legacy": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"schedule_unverifiable\", \"ok\": false, \"detail\": \"The schedule could not be read, so whether a pick was due is unknown.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: SCHEDULE UNVERIFIABLE. The schedule could not be read, so whether a pick was due is unknown."
+      ],
+      [
+        "BTS day check 2027-04-02: SCHEDULE UNVERIFIABLE. The schedule could not be read, so whether a pick was due is unknown."
+      ]
+    ],
+    "schedule_unverifiable/prior": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"schedule_unverifiable\", \"ok\": false, \"detail\": \"The schedule could not be read, so whether a pick was due is unknown.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: SCHEDULE UNVERIFIABLE. The schedule could not be read, so whether a pick was due is unknown."
+      ],
+      [
+        "BTS day check 2027-04-02: SCHEDULE UNVERIFIABLE. The schedule could not be read, so whether a pick was due is unknown."
+      ]
+    ],
+    "schedule_unverifiable/unknown": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"schedule_unverifiable\", \"ok\": false, \"detail\": \"The schedule could not be read, so whether a pick was due is unknown.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: SCHEDULE UNVERIFIABLE. The schedule could not be read, so whether a pick was due is unknown."
+      ],
+      [
+        "BTS day check 2027-04-02: SCHEDULE UNVERIFIABLE. The schedule could not be read, so whether a pick was due is unknown."
+      ]
+    ],
+    "schedule_unverifiable/at-limit": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"schedule_unverifiable\", \"ok\": false, \"detail\": \"The schedule could not be read, so whether a pick was due is unknown.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: SCHEDULE UNVERIFIABLE. The schedule could not be read, so whether a pick was due is unknown."
+      ],
+      [
+        "BTS day check 2027-04-02: SCHEDULE UNVERIFIABLE. The schedule could not be read, so whether a pick was due is unknown."
+      ]
+    ],
+    "no_decision/absent": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"no_decision\", \"ok\": false, \"detail\": \"2 games were scheduled and the day has no decision record: no pick was committed and no skip was decided.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: NO DECISION. 2 games were scheduled and the day has no decision record: no pick was committed and no skip was decided."
+      ],
+      [
+        "BTS day check 2027-04-02: NO DECISION. 2 games were scheduled and the day has no decision record: no pick was committed and no skip was decided."
+      ]
+    ],
+    "no_decision/empty-object": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"no_decision\", \"ok\": false, \"detail\": \"2 games were scheduled and the day has no decision record: no pick was committed and no skip was decided.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: NO DECISION. 2 games were scheduled and the day has no decision record: no pick was committed and no skip was decided."
+      ],
+      [
+        "BTS day check 2027-04-02: NO DECISION. 2 games were scheduled and the day has no decision record: no pick was committed and no skip was decided."
+      ]
+    ],
+    "no_decision/zero": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"no_decision\", \"ok\": false, \"detail\": \"2 games were scheduled and the day has no decision record: no pick was committed and no skip was decided.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: NO DECISION. 2 games were scheduled and the day has no decision record: no pick was committed and no skip was decided."
+      ],
+      [
+        "BTS day check 2027-04-02: NO DECISION. 2 games were scheduled and the day has no decision record: no pick was committed and no skip was decided."
+      ]
+    ],
+    "no_decision/legacy": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"no_decision\", \"ok\": false, \"detail\": \"2 games were scheduled and the day has no decision record: no pick was committed and no skip was decided.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: NO DECISION. 2 games were scheduled and the day has no decision record: no pick was committed and no skip was decided."
+      ],
+      [
+        "BTS day check 2027-04-02: NO DECISION. 2 games were scheduled and the day has no decision record: no pick was committed and no skip was decided."
+      ]
+    ],
+    "no_decision/prior": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"no_decision\", \"ok\": false, \"detail\": \"2 games were scheduled and the day has no decision record: no pick was committed and no skip was decided.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: NO DECISION. 2 games were scheduled and the day has no decision record: no pick was committed and no skip was decided."
+      ],
+      [
+        "BTS day check 2027-04-02: NO DECISION. 2 games were scheduled and the day has no decision record: no pick was committed and no skip was decided."
+      ]
+    ],
+    "no_decision/unknown": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"no_decision\", \"ok\": false, \"detail\": \"2 games were scheduled and the day has no decision record: no pick was committed and no skip was decided.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: NO DECISION. 2 games were scheduled and the day has no decision record: no pick was committed and no skip was decided."
+      ],
+      [
+        "BTS day check 2027-04-02: NO DECISION. 2 games were scheduled and the day has no decision record: no pick was committed and no skip was decided."
+      ]
+    ],
+    "no_decision/at-limit": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"no_decision\", \"ok\": false, \"detail\": \"2 games were scheduled and the day has no decision record: no pick was committed and no skip was decided.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: NO DECISION. 2 games were scheduled and the day has no decision record: no pick was committed and no skip was decided."
+      ],
+      [
+        "BTS day check 2027-04-02: NO DECISION. 2 games were scheduled and the day has no decision record: no pick was committed and no skip was decided."
+      ]
+    ],
+    "skip_not_deliberate/absent": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"skip_not_deliberate\", \"ok\": false, \"detail\": \"The day ended as a skip decided by 'boom', not by the policy.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: SKIP NOT DELIBERATE. The day ended as a skip decided by 'boom', not by the policy."
+      ],
+      [
+        "BTS day check 2027-04-02: SKIP NOT DELIBERATE. The day ended as a skip decided by 'boom', not by the policy."
+      ]
+    ],
+    "skip_not_deliberate/empty-object": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"skip_not_deliberate\", \"ok\": false, \"detail\": \"The day ended as a skip decided by 'boom', not by the policy.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: SKIP NOT DELIBERATE. The day ended as a skip decided by 'boom', not by the policy."
+      ],
+      [
+        "BTS day check 2027-04-02: SKIP NOT DELIBERATE. The day ended as a skip decided by 'boom', not by the policy."
+      ]
+    ],
+    "skip_not_deliberate/zero": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"skip_not_deliberate\", \"ok\": false, \"detail\": \"The day ended as a skip decided by 'boom', not by the policy.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: SKIP NOT DELIBERATE. The day ended as a skip decided by 'boom', not by the policy."
+      ],
+      [
+        "BTS day check 2027-04-02: SKIP NOT DELIBERATE. The day ended as a skip decided by 'boom', not by the policy."
+      ]
+    ],
+    "skip_not_deliberate/legacy": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"skip_not_deliberate\", \"ok\": false, \"detail\": \"The day ended as a skip decided by 'boom', not by the policy.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: SKIP NOT DELIBERATE. The day ended as a skip decided by 'boom', not by the policy."
+      ],
+      [
+        "BTS day check 2027-04-02: SKIP NOT DELIBERATE. The day ended as a skip decided by 'boom', not by the policy."
+      ]
+    ],
+    "skip_not_deliberate/prior": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"skip_not_deliberate\", \"ok\": false, \"detail\": \"The day ended as a skip decided by 'boom', not by the policy.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: SKIP NOT DELIBERATE. The day ended as a skip decided by 'boom', not by the policy."
+      ],
+      [
+        "BTS day check 2027-04-02: SKIP NOT DELIBERATE. The day ended as a skip decided by 'boom', not by the policy."
+      ]
+    ],
+    "skip_not_deliberate/unknown": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"skip_not_deliberate\", \"ok\": false, \"detail\": \"The day ended as a skip decided by 'boom', not by the policy.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: SKIP NOT DELIBERATE. The day ended as a skip decided by 'boom', not by the policy."
+      ],
+      [
+        "BTS day check 2027-04-02: SKIP NOT DELIBERATE. The day ended as a skip decided by 'boom', not by the policy."
+      ]
+    ],
+    "skip_not_deliberate/at-limit": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"skip_not_deliberate\", \"ok\": false, \"detail\": \"The day ended as a skip decided by 'boom', not by the policy.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: SKIP NOT DELIBERATE. The day ended as a skip decided by 'boom', not by the policy."
+      ],
+      [
+        "BTS day check 2027-04-02: SKIP NOT DELIBERATE. The day ended as a skip decided by 'boom', not by the policy."
+      ]
+    ],
+    "commit_not_scoreable/absent": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"commit_not_scoreable\", \"ok\": false, \"detail\": \"A pick was chosen but not delivered (delivery status 'failed').\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: COMMIT NOT SCOREABLE. A pick was chosen but not delivered (delivery status 'failed'). Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: COMMIT NOT SCOREABLE. A pick was chosen but not delivered (delivery status 'failed'). Pick: Kwan."
+      ]
+    ],
+    "commit_not_scoreable/empty-object": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"commit_not_scoreable\", \"ok\": false, \"detail\": \"A pick was chosen but not delivered (delivery status 'failed').\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: COMMIT NOT SCOREABLE. A pick was chosen but not delivered (delivery status 'failed'). Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: COMMIT NOT SCOREABLE. A pick was chosen but not delivered (delivery status 'failed'). Pick: Kwan."
+      ]
+    ],
+    "commit_not_scoreable/zero": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"commit_not_scoreable\", \"ok\": false, \"detail\": \"A pick was chosen but not delivered (delivery status 'failed').\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: COMMIT NOT SCOREABLE. A pick was chosen but not delivered (delivery status 'failed'). Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: COMMIT NOT SCOREABLE. A pick was chosen but not delivered (delivery status 'failed'). Pick: Kwan."
+      ]
+    ],
+    "commit_not_scoreable/legacy": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"commit_not_scoreable\", \"ok\": false, \"detail\": \"A pick was chosen but not delivered (delivery status 'failed').\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: COMMIT NOT SCOREABLE. A pick was chosen but not delivered (delivery status 'failed'). Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: COMMIT NOT SCOREABLE. A pick was chosen but not delivered (delivery status 'failed'). Pick: Kwan."
+      ]
+    ],
+    "commit_not_scoreable/prior": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"commit_not_scoreable\", \"ok\": false, \"detail\": \"A pick was chosen but not delivered (delivery status 'failed').\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: COMMIT NOT SCOREABLE. A pick was chosen but not delivered (delivery status 'failed'). Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: COMMIT NOT SCOREABLE. A pick was chosen but not delivered (delivery status 'failed'). Pick: Kwan."
+      ]
+    ],
+    "commit_not_scoreable/unknown": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"commit_not_scoreable\", \"ok\": false, \"detail\": \"A pick was chosen but not delivered (delivery status 'failed').\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: COMMIT NOT SCOREABLE. A pick was chosen but not delivered (delivery status 'failed'). Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: COMMIT NOT SCOREABLE. A pick was chosen but not delivered (delivery status 'failed'). Pick: Kwan."
+      ]
+    ],
+    "commit_not_scoreable/at-limit": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"commit_not_scoreable\", \"ok\": false, \"detail\": \"A pick was chosen but not delivered (delivery status 'failed').\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: COMMIT NOT SCOREABLE. A pick was chosen but not delivered (delivery status 'failed'). Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: COMMIT NOT SCOREABLE. A pick was chosen but not delivered (delivery status 'failed'). Pick: Kwan."
+      ]
+    ],
+    "contradiction/absent": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"contradiction\", \"ok\": false, \"detail\": \"A pick was committed on a date with no regular-season games.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: CONTRADICTION. A pick was committed on a date with no regular-season games. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: CONTRADICTION. A pick was committed on a date with no regular-season games. Pick: Kwan."
+      ]
+    ],
+    "contradiction/empty-object": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"contradiction\", \"ok\": false, \"detail\": \"A pick was committed on a date with no regular-season games.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: CONTRADICTION. A pick was committed on a date with no regular-season games. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: CONTRADICTION. A pick was committed on a date with no regular-season games. Pick: Kwan."
+      ]
+    ],
+    "contradiction/zero": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"contradiction\", \"ok\": false, \"detail\": \"A pick was committed on a date with no regular-season games.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: CONTRADICTION. A pick was committed on a date with no regular-season games. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: CONTRADICTION. A pick was committed on a date with no regular-season games. Pick: Kwan."
+      ]
+    ],
+    "contradiction/legacy": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"contradiction\", \"ok\": false, \"detail\": \"A pick was committed on a date with no regular-season games.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: CONTRADICTION. A pick was committed on a date with no regular-season games. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: CONTRADICTION. A pick was committed on a date with no regular-season games. Pick: Kwan."
+      ]
+    ],
+    "contradiction/prior": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"contradiction\", \"ok\": false, \"detail\": \"A pick was committed on a date with no regular-season games.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: CONTRADICTION. A pick was committed on a date with no regular-season games. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: CONTRADICTION. A pick was committed on a date with no regular-season games. Pick: Kwan."
+      ]
+    ],
+    "contradiction/unknown": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"contradiction\", \"ok\": false, \"detail\": \"A pick was committed on a date with no regular-season games.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: CONTRADICTION. A pick was committed on a date with no regular-season games. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: CONTRADICTION. A pick was committed on a date with no regular-season games. Pick: Kwan."
+      ]
+    ],
+    "contradiction/at-limit": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"contradiction\", \"ok\": false, \"detail\": \"A pick was committed on a date with no regular-season games.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: CONTRADICTION. A pick was committed on a date with no regular-season games. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: CONTRADICTION. A pick was committed on a date with no regular-season games. Pick: Kwan."
+      ]
+    ],
+    "entered_late/absent": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"entered_late\", \"ok\": false, \"detail\": \"The entry was first confirmed at 2027-04-02T17:31:00-04:00, after the cutoff.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: ENTERED LATE. The entry was first confirmed at 2027-04-02T17:31:00-04:00, after the cutoff. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: ENTERED LATE. The entry was first confirmed at 2027-04-02T17:31:00-04:00, after the cutoff. Pick: Kwan."
+      ]
+    ],
+    "entered_late/empty-object": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"entered_late\", \"ok\": false, \"detail\": \"The entry was first confirmed at 2027-04-02T17:31:00-04:00, after the cutoff.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: ENTERED LATE. The entry was first confirmed at 2027-04-02T17:31:00-04:00, after the cutoff. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: ENTERED LATE. The entry was first confirmed at 2027-04-02T17:31:00-04:00, after the cutoff. Pick: Kwan."
+      ]
+    ],
+    "entered_late/zero": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"entered_late\", \"ok\": false, \"detail\": \"The entry was first confirmed at 2027-04-02T17:31:00-04:00, after the cutoff.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: ENTERED LATE. The entry was first confirmed at 2027-04-02T17:31:00-04:00, after the cutoff. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: ENTERED LATE. The entry was first confirmed at 2027-04-02T17:31:00-04:00, after the cutoff. Pick: Kwan."
+      ]
+    ],
+    "entered_late/legacy": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"entered_late\", \"ok\": false, \"detail\": \"The entry was first confirmed at 2027-04-02T17:31:00-04:00, after the cutoff.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: ENTERED LATE. The entry was first confirmed at 2027-04-02T17:31:00-04:00, after the cutoff. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: ENTERED LATE. The entry was first confirmed at 2027-04-02T17:31:00-04:00, after the cutoff. Pick: Kwan."
+      ]
+    ],
+    "entered_late/prior": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"entered_late\", \"ok\": false, \"detail\": \"The entry was first confirmed at 2027-04-02T17:31:00-04:00, after the cutoff.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: ENTERED LATE. The entry was first confirmed at 2027-04-02T17:31:00-04:00, after the cutoff. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: ENTERED LATE. The entry was first confirmed at 2027-04-02T17:31:00-04:00, after the cutoff. Pick: Kwan."
+      ]
+    ],
+    "entered_late/unknown": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"entered_late\", \"ok\": false, \"detail\": \"The entry was first confirmed at 2027-04-02T17:31:00-04:00, after the cutoff.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: ENTERED LATE. The entry was first confirmed at 2027-04-02T17:31:00-04:00, after the cutoff. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: ENTERED LATE. The entry was first confirmed at 2027-04-02T17:31:00-04:00, after the cutoff. Pick: Kwan."
+      ]
+    ],
+    "entered_late/at-limit": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"entered_late\", \"ok\": false, \"detail\": \"The entry was first confirmed at 2027-04-02T17:31:00-04:00, after the cutoff.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: ENTERED LATE. The entry was first confirmed at 2027-04-02T17:31:00-04:00, after the cutoff. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: ENTERED LATE. The entry was first confirmed at 2027-04-02T17:31:00-04:00, after the cutoff. Pick: Kwan."
+      ]
+    ],
+    "not_entered/absent": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"not_entered\", \"ok\": false, \"detail\": \"Not entered: 1 successful account checks saw no matching entry and none confirmed one.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: NOT ENTERED. Not entered: 1 successful account checks saw no matching entry and none confirmed one. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: NOT ENTERED. Not entered: 1 successful account checks saw no matching entry and none confirmed one. Pick: Kwan."
+      ]
+    ],
+    "not_entered/empty-object": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"not_entered\", \"ok\": false, \"detail\": \"Not entered: 1 successful account checks saw no matching entry and none confirmed one.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: NOT ENTERED. Not entered: 1 successful account checks saw no matching entry and none confirmed one. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: NOT ENTERED. Not entered: 1 successful account checks saw no matching entry and none confirmed one. Pick: Kwan."
+      ]
+    ],
+    "not_entered/zero": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"not_entered\", \"ok\": false, \"detail\": \"Not entered: 1 successful account checks saw no matching entry and none confirmed one.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: NOT ENTERED. Not entered: 1 successful account checks saw no matching entry and none confirmed one. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: NOT ENTERED. Not entered: 1 successful account checks saw no matching entry and none confirmed one. Pick: Kwan."
+      ]
+    ],
+    "not_entered/legacy": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"not_entered\", \"ok\": false, \"detail\": \"Not entered: 1 successful account checks saw no matching entry and none confirmed one.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: NOT ENTERED. Not entered: 1 successful account checks saw no matching entry and none confirmed one. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: NOT ENTERED. Not entered: 1 successful account checks saw no matching entry and none confirmed one. Pick: Kwan."
+      ]
+    ],
+    "not_entered/prior": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"not_entered\", \"ok\": false, \"detail\": \"Not entered: 1 successful account checks saw no matching entry and none confirmed one.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: NOT ENTERED. Not entered: 1 successful account checks saw no matching entry and none confirmed one. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: NOT ENTERED. Not entered: 1 successful account checks saw no matching entry and none confirmed one. Pick: Kwan."
+      ]
+    ],
+    "not_entered/unknown": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"not_entered\", \"ok\": false, \"detail\": \"Not entered: 1 successful account checks saw no matching entry and none confirmed one.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: NOT ENTERED. Not entered: 1 successful account checks saw no matching entry and none confirmed one. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: NOT ENTERED. Not entered: 1 successful account checks saw no matching entry and none confirmed one. Pick: Kwan."
+      ]
+    ],
+    "not_entered/at-limit": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"not_entered\", \"ok\": false, \"detail\": \"Not entered: 1 successful account checks saw no matching entry and none confirmed one.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: NOT ENTERED. Not entered: 1 successful account checks saw no matching entry and none confirmed one. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: NOT ENTERED. Not entered: 1 successful account checks saw no matching entry and none confirmed one. Pick: Kwan."
+      ]
+    ],
+    "entry_unverifiable/absent": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"entry_unverifiable\", \"ok\": false, \"detail\": \"No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown. Pick: Kwan."
+      ]
+    ],
+    "entry_unverifiable/empty-object": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"entry_unverifiable\", \"ok\": false, \"detail\": \"No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown. Pick: Kwan."
+      ]
+    ],
+    "entry_unverifiable/zero": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"entry_unverifiable\", \"ok\": false, \"detail\": \"No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown. Pick: Kwan."
+      ]
+    ],
+    "entry_unverifiable/legacy": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"entry_unverifiable\", \"ok\": false, \"detail\": \"No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown. Pick: Kwan."
+      ]
+    ],
+    "entry_unverifiable/prior": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"entry_unverifiable\", \"ok\": false, \"detail\": \"No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown. Pick: Kwan."
+      ]
+    ],
+    "entry_unverifiable/unknown": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"entry_unverifiable\", \"ok\": false, \"detail\": \"No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown. Pick: Kwan."
+      ]
+    ],
+    "entry_unverifiable/at-limit": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"entry_unverifiable\", \"ok\": false, \"detail\": \"No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown.\", \"pick\": \"Kwan\"}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown. Pick: Kwan."
+      ],
+      [
+        "BTS day check 2027-04-02: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (no receipts at all). Whether it was entered is unknown. Pick: Kwan."
+      ]
+    ],
+    "skip_state_review/absent": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"skip_state_review\", \"ok\": false, \"detail\": \"The policy recorded a skip for 2027-04-02 using streak 19 and policy saver availability available. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 using streak 19 and policy saver availability available. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver."
+      ],
+      [
+        "BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 using streak 19 and policy saver availability available. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver."
+      ]
+    ],
+    "skip_state_review/empty-object": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"skip_state_review\", \"ok\": false, \"detail\": \"The policy recorded a skip for 2027-04-02 using streak 19 and policy saver availability available. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 using streak 19 and policy saver availability available. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver."
+      ],
+      [
+        "BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 using streak 19 and policy saver availability available. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver."
+      ]
+    ],
+    "skip_state_review/zero": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"skip_state_review\", \"ok\": false, \"detail\": \"The policy recorded a skip for 2027-04-02 using streak 19 and policy saver availability available. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 using streak 19 and policy saver availability available. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver."
+      ],
+      [
+        "BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 using streak 19 and policy saver availability available. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver."
+      ]
+    ],
+    "skip_state_review/legacy": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"skip_state_review\", \"ok\": false, \"detail\": \"The policy recorded a skip for 2027-04-02 using streak 19 and policy saver availability available. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 using streak 19 and policy saver availability available. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver."
+      ],
+      [
+        "BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 using streak 19 and policy saver availability available. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver."
+      ]
+    ],
+    "skip_state_review/prior": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"skip_state_review\", \"ok\": false, \"detail\": \"The policy recorded a skip for 2027-04-02 using streak 19 and policy saver availability available. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 using streak 19 and policy saver availability available. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver."
+      ],
+      [
+        "BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 using streak 19 and policy saver availability available. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver."
+      ]
+    ],
+    "skip_state_review/unknown": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"skip_state_review\", \"ok\": false, \"detail\": \"The policy recorded a skip for 2027-04-02 using streak 19 and policy saver availability available. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 using streak 19 and policy saver availability available. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver."
+      ],
+      [
+        "BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 using streak 19 and policy saver availability available. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver."
+      ]
+    ],
+    "skip_state_review/at-limit": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"skip_state_review\", \"ok\": false, \"detail\": \"The policy recorded a skip for 2027-04-02 using streak 19 and policy saver availability available. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.\", \"pick\": null}\n",
+      "",
+      [
+        "BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 using streak 19 and policy saver availability available. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver."
+      ],
+      [
+        "BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 using streak 19 and policy saver availability available. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver."
+      ]
+    ],
+    "all_void/absent": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"no_games\", \"ok\": true, \"detail\": \"All 1 scheduled games were postponed or cancelled.\", \"pick\": null}\n",
+      "",
+      [],
+      []
+    ],
+    "all_void/empty-object": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"no_games\", \"ok\": true, \"detail\": \"All 1 scheduled games were postponed or cancelled.\", \"pick\": null}\n",
+      "",
+      [],
+      []
+    ],
+    "all_void/zero": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"no_games\", \"ok\": true, \"detail\": \"All 1 scheduled games were postponed or cancelled.\", \"pick\": null}\n",
+      "",
+      [],
+      []
+    ],
+    "all_void/legacy": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"no_games\", \"ok\": true, \"detail\": \"All 1 scheduled games were postponed or cancelled.\", \"pick\": null}\n",
+      "",
+      [],
+      []
+    ],
+    "all_void/prior": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"no_games\", \"ok\": true, \"detail\": \"All 1 scheduled games were postponed or cancelled.\", \"pick\": null}\n",
+      "",
+      [],
+      []
+    ],
+    "all_void/unknown": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"no_games\", \"ok\": true, \"detail\": \"All 1 scheduled games were postponed or cancelled.\", \"pick\": null}\n",
+      "",
+      [],
+      []
+    ],
+    "all_void/at-limit": [
+      0,
+      "{\"date\": \"2027-04-02\", \"state\": \"no_games\", \"ok\": true, \"detail\": \"All 1 scheduled games were postponed or cancelled.\", \"pick\": null}\n",
+      "",
+      [],
+      []
+    ],
+    "outside-grid/timeout": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"no_decision\", \"ok\": false, \"detail\": \"1 games were scheduled and the day has no decision record: no pick was committed and no skip was decided.\", \"pick\": null}\n",
+      "day-outcome: DM failed: TimeoutError\n",
+      [
+        "BTS day check 2027-04-02: NO DECISION. 1 games were scheduled and the day has no decision record: no pick was committed and no skip was decided."
+      ],
+      []
+    ],
+    "outside-grid/no-id": [
+      1,
+      "{\"date\": \"2027-04-02\", \"state\": \"no_decision\", \"ok\": false, \"detail\": \"1 games were scheduled and the day has no decision record: no pick was committed and no skip was decided.\", \"pick\": null}\n",
+      "day-outcome: DM failed: KeyError\n",
+      [
+        "BTS day check 2027-04-02: NO DECISION. 1 games were scheduled and the day has no decision record: no pick was committed and no skip was decided."
+      ],
+      [
+        "BTS day check 2027-04-02: NO DECISION. 1 games were scheduled and the day has no decision record: no pick was committed and no skip was decided."
+      ]
+    ],
+    "outside-grid/missing-config": [
+      2,
+      "",
+      "day-outcome: could not run for 2027-04-02: FileNotFoundError: [Errno 2] No such file or directory: '<root>/missing-config/orch.toml'\n",
+      [
+        "BTS day check 2027-04-02: THE CHECK COULD NOT RUN (FileNotFoundError). The day's end state is unknown."
+      ],
+      [
+        "BTS day check 2027-04-02: THE CHECK COULD NOT RUN (FileNotFoundError). The day's end state is unknown."
+      ]
+    ]
+  },
+  "default reader": {
+    "newlines": [
+      "text",
+      "a\nb\nc\n"
+    ],
+    "utf8": [
+      "text",
+      "Cura\u00e7ao \u6771\u4eac"
+    ],
+    "bad-utf8": [
+      "UnicodeDecodeError",
+      "'utf-8' codec can't decode byte 0xff in position 0: invalid start byte"
+    ],
+    "over-limit": [
+      "text",
+      "1048577"
+    ],
+    "mode-zero": [
+      "PermissionError",
+      "[Errno 13] Permission denied: '<root>/mode-zero'"
+    ],
+    "fifo": [
+      "OSError",
+      "<root>/fifo: not a regular file"
+    ],
+    "directory": [
+      "OSError",
+      "<root>/directory: not a regular file"
+    ],
+    "symlink": [
+      "text",
+      "a\nb\nc\n"
+    ],
+    "dangling": [
+      "FileNotFoundError",
+      "[Errno 2] No such file or directory: '<root>/dangling'"
+    ],
+    "loop": [
+      "OSError",
+      "[Errno 62] Too many levels of symbolic links: '<root>/loop'"
+    ],
+    "absent": [
+      "FileNotFoundError",
+      "[Errno 2] No such file or directory: '<root>/absent'"
+    ]
+  }
+}

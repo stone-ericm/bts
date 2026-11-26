@@ -1,0 +1,17 @@
+nice: setpriority: Operation not permitted
+scratch bts.__file__ = /tmp/wr-f4-mutation-no-compact-5hk2icy1/src/bts/__init__.py
+...................................................F
+=================================== FAILURES ===================================
+______________________________ test_k3_compact_dm ______________________________
+tests/test_wr_f4_streak_file.py:345: in test_k3_compact_dm
+    assert_problem(run_report(*args), before, "not a JSON object", compact=True)
+tests/test_wr_f4_streak_file.py:146: in assert_problem
+    assert result.stderr == stderr
+E   AssertionError: assert 'day-outcome:...: HTTPError\n' == ''
+E     
+E     + day-outcome: DM failed: HTTPError
+=========================== short test summary info ============================
+FAILED tests/test_wr_f4_streak_file.py::test_k3_compact_dm - AssertionError: ...
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 51 passed in 1.82s
+no-compact: pytest exit=1

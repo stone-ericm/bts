@@ -1,0 +1,10 @@
+nice: setpriority: Operation not permitted
+base bts.__file__ = /Users/eric/.gemini/antigravity-cli/brain/14e767f2-bdf2-400a-af04-e12ff1bff447/scratch/base_ddbc531a/src/bts/__init__.py
+head bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f4-cb/src/bts/__init__.py
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f4-cb/.carbon-review/wr-f4-r1/test_probe_1_parity.py", line 511, in <module>
+    test_base_and_f4_parity_all_states_and_default_reader()
+  File "/Users/eric/projects/bts-work/wr-rev-f4-cb/.carbon-review/wr-f4-r1/test_probe_1_parity.py", line 497, in test_base_and_f4_parity_all_states_and_default_reader
+    assert head_rec["stderr"] == base_rec["stderr"], key
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: exit2::missing_config

@@ -1,0 +1,14 @@
+nice: setpriority: Operation not permitted
+base bts.__file__ = /private/tmp/wr-f4-r1.ITqF8AYX/src/bts/__init__.py
+nice: setpriority: Operation not permitted
+candidate bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f4-cx/src/bts/__init__.py
+nice: setpriority: Operation not permitted
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f4-cx/.codex-review/wr-f4-r1/probe_parity.py", line 11, in <module>
+    from report_harness import Chat, _box, _write_decision, observed, report, snapshot
+  File "/Users/eric/projects/bts-work/wr-rev-f4-cx/.codex-review/wr-f4-r1/report_harness.py", line 16, in <module>
+    from tests.test_day_outcome import DATE, _bound_receipt, _box, _publish_receipt, _write_decision
+ModuleNotFoundError: No module named 'tests'
+nice: setpriority: Operation not permitted
+reports: 122 base/F4 comparisons agree
+default reader: 11 base/F4 comparisons agree

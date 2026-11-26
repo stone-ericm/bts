@@ -1,0 +1,81 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0 -- /Users/eric/projects/bts-work/wr-rev-f4-cb/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/eric/projects/bts-work/wr-rev-f4-cb
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 3 items
+
+.carbon-review/wr-f4-r1/test_probe_3_dm_and_text.py::test_exact_code_point_boundaries_clean_and_problem PASSED
+.carbon-review/wr-f4-r1/test_probe_3_dm_and_text.py::test_non_ascii_graphemes_never_lose_base_alert PASSED
+.carbon-review/wr-f4-r1/test_probe_3_dm_and_text.py::test_r64_four_worst_ordinary_states FAILED
+
+=================================== FAILURES ===================================
+_____________________ test_r64_four_worst_ordinary_states ______________________
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2339/test_r64_four_worst_ordinary_s0')
+
+    def test_r64_four_worst_ordinary_states(tmp_path):
+        # State A: Scorer failed on corrupt streak.json, leaving unresolved pick; reconcile warned and failed; 08:30 report
+        pdir_a, cfg_a = _box(tmp_path / "r64_scorer")
+        _write_decision(pdir_a)
+        _publish_receipt(pdir_a, _bound_receipt(pdir_a))
+        primary = picks.Pick(
+            batter_name="Kwan", batter_id=1, team="CLE", lineup_position=1,
+            pitcher_name="Cole", pitcher_id=2, p_game_hit=0.78, flags=[],
+            projected_lineup=False, game_pk=900, game_time="2027-04-02T23:10:00Z",
+        )
+        picks.save_pick(
+            picks.DailyPick(DATE, "2027-04-02T17:00:00-04:00", primary, None, None,
+                            notification_sent=True, notification_id="dm-1", result=None),
+            pdir_a,
+        )
+        (pdir_a / "streak.json").write_bytes(b"[]")
+        with patch.object(PinnedClock, "wall", dt.datetime(2027, 4, 3, 2, 0, tzinfo=ET)), \
+             patch.object(dt, "datetime", PinnedClock), \
+             patch.object(picks, "resolve_daily_slot_results", return_value={"pick": "hit"}):
+            rec_res = CliRunner().invoke(cli, ["reconcile", "--picks-dir", str(pdir_a)])
+        assert rec_res.exit_code == 1 and isinstance(rec_res.exception, AttributeError)
+        assert "Season replay unavailable for 2027-04-02 (no final result on the pick)" in rec_res.stderr
+    
+        res_a, deliv_a, rej_a = run_cli(pdir_a, cfg_a, games=1)
+        assert res_a.exit_code == 1 and rej_a == [] and len(deliv_a) == 1
+        assert "Preserve the files in place during triage." in deliv_a[0]
+        assert "Follow B8b item 2 in docs/ops/2027-season-start.md before the next affected job." in deliv_a[0]
+        assert "The 08:00 ET correction cutoff still applies." in deliv_a[0]
+    
+        # State B: Health CRITICAL ('streak_validation') the same night + 08:30 day-outcome DM: neither deduplicates the other
+        pdir_b, cfg_b = _box(tmp_path / "r64_health")
+        (pdir_b / "streak.json").write_bytes(b"[]")
+        health_dms: list[str] = []
+        health_rej: list[tuple[int, int, int]] = []
+        alerts = health_runner._safe_run("streak_validation", lambda: streak_validation.check(pdir_b))
+        assert len(alerts) == 1 and alerts[0].level == "CRITICAL"
+        with patch.object(dm, "get_dm_password", lambda: "pw"), \
+             patch.object(dm, "retry_urlopen", grapheme_transport(health_dms, health_rej)):
+>           health_alert.dispatch_dm_for_health_alerts(
+                alerts,
+                recipient="did:plc:operator",
+                status_path=pdir_b.parent / "health_state" / "health_dm_delivery_status.json",
+                today=dt.date(2027, 4, 2),
+            )
+E           TypeError: dispatch_dm_for_health_alerts() got an unexpected keyword argument 'recipient'
+
+.carbon-review/wr-f4-r1/test_probe_3_dm_and_text.py:259: TypeError
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.runner:runner.py:67 health check 'streak_validation' raised: 'list' object has no attribute 'get'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f4-cb/src/bts/health/runner.py", line 65, in _safe_run
+    return fn()
+           ^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f4-cb/.carbon-review/wr-f4-r1/test_probe_3_dm_and_text.py", line 255, in <lambda>
+    alerts = health_runner._safe_run("streak_validation", lambda: streak_validation.check(pdir_b))
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-f4-cb/src/bts/health/streak_validation.py", line 46, in check
+    streak = data.get("streak")
+             ^^^^^^^^
+AttributeError: 'list' object has no attribute 'get'
+=========================== short test summary info ============================
+FAILED .carbon-review/wr-f4-r1/test_probe_3_dm_and_text.py::test_r64_four_worst_ordinary_states - TypeError: dispatch_dm_for_health_alerts() got an unexpected keyword argument 'recipient'
+========================= 1 failed, 2 passed in 0.40s ==========================

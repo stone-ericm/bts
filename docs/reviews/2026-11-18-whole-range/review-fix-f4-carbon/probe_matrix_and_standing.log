@@ -1,0 +1,16 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0 -- /Users/eric/projects/bts-work/wr-rev-f4-cb/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/eric/projects/bts-work/wr-rev-f4-cb
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 5 items
+
+.carbon-review/wr-f4-r1/probe_matrix_and_standing.py::test_full_rule_matrix_clean_and_problem_days PASSED
+.carbon-review/wr-f4-r1/probe_matrix_and_standing.py::test_special_files_symlinks_sockets_and_toctou PASSED
+.carbon-review/wr-f4-r1/probe_matrix_and_standing.py::test_growing_file_and_partial_reads_bounded PASSED
+.carbon-review/wr-f4-r1/probe_matrix_and_standing.py::test_day_classified_before_streak_file_read PASSED
+.carbon-review/wr-f4-r1/probe_matrix_and_standing.py::test_standing_rows_interrupt_midnight_send_restart_and_exit2 PASSED
+
+============================== 5 passed in 0.38s ===============================

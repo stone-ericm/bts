@@ -1,0 +1,5 @@
+nice: setpriority: Operation not permitted
+base bts.__file__ = /Users/eric/.gemini/antigravity-cli/brain/14e767f2-bdf2-400a-af04-e12ff1bff447/scratch/base_ddbc531a/src/bts/__init__.py
+head bts.__file__ = /Users/eric/projects/bts-work/wr-rev-f4-cb/src/bts/__init__.py
+Verified 229 day-outcome runs and 10 default-reader cases.
+PROBE PARITY PASSED

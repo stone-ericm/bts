@@ -1,0 +1,8 @@
+nice: setpriority: Operation not permitted
+2027-12-31T23:59:00-05:00 reported 2027-12-31 with prior-season file quiet
+2028-01-01T00:01:00-05:00 reported 2028-01-01 with prior-season file quiet
+2028-01-01T08:30:00-05:00 reported 2027-12-31 with prior-season file quiet
+2028-03-24T08:30:00-04:00 reported 2028-03-23 with prior-season file quiet
+Opening morning: bad count in readable prior-season record still gives a file advisory; scorer starts at zero
+Interrupt before replace preserved old streak; interrupt after replace left unresolved pick with valid marker. Report stayed quiet and read-only; scorer retry settled the pick without reapplying the streak.
+Interrupt in the read closed the FD; timeout/no-ID each attempted one send; restart resent the identical report; no-recipient mode gave the same stdout; no report wrote state.

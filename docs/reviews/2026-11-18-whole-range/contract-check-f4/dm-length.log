@@ -1,0 +1,3 @@
+nice: setpriority: Operation not permitted
+base chars 833 stderr 
+scratch chars 1071 stderr day-outcome: DM failed: HTTPError

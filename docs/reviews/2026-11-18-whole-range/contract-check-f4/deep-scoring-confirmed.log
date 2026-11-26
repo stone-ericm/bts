@@ -1,0 +1,9 @@
+nice: setpriority: Operation not permitted
+  [22:05 ET] Games: 101: final
+daemon: RecursionError
+01:00 check-results 1 RecursionError Checking Batter 1 (game 101)...
+02:00 reconcile 1 RecursionError Reconciling last 8 days of picks...
+Season replay unavailable for 2027-03-24 (no final result on the pick); streak retained, not recalculated.
+08:30: no output or DM; exception RecursionError
+complete replay: Reconciling last 8 days of picks...
+No scoring changes detected. Streak: 1
