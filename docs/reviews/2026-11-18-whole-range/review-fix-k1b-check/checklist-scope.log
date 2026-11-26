@@ -1,0 +1,3 @@
+nice: setpriority: Operation not permitted
+docs/ops/2027-season-start.md: only the two approved replacements in B8a, verified byte for byte
+No other docs/ops path changed. No src changes.

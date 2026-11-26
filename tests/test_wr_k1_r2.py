@@ -96,9 +96,10 @@ def test_b8a_filing_after_first_check_refusal():
 
 K1B_DAILY_OLD = ("`bts set-contest-streak --date <today> --streak N --best-streak B --saver S` "
                  "with N, B and S read from MLB.")
-K1B_DAILY_NEW = ("`bts set-contest-streak --date <today> --streak N --best-streak B --saver S --picks-dir DIR` "
-                 "with N, B and S read from MLB and DIR the scheduler's absolute picks directory, "
-                 "the same directory used for status.")
+K1B_DAILY_NEW = ("Run `bts set-contest-streak --date <today> --streak N --best-streak B --saver S --picks-dir \"$DIR\"` "
+                 "with N, B and S read from MLB. Before running it, set the shell variable DIR to the scheduler's "
+                 "absolute picks directory. Resolve a relative `picks_dir` against the scheduler service's working "
+                 "directory. Check the same directory with `bts season-contract status --picks-dir \"$DIR\"`.")
 K1B_LATE_OLD = ("If that check refused before choosing a pick, confirm this is still today's slate in ET "
                 "and that MLB has settled every prior entry or confirmed its absence after its window closed. "
                 "File the verified dated observation between checks while another lineup check or fallback remains.")
@@ -134,12 +135,17 @@ def test_k1b_daily_command_lands_in_the_scheduler_picks_dir(tmp_path, monkeypatc
 
     et = ZoneInfo("America/New_York")
     now = dt.datetime(2027, 7, 15, 18, 40, tzinfo=et)
-    live = tmp_path / "live-picks"
-    live.mkdir()
     monkeypatch.chdir(tmp_path)
-    command = K1B_DAILY_NEW.split("`")[1].split()[1:]
-    filled = [{"<today>": "2027-07-15", "N": "57", "B": "60", "S": "used", "DIR": str(live)}.get(a, a)
-              for a in command]
+    import shlex
+    import subprocess
+    live = tmp_path / "live picks"
+    live.mkdir()
+    command = K1B_DAILY_NEW.split("`")[1].replace("<today>", "2027-07-15").replace(" N ", " 57 ")
+    command = command.replace(" B ", " 60 ").replace(" S ", " used ")
+    # The shell expands "$DIR" as ONE argument even when the path holds a space (the K1b check's case).
+    expanded = subprocess.run(["/bin/sh", "-c", 'printf "%s\\0" ' + command[len("bts "):]],
+                              env={"DIR": str(live)}, capture_output=True, timeout=10, check=True).stdout
+    filled = expanded.decode().split("\0")[:-1]
     real = dt.datetime
 
     class Clock(real):
