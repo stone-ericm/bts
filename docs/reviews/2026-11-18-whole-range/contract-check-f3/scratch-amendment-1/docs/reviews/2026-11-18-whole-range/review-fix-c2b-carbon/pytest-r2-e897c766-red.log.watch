@@ -1,0 +1,2 @@
+2026-11-20 01:06:00 started pid 68250: env PYTHONPATH=.codex-review/wr-c2b/src_r2_e897c766/src TZ=America/New_York PYTHONDONTWRITEBYTECODE=1 MPLCONFIGDIR=.codex-review/wr-c2b/.mplconfig .venv/bin/python -m pytest -p no:cacheprovider -q tests/test_wr_c2_receipt_identity.py tests/test_wr_c2_r2_carbon.py
+2026-11-20 01:07:00 exited rc=1

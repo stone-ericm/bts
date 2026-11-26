@@ -1,0 +1,165 @@
+{
+ "id": "I-203",
+ "working_id": "L03",
+ "title": "Cached-fallback safety net can deliver a pick whose game went postponed when the refresh finds no eligible replacement; postponed_pick health ignores delivered picks",
+ "disposition": "deployed_latent_defect",
+ "counted": true,
+ "classes": {
+  "primary": "D",
+  "secondary": [
+   "A"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "unfixed path on the deployed delivery chain: a delivery naming a postponed game (contest-wise a void, the same as no pick) with no alert; B -> A",
+ "residual_reaches_production": true,
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "No delivery names a game already evidenced postponed before the send; a postponed selection is replaced if an eligible one exists, otherwise the day ends as an explicit no-pick (oracle: no delivery naming a postponed game, distinct from unknown status).",
+  "source": "design §10.3 (postponed cached-fallback characterization candidate); docs/audit/2026-07-09-gpt56-sol-audit.md round 3 'F1 DEFERRED'"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "when the fallback refresh raises or yields no fresh pick, _refresh_pick_at_fallback_decision returns the cached daily pick and the fallback path delivers it (the 'deliver cached' safety net); per the 7/10 deferral this can deliver a pick whose game went postponed when no replacement is eligible",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "4490aee",
+     "symbol": "_refresh_pick_at_fallback_decision / run_day fallback delivery",
+     "ref_basis": "log"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "health/postponed_pick returns no alert once pick_was_delivered(daily) is true, so a delivered postponed pick is never surfaced",
+   "code": [
+    {
+     "path": "src/bts/health/postponed_pick.py",
+     "ref": "4490aee",
+     "symbol": "check",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "implemented": "unfixed",
+   "deployed": "not_applicable",
+   "mitigated": "none",
+   "verified_recovered": "not_applicable",
+   "link": 1
+  },
+  {
+   "implemented": "unfixed",
+   "deployed": "not_applicable",
+   "mitigated": "none",
+   "verified_recovered": "not_applicable",
+   "link": 2
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "Unfixed: deferred on 7/10 into the standing postponed-game-awareness product call, with no later commit; by the deferral's own reasoning the contest outcome equals no pick, so the gaps are an unalerted delivery naming a postponed game and its local record",
+   "reaches_production": true,
+   "source": "30452eb body ('F1 deferred'); docs/audit/2026-07-09-gpt56-sol-audit.md round 3"
+  }
+ ],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "at send time the delivered selection's game status is Postponed (or it resolves as a postponement void) and the delivery came through the cached fallback",
+  "recovery_assertion": "no delivery names a postponed game; the day ends with a replacement pick or an explicit no-pick record"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-07-09-gpt56-sol-audit.md round 3 'F1 DEFERRED (pre-existing)'",
+   "written_at": "2026-07-10T18:12:04-04:00",
+   "what": "the cached-fallback safety net can deliver a pick whose game went postponed when the refresh finds no eligible replacement, and postponed_pick health ignores delivered picks; folds into the postponed-game-awareness product call"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 30452eb message body",
+   "written_at": "2026-07-10T18:12:04-04:00",
+   "what": "'F1 deferred: cached-fallback can deliver a postponed-game pick when no replacement is eligible - pre-existing, contest outcome identical to no-pick'"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/scheduler.py _refresh_pick_at_fallback_decision and src/bts/health/postponed_pick.py check at 4490aee",
+   "what": "the refresh returns cached_daily on error or no fresh pick; postponed_pick returns [] when pick_was_delivered"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy runs 28601525167 ... 35753849145 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "every install in the continuous logged chain 7/02 -> 9/22 (last: 4490aee) carries the deferred path; no fix exists"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "latent (no evidenced firing in Phase 1)",
+   "onset": "not_applicable",
+   "first_detectable": "not_applicable",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-07-10T18:12:04-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "not_applicable",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "not_applicable"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "30452eb",
+   "6d74d39"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-07-09-gpt56-sol-audit.md round 3",
+   "design §10.3"
+  ]
+ },
+ "related": [
+  "I-043",
+  "I-073",
+  "I-110"
+ ],
+ "notes": [
+  "6d74d39 R4 made the lock decision revalidate both selected slots against fresh game status; the cached-fallback path after a failed refresh is the part left open",
+  "a firing would show as a delivered pick whose game resolved postponed (void) on a fallback-delivered day; Route R (V1b + game status)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time",
+  "fixture built 2026-09-29 (plan Task 1): strict expected failure tests/test_incident_register_2026.py::test_l03_postponed_game_is_never_delivered_by_the_cached_fallback (component level on the E77 harness: the 18:10 check selects a projected pick, the game is postponed at 18:20, the 18:35 fallback refresh gets no predictions and the cached pick is DM'd). It fails unmarked with PostponedPickDelivered; a simulated status-checking repair turns it XPASS(strict); the positive control delivers a playable game's cached pick. Its connection is 'derived' (a computed label), so acceptance reports exception_shape."
+ ]
+}

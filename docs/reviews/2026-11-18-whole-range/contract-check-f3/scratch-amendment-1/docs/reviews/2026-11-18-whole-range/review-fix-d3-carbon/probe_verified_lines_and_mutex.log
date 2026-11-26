@@ -1,0 +1,2 @@
+Item 2a: all 12 hostile stop-verification cases -> unverified (0 false greens)
+Item 2b: marker verification (dangling symlink, live FIFO, swapped inode) -> OK

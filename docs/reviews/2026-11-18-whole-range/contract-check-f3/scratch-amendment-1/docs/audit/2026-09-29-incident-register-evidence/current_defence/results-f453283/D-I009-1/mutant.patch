@@ -1,0 +1,14 @@
+diff --git a/src/bts/scheduler.py b/src/bts/scheduler.py
+index d23f650..138d845 100644
+--- a/src/bts/scheduler.py
++++ b/src/bts/scheduler.py
+@@ -1351,8 +1351,7 @@ def _lock_decision_from_predictions(
+     for _, row in predictions.iterrows():
+         if row.get("p_game_hit") and row["p_game_hit"] == row["p_game_hit"]:  # not NaN
+             game_pk = int(row["game_pk"])
+-            if not pick_candidate_status_is_available(detailed_statuses.get(game_pk)):
+-                continue
++            pass  # W1.5 mutant: pre-7638af7 — contender rows kept whatever their game status
+             is_proj = "PROJECTED" in str(row.get("flags", ""))
+             all_pick_data.append({
+                 "p_game_hit": float(row["p_game_hit"]),

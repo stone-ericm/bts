@@ -1,0 +1,16 @@
+# Design pass, part 6: check version 3 of the build specification
+
+You are an adversarial reviewer of a SPECIFICATION. Assume it is wrong. No tracked file is to be changed; probes go in a scratch folder inside this copy. No network, box or contest account.
+
+Read, in this order: `docs/reviews/2026-11-14-season-rollover/design/RULING-R24.md` (the ruling and the owner's decision the specification must implement), `RULING-R25.md` beside it (the rulings on the first check, whose findings C1 to C8 version 3 must close), `design-attack-codex.md` (the earlier attack, findings F1 to F6), `design-v2-check-codex.md` (the first check), `../build/kickoff-cs1.md` (the contract change set 1 is being built from), then `design-v3.md` (the specification). All are under `docs/reviews/2026-11-14-season-rollover/` in this copy; you have seen none of the earlier rounds. Check its claims about the code against `main` as it is here.
+
+Report on:
+1. **Fidelity.** Anything in the specification that departs from the ruling or the owner's decision, adds a rule the ruling did not make, or quietly reintroduces an inference the ruling removed (a season or freshness inferred from local files, confidence passed between observations).
+2. **Closure.** For each of F1 to F6 and C1 to C8, and each row of the earlier coverage and operator-mistake tables: is it closed by something an implementer can build and a test can fail, or only asserted?
+3. **The decision table.** Input states that match no row, or two rows with different outcomes, under the stated precedence. Rows whose recovery command does not exist on `main` and is not specified. Outcomes that contradict the owner's decision that an in-season stale reading keeps picking.
+4. **Numbers.** Every threshold (for example 14 hours, 36 hours, 5 minutes, the fetch times, 10:00 ET): what it rests on, and a realistic day on which it gives the wrong answer (a late West Coast game, a double-header, an off-day, the All-Star break, a day with no fetch between midnight and first pitch).
+5. **Sequencing.** The specification lands in six change sets. For each boundary between them: is the system coherent with only the earlier ones merged (existing tests, the files the current fetch writes, a schema that is rejected before its writer exists)? Which existing tests will each change set break?
+6. **What an implementer must guess.** Every place where two competent implementers would build different behaviour.
+7. **Operator traps.** Steps that cannot be undone, commands that succeed while leaving the system unable to pick, and anything that depends on a person reading a DM within a window that the specification does not state.
+
+Deliverable: `design-v3-check-codex.md` in the repository root of this copy. Verdict first, separately for change sets 2 and 3 and for change sets 4 to 6: BUILD FROM THIS, BUILD WITH THESE EDITS (each edit tied to a finding), or NOT YET. This is the second and last check: say which findings, if any, are serious enough that the lead should stop and take the design back to the owner. Then findings, most severe first, each with the state or sequence, what the specification says, what should happen, and whether you demonstrated it by running something. Under 220 lines. When complete, print `SRD6-<first 8 hex characters of the sha256 of design-v3-check-codex.md>` and `DONE`.

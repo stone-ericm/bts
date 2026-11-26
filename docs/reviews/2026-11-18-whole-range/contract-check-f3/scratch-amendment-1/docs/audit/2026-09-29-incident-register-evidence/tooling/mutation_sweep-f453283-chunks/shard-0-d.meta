@@ -1,0 +1,5 @@
+pin f453283d0a0ec39a939b22c6500b5fb36f5452c0
+worktree /Users/eric/projects/bts-w15-evidence/s0
+keep /Users/eric/projects/bts-w15-evidence/out/f453283/keep/shard-0-d
+command cd /Users/eric/projects/bts-w15-evidence/s0 && nice -n 10 .venv/bin/python docs/audit/2026-09-29-incident-register-evidence/tooling/mutation_sweep.py /Users/eric/projects/bts-w15-evidence/s0 C26,O54,O58,O63,O67,O71,O81,O85
+started 2026-10-03T23:18:05Z

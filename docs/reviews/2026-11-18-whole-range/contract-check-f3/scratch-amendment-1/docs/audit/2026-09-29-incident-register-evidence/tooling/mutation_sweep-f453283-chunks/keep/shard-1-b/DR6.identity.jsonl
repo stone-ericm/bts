@@ -1,0 +1,5 @@
+{"node": "tests.scripts.incident_register.test_deploy_runs::test_first_live_is_bounded_by_the_runs_own_log_lines", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_deploy_runs::test_first_live_is_bounded_across_an_expired_run", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_deploy_runs::test_observation_points_follow_their_own_timestamps", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_same_run_fractional_times_bound_a_non_empty_install_interval", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_a_second_precision_deploy_line_bounds_live_by_at_the_end_of_its_second", "kind": "assertion"}

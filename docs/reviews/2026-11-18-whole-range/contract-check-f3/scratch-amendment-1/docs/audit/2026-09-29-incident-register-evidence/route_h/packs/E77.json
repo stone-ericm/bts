@@ -1,0 +1,36 @@
+{
+ "id": "E77",
+ "episode_row": [
+  "E77",
+  "7/16",
+  "singleton-slate gap: game moved up, lone check at first pitch, pick undelivered",
+  "D",
+  "OI",
+  "A",
+  "7b70da7 (docs) \u2014 UNFIXED"
+ ],
+ "commits": [
+  {
+   "sha": "7b70da7",
+   "authored": "2026-07-27T13:36:14-04:00",
+   "subject": "docs: backlog singleton-slate pre-start check gap (observed 2026-07-16)",
+   "body": "On a 1-game slate compute_run_times yields exactly one check at start\u221260,\nand the plan is static after the 10:00 fetch \u2014 the 7/16 post-ASB game moved\nup an hour and the lone check fired at first pitch; preview pick undelivered\n(contest Pass, no alert). Fix shape + evidence in the parking-lot entry;\nnot building now (rare slate shape, benign outcome this time).\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_0127uif4QHyoqXgWeB1qCt9d",
+   "files": [
+    "docs/optimization-ideas.md"
+   ],
+   "first_live_log": {
+    "sha": "5bde492",
+    "live_by": "2026-08-03T16:53:22Z",
+    "not_live_before": "2026-08-03T16:53:22Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 30833938616,
+    "created_at": "2026-08-03T16:49:46Z",
+    "head_sha": "5bde492",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

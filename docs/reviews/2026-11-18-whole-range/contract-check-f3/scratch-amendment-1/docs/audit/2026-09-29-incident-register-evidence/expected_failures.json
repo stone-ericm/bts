@@ -1,0 +1,1011 @@
+{
+ "schema": "w15-expected-failures-v2",
+ "note": "Reviewed registry (design \u00a79.7): each strict-XFAIL node, its dedicated exception, the oracle that alone raises it, the production entry that must run in the call phase, and the declared bad/required values (reprs as the oracle prints them). v2: bad_json/required_json are the JSON forms of bad/required; connection binds the declared bad value to production (return | reads | derived).",
+ "entries": [
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[walks_only]",
+   "exception": "tests.test_incident_register_2026.PassGradedAsMiss",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/picks.py",
+    "qualname": "grade_pick_in_feed"
+   },
+   "bad": "'miss'",
+   "required": "'void'",
+   "bad_json": "miss",
+   "required_json": "void",
+   "connection": {
+    "kind": "return",
+    "path": "src/bts/picks.py",
+    "qualname": "grade_pick_in_feed",
+    "review": "The oracle's actual is the value returned by the node's single grade_pick_in_feed call, on the line before, for BATTER_A on the case's synthetic feed; no other call of the function runs in the node. Reviewed by the lead 2026-09-29."
+   }
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[did_not_play]",
+   "exception": "tests.test_incident_register_2026.PassGradedAsMiss",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/picks.py",
+    "qualname": "grade_pick_in_feed"
+   },
+   "bad": "'miss'",
+   "required": "'void'",
+   "bad_json": "miss",
+   "required_json": "void",
+   "connection": {
+    "kind": "return",
+    "path": "src/bts/picks.py",
+    "qualname": "grade_pick_in_feed",
+    "review": "The oracle's actual is the value returned by the node's single grade_pick_in_feed call, on the line before, for BATTER_A on the case's synthetic feed; no other call of the function runs in the node. Reviewed by the lead 2026-09-29."
+   }
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[sac_bunt_only]",
+   "exception": "tests.test_incident_register_2026.PassGradedAsMiss",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/picks.py",
+    "qualname": "grade_pick_in_feed"
+   },
+   "bad": "'miss'",
+   "required": "'void'",
+   "bad_json": "miss",
+   "required_json": "void",
+   "connection": {
+    "kind": "return",
+    "path": "src/bts/picks.py",
+    "qualname": "grade_pick_in_feed",
+    "review": "The oracle's actual is the value returned by the node's single grade_pick_in_feed call, on the line before, for BATTER_A on the case's synthetic feed; no other call of the function runs in the node. Reviewed by the lead 2026-09-29."
+   }
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[suspended_walks_only]",
+   "exception": "tests.test_incident_register_2026.PassGradedAsMiss",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/picks.py",
+    "qualname": "grade_pick_in_feed"
+   },
+   "bad": "'miss'",
+   "required": "'void'",
+   "bad_json": "miss",
+   "required_json": "void",
+   "connection": {
+    "kind": "return",
+    "path": "src/bts/picks.py",
+    "qualname": "grade_pick_in_feed",
+    "review": "The oracle's actual is the value returned by the node's single grade_pick_in_feed call, on the line before, for BATTER_A on the case's synthetic feed; no other call of the function runs in the node. Reviewed by the lead 2026-09-29."
+   }
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[suspended_ab_no_hit]",
+   "exception": "tests.test_incident_register_2026.PassGradedAsMiss",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/picks.py",
+    "qualname": "grade_pick_in_feed"
+   },
+   "bad": "'miss'",
+   "required": "'void'",
+   "bad_json": "miss",
+   "required_json": "void",
+   "connection": {
+    "kind": "return",
+    "path": "src/bts/picks.py",
+    "qualname": "grade_pick_in_feed",
+    "review": "The oracle's actual is the value returned by the node's single grade_pick_in_feed call, on the line before, for BATTER_A on the case's synthetic feed; no other call of the function runs in the node. Reviewed by the lead 2026-09-29."
+   }
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_check_results_single_pick[walks_only]",
+   "exception": "tests.test_incident_register_2026.PassScoredAsNoHit",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'miss'}, 'miss', 0, True)",
+   "required": "({'pick': 'void'}, 'void', 5, True)",
+   "bad_json": [
+    {
+     "pick": "miss"
+    },
+    "miss",
+    0,
+    true
+   ],
+   "required_json": [
+    {
+     "pick": "void"
+    },
+    "void",
+    5,
+    true
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir): DATE's pick file (slot_results, result), the streak and the saver read from the node's OWN tmp picks dir right after its one `bts check-results --date DATE --picks-dir <that dir>` run. That dir holds one date and one streak file, so the matched read-back is that run's output. Reviewed by the lead 2026-09-29."
+   }
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_check_results_single_pick[did_not_play]",
+   "exception": "tests.test_incident_register_2026.PassScoredAsNoHit",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'miss'}, 'miss', 0, True)",
+   "required": "({'pick': 'void'}, 'void', 5, True)",
+   "bad_json": [
+    {
+     "pick": "miss"
+    },
+    "miss",
+    0,
+    true
+   ],
+   "required_json": [
+    {
+     "pick": "void"
+    },
+    "void",
+    5,
+    true
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir): DATE's pick file (slot_results, result), the streak and the saver read from the node's OWN tmp picks dir right after its one `bts check-results --date DATE --picks-dir <that dir>` run. That dir holds one date and one streak file, so the matched read-back is that run's output. Reviewed by the lead 2026-09-29."
+   }
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_check_results_single_pick[sac_bunt_only]",
+   "exception": "tests.test_incident_register_2026.PassScoredAsNoHit",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'miss'}, 'miss', 0, True)",
+   "required": "({'pick': 'void'}, 'void', 5, True)",
+   "bad_json": [
+    {
+     "pick": "miss"
+    },
+    "miss",
+    0,
+    true
+   ],
+   "required_json": [
+    {
+     "pick": "void"
+    },
+    "void",
+    5,
+    true
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir): DATE's pick file (slot_results, result), the streak and the saver read from the node's OWN tmp picks dir right after its one `bts check-results --date DATE --picks-dir <that dir>` run. That dir holds one date and one streak file, so the matched read-back is that run's output. Reviewed by the lead 2026-09-29."
+   }
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_check_results_single_pick[suspended_walks_only]",
+   "exception": "tests.test_incident_register_2026.PassScoredAsNoHit",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'miss'}, 'miss', 0, True)",
+   "required": "({'pick': 'void'}, 'void', 5, True)",
+   "bad_json": [
+    {
+     "pick": "miss"
+    },
+    "miss",
+    0,
+    true
+   ],
+   "required_json": [
+    {
+     "pick": "void"
+    },
+    "void",
+    5,
+    true
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir): DATE's pick file (slot_results, result), the streak and the saver read from the node's OWN tmp picks dir right after its one `bts check-results --date DATE --picks-dir <that dir>` run. That dir holds one date and one streak file, so the matched read-back is that run's output. Reviewed by the lead 2026-09-29."
+   }
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_check_results_single_pick[suspended_ab_no_hit]",
+   "exception": "tests.test_incident_register_2026.PassScoredAsNoHit",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'miss'}, 'miss', 0, True)",
+   "required": "({'pick': 'void'}, 'void', 5, True)",
+   "bad_json": [
+    {
+     "pick": "miss"
+    },
+    "miss",
+    0,
+    true
+   ],
+   "required_json": [
+    {
+     "pick": "void"
+    },
+    "void",
+    5,
+    true
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir): DATE's pick file (slot_results, result), the streak and the saver read from the node's OWN tmp picks dir right after its one `bts check-results --date DATE --picks-dir <that dir>` run. That dir holds one date and one streak file, so the matched read-back is that run's output. Reviewed by the lead 2026-09-29."
+   }
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_check_results_hit_plus_pass[walks_only]",
+   "exception": "tests.test_incident_register_2026.PassScoredAsNoHit",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'hit', 'double_down': 'miss'}, 'miss', 0, True)",
+   "required": "({'pick': 'hit', 'double_down': 'void'}, 'hit', 6, True)",
+   "bad_json": [
+    {
+     "pick": "hit",
+     "double_down": "miss"
+    },
+    "miss",
+    0,
+    true
+   ],
+   "required_json": [
+    {
+     "pick": "hit",
+     "double_down": "void"
+    },
+    "hit",
+    6,
+    true
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir): DATE's pick file (slot_results, result), the streak and the saver read from the node's OWN tmp picks dir right after its one `bts check-results --date DATE --picks-dir <that dir>` run. That dir holds one date and one streak file, so the matched read-back is that run's output. Reviewed by the lead 2026-09-29."
+   }
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_check_results_hit_plus_pass[did_not_play]",
+   "exception": "tests.test_incident_register_2026.PassScoredAsNoHit",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'hit', 'double_down': 'miss'}, 'miss', 0, True)",
+   "required": "({'pick': 'hit', 'double_down': 'void'}, 'hit', 6, True)",
+   "bad_json": [
+    {
+     "pick": "hit",
+     "double_down": "miss"
+    },
+    "miss",
+    0,
+    true
+   ],
+   "required_json": [
+    {
+     "pick": "hit",
+     "double_down": "void"
+    },
+    "hit",
+    6,
+    true
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir): DATE's pick file (slot_results, result), the streak and the saver read from the node's OWN tmp picks dir right after its one `bts check-results --date DATE --picks-dir <that dir>` run. That dir holds one date and one streak file, so the matched read-back is that run's output. Reviewed by the lead 2026-09-29."
+   }
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_check_results_hit_plus_pass[suspended_ab_no_hit]",
+   "exception": "tests.test_incident_register_2026.PassScoredAsNoHit",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'hit', 'double_down': 'miss'}, 'miss', 0, True)",
+   "required": "({'pick': 'hit', 'double_down': 'void'}, 'hit', 6, True)",
+   "bad_json": [
+    {
+     "pick": "hit",
+     "double_down": "miss"
+    },
+    "miss",
+    0,
+    true
+   ],
+   "required_json": [
+    {
+     "pick": "hit",
+     "double_down": "void"
+    },
+    "hit",
+    6,
+    true
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir): DATE's pick file (slot_results, result), the streak and the saver read from the node's OWN tmp picks dir right after its one `bts check-results --date DATE --picks-dir <that dir>` run. That dir holds one date and one streak file, so the matched read-back is that run's output. Reviewed by the lead 2026-09-29."
+   }
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_check_results_pass_plus_pass_preserves",
+   "exception": "tests.test_incident_register_2026.PassScoredAsNoHit",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'miss', 'double_down': 'miss'}, 'miss', 0, True)",
+   "required": "({'pick': 'void', 'double_down': 'void'}, 'void', 5, True)",
+   "bad_json": [
+    {
+     "pick": "miss",
+     "double_down": "miss"
+    },
+    "miss",
+    0,
+    true
+   ],
+   "required_json": [
+    {
+     "pick": "void",
+     "double_down": "void"
+    },
+    "void",
+    5,
+    true
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir): DATE's pick file (slot_results, result), the streak and the saver read from the node's OWN tmp picks dir right after its one `bts check-results --date DATE --picks-dir <that dir>` run. That dir holds one date and one streak file, so the matched read-back is that run's output. Reviewed by the lead 2026-09-29."
+   }
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_pass_at_saver_streak_keeps_the_saver",
+   "exception": "tests.test_incident_register_2026.PassScoredAsNoHit",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'miss'}, 'miss', 12, False)",
+   "required": "({'pick': 'void'}, 'void', 12, True)",
+   "bad_json": [
+    {
+     "pick": "miss"
+    },
+    "miss",
+    12,
+    false
+   ],
+   "required_json": [
+    {
+     "pick": "void"
+    },
+    "void",
+    12,
+    true
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir): DATE's pick file (slot_results, result), the streak and the saver read from the node's OWN tmp picks dir right after its one `bts check-results --date DATE --picks-dir <that dir>` run. That dir holds one date and one streak file, so the matched read-back is that run's output. Reviewed by the lead 2026-09-29."
+   }
+  },
+  {
+   "incident": "L02",
+   "node": "tests/test_incident_register_2026.py::test_l02_same_day_hit_survives_two_late_reconciles",
+   "exception": "tests.test_incident_register_2026.SameDayReplayRollback",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/picks.py",
+    "qualname": "reconcile_results"
+   },
+   "bad": "[(1, True), (1, True)]",
+   "required": "[(2, True), (2, True)]",
+   "bad_json": [
+    [
+     1,
+     true
+    ],
+    [
+     1,
+     true
+    ]
+   ],
+   "required_json": [
+    [
+     2,
+     true
+    ],
+    [
+     2,
+     true
+    ]
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "zip",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak",
+      "all": true
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available",
+      "all": true
+     }
+    ],
+    "review": "The oracle's actual is the list _two_late_reconciles builds: (load_streak, load_saver_available) of the node's own picks dir read after EACH of its two reconcile_results runs on that dir. The zipped components are exactly those four reads, so both cardinalities are 2. Reviewed by the lead 2026-09-29."
+   }
+  },
+  {
+   "incident": "L02",
+   "node": "tests/test_incident_register_2026.py::test_l02_same_day_saver_consumption_survives_two_late_reconciles",
+   "exception": "tests.test_incident_register_2026.SameDayReplayRollback",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/picks.py",
+    "qualname": "reconcile_results"
+   },
+   "bad": "[(10, True), (10, True)]",
+   "required": "[(10, False), (10, False)]",
+   "bad_json": [
+    [
+     10,
+     true
+    ],
+    [
+     10,
+     true
+    ]
+   ],
+   "required_json": [
+    [
+     10,
+     false
+    ],
+    [
+     10,
+     false
+    ]
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "zip",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak",
+      "all": true
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available",
+      "all": true
+     }
+    ],
+    "review": "The oracle's actual is the list _two_late_reconciles builds: (load_streak, load_saver_available) of the node's own picks dir read after EACH of its two reconcile_results runs on that dir. The zipped components are exactly those four reads, so both cardinalities are 2. Reviewed by the lead 2026-09-29."
+   }
+  },
+  {
+   "incident": "E77",
+   "node": "tests/test_incident_register_2026.py::test_e77_singleton_slate_moved_up_is_delivered_before_cutoff",
+   "exception": "tests.test_incident_register_2026.SingletonSlateUndelivered",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/scheduler.py",
+    "qualname": "run_day"
+   },
+   "bad": "('never_delivered',)",
+   "required": "('delivered_before_cutoff',)",
+   "bad_json": [
+    "never_delivered"
+   ],
+   "required_json": [
+    "delivered_before_cutoff"
+   ],
+   "connection": {
+    "kind": "derived",
+    "review": "E77's outcome is a label computed by _delivery_outcome. Required: exactly one send to the configured recipient whose text is the AFFIRMATIVE single-pick message for the declared selection (batter, team and opposing pitcher; the template is written out in the fixture and never produced by the formatter under test), no other send naming the batter, and a saved record that describes that send (selection, day, id, instant within 60 s), with both timestamps on 2026-07-16 and strictly before the true 18:05 cutoff. Bad: no send naming the batter to anyone, and a record claiming no delivery. The bad-path mechanism assertions (lone check at first pitch, started-game lock, containment-only DMs) apply only to the bad outcome. Reviewed in Codex phase-1 r3 (answer 4); identified-send predicate after r4 #7; affirmative content and the timestamp bounds after r5 #5 (lead, 2026-09-30). Measured: the named-status and unqualified no-pick formatter mutants fail the positive control ordinarily; Codex's noon re-fetch repair sketch makes the node XPASS(strict) with the positive control passing; twelve negative controls. Codex review pending (r6)."
+   }
+  },
+  {
+   "incident": "L04",
+   "node": "tests/test_incident_register_2026.py::test_l04_hit_applied_once_across_a_crash_and_restart",
+   "exception": "tests.test_incident_register_2026.ResultAppliedTwice",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'hit'}, 'hit', 7, True)",
+   "required": "({'pick': 'hit'}, 'hit', 6, True)",
+   "bad_json": [
+    {
+     "pick": "hit"
+    },
+    "hit",
+    7,
+    true
+   ],
+   "required_json": [
+    {
+     "pick": "hit"
+    },
+    "hit",
+    6,
+    true
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir) after the restarted scorer: the LAST reads of the node's own tmp picks dir (DATE's pick file, streak, saver) following the final `bts check-results` run. The read between the runs only checks the fault point and is not the matched value. Reviewed by the lead 2026-09-29."
+   }
+  },
+  {
+   "incident": "L04",
+   "node": "tests/test_incident_register_2026.py::test_l04_saver_miss_applied_once_across_a_crash_and_restart",
+   "exception": "tests.test_incident_register_2026.ResultAppliedTwice",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'miss'}, 'miss', 0, False)",
+   "required": "({'pick': 'miss'}, 'miss', 12, False)",
+   "bad_json": [
+    {
+     "pick": "miss"
+    },
+    "miss",
+    0,
+    false
+   ],
+   "required_json": [
+    {
+     "pick": "miss"
+    },
+    "miss",
+    12,
+    false
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir) after the restarted scorer: the LAST reads of the node's own tmp picks dir (DATE's pick file, streak, saver) following the final `bts check-results` run. The read between the runs only checks the fault point and is not the matched value. Reviewed by the lead 2026-09-29."
+   }
+  },
+  {
+   "incident": "L04",
+   "node": "tests/test_incident_register_2026.py::test_l04_polling_death_then_the_cron_scorer_applies_once",
+   "exception": "tests.test_incident_register_2026.ResultAppliedTwice",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'hit'}, 'hit', 7, True)",
+   "required": "({'pick': 'hit'}, 'hit', 6, True)",
+   "bad_json": [
+    {
+     "pick": "hit"
+    },
+    "hit",
+    7,
+    true
+   ],
+   "required_json": [
+    {
+     "pick": "hit"
+    },
+    "hit",
+    6,
+    true
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir) after the restarted scorer: the LAST reads of the node's own tmp picks dir (DATE's pick file, streak, saver) following the final `bts check-results` run. The read between the runs only checks the fault point and is not the matched value. Reviewed by the lead 2026-09-29."
+   }
+  },
+  {
+   "incident": "L03",
+   "node": "tests/test_incident_register_2026.py::test_l03_postponed_game_is_never_delivered_by_the_cached_fallback",
+   "exception": "tests.test_incident_register_2026.PostponedPickDelivered",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/scheduler.py",
+    "qualname": "run_day"
+   },
+   "bad": "('postponed_pick_delivered',)",
+   "required": "('no_postponed_delivery',)",
+   "bad_json": [
+    "postponed_pick_delivered"
+   ],
+   "required_json": [
+    "no_postponed_delivery"
+   ],
+   "connection": {
+    "kind": "derived",
+    "review": "L03's outcome is a label computed by _l03_outcome from the COMPLETE send history relative to the declared 18:20 postponement. A delivery is the AFFIRMATIVE single-pick message for the declared selection (written out in the fixture, never produced by the formatter under test); any other send naming the batter, to anyone, is 'other'. Bad: the one such send came at or after the postponement, and the record describes it. Required: no such send, and the record agrees (it describes the one earlier send, or claims no delivery when there was none). Both of a described send's timestamps fall on 2026-07-20, strictly before the 19:05 cutoff. Reviewed by the lead 2026-09-29; affirmative content and timestamp bounds after Codex phase-1 r5 #5 (2026-09-30). Measured: the named-status formatter mutant fails the incident node and the positive control ordinarily; Codex's delivery-chokepoint guard sketch makes the node XPASS(strict) with every L03 control passing. Codex review pending (r6)."
+   }
+  }
+ ]
+}

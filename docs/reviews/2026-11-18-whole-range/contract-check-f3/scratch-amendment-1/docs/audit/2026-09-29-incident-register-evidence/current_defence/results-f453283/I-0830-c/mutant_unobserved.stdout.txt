@@ -1,0 +1,82 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 10 items
+
+tests/data/test_pull.py ........FF                                       [100%]
+
+=================================== FAILURES ===================================
+_________________ test_pull_feeds_does_not_sleep_on_cache_hits _________________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8129/test_pull_feeds_does_not_sleep0')
+
+    def test_pull_feeds_does_not_sleep_on_cache_hits(tmp_path):
+        """Cached feeds must not pay the inter-request throttle.
+    
+        An intraday prediction run walks ~2,100 already-downloaded feeds; sleeping
+        0.3 s after each cache hit was ~10.6 min of pure sleep per cascade
+        (2026-08-30 late-pick incident).
+        """
+        games = [{"gamePk": 111, "date": "2025-06-01"}, {"gamePk": 222, "date": "2025-06-01"}]
+        (tmp_path / "2025").mkdir()
+        (tmp_path / "2025" / "111.json").write_text("{}")
+        (tmp_path / "2025" / "222.json").write_text("{}")
+        with patch("bts.data.pull.discover_games", return_value=games), \
+             patch("bts.data.pull.urlopen") as mock_open, \
+             patch("bts.data.pull.time.sleep") as mock_sleep:
+            paths = pull_feeds("2025-06-01", "2025-06-01", tmp_path, delay=0.3)
+        assert len(paths) == 2
+        mock_open.assert_not_called()
+>       mock_sleep.assert_not_called()
+
+tests/data/test_pull.py:195: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <MagicMock name='sleep' id='4408286896'>
+
+    def assert_not_called(self):
+        """assert that the mock was never called.
+        """
+        if self.call_count != 0:
+            msg = ("Expected '%s' to not have been called. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+>           raise AssertionError(msg)
+E           AssertionError: Expected 'sleep' to not have been called. Called 1 times.
+E           Calls: [call(0.3)].
+
+/Users/eric/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/unittest/mock.py:910: AssertionError
+_______________ test_pull_feeds_sleeps_only_after_real_downloads _______________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8129/test_pull_feeds_sleeps_only_af0')
+
+    def test_pull_feeds_sleeps_only_after_real_downloads(tmp_path):
+        games = [{"gamePk": 111, "date": "2025-06-01"}, {"gamePk": 222, "date": "2025-06-01"},
+                 {"gamePk": 333, "date": "2025-06-01"}]
+        (tmp_path / "2025").mkdir()
+        (tmp_path / "2025" / "222.json").write_text("{}")          # cached; 111 and 333 fetched
+        sample = {"gameData": {}, "liveData": {}}
+    
+        def _mock(url, **kwargs):
+            resp = MagicMock()
+            resp.read.return_value = json.dumps(sample).encode()
+            return resp
+    
+        with patch("bts.data.pull.discover_games", return_value=games), \
+             patch("bts.data.pull.urlopen", side_effect=_mock) as mock_open, \
+             patch("bts.data.pull.time.sleep") as mock_sleep:
+            pull_feeds("2025-06-01", "2025-06-01", tmp_path, delay=0.3)
+        assert mock_open.call_count == 2
+>       assert mock_sleep.call_count == 1          # after 111 only; 333 is the last item
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: assert 2 == 1
+E        +  where 2 = <MagicMock name='sleep' id='4407937552'>.call_count
+
+tests/data/test_pull.py:215: AssertionError
+=========================== short test summary info ============================
+FAILED tests/data/test_pull.py::test_pull_feeds_does_not_sleep_on_cache_hits
+FAILED tests/data/test_pull.py::test_pull_feeds_sleeps_only_after_real_downloads
+========================= 2 failed, 8 passed in 0.38s ==========================

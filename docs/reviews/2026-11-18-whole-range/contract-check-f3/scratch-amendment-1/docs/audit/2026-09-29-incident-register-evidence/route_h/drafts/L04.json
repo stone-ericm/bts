@@ -1,0 +1,168 @@
+{
+ "id": "I-204",
+ "working_id": "L04",
+ "title": "Scoring crash window: a crash between update_streak (streak.json) and the terminal pick save lets the restarted scorer apply the same result again",
+ "disposition": "deployed_latent_defect",
+ "counted": true,
+ "classes": {
+  "primary": "G",
+  "secondary": []
+ },
+ "tier": "A",
+ "tier_reason": "a double application changes local streak/saver state until the 02:00 replay heals it (a hit counts twice; a saver-consuming miss re-applied without the saver resets to 0, by code reading); unfixed (deferred); B -> A",
+ "residual_reaches_production": true,
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "One result affects the streak and the saver at most once, including the saver case, across a crash and restart between the streak update and the terminal pick write.",
+  "source": "design §10.3 (scoring crash/restart characterization candidate)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "check_results and run_result_polling call update_streak (writes streak.json) and then save_pick (writes the terminal result) inside scoring_lock; the two files are written separately, so a crash in between leaves streak.json advanced and the pick unresolved, and the restarted scorer re-reads the pick as unscored and applies update_streak again",
+   "code": [
+    {
+     "path": "src/bts/cli.py",
+     "ref": "4490aee",
+     "symbol": "check_results",
+     "ref_basis": "log"
+    },
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "4490aee",
+     "symbol": "run_result_polling",
+     "ref_basis": "log"
+    },
+    {
+     "path": "src/bts/picks.py",
+     "ref": "4490aee",
+     "symbol": "update_streak",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "implemented": "unfixed",
+   "deployed": "not_applicable",
+   "mitigated": "none",
+   "verified_recovered": "not_applicable",
+   "link": 1
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "Deferred: the two-file streak+pick atomicity journal; healed by the 02:00 season replay and contest anchoring (the decision streak is the contest value), so the window affects local state until the next replay",
+   "reaches_production": true,
+   "source": "49f2538 body ('Deferred (with rationale): two-file streak+pick atomicity journal'); ARCHITECTURE.md 'Scoring serialization' known deferral"
+  }
+ ],
+ "watchdog": {
+  "boundary": "grading",
+  "trigger": "after each scoring run, the streak.json change for a date differs from the single application implied by that date's terminal result, or a date is scored twice",
+  "recovery_assertion": "the replayed season streak and saver equal streak.json after the next reconcile"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-06-09-fable5-full-audit.md 'Strategy & contest-decision path' [P3] (f5de8ee)",
+   "written_at": "2026-06-09T21:57:05-04:00",
+   "what": "'update-streak-then-save crash window can double-count a day (cli.py:1759 / scheduler.py:1384)'"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 49f2538 message body",
+   "written_at": "2026-07-10T11:11:41-04:00",
+   "what": "'Deferred (with rationale): two-file streak+pick atomicity journal (pre-existing, healed by reconcile + contest anchoring)'"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "ARCHITECTURE.md 'Scoring serialization (picks.scoring_lock, 2026-07-09/10)'",
+   "what": "'Known deferral: streak.json + pick-file remain a two-file non-atomic pair under crash (healed by the 2am replay + contest anchoring)'"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/cli.py check_results and src/bts/scheduler.py run_result_polling at 4490aee",
+   "what": "update_streak precedes save_pick inside the lock at every scoring site; a peer-scored check only protects against a completed save"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy runs 28601525167 ... 35753849145 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "every install in the continuous logged chain 7/02 -> 9/22 (last: 4490aee) carries the two-file write; no fix exists"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "latent (no evidenced firing in Phase 1)",
+   "onset": "not_applicable",
+   "first_detectable": "not_applicable",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-06-09T21:57:05-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "not_applicable",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "not_applicable"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "3a09b2c",
+   "49f2538"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-06-09-fable5-full-audit.md [P3]",
+   "ARCHITECTURE.md 'Scoring serialization'",
+   "design §10.3"
+  ]
+ },
+ "related": [
+  "I-059",
+  "I-073",
+  "I-202"
+ ],
+ "notes": [
+  "scoring_lock (3a09b2c/49f2538, I-073 F13) serializes concurrent scorers but does not make the two writes atomic",
+  "healing depends on the 02:00 replay, which has its own same-day rollback defect (I-202)",
+  "a firing would show as a scheduler restart during result polling or check-results followed by a streak.json jump; Route R (journals from 5/11, cron.log)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time",
+  "fixtures built 2026-09-29 (plan Task 1), three strict expected failures:",
+  "  - the real `bts check-results` dying at the terminal pick save then restarted: a hit counts twice (5 -> 7), and a saver-absorbed miss re-applied without the saver resets 12 -> 0 (this executes the saver-case consequence);",
+  "  - the daemon's run_result_polling dying at the same point, then the 01:00 check-results re-applying the hit (5 -> 7).",
+  "All three fail unmarked with ResultAppliedTwice. A simulated repair that saves the pick before the streak turns each node XPASS(strict): the reorder in check_results for the two CLI nodes, and in run_result_polling for the polling node. A no-fault control applies once."
+ ]
+}

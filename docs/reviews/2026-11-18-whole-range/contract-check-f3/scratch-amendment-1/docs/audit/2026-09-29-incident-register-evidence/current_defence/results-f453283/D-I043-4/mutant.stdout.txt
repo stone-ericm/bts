@@ -1,0 +1,163 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 48 items
+
+tests/test_strategy.py ......F................FFF......................  [100%]
+
+=================================== FAILURES ===================================
+__ TestSelectPick.test_existing_postponed_unposted_reselects_fresh_candidate ___
+
+self = <tests.test_strategy.TestSelectPick object at 0x10ff83aa0>
+mock_statuses = <MagicMock name='get_game_statuses' id='4563051552'>
+_detailed_statuses = <MagicMock name='get_game_statuses_detailed' id='4563047424'>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8028/test_existing_postponed_unpost0')
+
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        778899: {"abstract": "F", "detailed": "Postponed"},
+        778900: {"abstract": "P", "detailed": "Pre-Game"},
+    })
+    @patch("bts.strategy.get_game_statuses", return_value={778899: "F", 778900: "P"})
+    def test_existing_postponed_unposted_reselects_fresh_candidate(
+        self, mock_statuses, _detailed_statuses, tmp_path
+    ):
+        from bts.strategy import select_pick
+    
+        existing = DailyPick(
+            date="2026-04-01",
+            run_time="2026-04-01T15:00:00+00:00",
+            pick=Pick(
+                batter_name="Stale Pick", batter_id=100001, team="ATH",
+                lineup_position=1, pitcher_name="Suarez", pitcher_id=200001,
+                p_game_hit=0.76, flags=[], projected_lineup=False,
+                game_pk=778899, game_time="2026-04-01T23:10:00Z",
+            ),
+            double_down=None, runner_up=None,
+        )
+        save_pick(existing, tmp_path)
+    
+        preds = _predictions([
+            {"batter_name": "Fresh Pick", "p_game_hit": 0.84, "game_pk": 778900},
+        ])
+        result = select_pick(preds, "2026-04-01", tmp_path)
+    
+        assert result.pick_result is not None
+>       assert result.pick_result.locked is False
+E       AssertionError: assert True is False
+E        +  where True = PickResult(daily=DailyPick(date='2026-04-01', run_time='2026-04-01T15:00:00+00:00', pick=Pick(batter_name='Stale Pick'...ema_version=None, feature_env=None, feature_env_hash=None, tail_policy_sha256=None, policy_decision=None), locked=True).locked
+E        +    where PickResult(daily=DailyPick(date='2026-04-01', run_time='2026-04-01T15:00:00+00:00', pick=Pick(batter_name='Stale Pick'...ema_version=None, feature_env=None, feature_env_hash=None, tail_policy_sha256=None, policy_decision=None), locked=True) = SelectionResult(pick_result=PickResult(daily=DailyPick(date='2026-04-01', run_time='2026-04-01T15:00:00+00:00', pick=P...saver_available=None, state_source=None, state_status=None, allow_double=None, contest_source_date=None, decision=None).pick_result
+
+tests/test_strategy.py:168: AssertionError
+_ TestSelectPick.test_detailed_void_candidate_excluded_even_when_abstract_preview[Postponed] _
+
+self = <tests.test_strategy.TestSelectPick object at 0x10ffa64b0>
+detailed = 'Postponed'
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8028/test_detailed_void_candidate_e0')
+
+    @pytest.mark.parametrize("detailed", ["Postponed", "Cancelled", "Canceled"])
+    def test_detailed_void_candidate_excluded_even_when_abstract_preview(
+        self, detailed, tmp_path
+    ):
+        from bts.strategy import select_pick
+    
+        preds = _predictions([
+            {"batter_name": "Voided Top", "p_game_hit": 0.91, "game_pk": 778899},
+            {"batter_name": "Fresh Pick", "p_game_hit": 0.84, "game_pk": 778900},
+        ])
+        result = select_pick(
+            preds,
+            "2026-04-01",
+            tmp_path,
+            game_statuses_detailed={
+                778899: {"abstract": "P", "detailed": detailed},
+                778900: {"abstract": "P", "detailed": "Pre-Game"},
+            },
+        )
+    
+        assert result.pick_result is not None
+        assert result.pick_result.locked is False
+>       assert result.pick_result.daily.pick.batter_name == "Fresh Pick"
+E       AssertionError: assert 'Voided Top' == 'Fresh Pick'
+E         
+E         - Fresh Pick
+E         + Voided Top
+
+tests/test_strategy.py:529: AssertionError
+_ TestSelectPick.test_detailed_void_candidate_excluded_even_when_abstract_preview[Cancelled] _
+
+self = <tests.test_strategy.TestSelectPick object at 0x10ffa66c0>
+detailed = 'Cancelled'
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8028/test_detailed_void_candidate_e1')
+
+    @pytest.mark.parametrize("detailed", ["Postponed", "Cancelled", "Canceled"])
+    def test_detailed_void_candidate_excluded_even_when_abstract_preview(
+        self, detailed, tmp_path
+    ):
+        from bts.strategy import select_pick
+    
+        preds = _predictions([
+            {"batter_name": "Voided Top", "p_game_hit": 0.91, "game_pk": 778899},
+            {"batter_name": "Fresh Pick", "p_game_hit": 0.84, "game_pk": 778900},
+        ])
+        result = select_pick(
+            preds,
+            "2026-04-01",
+            tmp_path,
+            game_statuses_detailed={
+                778899: {"abstract": "P", "detailed": detailed},
+                778900: {"abstract": "P", "detailed": "Pre-Game"},
+            },
+        )
+    
+        assert result.pick_result is not None
+        assert result.pick_result.locked is False
+>       assert result.pick_result.daily.pick.batter_name == "Fresh Pick"
+E       AssertionError: assert 'Voided Top' == 'Fresh Pick'
+E         
+E         - Fresh Pick
+E         + Voided Top
+
+tests/test_strategy.py:529: AssertionError
+_ TestSelectPick.test_detailed_void_candidate_excluded_even_when_abstract_preview[Canceled] _
+
+self = <tests.test_strategy.TestSelectPick object at 0x10ffa6840>
+detailed = 'Canceled'
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8028/test_detailed_void_candidate_e2')
+
+    @pytest.mark.parametrize("detailed", ["Postponed", "Cancelled", "Canceled"])
+    def test_detailed_void_candidate_excluded_even_when_abstract_preview(
+        self, detailed, tmp_path
+    ):
+        from bts.strategy import select_pick
+    
+        preds = _predictions([
+            {"batter_name": "Voided Top", "p_game_hit": 0.91, "game_pk": 778899},
+            {"batter_name": "Fresh Pick", "p_game_hit": 0.84, "game_pk": 778900},
+        ])
+        result = select_pick(
+            preds,
+            "2026-04-01",
+            tmp_path,
+            game_statuses_detailed={
+                778899: {"abstract": "P", "detailed": detailed},
+                778900: {"abstract": "P", "detailed": "Pre-Game"},
+            },
+        )
+    
+        assert result.pick_result is not None
+        assert result.pick_result.locked is False
+>       assert result.pick_result.daily.pick.batter_name == "Fresh Pick"
+E       AssertionError: assert 'Voided Top' == 'Fresh Pick'
+E         
+E         - Fresh Pick
+E         + Voided Top
+
+tests/test_strategy.py:529: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_strategy.py::TestSelectPick::test_existing_postponed_unposted_reselects_fresh_candidate
+FAILED tests/test_strategy.py::TestSelectPick::test_detailed_void_candidate_excluded_even_when_abstract_preview[Postponed]
+FAILED tests/test_strategy.py::TestSelectPick::test_detailed_void_candidate_excluded_even_when_abstract_preview[Cancelled]
+FAILED tests/test_strategy.py::TestSelectPick::test_detailed_void_candidate_excluded_even_when_abstract_preview[Canceled]
+========================= 4 failed, 44 passed in 0.95s =========================

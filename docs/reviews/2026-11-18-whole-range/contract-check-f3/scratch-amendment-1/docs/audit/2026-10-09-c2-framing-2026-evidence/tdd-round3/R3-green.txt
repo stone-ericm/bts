@@ -1,0 +1,12 @@
+UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run --offline pytest -q -p no:cacheprovider tests/scripts/c2_framing/test_f26_run.py -k 'test_f1_ or test_f2_ or test_f3_ or test_f4_ or test_f5_'
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-c2f26-code
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 163 items / 121 deselected / 42 selected
+
+tests/scripts/c2_framing/test_f26_run.py ............................... [ 73%]
+...........                                                              [100%]
+
+================ 42 passed, 121 deselected in 229.35s (0:03:49) ================

@@ -1,0 +1,74 @@
+# closure screen at c468430, rerun at ee2489d, 0dad851, 308f51a, 78d6d38, 9c275b1, e927a75, f072503, 99f29dd, 6b63b61 and 6dd6564 with an identical body, at 162718a with one added category (lifetime introspection: 0; proposed ruling 13), and at 3880ef6, b96d1e3, c59ee58 and f453283 (an identical body) as a warning list with ruling 13's widened categories (lifetime introspection 0, instrumentation introspection 0, elapsed time or resource use 44, object address 5; the earlier categories unchanged): src/bts and tests (tests/scripts/incident_register excluded); reviewed: the two sys.modules stores register a loaded script under its own name, on no declared binding path (benign); the elapsed-time timing assertions sit in test files no prepared spec runs, and src/bts/cli.py:1774 (check-pick-entered's minutes-scale nag cutoff) is invoked by no prepared spec; (Codex r19, verbatim:) progress.py records durations; ratelimit.py paces calls. scheduler.py also feeds measured durations into fallback budgets and deadlines. The I-0813-b killing path breaks before using that budget; I-0830-b remains unavailable as absence and is not cleared for general elapsed-time independence. The seven eligible killing paths have the separate source dispositions recorded in Codex r19, and the five object-address lines are test-local dict keys and unique paths (the per-closure review is Codex r19's)
+
+## audit hook: 0
+
+## signal handler or timer: 0
+
+## collector control: 0
+
+## finalizer or exit hook: 0
+
+## lifetime introspection: 0
+
+## instrumentation introspection: 0
+
+## elapsed time or resource use: 44
+src/bts/cli.py:1706: fetch_started = time.monotonic()
+src/bts/cli.py:1774: elapsed_min = (time.monotonic() - fetch_started) / 60
+src/bts/leaderboard/ratelimit.py:43: wait = (last_called + gap) - time.monotonic()
+src/bts/leaderboard/ratelimit.py:46: last_called = time.monotonic()
+src/bts/progress.py:49: _stage_started_mono = time.monotonic()
+src/bts/progress.py:50: _stage_started_wall = time.time()
+src/bts/progress.py:66: "ended_at": time.time(),
+src/bts/progress.py:67: "duration_s": time.monotonic() - _stage_started_mono,
+src/bts/progress.py:83: _stage_started_mono = time.monotonic()
+src/bts/progress.py:84: _stage_started_wall = time.time()
+src/bts/progress.py:113: "stage_age_s": time.monotonic() - _stage_started_mono,
+src/bts/scheduler.py:2667: check_t0 = time.monotonic()
+src/bts/scheduler.py:2714: "duration_sec": round(time.monotonic() - check_t0, 1),
+src/bts/scheduler.py:2854: refresh_t0 = time.monotonic()
+src/bts/scheduler.py:2871: refresh_duration = round(time.monotonic() - refresh_t0, 1)
+tests/health/test_leaderboard_freshness.py:17: mtime = time.time() - (hours_ago * 3600)
+tests/leaderboard/test_ratelimit.py:13: return time.monotonic()
+tests/leaderboard/test_ratelimit.py:15: t0 = time.monotonic()
+tests/leaderboard/test_ratelimit.py:17: elapsed = time.monotonic() - t0
+tests/leaderboard/test_ratelimit.py:26: t1 = time.monotonic()
+tests/leaderboard/test_ratelimit.py:28: elapsed = time.monotonic() - t1
+tests/leaderboard/test_ratelimit.py:38: t1 = time.monotonic()
+tests/leaderboard/test_ratelimit.py:40: elapsed = time.monotonic() - t1
+tests/test_cli_integration.py:1092: import time as _time
+tests/test_heartbeat.py:129: import time as _time
+tests/test_park_drag_feature.py:245: now = time.time()
+tests/test_park_drag_feature.py:354: now = time.time()
+tests/test_park_drag_feature.py:384: now = time.time()
+tests/test_scheduler.py:1784: import time as _time
+tests/test_scheduler.py:1785: t0 = _time.monotonic()
+tests/test_scheduler.py:1787: assert _time.monotonic() - t0 >= 0.04  # sleep actually ran
+tests/test_scheduler.py:1794: import time as _time
+tests/test_scheduler.py:1817: import time as _time
+tests/test_scheduler.py:1818: t0 = _time.monotonic()
+tests/test_scheduler.py:1820: assert _time.monotonic() - t0 < 0.1
+tests/test_scheduler.py:1825: import time as _time
+tests/test_scheduler.py:1827: t0 = _time.monotonic()
+tests/test_scheduler.py:1829: assert _time.monotonic() - t0 < 0.1
+tests/test_scheduler.py:1833: import time as _time
+tests/test_scheduler.py:1834: t0 = _time.monotonic()
+tests/test_scheduler.py:1836: assert _time.monotonic() - t0 < 0.1
+tests/test_scheduler.py:1868: import time as _time
+tests/test_scheduler.py:1869: t0 = _time.monotonic()
+tests/test_scheduler.py:1871: assert _time.monotonic() - t0 >= 0.09
+
+## object address: 5
+tests/scripts/season_ledger/test_compile.py:336: swap = {id(a): dict(a, decision_obs_id=b["decision_obs_id"]), id(b): dict(b, decision_obs_id=a["decision_obs_id"])}
+tests/scripts/season_ledger/test_compile.py:338: check([swap.get(id(r), r) for r in ledger])
+tests/scripts/test_live_forward_capture_once.py:881: config = _research_config(tmp_path / str(id(mutate)))
+tests/scripts/test_live_forward_capture_once.py:1080: config = _research_config(tmp_path / str(id(mutate)))
+tests/scripts/test_live_forward_capture_once.py:1103: config = _research_config(tmp_path / str(id(mutate)))
+
+## class assignment: 0
+
+## sys.modules store: 2
+tests/scripts/test_canonicalize_realized_picks.py:40: sys.modules["canonicalize_realized_picks"] = mod
+tests/scripts/test_canonicalize_realized_picks_p1.py:45: sys.modules["canonicalize_realized_picks"] = mod
+
+## stdlib patch: 0

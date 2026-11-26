@@ -1,0 +1,107 @@
+{
+ "id": "E105",
+ "episode_row": [
+  "E105",
+  "4/03\u20135/xx",
+  "public-post / dashboard display defects (DD post omitted 2nd batter; DD inning label; today's row colour; locked-unposted PENDING badge)",
+  "U",
+  "UC",
+  "B",
+  "b430e45 d3e9337 c30138b 2ee1763"
+ ],
+ "commits": [
+  {
+   "sha": "b430e45",
+   "authored": "2026-04-03T11:17:48-04:00",
+   "subject": "feat(posting): show both matchups in double-down Bluesky posts",
+   "body": "Before: \"Today's picks: Bo Bichette (NYM) + Luis Arraez / vs Robbie Ray\"\nAfter:  \"Today's picks (double down):\n         Bo Bichette (NYM) vs Robbie Ray \u2014 72.1%\n         Luis Arraez (SF) vs Logan Webb \u2014 67.8%\n         P(both): 48.9%\"\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/cli.py",
+    "src/bts/orchestrator.py",
+    "src/bts/posting.py",
+    "src/bts/scheduler.py",
+    "tests/test_posting.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24253126060,
+    "created_at": "2026-04-10T16:29:24Z",
+    "head_sha": "4a82cf8",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "d3e9337",
+   "authored": "2026-04-08T17:28:32-04:00",
+   "subject": "fix: show inning for both games in double-down header",
+   "body": "Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scorecard.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24253126060,
+    "created_at": "2026-04-10T16:29:24Z",
+    "head_sha": "4a82cf8",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "c30138b",
+   "authored": "2026-04-10T22:57:30-04:00",
+   "subject": "fix(dashboard): today's row shows hit/miss color instead of neutral 'today' styling",
+   "body": "",
+   "files": [
+    "src/bts/web.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24273088030,
+    "created_at": "2026-04-11T02:57:32Z",
+    "head_sha": "c30138b",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "2ee1763",
+   "authored": "2026-04-12T12:07:16-04:00",
+   "subject": "feat(dashboard): split LOCKED and POSTED into independent badges",
+   "body": "LOCKED now derives from scheduler_state.pick_locked (the actual\ntruth source for \"the model has committed to this pick\"), with a\nfallback to game-started time check when the state file is missing.\n\nPOSTED is a separate badge keyed off bluesky_posted on the pick\nfile. The two states are independent \u2014 the scheduler can lock a\npick before the Bluesky post succeeds, and a Bluesky failure\nshouldn't make the dashboard claim the pick is still PENDING.\n\nVisual: LOCKED green (existing), PENDING orange (existing),\nPOSTED blue (#1185fe \u2014 Bluesky brand).\n\nAdds load_scheduler_state helper that fails closed (returns {})\non missing or malformed files, plus tests for all three branches.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/web.py",
+    "tests/test_health_endpoint.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24310770761,
+    "created_at": "2026-04-12T16:07:23Z",
+    "head_sha": "2ee1763",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

@@ -1,0 +1,39 @@
+{
+ "id": "E41",
+ "episode_row": [
+  "E41",
+  "4/30",
+  "blend_training / bluesky_post health false positives",
+  "A",
+  "OI?",
+  "B",
+  "f0c3af9"
+ ],
+ "commits": [
+  {
+   "sha": "f0c3af9",
+   "authored": "2026-04-30T00:42:52-04:00",
+   "subject": "fix(health): suppress blend_training and bluesky_post alerts before cutoff",
+   "body": "Both alerts had no time-of-day guard, so they fired daily false positives\nduring the natural pre-cron / pre-post window:\n\n  - blend_training: file blend_<N+1>.pkl is created by 3:06 AM ET cron on\n    day N. Alert now suppresses before 4 AM ET (1h cron grace), so it no\n    longer pages between midnight and 3:06.\n\n  - bluesky_post: post fires at lineup confirmation (45min before each\n    game's first pitch) or via 1 AM safety-net cron next day. Alert now\n    suppresses before 22:00 ET, well after the latest typical first\n    pitch, so it no longer pages all morning before games begin.\n\nEach check accepts a ``now: datetime | None = None`` parameter (defaults\nto ``datetime.now(ZoneInfo(\"America/New_York\"))``) and skips when on the\nguarded date and below the hour cutoff. Test coverage added for boundary\nhours (3:59, 4:00, 21:59, 22:00) plus the still-fire-when-pkl-present\ncase to confirm the guard only suppresses, doesn't shadow good signals.\n\nCo-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/health/blend_training.py",
+    "src/bts/health/post_failure.py",
+    "tests/health/test_blend_training.py",
+    "tests/health/test_post_failure.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 25176998666,
+    "created_at": "2026-04-30T16:27:37Z",
+    "head_sha": "ee4190f",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

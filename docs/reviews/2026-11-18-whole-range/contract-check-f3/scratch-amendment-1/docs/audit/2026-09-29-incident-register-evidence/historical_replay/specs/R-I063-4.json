@@ -1,0 +1,41 @@
+{
+  "label": "R-I063-4",
+  "incident": "I-063",
+  "links": [
+    4
+  ],
+  "fix_set": [
+    "56f9726"
+  ],
+  "tests": [
+    "tests/health/test_contest_state.py::test_gap2_coverage_lag_is_warn",
+    "tests/health/test_contest_state.py::test_gap1_past_noon_is_info_not_warn",
+    "tests/health/test_contest_state.py::test_offday_gap_with_one_new_pick_is_not_critical",
+    "tests/health/test_contest_state.py::test_two_day_gap_is_warn_not_critical",
+    "-q"
+  ],
+  "symptom_nodes": [
+    {
+      "node": "tests/health/test_contest_state.py::test_gap1_past_noon_is_info_not_warn",
+      "assertion": {
+        "path": "tests/health/test_contest_state.py",
+        "text": "assert not any(a.level == \"WARN\" for a in alerts), alerts",
+        "line": 119
+      }
+    }
+  ],
+  "audit": {
+    "tests/health/test_contest_state.py": {
+      "decision": "neutral",
+      "reason": "56f9726 rewrites the four gap tests to the coverage-split levels (gap 1 -> INFO at any hour, gap >= 2 -> WARN not CRITICAL); the module imports SOURCE and check, both at the parent 9958874, whose check(picks_dir, *, expected, now) has the same signature"
+    }
+  },
+  "deployed_ref": {
+    "sha": "83a5cad",
+    "basis": "log"
+  },
+  "env": {
+    "TZ": "America/New_York"
+  },
+  "notes": "Symptom: at the parent 9958874, check() turns a one-settled-pick gap into WARN 'contest state lag persisting past noon ET' when now is 12:00 ET or later (4f13eb3's escalation); test_gap1_past_noon_is_info_not_warn runs at 2026-06-08 19:00Z (15:00 ET) with source_date 06-06 and picks resolved 06-06 and 06-07 (gap 1), so line 119 fails. Static checks: the module imports SOURCE and check at 9958874; the test passes expected= and now=, both accepted by the parent's check; the P..F src diff is only health/contest_state.py. Anchor: the text occurs at lines 119 and 151 at 56f9726; line 119 is inside the symptom test. Other selected nodes at the parent: test_offday_gap_with_one_new_pick_is_not_critical (the same noon WARN at 19:00 ET; line 150), test_gap2_coverage_lag_is_warn (74) and test_two_day_gap_is_warn_not_critical (171) also fail by assertion; not declared (see the manifest)."
+}

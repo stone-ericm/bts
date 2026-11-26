@@ -1,0 +1,22 @@
+nice: setpriority: Operation not permitted
+MDP base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmprjpqmhsn/missing')
+MDP tail policy not usable (base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmprjpqmhsn/missing'): tail pairing unverifiable)
+tail policy: tail policy unavailable (base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmprjpqmhsn/missing'): tail pairing unverifiable); forced fallback -> single
+tail policy: tail policy unavailable (base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmprjpqmhsn/missing'): tail pairing unverifiable); forced fallback -> skip
+tail policy: tail policy unavailable (base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmprjpqmhsn/missing'): tail pairing unverifiable); forced fallback -> skip
+MDP base policy unavailable (ValueError: This file contains pickled (object) data. If you trust the file you can load it unsafely using the `allow_pickle=` keyword argument or `pickle.load()`.)
+MDP tail policy not usable (base policy unavailable (ValueError: This file contains pickled (object) data. If you trust the file you can load it unsafely using the `allow_pickle=` keyword argument or `pickle.load()`.): tail pairing unverifiable)
+tail policy: tail policy unavailable (base policy unavailable (ValueError: This file contains pickled (object) data. If you trust the file you can load it unsafely using the `allow_pickle=` keyword argument or `pickle.load()`.): tail pairing unverifiable); forced fallback -> single
+tail policy: tail policy unavailable (base policy unavailable (ValueError: This file contains pickled (object) data. If you trust the file you can load it unsafely using the `allow_pickle=` keyword argument or `pickle.load()`.): tail pairing unverifiable); forced fallback -> skip
+tail policy: tail policy unavailable (base policy unavailable (ValueError: This file contains pickled (object) data. If you trust the file you can load it unsafely using the `allow_pickle=` keyword argument or `pickle.load()`.): tail pairing unverifiable); forced fallback -> skip
+MDP base policy unavailable (IsADirectoryError: [Errno 21] Is a directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmprjpqmhsn/directory')
+MDP tail policy not usable (base policy unavailable (IsADirectoryError: [Errno 21] Is a directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmprjpqmhsn/directory'): tail pairing unverifiable)
+tail policy: tail policy unavailable (base policy unavailable (IsADirectoryError: [Errno 21] Is a directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmprjpqmhsn/directory'): tail pairing unverifiable); forced fallback -> single
+tail policy: tail policy unavailable (base policy unavailable (IsADirectoryError: [Errno 21] Is a directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmprjpqmhsn/directory'): tail pairing unverifiable); forced fallback -> skip
+tail policy: tail policy unavailable (base policy unavailable (IsADirectoryError: [Errno 21] Is a directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmprjpqmhsn/directory'): tail pairing unverifiable); forced fallback -> skip
+MDP tail policy unavailable (base policy sha256 mismatch: artifact pairs with 66d154717ae5, current base policy is 3a20238c6823 — rebuild the tail)
+Unwritten base FIFO blocked for 150 ms
+Tied, narrow, missing boundaries, out-of-range saver and queried-cell errors checked
+2026-12-31T23:59:00-05:00 (0, 0) synthetic decision skip empty slate has no pick
+2027-01-01T00:01:00-05:00 (269, 180) synthetic decision skip empty slate has no pick
+base controls completed

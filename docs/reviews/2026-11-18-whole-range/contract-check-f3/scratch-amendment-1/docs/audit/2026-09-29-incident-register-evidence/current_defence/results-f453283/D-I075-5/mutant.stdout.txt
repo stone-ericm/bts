@@ -1,0 +1,61 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 19 items
+
+tests/health/test_predicted_vs_realized.py ..F..F.............           [100%]
+
+=================================== FAILURES ===================================
+_______ TestComputeMetrics.test_void_primary_still_counts_graded_dd_slot _______
+
+self = <tests.health.test_predicted_vs_realized.TestComputeMetrics object at 0x109a063f0>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8100/test_void_primary_still_counts0')
+
+    def test_void_primary_still_counts_graded_dd_slot(self, tmp_path):
+        # Per-slot basis: a void primary is skipped, but the DD leg was a real
+        # delivered prediction with a real outcome — it must still be graded.
+        (tmp_path / "2026-04-27.json").write_text(json.dumps({
+            "date": "2026-04-27",
+            "pick": {"p_game_hit": 0.75},
+            "double_down": {"p_game_hit": 0.72},
+            "result": "hit",
+            "slot_results": {"pick": "void", "double_down": "hit"},
+        }))
+        m = compute_metrics(tmp_path, today=date(2026, 4, 27))
+>       assert list(m.daily) == ["2026-04-27"]
+E       AssertionError: assert [] == ['2026-04-27']
+E         
+E         Right contains one more item: '2026-04-27'
+E         Use -v to get more diff
+
+tests/health/test_predicted_vs_realized.py:47: AssertionError
+_______ TestPerSlotBasis.test_dd_day_grades_each_slot_against_its_own_p ________
+
+self = <tests.health.test_predicted_vs_realized.TestPerSlotBasis object at 0x109a06e10>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8100/test_dd_day_grades_each_slot_a0')
+
+    def test_dd_day_grades_each_slot_against_its_own_p(self, tmp_path):
+        # Primary hit, DD leg missed → day-level result is "miss", but the
+        # slots are (0.78→1) and (0.74→0): gap = mean(p) - mean(realized).
+        (tmp_path / "2026-04-27.json").write_text(json.dumps({
+            "date": "2026-04-27",
+            "pick": {"p_game_hit": 0.78},
+            "double_down": {"p_game_hit": 0.74},
+            "result": "miss",
+            "slot_results": {"pick": "hit", "double_down": "miss"},
+        }))
+        m = compute_metrics(tmp_path, today=date(2026, 4, 27))
+        assert list(m.daily) == ["2026-04-27"]
+        expected = (0.78 + 0.74) / 2 - 0.5
+>       assert abs(m.rolling_14d_gap - expected) < 1e-9
+E       AssertionError: assert 0.52 < 1e-09
+E        +  where 0.52 = abs((0.78 - 0.26))
+E        +    where 0.78 = PredRealMetrics(daily={'2026-04-27': {'slots': [(0.78, 0)], 'result': 'miss'}}, rolling_14d_gap=0.78, baseline_28d_gap=0.78, drift=0.0).rolling_14d_gap
+
+tests/health/test_predicted_vs_realized.py:104: AssertionError
+=========================== short test summary info ============================
+FAILED tests/health/test_predicted_vs_realized.py::TestComputeMetrics::test_void_primary_still_counts_graded_dd_slot
+FAILED tests/health/test_predicted_vs_realized.py::TestPerSlotBasis::test_dd_day_grades_each_slot_against_its_own_p
+========================= 2 failed, 17 passed in 0.07s =========================

@@ -1,0 +1,77 @@
+{
+  "label": "D-I011-1",
+  "link": "I-011 link 1",
+  "tests": [
+    "tests/test_scoring_lock.py::test_check_results_skips_when_peer_scored_mid_flight",
+    "-q"
+  ],
+  "allowed_paths": [
+    "src/bts/cli.py"
+  ],
+  "mutation_edits": [
+    [
+      "src/bts/cli.py",
+      "        # Skip if scheduler already resolved this pick (avoid double-counting streak)\n        if daily.result in (\"hit\", \"miss\", \"void\"):\n",
+      "        # Skip if scheduler already resolved this pick (avoid double-counting streak)\n        if False:  # W1.5 mutant: pre-5e02676 — no already-resolved pre-check\n"
+    ],
+    [
+      "src/bts/cli.py",
+      "            elif fresh.result in (\"hit\", \"miss\", \"void\"):\n                skip_reason = (f\"Already resolved by another scorer: {fresh.result}. \"\n                               f\"Skipping streak update.\")\n            else:\n                daily = fresh\n",
+      "            elif False:\n                skip_reason = (f\"Already resolved by another scorer: {fresh.result}. \"\n                               f\"Skipping streak update.\")\n            else:\n                pass  # W1.5 mutant: pre-5e02676 — an already-resolved pick is scored again\n                daily = fresh\n"
+    ]
+  ],
+  "branch": {
+    "path": "src/bts/cli.py",
+    "text": "W1.5 mutant: pre-5e02676 — an already-resolved pick is scored again"
+  },
+  "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+  },
+  "returns": [
+    {
+      "path": "src/bts/picks.py",
+      "qualname": "update_streak",
+      "classify": [
+        [
+          "streak_7",
+          "^7$"
+        ]
+      ]
+    }
+  ],
+  "symptom": {
+    "kind": "return",
+    "path": "src/bts/picks.py",
+    "qualname": "update_streak",
+    "value": 7
+  },
+  "killing": [
+    {
+      "node": "tests/test_scoring_lock.py::test_check_results_skips_when_peer_scored_mid_flight",
+      "assertion": {
+        "path": "tests/test_scoring_lock.py",
+        "text": "assert streak[\"streak\"] == 6, (",
+        "line": 96
+      }
+    }
+  ],
+  "contract": {
+    "text": "Each graded date changes the streak exactly once: bts check-results does not apply a result again to a date that is already resolved (by the scheduler's polling, a peer scorer, or an earlier run).",
+    "entry_mode": "real `bts check-results` via CliRunner",
+    "trigger": "the pick for --date already carries a terminal result when check-results reads it (before resolving, or inside the scoring lock)",
+    "symptom_kind": "wrong returned value (update_streak applied a second time: 5 -> 6 -> 7)"
+  },
+  "level": "component",
+  "level_justification": "test_check_results_skips_when_peer_scored_mid_flight replaces the internal resolver bts.picks.resolve_daily_slot_results with a stub that simulates the peer scorer; the l04 control replaces only MLB HTTP (bts.picks.retry_urlopen) and the clock (bts.cli._now_et)",
+  "allowed_mocks": [
+    "bts.picks.resolve_daily_slot_results",
+    "bts.picks.retry_urlopen",
+    "bts.cli._now_et"
+  ],
+  "baseline": "BASELINE",
+  "env": {
+    "TZ": "America/New_York"
+  },
+  "notes": " Lead's review: the W1.5 fixture node (test_incident_register_2026.py::test_l04_control_without_the_fault_a_rerun_is_a_no_op) is dropped: the register's own fixtures cannot be its current defence (circular). The product killing node kills the mutant through the in-lock re-check (3a09b2c); tests narrowed to it, keeping the file's timing-sensitive thread test out."
+}

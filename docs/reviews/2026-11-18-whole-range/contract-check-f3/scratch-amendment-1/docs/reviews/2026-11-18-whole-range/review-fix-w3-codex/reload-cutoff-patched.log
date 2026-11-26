@@ -1,0 +1,30 @@
+nice: setpriority: Operation not permitted
+/Users/eric/.matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/matplotlib-y4zxchbh because there was an issue with the default path (/Users/eric/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-03-24...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:50 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0%, gap=59.0% vs projected 40.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  DELIVERY REFUSED (fallback) — Synthetic Batter 101: submission cutoff 19:05 ET passed 0.0 min ago; not delivering an unenterable pick.
+
+[19:05 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 102 (ABC) 99.0%, gap=59.0% vs projected 40.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: captured-dm
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:30 ET (game start + 10min, 25 min)...
+  Day complete. Result: captured-poll
+CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/probe-nkla91q6/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=30 best=30 saver=used reason=None
+contest_streak: 30 (best 30, saver used) for 2027-03-24, in effect today
+TRANSPORT health-dm 2027-03-24T19:05:00-04:00 'BTS health CRITICAL alert(s):\n- [late_delivery] LATE DELIVERY REFUSED: Synthetic Batter 101 would have been sent 0 min after the 19:05 ET cutoff. Nothing delivered; the scheduler will re-pick from later games if any remain. Enter a pick manually if you want one now.'
+TRANSPORT dm 2027-03-24T19:05:00-04:00 "Today's pick: Synthetic Batter 102 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 30"
+RELOAD_CUTOFF {"crossed": true, "starts": ["2027-03-24T18:25:00-04:00", "2027-03-24T19:05:00-04:00"], "history": [{"started": "2027-03-24T19:05:00-04:00", "finished": "2027-03-24T19:05:00-04:00", "duration_sec": 0.0, "reused_check_cascade": true, "action": "defer", "reason": "primary_projected_pending_window"}], "refusals": [{"at": "2027-03-24T19:05:00-04:00", "label": "fallback", "reason": "past_submission_cutoff", "batter": "Synthetic Batter 101", "double_down": null, "cutoff_et": "2027-03-24T19:05:00-04:00", "late_min": 0.0, "archive": "refused_delivery_20270324T190500-0400.json"}], "health": ["- [late_delivery] LATE DELIVERY REFUSED: Synthetic Batter 101 would have been sent 0 min after the 19:05 ET cutoff. Nothing delivered; the scheduler will re-pick from later games if any remain. Enter a pick manually if you want one now."], "commit": {"batter_id": 602, "batter_name": "Synthetic Batter 102", "team": "ABC", "game_pk": 102, "p_game_hit": 0.99}}

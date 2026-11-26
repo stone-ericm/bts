@@ -1,0 +1,230 @@
+{
+  "baseline": "f453283d0a0ec39a939b22c6500b5fb36f5452c0",
+  "branch_line": 600,
+  "certificates": {
+    "tests/test_picks.py::TestReconcileResults::test_shadow_pick_files_are_ignored_in_streak_walk": {
+      "coverage": {
+        "boundary_call": "a call that started the code of a value the declared binding held in the interval (the binding is tracked at every store on its path from sys's own namespace, by CPython dict watchers; a held function's __code__ replaced in place is registered at the new code's first start while the thread is alone, never by a function watcher, whose Python callback replaces an exception pending in C (own review during r14)); a call's start is a PY_START at the code's first RESUME carrying the entry argument, and a start reported anywhere else is not read (Codex phase-1 r15 #1); for a mock, the arguments its standard __call__ received, which is what the mock itself records",
+        "claims": "a positive witness in this pinned synthetic execution: a recorded call of a declared boundary with the declared bad category, or a recorded return from the declared function's source with the declared value or category, linked to the mutated line through a common live invocation of the declared entry",
+        "missed_not_false": "a call through anything the recorder does not observe (an unsupported namespace, lookup that bypasses the raw namespace, a C-implemented callable, another process) is not recorded: it can only fail to witness an event",
+        "observation": "inside a certifiable call phase the observer hashes, compares or dispatches only on values it owns or has type-checked as exact builtins: a dict it reads is walked item by item and is unsupported when it holds a key that is not an exact str; heap class module metadata is read by raw namespace iteration, and instance dicts through the standard C getset found by raw MRO namespace iteration; a code object's name that is not an exact str reads as unnamed, and code objects themselves are never hashed or compared (the observer's maps key them by id: a code object's hash and equality reach its co_name and co_consts) (plan ruling 11: Codex phase-1 r9; code objects: self-review during r10). Arguments are read from the frame's own slots, never through frame.f_locals, whose refresh can release an application reference (Codex phase-1 r12 #1). Other application reads happen only after a sample shows the observed thread is the interpreter's only registered thread, since another thread could make a temporary reference it holds the last one and run a finalizer (plan ruling 12, Codex phase-1 r11 #1). (Codex phase-1 r13 #3, verbatim:) While another thread is alive, application arguments, cell contents and binding namespaces are not read. A mock boundary may retain only `self` from its verified non-cell frame slot and compare its identity with observer-held targets to select an unavailable record. The paused frame owns that reference. Code/frame identity and a live replacement-code operand are also admitted metadata. Calls and returns requiring other application reads are unavailable; stores cut the binding before key/value conversion. (Since the r14 answer there is no function watcher, so no replacement-code operand is read; a held function's swapped __code__ is compared by identity at its first start, only while alone.) The sample is a point predicate: a Python-accessing native thread of the reviewed venv that attaches after it is not excluded (open: Codex phase-1 r13 #4; kept open by Eric's decision, 2026-10-02)",
+        "outside_the_model": [
+          "deliberate tampering with the observer, its evidence or the interpreter",
+          "native code other than the reviewed venv",
+          "audit hooks installed before the trusted bootstrap (only site initialisation and the reviewed .pth hooks run before it)",
+          "garbage collection or signal handlers switched on and off again inside the call phase",
+          "a test or helper that replaces a standard-library function the observer itself calls",
+          "a held mock's class changed and restored between the moments the recorder reads it",
+          "application behaviour that can see the observer: a boundary event or returned-value decision that changes with observable finalization, weak-reference liveness, callbacks or counts, reference counts, or garbage-collector introspection (Codex phase-1 r18's wording); with the sys.monitoring tool registry or event sets, instrumented or adaptive bytecode, or another thread's frames; with elapsed time or resource use; or with object addresses. An in-process observer holds every value a binding held, and its code, until the observation ends; it occupies a monitoring tool and instruments the code it watches; and it takes time and memory (ruling 13, adopted by Eric 2026-10-02; Codex phase-1 r17 #1, r18 #1-#3). Fixed fixture clock values, prewritten files and ordinary object identity relations are inputs; they are not elapsed observation cost or numeric address-dependent choices (Codex phase-1 r19, verbatim). The defence refuses a divergence when the twins' recorded failure-message digests differ after normalization, or either digest is missing. Normalization replaces text shaped like a default repr's address, the id in a mock's repr and the number of pytest's /pytest-of-<user>/pytest-N/ directory without identifying its meaning; it can therefore erase meaningful application data. Equal normalized messages do not prove equal boundary events, equal returned values or observer invisibility. The exclusion requires the independent source review of each prepared closure (Codex phase-1 r19's wording, with the patterns as narrowed after it). The closure screen flags selected literal spellings in src/bts and tests; it does not resolve aliases, imports or generated code, so each prepared closure requires independent source review for this exclusion (Codex phase-1 r18 #3, verbatim)"
+        ],
+        "return_identity": "Entry and return identity are source-file and qualname identities, not Python function-object, globals or receiver identities. The fixture review must establish that the observed code invocation belongs to the declared contract and selection. A claim requiring exact callable or receiver identity needs an additional witness or reads unavailable.",
+        "unattributed_when": [
+          "a callable bound to several boundaries",
+          "a callable the binding held earlier in the interval",
+          "a boundary code object shared by several live functions",
+          "a call on another receiver",
+          "a mock whose effective __call__ is not the standard one, or whose class changed",
+          "a value incomplete at any depth",
+          "a binding whose path passes through a namespace holding a key that is not an exact str, or was changed by a store through such a key (until a per-key store re-resolves it)",
+          "a call observed while another thread was alive (only the reads `observation` admits then happen; plan ruling 12, Codex phase-1 r13 #3)",
+          "an argument the observer could not read: never read as a null or as an empty call (Codex phase-1 r13 #1)",
+          "a call the binding does not resolve to AT THE CALL, through watched namespaces that are all supported, read under the lock every watched store takes before its change (Codex phase-1 r10 part 2 #1)",
+          "an identity read from a keyword dict holding a key that is not an exact str"
+        ],
+        "unavailable_when": [
+          "an absence claim (ABSENCE_REFUSAL)",
+          "an audit hook added after the trusted bootstrap",
+          "no audit-hook census",
+          "automatic garbage collection on at either end of the call phase",
+          "an application signal handler at either end of the call phase",
+          "an application trace, profile or monitoring function active at either end of the call phase, or installed in any thread at any time since the trusted bootstrap (it runs inside the observer's callbacks and can set f_lineno to re-run a frame's entry; Codex phase-1 r16)",
+          "observer errors",
+          "an incomplete observation window",
+          "a coroutine or async-generator frame, the boundary callee's own included (Codex phase-1 r13 #2)",
+          "a return observed while another thread was alive (its value is not read; plan ruling 12)",
+          "a run whose bts import provenance is unreadable without application dispatch (refused at every stage's gate)"
+        ]
+      },
+      "linked": {
+        "branch": 10,
+        "entry": 9,
+        "return": 12
+      },
+      "ok": true,
+      "reasons": []
+    },
+    "tests/test_streak_replay.py::test_replay_skips_today_and_later": {
+      "coverage": {
+        "boundary_call": "a call that started the code of a value the declared binding held in the interval (the binding is tracked at every store on its path from sys's own namespace, by CPython dict watchers; a held function's __code__ replaced in place is registered at the new code's first start while the thread is alone, never by a function watcher, whose Python callback replaces an exception pending in C (own review during r14)); a call's start is a PY_START at the code's first RESUME carrying the entry argument, and a start reported anywhere else is not read (Codex phase-1 r15 #1); for a mock, the arguments its standard __call__ received, which is what the mock itself records",
+        "claims": "a positive witness in this pinned synthetic execution: a recorded call of a declared boundary with the declared bad category, or a recorded return from the declared function's source with the declared value or category, linked to the mutated line through a common live invocation of the declared entry",
+        "missed_not_false": "a call through anything the recorder does not observe (an unsupported namespace, lookup that bypasses the raw namespace, a C-implemented callable, another process) is not recorded: it can only fail to witness an event",
+        "observation": "inside a certifiable call phase the observer hashes, compares or dispatches only on values it owns or has type-checked as exact builtins: a dict it reads is walked item by item and is unsupported when it holds a key that is not an exact str; heap class module metadata is read by raw namespace iteration, and instance dicts through the standard C getset found by raw MRO namespace iteration; a code object's name that is not an exact str reads as unnamed, and code objects themselves are never hashed or compared (the observer's maps key them by id: a code object's hash and equality reach its co_name and co_consts) (plan ruling 11: Codex phase-1 r9; code objects: self-review during r10). Arguments are read from the frame's own slots, never through frame.f_locals, whose refresh can release an application reference (Codex phase-1 r12 #1). Other application reads happen only after a sample shows the observed thread is the interpreter's only registered thread, since another thread could make a temporary reference it holds the last one and run a finalizer (plan ruling 12, Codex phase-1 r11 #1). (Codex phase-1 r13 #3, verbatim:) While another thread is alive, application arguments, cell contents and binding namespaces are not read. A mock boundary may retain only `self` from its verified non-cell frame slot and compare its identity with observer-held targets to select an unavailable record. The paused frame owns that reference. Code/frame identity and a live replacement-code operand are also admitted metadata. Calls and returns requiring other application reads are unavailable; stores cut the binding before key/value conversion. (Since the r14 answer there is no function watcher, so no replacement-code operand is read; a held function's swapped __code__ is compared by identity at its first start, only while alone.) The sample is a point predicate: a Python-accessing native thread of the reviewed venv that attaches after it is not excluded (open: Codex phase-1 r13 #4; kept open by Eric's decision, 2026-10-02)",
+        "outside_the_model": [
+          "deliberate tampering with the observer, its evidence or the interpreter",
+          "native code other than the reviewed venv",
+          "audit hooks installed before the trusted bootstrap (only site initialisation and the reviewed .pth hooks run before it)",
+          "garbage collection or signal handlers switched on and off again inside the call phase",
+          "a test or helper that replaces a standard-library function the observer itself calls",
+          "a held mock's class changed and restored between the moments the recorder reads it",
+          "application behaviour that can see the observer: a boundary event or returned-value decision that changes with observable finalization, weak-reference liveness, callbacks or counts, reference counts, or garbage-collector introspection (Codex phase-1 r18's wording); with the sys.monitoring tool registry or event sets, instrumented or adaptive bytecode, or another thread's frames; with elapsed time or resource use; or with object addresses. An in-process observer holds every value a binding held, and its code, until the observation ends; it occupies a monitoring tool and instruments the code it watches; and it takes time and memory (ruling 13, adopted by Eric 2026-10-02; Codex phase-1 r17 #1, r18 #1-#3). Fixed fixture clock values, prewritten files and ordinary object identity relations are inputs; they are not elapsed observation cost or numeric address-dependent choices (Codex phase-1 r19, verbatim). The defence refuses a divergence when the twins' recorded failure-message digests differ after normalization, or either digest is missing. Normalization replaces text shaped like a default repr's address, the id in a mock's repr and the number of pytest's /pytest-of-<user>/pytest-N/ directory without identifying its meaning; it can therefore erase meaningful application data. Equal normalized messages do not prove equal boundary events, equal returned values or observer invisibility. The exclusion requires the independent source review of each prepared closure (Codex phase-1 r19's wording, with the patterns as narrowed after it). The closure screen flags selected literal spellings in src/bts and tests; it does not resolve aliases, imports or generated code, so each prepared closure requires independent source review for this exclusion (Codex phase-1 r18 #3, verbatim)"
+        ],
+        "return_identity": "Entry and return identity are source-file and qualname identities, not Python function-object, globals or receiver identities. The fixture review must establish that the observed code invocation belongs to the declared contract and selection. A claim requiring exact callable or receiver identity needs an additional witness or reads unavailable.",
+        "unattributed_when": [
+          "a callable bound to several boundaries",
+          "a callable the binding held earlier in the interval",
+          "a boundary code object shared by several live functions",
+          "a call on another receiver",
+          "a mock whose effective __call__ is not the standard one, or whose class changed",
+          "a value incomplete at any depth",
+          "a binding whose path passes through a namespace holding a key that is not an exact str, or was changed by a store through such a key (until a per-key store re-resolves it)",
+          "a call observed while another thread was alive (only the reads `observation` admits then happen; plan ruling 12, Codex phase-1 r13 #3)",
+          "an argument the observer could not read: never read as a null or as an empty call (Codex phase-1 r13 #1)",
+          "a call the binding does not resolve to AT THE CALL, through watched namespaces that are all supported, read under the lock every watched store takes before its change (Codex phase-1 r10 part 2 #1)",
+          "an identity read from a keyword dict holding a key that is not an exact str"
+        ],
+        "unavailable_when": [
+          "an absence claim (ABSENCE_REFUSAL)",
+          "an audit hook added after the trusted bootstrap",
+          "no audit-hook census",
+          "automatic garbage collection on at either end of the call phase",
+          "an application signal handler at either end of the call phase",
+          "an application trace, profile or monitoring function active at either end of the call phase, or installed in any thread at any time since the trusted bootstrap (it runs inside the observer's callbacks and can set f_lineno to re-run a frame's entry; Codex phase-1 r16)",
+          "observer errors",
+          "an incomplete observation window",
+          "a coroutine or async-generator frame, the boundary callee's own included (Codex phase-1 r13 #2)",
+          "a return observed while another thread was alive (its value is not read; plan ruling 12)",
+          "a run whose bts import provenance is unreadable without application dispatch (refused at every stage's gate)"
+        ]
+      },
+      "linked": {
+        "branch": 3,
+        "entry": 2,
+        "return": 5
+      },
+      "ok": true,
+      "reasons": []
+    }
+  },
+  "events_sha256": {
+    "green": "2431d9eaabc1c700cfc9ae4f443ae8f803cf2489052dacaabcd6bf6d8047baaf",
+    "green_unobserved": "a28f798304e92c2fff92b99a27b72ece06a5e72befe5befb82af27bed63b7492",
+    "mutant": "51f0c4031b571708ef385ded8222d00c0d2f1484a6979b43b7abc8f1a10dcb73",
+    "mutant_unobserved": "63ac03fe5e58795a63a4ff19c75bcf65001ad07ac23f60550a2512f838488b13",
+    "restored": "9337f6b5fc4bbbde58531967ad3bce4da96c2b4a70302c5b67b473672e3336c0"
+  },
+  "label": "D-I029-1",
+  "manifest_sha256": "c3d98ff30425ecdcf51f9bdaf9c010e0314e1fa606f755318385d6138646f40d",
+  "patch_sha256": "b7f2263918af4b2680c5b39afd61ce4527f456b4fe4e8f59d4b255f3bb56dd80",
+  "reasons": [],
+  "spec": {
+    "allowed_mocks": [
+      "bts.picks.get_game_statuses_detailed",
+      "bts.picks.check_hit"
+    ],
+    "allowed_paths": [
+      "src/bts/picks.py"
+    ],
+    "baseline": "f453283d0a0ec39a939b22c6500b5fb36f5452c0",
+    "branch": {
+      "path": "src/bts/picks.py",
+      "text": "W1.5 mutant: pre-1d61908 \u2014 the streak walk reads shadow and today/future (preview) pick files"
+    },
+    "contract": {
+      "entry_mode": "_replay_season_streak, called directly (test_streak_replay) and through reconcile_results with a fixed 02:00 ET clock (test_picks)",
+      "symptom_kind": "wrong value (the replay returns None, history unreconstructible, instead of the (streak, saver) of the resolved picks; reconcile then keeps the stale streak.json)",
+      "text": "Reconciliation recomputes the local streak from resolved past pick files only: a shadow pick file or a today/future (preview) pick file is not played, never enters the streak walk, and cannot end or abandon it.",
+      "trigger": "a {date}.shadow.json beside a resolved hit (result None), or a future-dated preview pick file with result None"
+    },
+    "entry": {
+      "path": "src/bts/picks.py",
+      "qualname": "_replay_season_streak"
+    },
+    "env": {
+      "TZ": "America/New_York"
+    },
+    "killing": [
+      {
+        "_line": 81,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence/tests/test_streak_replay.py",
+        "assertion": {
+          "line": 81,
+          "path": "tests/test_streak_replay.py",
+          "text": "assert _replay_season_streak(tmp_path, 2026, \"2026-06-10\") == (1, True)"
+        },
+        "node": "tests/test_streak_replay.py::test_replay_skips_today_and_later"
+      },
+      {
+        "_line": 833,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence/tests/test_picks.py",
+        "assertion": {
+          "line": 833,
+          "path": "tests/test_picks.py",
+          "text": "assert load_streak(tmp_path) == 1, ("
+        },
+        "node": "tests/test_picks.py::TestReconcileResults::test_shadow_pick_files_are_ignored_in_streak_walk"
+      }
+    ],
+    "label": "D-I029-1",
+    "level": "production_path",
+    "level_justification": "only the MLB lookups on the reconcile path are replaced (get_game_statuses_detailed, check_hit); the direct replay test replaces nothing; pick files are prewritten in tmp_path and the reconcile clock is a fixed fixture value",
+    "link": "I-029 link 1",
+    "mutation_edits": [
+      [
+        "src/bts/picks.py",
+        "        if not _ISO_DATE_RE.match(f.stem) or f.stem >= today_iso:\n            continue  # skip non-date files and today/future (unplayed) previews\n",
+        "        pass  # W1.5 mutant: pre-1d61908 \u2014 the streak walk reads shadow and today/future (preview) pick files\n        if False:\n            continue  # skip non-date files and today/future (unplayed) previews\n"
+      ]
+    ],
+    "returns": [
+      {
+        "classify": [
+          [
+            "replay_abandoned",
+            "^null$"
+          ],
+          [
+            "replayed",
+            "^\\{\"seq\": \\["
+          ]
+        ],
+        "path": "src/bts/picks.py",
+        "qualname": "_replay_season_streak"
+      }
+    ],
+    "symptom": {
+      "category": "replay_abandoned",
+      "kind": "return",
+      "path": "src/bts/picks.py",
+      "qualname": "_replay_season_streak"
+    },
+    "tests": [
+      "tests/test_streak_replay.py",
+      "tests/test_picks.py",
+      "-q"
+    ]
+  },
+  "spec_sha256": "81f15ed8ee9e3f207be313dc9df712104be869c50c944d0dcea871839265b579",
+  "stages": {
+    "green": {
+      "gate": [],
+      "nodes": 81,
+      "returncode": 0
+    },
+    "mutant": {
+      "gate": [],
+      "kills": [
+        "tests/test_streak_replay.py::test_replay_skips_today_and_later",
+        "tests/test_picks.py::TestReconcileResults::test_shadow_pick_files_are_ignored_in_streak_walk"
+      ],
+      "returncode": 1
+    },
+    "restored": {
+      "gate": [],
+      "returncode": 0
+    }
+  },
+  "touched": [
+    "src/bts/picks.py"
+  ],
+  "verdict": "accepted"
+}

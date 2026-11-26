@@ -1,0 +1,13 @@
+diff --git a/src/bts/scheduler.py b/src/bts/scheduler.py
+index d23f650..483abac 100644
+--- a/src/bts/scheduler.py
++++ b/src/bts/scheduler.py
+@@ -2027,6 +2027,8 @@ def _refresh_pick_at_fallback_decision(
+     picks_dir = Path(config["orchestrator"]["picks_dir"])
+     heartbeat_path = Path(config.get("orchestrator", {}).get("heartbeat_path", "data/.heartbeat"))
+ 
++    pass  # W1.5 mutant: pre-dd25664 — the fallback keeps the cached pick without re-predicting
++    return FallbackRefreshResult(cached_daily, None)
+     try:
+         with heartbeat_watchdog(heartbeat_path, interval_sec=60):
+             predictions, sel, _ = run_and_pick(

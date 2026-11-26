@@ -1,0 +1,57 @@
+{
+  "version": "3.9.6",
+  "failure": {
+    "exit": 1,
+    "stdout": "[2027-01-01T00:05:00+00:00] stale=True  reason=unknown state: deploy_failed",
+    "pings": [
+      "https://heartbeat.invalid/id/fail"
+    ],
+    "churn_called": false
+  },
+  "next_tick": {
+    "exit": 1,
+    "stdout": "[2027-01-01T00:05:00+00:00] stale=True  reason=unknown state: deploy_failed",
+    "pings": [
+      "https://heartbeat.invalid/id/fail"
+    ],
+    "churn_called": false
+  },
+  "canary_before_commit": {
+    "exit": 0,
+    "stdout": "[2027-01-01T00:05:00+00:00] stale=False  reason=fresh sleeping",
+    "pings": [
+      "https://heartbeat.invalid/id"
+    ],
+    "churn_called": true
+  },
+  "canary_later_failed": {
+    "exit": 1,
+    "stdout": "[2027-01-01T00:05:00+00:00] stale=True  reason=unknown state: deploy_failed",
+    "pings": [
+      "https://heartbeat.invalid/id/fail"
+    ],
+    "churn_called": false
+  },
+  "old_heartbeat_if_marker_unwritten": {
+    "exit": 0,
+    "stdout": "[2027-01-01T00:05:00+00:00] stale=False  reason=fresh sleeping",
+    "pings": [
+      "https://heartbeat.invalid/id"
+    ],
+    "churn_called": true
+  },
+  "iso_z": {
+    "exit": 1,
+    "stdout": "[2027-01-01T00:05:00+00:00] stale=True  reason=heartbeat timestamp invalid: 2026-12-31T20:00:00Z",
+    "pings": [
+      "https://heartbeat.invalid/id/fail"
+    ],
+    "churn_called": false
+  },
+  "atomic_replace": {
+    "file": "replacement",
+    "symlink": "replacement",
+    "fifo": "replacement",
+    "directory": "IsADirectoryError"
+  }
+}

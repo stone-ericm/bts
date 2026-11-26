@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_sweep_classifier::test_each_failure_shape_is_classified[def test_a():\\n    class AssertionError(Exception):\\n        pass\\n    raise AssertionError('looks like one')\\n-FAILED-OTHER]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_sweep_classifier::test_each_failure_shape_is_classified[class L(Exception):\\n    pass\\nL.__module__ = 'builtins'\\nL.__qualname__ = L.__name__ = 'AssertionError'\\ndef test_a():\\n    raise L('lookalike')\\n-FAILED-OTHER]", "kind": "assertion"}

@@ -1,0 +1,38 @@
+{
+ "id": "E65",
+ "episode_row": [
+  "E65",
+  "6/18",
+  "correct skip day produced no signal",
+  "A",
+  "OI",
+  "B",
+  "9dc8ee4"
+ ],
+ "commits": [
+  {
+   "sha": "9dc8ee4",
+   "authored": "2026-06-18T20:24:36-04:00",
+   "subject": "feat(scheduler): surface skip days (log + DM + dashboard), not silent no-pick",
+   "body": "On a skip day \u2014 every candidate below the MDP pick bar (~80%), so holding the\nstreak is optimal \u2014 the daemon computed predictions then returned silently: no\nDM, no log line, no dashboard signal. A legitimate skip was indistinguishable\nfrom a hang (the 2026-06-18 \"why no suggestion?\" incident: best was Bo Bichette\n75%, correctly skipped, but nothing said so).\n\nNow a skip surfaces on three channels:\n- log: run_single_check prints \"SKIP \u2014 best <batter> <p> below the pick bar; streak\n  holds at <n>\" instead of the silent pick_result-None return.\n- DM: run_day delivers a one-time skip notice \u2014 idempotent (skip_notified_at),\n  gated to dm delivery mode, send-failure leaves it unmarked so a later cycle\n  retries, and it carries across same-day restarts so it stays once-per-day.\n- dashboard: a \"SKIP TODAY\" banner read from scheduler_state.json.\n\nPersists skip_summary + skip_notified_at on SchedulerState (defaulted so existing\nstate files still load).\n\nHardened after an adversarial Codex (gpt-5.5) review:\n- build_skip_summary never raises in the daemon loop (coerces probabilities, drops\n  non-finite, returns None on unusable data; JSON-native types only).\n- skip DM phrased tentatively \u2014 an early cycle may still flip to a pick, and a DM\n  can't be retracted \u2014 and the notify is wrapped so it can't take down the loop.\n- skip fields carry across restart only within the same date; the dashboard banner\n  is suppressed once a pick exists for today (the pick file is authoritative, and\n  survives the restart that resets pick_locked). render_skip_banner guards non-\n  finite p. (Codex's cross-day \"leak\" finding was a false flag \u2014 load_state is\n  date-partitioned.)\n\n19 TDD tests (red\u2192green); 184 green across the scheduler/web/strategy blast radius.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scheduler.py",
+    "src/bts/web.py",
+    "tests/test_scheduler_skip_visibility.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27799639516,
+    "created_at": "2026-06-19T01:23:43Z",
+    "head_sha": "9dc8ee4",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

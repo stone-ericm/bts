@@ -1,0 +1,37 @@
+{
+ "id": "E108",
+ "episode_row": [
+  "E108",
+  "\u21926/11",
+  "heartbeat watchdog wrote RUNNING unconditionally, masking wedged cascades (audit H5)",
+  "L/A",
+  "DL",
+  "A?",
+  "18efce1"
+ ],
+ "commits": [
+  {
+   "sha": "18efce1",
+   "authored": "2026-06-11T23:36:02-04:00",
+   "subject": "H5b: progress-aware heartbeat_watchdog \u2014 stalled state, sd_notify invariant, durations jsonl",
+   "body": "",
+   "files": [
+    "src/bts/heartbeat.py",
+    "tests/test_heartbeat.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27393844103,
+    "created_at": "2026-06-12T04:08:15Z",
+    "head_sha": "0a9e2d7",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

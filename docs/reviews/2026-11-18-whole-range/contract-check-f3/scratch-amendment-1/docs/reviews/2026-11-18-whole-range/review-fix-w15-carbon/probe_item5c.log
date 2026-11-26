@@ -1,0 +1,17 @@
+=== 5c-1. Isolate FD leak: directory vs FIFO in open_regular ===
+  open_regular(dir) x 25 -> {'kind': 'dir', 'before': 0, 'after': 25, 'leaked': 25}
+  open_regular(fifo) x 25 -> {'kind': 'fifo', 'before': 0, 'after': 0, 'leaked': 0}
+  EMFILE demo returncode=1, stdout='', stderr_last="OSError: [Errno 24] Too many open files: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/probe5c_xkm5kr1a/emfile_demo/normal.txt'"
+=== 5c-2. Real broken-pipe stderr during compute_all_features ===
+  Real broken-pipe stderr subprocess: returncode=120, stdout='FEATURES_OK rows=1'
+=== 5c-3. Complete all rejected/, status dir, and health special-file checks ===
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-w15-carbon/.codex-review/wr-w15/probe_item5c_complete_edges.py", line 220, in <module>
+    main()
+  File "/Users/eric/projects/bts-work/wr-review-w15-carbon/.codex-review/wr-w15/probe_item5c_complete_edges.py", line 215, in main
+    check_remaining_5b(root)
+  File "/Users/eric/projects/bts-work/wr-review-w15-carbon/.codex-review/wr-w15/probe_item5c_complete_edges.py", line 182, in check_remaining_5b
+    sdir.mkdir()
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 1311, in mkdir
+    os.mkdir(self, mode)
+FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/probe5c_xkm5kr1a/h_fifo_rec/probable_pitcher_cache'

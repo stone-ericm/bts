@@ -1,0 +1,46 @@
+{
+ "id": "E109",
+ "episode_row": [
+  "E109",
+  "\u21927/10",
+  "deploy race: an in-flight run could ship a later, untested commit (reset to mutable origin/deploy)",
+  "S",
+  "DL",
+  "P",
+  "30452eb"
+ ],
+ "commits": [
+  {
+   "sha": "30452eb",
+   "authored": "2026-07-10T18:12:04-04:00",
+   "subject": "fix: round-3 review (final) \u2014 6 fixes, 3 writeup corrections, 1 deferral",
+   "body": "gpt-5.6-sol over the round-2 fixes + F9 analysis, with authority to\nre-run the numbers on the box. The round's headline: round-2's commit\nmessage CLAIMED the R3 fail-closed sync fix without the code edit\n(already remedied in d960958 mid-review) \u2014 commit messages are now part\nof the reviewed surface.\n\n- F2  deploy resets the box to the run's TESTED SHA (github.sha), not\n      mutable origin/deploy: an in-flight run could ship a later queued\n      commit whose own test/environment gate never ran\n- F3  aged contradicted shadow records EXCLUDED from the sample (a\n      void-equivalent reclassification), not annotated-and-carried;\n      nightly update prints the warning into cron.log\n- F6  backup last-success carry resolves against the FRESH on-disk\n      prior under the flock (slow run vs concurrent peer); a success\n      with a missing summary snapshot_id keeps the prior pin\n- F7  legacy v1 status artifacts labeled instead of rendering a retired\n      nightly-Wilson verdict as pre-registered\n- F9  dangling-symlink units WARN (is_symlink before exists)\n- F4/F5/F8 writeup corrections: '<<0.005 bound' RETRACTED (slot-average\n      argument misapplied to a rank statistic; positions 1-4 touched on\n      11.6% of dates); live check restated as 0/218 unique sides\n      (95% UB 1.36%) with conditioning caveats; lineup proxy documented.\n      Skip-Stage-2 conclusion stands on decision-insensitivity grounds.\n      Part-2 live-check code committed into the analysis script.\n- F1  deferred: cached-fallback can deliver a postponed-game pick when\n      no replacement is eligible \u2014 pre-existing, contest outcome\n      identical to no-pick, folds into the postponed-awareness call\n\nSuite 1801 -> 1808. Review cap reached; converged.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    ".github/workflows/deploy.yml",
+    "docs/audit/2026-07-09-gpt56-sol-audit.md",
+    "scripts/audit/f9_estpa_basis_prevalence.py",
+    "src/bts/cli.py",
+    "src/bts/data/backup.py",
+    "src/bts/health/unit_drift.py",
+    "src/bts/skip_policy_shadow.py",
+    "src/bts/web.py",
+    "tests/health/test_unit_drift.py",
+    "tests/test_backup.py",
+    "tests/test_skip_policy_shadow.py"
+   ],
+   "first_live_log": {
+    "sha": "230f65c",
+    "live_by": "2026-07-13T01:12:47Z",
+    "not_live_before": "2026-07-13T01:12:47Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 29216777239,
+    "created_at": "2026-07-13T01:08:13Z",
+    "head_sha": "230f65c",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

@@ -1,0 +1,784 @@
+[
+  {
+    "incident": "I-004",
+    "link": 1,
+    "spec": null,
+    "reason": "no current defence: no current test drives pull_feeds' failure path or reads its stdout. The fix 1929f5a sends the 'SKIP <pk>' and '<n> games failed' lines to stderr. In tests/data/test_pull.py, test_pull_feeds_orchestrates, test_pull_feeds_does_not_sleep_on_cache_hits and test_pull_feeds_sleeps_only_after_real_downloads never make download_game_feed raise, so neither print runs, and none captures stdout. Evidence: `git grep -n pull_feeds f453283 -- tests` (only tests/data/test_pull.py and tests/test_refresh_memo.py, which patches pull_feeds). tests/test_predict_json.py asserts that predict-json stdout is pure JSON (json.loads(result.stdout)), but it patches bts.model.predict.run_pipeline, so the refresh and slot fetch never run. Every other test that reaches run_pipeline or _refresh_season_data patches it, or patches pull_feeds: tests/test_cli_integration.py, test_cli_preview_date.py, test_local_tier.py, experiment/test_artifacts.py, test_refresh_memo.py.",
+    "symptom_kind": "event (an extra stdout write, the log line in the predict-json payload)",
+    "confidence": "high",
+    "open_questions": [
+      "The fix is still in place at f453283 (src/bts/data/pull.py lines 113 and 121 print to sys.stderr). This link is a coverage gap, not a regression.",
+      "Even with a test, the bad event is a builtins.print call, which is C-implemented. The Phase 1 recorder does not see C callables (COVERAGE missed_not_false). A certificate would need a Python-level witness, for example a return of predict_json's payload builder. A capsys assertion alone cannot provide one."
+    ],
+    "batch": "d1"
+  },
+  {
+    "incident": "I-004",
+    "link": 2,
+    "spec": null,
+    "reason": "no current defence: no current test calls _fetch_game_slots. The fix cb4c1cc sends the 'NOTE: <n> teams using projected lineups' line to stderr; it is now at src/bts/model/predict.py:559. Evidence: `git grep -n _fetch_game_slots f453283 -- tests` has no hits. Its only caller is predict() (predict.py:602), which is reached from run_pipeline (predict.py:920), and no test calls predict() directly. tests/test_predict_json.py asserts that predict-json stdout is pure JSON (json.loads(result.stdout)), but it patches bts.model.predict.run_pipeline, so the refresh and slot fetch never run. Every other test that reaches run_pipeline or _refresh_season_data patches it, or patches pull_feeds: tests/test_cli_integration.py, test_cli_preview_date.py, test_local_tier.py, experiment/test_artifacts.py, test_refresh_memo.py.",
+    "symptom_kind": "event (an extra stdout write, the log line in the predict-json payload)",
+    "confidence": "high",
+    "open_questions": [
+      "The fix is still in place at f453283. The same caveat as link 1 applies: print is C-implemented, so even a future test would need a Python-level witness."
+    ],
+    "batch": "d1"
+  },
+  {
+    "incident": "I-004",
+    "link": 3,
+    "spec": null,
+    "reason": "no current defence: no current test reads or writes feeds under a non-UTF-8 locale encoding. The fix 64ae365 is the explicit encoding=\"utf-8\" in build_season (src/bts/data/build.py:360, 385) and in enrich_weather (src/bts/data/pull.py:146, 183). On the macOS/Linux runner the default text encoding is already UTF-8, so the mutant that drops the argument behaves identically there: no test can kill it unless the test forces another encoding. Evidence: `git grep -n 'cp1252\\|getpreferredencoding\\|EncodingWarning\\|warn_default_encoding\\|PYTHONUTF8\\|charmap' f453283 -- tests pyproject.toml` has no hits, and [tool.pytest.ini_options] sets no filterwarnings.",
+    "symptom_kind": "crash (UnicodeDecodeError/UnicodeEncodeError on the Windows tier), i.e. an exceptional exit, not an event",
+    "confidence": "high",
+    "open_questions": [
+      "Is a Windows (cp1252) compute tier still part of production? If not, this link could instead read 'superseded or moot', with the defended platform retired. I did not check the current tier list, since it lives in the box TOML, outside the repo."
+    ],
+    "batch": "d1"
+  },
+  {
+    "incident": "I-009",
+    "link": 1,
+    "spec": "D-I009-1",
+    "reason": null,
+    "symptom_kind": "return",
+    "confidence": "medium",
+    "open_questions": [
+      "Judgement on the symptom kind. The incident's downstream effect is a missing lock (the pick was never posted), which looks like an absence. The spec certifies the wrong lock decision instead: _lock_decision_from_predictions returns should_lock false with block_reason 'gap'. This follows the I-0813-a precedent: the killing assertion is on the returned decision (result['should_post'] is True), not on a delivery event. I-0830-b was classed as absence because its test asserts the DM. If you read this link as absence instead, use spec null with 'absence not certifiable by the Phase 1 recorder', and name this test as the regression evidence.",
+      "Mutation: 7638af7 added a coarse status filter (statuses.get(pk) != 'P'). That filter has since become pick_candidate_status_is_available(detailed_statuses.get(game_pk)) in _lock_decision_from_predictions (scheduler.py:1354). The mutant removes it, which leaves the pre-fix unfiltered contender set. The selected-slot availability check above it (round-2 R4) is a different decision and is left intact.",
+      "Static trace at the pin. The test's detailed-status mock has game 200 as abstract P / detailed Postponed. select_pick drops Kwan, so Díaz (0.82, confirmed) is picked with no double-down. The lock decision filters Kwan's row, so should_lock is True and the test passes. Under the mutant, Kwan (projected, 0.80) stays in the set; 0.82-0.80 = 0.01999... < 0.03, so the decision is LockDecision(False, 0.8, False, 'gap', 200, (200,)), should_post is False, and the test fails with AssertionError at line 533. No earlier assertion exists in the test. run_and_pick returns the unfiltered predictions (orchestrator.py), so the mutated filter is the only one on this path.",
+      "Witness types: pick_from_row casts p_game_hit with float() and game_pk with int(), so every LockDecision field is an exact builtin and the _safe form is complete. Under the mutant the classify regex matches the serialized form as 'gap_block'; at the pin the form classifies as 'lock'. I checked this offline with json.dumps(sort_keys=True).",
+      "Closure / ruling 12: run_single_check runs run_and_pick inside heartbeat_watchdog, whose daemon pulse thread is stopped and joined with timeout=2 s before the lock decision. If the join ever timed out, the return would be recorded while another thread was alive, so the value would be unread and the certificate unavailable. That is a miss, never a false certificate. The lock decision itself depends only on fixture values. The pulse also writes the gitignored data/.heartbeat and data/health_state/cascade_stage_durations.jsonl relative to the cwd, so the manifest is unaffected.",
+      "tests runs the whole of tests/test_scheduler.py (about 150 nodes, no skip or xfail markers), following the I-0830-a precedent. Narrow it to tests/test_scheduler.py::TestSchedulerRun if the full file's inventory or run time is a concern."
+    ],
+    "batch": "d1"
+  },
+  {
+    "incident": "I-011",
+    "link": 1,
+    "spec": "D-I011-1",
+    "reason": null,
+    "symptom_kind": "return",
+    "confidence": "medium",
+    "open_questions": [
+      "The mutant has two edits. The decision 5e02676 added (do not score a pick that is already resolved) now exists twice in check_results. One is the original pre-check (cli.py:2242). The other is the in-lock re-check added by 3a09b2c (review F13, 2026-07-09; cli.py:2308). Disabling only the pre-check is masked by the re-check, so a one-edit mutant would not restore the pre-fix decision. I disabled both, as I-0830-a disables its guard at every chokepoint.",
+      "Killing node 2 (test_l04_control_without_the_fault_a_rerun_is_a_no_op) has the exact I-011 shape: a second check-results run on a date that is already resolved. But W1.5 wrote it (321f401, tests/test_incident_register_2026.py), and it exists only on the unmerged w15-incident-register-phase1 branch. If current-defence evidence must be product tests, drop that node and its `tests` entry. Node 1 (test_scoring_lock.py, a product test from 3a09b2c) still kills the mutant, but only through the in-lock re-check, the race shape, where the pre-check sees result None.",
+      "Coverage finding. No product test pins the 5e02676 pre-check by its streak effect. test_cli_integration.py::test_check_results_skips_already_resolved and its siblings plant undelivered picks (bluesky_posted False, no decision.json). Under the mutant, the GH #144 scoreable gate stops them first, so they fail only on the 'Already resolved' message assertion (line 509), and no streak write happens. The same holds for test_check_results_wait.py::test_wait_settles_immediately_when_already_resolved, which the stale-scoring guard stops. These are kills without a witness, so I did not declare them.",
+      "The witness is update_streak returning the int 7 (type-exact value). In both fixtures 7 is 5 + one hit applied twice: the peer test plants 5 and the peer writes 6; the l04 control's run 1 legitimately returns 6. At the pin no call returns 7 in either test, because update_streak is not called in the peer test and returns only 6 in the l04 control. The value is fixture-specific by design. An event witness on update_streak would not separate the l04 control's legitimate first call.",
+      "Static trace. In the peer test under the mutant: the pre-check sees result None; the stub writes result 'hit' and streak 6; inside the lock the else branch runs (marker); update_streak returns 7; exit 0; the test fails at line 96, a multi-line assert. Both CPython's assert codegen and pytest's rewrite give the raise the assert statement's first line, so line 96 should be the innermost frame. Please confirm on the first run. In the l04 control under the mutant: run 1 is unchanged (6); run 2 re-resolves through the HTTP stub and update_streak returns 7; the test fails at line 529.",
+      "Closure. The peer test reads the real clock (_now_et is unpatched) only for the stale-scoring age check, which --allow-stale-scoring bypasses whatever the age, so the decision does not depend on elapsed time. save_streak stamps datetime.now into 'updated', which nothing on the path reads. The l04 control uses a fixed clock. scoring_lock is a blocking flock with no timeout.",
+      "tests runs all of tests/test_scoring_lock.py, which includes test_scoring_lock_is_mutually_exclusive (real threads plus a 0.15 s sleep: timing-sensitive, though not on the killing path). The l04 node is selected by node id because the rest of test_incident_register_2026.py has strict-xfail nodes, which the green gate would reject. Narrow test_scoring_lock.py to its killing node if the timing test is a concern."
+    ],
+    "batch": "d1"
+  },
+  {
+    "incident": "I-017",
+    "link": 1,
+    "spec": null,
+    "reason": "the fix was superseded: 5075fba's scheduler.shadow_mode gate was renamed to private_mode by 0cc7f23 (2026-04-12; live TOML migrated before the deploy), then generalized to scheduler.pick_delivery by 1c6fad6 (#101, 2026-05-19). In pick_delivery, 'private' returns from _deliver_and_lock_pick before any send, and the legacy private_mode still maps to private. shadow_mode is no longer read anywhere in src at f453283: `git grep -n shadow_mode f453283 -- src` returns only shadow_model* hits.",
+    "symptom_kind": "event (a public Bluesky post from a non-production instance)",
+    "confidence": "high",
+    "open_questions": [
+      "Judgement: should the successor decision (pick_delivery = private never posts) get its own spec? A mutant that disables `if mode == \"private\":` in _deliver_and_lock_pick would be killed by test_scheduler_decision_record_integration.py::test_private_commit_writes_private_locked_scoreable (assert ok is True). HAZARD: no private-mode test patches bts.posting.post_to_bluesky. Under that mutant the real transport would run: get_bluesky_password reads env vars and then the macOS keychain, and post_to_bluesky posts to bsky.social. A successor spec needs a test that patches the transport first. Do not run such a mutant against the current tests.",
+      "Residual for the record: the literal contract key is dead. A config that still sets shadow_mode = true (and neither pick_delivery nor private_mode) would now post publicly, without any warning."
+    ],
+    "batch": "d1"
+  },
+  {
+    "incident": "I-018",
+    "link": 1,
+    "spec": null,
+    "reason": "the defended decision is outside src/: 870cede adds `git config --global --add safe.directory` to .github/workflows/deploy.yml (the only file it touches); at f453283 deploy.yml line 93 still has it, line 86 adds `set -e`, and the pull has become `git fetch` + `git reset --hard \"$TARGET_SHA\"`.",
+    "symptom_kind": "wrong outcome reported (deploy run green while git pull failed)",
+    "confidence": "high",
+    "open_questions": [
+      "No test covers deploy.yml: `git grep -ln 'safe.directory\\|deploy.yml' f453283 -- tests` has no hits."
+    ],
+    "batch": "d1"
+  },
+  {
+    "incident": "I-018",
+    "link": 2,
+    "spec": null,
+    "reason": "the defended decision is outside src/: cda8c1c changes the restart in .github/workflows/deploy.yml to `sudo -u bts XDG_RUNTIME_DIR=... systemctl --user restart` (the only file it touches); still at f453283 deploy.yml line 111, with the legacy system units disabled at line 106.",
+    "symptom_kind": "wrong event target (restart sent to the system manager, not the bts user's units)",
+    "confidence": "high",
+    "open_questions": [
+      "No test covers deploy.yml (same grep as link 1)."
+    ],
+    "batch": "d1"
+  },
+  {
+    "incident": "I-019",
+    "link": 1,
+    "spec": null,
+    "reason": "the defended decision is outside src/: d5c466c adds scripts/cron-setup-hetzner.sh with POSIX `. ./.env` in place of `source .env` (the only file it touches). At f453283 the script still uses `. ./.env` (line 36). The failing crontab itself was hand-installed and never versioned.",
+    "symptom_kind": "absence (every cron job died before reaching the bts CLI)",
+    "confidence": "high",
+    "open_questions": [
+      "No test covers the cron script: `git grep -ln cron-setup-hetzner f453283 -- tests` has no hits."
+    ],
+    "batch": "d1"
+  },
+  {
+    "incident": "I-020",
+    "link": 1,
+    "spec": null,
+    "reason": "the defended decision is outside src/: .github/workflows/deploy.yml self-heal (8193909) disables and removes the legacy system-level /etc/systemd/system/bts-{scheduler,dashboard}.service units on every deploy and pkills leftover schedulers; it is still present at f453283 (deploy.yml lines 103-109). No test covers it: `git grep -n 'etc/systemd/system\\|deploy.yml' f453283 -- tests` and `git grep -n 'systemd/system' f453283 -- src` both return nothing.",
+    "symptom_kind": "event (extra: a second, older-code scheduler unit running beside the canonical one)",
+    "confidence": "high",
+    "open_questions": [
+      "Links 1 and 2 share the one fix (8193909), so they have the same defence and the same reason."
+    ],
+    "batch": "d2"
+  },
+  {
+    "incident": "I-020",
+    "link": 2,
+    "spec": null,
+    "reason": "the defended decision is outside src/: the same deploy.yml self-heal (8193909). The deploy restarts only the user-level units; the fix makes the deploy remove the legacy system-level units. It is still present at f453283 (deploy.yml lines 103-109). No test covers it (the same greps as link 1).",
+    "symptom_kind": "event (extra: every killed orphan respawned by the other unit's Restart=always)",
+    "confidence": "high",
+    "open_questions": [],
+    "batch": "d2"
+  },
+  {
+    "incident": "I-023",
+    "link": 1,
+    "spec": "D-I023-1",
+    "reason": null,
+    "symptom_kind": "event",
+    "confidence": "medium-high",
+    "open_questions": [
+      "Witness category: the DailyPick that save_shadow_pick receives has a delivery flag (bluesky_posted or notification_sent true). A shadow pick is never delivered, so a delivered pick at the shadow writer is production's. The category names production's pick by its delivery flags, not by identity with the {date}.json file. The incident's other short-circuit arm (production's game started, pick not posted) is not in this fixture, so it is not certified.",
+      "The mutant is the guard in strategy.select_pick (`if not for_shadow:` becomes `if True:`). The other half of 634768e is the scheduler's `for_shadow=True` argument. Flipping that argument instead would leave no executable line for a `pass` anchor, because it sits inside a multi-line call.",
+      "Closure (ruling 13): the test runs the real heartbeat_watchdog around the mocked predict call. Its pulse thread is joined with a 2 s timeout BEFORE select_pick runs. If the thread outlived the join, save_shadow_pick would be observed with another thread alive and would read as unattributed. That fails closed, never as a false witness. This is a dependence of attribution on elapsed time; the decision itself does not depend on it. The decision depends only on bluesky_posted in the prewritten production file.",
+      "tests/test_strategy.py::TestSelectPick::test_for_shadow_ignores_locked_production also fails under this mutant (`assert result.pick_result.locked is False`), but it is not declared. It calls select_pick directly, and select_pick's SelectionResult return is incomplete to the observer (the DailyPick sits at depth 2, its Pick at depth 3), so no complete return witness exists for that node."
+    ],
+    "batch": "d2"
+  },
+  {
+    "incident": "I-023",
+    "link": 2,
+    "spec": "D-I023-2",
+    "reason": null,
+    "symptom_kind": "return",
+    "confidence": "high",
+    "open_questions": [
+      "The bad category is relative to the fixture. `\"bluesky_posted\": false, \"bluesky_uri\": null` is also the normal return for a healthy shadow file. It is a wrong value here only because the killing test's file holds true and a URI. In the killing node, the only load is that corrupted file. A `value` symptom (the full _safe form of the DailyPick) would be exact but brittle.",
+      "Only the masking load is witnessed. The downstream save-back that erased the evidence (a check-results re-save) is not exercised."
+    ],
+    "batch": "d2"
+  },
+  {
+    "incident": "I-025",
+    "link": 1,
+    "spec": "D-I025-1",
+    "reason": null,
+    "symptom_kind": "return",
+    "confidence": "medium",
+    "open_questions": [
+      "The entry is `_refresh_pick_at_fallback`, a compatibility wrapper that no production code calls (`git grep _refresh_pick_at_fallback f453283 -- src tests`: only tests call it). run_day calls `_refresh_pick_at_fallback_decision` directly. That function's FallbackRefreshResult return is incomplete to the observer (the DailyPick at depth 1, the Pick at depth 2, Pick.flags at depth 3). The wrapper's DailyPick return is therefore the only complete return witness. The branch is inside the shared decision function. Is a wrapper entry acceptable?",
+      "Mutant shape: an early `return FallbackRefreshResult(cached_daily, None)` before the re-predict. The helper already returns exactly this when the refresh raises. The mutant restores the pre-dd25664 behaviour (deliver the cached pick, no re-predict) at both fallback sites at once; in run_day, should_post=None takes the fail-closed deliver path. Please confirm this counts as restoring the old behaviour, not adding new behaviour.",
+      "Coverage finding (from reading the code, not from a run): no current test drives run_day's fallback with a real refresh whose fresh pick differs from the cached one. Every run_day fallback test mocks _refresh_pick_at_fallback_decision to return the cached daily: test_scheduler.py TestRunDay, test_incident_2026_08_30.py and test_scheduler_decision_record_integration.py. The E77/L03 harness in test_incident_register_2026.py feeds the same batter, or (None, None). A mutant that drops `daily = refresh.daily` at either run_day site (scheduler.py lines 2872 and 2995 at f453283) would therefore likely survive.",
+      "The category regexes match this test's fixture only (cached batter_id 1001 'Old Batter', fresh 2002 'Trea Turner').",
+      "The tests argument is the whole tests/test_scheduler.py (76 nodes), following the worked examples. `tests/test_scheduler.py::TestRefreshPickAtFallback` would shrink the run to 5 nodes and leave less room for a stray thread before the witness. The set of closure files is the same either way.",
+      "Closure: on the mutant path the helper returns before the heartbeat watchdog starts, so no thread and no clock are involved. On the pin path, the real watchdog thread runs, `git rev-parse HEAD` runs for provenance, and data/.heartbeat(.tmp) is written in the worktree. Those paths are gitignored (`data/.heartbeat*`), so they stay outside the manifest."
+    ],
+    "batch": "d2"
+  },
+  {
+    "incident": "I-027",
+    "link": 1,
+    "spec": null,
+    "reason": "the defended decision is outside src/: the 03:00 line in scripts/cron-setup-hetzner.sh (28732c2) passes `--start $DATA_PULL_START --end $DATA_PULL_END` to `bts data pull`; it is still present at f453283 (lines 40-41 and 62). Only an operator's crontab reinstall makes it live; deploys never touch the crontab. No test covers it: `git grep -n 'cron-setup-hetzner\\|DATA_PULL_START\\|data pull' f453283 -- tests` returns nothing.",
+    "symptom_kind": "absence (the && chain skipped build and preview: no fresh blend or preview pick)",
+    "confidence": "high",
+    "open_questions": [],
+    "batch": "d2"
+  },
+  {
+    "incident": "I-028",
+    "link": 1,
+    "spec": null,
+    "reason": "the defended decision is outside src/: pyproject.toml [tool.uv] pins an absolute `exclude-newer = \"2026-04-11\"` (6bffd63), so Mac and box uv write byte-identical uv.lock files; it is still present at f453283 (pyproject.toml lines 47-52). No test covers it: `git grep -n 'exclude-newer\\|set -e' f453283 -- tests` returns nothing.",
+    "symptom_kind": "event (extra: every `uv run` on the box rewrote uv.lock, leaving a local modification)",
+    "confidence": "high",
+    "open_questions": [
+      "The fix is configuration, not a src decision. It still pins the 2026-04-11 window at f453283. Since then, deploy.yml has replaced the ff-only pull with `git reset --hard \"$TARGET_SHA\"`, so a box-local uv.lock edit no longer blocks a deploy (see link 2)."
+    ],
+    "batch": "d2"
+  },
+  {
+    "incident": "I-028",
+    "link": 2,
+    "spec": null,
+    "reason": "the defended decision is outside src/: .github/workflows/deploy.yml (6bffd63) runs `set -e`, `sudo -Hu bts git pull --ff-only` and `uv sync --locked --extra model` before the restart. At f453283, `set -e` (line 86) and `uv sync --locked` (line 102) remain. The ff-only pull has since been replaced by `git fetch` plus `git reset --hard \"$TARGET_SHA\"` (lines 100-101), which overwrites a box-local uv.lock edit instead of refusing it. No test covers it: no test references deploy.yml (the I-020 grep), and the `set -e` grep returns nothing.",
+    "symptom_kind": "return (wrong value: the deploy run concluded success while the pull failed and the services restarted on stale code)",
+    "confidence": "high",
+    "open_questions": [],
+    "batch": "d2"
+  },
+  {
+    "incident": "I-029",
+    "link": 1,
+    "spec": "D-I029-1",
+    "reason": null,
+    "symptom_kind": "return",
+    "confidence": "medium-high",
+    "open_questions": [
+      "The backward walk that 1d61908 fixed was later replaced by the forward replay (_replay_season_streak, audit D4). The guard from 1d61908 survives there as `if not _ISO_DATE_RE.match(f.stem) or f.stem >= today_iso: continue`. In the current code, reading an unplayed file makes the replay fail closed (it returns None), and reconcile keeps the stale streak.json. The incident's symptom (streak rewritten to 0) therefore cannot come back through this guard. The certificate witnesses the replay being abandoned (a None return), not a reset to 0.",
+      "Coverage finding: the incident's own regression test, test_picks.py::TestReconcileResults::test_preview_pick_for_tomorrow_does_not_break_streak_walk, does NOT kill this mutant. The test pre-saves streak.json = 2, which equals its expected value, so the fail-closed None leaves its assertion true. Only test_streak_replay.py::test_replay_skips_today_and_later (a direct call) kills the today/future half. The shadow half is killed through reconcile_results by test_picks.py's shadow test.",
+      "The mutant removes both halves of the one-line guard together, as 1d61908 added them together. The pre-fix filter `f.stem in (\"streak\", \"automation\")` matches nothing under the current `{season}-*.json` glob, so `if False:` behaves the same as it.",
+      "The test_picks.py assertion is a multi-line assert (lines 833-835). The declared line 833 is the statement's first line, where pytest places its rewritten raise. This is low risk, but worth confirming on the first run.",
+      "The entry is `_replay_season_streak`, not reconcile_results, so that one entry covers both killing nodes. In the test_picks node it runs inside reconcile_results, under a fixed _cron_clock (2026-08-21 02:00 ET), so no wall-clock time is involved."
+    ],
+    "batch": "d2"
+  },
+  {
+    "incident": "I-032",
+    "link": 1,
+    "spec": null,
+    "reason": "absence not certifiable by the Phase 1 recorder. Fix 0830ef4 wraps run_and_pick in heartbeat_watchdog (run_single_check and _refresh_pick_at_fallback_decision at f453283). Without the wrap, the in-process effect is a MISSING heartbeat refresh during the cascade. The false Healthchecks /fail page is sent by scripts/check_heartbeat.py, a separate cron process outside src. Regression pins: the helper only, in tests/test_heartbeat.py::test_heartbeat_watchdog_refreshes_during_block and ::test_heartbeat_watchdog_stops_writing_after_exit. No current test pins the wrap at either call site; see open_questions.",
+    "symptom_kind": "absence",
+    "confidence": "high",
+    "open_questions": [
+      "Coverage finding. `git grep -n heartbeat_watchdog f453283 -- tests` hits: test_heartbeat.py (the helper); test_shadow_scheduler.py (the SHADOW wrap, I-047); and nullcontext replacements that assert nothing about the wrap (test_scheduler_decision_record_integration.py:452,468; test_scheduler_skip_visibility.py:157; test_scheduler_tail_objective.py:137). Removing the primary wrap in run_single_check or _refresh_pick_at_fallback_decision would therefore pass the current suite. This is reasoned from the greps; nothing was run.",
+      "Even a positive-witness redesign would read unavailable. The refresh runs on a daemon thread (ruling 12: no attributed reads while it is alive), and the helper test depends on real elapsed time (sleep 0.25 s against a 0.05 s interval; ruling 13)."
+    ],
+    "batch": "d3"
+  },
+  {
+    "incident": "I-032",
+    "link": 2,
+    "spec": null,
+    "reason": "absence not certifiable by the Phase 1 recorder. Fix c43869d routes run_result_polling's 15-minute inter-iteration sleep through _poll_interval_sleep, which wraps it in heartbeat_watchdog. The pre-fix effect is a MISSING heartbeat write during the sleep; the /fail page comes from scripts/check_heartbeat.py, outside src. Regression pin: tests/test_scheduler.py::TestPollIntervalSleep::test_heartbeat_path_refreshes_during_sleep (asserts the heartbeat timestamp advanced). A static guard also exists: tests/test_scheduler_watchdog_discipline.py::test_no_unwrapped_time_sleep_in_scheduler fails if a bare time.sleep comes back in run_result_polling. It never invokes the entry, so it cannot carry a certificate.",
+    "symptom_kind": "absence",
+    "confidence": "high",
+    "open_questions": [
+      "The pinning test depends on real elapsed time (sleep 0.25 s against a 0.05 s watchdog interval) and on a daemon thread writing the file. Under rulings 12 and 13 it is outside the certifiable model even apart from the absence."
+    ],
+    "batch": "d3"
+  },
+  {
+    "incident": "I-034",
+    "link": 1,
+    "spec": null,
+    "reason": "absence not certifiable by the Phase 1 recorder. Fix 684c160 replaces three SLEEPING-state time.sleep calls in run_day with _watchdog_ping_sleep. The pre-fix effect is MISSING sd_notify WATCHDOG pings; the SIGABRT kill is systemd's, outside the process. Regression pins: the static AST guard tests/test_scheduler_watchdog_discipline.py::test_no_unwrapped_time_sleep_in_scheduler (fails if any run_day wait reverts to a bare time.sleep, but never runs run_day), and the helper tests tests/test_scheduler.py::TestWatchdogPingSleep (the heartbeat file is untouched; the sleep is taken). Neither asserts that pings are sent.",
+    "symptom_kind": "absence",
+    "confidence": "high",
+    "open_questions": [
+      "Runtime coverage gap. The tests that drive run_day either patch bts.scheduler.time.sleep with a fake (tests/test_scheduler.py::TestRunDay, test_incident_2026_08_30.py, test_incident_register_2026.py) or stub _watchdog_ping_sleep (test_scheduler_decision_record_integration.py:632). None asserts watchdog pings, so a call site reverted to a bare time.sleep would pass every runtime test. Only the static scan catches it. Reasoned from the greps; not run."
+    ],
+    "batch": "d3"
+  },
+  {
+    "incident": "I-035",
+    "link": 1,
+    "spec": null,
+    "reason": "absence not certifiable by the Phase 1 recorder. Fix ddee3db ends a games-day run_day with _idle_until_next_wakeup(state.next_wakeup, heartbeat_path) instead of returning. The pre-fix effect is a MISSING idle sleep, so the process exits. The relaunch loop is systemd Restart=always, outside the process. Regression pins: tests/test_scheduler.py::TestIdleUntilNextWakeup and tests/test_scheduler_eve_of_break.py::TestIdleGuardLoud cover only the helper's no-op paths. No current test pins the games-day end-of-run call; see open_questions.",
+    "symptom_kind": "absence",
+    "confidence": "high",
+    "open_questions": [
+      "Coverage finding, reasoned from the greps and not run: deleting the final `_idle_until_next_wakeup(state.next_wakeup, heartbeat_path)` line of run_day would pass the current suite. The run_day tests either replace the helper with a recorder whose record is never asserted (test_scheduler_state_integrity.py harness, which drives the separate audit-E1 no-games call site; test_incident_register_2026.py E77 `idle_at`), or let it run and assert only the stored next_wakeup (test_scheduler_eve_of_break.py::TestStep7NextWakeup).",
+      "The draft records complete_fix_set=false for this link."
+    ],
+    "batch": "d3"
+  },
+  {
+    "incident": "I-040",
+    "link": 1,
+    "spec": null,
+    "reason": "no current defence (runtime). Fix ee4190f populates row['batter_pitcher_shrunk_hr'] in model/predict.py:predict and builds its lookup in _build_feature_lookups. No current test invokes predict() or _build_feature_lookups. Evidence: `git grep -n \"_build_feature_lookups\\|_fetch_game_slots\" f453283 -- tests` has no hits, and `git grep -n \"predict(\" f453283 -- tests` (minus predict_local/predict_proba) hits only source-scan tests. The only guard is static: tests/model/test_predict_feature_coverage.py::TestFeatureCoverage::test_predict_source_actually_populates_each_feature_col reads predict.py as text. It would fail if the assignment were deleted, since the column name appears nowhere else in predict()'s body, but it never runs the entry, so it cannot carry a certificate.",
+    "symptom_kind": "return",
+    "confidence": "high",
+    "open_questions": [
+      "The defect's witness would be a wrong return: predict raises KeyError \"['batter_pitcher_shrunk_hr'] not in index\". A new test calling predict() directly would die with KeyError, not AssertionError. A certifiable runtime test would need a catching caller (orchestrator.predict_local returns None on any exception) and an assertion on that."
+    ],
+    "batch": "d3"
+  },
+  {
+    "incident": "I-040",
+    "link": 2,
+    "spec": null,
+    "reason": "absence not certifiable by the Phase 1 recorder. Fix bb7ccc1 wires the E3 missed-pick early alert (_maybe_alert_missed_pick -> _alert_missed_pick). The pre-fix effect is a MISSING alert DM. Regression pins: tests/test_e3_missed_pick_alert.py::test_alerts_when_undelivered_near_first_pitch and ::test_true_missed_pick_still_alerts.",
+    "symptom_kind": "absence",
+    "confidence": "high",
+    "open_questions": [
+      "The draft records complete_fix_set=false for this link.",
+      "No positive witness of the decision is available: _maybe_alert_missed_pick returns None on both paths, and run_day's call site is a bare call."
+    ],
+    "batch": "d3"
+  },
+  {
+    "incident": "I-042",
+    "link": 1,
+    "spec": "D-I042-1",
+    "reason": null,
+    "symptom_kind": "return",
+    "confidence": "medium-high",
+    "open_questions": [
+      "The mutant reverts the current PRIMARY attribution source, the slot_results grading added 2026-07-12, to the day result. b08769d's own mechanism was the PA-frame join. No current test reaches the PA path without slot_results (test_slot_results_beats_pa_frame_on_conflict carries slot_results), so a mutant on the PA line (`day_hit = int(looked)`) would survive. That is a coverage note on the original fix path.",
+      "The mutant reads the day result for every slot, DD legs included; pre-fix counted the primary only. The declared witness is the primary 75-80% bucket only (CRITICAL instead of WARN), which is the incident's daily CRITICAL.",
+      "Not declared: test_dd_slot_results_grading_beats_day_result (line 296) also dies under this mutant, but it witnesses a different category (a DD-leg CRITICAL).",
+      "Ruling 13 closure: `today` is passed explicitly; no threads, no clock. The killing node runs before the file's only parquet (pyarrow) test."
+    ],
+    "batch": "d3"
+  },
+  {
+    "incident": "I-042",
+    "link": 2,
+    "spec": "D-I042-2",
+    "reason": null,
+    "symptom_kind": "return",
+    "confidence": "medium-high",
+    "open_questions": [
+      "At f453283 the primary pooling filter is the regime fingerprint, added later (audit F6). It wins whenever the newest pick is stamped. This mutant removes only the c5256e6 deploy filter, now the fallback for unstamped picks; both killers use unstamped picks. Decide whether that is an acceptable current-defence target for the link.",
+      "The production wiring (runner.run_all_checks -> _current_deploy_iso -> since_deploy_iso) is not exercised; the killers pass since_deploy_iso directly.",
+      "The draft records complete_fix_set=false for this link."
+    ],
+    "batch": "d3"
+  },
+  {
+    "incident": "I-043",
+    "link": 1,
+    "spec": "D-I043-1",
+    "reason": null,
+    "symptom_kind": "return",
+    "confidence": "medium-high",
+    "open_questions": [
+      "D-I043-4 uses the same mutation. Since 0799bf2, both the existing-pick decision (7b701c9) and the candidate decision (0799bf2) go through the void branch of picks._classify_unposted_game_status, so the two certificates are not independent mutants.",
+      "The mutant restores only the postponed/cancelled half of 7b701c9. Missing-from-schedule (status None -> stale) is untouched, so test_missing_primary_game_regenerates survives.",
+      "Closure. At the pin these tests run run_and_pick inside heartbeat_watchdog. Its daemon thread writes data/.heartbeat and appends data/health_state/cascade_stage_durations.jsonl relative to the CWD, which are gitignored paths inside the owned worktree and outside the manifest. On the mutant path, run_single_check returns before the watchdog starts. The return witness still needs _alone() at classify_pick_lock_state's return, so it relies on earlier tests' watchdog threads having been joined (join timeout 2 s).",
+      "All of tests/test_scheduler.py runs green and under the mutant. Its real-time tests (TestPollIntervalSleep, TestWatchdogPingSleep, TestIdleUntilNextWakeup) may flake under machine load."
+    ],
+    "batch": "d3"
+  },
+  {
+    "incident": "I-043",
+    "link": 2,
+    "spec": "D-I043-2",
+    "reason": null,
+    "symptom_kind": "return",
+    "confidence": "medium-high",
+    "open_questions": [
+      "The tests' check_hit mock answers True for every slot, so under the mutant the postponed slot grades 'hit'. In the live incident shape, check_hit would return None (the game is not final) and the day would stay pending, an absence-shaped symptom. The certificate covers the decision ('a postponed/cancelled slot is not voided'), not the pending-day symptom.",
+      "The entry is resolve_pick_slot_result, not run_result_polling, so that only the postponed slot's own invocation links. The DD slot's correct 'hit' comes from a later invocation that never executed the branch.",
+      "run_result_polling reads the real clock (_now_et), but with cap_hour_et=10 the cap test `hour >= 10 and hour < 10` is unsatisfiable, so the decision does not depend on time.",
+      "Not declared: tests/test_cli_integration.py::TestBtsCheckResults::test_check_results_voids_primary_and_scores_double_once dies too, but its first failing assertion is the 'VOID: Jacob Wilson.' output line."
+    ],
+    "batch": "d3"
+  },
+  {
+    "incident": "I-043",
+    "link": 3,
+    "spec": "D-I043-3",
+    "reason": null,
+    "symptom_kind": "return",
+    "confidence": "medium",
+    "open_questions": [
+      "NEEDS JUDGEMENT: this is a PARTIAL spec. It certifies only 68e4cdb's cap clause: the polling cap must not overwrite an already-resolved hit/miss/void. That guard now lives in save_nonterminal_result (moved there by review 2026-07-09 #1), and the mutant removes it there. Doing so also affects the 'suspended' and unresolved-final callers.",
+      "The link's headline clause has NO current defence that can fail. That clause is the schedule-void overlay that makes a postponed game count as final while its live feed says Preview. Under a mutant deleting the overlay, the only test, TestPollResults::test_run_result_polling_uses_schedule_void_when_live_feed_preview, never fails; it hangs. poll_game_result reports preview, _check_hits_midgame gets None through the autouse retry_urlopen guard, cap_hour_et=10 can never cap, and _poll_interval_sleep(None, 900) is a real sleep with no pytest-timeout configured. A hang is not a kill. Options: accept this partial certificate, or record the link as 'no current defence' for the overlay and keep this spec as a secondary certificate."
+    ],
+    "batch": "d3"
+  },
+  {
+    "incident": "I-043",
+    "link": 4,
+    "spec": "D-I043-4",
+    "reason": null,
+    "symptom_kind": "return",
+    "confidence": "medium-high",
+    "open_questions": [
+      "Same mutation as D-I043-1 (see there). A candidate-only alternative would separate the two: in pick_candidate_status_is_available, `if lock_state.reason == \"stale_game_status\": return lock_state.abstract == \"P\"`. It adds a condition rather than deleting a guard.",
+      "The three parametrized node ids carry pytest's [Postponed]/[Cancelled]/[Canceled] suffixes. Confirm they match the observer's collected node ids.",
+      "Not declared: tests/test_scheduler.py::TestSchedulerRun::test_should_lock_excludes_postponed_games dies at line 533 through the lock-gap path. Its first void-status calls happen inside heartbeat_watchdog, where returns are unread under ruling 12."
+    ],
+    "batch": "d3"
+  },
+  {
+    "incident": "I-043",
+    "link": 5,
+    "spec": null,
+    "reason": "the strict-mode guard it mutates is disabled on the production path (abbfdc5 runs with require_detailed_statuses=False); the production protection's pre-fix restoration needs added code (lead's ruling)",
+    "symptom_kind": "event",
+    "confidence": "medium",
+    "open_questions": [
+      "NEEDS JUDGEMENT: this is a PARTIAL spec covering the select_pick strict-mode clause. At f453283, run_single_check and the fallback refresh call run_and_pick with require_detailed_statuses=False (abbfdc5 set this deliberately). For the live scheduler the protection is therefore _lock_decision_from_predictions' fail-closed branch, pinned by tests/test_scheduler.py::TestSchedulerRun::test_lock_decision_fails_closed_when_detailed_status_unavailable. That branch is not specified because restoring its pre-fix abstract fallback needs a coarse-status branch added back, not a guard deleted.",
+      "Not declared, also killed: tests/test_orchestrator.py::TestRunAndPick::test_detailed_status_failure_fails_closed_without_coarse_fallback. Survives: test_strict_detailed_lookup_failure_locks_existing_pick, protected by abbfdc5's separate existing-pick guard, which this mutant leaves in place."
+    ],
+    "batch": "d3"
+  },
+  {
+    "incident": "I-047",
+    "link": 1,
+    "spec": null,
+    "reason": "absence not certifiable by the Phase 1 recorder: the defect's effect is a MISSING heartbeat/sd_notify ping during the inline shadow prediction (an unfed systemd watchdog). Regression test pinning it: tests/test_shadow_scheduler.py::TestRunShadowPrediction::test_wraps_prediction_with_heartbeat_watchdog (mock_watchdog.assert_called_once_with at line 49 fails if the `with heartbeat_watchdog(...)` wrap is dropped).",
+    "symptom_kind": "absence (missing watchdog pings)",
+    "confidence": "high",
+    "open_questions": [
+      "No positive witness found: the observer can only classify arguments of predict_local_shadow, which are the same with or without the watchdog wrap."
+    ],
+    "batch": "d4"
+  },
+  {
+    "incident": "I-047",
+    "link": 2,
+    "spec": null,
+    "reason": "under the mutant the killing test makes an unmocked live MLB statsapi request and starts a real watchdog thread; its only attributable witness is the dispatch decision (lead's ruling)",
+    "symptom_kind": "event (re-dispatch of the shadow job for a date whose shadow artifact exists)",
+    "confidence": "medium",
+    "open_questions": [
+      "Witness choice: the natural witness, the re-run predict_local_shadow call, happens inside the real heartbeat_watchdog, whose pulse thread is alive, so the observer records it unattributed (ruling 12). The spec uses the preceding _update_analytics_job_status(config, date, 'shadow', 'dispatched', ...) call, made while the thread is alone. It is a positive witness of the decision to redo the work, not of the prediction itself. Please confirm that this is acceptable as the link's bad event.",
+      "Kill traced: at the pin the existing-artifact guard returns before predict_local_shadow is reached. Under the mutant the code runs on to the predict_local_shadow mock. The node then fails at mock_predict.assert_not_called() (line 78), with the builtin AssertionError raised in unittest.mock; the innermost worktree frame is the test line. The message holds only the mock name and its call arguments (no addresses).",
+      "Under the mutant the killing test is under-isolated after the witness, and four things happen. It runs the real heartbeat_watchdog, which starts a daemon pulse thread and writes a .heartbeat under pytest's tmp base. It calls an unmocked get_game_statuses_detailed, a real MLB statsapi request through retry_urlopen; with no network that is 3 attempts with 5 s and 10 s sleeps. It runs select_pick on a MagicMock. Every exception is swallowed by the function's own except. None of this affects the kill or the witness. But the mutant runs (observed and unobserved) make an outbound request: check the defence runner's network policy.",
+      "A later guard, the analytics_jobs status check (prior completed/failed/dispatched -> skip), also blocks a re-run when scheduler_state records the job. The test has no scheduler_state, so it isolates the 150ed4c artifact guard. In production the two guards overlap.",
+      "Closure (ruling 13): the kill and the witness do not depend on elapsed time. The pulse thread's stop.wait(60) and the join(timeout=2) come after the witness.",
+      "Entry identity: _run_shadow_prediction is wrapped by @with_pinned_artifact (park_drag.py). The declared entry is the inner function: qualname _run_shadow_prediction in scheduler.py."
+    ],
+    "batch": "d4"
+  },
+  {
+    "incident": "I-056",
+    "link": 1,
+    "spec": null,
+    "reason": "absence not certifiable by the Phase 1 recorder: the defect is that NOTHING refreshed contest state (a missing writer). The fix adds a writer: fetch-contest-streak (fa30ecb, src/bts/cli.py). Its schedule (68a35d3) is a cron line in scripts/cron-setup-hetzner.sh, so that half is also outside src/. Regression test for the writer: tests/test_cli_integration.py::TestFetchContestStreak::test_happy_path_writes_auto.",
+    "symptom_kind": "absence (missing contest-state refresh)",
+    "confidence": "high",
+    "open_questions": [
+      "The record marks complete_fix_set false: the first fetch still discarded lagging snapshots until 4bdfdb8. That part is I-063 link 2 (D-I063-2)."
+    ],
+    "batch": "d4"
+  },
+  {
+    "incident": "I-056",
+    "link": 2,
+    "spec": "D-I056-2",
+    "reason": null,
+    "symptom_kind": "return (DecisionStreakState with allow_double false on a stale observation)",
+    "confidence": "medium-high",
+    "open_questions": [
+      "The pre-2b4ff1d stale branch is split across two specs. D-I056-2 restores only the doubles freeze: allow_double False on any non-fresh observation, as before the fix, when any lag counted as stale. D-I063-1 restores max(model, contest). The record text for both links names both. The draft's own note says this link may belong under I-063's 2b4ff1d. The old saver=False is not restored, because the saver input has since been rebuilt (saver_state.json authority; a9522a4/810d7e0/815cf50, I-111).",
+      "For I-056 itself (stale contest 7, real streak 0), 2b4ff1d still decides on the stale 7, now with doubles on. The defended decision here is 'no freeze', not the value; the value is link 1.",
+      "Only one killing node has a recordable return. Every dated observation returns contest_source_date as a datetime.date, which the observer serializes as incomplete ('no plain __dict__'), so the category reads 'unavailable'. The mutant also kills test_lagged_contest_uses_contest_value_keeps_doubles, test_lagged_contest_model_does_not_inflate, test_model_never_inflates_decision_streak and test_two_pick_gap_is_stale. They are left undeclared because their returns are incomplete.",
+      "Kill traced: the fixture has no source_date, so status is 'stale'. Line 200 (streak 3 == contest 3) passes and line 201 `assert state.allow_double is True` fails.",
+      "Closure: the test passes no `now`, so datetime.now feeds now_year and classify_best_streak. With no source_date and no saver file, allow_double does not depend on it."
+    ],
+    "batch": "d4"
+  },
+  {
+    "incident": "I-056",
+    "link": 3,
+    "spec": "D-I056-3",
+    "reason": null,
+    "symptom_kind": "return (empty alert list for a >=2-pick stale observation)",
+    "confidence": "medium",
+    "open_questions": [
+      "SUPERSESSION, needs your judgement. 365ea40 made a stale observation CRITICAL (DM'd). 56f9726 (I-063 link 4, 6/17) deliberately demoted a >=2-pick gap to WARN (logged, not DM'd) under the coverage split. The certificate would show only that the gap is still flagged (WARN), not the DM'd alarm the record's contract names. The alternative is a manifest entry: 'superseded (alert level) by 56f9726'.",
+      "The mutant disables only the gap >= 2 alert, which is I-056's week-long-freeze shape. The no-source_date and future-date CRITICALs (58c9adc) and the gap-1 INFO stay.",
+      "Both killing tests call check() without `now`, so the real clock feeds only the future-source_date guard (2026-06-01/05 against today). That is a fixed input for any run after 2026-06-06.",
+      "The witness {\"seq\": []} follows the I-0830-d precedent: a missing alert recorded as an empty returned list, i.e. a wrong value."
+    ],
+    "batch": "d4"
+  },
+  {
+    "incident": "I-061",
+    "link": 1,
+    "spec": null,
+    "reason": "not_applicable: a human step (the operator did not enter the delivered pick in the MLB app); the record has no fix for this link",
+    "symptom_kind": "not_applicable",
+    "confidence": "high",
+    "open_questions": [],
+    "batch": "d4"
+  },
+  {
+    "incident": "I-061",
+    "link": 2,
+    "spec": null,
+    "reason": "absence not certifiable by the Phase 1 recorder: the defect is that no pre-cutoff check existed, so no alert was sent (a missing DM). The fix is the check-pick-entered command (4f13eb3 v1, a6ec548 v2, src/bts/cli.py) plus its cron line (720651a, scripts/cron-setup-hetzner.sh, outside src/). Regression tests: tests/test_cli_integration.py::TestCheckPickEntered::test_missing_entry_in_window_dms_and_exits_nonzero and ::test_committed_via_decision_record_alerts; the v2 pending-row source: tests/test_contest_fetch.py::test_fetch_pending_predictions_returns_current_round_rows.",
+    "symptom_kind": "absence (missing pre-cutoff not-entered DM)",
+    "confidence": "high",
+    "open_questions": [
+      "Live status, not verified here: per the repo CLAUDE.md, the box's check-pick-entered cron line has been commented out since 2026-09-14 (season over). So the deployed defence is paused, while the code and tests remain."
+    ],
+    "batch": "d4"
+  },
+  {
+    "incident": "I-061",
+    "link": 3,
+    "spec": null,
+    "reason": "the fix was superseded: 4f13eb3's noon-ET escalation (a one-pick gap past noon -> WARN) was removed by 56f9726 (I-063 link 4, 2026-06-17), which makes a one-pick gap INFO at any time of day. test_gap1_persisting_past_noon_et_escalates_to_warn no longer exists at f453283. tests/health/test_contest_state.py::test_gap1_past_noon_is_info_not_warn now pins the opposite. Never-entered detection moved to check-pick-entered v2 (link 2).",
+    "symptom_kind": "superseded",
+    "confidence": "high",
+    "open_questions": [
+      "I-061 link 3 and I-063 link 4 directly conflict. D-I063-4's mutant is exactly this link's fix: it restores the noon WARN."
+    ],
+    "batch": "d4"
+  },
+  {
+    "incident": "I-063",
+    "link": 1,
+    "spec": "D-I063-1",
+    "reason": null,
+    "symptom_kind": "event (DecisionStreakState built with the model streak above the contest streak)",
+    "confidence": "medium-low",
+    "open_questions": [
+      "New boundary pattern. The binding is the dataclass-generated DecisionStreakState.__init__, reached through the class namespace (`bts.contest_state:DecisionStreakState.__init__`; the observer supports exact-type classes). The function is exec-generated by dataclasses (co_filename '<string>', closure cells for its defaults). No existing spec uses a class-namespace function, so this is untested. kw:streak is read from the frame slot of the `streak` parameter.",
+      "Why not a return witness: the returned DecisionStreakState carries contest_source_date, a datetime.date, which the observer records as incomplete. All four killing tests (test_lagged_contest_uses_contest_value_keeps_doubles, test_lagged_contest_model_does_not_inflate, test_model_never_inflates_decision_streak, test_two_pick_gap_is_stale) use dated observations. If the __init__ boundary cannot be attributed, this link has no recordable witness in the current tests.",
+      "The classify regexes are fixture-specific (^10$ = the model value, ^8$ = the contest value), taken from the keystone 2026-06-17 fixture. The kill is at line 219 `assert state.streak == 8`: the status is 'lagged' (one settled pick behind), so the mutant's max(10, 8) = 10 applies.",
+      "The mutant restores only max(model, contest). The doubles freeze in the same old branch is D-I056-2's mutant. The hardening in a9522a4 (also in this link's fix set) is not restored.",
+      "Closure: now=None means datetime.now feeds classify_best_streak/now_year only. The streak does not depend on it."
+    ],
+    "batch": "d4"
+  },
+  {
+    "incident": "I-063",
+    "link": 2,
+    "spec": "D-I063-2",
+    "reason": null,
+    "symptom_kind": "event ('not current, refusing to overwrite' fetch failure alert; the snapshot is discarded)",
+    "confidence": "medium",
+    "open_questions": [
+      "The INCIDENT'S OWN CASE IS NOT CERTIFIABLE. The observed 6/16-6/17 refusal was a ONE-pick lag (source_date 2026-06-15 < 2026-06-16), which the pre-fix gate refused silently (exit 0, no write, no alert). Its current regression tests are test_contest_fetch.py::test_fetch_cli_persists_current_activestreak_despite_lag and test_cli_integration.py::TestFetchContestStreak::test_expected_settlement_lag_writes_snapshot_no_alert. Under this mutant both fail with FileNotFoundError reading the unwritten contest_streak.json, not with AssertionError, and there is no positive witness (the silent discard is an absence). This spec certifies the same gate's >=2-pick refusal instead.",
+      "The mutant restores 4bdfdb8's whole CLI decision: the source_date-None _fail, plus the currentness gate with 8cd7207's silent one-pick lag. The None line is needed so that None never reaches `source_date < latest`. 9a3e8ed's build_observation None-raise is not restored, because the CLI fails before reaching it.",
+      "The None case is killable too: test_fetch_cli_persists_snapshot_when_no_settled_predictions fails at its exit-code assertion, with a 'refusing to claim freshness' alert. But the branch anchor is on the gate, so that case would need a second spec with the marker on the None line.",
+      "The killing assertion is the exit-code check (line 878; _fail exits 2). It comes before the write and DM assertions; 'exit 0 = snapshot persisted' is read as part of the contract.",
+      "The boundary follows I-0811-b (bts.cli:_contest_fetch_alert, args[2]/kw:msg). _contest_fetch_alert reads datetime.now for its cooldown; the test has no prior status file, so neither the call nor the DM depends on it.",
+      "The test selection is narrowed to the class TestFetchContestStreak; the whole file is also possible."
+    ],
+    "batch": "d4"
+  },
+  {
+    "incident": "I-063",
+    "link": 3,
+    "spec": null,
+    "reason": "no recordable positive witness in the current tests. The only killing test, tests/test_contest_fetch.py::test_derive_source_date_counts_not_hit_rounds, asserts derive_source_date's return, a datetime.date. The Phase 1 observer serializes that return as incomplete ('no plain __dict__'), so a return certificate reads 'unavailable'. derive_source_date calls nothing observable (only dict.get and max). No CLI test drives a not_hit-latest profile through a recordable boundary (grep 'not_hit' in tests/*.py at f453283: only that unit test among the fetch tests). The mutant (drop 'not_hit' from contest_fetch.RESOLVED) is killed only by that AssertionError.",
+    "symptom_kind": "return (wrong source_date), unrecordable",
+    "confidence": "high",
+    "open_questions": [
+      "This reason is not one of the guide's four; closest is 'no current defence (recordable)'. One option is a fetch-CLI test with a not_hit as the latest settled round, asserting the written source_date string, so that _atomic_write_json's observation dict could witness it."
+    ],
+    "batch": "d4"
+  },
+  {
+    "incident": "I-063",
+    "link": 4,
+    "spec": "D-I063-4",
+    "reason": null,
+    "symptom_kind": "return (a false WARN in the returned alert list)",
+    "confidence": "medium-high",
+    "open_questions": [
+      "56f9726 fixed two sub-decisions. (a) It removed the noon-ET WARN for a one-pick gap; this spec covers that. (b) It demoted a >=2-pick gap from CRITICAL to WARN. For (b), the alternative mutant is `level=\"WARN\"` -> `level=\"CRITICAL\"` in the gap > 1 branch. It kills test_gap2_coverage_lag_is_warn and test_two_day_gap_is_warn_not_critical, but at their FIRST assertion (`assert any(a.level == \"WARN\" ...)`, lines 74/171), not at the `not any CRITICAL` line; its witness would be '\"level\": \"CRITICAL\"'. I chose (a) because its kill lands on the contract assertion itself (line 119). (b) is the more consequential false event (a DM'd CRITICAL), so you may want both.",
+      "The mutant re-inserts the pre-56f9726 noon branch (4f13eb3's text), i.e. I-061 link 3's fix; see that entry.",
+      "The record's note says link 4's daily WARN may describe anticipated rather than observed behaviour.",
+      "The kill is deterministic: the test passes now=2026-06-08 19:00Z (15:00 ET). The mutant also fails test_offday_gap_with_one_new_pick_is_not_critical (19:00 ET) at its INFO assertion; that node is undeclared."
+    ],
+    "batch": "d4"
+  },
+  {
+    "incident": "I-071",
+    "link": 1,
+    "spec": "D-I071-1",
+    "reason": null,
+    "symptom_kind": "event ('NOT entered ... Fix it now!' DM for an uncommitted pick)",
+    "confidence": "medium",
+    "open_questions": [
+      "Killing assertion: under the mutant the command sends the DM and then sys.exit(1), so both nodes fail at `assert r.exit_code == 0, r.output` (lines 1124/1181). That is one line BEFORE `assert dms == []`. I read 'exit 0 = nothing to check' as part of the contract. If you require the DM assertion itself, no current test reaches it under this mutant.",
+      "The DM boundary is the test's own lambda bound at bts.dm.send_dm (not a Mock), so the observer attributes it by its code object; each _setup call makes one lambda from the same code. If a lambda from an earlier test of the class were still alive (uncollected) during the killing node, the code would count as shared and the call would read unattributed. Earlier lambdas are in no reference cycle (freed when monkeypatch undoes the setattr) - reasoning only, not observed.",
+      "Closure (ruling 13): elapsed monotonic time enters minutes_to_cutoff. The kill (exit 1) holds either way, because the cutoff-passed-during-fetch branch also exits 1. Only the DM witness needs elapsed < 35 min.",
+      "The test selection is narrowed to TestCheckPickEntered. That class also holds test_no_nag_when_cutoff_passes_during_fetch, which monkeypatches time.monotonic (a stdlib function). It is not a killing node, but it is in the closure.",
+      "Live status, not verified here: per the repo CLAUDE.md, the check-pick-entered cron line has been commented out on the box since 2026-09-14."
+    ],
+    "batch": "d4"
+  },
+  {
+    "incident": "I-071",
+    "link": 2,
+    "spec": "D-I071-2",
+    "reason": null,
+    "symptom_kind": "event (DM countdown in minutes to first pitch instead of to the cutoff)",
+    "confidence": "medium",
+    "open_questions": [
+      "Chosen sub-decision: af6329f's countdown text, the part visible in the 7/06 DM. The other sub-decision, 540b1ab's window lower bound, is now defended in depth. The 2026-08-11 `minutes_to_cutoff <= 0` guard (Codex review #2) suppresses the nag inside the last 5 minutes, so a mutant of the window bound alone sends no DM. test_no_alert_inside_submission_cutoff then fails only at its marker assertion (`assert not (...pick_entry_check.json).exists()`), and the only witness is the _atomic_write_json call with status 'alerted'. That could be a second, weaker spec.",
+      "Ruling 13, on the pin side: the GREEN pass of the killing node depends on elapsed monotonic time. minutes_to_cutoff = 40 - 5 - elapsed_min must render '35' (elapsed < 30 s inside the command). The mutant's kill does not depend on it: the mutated message uses minutes_to_pitch, which --now-et fixes at 40. A slow observed green would fail closed at the gate, but this is an elapsed-time dependence on the killing node.",
+      "Kill traced: exit != 0 and len(dms) == 1 pass. msg = '... (40 min). Fix it now!' fails `assert \"35 min to submit\" in msg, msg` (line 1152).",
+      "The DM boundary is the test's own lambda bound at bts.dm.send_dm (not a Mock), so the observer attributes it by its code object; each _setup call makes one lambda from the same code. If a lambda from an earlier test of the class were still alive (uncollected) during the killing node, the code would count as shared and the call would read unattributed. Earlier lambdas are in no reference cycle (freed when monkeypatch undoes the setattr) - reasoning only, not observed.",
+      "The STILL-NOT-entered escalation text (post-fix, F1) is not restored."
+    ],
+    "batch": "d4"
+  },
+  {
+    "incident": "I-072",
+    "link": 1,
+    "spec": null,
+    "reason": "not a fixed link: the record's fix for link 1 is not_applicable. The operator did not enter the double-down's second slot before the cutoff, a manual step outside the system, so there is no decision in src/ to defend. This entry is listed only for completeness.",
+    "symptom_kind": "absence (slot never entered): operator action, outside the system",
+    "confidence": "high",
+    "open_questions": [],
+    "batch": "d5"
+  },
+  {
+    "incident": "I-072",
+    "link": 2,
+    "spec": null,
+    "reason": "absence not certifiable by the Phase 1 recorder. The defect's observable effect is MISSING events: after the first alert, each later */15 run returned before querying the contest account, so no re-verification happened and no escalation DM was sent. Regression tests that pin it at f453283 (tests/test_cli_integration.py): TestCheckPickEnteredEscalation::test_alerted_before_thresholds_reverifies_without_dm, ::test_t30_escalation_fires_once, ::test_t15_escalation_after_t30, ::test_alerted_reverifies_and_confirms_when_entry_appears, ::test_initial_near_cutoff_consumes_lower_tiers, ::test_escalation_dm_failure_retries_next_run and ::test_legacy_marker_without_escalations_treated_as_initial; TestCheckPickEntered::test_marker_dedupes_second_alert. For e5ef7ca's part (present_unverified is not terminal; a missing slot count is a mismatch): TestCheckPickEnteredUnverified::test_unverified_presence_is_nonterminal and ::test_missing_slot_count_is_mismatch_despite_crosswalk_gap, and tests/test_contest_fetch.py::TestPickEntryStatus. The EOD backstop that 8bceda1 added is pinned by tests/health/test_pick_entry_source.py.",
+    "symptom_kind": "absence (no account re-verification and no escalation DM after the first alert)",
+    "confidence": "high",
+    "open_questions": [
+      "Positive witnesses of the wrong DECISION exist. The README defers them for absence links: I-0830-b stayed unavailable although its planner's 'defer' return was available. Restoring 8bceda1^'s guard `if prior.get(\"status\") in (\"confirmed\", \"alerted\"): click.echo(f\"check-pick-entered: already {prior.get('status')} for {today}\"); return` gives two candidates in an alerted-marker test such as TestCheckPickEnteredEscalation::test_t30_escalation_fires_once, which fails at `assert r1.exit_code != 0`. One is an event at `click:echo` whose args[0] matches 'already alerted'. The other is a normal return of check_pick_entered (value null) where the fixed code raises SystemExit(1). Either certifies only 'alerted treated as terminal', never 'no escalation reached the operator'. Owner's call whether to use one; I drafted neither.",
+      "e5ef7ca's sub-decision has its own positive return: before e5ef7ca, `pick_entry_status` returned (True, 'present_unverified') when fewer rows than slots were entered and the entered row was not in the crosswalk. A return spec would read {\"seq\": [true, \"present_unverified\"]}, killed by test_missing_slot_count_is_mismatch_despite_crosswalk_gap. The draft's notes give that escape its own record (I-110), so it probably belongs there, not here.",
+      "8bceda1's new pick_entry health source (the EOD backstop) is a detector, and a detector could be defended as a return of [], like I-0830-d. A mutant that drops its 'alerted past cutoff' WARN is killed by tests/health/test_pick_entry_source.py::test_alerted_past_cutoff_warns. The draft does not make the backstop a separate link, so I did not spec it. It could become one if the owner splits detection out, as I-084 link 4 did.",
+      "Closure note for any later spec here: check_pick_entered subtracts elapsed wall time (time.monotonic, cli.py:1774) from minutes_to_cutoff on its nag path, which is a ruling-13 elapsed-time dependence."
+    ],
+    "batch": "d5"
+  },
+  {
+    "incident": "I-075",
+    "link": 1,
+    "spec": "D-I075-1",
+    "reason": null,
+    "symptom_kind": "event (a wrong value persisted: scheduler state saved with next_wakeup = the run date's 10:00, already past at the 23:30 EOD)",
+    "confidence": "medium-high",
+    "open_questions": [
+      "The mutant replaces step 7's `_next_day_wakeup` call with 9551818^'s literal step-7 block, try/except included. It differs in one way: it passes `now_et=_now_et()` to compute_wakeup_time, a parameter that 9551818 itself added. The literal pre-fix call anchors an empty tomorrow to the wall clock (datetime.now(ET)), so its kill and its witness would depend on the real date (ruling 13). With now_et it gives the same decision (today's default hour, no bump) on the fixture clock, and in production the two clocks agree. To use the literal form instead, drop the now_et line. The test reads date.today(), so the literal form also kills except across a midnight.",
+      "The witness is the save_state call in the step-7 block (binding bts.scheduler:save_state, args[0] = the SchedulerState). Its category comes from a back-referenced regex on the observer's sorted-key serialization: the state's 'date' equals the date of next_wakeup at T10:00:00. I checked this offline with the pinned observer's _safe and _classify on a SchedulerState built like the test's. The form is complete. The mutant value is classed run_date_default_hour, the green value (tomorrow) other_wakeup, and an unset value no_wakeup.",
+      "Closure: runs_completed[0].duration_sec in the witness value is elapsed wall time (closure-screen hit scheduler.py:2714). It sorts after next_wakeup, so it cannot affect the match, and the fallback budget that consumes it is never reached on this path because no pick exists. The test's run date is date.today(), so the observed and unobserved twins must run on the same calendar day for their failure-message digests to match. After the witness, the mutant's _idle_until_next_wakeup reads datetime.now(UTC). Before 10:00 ET it idles through the patched sleep and a watchdog thread; after 10:00 it no-ops. Either way this happens after the witness and before the assertion and does not change the kill.",
+      "The test patches time.sleep globally through `sch.time` (a stdlib patch), the same pattern as _drive_run_day in the prepared I-0813-b. It imports helpers from tests/test_scheduler_decision_record_integration.py, so that file is in the closure, but its autouse retry_urlopen fixture does not apply here. No network call is on the path.",
+      "The killing assertion spans several lines (`assert wakeup > now, (` ... `)` on lines 62-65). I expect the frame line to be 62, because pytest's rewrite gives the raise the assert statement's start line, but I have not observed it.",
+      "This is the only test that drives step 7 through run_day. tests/test_scheduler_no_games.py covers _next_day_wakeup's bump directly, not the step-7 wiring."
+    ],
+    "batch": "d5"
+  },
+  {
+    "incident": "I-075",
+    "link": 2,
+    "spec": null,
+    "reason": "absence not certifiable by the Phase 1 recorder. 9551818 left _idle_until_next_wakeup's no-op return on a past wakeup in place (complete_fix_set false) and only made it LOUD. The pre-fix behaviour is the same return without the warning, so the defect's observable effect is a missing log line. The function returns None either way. Regression tests that pin it at f453283: tests/test_scheduler_eve_of_break.py::TestIdleGuardLoud::test_past_wakeup_logs_reason, ::test_naive_wakeup_logs_reason, ::test_malformed_wakeup_logs_reason and ::test_empty_wakeup_logs_reason. tests/test_scheduler.py::TestIdleUntilNextWakeup::test_no_sleep_if_next_wakeup_is_past pins the no-sleep side (an elapsed-time assertion).",
+    "symptom_kind": "absence (the 'not idling' warning missing from the journal)",
+    "confidence": "high",
+    "open_questions": [
+      "The restart loop itself (run_day returning into Restart=always) is defended through link 1, which removed the past wakeup. The residual (the no-op still returns on any other past-wakeup path) is unchanged by design."
+    ],
+    "batch": "d5"
+  },
+  {
+    "incident": "I-075",
+    "link": 3,
+    "spec": "D-I075-3",
+    "reason": null,
+    "symptom_kind": "event (an extra event: a duplicate CRITICAL health DM for an identity already DMed today)",
+    "confidence": "high",
+    "open_questions": [
+      "The mutant follows the I-0813-a pattern: it keeps the dedup condition and replaces its body (the log line and `return False`) with the marker, so a covered same-day repeat falls through to send_dm. It keeps the post-fix sent_day/sent_sources bookkeeping, which does not affect the decision.",
+      "The marker runs only in the call whose identities are covered by today's sent set, so the first, legitimate send (no prior status) comes before any branch record and cannot link.",
+      "More nodes would also kill: test_distinct_incident_keys_share_source_not_suppressed (line 302, a CRITICAL body) and test_warn_attention_digest_deduped (line 268). The second sends a 'BTS health WARN attention' body, classed health_dm rather than critical_dm, so it would need its own symptom category. I left both out to keep one symptom."
+    ],
+    "batch": "d5"
+  },
+  {
+    "incident": "I-075",
+    "link": 4,
+    "spec": "D-I075-4",
+    "reason": null,
+    "symptom_kind": "event (an extra event: the checkpoint rewritten on a same-day re-run; the restart storm then aliases below the +3 threshold)",
+    "confidence": "medium",
+    "open_questions": [
+      "The boundary is a stdlib method reached through a class: `pathlib:Path.write_text` (args[1] = the JSON text). restart_spike.check writes its checkpoint directly, with no bts-level wrapper to bind. In this venv (3.12.13), write_text is defined in Path's own namespace and type(Path) is type, so the binding chain uses only supported shapes. But no prepared spec binds a stdlib class method yet, so the tooling reviewer should confirm it. The observer writes its own records with open(), not pathlib.",
+      "The marker sits under the negated fix condition, `if not (prior is None or prior_day != today.isoformat()): pass  # marker`, followed by `if True:` around the write. It therefore runs only on a same-day re-run, the defective path. Call 1's legitimate baseline write comes before any branch record and cannot link. The mutant writes the post-fix 'day' field too, so on a same day days_gap is 0 and the threshold is the base 3, as before the fix.",
+      "I rejected a return-kind alternative modelled on I-0830-d (check returning {\"seq\": []}). In test_same_day_creep_accumulates_to_critical the first linkable [] is call 2's, and the fixed code returns [] there too, so it would certify a non-discriminating value. The extra checkpoint write is the pre-fix decision itself.",
+      "The witness text contains checkpointed_at (wall clock), but the category regex reads only the '{\"nrestarts\": ' prefix. Both tests pass `today` explicitly."
+    ],
+    "batch": "d5"
+  },
+  {
+    "incident": "I-075",
+    "link": 5,
+    "spec": "D-I075-5",
+    "reason": null,
+    "symptom_kind": "return (a wrong value: the window gap is 0.78, the primary's p against the day-level miss, where per-slot grading gives 0.26)",
+    "confidence": "medium-high",
+    "open_questions": [
+      "The witness is the nested gap_over's float return (qualname 'compute_metrics.<locals>.gap_over'), not compute_metrics's PredRealMetrics. That return is incomplete under the observer's depth limit: daily -> date -> the 'slots' list sits at depth 3, so it would class as 'unavailable'. The reviewer must accept a nested function's return as the witness. Its frames link through the live compute_metrics invocation.",
+      "The mutant has two edits. A slot is graded against the DAY result (the marker is here), and the DD leg is no longer graded. Together they restore 230f65c^'s primary-only, day-level grading. The first edit alone would still kill (gap 0.76), but it would grade the DD leg against the day result, which no pre-fix code did. 230f65c's other decisions are NOT reverted. The symmetric exclusion of legacy DD days is r2#7. The drift_critical change (0.12 to 0.25) has since been re-tuned by the bootstrap-calibrated thresholds now in place.",
+      "I verified the value 0.78 offline: statistics.mean([0.78]) - statistics.mean([0]) == 0.78 exactly (mean of [0] is the int 0), and the pinned observer serializes it as '0.78', classed primary_vs_day_result. Green's 0.26 classes as 'other'. gap_over runs twice under the mutant (14d and 28d windows), and both returns carry the bad value.",
+      "Under the mutant, test_void_primary_still_counts_graded_dd_slot also fails, because the DD leg is ungraded. It is not declared: gap_over never runs there, since there is no graded day."
+    ],
+    "batch": "d5"
+  },
+  {
+    "incident": "I-113",
+    "link": 1,
+    "spec": null,
+    "reason": "no current defence: no current test exercises the fixed decision. At f453283, sync_to_r2 still uploads models/mdp_policy.npz when present (the 947fce8 block in src/bts/data/sync.py). tests/test_sync.py is the only test that calls sync_to_r2, and none of its fixtures writes an mdp_policy.npz: its models dirs hold only probable_pitcher_lookup.json, or nothing. Evidence: `git grep -ln sync_to_r2 f453283 -- tests` returns tests/test_sync.py only. `git show f453283:tests/test_sync.py | grep -n -E 'npz|policy'` returns no hits. None of the 10 tests that `git grep -ln mdp_policy f453283 -- tests` returns is a sync or R2 test. By inspection, deleting the 947fce8 block would leave every current test green.",
+    "symptom_kind": "return (a wrong returned manifest: models/mdp_policy.npz missing from what sync_to_r2 writes and returns); the restored host's silent heuristic fallback is downstream",
+    "confidence": "high",
+    "open_questions": [
+      "This is a coverage finding. The owner-queued residual fix (sync_to_r2 also shipping mdp_tail_policy.npz) is a natural place for the missing test. If that test writes both npz files into models_dir and asserts both 'models/...' keys in the returned manifest, it also gives this link a return-kind defence. The returned manifest serializes completely under the observer (manifest -> files -> entry -> primitives reaches depth 3 with primitives only) for up to 50 files.",
+      "The restore side (scripts/fly-bootstrap.sh running sync-from-r2 on an empty volume) is outside src/ and is not this link's fixed decision."
+    ],
+    "batch": "d5"
+  },
+  {
+    "incident": "I-082",
+    "link": 1,
+    "spec": "I-0811-a",
+    "batch": "prepared",
+    "reason": null
+  },
+  {
+    "incident": "I-082",
+    "link": 2,
+    "spec": "I-0811-b",
+    "batch": "prepared",
+    "reason": null
+  },
+  {
+    "incident": "I-083",
+    "link": 1,
+    "spec": "I-0813-a",
+    "batch": "prepared",
+    "reason": null
+  },
+  {
+    "incident": "I-083",
+    "link": 2,
+    "spec": "I-0813-b",
+    "batch": "prepared",
+    "reason": "absence (ruling 10): the run records the refusal"
+  },
+  {
+    "incident": "I-084",
+    "link": 1,
+    "spec": "I-0830-b",
+    "batch": "prepared",
+    "reason": "absence (ruling 10): the run records the refusal"
+  },
+  {
+    "incident": "I-084",
+    "link": 2,
+    "spec": "I-0830-a",
+    "batch": "prepared",
+    "reason": null
+  },
+  {
+    "incident": "I-084",
+    "link": 3,
+    "spec": "I-0830-c",
+    "batch": "prepared",
+    "reason": null
+  },
+  {
+    "incident": "I-084",
+    "link": 4,
+    "spec": "I-0830-d",
+    "batch": "prepared",
+    "reason": null
+  },
+  {
+    "incident": "I-085",
+    "link": 1,
+    "spec": "I-0903-a",
+    "batch": "prepared",
+    "reason": null
+  }
+]

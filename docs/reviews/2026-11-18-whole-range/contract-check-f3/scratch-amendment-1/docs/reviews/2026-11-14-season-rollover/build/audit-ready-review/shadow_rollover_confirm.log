@@ -1,0 +1,23 @@
+base {
+  "nightly": "Pruned 1 superseded record(s): 2026-12-30\nRecorded 1 new skip decision(s): 2026-12-29\nReconciled 0 pending outcome(s).\nStatus: 32 divergent days, 30 resolved, verdict=above_breakeven (rate=100.0% vs breakeven 0.744). Wrote <work>/skip_policy_shadow_status.json\n",
+  "live": {
+    "cli": "skip-policy shadow (bts_skip_policy_shadow_status_v2) generated 2027-01-01T05:01:00Z\n  divergent days: 32  (30 resolved, 2 pending)\n  skipped-band realized hit rate: 100.0% CI[88.6%,100.0%]  vs breakeven 0.744  (monitoring only)\n  VERDICT: above_breakeven  \u2014 pre-registered look at n=30 (30/30 CI[84.0%,100.0%], z=2.394)\n",
+    "dashboard": "\n        <div class=\"policy-shadow\">\n            <strong>Skip-policy shadow &mdash; skip is costing streaks (picking is +EV)</strong>\n            <span>\"Pick-the-band\" shadow policy: on 32 day(s) the deployed MDP skipped a sub-0.796 top candidate at streak&ge;8. Skipped picks have realized 100.0% [89%&ndash;100%] (30/30 resolved, 2 pending; monitoring only) vs the 0.744 breakeven. Verdict basis: pre-registered look at n=30 (30/30 [84%&ndash;100%], z=2.394).</span>\n        </div>"
+  },
+  "legacy": {
+    "cli": "skip-policy shadow (bts_skip_policy_shadow_status_v1) generated fixture\n  divergent days: 1  (1 resolved, 0 pending)\n  skipped-band realized hit rate: 100.0%  vs breakeven 0.744  (monitoring only)\n  VERDICT: above_breakeven  \u2014 LEGACY v1 artifact (retired nightly-Wilson rule); rerun `bts skip-policy-shadow-update` for a pre-registered verdict\n",
+    "dashboard": "\n        <div class=\"policy-shadow\">\n            <strong>Skip-policy shadow &mdash; skip is costing streaks (picking is +EV) (legacy artifact \u2014 nightly rebuild pending)</strong>\n            <span>\"Pick-the-band\" shadow policy: on 1 day(s) the deployed MDP skipped a sub-0.796 top candidate at streak&ge;8. Skipped picks have realized 100.0% (1/1 resolved, 0 pending; monitoring only) vs the 0.744 breakeven.</span>\n        </div>"
+  }
+}
+head {
+  "nightly": "Pruned 1 superseded record(s): 2026-12-30\nRecorded 1 new skip decision(s): 2026-12-29\nReconciled 0 pending outcome(s).\nStatus: 0 divergent days, 0 resolved, verdict=insufficient_n (rate=n/a vs breakeven 0.744). Wrote <work>/skip_policy_shadow_status.json\n",
+  "live": {
+    "cli": "skip-policy shadow (bts_skip_policy_shadow_status_v2) generated 2027-01-01T05:01:00Z\n  divergent days: 0  (0 resolved, 0 pending)\n  skipped-band realized hit rate: n/a  vs breakeven 0.744  (monitoring only)\n  VERDICT: insufficient_n  \u2014 no pre-registered look fired yet\n",
+    "dashboard": ""
+  },
+  "legacy": {
+    "cli": "skip-policy shadow (bts_skip_policy_shadow_status_v1) generated fixture\n  divergent days: 1  (1 resolved, 0 pending)\n  skipped-band realized hit rate: 100.0%  vs breakeven 0.744  (monitoring only)\n  VERDICT: above_breakeven  \u2014 LEGACY v1 artifact (retired nightly-Wilson rule); rerun `bts skip-policy-shadow-update` for a pre-registered verdict\n",
+    "dashboard": "\n        <div class=\"policy-shadow\">\n            <strong>Skip-policy shadow &mdash; skip is costing streaks (picking is +EV) (legacy artifact \u2014 nightly rebuild pending)</strong>\n            <span>\"Pick-the-band\" shadow policy: on 1 day(s) the deployed MDP skipped a sub-0.796 top candidate at streak&ge;8. Skipped picks have realized 100.0% (1/1 resolved, 0 pending; monitoring only) vs the 0.744 breakeven.</span>\n        </div>"
+  }
+}
+Corrupt policy object base/head: {'exit': 1, 'exception': 'AttributeError("\'list\' object has no attribute \'get\'")', 'stdout': 'Recorded 0 new skip decision(s): none\nReconciled 0 pending outcome(s).\n', 'status_written': False} {'exit': 0, 'exception': 'None', 'stdout': 'Recorded 0 new skip decision(s): none\nReconciled 0 pending outcome(s).\nStatus: 0 divergent days, 0 resolved, verdict=insufficient_n (rate=n/a vs breakeven 0.744). Wrote <work>/corrupt-policy-status.json\n', 'status_written': True}

@@ -1,0 +1,14 @@
+[Unit]
+Description=BTS Leaderboard Scraper twice-daily timer
+
+[Timer]
+# 10:00 ET (14:00 UTC) — morning, captures pick intentions before most lock-times
+OnCalendar=*-*-* 14:00:00 UTC
+# 01:00 ET (05:00 UTC) — late-night, post-game-resolution
+OnCalendar=*-*-* 05:00:00 UTC
+RandomizedDelaySec=300
+Persistent=true
+Unit=bts-leaderboard.service
+
+[Install]
+WantedBy=timers.target

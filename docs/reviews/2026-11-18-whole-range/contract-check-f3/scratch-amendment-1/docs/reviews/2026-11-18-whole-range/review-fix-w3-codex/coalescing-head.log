@@ -1,0 +1,41 @@
+nice: setpriority: Operation not permitted
+/Users/eric/.matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/matplotlib-rr1hgk69 because there was an issue with the default path (/Users/eric/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:20 ET] Fetching schedule for 2027-03-24...
+  4 games, 4 scheduled checks:
+    18:20 ET — 1 game(s)
+    18:42 ET — 1 game(s)
+    18:45 ET — 1 game(s)
+    19:00 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:20 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0%, gap=59.0% vs projected 40.0% → should_lock=False
+  Earliest pick game at 19:10 ET, no check before then — fallback at 18:35 ET (15 min)...
+  FALLBACK REFRESH: pick unchanged (Synthetic Batter 101 99.0%)
+  FALLBACK REFRESH: should_lock=False, gap=59.0% vs projected 40.0%, block=primary_projected
+  FALLBACK DEFERRED — primary_projected_pending_window; window at 18:42 ET; archived deferred_fallback_20270324T184600-0400.json.
+
+[18:46 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0%, gap=59.0% vs projected 40.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK DEFERRED — primary_projected_pending_window; window at 19:00 ET; archived deferred_fallback_20270324T184600-0400.json.
+  [18:46 ET] Skipping overrun 18:45 check — covered by the fallback refresh (no new lineups since).
+  Sleeping until 19:00 ET (14 min)...
+
+[19:00 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 104 (ABC) 99.0%, gap=59.0% vs projected 40.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: captured-dm
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 20:40 ET (game start + 10min, 100 min)...
+  Day complete. Result: captured-poll
+CLI 2027-03-24T18:20:00-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/probe-jdb2n_ag/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=30 best=30 saver=used reason=None
+contest_streak: 30 (best 30, saver used) for 2027-03-24, in effect today
+TRANSPORT dm 2027-03-24T19:00:00-04:00 "Today's pick: Synthetic Batter 104 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 30"
+COALESCING {"starts": ["2027-03-24T18:20:00-04:00", "2027-03-24T18:35:00-04:00", "2027-03-24T18:46:00-04:00", "2027-03-24T19:00:00-04:00"], "planner": [[[[102], [103], [104]], "defer", 12.0, 10.0], [[[104]], "defer", 12.0, 10.0], [[[104]], "defer", 12.0, 10.0]], "runs": [{"time": "2027-03-24T18:20:00-04:00", "new_lineups": 4, "skipped": false, "pick_name": "Synthetic Batter 101", "pick_p": 0.99, "duration_sec": 0.0}, {"time": "2027-03-24T18:46:00-04:00", "new_lineups": 0, "skipped": false, "pick_name": "Synthetic Batter 101", "pick_p": 0.99, "duration_sec": 0.0}, {"time": "2027-03-24T18:46:00-04:00", "new_lineups": 0, "skipped": true, "reason": "coalesced_after_fallback", "pick_name": null, "pick_p": null}, {"time": "2027-03-24T19:00:00-04:00", "new_lineups": 0, "skipped": false, "pick_name": "Synthetic Batter 104", "pick_p": 0.99, "duration_sec": 0.0}], "history": [{"started": "2027-03-24T18:35:00-04:00", "finished": "2027-03-24T18:46:00-04:00", "duration_sec": 0.0, "reused_check_cascade": false, "action": "defer", "reason": "primary_projected_pending_window"}, {"started": "2027-03-24T18:46:00-04:00", "finished": "2027-03-24T18:46:00-04:00", "duration_sec": 0.0, "reused_check_cascade": true, "action": "defer", "reason": "primary_projected_pending_window"}], "commit": {"batter_id": 604, "batter_name": "Synthetic Batter 104", "team": "ABC", "game_pk": 104, "p_game_hit": 0.99}, "health": []}

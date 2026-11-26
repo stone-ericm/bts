@@ -1,0 +1,88 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-check-h2b/.codex-review/wr-h2-check/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 554 items
+
+tests/test_saver_cs3.py ................................................ [  8%]
+.....................................................F.................. [ 21%]
+................................................................         [ 33%]
+tests/test_saver_cs3_review.py ......................                    [ 37%]
+tests/test_saver_state.py ................                               [ 40%]
+tests/test_web_saver.py .........F..                                     [ 42%]
+tests/test_pick_chosen_on_cs5a.py ....................................F. [ 49%]
+..............F......................................................... [ 62%]
+......................FF..............................FF.....            [ 73%]
+tests/test_saved_pick_cs5a_review.py ................................... [ 79%]
+.............                                                            [ 81%]
+tests/test_saved_pick_paths_cs5a.py .................................... [ 88%]
+..ss..ss.........................................................        [100%]
+
+=================================== FAILURES ===================================
+___ test_dashboard_survives_contest_files_and_post_never_reads_them[refused] ___
+tests/test_saver_cs3.py:204: in test_dashboard_survives_contest_files_and_post_never_reads_them
+    assert ctx.state == "active" and ctx.warning is False and ctx.nudge is False
+E   AssertionError: assert ('active' == 'active'
+E     
+E       active and True is False)
+E    +  where True = SaverDashboardContext(state='active', button='mark_used', expected_prior='active', nudge=False, warning=True).warning
+_________________ test_do_post_saver_transition_socket_wiring __________________
+tests/test_web_saver.py:139: in test_do_post_saver_transition_socket_wiring
+    srv = _serve(tmp_path, monkeypatch)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_web_saver.py:107: in _serve
+    srv = HTTPServer(("127.0.0.1", 0), web.Handler)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/socketserver.py:457: in __init__
+    self.server_bind()
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/http/server.py:140: in server_bind
+    socketserver.TCPServer.server_bind(self)
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/socketserver.py:478: in server_bind
+    self.socket.bind(self.server_address)
+E   PermissionError: [Errno 1] Operation not permitted
+_____ test_invalid_record_normalized_in_all_loaders[dated.best_streak=58] ______
+tests/test_pick_chosen_on_cs5a.py:182: in test_invalid_record_normalized_in_all_loaders
+    assert getattr(picks.load_pick(DAY, tmp_path), "chosen_on", None) is None
+E   AssertionError: assert {'dated': {'active_streak': 7, 'best_streak': 58, 'effective_date': '2027-07-15', 'saver_state': 'used'}, 'kind': 'dated', 'required': True, 'saver_available': False, ...} is None
+E    +  where {'dated': {'active_streak': 7, 'best_streak': 58, 'effective_date': '2027-07-15', 'saver_state': 'used'}, 'kind': 'dated', 'required': True, 'saver_available': False, ...} = getattr(DailyPick(date='2027-07-15', run_time='2027-07-15T18:35:00-04:00', pick=Pick(batter_name='Steven Kwan', batter_id=6807...'effective_date': '2027-07-15', 'active_streak': 7, 'best_streak': 58, 'saver_state': 'used'}}, automatic_reading=None), 'chosen_on', None)
+E    +    where DailyPick(date='2027-07-15', run_time='2027-07-15T18:35:00-04:00', pick=Pick(batter_name='Steven Kwan', batter_id=6807...'effective_date': '2027-07-15', 'active_streak': 7, 'best_streak': 58, 'saver_state': 'used'}}, automatic_reading=None) = <function load_pick at 0x10c6af240>('2027-07-15', PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1312/test_invalid_record_normalized28'))
+E    +      where <function load_pick at 0x10c6af240> = picks.load_pick
+________ test_invalid_record_normalized_in_all_loaders[automatic at 58] ________
+tests/test_pick_chosen_on_cs5a.py:182: in test_invalid_record_normalized_in_all_loaders
+    assert getattr(picks.load_pick(DAY, tmp_path), "chosen_on", None) is None
+E   AssertionError: assert {'dated': None, 'kind': 'automatic', 'required': True, 'saver_available': False, ...} is None
+E    +  where {'dated': None, 'kind': 'automatic', 'required': True, 'saver_available': False, ...} = getattr(DailyPick(date='2027-07-15', run_time='2027-07-15T18:35:00-04:00', pick=Pick(batter_name='Steven Kwan', batter_id=6807... 'required': True, 'kind': 'automatic', 'streak': 58, 'saver_available': False, 'dated': None}, automatic_reading=None), 'chosen_on', None)
+E    +    where DailyPick(date='2027-07-15', run_time='2027-07-15T18:35:00-04:00', pick=Pick(batter_name='Steven Kwan', batter_id=6807... 'required': True, 'kind': 'automatic', 'streak': 58, 'saver_available': False, 'dated': None}, automatic_reading=None) = <function load_pick at 0x10c6af240>('2027-07-15', PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1312/test_invalid_record_normalized44'))
+E    +      where <function load_pick at 0x10c6af240> = picks.load_pick
+________________ test_pure_matcher[dated.best_streak=58-dated] _________________
+tests/test_pick_chosen_on_cs5a.py:266: in test_pure_matcher
+    assert message.index(DAY) < message.index(chosen_text) < message.index("live state")
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: substring not found
+______________ test_pure_matcher[dated.best_streak=58-automatic] _______________
+tests/test_pick_chosen_on_cs5a.py:266: in test_pure_matcher
+    assert message.index(DAY) < message.index(chosen_text) < message.index("live state")
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: substring not found
+___________________ test_pure_matcher[automatic at 58-dated] ___________________
+tests/test_pick_chosen_on_cs5a.py:266: in test_pure_matcher
+    assert message.index(DAY) < message.index(chosen_text) < message.index("live state")
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: substring not found
+_________________ test_pure_matcher[automatic at 58-automatic] _________________
+tests/test_pick_chosen_on_cs5a.py:258: in test_pure_matcher
+    assert isinstance(message, str)
+E   assert False
+E    +  where False = isinstance(None, str)
+=========================== short test summary info ============================
+FAILED tests/test_saver_cs3.py::test_dashboard_survives_contest_files_and_post_never_reads_them[refused]
+FAILED tests/test_web_saver.py::test_do_post_saver_transition_socket_wiring
+FAILED tests/test_pick_chosen_on_cs5a.py::test_invalid_record_normalized_in_all_loaders[dated.best_streak=58]
+FAILED tests/test_pick_chosen_on_cs5a.py::test_invalid_record_normalized_in_all_loaders[automatic at 58]
+FAILED tests/test_pick_chosen_on_cs5a.py::test_pure_matcher[dated.best_streak=58-dated]
+FAILED tests/test_pick_chosen_on_cs5a.py::test_pure_matcher[dated.best_streak=58-automatic]
+FAILED tests/test_pick_chosen_on_cs5a.py::test_pure_matcher[automatic at 58-dated]
+FAILED tests/test_pick_chosen_on_cs5a.py::test_pure_matcher[automatic at 58-automatic]
+=================== 8 failed, 542 passed, 4 skipped in 3.63s ===================

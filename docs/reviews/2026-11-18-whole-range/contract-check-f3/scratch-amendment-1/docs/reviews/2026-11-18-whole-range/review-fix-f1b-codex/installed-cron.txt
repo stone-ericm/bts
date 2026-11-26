@@ -1,0 +1,1 @@
+*/15 10-23 * * * cd <fixture>/home/projects/bts && set -a && . ./.env && set +a && /usr/bin/flock -n /home/bts/.check-pick-entered.lock /usr/bin/timeout --verbose -k 30 840 <fixture>/home/.local/bin/uv run bts check-pick-entered --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> <fixture>/home/logs/cron.log 2>&1 # BTS-HETZNER

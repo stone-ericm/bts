@@ -1,0 +1,55 @@
+{
+  "label": "R-I063-1",
+  "incident": "I-063",
+  "links": [
+    1
+  ],
+  "fix_set": [
+    "2b4ff1d",
+    "a9522a4"
+  ],
+  "tests": [
+    "tests/test_contest_state.py::test_lagged_contest_uses_contest_value_keeps_doubles",
+    "tests/test_contest_state.py::test_lagged_contest_model_does_not_inflate",
+    "tests/test_contest_state.py::test_missing_source_date_is_conservative_not_fail_open",
+    "tests/test_contest_state.py::test_missing_source_date_is_stale_but_keeps_doubles",
+    "tests/test_contest_state.py::test_model_never_inflates_decision_streak",
+    "tests/test_contest_state.py::test_two_pick_gap_is_stale",
+    "tests/test_contest_state.py::test_unconfirmed_local_miss_marks_stale",
+    "tests/test_contest_state.py::test_unexpired_override_wins_over_auto_through_decision",
+    "tests/test_contest_state.py::test_stale_unknown_saver_is_conservative_even_when_streaks_agree",
+    "-q"
+  ],
+  "symptom_nodes": [
+    {
+      "node": "tests/test_contest_state.py::test_model_never_inflates_decision_streak",
+      "assertion": {
+        "path": "tests/test_contest_state.py",
+        "text": "assert state.streak == 8",
+        "line": 214
+      }
+    },
+    {
+      "node": "tests/test_contest_state.py::test_lagged_contest_uses_contest_value_keeps_doubles",
+      "assertion": {
+        "path": "tests/test_contest_state.py",
+        "text": "assert state.streak == 7",
+        "line": 83
+      }
+    }
+  ],
+  "audit": {
+    "tests/test_contest_state.py": {
+      "decision": "neutral",
+      "reason": "2b4ff1d rewrites the three freeze-encoding tests and adds the keystone, gap, unconfirmed-miss and override tests; a9522a4 raises the model streak in the lagged test to 9 (so it also proves no max()), rewrites the override test with a conflicting auto file and a fixed now=, and adds a stale-saver test; all call bts.contest_state functions present at the parent aba6f41 with the same signatures"
+    }
+  },
+  "deployed_ref": {
+    "sha": "83a5cad",
+    "basis": "log"
+  },
+  "env": {
+    "TZ": "America/New_York"
+  },
+  "notes": "Symptoms: the parent aba6f41's stale branch returns streak=max(model_streak, contest.streak) with doubles frozen. (1) The keystone test_model_never_inflates_decision_streak (model replay 10, auto contest 8 at source_date 2026-06-15, a pick resolved 2026-06-16: the 6/16-6/17 state) gets max(10,8)=10 and fails at line 214. (2) test_lagged_contest_uses_contest_value_keeps_doubles, which a9522a4 changed to model 9 > contest 7 to prove no max() inflation, gets 9 and fails at line 83. Static checks: the tests import load_decision_streak_state, contest_state_is_fresh and load_contest_streak_state, all at aba6f41 (load_decision_streak_state accepts now=); streak.json is read by load_streak/load_saver_available unchanged. Anchors at a9522a4: 'assert state.streak == 8' repeats (line 214 is inside the keystone), 'assert state.streak == 7' occurs 3 times (line 83 is inside the lagged test). Other selected nodes at the parent: test_lagged_contest_model_does_not_inflate (98), test_missing_source_date_is_stale_but_keeps_doubles (196) and test_two_pick_gap_is_stale (230) fail by assertion on the same branch (not declared); the conservative-not-fail-open, unconfirmed-miss, override (unexpired manual wins and is fresh) and stale-saver nodes pass."
+}

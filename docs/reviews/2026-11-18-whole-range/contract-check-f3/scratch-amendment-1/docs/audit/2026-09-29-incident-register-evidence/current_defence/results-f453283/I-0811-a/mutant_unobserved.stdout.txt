@@ -1,0 +1,272 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 47 items
+
+tests/leaderboard/test_auth.py ............F.......F............F....... [ 87%]
+......                                                                   [100%]
+
+=================================== FAILURES ===================================
+___ TestFetchLoginSessionTransientRetry.test_retries_empty_200_then_succeeds ___
+
+uid = '00u123', cookies = {'oktaid': '00u123'}, timeout = 30.0, attempts = 3
+retry_delay = 2.0, post = None
+
+    def fetch_login_session(
+        uid: str,
+        cookies: dict[str, str],
+        timeout: float = 30.0,
+        attempts: int = 3,
+        retry_delay: float = 2.0,
+        post: "Callable[..., httpx.Response] | None" = None,
+    ) -> AuthSession:
+        """POST /api/auth/login -> mint a fresh xSid and return account identity.
+    
+        ``post`` (2026-09-22): injectable transport with httpx.post's keyword signature
+        ``post(url, *, cookies, json, headers, timeout) -> httpx.Response``. A caller
+        that must archive/classify EVERY raw login response before it is parsed (the
+        season-wrap bounded grab) passes a recording transport; default = httpx.post.
+    
+        Response classification (kill-switch philosophy: retry ONLY shapes that
+        cannot be a rejection of *us*; never hammer anything rejection-shaped):
+    
+          retried in-process (doubling 2s/4s delay; 5xx honors Retry-After <=30s):
+            - transport errors
+            - 5xx
+            - HTTP 200 with an EMPTY body (the observed 2026-08-11 outage shape,
+              flapping ~1-in-3 that day)
+          TransientAuthError immediately (outage/garbage shaped, but NOT retried —
+          a bot-defense challenge page can look exactly like this):
+            - HTTP 200 with a non-empty non-JSON body
+            - HTTP 200 whose JSON is not an object
+            - 1xx / 2xx other than 200
+          RateLimitedLoginError immediately: 429
+          AuthError immediately (credential-shaped; cookie advice applies):
+            - other 4xx, 3xx (redirect-to-login), JSON object without an xSid
+        """
+        if not isinstance(attempts, int) or attempts < 1:
+            raise ValueError(f"attempts must be an int >= 1, got {attempts!r}")
+        if not (isinstance(retry_delay, (int, float)) and math.isfinite(retry_delay)
+                and retry_delay >= 0):
+            raise ValueError(f"retry_delay must be a finite number >= 0, got {retry_delay!r}")
+        last_transient = None
+        last_exc = None
+        delay_override = None
+        for attempt in range(1, attempts + 1):
+            if attempt > 1:
+                delay = (delay_override if delay_override is not None
+                         else retry_delay * (2 ** (attempt - 2)))
+                log.warning(f"auth/login transient failure ({last_transient}); "
+                            f"retrying in {delay:.0f}s (attempt {attempt}/{attempts})")
+                time.sleep(delay)
+            delay_override = None
+            try:
+                response = (post or httpx.post)(
+                    AUTH_LOGIN_URL,
+                    cookies=cookies,
+                    json={"uid": uid, "platform": AUTH_LOGIN_PLATFORM},
+                    headers={**browser_headers(), "Content-Type": "application/json"},
+                    timeout=timeout,
+                )
+            except httpx.HTTPError as e:
+                last_transient = f"transport error: {type(e).__name__}: {e}"
+                last_exc = e
+                continue
+            status = response.status_code
+            if status >= 500:
+                last_transient = f"returned {status}: {response.text[:200]}"
+                last_exc = None
+                delay_override = _retry_after_seconds(response)
+                continue
+            if status == 429:
+                raise RateLimitedLoginError(
+                    f"auth/login returned 429 — rate-limited at login; back off: do NOT "
+                    f"retry or re-capture cookies: {response.text[:200]}")
+            if 300 <= status < 500:
+                raise AuthError(f"auth/login returned {status}: {response.text[:200]}")
+            if status != 200:
+                raise TransientAuthError(
+                    f"auth/login returned unexpected status {status} (not retrying; "
+                    f"not a cookie problem): {response.text[:200]}")
+            try:
+>               body = response.json()
+                       ^^^^^^^^^^^^^^^
+
+src/bts/leaderboard/auth.py:235: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/Users/eric/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <MagicMock name='mock.json' id='4418400144'>, args = (), kwargs = {}
+effect = JSONDecodeError('Expecting value: line 1 column 1 (char 0)')
+
+    def _execute_mock_call(self, /, *args, **kwargs):
+        # separate from _increment_mock_call so that awaited functions are
+        # executed separately from their call, also AsyncMock overrides this method
+    
+        effect = self.side_effect
+        if effect is not None:
+            if _is_exception(effect):
+>               raise effect
+E               json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+/Users/eric/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: JSONDecodeError
+
+During handling of the above exception, another exception occurred:
+
+self = <tests.leaderboard.test_auth.TestFetchLoginSessionTransientRetry object at 0x10731b200>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1075ab2c0>
+
+    def test_retries_empty_200_then_succeeds(self, monkeypatch):
+        from bts.leaderboard.auth import fetch_login_session
+        sleeps = self._install_sleep_recorder(monkeypatch)
+        with patch("bts.leaderboard.auth.httpx.post",
+                   side_effect=[_blank_200_response(), _ok_login_response()]) as mock_post:
+>           session = fetch_login_session(uid="00u123", cookies={"oktaid": "00u123"})
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/leaderboard/test_auth.py:175: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+uid = '00u123', cookies = {'oktaid': '00u123'}, timeout = 30.0, attempts = 3
+retry_delay = 2.0, post = None
+
+    def fetch_login_session(
+        uid: str,
+        cookies: dict[str, str],
+        timeout: float = 30.0,
+        attempts: int = 3,
+        retry_delay: float = 2.0,
+        post: "Callable[..., httpx.Response] | None" = None,
+    ) -> AuthSession:
+        """POST /api/auth/login -> mint a fresh xSid and return account identity.
+    
+        ``post`` (2026-09-22): injectable transport with httpx.post's keyword signature
+        ``post(url, *, cookies, json, headers, timeout) -> httpx.Response``. A caller
+        that must archive/classify EVERY raw login response before it is parsed (the
+        season-wrap bounded grab) passes a recording transport; default = httpx.post.
+    
+        Response classification (kill-switch philosophy: retry ONLY shapes that
+        cannot be a rejection of *us*; never hammer anything rejection-shaped):
+    
+          retried in-process (doubling 2s/4s delay; 5xx honors Retry-After <=30s):
+            - transport errors
+            - 5xx
+            - HTTP 200 with an EMPTY body (the observed 2026-08-11 outage shape,
+              flapping ~1-in-3 that day)
+          TransientAuthError immediately (outage/garbage shaped, but NOT retried —
+          a bot-defense challenge page can look exactly like this):
+            - HTTP 200 with a non-empty non-JSON body
+            - HTTP 200 whose JSON is not an object
+            - 1xx / 2xx other than 200
+          RateLimitedLoginError immediately: 429
+          AuthError immediately (credential-shaped; cookie advice applies):
+            - other 4xx, 3xx (redirect-to-login), JSON object without an xSid
+        """
+        if not isinstance(attempts, int) or attempts < 1:
+            raise ValueError(f"attempts must be an int >= 1, got {attempts!r}")
+        if not (isinstance(retry_delay, (int, float)) and math.isfinite(retry_delay)
+                and retry_delay >= 0):
+            raise ValueError(f"retry_delay must be a finite number >= 0, got {retry_delay!r}")
+        last_transient = None
+        last_exc = None
+        delay_override = None
+        for attempt in range(1, attempts + 1):
+            if attempt > 1:
+                delay = (delay_override if delay_override is not None
+                         else retry_delay * (2 ** (attempt - 2)))
+                log.warning(f"auth/login transient failure ({last_transient}); "
+                            f"retrying in {delay:.0f}s (attempt {attempt}/{attempts})")
+                time.sleep(delay)
+            delay_override = None
+            try:
+                response = (post or httpx.post)(
+                    AUTH_LOGIN_URL,
+                    cookies=cookies,
+                    json={"uid": uid, "platform": AUTH_LOGIN_PLATFORM},
+                    headers={**browser_headers(), "Content-Type": "application/json"},
+                    timeout=timeout,
+                )
+            except httpx.HTTPError as e:
+                last_transient = f"transport error: {type(e).__name__}: {e}"
+                last_exc = e
+                continue
+            status = response.status_code
+            if status >= 500:
+                last_transient = f"returned {status}: {response.text[:200]}"
+                last_exc = None
+                delay_override = _retry_after_seconds(response)
+                continue
+            if status == 429:
+                raise RateLimitedLoginError(
+                    f"auth/login returned 429 — rate-limited at login; back off: do NOT "
+                    f"retry or re-capture cookies: {response.text[:200]}")
+            if 300 <= status < 500:
+                raise AuthError(f"auth/login returned {status}: {response.text[:200]}")
+            if status != 200:
+                raise TransientAuthError(
+                    f"auth/login returned unexpected status {status} (not retrying; "
+                    f"not a cookie problem): {response.text[:200]}")
+            try:
+                body = response.json()
+            except ValueError as e:  # JSONDecodeError / UnicodeDecodeError
+                try:
+                    text = response.text
+                except Exception:
+                    text = None
+                if text == "":       # ONLY a zero-length body licenses a retry (r2 #1);
+                    pass  # W1.5 mutant: pre-404358d — the observed blank 200 is a hard AuthError
+>                   raise AuthError(f"auth/login response not JSON: {e}")
+E                   bts.leaderboard.auth.AuthError: auth/login response not JSON: Expecting value: line 1 column 1 (char 0)
+
+src/bts/leaderboard/auth.py:243: AuthError
+_ TestFetchLoginSessionTransientRetry.test_transient_exhaustion_raises_transient_auth_error _
+
+self = <tests.leaderboard.test_auth.TestFetchLoginSessionTransientRetry object at 0x107319ee0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10766c320>
+
+    def test_transient_exhaustion_raises_transient_auth_error(self, monkeypatch):
+        from bts.leaderboard.auth import fetch_login_session
+        self._install_sleep_recorder(monkeypatch)
+        with patch("bts.leaderboard.auth.httpx.post",
+                   side_effect=[_blank_200_response() for _ in range(3)]) as mock_post:
+            with pytest.raises(AuthError) as ei:
+                fetch_login_session(uid="00u123", cookies={"oktaid": "00u123"})
+>       assert ei.value.__class__.__name__ == "TransientAuthError"
+E       AssertionError: assert 'AuthError' == 'TransientAuthError'
+E         
+E         - TransientAuthError
+E         + AuthError
+
+tests/leaderboard/test_auth.py:244: AssertionError
+_______ TestFetchLoginSessionTransientRetry.test_retry_backoff_sequence ________
+
+self = <tests.leaderboard.test_auth.TestFetchLoginSessionTransientRetry object at 0x10731bbf0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x107670350>
+
+    def test_retry_backoff_sequence(self, monkeypatch):
+        from bts.leaderboard.auth import fetch_login_session
+        sleeps = self._install_sleep_recorder(monkeypatch)
+        with patch("bts.leaderboard.auth.httpx.post",
+                   side_effect=[_blank_200_response() for _ in range(3)]):
+            with pytest.raises(AuthError):
+                fetch_login_session(uid="00u123", cookies={"oktaid": "00u123"})
+>       assert sleeps == [2.0, 4.0]
+E       assert [] == [2.0, 4.0]
+E         
+E         Right contains 2 more items, first extra item: 2.0
+E         Use -v to get more diff
+
+tests/leaderboard/test_auth.py:400: AssertionError
+=========================== short test summary info ============================
+FAILED tests/leaderboard/test_auth.py::TestFetchLoginSessionTransientRetry::test_retries_empty_200_then_succeeds
+FAILED tests/leaderboard/test_auth.py::TestFetchLoginSessionTransientRetry::test_transient_exhaustion_raises_transient_auth_error
+FAILED tests/leaderboard/test_auth.py::TestFetchLoginSessionTransientRetry::test_retry_backoff_sequence
+========================= 3 failed, 44 passed in 0.33s =========================

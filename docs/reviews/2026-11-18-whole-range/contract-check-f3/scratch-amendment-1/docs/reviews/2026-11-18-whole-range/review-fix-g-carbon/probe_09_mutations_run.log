@@ -1,0 +1,128 @@
+nice: setpriority: Operation not permitted
+{
+  "scratch_bts_file": "/Users/eric/projects/bts-work/wr-rev-g-carbon/.codex-review/wr-g/scratch_mut/src/bts/__init__.py",
+  "scratch_census_file": "/Users/eric/projects/bts-work/wr-rev-g-carbon/.codex-review/wr-g/scratch_mut/scripts/audit/boundary_shadow_census.py",
+  "total_mutations": 16,
+  "caught_count": 12,
+  "survived_count": 4,
+  "survived": [
+    "m12_own_journal_hardcode_saver_unavailable",
+    "m13_own_journal_raw_days_on_real_selection",
+    "m14_own_census_skip_guard_shape_validation",
+    "m16_own_census_accept_unguarded_raw_skip_play"
+  ],
+  "results": [
+    {
+      "mutation": "m01_lowest_playing_bin",
+      "file": "src/bts/simulate/mdp.py",
+      "caught": true,
+      "caught_by": "primary",
+      "summary": "========================= 1 failed, 7 passed in 2.86s =========================="
+    },
+    {
+      "mutation": "m02_guard_in_tail_regime",
+      "file": "src/bts/strategy.py",
+      "caught": true,
+      "caught_by": "primary",
+      "summary": "========================= 1 failed, 6 passed in 2.62s =========================="
+    },
+    {
+      "mutation": "m03_guard_when_raw_not_skip",
+      "file": "src/bts/simulate/mdp.py",
+      "caught": true,
+      "caught_by": "primary",
+      "summary": "========================= 1 failed, 1 passed in 0.32s =========================="
+    },
+    {
+      "mutation": "m04_drop_guard_on_clamp",
+      "file": "src/bts/strategy.py",
+      "caught": true,
+      "caught_by": "primary",
+      "summary": "========================= 1 failed, 2 passed in 0.73s =========================="
+    },
+    {
+      "mutation": "m05_raw_from_mdp_action_from",
+      "file": "src/bts/strategy.py",
+      "caught": true,
+      "caught_by": "primary",
+      "summary": "========================= 1 failed, 2 passed in 0.73s =========================="
+    },
+    {
+      "mutation": "m06_guard_lookup_action_itself",
+      "file": "src/bts/simulate/mdp.py",
+      "caught": true,
+      "caught_by": "primary",
+      "summary": "========================= 1 failed, 1 passed in 0.35s =========================="
+    },
+    {
+      "mutation": "m07_omit_policy_guard_on_skip",
+      "file": "src/bts/daily_decision.py",
+      "caught": true,
+      "caught_by": "primary",
+      "summary": "========================= 1 failed, 13 passed in 2.94s ========================="
+    },
+    {
+      "mutation": "m08_write_guard_on_skip_record",
+      "file": "src/bts/daily_decision.py",
+      "caught": true,
+      "caught_by": "primary",
+      "summary": "========================= 1 failed, 13 passed in 2.89s ========================="
+    },
+    {
+      "mutation": "m09_skip_saved_pick_recovery",
+      "file": "src/bts/scheduler.py",
+      "caught": true,
+      "caught_by": "primary",
+      "summary": "========================= 1 failed, 14 passed in 3.03s ========================="
+    },
+    {
+      "mutation": "m10_numpy_int_in_guard",
+      "file": "src/bts/simulate/mdp.py",
+      "caught": true,
+      "caught_by": "primary",
+      "summary": "========================= 1 failed, 2 passed in 0.73s =========================="
+    },
+    {
+      "mutation": "m11_journal_on_unguarded_decision",
+      "file": "src/bts/scheduler.py",
+      "caught": true,
+      "caught_by": "primary",
+      "summary": "========================= 1 failed, 8 passed in 2.88s =========================="
+    },
+    {
+      "mutation": "m12_own_journal_hardcode_saver_unavailable",
+      "file": "src/bts/scheduler.py",
+      "caught": false,
+      "caught_by": null,
+      "summary": "============================== 36 passed in 3.34s =============================="
+    },
+    {
+      "mutation": "m13_own_journal_raw_days_on_real_selection",
+      "file": "src/bts/scheduler.py",
+      "caught": false,
+      "caught_by": null,
+      "summary": "============================== 36 passed in 3.40s =============================="
+    },
+    {
+      "mutation": "m14_own_census_skip_guard_shape_validation",
+      "file": "scripts/audit/boundary_shadow_census.py",
+      "caught": false,
+      "caught_by": null,
+      "summary": "============================== 36 passed in 3.42s =============================="
+    },
+    {
+      "mutation": "m15_own_census_include_guarded_in_followup",
+      "file": "scripts/audit/boundary_shadow_census.py",
+      "caught": true,
+      "caught_by": "primary",
+      "summary": "========================= 1 failed, 25 passed in 3.30s ========================="
+    },
+    {
+      "mutation": "m16_own_census_accept_unguarded_raw_skip_play",
+      "file": "scripts/audit/boundary_shadow_census.py",
+      "caught": false,
+      "caught_by": null,
+      "summary": "============================== 36 passed in 3.37s =============================="
+    }
+  ]
+}

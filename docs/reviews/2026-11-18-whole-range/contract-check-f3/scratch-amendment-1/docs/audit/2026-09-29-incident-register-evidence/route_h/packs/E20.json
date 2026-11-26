@@ -1,0 +1,36 @@
+{
+ "id": "E20",
+ "episode_row": [
+  "E20",
+  "4/11\u20134/12",
+  "two scheduler units running; orphan respawned after deploys",
+  "S/L",
+  "OI",
+  "A",
+  "8193909"
+ ],
+ "commits": [
+  {
+   "sha": "8193909",
+   "authored": "2026-04-12T12:37:30-04:00",
+   "subject": "fix(deploy): self-heal legacy system-level systemd units",
+   "body": "Root cause of the orphan-scheduler-after-every-deploy issue:\n\nThere were TWO sets of bts systemd units running concurrently:\n  - /etc/systemd/system/bts-scheduler.service (system-level, created\n    by the original Hetzner setup at 01:08 on April 11)\n  - ~/.config/systemd/user/bts-scheduler.service (user-level,\n    created at 22:04 on April 11 \u2014 the canonical version)\n\nBoth had Restart=always with RestartSec=300, so killing one without\nthe other meant the surviving unit would respawn the dead one\nwithin 5 minutes. The audit just exposed this \u2014 every \"kill orphan\"\nwas followed by a fresh orphan from the OTHER unit's restart\npolicy 5 minutes later.\n\nThe deploy workflow already restarts the user-level unit only\n(`sudo -u bts ... systemctl --user restart`), so the system-level\nunits have been pure dead weight + race-condition fuel.\n\nSelf-heal: on every deploy, check for the legacy system-level\nunit file and, if present, disable it, remove it, reload systemd,\nand pkill any leftover schedule processes owned by bts. After\nthe first run on each host this is a no-op.\n\nAlso adds .github/workflows/deploy.yml to the deploy path filter\nso future workflow edits can deploy themselves.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    ".github/workflows/deploy.yml"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24311344697,
+    "created_at": "2026-04-12T16:37:36Z",
+    "head_sha": "8193909",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

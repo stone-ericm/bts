@@ -1,0 +1,8 @@
+nice: setpriority: Operation not permitted
+/Users/eric/.matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/matplotlib-_19kqc4e because there was an issue with the default path (/Users/eric/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+  0 new confirmed lineup(s). Running predictions...
+  Pick: Steven Kwan (CLE) 82.0% → should_lock=True
+  [PRIVATE] LOCKED (probe) — Steven Kwan (CLE) 82.0% — NOT delivered
+B8d in entry window 1 '⚠️ BTS entry does NOT match the recommended pick in MLB app: Steven Kwan + DD Juan Soto — first pitch 7:10 PM ET (20 min to submit). Fix it now!'
+B8d at cutoff 0 check-pick-entered: outside window (5 min to pitch)

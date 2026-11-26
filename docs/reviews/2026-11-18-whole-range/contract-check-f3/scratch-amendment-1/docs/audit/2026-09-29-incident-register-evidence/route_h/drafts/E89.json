@@ -1,0 +1,100 @@
+{
+ "id": "I-089",
+ "working_id": "E89",
+ "title": "C-03: the 8-day reconcile applied MLB's post-cutoff re-scoring and overwrote two settled hits in local pick files (5/10, 8/20)",
+ "disposition": "unresolved_candidate",
+ "counted": true,
+ "missing_evidence": [
+  "a primary read of the two local_vs_contest_disagreement rows of the accepted W1.1 ledger (selection, date, slot, local_norm, contest_norm, comparison basis) — Phase 2 Route R, the §5.4(ii) authorized projection",
+  "B1 cron.log: the `CORRECTIONS FOUND` template event (count and dates only) at the 2026-05-16 and 2026-08-26 02:00 ET `bts reconcile` runs — Phase 2 Route R (template from cli.py reconcile; whether cron.log is retained back to 5/16 is unknown)"
+ ],
+ "classes": {"primary": "G", "secondary": ["R"]},
+ "tier": "A",
+ "tier_reason": "local grading state (pick-file results and the replayed streak.json) was overwritten against the BTS cutoff rule on two dates (reported), research reads consumed the altered grades, and the fix is main-only, so the defective 02:00 reconcile still runs on the box (B → A)",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "contest",
+ "contract": {
+  "text": "A game day's BTS grade is frozen at 08:00 ET the next day and MLB statistic changes after that never count, so local grading must not change a date's result after that cutoff.",
+  "source": "BTS Official Rules 'Regarding Official Changes to MLB Game Statistics' (full page in the box evidence bundle; not in the repo excerpt section6.txt), as stated in docs/audit/2026-09-corrections-index.md C-03, the ce6676d body and ARCHITECTURE.md `bts reconcile` (ce6676d)"
+ },
+ "mechanism": [
+  {"n": 1, "text": "reconcile_results re-graded every already-graded date in its 8-day lookback from MLB's current feed with no BTS-cutoff check, so the day+6 02:00 ET cron run applied MLB's in-place re-scoring (a single changed to a fielding error days after the game, with no new feed revision), overwrote the settled hit with a miss and replayed streak.json from the altered pick files; the CLI only echoed the correction to cron.log",
+   "code": [
+    {"path": "src/bts/picks.py", "ref": "134eaf0", "symbol": "reconcile_results", "ref_basis": "candidate"},
+    {"path": "src/bts/picks.py", "ref": "3e1791c", "symbol": "reconcile_results", "ref_basis": "log"},
+    {"path": "src/bts/cli.py", "ref": "3e1791c", "symbol": "reconcile", "ref_basis": "log"},
+    {"path": "scripts/cron-setup-hetzner.sh", "ref": "3e1791c", "symbol": "cron line `0 2 * * * … bts reconcile`", "ref_basis": "candidate"}
+   ]}
+ ],
+ "fix": [
+  {"link": 1, "implemented": {"commits": ["ce6676d"], "complete_fix_set": true},
+   "deployed": "not_deployed",
+   "mitigated": {"action": "C-03 reading rule: the two pick files are kept as frozen evidence; readers use the contest ledger for delivered-day results (W1.1) and P-03 reports recorded and corrected numbers", "at": {"at": "2026-09-28", "evidence": ["ev3"]}},
+   "verified_recovered": "unknown"}
+ ],
+ "fixtures": {"historical_replay": [], "current_defence": [], "expected_failure": [], "characterization": []},
+ "residual": [
+  {"text": "The fix is main-only and not deployed (ships with 2027): the box still runs the pre-fix 8-day reconcile at 02:00 ET, and the new 07:40 ET run exists only after `cron-setup-hetzner.sh install` on the box", "reaches_production": true, "source": "ce6676d body; docs/audit/2026-09-corrections-index.md C-03 '2027 follow-ups'"},
+  {"text": "Best-effort contract: a re-scoring between the last run and 08:00 ET (or after a failed 07:40 run) is never picked up; an empty correction list does not distinguish unchanged from unobserved; picks still None/unresolved/suspended are not first-graded by reconcile", "reaches_production": true, "source": "ARCHITECTURE.md `bts reconcile` (ce6676d); C-03 residuals; L07 (I-207)"},
+  {"text": "Corrections are only echoed to cron.log: no alert, no observation receipts, no missed-check visibility and no contest-ledger finalization of entered days (2027 deployment-review follow-ups)", "reaches_production": true, "source": "ce6676d body; C-03 '2027 follow-ups'"},
+  {"text": "The two local pick files are not rewritten (frozen evidence); any reader of local results for those dates must apply C-03", "reaches_production": false, "source": "docs/audit/2026-09-corrections-index.md C-03"}
+ ],
+ "watchdog": {
+  "boundary": "grading",
+  "trigger": "any write that changes a date's local result or slot_results after that date's 08:00 ET next-day cutoff, or, for an entered day, a local slot grade that differs from the contest ledger's settled round result",
+  "recovery_assertion": "for every entered date the local grade equals the contest's round result, and no local grade write is timestamped after the date's cutoff"
+ },
+ "evidence": [
+  {"id": "ev1", "kind": "machine_observation", "strength": "reported", "locator": "docs/audit/2026-09-corrections-index.md C-03 'What is wrong' / 'Where it lives' (artifacts: data/picks/2026-05-10.json, data/picks/2026-08-20.json, cron.log, contest ledger rounds 869 and 971 — not read)", "exposure_row": "X-01",
+   "what": "C-03 (found 2026-09-28) reports that the two local pick files record the primary as a miss where the contest's official records say hit, that both were written by `bts reconcile` at the day+6 02:00 ET run (5/16, 8/26) whose output reads 'CORRECTIONS FOUND … hit -> miss', that these are the only two reconcile corrections all season, and that no production decision changed"},
+  {"id": "ev2", "kind": "machine_observation", "strength": "reported", "locator": "docs/audit/2026-09-28-season-ledger.md §6 (accepted W1.1 build output under data/validation — not read)", "exposure_row": "X-19",
+   "what": "the accepted ledger build counts exactly two local-vs-contest slot disagreements, consistent with C-03 (the rows themselves were not read)"},
+  {"id": "ev3", "kind": "inference", "strength": "primary", "locator": "docs/audit/2026-09-corrections-index.md C-03 'Basis of the error' and 'Correction / status' (written 2026-09-28)", "exposure_row": "X-01",
+   "what": "found by the P-03 recompute cross-check and confirmed against the contest ledger; MLB re-scored both plays from a single to a fielding error in place days after the games (no new feed revision; feed/live?timecode= now serves the error), the contest kept both hits under the 08:00 rule, and reconcile's re-grade from the current feed applied the change; files are not rewritten and readers use the contest ledger"},
+  {"id": "ev4", "kind": "inference", "strength": "primary", "locator": "commit ce6676d message body and diff (src/bts/picks.py reconcile_results, scripts/cron-setup-hetzner.sh, tests/test_reconcile_cutoff.py)",
+   "what": "reconcile_results now changes a date only while its 08:00 ET next-day cutoff is ahead (checked at start, on each feed answer and under the lock) plus a 07:40 ET run; 'Not deployed: main only; ships with the 2027 season'"},
+  {"id": "ev5", "kind": "inference", "strength": "primary", "locator": "src/bts/picks.py reconcile_results and src/bts/cli.py reconcile at 3e1791c and 134eaf0; scripts/cron-setup-hetzner.sh line 54 at 3e1791c; commits 3724bcb (2026-04-03) and d5c466c (2026-04-12)",
+   "what": "reconcile re-grades every graded date in the 8-day lookback from current MLB data with no cutoff, replays the season streak, and only echoes corrections; the lookback exists since 3724bcb and the 02:00 cron line since d5c466c"},
+  {"id": "ev6", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy runs 31831299733 and 33335535999 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "3e1791c was installed from 2026-08-14T19:04:35Z until 2ff2db9 replaced it at 2026-08-30T21:10:22Z, so the defective reconcile was the installed code at the 8/26 02:00 ET run"}
+ ],
+ "occurrences": [
+  {"label": "2026-05-10 (overwritten at the 2026-05-16 02:00 ET reconcile)",
+   "onset": {"not_before": "2026-05-16T02:00:00-04:00", "evidence": ["ev1"]},
+   "first_detectable": {"not_before": "2026-05-16T02:00:00-04:00", "evidence": ["ev1"]},
+   "first_machine_detection": "none",
+   "alert": {"attempted": "none", "confirmed": "none", "failed": "none"},
+   "operator_awareness": {"at": "2026-09-28", "evidence": ["ev3"]},
+   "operator_action": {"at": "2026-09-28T11:14:43-04:00", "evidence": ["ev4"]},
+   "mitigation": {"at": "2026-09-28", "evidence": ["ev3"]},
+   "restored_verification": "none",
+   "latencies": {"detection": "not_applicable", "notification": "not_applicable", "recovery": "unknown"}},
+  {"label": "2026-08-20 (overwritten at the 2026-08-26 02:00 ET reconcile)",
+   "onset": {"not_before": "2026-08-26T02:00:00-04:00", "evidence": ["ev1", "ev6"]},
+   "first_detectable": {"not_before": "2026-08-26T02:00:00-04:00", "evidence": ["ev1"]},
+   "first_machine_detection": "none",
+   "alert": {"attempted": "none", "confirmed": "none", "failed": "none"},
+   "operator_awareness": {"at": "2026-09-28", "evidence": ["ev3"]},
+   "operator_action": {"at": "2026-09-28T11:14:43-04:00", "evidence": ["ev4"]},
+   "mitigation": {"at": "2026-09-28", "evidence": ["ev3"]},
+   "restored_verification": "none",
+   "latencies": {"detection": "not_applicable", "notification": "not_applicable", "recovery": "unknown"}}
+ ],
+ "routes": {"H": ["ce6676d", "3724bcb", "d5c466c"], "R": "pending_phase2",
+            "X": ["docs/audit/2026-09-corrections-index.md C-03", "docs/audit/2026-09-28-season-ledger.md §6", "ARCHITECTURE.md `bts reconcile`", "docs/audit/2026-09-28-reconcile-cutoff-codex-r1.md"]},
+ "related": ["I-207", "I-202"],
+ "notes": [
+  "disposition: every account of the two overwrites is a 9/28 report of box artifacts not read here (C-03, ledger memo); Route R §5.4(ii) is the designed read — if it returns the two rows as C-03 describes, this becomes observed_incident (tier A)",
+  "delivery_mode unknown: the dates fall in different eras (5/10 public, 8/20 dm) and grading is not delivery-specific",
+  "5/16 occurrence: the installed SHA is unknown (deploy logs expired); the no-cutoff lookback exists since 3724bcb (4/03) and the 02:00 cron line since d5c466c (4/12). 8/26 occurrence: 3e1791c is log-installed (ev6)",
+  "cron-line cite is candidate: deploys do not install the crontab, so the retained log cannot show the installed cron line",
+  "first_machine_detection none: found by the operator-run P-03 recompute cross-check on 9/28; the W1.1 ledger build afterwards counted the same two disagreements (X-19); restored_verification none: local files are intentionally not rewritten and the fix is undeployed",
+  "C-04 (the 9/28 scoring-change check was blind to in-place re-scoring) is a research-method correction, closed 9/28; not drafted as a service incident",
+  "related: I-207 (L07 C-03 residuals, batch4); I-202 (L02 same-day replay rollback in reconcile, raised in the C-03 Codex r1 review)",
+  "reproducing test: tests/test_reconcile_cutoff.py::test_post_cutoff_rescoring_does_not_flip_a_settled_hit (ce6676d; the day+6 overwrite)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

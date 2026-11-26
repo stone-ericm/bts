@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_r7_counterexamples::test_stop_never_raises_under_a_raising_audit_hook", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r9_counterexamples::test_a_class_namespace_with_a_non_string_key_runs_no_application_code[__module__]", "kind": "assertion"}

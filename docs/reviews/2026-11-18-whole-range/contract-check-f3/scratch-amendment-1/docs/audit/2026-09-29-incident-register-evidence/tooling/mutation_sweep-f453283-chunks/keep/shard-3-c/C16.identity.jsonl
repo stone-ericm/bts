@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_certify::test_an_impure_observation_certifies_nothing[no-census-start]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_certify::test_an_impure_observation_certifies_nothing[no-census-end]", "kind": "assertion"}

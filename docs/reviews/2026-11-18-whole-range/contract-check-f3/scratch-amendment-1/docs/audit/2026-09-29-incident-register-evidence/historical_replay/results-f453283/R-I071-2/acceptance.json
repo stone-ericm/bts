@@ -1,0 +1,89 @@
+{
+  "audit_problems": [],
+  "classes": {
+    "tests/test_cli_integration.py::TestCheckPickEntered::test_committed_via_decision_record_alerts": "passes_at_parent",
+    "tests/test_cli_integration.py::TestCheckPickEntered::test_dm_countdown_uses_submission_cutoff": "symptom_candidate",
+    "tests/test_cli_integration.py::TestCheckPickEntered::test_missing_entry_in_window_dms_and_exits_nonzero": "passes_at_parent",
+    "tests/test_cli_integration.py::TestCheckPickEntered::test_no_alert_inside_submission_cutoff": "symptom_candidate",
+    "tests/test_cli_integration.py::TestCheckPickEntered::test_skip_day_decision_no_dm": "symptom_candidate",
+    "tests/test_cli_integration.py::TestCheckPickEntered::test_uncommitted_pick_in_window_no_dm": "symptom_candidate"
+  },
+  "closure": "src_swap",
+  "events_sha256": {
+    "green": "50a0a0ce52b1c2b51213933c06ae48c2beb73b0e354b3b9f0452a1f8c6026122",
+    "red": "ba97a57abab6c3717f4af6c4882b83a2f4d6a5b5909585b49ff87cb6d5ad77e8"
+  },
+  "fix": "540b1ab50ca8175f620b51a94eb68a84bc26b979",
+  "harness_changes": [
+    {
+      "path": "docs/audit/2026-07-06-deferred-dd-and-premature-entry-alert.md",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_cli_integration.py",
+      "status": "M"
+    }
+  ],
+  "label": "R-I071-2",
+  "label_kind": "semantic_regression_replay",
+  "parent": "65197fc876abbabdb99c0b84e7c1e12603c95eac",
+  "reasons": [],
+  "spec": {
+    "audit": {
+      "docs/audit/2026-07-06-deferred-dd-and-premature-entry-alert.md": {
+        "decision": "irrelevant",
+        "reason": "incident audit doc (540b1ab records the review round)"
+      },
+      "tests/test_cli_integration.py": {
+        "decision": "neutral",
+        "reason": "as af6329f (delivered flag on _save_pick; uncommitted-preview and countdown tests), plus 540b1ab's _write_decision helper, which calls bts.daily_decision.write_decision(date, picks_dir, *, action, source, delivery_status, scoreable) with the same signature at the parent 65197fc, and the inside-cutoff, decision-record and skip-day tests; every patched name exists at the parent"
+      }
+    },
+    "deployed_ref": {
+      "basis": "log",
+      "sha": "39b02bd"
+    },
+    "env": {
+      "TZ": "America/New_York"
+    },
+    "fix_set": [
+      "af6329f",
+      "540b1ab"
+    ],
+    "incident": "I-071",
+    "label": "R-I071-2",
+    "links": [
+      2
+    ],
+    "notes": "Symptom: at the parent 65197fc the firing window is 0 <= minutes_to_pitch <= 75. test_no_alert_inside_submission_cutoff runs at 19:06 ET, 4 min before the 19:10 pitch, with a delivered pick and no entry: the parent checks, sends the not-entered DM and line 1069 (dms == []) fails; that is the window half of the link's mechanism, witnessed through the delivery decision (a DM sent for a pick that can no longer be submitted). Not declared (verifier, 2026-10-03): test_dm_countdown_uses_submission_cutoff. At the parent its DM reads '(40 min). Fix it now!', so line 1084 ('35 min to submit' in msg) fails, but that assertion checks the wording the fix introduced ('min to submit') together with the number; it would fail on any pre-fix code, right number or not, and the discriminating assertion on line 1085 ('(40 min' not in msg) is never reached. Under the I-011 rule it is output-only, so the countdown half of link 2 is not certified by this replay; the node stays selected as a reviewer-visible candidate. Static checks: as R-I071-1 (all patched names and DailyPick fields exist at 65197fc; the _write_decision helper calls write_decision with the parent's signature). The anchor is unique at 540b1ab (line 1069). Other selected nodes at the parent: test_uncommitted_pick_in_window_no_dm (1056) and test_skip_day_decision_no_dm (1113) fail by assertion (link 1's missing commit gate), test_dm_countdown_uses_submission_cutoff fails at 1084 (above); test_missing_entry_in_window_dms_and_exits_nonzero and test_committed_via_decision_record_alerts pass.",
+    "symptom_nodes": [
+      {
+        "_line": 1069,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I071-2/tests/test_cli_integration.py",
+        "assertion": {
+          "path": "tests/test_cli_integration.py",
+          "text": "assert dms == [], r.output"
+        },
+        "node": "tests/test_cli_integration.py::TestCheckPickEntered::test_no_alert_inside_submission_cutoff"
+      }
+    ],
+    "tests": [
+      "tests/test_cli_integration.py::TestCheckPickEntered::test_missing_entry_in_window_dms_and_exits_nonzero",
+      "tests/test_cli_integration.py::TestCheckPickEntered::test_uncommitted_pick_in_window_no_dm",
+      "tests/test_cli_integration.py::TestCheckPickEntered::test_no_alert_inside_submission_cutoff",
+      "tests/test_cli_integration.py::TestCheckPickEntered::test_dm_countdown_uses_submission_cutoff",
+      "tests/test_cli_integration.py::TestCheckPickEntered::test_committed_via_decision_record_alerts",
+      "tests/test_cli_integration.py::TestCheckPickEntered::test_skip_day_decision_no_dm",
+      "-q"
+    ]
+  },
+  "spec_sha256": "c021b5c0dcf1ff2339d868e0195b12f8e7a89a926a85ee9ac7fed74ba18d0764",
+  "src_tree": {
+    "fix": "2a1013105930f21c8025b034ef37df785c79485b",
+    "parent": "548d2a4f1096b9940c9706131c42aa4c7e4faa45"
+  },
+  "symptoms": {
+    "tests/test_cli_integration.py::TestCheckPickEntered::test_no_alert_inside_submission_cutoff": []
+  },
+  "verdict": "accepted"
+}

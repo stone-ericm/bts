@@ -1,0 +1,22 @@
+two-game-early: scheduler.py :: THIN_SLATE_MAX_GAMES = 2 -> THIN_SLATE_MAX_GAMES = 1
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-closing-blind
+configfile: pyproject.toml
+collected 1 item
+
+../../../tests/test_thin_slate_checks.py F                               [100%]
+
+=================================== FAILURES ===================================
+____________ test_a_two_game_slate_gets_early_checks_for_both_games ____________
+../../../tests/test_thin_slate_checks.py:52: in test_a_two_game_slate_gets_early_checks_for_both_games
+    assert _times(runs) == ["10:10", "11:10", "12:10", "16:10", "17:10", "18:10"]
+E   AssertionError: assert ['12:10', '18:10'] == ['10:10', '11...:10', '18:10']
+E     
+E     At index 0 diff: '12:10' != '10:10'
+E     Right contains 4 more items, first extra item: '12:10'
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED ../../../tests/test_thin_slate_checks.py::test_a_two_game_slate_gets_early_checks_for_both_games
+============================== 1 failed in 0.23s ===============================
+mutation-result two-game-early 1

@@ -1,0 +1,58 @@
+{
+ "id": "E99",
+ "episode_row": [
+  "E99",
+  "6/29\u20137/01",
+  "deploy SIGTERMs logged as unit failures; SuccessExitStatus=143 applied box-side (unit drift until repo sync)",
+  "A/S",
+  "OI",
+  "B",
+  "7636c11 48e8485"
+ ],
+ "commits": [
+  {
+   "sha": "7636c11",
+   "authored": "2026-07-01T18:57:28-04:00",
+   "subject": "docs(audit): 2026-07-01 production-state audit (Codex-reviewed)",
+   "body": "Full-system audit: verdict healthy. Closes the 6/29 live_forward_resolution\nCRITICAL (6/17 suspended-game stall, re-resolved PASS post-fix). Flags the\nlive projected-pick->real-skip flip (decisive C1/C2 test) and the flip-day\ndashboard visibility gap (F1).\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01AfKioxXQo1kE7dgk6XUFE1",
+   "files": [
+    "docs/audit/2026-07-01-production-state-audit.md"
+   ],
+   "first_live_log": {
+    "sha": "48e8485",
+    "live_by": "2026-07-02T15:28:12Z",
+    "not_live_before": "2026-07-02T15:28:12Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 28601525167,
+    "created_at": "2026-07-02T15:23:32Z",
+    "head_sha": "48e8485",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "48e8485",
+   "authored": "2026-07-01T20:20:10-04:00",
+   "subject": "docs(architecture): SuccessExitStatus=143 on both systemd units (applied box-side 2026-07-01)",
+   "body": "Deploy-workflow SIGTERM stops now log as clean deactivation instead of\n'Failed with result exit-code' \u2014 all four unit 'failures' in the audit week\nwere deploys masquerading as crashes. Applied via daemon-reload, no restart.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01AfKioxXQo1kE7dgk6XUFE1",
+   "files": [
+    "ARCHITECTURE.md"
+   ],
+   "first_live_log": {
+    "sha": "48e8485",
+    "live_by": "2026-07-02T15:28:12Z",
+    "not_live_before": "2026-07-02T15:28:12Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 28601525167,
+    "created_at": "2026-07-02T15:23:32Z",
+    "head_sha": "48e8485",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

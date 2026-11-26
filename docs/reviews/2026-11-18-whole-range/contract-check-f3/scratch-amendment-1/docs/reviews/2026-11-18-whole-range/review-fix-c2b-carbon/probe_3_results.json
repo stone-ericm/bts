@@ -1,0 +1,8 @@
+{
+  "diagnostics_and_failures_head": "PASS (18 containment stages + EOD backstop + N1 200-char long-path check)",
+  "isolation_head": "PASS (cutoff both orders, failed unrelated DM, EOD, midnight & New Year)",
+  "legacy_dispatch_base_vs_head_parity": "PASS (14 callers/cases, omitted + explicit False byte-identical to 386aa846)",
+  "operator_head": "PASS (all U7 states, read-only status, watchdog agreement & ledgered divergence)",
+  "receipts_head": "PASS (reply shapes, special/aliased/damaged files, KeyboardInterrupt/SystemExit boundaries)",
+  "restart_base_vs_head_parity": "PASS (3 real restart phases + 6 classification controls matched base hashes/polling)"
+}

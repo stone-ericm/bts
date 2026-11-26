@@ -1,0 +1,19 @@
+repeat-date: picks.py :: if date is not None and date in load_applied_dates(picks_dir, season=season): -> if False:
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-closing-blind
+configfile: pyproject.toml
+collected 1 item
+
+../../../tests/test_streak_applied_dates.py F                            [100%]
+
+=================================== FAILURES ===================================
+______________________ test_the_same_date_is_applied_once ______________________
+../../../tests/test_streak_applied_dates.py:18: in test_the_same_date_is_applied_once
+    assert update_streak([True], tmp_path, date="2027-04-02") == 6
+E   AssertionError: assert 7 == 6
+E    +  where 7 = update_streak([True], PosixPath('/Users/eric/projects/bts-work/wr-closing-blind/.codex-review/whole-range/tmput7r0zy8/tmp/test_the_same_date_is_applied_0'), date='2027-04-02')
+=========================== short test summary info ============================
+FAILED ../../../tests/test_streak_applied_dates.py::test_the_same_date_is_applied_once
+============================== 1 failed in 0.20s ===============================
+mutation-result repeat-date 1

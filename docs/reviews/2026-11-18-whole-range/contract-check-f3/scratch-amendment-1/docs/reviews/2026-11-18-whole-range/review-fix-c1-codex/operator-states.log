@@ -1,0 +1,6 @@
+Year rollover, pending/unconfirmed prior entry, unsafe live recovery template appears in read-only status only.
+01:10 replacement changed the retained diagnosis, first to a mismatch, then silence with a matching activation.
+Missing required observation stays a CRITICAL at 00:15 and 02:00 whether or not local bytes suggest prior entry.
+Historical DM after real 13:55 cutoff names no entry or retry action.
+A later morning check refused absent state, then accepted a newer matching snapshot without a DM.
+Order calibration, one mode sample, live check sample. Rollover kept default kwargs and next-day template.

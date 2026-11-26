@@ -1,0 +1,9 @@
+Replay operator 0645be4b 2026-11-20T17:37:01.884812
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-d/.codex-review/wr-d/r2/trees/0645be4b/.codex-review/wr-d/operator_probe.py", line 130, in <module>
+    main()
+  File "/Users/eric/projects/bts-work/wr-review-d/.codex-review/wr-d/r2/trees/0645be4b/.codex-review/wr-d/operator_probe.py", line 104, in main
+    assert initial.exit_code == 1 and 'contest state refused' in initial.output
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+exit 1

@@ -1,0 +1,21 @@
+head bts: /Users/eric/projects/bts-work/wr-review-c1/src/bts/__init__.py
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-c1/.codex-review/wr-c1/replay_driver_bootstrap.py", line 30, in <module>
+    main()
+  File "/Users/eric/projects/bts-work/wr-review-c1/.codex-review/wr-c1/replay_driver_bootstrap.py", line 26, in main
+    replay_drivers.main()
+  File "/Users/eric/projects/bts-work/wr-review-c1/.codex-review/wr-c1/replay_drivers.py", line 63, in main
+    runpy.run_path(str(path), run_name="__main__")
+  File "/Users/eric/projects/bts-work/wr-review-c1/.codex-review/wr-c1/replay_driver_bootstrap.py", line 22, in run_path
+    return probe.main()
+           ^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-c1/.codex-review/wr-c1/contract-check-c1/probe.py", line 393, in main
+    scheduler(scratch)
+  File "/Users/eric/projects/bts-work/wr-review-c1/.codex-review/wr-c1/contract-check-c1/probe.py", line 372, in scheduler
+    carbon.test_probe_1_post_midnight_eod_false_critical_and_harmful_advice(root)
+  File "/Users/eric/projects/bts-work/wr-review-c1/docs/reviews/2026-11-18-whole-range/slice-1-carbon/test_slice1_probes_v3.py", line 95, in test_probe_1_post_midnight_eod_false_critical_and_harmful_advice
+    w.run_scheduler_day("2027-03-24", stop_at_et=et_dt(2027, 3, 25, 1, 0))
+  File "/Users/eric/projects/bts-work/wr-review-c1/.codex-review/wr-c1/replay_drivers.py", line 50, in run_and_capture
+    assert len(dms) == 1, dms
+           ^^^^^^^^^^^^^
+AssertionError: []

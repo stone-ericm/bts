@@ -1,0 +1,3 @@
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_a_boundary_call_while_another_thread_is_alive_reads_nothing[mock]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_the_slots_read_while_another_thread_is_alive[worker-no-dict]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_the_slots_read_while_another_thread_is_alive[worker-stale-dict]", "kind": "assertion"}

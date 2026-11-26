@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/r2/r2_probe_new_attacks.py", line 660, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/r2/r2_probe_new_attacks.py", line 647, in main
+    "F5_attacks": attack_f5_configs(work),
+                  ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/r2/r2_probe_new_attacks.py", line 415, in attack_f5_configs
+    cand_pick = Pick(
+                ^^^^^
+TypeError: Pick.__init__() got an unexpected keyword argument 'opponent'

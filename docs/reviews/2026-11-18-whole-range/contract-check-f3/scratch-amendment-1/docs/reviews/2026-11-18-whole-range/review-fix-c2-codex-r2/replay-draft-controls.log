@@ -1,0 +1,12 @@
+probe_1_restart_and_base_parity.py: same exit and exception on dfe774df and e897c766
+probe_1b_restart_and_base_parity.py: same exit and exception on dfe774df and e897c766
+probe_2_isolation_and_dedup.py: same exit and exception on dfe774df and e897c766
+probe_2b_isolation_and_dedup.py: same exit and exception on dfe774df and e897c766
+probe_3_ack_and_legacy_parity.py: same exit and exception on dfe774df and e897c766
+probe_4_damaged_receipts_and_interrupts.py: same exit and exception on dfe774df and e897c766
+probe_5_operator_text_and_watchdog.py: same exit and exception on dfe774df and e897c766
+probe_5b_operator_text_and_watchdog.py: same exit and exception on dfe774df and e897c766
+probe_5c_operator_text_and_watchdog.py: same exit and exception on dfe774df and e897c766
+probe_5d_operator_text_and_watchdog.py: same exit and exception on dfe774df and e897c766
+probe_5e_operator_text_and_watchdog.py: same exit and exception on dfe774df and e897c766
+probe_5f_operator_text_and_watchdog.py: same exit and exception on dfe774df and e897c766

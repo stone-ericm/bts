@@ -1,0 +1,351 @@
+{
+ "id": "E73",
+ "episode_row": [
+  "E73",
+  "7/09\u20137/10",
+  "gpt-5.6-sol audit latent batch (F2 projected-DD early lock \u00d711 no harm; F3; F4; F6 realized_calibration dead in prod; F8; F10 derivation lost; F12 unit drift; F13 scoring race; F15; R4)",
+  "many",
+  "DL",
+  "P",
+  "b25f348 a349ac5 bc56439 a081bab 40c0094 a374fa4 3a09b2c 49f2538 cca6761 ede5c28 9643d83 0ea2132 6d74d39"
+ ],
+ "commits": [
+  {
+   "sha": "b25f348",
+   "authored": "2026-07-09T21:34:11-04:00",
+   "subject": "fix(cli): preview default 'tomorrow' in ET, not UTC (audit F15)",
+   "body": "Between ~8pm and midnight ET, utcnow()+1day targets the day AFTER tomorrow,\nso a manual evening/recovery preview wrote the wrong slate. Same class as the\nO2 _today_et fix; new _tomorrow_et mirrors it. Tests plant resolved picks at\nboth candidate dates on disk (no load_pick mock \u2014 import-during-patch leaks\npoisoned unrelated tests) plus a run_pipeline tripwire so a date regression\nfails fast instead of hitting the live data refresh.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/cli.py",
+    "tests/test_cli_preview_date.py"
+   ],
+   "first_live_log": {
+    "sha": "49f2538",
+    "live_by": "2026-07-10T15:20:05Z",
+    "not_live_before": "2026-07-10T15:20:05Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 29103040814,
+    "created_at": "2026-07-10T15:16:31Z",
+    "head_sha": "49f2538",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "a349ac5",
+   "authored": "2026-07-09T21:39:59-04:00",
+   "subject": "fix(health): let unexpected check crashes reach _safe_run \u2192 CRITICAL (audit F4)",
+   "body": "calibration, projected_lineup, post_failure, disk_fill caught Exception\ninternally and returned [] \u2014 an evaluation failure was indistinguishable from\nhealthy, structurally defeating _safe_run's promised CRITICAL-on-crash (the\naudit-H3 fix). Expected data-absence paths (empty dirs, per-file corruption\nskips in the lookback scan) stay quiet; two legacy tests encoding the\nswallow behavior flipped to the propagation contract.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/health/calibration.py",
+    "src/bts/health/disk_fill.py",
+    "src/bts/health/post_failure.py",
+    "src/bts/health/projected_lineup.py",
+    "tests/health/test_disk_fill.py",
+    "tests/health/test_f4_exception_propagation.py",
+    "tests/health/test_post_failure.py"
+   ],
+   "first_live_log": {
+    "sha": "49f2538",
+    "live_by": "2026-07-10T15:20:05Z",
+    "not_live_before": "2026-07-10T15:20:05Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 29103040814,
+    "created_at": "2026-07-10T15:16:31Z",
+    "head_sha": "49f2538",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "bc56439",
+   "authored": "2026-07-09T21:45:59-04:00",
+   "subject": "fix(scheduler): atomic state save, corrupt-state quarantine, READY after state init (audit F3)",
+   "body": "save_state used bare write_text on the exact file startup parses\ncrash-unprotected \u2014 a torn write meant a 30s crash-restart loop that stayed\nexternally green (heartbeat + READY were signaled before state was touched,\nany fresh 'running' heartbeat scores healthy, the restart-spike check runs\nonly at EOD inside the crashing process, and the deploy canary is is-active\nat +30s). Now: atomic_write_text (the util docstring described this exact\nclass), corrupt files quarantined to *.corrupt-<ts> with evidence preserved\nand startup degrading to fresh state, and load_state runs before\nnotify_ready so a failing init can never advertise liveness.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_scheduler_state_integrity.py"
+   ],
+   "first_live_log": {
+    "sha": "49f2538",
+    "live_by": "2026-07-10T15:20:05Z",
+    "not_live_before": "2026-07-10T15:20:05Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 29103040814,
+    "created_at": "2026-07-10T15:16:31Z",
+    "head_sha": "49f2538",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "a081bab",
+   "authored": "2026-07-09T21:51:53-04:00",
+   "subject": "feat(health): quarantine visibility + external restart-churn detection (audit F3)",
+   "body": "scheduler_state_integrity source WARNs while a *.corrupt-* quarantine is\nrecent (day-state was reset; evidence file preserved). check_heartbeat gains\nan NRestarts sampler: +3 restarts inside 20 min is treated exactly like a\nstale heartbeat (fail ping) \u2014 a 30s crash-loop refreshes the heartbeat every\ncycle, so freshness alone scores a crash-loop healthy. Counter resets\nrebaseline instead of firing; unreadable systemctl skips quietly (churn is an\naddition to the liveness signal, never a breaker). Defaults activate via the\nexisting cron line \u2014 no cron change needed.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "scripts/check_heartbeat.py",
+    "src/bts/health/runner.py",
+    "src/bts/health/scheduler_state_integrity.py",
+    "tests/health/test_scheduler_state_integrity_source.py",
+    "tests/test_heartbeat_churn.py"
+   ],
+   "first_live_log": {
+    "sha": "49f2538",
+    "live_by": "2026-07-10T15:20:05Z",
+    "not_live_before": "2026-07-10T15:20:05Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 29103040814,
+    "created_at": "2026-07-10T15:16:31Z",
+    "head_sha": "49f2538",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "40c0094",
+   "authored": "2026-07-09T21:57:36-04:00",
+   "subject": "fix(health): realized_calibration pools by regime fingerprint, not deploy wall-clock (audit F6)",
+   "body": "Every deploy stamp (11 in 10 days: docs, shadow, ops) reset the calibration\nsample, so min_bucket_n was never reached and the check was dead exactly\nduring active development. Picks already stamp model_pickle_sha256 /\npolicy_npz_sha256 / feature_env_hash; the pool is now all in-window picks\nmatching the newest stamped pick's fingerprint \u2014 no-regime-change deploys\nkeep the sample, genuine model/policy/env changes still reset it, and\nunstamped pre-provenance picks fall back to the wall-clock filter (runner\nsignature unchanged).\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/health/realized_calibration.py",
+    "tests/health/test_realized_calibration.py"
+   ],
+   "first_live_log": {
+    "sha": "49f2538",
+    "live_by": "2026-07-10T15:20:05Z",
+    "not_live_before": "2026-07-10T15:20:05Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 29103040814,
+    "created_at": "2026-07-10T15:16:31Z",
+    "head_sha": "49f2538",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "a374fa4",
+   "authored": "2026-07-09T23:09:52-04:00",
+   "subject": "feat(leaderboard): gzip static snapshots + per-day bytes telemetry (review F14/#14)",
+   "body": "Raw JSON snapshots accumulated ~190 MB/day unbounded (players/ alone 879MB).\nNew snapshots store as .json.gz (dedupe stays keyed on the RAW sha, so\ncapture behavior is unchanged; nothing in prod reads the archive back) and\ncapture_status.json gains bytes_day/bytes_stored_today so the trajectory is\nobservable. Existing plain-JSON backlog left as-is; retention policy\ndeferred until the compressed slope warrants it.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/leaderboard/static_capture.py",
+    "tests/leaderboard/test_static_capture.py"
+   ],
+   "first_live_log": {
+    "sha": "49f2538",
+    "live_by": "2026-07-10T15:20:05Z",
+    "not_live_before": "2026-07-10T15:20:05Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 29103040814,
+    "created_at": "2026-07-10T15:16:31Z",
+    "head_sha": "49f2538",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "3a09b2c",
+   "authored": "2026-07-09T23:13:05-04:00",
+   "subject": "fix(scoring): shared flock serializes daemon vs 1am-cron streak scoring (review F13/#13)",
+   "body": "Both scorers do load daily -> resolve -> update_streak -> save_pick on the\nsame date around 01:00 ET with no lock (only saver state had one); an\ninterleave could double-apply or lose a streak update. New\npicks.scoring_lock (flock on data/picks/.scoring.lock) wraps the\nread-modify-write at all three sites \u2014 check-results, the daemon's mid-game\nearly path, and its all-final path \u2014 each re-loading the pick INSIDE the\nlock and skipping if a peer already scored (red test demonstrated the\ndouble-count: streak 7 vs correct 6). Resolution stays outside the lock\n(idempotent network read); the critical section is sub-second.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/cli.py",
+    "src/bts/picks.py",
+    "src/bts/scheduler.py",
+    "tests/test_scoring_lock.py"
+   ],
+   "first_live_log": {
+    "sha": "49f2538",
+    "live_by": "2026-07-10T15:20:05Z",
+    "not_live_before": "2026-07-10T15:20:05Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 29103040814,
+    "created_at": "2026-07-10T15:16:31Z",
+    "head_sha": "49f2538",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "49f2538",
+   "authored": "2026-07-10T11:11:41-04:00",
+   "subject": "fix(scoring): review round 2 \u2014 every result writer now locked and clobber-safe (Codex #1,#4,#5,#6,#8,#9)",
+   "body": "The cheap-fixes review went deeper into the pre-existing writer set: the\ndaemon's cap/unresolved-final/suspended branches wrote stale objects\nunlocked (a cron-scored terminal hit could be overwritten with\nunresolved/suspended) \u2014 now routed through save_nonterminal_result, a\nlocked reload-that-refuses-to-clobber-terminal. The 2am reconcile_results\n(writer of BOTH pick files and streak.json, racing the daemon until 05:00)\nnow resolves boxscores unlocked, then applies corrections + the season\nreplay under scoring_lock against reloaded state. All scoring sites adopt\nthe FRESH pick before mutating (concurrent metadata updates survive) and\nfail closed when the file vanished mid-flight. Shadow reconciliation moved\noutside the lock (network under a global lock). checkout gets\npersist-credentials:false; ARCHITECTURE documents the mixed .json/.json.gz\narchive. Deferred (with rationale): two-file streak+pick atomicity journal\n(pre-existing, healed by reconcile + contest anchoring), public-mode reply\ndedup (dormant \u2014 prod is DM mode), telemetry undercount on kill-mid-capture.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    ".github/workflows/deploy.yml",
+    ".github/workflows/test.yml",
+    "ARCHITECTURE.md",
+    "src/bts/cli.py",
+    "src/bts/picks.py",
+    "src/bts/scheduler.py",
+    "tests/test_scoring_lock.py"
+   ],
+   "first_live_log": {
+    "sha": "49f2538",
+    "live_by": "2026-07-10T15:20:05Z",
+    "not_live_before": "2026-07-10T15:20:05Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 29103040814,
+    "created_at": "2026-07-10T15:16:31Z",
+    "head_sha": "49f2538",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "cca6761",
+   "authored": "2026-07-10T12:41:37-04:00",
+   "subject": "feat(health): canonical systemd unit templates + read-only drift check (audit F12)",
+   "body": "The tracked scheduler unit was the stale Pi5 one (/home/stonehengee,\nType=simple, on-failure/300s) while prod runs notify+watchdog/always/30s\n\u2014 DR from the repo would have installed a broken unit, and live edits\ncould drift unreviewed.\n\n- scripts/systemd/{bts-scheduler,bts-dashboard}.service: byte-identical\n  captures of the live units (sha256-verified against the box).\n- unit_drift health source (Tier 3, repeated-attention): WARNs on\n  installed-vs-template divergence or an installed tracked unit with no\n  template; silent off-box. Read-only by design.\n- scripts/install-systemd-hetzner.sh: explicit operator install/diff,\n  never enables or restarts (restarts belong to the deploy canary).\n- Removed the stale scripts/bts-scheduler.service.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "scripts/bts-scheduler.service",
+    "scripts/install-systemd-hetzner.sh",
+    "scripts/systemd/bts-dashboard.service",
+    "scripts/systemd/bts-scheduler.service",
+    "src/bts/health/attention.py",
+    "src/bts/health/runner.py",
+    "src/bts/health/unit_drift.py",
+    "tests/health/test_runner.py",
+    "tests/health/test_unit_drift.py"
+   ],
+   "first_live_log": {
+    "sha": "6919e19",
+    "live_by": "2026-07-10T18:41:02Z",
+    "not_live_before": "2026-07-10T18:41:02Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 29114882915,
+    "created_at": "2026-07-10T18:32:02Z",
+    "head_sha": "6919e19",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "ede5c28",
+   "authored": "2026-07-10T13:00:21-04:00",
+   "subject": "fix(sync): content-addressed R2 keys make the manifest flip the only commit point (audit F8)",
+   "body": "The old protocol overwrote stable keys in place BEFORE replacing the\nmanifest: an interrupted sync left the old manifest pointing at new\nbytes \u2014 the backup was inconsistent during exactly the failure window\nit exists to survive, and verify_manifest only looked at metadata/age.\n\n- Changed files upload to objects/<sha256>/<name>; a prior manifest's\n  bytes are never overwritten. Unchanged entries are preserved verbatim,\n  so the existing legacy-layout objects stay restorable without churn.\n- sync_from_r2 downloads to a .part temp, verifies the checksum, then\n  os.replace()s \u2014 a corrupt download can no longer destroy a good local\n  file (previously it deleted the freshly-written dest in place).\n- verify_manifest now HEADs every referenced object (existence + size),\n  reported as objects_ok; CLI exits 1 on failure.\n- prune_unreferenced: deletes objects/ keys the current manifest no\n  longer references, only when older than 7d (age guard protects\n  in-flight syncs); legacy keys / manifest / raw-archive tarball are\n  structurally out of scope. Runs after sync-to-r2 (--no-prune to skip).\n\nRegression test reproduces the audit scenario: uploads succeed, manifest\npublish crashes \u2192 restore from the surviving manifest returns the old\nbytes exactly.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/cli.py",
+    "src/bts/data/sync.py",
+    "tests/test_sync.py"
+   ],
+   "first_live_log": {
+    "sha": "6919e19",
+    "live_by": "2026-07-10T18:41:02Z",
+    "not_live_before": "2026-07-10T18:41:02Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 29114882915,
+    "created_at": "2026-07-10T18:32:02Z",
+    "head_sha": "6919e19",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "9643d83",
+   "authored": "2026-07-10T13:04:55-04:00",
+   "subject": "fix(strategy): early lock requires the selected double-down confirmed too (audit F2)",
+   "body": "The gap rule is valid for a single pick racing projected alternatives,\nbut the scheduler applied it unchanged to double days: a projected DD\nrode through on the primary's confirmation (11 production days, 4\nlocked 51-133min early; 0 realized scratches \u2014 this is tail insurance\nagainst displacement, per Eric's call 2026-07-10).\n\nshould_lock gains an optional double_down slot; _lock_decision_from_\npredictions passes it on double days. Coverage flows to the in-loop\nfallback deferral automatically (same helper); the T-35 final fallback\ndeliberately bypasses should_lock, so the gate can only delay delivery\nwithin the day, never lose it.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scheduler.py",
+    "src/bts/strategy.py",
+    "tests/test_scheduler.py",
+    "tests/test_strategy.py"
+   ],
+   "first_live_log": {
+    "sha": "6919e19",
+    "live_by": "2026-07-10T18:41:02Z",
+    "not_live_before": "2026-07-10T18:41:02Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 29114882915,
+    "created_at": "2026-07-10T18:32:02Z",
+    "head_sha": "6919e19",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "0ea2132",
+   "authored": "2026-07-10T13:26:18-04:00",
+   "subject": "fix(skip-shadow): version the 0.744 derivation + pre-registered verdict checkpoints (audit F10)",
+   "body": "The breakeven's derivation lived only at /tmp/skip_qdelta.py on the box\n\u2014 confirmed gone. scripts/audit/skip_breakeven_derivation.py re-derives\nit from repo artifacts (Q(single)==Q(skip) on the calibrated\nestimated-PA value function, both objectives, sweeping n_bins/horizon/\nsaver): reach57 median p* 0.7418, E[max] 0.7485 \u2014 reproducing the\nrecorded ~0.744 (0.742-0.752). Constant unchanged: it sits inside the\nre-derived band, and moving a pre-registered threshold mid-experiment\nis itself a peeking sin. Inputs fingerprinted in\ndocs/audit/2026-07-10-skip-breakeven-derivation.json.\n\nVerdict statistics fixed: nightly re-testing a fixed-N 95% Wilson CI is\nnot time-uniform \u2014 repeated looks inflate the chance a transient\ncrossing gets presented as 'skip validated/costs streaks'. Verdicts now\ncome only from pre-registered looks at n\u2208{30,60,90} resolved divergent\ndays (Bonferroni z=2.394 per look), each computed deterministically\nfrom the first-c records in date order so the stateless nightly rebuild\nreplays identical looks; a decisive look is terminal. The running\nWilson CI stays in the status as monitoring display. Status schema v2\n(+verdict_basis); dashboard/CLI consumers read the same keys.\n\nRecords now carry the (policy_npz_sha256, feature_env_hash) regime\nfingerprint (same identity as realized_calibration/F6) for future\nstratification \u2014 the breakeven is one model era's number.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "docs/audit/2026-07-10-skip-breakeven-derivation.json",
+    "scripts/audit/skip_breakeven_derivation.py",
+    "src/bts/skip_policy_shadow.py",
+    "tests/test_skip_policy_shadow.py"
+   ],
+   "first_live_log": {
+    "sha": "6919e19",
+    "live_by": "2026-07-10T18:41:02Z",
+    "not_live_before": "2026-07-10T18:41:02Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 29114882915,
+    "created_at": "2026-07-10T18:32:02Z",
+    "head_sha": "6919e19",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "6d74d39",
+   "authored": "2026-07-10T15:44:53-04:00",
+   "subject": "fix: round-2 adversarial review \u2014 11 findings on the fix batch + ops work",
+   "body": "gpt-5.6-sol against everything unreviewed since round 1 (the round-1\nfixes themselves, the CI environment work) plus the recovered morning\nfull-batch report. Fixed:\n\n- R1  a failed backup run discarded the last successful snapshot_id, so\n      restore-drill regressed to 'latest --tag ops' \u2014 the exact partial-\n      snapshot condition the I4 fix was for. last_success_snapshot_id\n      now survives failures; the drill prefers it unconditionally\n- R2  INCIDENT box-loss runbook restores by drill-verified snapshot ID,\n      never latest\n- R3  prev-manifest preservation now FAILS CLOSED: a failed copy aborts\n      the sync (retry next run) instead of publishing a manifest whose\n      outgoing generation is immediately pruneable under a reader\n- R4  the lock decision revalidates BOTH selected slots against the\n      fresh game-status snapshot \u2014 a primary whose game went postponed\n      between selection and lock no longer rides its stale lineup flag\n      into delivery (contender rows were filtered; the committed slots\n      were not)\n- R5  prune_superseded is age-fenced to the checkpoint-eligibility\n      window: the same-day-flip assumption is now ENFORCED, so a fired\n      pre-registered look's membership is provably immutable\n- R6  deploy concurrency queues instead of cancelling: run-level\n      cancellation fires BEFORE the job-level environment gate, so a\n      mistaken main-branch dispatch could kill an in-flight deploy\n      mid-SSH and strand the box without its canary/rollback\n- R7  probe audits take the saver flock (trail order = attempt order)\n- #4  audit-append failures now log loudly (the trail IS the F7\n      accepted-risk control; a swallowed append = unaudited mutation)\n- #10 dashboard + CLI show the verdict's own pre-registered-look basis\n      (n, hits, CI, z) and label the running Wilson CI monitoring-only\n      \u2014 the juxtaposition invited misreads\n- #11 unit_drift WARNs on symlinked units (hash equality proves nothing\n      about systemd's loaded definition)\n- #5  verify-manifest output labeled 'existence+size only; restores\n      verify sha256'\n\nAccepted with rationale (audit doc): fresh-box bootstrap remains a\ndocumented runbook step (absent-status-silent convention stands);\ndeeper postponed-commit hardening already has a Tier-1 health source.\n\nSuite 1796 -> 1801.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    ".github/workflows/deploy.yml",
+    "INCIDENT.md",
+    "src/bts/cli.py",
+    "src/bts/data/backup.py",
+    "src/bts/health/unit_drift.py",
+    "src/bts/saver_state.py",
+    "src/bts/scheduler.py",
+    "src/bts/skip_policy_shadow.py",
+    "src/bts/web.py",
+    "tests/health/test_unit_drift.py",
+    "tests/test_backup.py",
+    "tests/test_scheduler.py",
+    "tests/test_skip_policy_shadow.py"
+   ],
+   "first_live_log": {
+    "sha": "6d74d39",
+    "live_by": "2026-07-10T19:49:38Z",
+    "not_live_before": "2026-07-10T19:49:38Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 29119047694,
+    "created_at": "2026-07-10T19:44:57Z",
+    "head_sha": "6d74d39",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

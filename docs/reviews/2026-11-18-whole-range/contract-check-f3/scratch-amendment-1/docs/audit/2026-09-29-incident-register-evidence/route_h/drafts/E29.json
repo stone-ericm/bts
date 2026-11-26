@@ -1,0 +1,77 @@
+{
+ "id": "I-029",
+ "working_id": "E29",
+ "title": "4/15 02:00 reconcile rewrote the local streak to 0: the backward walk broke on the pre-generated preview pick file",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {"primary": "G", "secondary": []},
+ "tier": "A",
+ "tier_reason": "local streak state was overwritten with a wrong value (state impact); the today-exclusion the fix introduced is still in the replay at HEAD and is the root of the unfixed same-day rollback (L02), which can still change local state",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "Reconciliation recomputes the local streak from resolved pick results only; an unplayed pick (result None) is 'not played', not a miss, and must not end the walk.",
+  "source": "commit 1d61908 message body; src/bts/picks.py reconcile_results comment 'Always recalculate streak from scratch'"
+ },
+ "mechanism": [
+  {"n": 1, "text": "reconcile_results recomputed the streak by walking every *.json in the picks dir newest-first, skipping only streak/automation; any other file whose result was not hit/miss ended the walk. The 03:00 chain's `bts preview` pre-writes the next UTC day's pick file (result None), so at 02:00 the newest file was that day's unplayed preview, the walk broke at once and save_streak(0) ran. *.shadow.json files (always result None) could break the walk the same way.",
+   "code": [{"path": "src/bts/picks.py", "ref": "142db4d", "symbol": "reconcile_results (streak walk)", "ref_basis": "candidate"},
+            {"path": "src/bts/cli.py", "ref": "142db4d", "symbol": "preview (date defaults to UTC tomorrow)", "ref_basis": "candidate"}]}
+ ],
+ "fix": [
+  {"link": 1, "implemented": {"commits": ["1d61908"], "complete_fix_set": true},
+   "deployed": {"basis": "candidate_ancestry", "sha": "1d61908", "live_by": "2026-04-15T16:05:33Z", "run_id": 24464954045, "evidence": ["ev4"]},
+   "mitigated": "unknown", "verified_recovered": "unknown"}
+ ],
+ "fixtures": {"historical_replay": [], "current_defence": [], "expected_failure": [], "characterization": []},
+ "residual": [
+  {"text": "The fix skips every pick file dated today or later. The same `f.stem >= today_iso` exclusion survives in _replay_season_streak at HEAD, so a reconcile run later on the same day drops today's already-applied terminal result and can roll back the streak and saver (the same-day replay rollback, L02, a pre-existing defect).", "reaches_production": true, "source": "docs/audit/2026-09-28-reconcile-cutoff-codex-r1.md finding 3; src/bts/picks.py _replay_season_streak at HEAD; design §10.2"}
+ ],
+ "watchdog": {
+  "boundary": "grading",
+  "trigger": "after every write to streak.json (01:00 check-results, 02:00 reconcile, scheduler result polling), the persisted streak is lower than its previous value although no pick file gained a new terminal miss since that value was written, or it differs from a forward replay of resolved pick files through yesterday",
+  "recovery_assertion": "after the next grading run, streak.json (and saver) equal the forward replay of resolved picks (and, once contest state exists, the contest-reported streak)"
+ },
+ "evidence": [
+  {"id": "ev1", "kind": "contemporaneous_operator_report", "strength": "primary", "locator": "commit 1d61908 message body", "written_at": "2026-04-15T12:05:29-04:00", "exposure_row": "X-01",
+   "what": "symptom observed 2026-04-15: streak.json was rewritten to 0 at 02:00 ET by the reconcile cron when the previous day's double-down result should have left it at 2; the walk hit today's pre-generated preview pick (result None); the body says this reset happened 'every night'"},
+  {"id": "ev2", "kind": "inference", "strength": "primary", "locator": "src/bts/picks.py reconcile_results at 142db4d",
+   "what": "the walk iterates reversed(sorted(picks_dir.glob('*.json'))), skips only stems streak/automation, and breaks on any result other than hit/miss, then calls save_streak(streak)"},
+  {"id": "ev3", "kind": "inference", "strength": "primary", "locator": "src/bts/cli.py preview and scripts/cron-setup-hetzner.sh at 1d61908",
+   "what": "preview defaults its date to UTC now + 1 day and runs in the 03:00 chain; reconcile runs at 02:00, so the next night's walk starts at an unplayed preview file"},
+  {"id": "ev4", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 24464954045 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "push-to-main deploy of head 1d61908 created 2026-04-15T16:05:33Z, conclusion success; log unavailable_expired"},
+  {"id": "ev5", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 27077693688 (deploy_runs.json)",
+   "what": "first retained deploy log: pre-deploy SHA eaccaf8 (a descendant of 1d61908) already installed at 2026-06-07T00:11:19Z"},
+  {"id": "ev6", "kind": "inference", "strength": "primary", "locator": "docs/audit/2026-09-28-reconcile-cutoff-codex-r1.md finding 3",
+   "what": "a daytime or 23:00 reconcile still rolls local streak state back before today's already-scored result because the replay excludes today's file; flagged as a pre-existing defect"}
+ ],
+ "occurrences": [{
+  "label": "2026-04-15",
+  "onset": {"at": "2026-04-15T02:00:00-04:00", "evidence": ["ev1", "ev3"]},
+  "first_detectable": {"at": "2026-04-15T02:00:00-04:00", "evidence": ["ev1"]},
+  "first_machine_detection": "none",
+  "alert": {"attempted": "none", "confirmed": "none", "failed": "none"},
+  "operator_awareness": {"not_after": "2026-04-15T12:05:29-04:00", "evidence": ["ev1"]},
+  "operator_action": {"not_after": "2026-04-15T12:05:29-04:00", "evidence": ["ev1"]},
+  "mitigation": "unknown",
+  "restored_verification": "unknown",
+  "latencies": {"detection": "not_applicable", "notification": "not_applicable", "recovery": "unknown"}
+ }],
+ "routes": {"H": ["1d61908"], "R": "pending_phase2",
+            "X": ["docs/audit/2026-09-28-reconcile-cutoff-codex-r1.md finding 3"]},
+ "related": ["I-202", "I-011"],
+ "notes": [
+  "the incident is about the streak value itself, so ev1 restates it with exposure row X-01; the batters named in the body are not repeated",
+  "'every night' (ev1): earlier nightly resets since the preview command (0729031, 4/10) and the Hetzner cron (d5c466c, 4/12) are plausible but not separately evidenced; streak.json is overwritten, so only the 4/15 occurrence is recorded",
+  "policy_objective reach57: the scheduler's select_pick read load_streak(), so the 4/15 reach-57 decision may have used the reset value (code inference; the 4/15 pick file is Route R material)",
+  "first_machine_detection none: no health checks existed until 4/28 (e74c485); the operator found it",
+  "mitigation unknown: whether streak.json was hand-corrected on 4/15 or only by the next 02:00 run after the fix deploy is not recorded",
+  "log bound: live by 2026-06-07T00:11:19Z (run 27077693688)",
+  "regression tests named in the fix: tests/test_picks.py test_preview_pick_for_tomorrow_does_not_break_streak_walk, test_shadow_pick_files_are_ignored_in_streak_walk",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

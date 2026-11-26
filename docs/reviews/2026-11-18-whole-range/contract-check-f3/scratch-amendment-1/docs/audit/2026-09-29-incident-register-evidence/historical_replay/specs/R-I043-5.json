@@ -1,0 +1,23 @@
+{
+  "label": "R-I043-5",
+  "incident": "I-043",
+  "links": [5],
+  "fix_set": ["abbfdc5"],
+  "tests": ["tests/test_scheduler.py::TestSchedulerRun::test_triggers_prediction_on_new_lineup",
+            "tests/test_scheduler.py::TestSchedulerRun::test_lock_decision_fails_closed_when_detailed_status_unavailable", "-q"],
+  "symptom_nodes": [
+    {"node": "tests/test_scheduler.py::TestSchedulerRun::test_triggers_prediction_on_new_lineup",
+     "assertion": {"path": "tests/test_scheduler.py", "text": "assert result[\"should_post\"] is False"}}
+  ],
+  "audit": {
+    "tests/test_orchestrator.py": {"decision": "irrelevant",
+      "reason": "not loaded by the selected tests; its added test patches bts.strategy.get_game_statuses_detailed, a name this fix adds to bts.strategy"},
+    "tests/test_scheduler.py": {"decision": "neutral",
+      "reason": "adds the fail-closed assertions to test_triggers_prediction_on_new_lineup and adds test_lock_decision_fails_closed_when_detailed_status_unavailable. Both call run_single_check or _lock_decision_from_predictions with signatures present at the parent (1eb29c5) and patch only names present there (bts.scheduler.check_confirmed_lineups, bts.orchestrator.run_cascade, bts.picks.get_game_statuses, bts.strategy.get_game_statuses, bts.strategy._load_mdp, plus the module's existing autouse patch of bts.picks.get_game_statuses_detailed)"},
+    "tests/test_strategy.py": {"decision": "irrelevant",
+      "reason": "not loaded by the selected tests; its added tests pass require_detailed_statuses= and patch bts.strategy.get_game_statuses_detailed, both added by this fix"}
+  },
+  "deployed_ref": {"sha": "d63f60b", "basis": "candidate_ancestry"},
+  "env": {"TZ": "America/New_York"},
+  "notes": "Symptom: the module's autouse fixture makes bts.picks.get_game_statuses_detailed raise. At the parent (1eb29c5), _lock_decision_from_predictions catches that and falls back to the abstract bts.picks.get_game_statuses (patched {100: 'P'}). The only row is the confirmed 'Test' pick, so should_lock returns True and `assert result[\"should_post\"] is False` fails (line 461 at abbfdc5, unique). The earlier assertions (skipped, new_lineups == 2, pick_name == 'Test') pass at the parent, which reaches the same cached pick through run_and_pick's coarse select_pick path (its detailed prefetch also raises and falls back to None). Static checks: run_single_check and _lock_decision_from_predictions(predictions, daily, date, early_lock_gap) keep their signatures at the parent; the src changes between 0799bf2 and 1eb29c5 (3e4f615, 26014bf, 3710227) touch provenance, experiment artifacts and backtest code, not these paths. Undeclared node: test_lock_decision_fails_closed_when_detailed_status_unavailable also fails at the parent, but its first assertion, `assert should_post is False`, passes there: the fixture pick is 0.72 against the coarse-included 0.81 projected contender, so the parent's gap rule also says False. It fails only at `assert best_projected is None` (line 553), because the parent returns the coarse-derived 0.81. It is selected for its green run and the runner will classify it, but it is not declared, since what fails there is not the fail-closed should_post contract. Not selected: the orchestrator and select_pick strict-mode tests (require_detailed_statuses= and bts.strategy.get_game_statuses_detailed are added by this fix)."
+}

@@ -1,0 +1,36 @@
+{
+ "id": "E102",
+ "episode_row": [
+  "E102",
+  "6/24",
+  "local replay 15 vs contest 13 (local state authority)",
+  "G",
+  "OI",
+  "A",
+  "6db921c (part of the E63 class)"
+ ],
+ "commits": [
+  {
+   "sha": "6db921c",
+   "authored": "2026-08-09T21:27:16-04:00",
+   "subject": "spec: amend boundary-shadow registration after design review + partial unblinding",
+   "body": "Codex r4 rejected r0 as implementation-ready; all claims independently\nverified before adoption. Root cause: r0's state replay contradicted\nproduction's contest-anchored streak (6/24 record = 13 vs local replay\n15; the 6/17 anchoring design is explicit that model replay can never\nraise it), 31/44 decision records persist no state, source=='mdp'\nrecords post-clamp effective actions, and the live saver is an\noperator stream (saver_state.json). r1 re-anchors state on recorded +\nledger-as-of sources only (unknown rows never diff), reframes M1 as a\none-step table-intent disagreement census (unchained, in-sample,\nmechanism-only), crosses the window/provenance variants with one\nprimary, adds deterministic stability probes, tightens quantile/tie/\nprovenance/artifact contracts, splits mechanism from outcome phases,\nand discloses the unblinding: the review itself computed provisional\ndiff counts (8/7, invalid state path) sitting at the inherited >=8\ntrigger \u2014 retained only as an operational threshold, with any\nverdict-bearing evaluation pushed to a stream untouched tonight.\nProposes bts_daily_decision_v2 (persist state + second candidate on\nevery final record) as the durable production fix, separately.\n\nr0 immutable at 4800f7a.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_012aRt7JMhNGc33Wy1RdjK7q",
+   "files": [
+    "docs/superpowers/specs/2026-08-09-boundary-shadow-measurement.md"
+   ],
+   "first_live_log": {
+    "sha": "0e4aaa8",
+    "live_by": "2026-08-10T02:00:22Z",
+    "not_live_before": "2026-08-10T02:00:22Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 31348388174,
+    "created_at": "2026-08-10T01:55:45Z",
+    "head_sha": "0e4aaa8",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

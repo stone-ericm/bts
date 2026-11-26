@@ -1,0 +1,274 @@
+{
+  "estimand": "paired seed-level P(57) gap for candidate pooled-policy table(s) vs production policy table",
+  "generated_at": "2026-05-07T01:11:08.034984+00:00",
+  "input_path": "data/validation/pooled_policy_ab_24seed_consolidated.json",
+  "leave_one_out": {
+    "bootstrap": {
+      "ci_lower": 0.014468268464804493,
+      "ci_upper": 0.024307985642763284,
+      "n_bootstrap": 20000,
+      "prob_mean_gt_zero": 1.0,
+      "seed": 43
+    },
+    "deployment_ready": false,
+    "exact_sign_p_one_sided_positive": 5.960464477539063e-08,
+    "exact_sign_p_two_sided": 1.1920928955078125e-07,
+    "gaps_by_seed": [
+      {
+        "gap": 0.03684783580815586,
+        "seed": 1
+      },
+      {
+        "gap": 0.003871038078973231,
+        "seed": 7
+      },
+      {
+        "gap": 0.03784175708495821,
+        "seed": 11
+      },
+      {
+        "gap": 0.01080614883877122,
+        "seed": 23
+      },
+      {
+        "gap": 0.0129978643561513,
+        "seed": 42
+      },
+      {
+        "gap": 0.010611366567011407,
+        "seed": 73
+      },
+      {
+        "gap": 0.034344555625033545,
+        "seed": 137
+      },
+      {
+        "gap": 0.0029695881449068734,
+        "seed": 199
+      },
+      {
+        "gap": 0.009658836389360104,
+        "seed": 1024
+      },
+      {
+        "gap": 0.004940905500444473,
+        "seed": 2048
+      },
+      {
+        "gap": 0.026229654811618597,
+        "seed": 8192
+      },
+      {
+        "gap": 0.03760888770910327,
+        "seed": 16384
+      },
+      {
+        "gap": 0.017735474954531864,
+        "seed": 65536
+      },
+      {
+        "gap": 0.012904804657434578,
+        "seed": 131072
+      },
+      {
+        "gap": 0.01212001678051254,
+        "seed": 524288
+      },
+      {
+        "gap": 0.03928625411495196,
+        "seed": 999983
+      },
+      {
+        "gap": 0.034403778183966914,
+        "seed": 1048576
+      },
+      {
+        "gap": 0.0023508695084511477,
+        "seed": 2041769
+      },
+      {
+        "gap": 0.010172031174146993,
+        "seed": 2273360
+      },
+      {
+        "gap": 0.008007486280175238,
+        "seed": 3167584
+      },
+      {
+        "gap": 0.017602950083069016,
+        "seed": 3911096
+      },
+      {
+        "gap": 0.03266440314878609,
+        "seed": 6426836
+      },
+      {
+        "gap": 0.02353463946536452,
+        "seed": 6762547
+      },
+      {
+        "gap": 0.02345112838862457,
+        "seed": 6992150
+      }
+    ],
+    "max_gap": 0.03928625411495196,
+    "mean_gap": 0.019290094818937648,
+    "min_gap": 0.0023508695084511477,
+    "n": 24,
+    "n_negative": 0,
+    "n_positive": 24,
+    "n_zero": 0,
+    "screen_verdict": "positive_screen_unchanged",
+    "se_gap": 0.0025854100764490227,
+    "std_gap": 0.012665870926300307
+  },
+  "methodology": {
+    "iid_seed_assumption": true,
+    "interpretation": "Because this iid seed bootstrap is narrower than a proper profile block-bootstrap, exclusion of zero leaves the positive screen standing but is not deployment evidence. A CI that straddles zero is enough to falsify the saved-gap screen.",
+    "is_profile_block_bootstrap": false,
+    "limitation": "This uses saved per-seed A/B values only. It does not recompute bins or policies over day-block resamples and therefore does not address day-level dependence.",
+    "n_bootstrap": 20000,
+    "primary": "paired_seed_bootstrap_over_saved_policy_gaps",
+    "seed": 42,
+    "unit": "seed"
+  },
+  "schema_version": "pooled_policy_gap_ci_v1",
+  "source_summary": {
+    "leave_one_out_summary": {
+      "mean_gap": 0.019290094818937648,
+      "mean_pool": 0.08380190775867395,
+      "mean_prod": 0.0645118129397363,
+      "n_seeds": 24,
+      "pool_wins": 24,
+      "std_gap": 0.012665870926300307
+    },
+    "within_pool_summary": {
+      "mean_gap": 0.020815988953459003,
+      "mean_pool": 0.08532780189319532,
+      "mean_prod": 0.0645118129397363,
+      "n_seeds": 24,
+      "pool_wins": 24,
+      "std_gap": 0.012600428809157085
+    }
+  },
+  "within_pool": {
+    "bootstrap": {
+      "ci_lower": 0.016025967907695646,
+      "ci_upper": 0.02573667292854962,
+      "n_bootstrap": 20000,
+      "prob_mean_gt_zero": 1.0,
+      "seed": 42
+    },
+    "deployment_ready": false,
+    "exact_sign_p_one_sided_positive": 5.960464477539063e-08,
+    "exact_sign_p_two_sided": 1.1920928955078125e-07,
+    "gaps_by_seed": [
+      {
+        "gap": 0.039608467626997185,
+        "seed": 1
+      },
+      {
+        "gap": 0.004475794397816028,
+        "seed": 7
+      },
+      {
+        "gap": 0.037967818683379076,
+        "seed": 11
+      },
+      {
+        "gap": 0.01072326302555153,
+        "seed": 23
+      },
+      {
+        "gap": 0.013900041982887038,
+        "seed": 42
+      },
+      {
+        "gap": 0.011022329621156277,
+        "seed": 73
+      },
+      {
+        "gap": 0.035449206582739,
+        "seed": 137
+      },
+      {
+        "gap": 0.0042102336809540925,
+        "seed": 199
+      },
+      {
+        "gap": 0.011945889623969724,
+        "seed": 1024
+      },
+      {
+        "gap": 0.004606402025117022,
+        "seed": 2048
+      },
+      {
+        "gap": 0.028320785539329096,
+        "seed": 8192
+      },
+      {
+        "gap": 0.04096883363504955,
+        "seed": 16384
+      },
+      {
+        "gap": 0.020262296572673123,
+        "seed": 65536
+      },
+      {
+        "gap": 0.012281054991490355,
+        "seed": 131072
+      },
+      {
+        "gap": 0.013241265375270053,
+        "seed": 524288
+      },
+      {
+        "gap": 0.03992438348168395,
+        "seed": 999983
+      },
+      {
+        "gap": 0.035289875704783154,
+        "seed": 1048576
+      },
+      {
+        "gap": 0.00780464018726372,
+        "seed": 2041769
+      },
+      {
+        "gap": 0.015256620661197588,
+        "seed": 2273360
+      },
+      {
+        "gap": 0.011209383657925565,
+        "seed": 3167584
+      },
+      {
+        "gap": 0.018149781462229175,
+        "seed": 3911096
+      },
+      {
+        "gap": 0.033490837299943316,
+        "seed": 6426836
+      },
+      {
+        "gap": 0.023775476644718296,
+        "seed": 6762547
+      },
+      {
+        "gap": 0.025699052418892178,
+        "seed": 6992150
+      }
+    ],
+    "max_gap": 0.04096883363504955,
+    "mean_gap": 0.020815988953459003,
+    "min_gap": 0.0042102336809540925,
+    "n": 24,
+    "n_negative": 0,
+    "n_positive": 24,
+    "n_zero": 0,
+    "screen_verdict": "positive_screen_unchanged",
+    "se_gap": 0.002572051760224995,
+    "std_gap": 0.012600428809157085
+  }
+}

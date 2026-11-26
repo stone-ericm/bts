@@ -1,0 +1,415 @@
+{
+  "with_observation_and_e2e": {
+    "policy_cells_checked": 13398,
+    "differing_saver_examples": [
+      {
+        "date": "2027-07-15",
+        "streak": 5,
+        "p_game_hit": 0.7,
+        "second_p": 0.7,
+        "action_saver_true": "single",
+        "action_saver_false": "double",
+        "not_earned_action": "single",
+        "active_action": "single",
+        "used_action": "double"
+      },
+      {
+        "date": "2027-07-15",
+        "streak": 5,
+        "p_game_hit": 0.72,
+        "second_p": 0.71,
+        "action_saver_true": "single",
+        "action_saver_false": "double",
+        "not_earned_action": "single",
+        "active_action": "single",
+        "used_action": "double"
+      },
+      {
+        "date": "2027-07-15",
+        "streak": 5,
+        "p_game_hit": 0.74,
+        "second_p": 0.73,
+        "action_saver_true": "single",
+        "action_saver_false": "double",
+        "not_earned_action": "single",
+        "active_action": "single",
+        "used_action": "double"
+      },
+      {
+        "date": "2027-07-15",
+        "streak": 5,
+        "p_game_hit": 0.76,
+        "second_p": 0.75,
+        "action_saver_true": "single",
+        "action_saver_false": "double",
+        "not_earned_action": "single",
+        "active_action": "single",
+        "used_action": "double"
+      },
+      {
+        "date": "2027-07-15",
+        "streak": 5,
+        "p_game_hit": 0.78,
+        "second_p": 0.77,
+        "action_saver_true": "single",
+        "action_saver_false": "double",
+        "not_earned_action": "single",
+        "active_action": "single",
+        "used_action": "double"
+      },
+      {
+        "date": "2027-07-15",
+        "streak": 7,
+        "p_game_hit": 0.86,
+        "second_p": 0.85,
+        "action_saver_true": "single",
+        "action_saver_false": "double",
+        "not_earned_action": "single",
+        "active_action": "single",
+        "used_action": "double"
+      },
+      {
+        "date": "2027-07-15",
+        "streak": 7,
+        "p_game_hit": 0.88,
+        "second_p": 0.87,
+        "action_saver_true": "single",
+        "action_saver_false": "double",
+        "not_earned_action": "single",
+        "active_action": "single",
+        "used_action": "double"
+      },
+      {
+        "date": "2027-07-15",
+        "streak": 7,
+        "p_game_hit": 0.9,
+        "second_p": 0.89,
+        "action_saver_true": "single",
+        "action_saver_false": "double",
+        "not_earned_action": "single",
+        "active_action": "single",
+        "used_action": "double"
+      },
+      {
+        "date": "2027-07-15",
+        "streak": 8,
+        "p_game_hit": 0.86,
+        "second_p": 0.85,
+        "action_saver_true": "double",
+        "action_saver_false": "single",
+        "not_earned_action": "double",
+        "active_action": "double",
+        "used_action": "single"
+      },
+      {
+        "date": "2027-07-15",
+        "streak": 8,
+        "p_game_hit": 0.88,
+        "second_p": 0.87,
+        "action_saver_true": "double",
+        "action_saver_false": "single",
+        "not_earned_action": "double",
+        "active_action": "double",
+        "used_action": "single"
+      },
+      {
+        "date": "2027-07-15",
+        "streak": 8,
+        "p_game_hit": 0.9,
+        "second_p": 0.89,
+        "action_saver_true": "double",
+        "action_saver_false": "single",
+        "not_earned_action": "double",
+        "active_action": "double",
+        "used_action": "single"
+      },
+      {
+        "date": "2027-07-15",
+        "streak": 9,
+        "p_game_hit": 0.8,
+        "second_p": 0.79,
+        "action_saver_true": "single",
+        "action_saver_false": "double",
+        "not_earned_action": "single",
+        "active_action": "single",
+        "used_action": "double"
+      },
+      {
+        "date": "2027-07-15",
+        "streak": 9,
+        "p_game_hit": 0.82,
+        "second_p": 0.81,
+        "action_saver_true": "single",
+        "action_saver_false": "double",
+        "not_earned_action": "single",
+        "active_action": "single",
+        "used_action": "double"
+      },
+      {
+        "date": "2027-07-15",
+        "streak": 10,
+        "p_game_hit": 0.82,
+        "second_p": 0.81,
+        "action_saver_true": "single",
+        "action_saver_false": "double",
+        "not_earned_action": "double",
+        "active_action": "single",
+        "used_action": "double"
+      },
+      {
+        "date": "2027-07-15",
+        "streak": 13,
+        "p_game_hit": 0.84,
+        "second_p": 0.83,
+        "action_saver_true": "double",
+        "action_saver_false": "single",
+        "not_earned_action": "single",
+        "active_action": "double",
+        "used_action": "single"
+      }
+    ],
+    "tail_stop_verified": {
+      "date": "2027-09-22",
+      "streak": 2,
+      "best": 30,
+      "best_status": "trusted",
+      "objective": "emax_season_best",
+      "action": "skip"
+    },
+    "e2e_deliveries": [
+      {
+        "case": "streak6_not_earned_dm",
+        "mode": "dm",
+        "delivered_ok": true,
+        "flag_reads_count": 0,
+        "transport_text": "Today's picks (double down):\nBobby Witt Jr. (KC) vs Gerrit Cole \u2014 85.0%\nLuis Arraez (SD) vs Logan Webb \u2014 84.0%\nP(both): 71.4%\n\nStreak: 6",
+        "pick_action": "double",
+        "decision_json": {
+          "action": "double",
+          "streak": 6,
+          "saver_available": true,
+          "state_source": "contest",
+          "state_status": "fresh",
+          "contest_source_date": "2027-07-15",
+          "best_streak": 6,
+          "best_status": "trusted",
+          "delivery_status": "delivered",
+          "scoreable": true
+        }
+      },
+      {
+        "case": "streak12_not_earned_dm",
+        "mode": "dm",
+        "delivered_ok": true,
+        "flag_reads_count": 0,
+        "transport_text": "Today's pick: Bobby Witt Jr. (KC)\nvs Gerrit Cole | 85.0%\n\nStreak: 12",
+        "pick_action": "single",
+        "decision_json": {
+          "action": "single",
+          "streak": 12,
+          "saver_available": false,
+          "state_source": "contest",
+          "state_status": "fresh",
+          "contest_source_date": "2027-07-15",
+          "best_streak": 14,
+          "best_status": "trusted",
+          "delivery_status": "delivered",
+          "scoreable": true
+        }
+      },
+      {
+        "case": "streak12_active_public",
+        "mode": "public",
+        "delivered_ok": true,
+        "flag_reads_count": 0,
+        "transport_text": "Today's pick: Bobby Witt Jr. (KC)\nvs Gerrit Cole | 85.0%\n\nStreak: 12",
+        "pick_action": "single",
+        "decision_json": {
+          "action": "single",
+          "streak": 12,
+          "saver_available": true,
+          "state_source": "contest",
+          "state_status": "fresh",
+          "contest_source_date": "2027-07-15",
+          "best_streak": 14,
+          "best_status": "trusted",
+          "delivery_status": "delivered",
+          "scoreable": true
+        }
+      },
+      {
+        "case": "streak12_used_private",
+        "mode": "private",
+        "delivered_ok": true,
+        "flag_reads_count": 0,
+        "transport_text": null,
+        "pick_action": "single",
+        "decision_json": {
+          "action": "single",
+          "streak": 12,
+          "saver_available": false,
+          "state_source": "contest",
+          "state_status": "fresh",
+          "contest_source_date": "2027-07-15",
+          "best_streak": 14,
+          "best_status": "trusted",
+          "delivery_status": "private_locked",
+          "scoreable": true
+        }
+      }
+    ],
+    "failures": [
+      "Tail stop at last microsecond failed: ds=DecisionStreakState(streak=2, saver_available=True, allow_double=True, source='contest', status='fresh', model_streak=None, model_saver_available=None, contest_streak=2, contest_saver_available=None, contest_source_date=datetime.date(2027, 9, 22), message='using fresh contest streak from manual_cli', best_streak=30, best_status='trusted', model_state_error='/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpwszq_qgp/picks/streak.json: JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)', saver_flag_state='active'), dec=PolicyDecision(action='skip', policy_action='skip', source='mdp', objective='emax_season_best', streak=2, days_effective=4, best_supplied=30, best_status='trusted', effective_best=30, tail_sha256='dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4', degraded_reason=None, reason=\"season-best 30 can't be beaten with 4 days left (max reachable 10); no pick\", pick_bar=None)"
+    ]
+  },
+  "without_observation_vs_base": {
+    "cases_checked": 24,
+    "mismatches": [],
+    "sample_results": {
+      "valid|not_earned|none": {
+        "ok": [
+          7,
+          true,
+          "contest",
+          "fresh",
+          "single"
+        ]
+      },
+      "valid|not_earned|yesterday": {
+        "ok": [
+          7,
+          true,
+          "contest",
+          "fresh",
+          "single"
+        ]
+      },
+      "valid|not_earned|tomorrow": {
+        "ok": [
+          7,
+          true,
+          "contest",
+          "fresh",
+          "single"
+        ]
+      },
+      "valid|not_earned|invalid_v3": {
+        "err": "ContestStateError"
+      },
+      "valid|used|none": {
+        "ok": [
+          7,
+          false,
+          "contest",
+          "fresh",
+          "single"
+        ]
+      },
+      "valid|used|yesterday": {
+        "ok": [
+          7,
+          false,
+          "contest",
+          "fresh",
+          "single"
+        ]
+      },
+      "valid|used|tomorrow": {
+        "ok": [
+          7,
+          false,
+          "contest",
+          "fresh",
+          "single"
+        ]
+      },
+      "valid|used|invalid_v3": {
+        "err": "ContestStateError"
+      },
+      "valid|overlong|none": {
+        "err": "ValueError"
+      },
+      "valid|overlong|yesterday": {
+        "err": "ValueError"
+      },
+      "valid|overlong|tomorrow": {
+        "err": "ValueError"
+      },
+      "valid|overlong|invalid_v3": {
+        "err": "ContestStateError"
+      },
+      "absent|not_earned|none": {
+        "ok": [
+          0,
+          true,
+          "model",
+          "model_only",
+          "double"
+        ]
+      },
+      "absent|not_earned|yesterday": {
+        "ok": [
+          0,
+          true,
+          "model",
+          "model_only",
+          "double"
+        ]
+      },
+      "absent|not_earned|tomorrow": {
+        "ok": [
+          0,
+          true,
+          "model",
+          "model_only",
+          "double"
+        ]
+      },
+      "absent|not_earned|invalid_v3": {
+        "err": "ContestStateError"
+      },
+      "absent|used|none": {
+        "ok": [
+          0,
+          false,
+          "model",
+          "model_only",
+          "double"
+        ]
+      },
+      "absent|used|yesterday": {
+        "ok": [
+          0,
+          false,
+          "model",
+          "model_only",
+          "double"
+        ]
+      },
+      "absent|used|tomorrow": {
+        "ok": [
+          0,
+          false,
+          "model",
+          "model_only",
+          "double"
+        ]
+      },
+      "absent|used|invalid_v3": {
+        "err": "ContestStateError"
+      },
+      "absent|overlong|none": {
+        "err": "ValueError"
+      },
+      "absent|overlong|yesterday": {
+        "err": "ValueError"
+      },
+      "absent|overlong|tomorrow": {
+        "err": "ValueError"
+      },
+      "absent|overlong|invalid_v3": {
+        "err": "ContestStateError"
+      }
+    }
+  }
+}

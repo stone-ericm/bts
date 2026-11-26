@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_r8_counterexamples::test_an_incomplete_event_identity_never_witnesses", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r8_counterexamples::test_an_incomplete_return_value_never_witnesses[nested-seq]", "kind": "assertion"}

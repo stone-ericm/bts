@@ -1,0 +1,66 @@
+{
+  "fixture_receipt_differences_except_attempt_id": {
+    "wrong_game": [
+      [],
+      [
+        "exit_code",
+        "marker_status"
+      ],
+      [
+        "account",
+        "exit_code",
+        "marker_status",
+        "observation",
+        "outcome",
+        "qualification",
+        "references",
+        "verifier"
+      ]
+    ],
+    "right_game": [
+      [],
+      [],
+      [
+        "references"
+      ]
+    ],
+    "unbound": [
+      [],
+      [],
+      [
+        "references"
+      ]
+    ]
+  },
+  "qualification_factors": [
+    {
+      "reason": "match",
+      "comparison": "same",
+      "count": 56
+    },
+    {
+      "reason": "no_pick",
+      "comparison": "same",
+      "count": 72
+    },
+    {
+      "reason": "mismatch",
+      "comparison": "same",
+      "count": 72
+    },
+    {
+      "reason": "present_unverified",
+      "comparison": "same",
+      "count": 72
+    },
+    {
+      "reason": "match",
+      "comparison": "changed",
+      "count": 16
+    }
+  ],
+  "ledger_cases_per_build": 6480,
+  "composed_grid_cases_per_build": 373248,
+  "audit_identical_blocked_nodes": 49,
+  "search_files": 63
+}

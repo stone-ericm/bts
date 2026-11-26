@@ -1,0 +1,4 @@
+pin c59ee585e4138fe4b91a9062f261e352245f3d92
+worktree /Users/eric/projects/bts-w15-evidence/s0
+command cd /Users/eric/projects/bts-w15-evidence/s0 && nice -n 10 .venv/bin/python docs/audit/2026-09-29-incident-register-evidence/tooling/mutation_sweep.py /Users/eric/projects/bts-w15-evidence/s0 R1,R5,R9,R13,C2,C12,O5,D2,D6,D10,P3,P7,A4,A8,W1,O11
+started (chunk a, recorded afterwards; run_rest.sh refuses to start unless the worktree is at c59ee58 and clean)

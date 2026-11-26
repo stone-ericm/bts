@@ -1,0 +1,52 @@
+nice: setpriority: Operation not permitted
+bts=/Users/eric/projects/bts-work/wr-check-h2/.codex-review/wr-h-check2/scratch/src/bts/__init__.py
+files=['tests/test_alert_status_callers_cs6b2.py', 'tests/test_alert_status_cs6b2_carbon.py', 'tests/test_backup_cli.py', 'tests/test_boundary_shadow_census.py', 'tests/test_boundary_shadow_census_g.py', 'tests/test_check_results_wait.py', 'tests/test_cli_integration.py', 'tests/test_cli_preview_date.py', 'tests/test_cli_schedule_date.py', 'tests/test_cold_start_integration.py', 'tests/test_contest_dated_cs4a.py', 'tests/test_contest_dated_cs4a_review.py', 'tests/test_contest_fetch.py', 'tests/test_contest_state_cs1_review.py', 'tests/test_contest_state_defensive_reads.py', 'tests/test_cutoff_candidate_exclusion.py', 'tests/test_daily_decision.py', 'tests/test_daily_decision_v2.py', 'tests/test_daily_decision_v3.py', 'tests/test_data_build_empty.py', 'tests/test_day_outcome.py', 'tests/test_day_outcome_entry_sequence.py', 'tests/test_decide_action.py']
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-check-h2/.codex-review/wr-h-check2/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1263 items
+
+tests/test_alert_status_callers_cs6b2.py ......................          [  1%]
+tests/test_alert_status_cs6b2_carbon.py ............................     [  3%]
+tests/test_backup_cli.py .....                                           [  4%]
+tests/test_boundary_shadow_census.py ..........                          [  5%]
+tests/test_boundary_shadow_census_g.py ...                               [  5%]
+tests/test_check_results_wait.py ..............                          [  6%]
+tests/test_cli_integration.py .......................................... [  9%]
+............................                                             [ 12%]
+tests/test_cli_preview_date.py ...                                       [ 12%]
+tests/test_cli_schedule_date.py .                                        [ 12%]
+tests/test_cold_start_integration.py ...x                                [ 12%]
+tests/test_contest_dated_cs4a.py ....................................... [ 15%]
+........................................................................ [ 21%]
+........................................................................ [ 27%]
+........................................................................ [ 32%]
+........................................................................ [ 38%]
+........................................................................ [ 44%]
+........................................................................ [ 49%]
+........................................................................ [ 55%]
+........................................................................ [ 61%]
+........................................................................ [ 67%]
+...                                                                      [ 67%]
+tests/test_contest_dated_cs4a_review.py ................................ [ 69%]
+.................                                                        [ 71%]
+tests/test_contest_fetch.py ............................................ [ 74%]
+..........                                                               [ 75%]
+tests/test_contest_state_cs1_review.py ...................               [ 76%]
+tests/test_contest_state_defensive_reads.py ............................ [ 79%]
+.........................                                                [ 81%]
+tests/test_cutoff_candidate_exclusion.py .........                       [ 81%]
+tests/test_daily_decision.py ........                                    [ 82%]
+tests/test_daily_decision_v2.py ....                                     [ 82%]
+tests/test_daily_decision_v3.py ...                                      [ 83%]
+tests/test_data_build_empty.py ......................................... [ 86%]
+.....................................................................    [ 91%]
+tests/test_day_outcome.py .............................................. [ 95%]
+..........                                                               [ 96%]
+tests/test_day_outcome_entry_sequence.py ............................... [ 98%]
+....                                                                     [ 98%]
+tests/test_decide_action.py .............                                [100%]
+
+======================= 1262 passed, 1 xfailed in 8.99s ========================

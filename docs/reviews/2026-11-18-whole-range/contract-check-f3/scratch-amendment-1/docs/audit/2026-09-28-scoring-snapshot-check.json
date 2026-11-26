@@ -1,0 +1,151 @@
+{
+ "check": "C-04 snapshot re-check of 9/27 scoring",
+ "game_date": "2026-09-27",
+ "tabulated_at_utc": "2026-09-27T22:51:54Z",
+ "baseline": "data/raw/2026 copies pulled 03:00 ET 9/28 (before the 08:00 ET cutoff)",
+ "b_all_batters": {
+  "batters": 301,
+  "line_changes_since_0300": []
+ },
+ "a_captured_bts_picks": {
+  "distinct_players": 47,
+  "graded_views_checked": 35,
+  "mismatches_vs_0300": [],
+  "did_not_play": [
+   {
+    "bts_player": "Michael Harris II",
+    "bts_views": [
+     [
+      "void",
+      0,
+      0
+     ]
+    ]
+   },
+   {
+    "bts_player": "Gabriel Moreno",
+    "bts_views": [
+     [
+      "void",
+      0,
+      0
+     ]
+    ]
+   },
+   {
+    "bts_player": "Otto Lopez",
+    "bts_views": [
+     [
+      "void",
+      0,
+      0
+     ]
+    ]
+   },
+   {
+    "bts_player": "Ronald Acu\u00f1a Jr.",
+    "bts_views": [
+     [
+      "void",
+      0,
+      0
+     ]
+    ]
+   },
+   {
+    "bts_player": "Fernando Tatis Jr.",
+    "bts_views": [
+     [
+      "void",
+      0,
+      0
+     ]
+    ]
+   },
+   {
+    "bts_player": "Luis Arraez",
+    "bts_views": [
+     [
+      "void",
+      0,
+      0
+     ]
+    ]
+   },
+   {
+    "bts_player": "Drake Baldwin",
+    "bts_views": [
+     [
+      "void",
+      0,
+      0
+     ]
+    ]
+   },
+   {
+    "bts_player": "Jos\u00e9 Ram\u00edrez",
+    "bts_views": [
+     [
+      "void",
+      0,
+      0
+     ]
+    ]
+   },
+   {
+    "bts_player": "Vladimir Guerrero Jr.",
+    "bts_views": [
+     [
+      "void",
+      0,
+      0
+     ]
+    ]
+   },
+   {
+    "bts_player": "Xavier Edwards",
+    "bts_views": [
+     [
+      "void",
+      0,
+      0
+     ]
+    ]
+   },
+   {
+    "bts_player": "Chase Meidroth",
+    "bts_views": [
+     [
+      "void",
+      0,
+      0
+     ]
+    ]
+   },
+   {
+    "bts_player": "Brandon Lowe",
+    "bts_views": [
+     [
+      "void",
+      0,
+      0
+     ]
+    ]
+   }
+  ]
+ },
+ "c_games_updated_after_tabulation": [
+  {
+   "game_pk": 824705,
+   "full_feed_fields_differing_since_0300": [],
+   "batters_with_pa": 25,
+   "covered_by_captured_bts_picks": 1
+  },
+  {
+   "game_pk": 824948,
+   "full_feed_fields_differing_since_0300": [],
+   "batters_with_pa": 23,
+   "covered_by_captured_bts_picks": 5
+  }
+ ]
+}

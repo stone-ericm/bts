@@ -1,0 +1,66 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 42 items
+
+tests/test_contest_fetch.py ..................................F..F....   [100%]
+
+=================================== FAILURES ===================================
+________ test_fetch_cli_transient_auth_failure_says_outage_not_cookies _________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8115/test_fetch_cli_transient_auth_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10ef82f60>
+
+    def test_fetch_cli_transient_auth_failure_says_outage_not_cookies(tmp_path, monkeypatch):
+        """Retries-exhausted upstream flap (e.g. MLB temp down) must NOT tell the operator
+        to re-capture cookies — that advice misdiagnosed the 2026-08-11 outage."""
+        from click.testing import CliRunner
+        from bts.cli import cli
+        from bts.leaderboard.auth import TransientAuthError
+        picks = tmp_path / "picks"; (picks / "account_state").mkdir(parents=True)
+        _mock_auth_failure(monkeypatch, TransientAuthError(
+            "auth/login transient failure persisted after 3 attempts: body[:200]=''"))
+        res = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
+                                       "--expected-username", "stonehengee"])
+        assert res.exit_code == 2
+        assert "transient" in res.output
+>       assert "capture_bts_cookies" not in res.output
+E       assert 'capture_bts_cookies' not in "fetch-conte...[:200]='')\n"
+E         
+E         'capture_bts_cookies' is contained here:
+E           fresh via capture_bts_cookies.py on Mac. (auth/login transient failure persisted after 3 attempts: body[:200]='')
+E         ?           +++++++++++++++++++
+
+tests/test_contest_fetch.py:432: AssertionError
+________ test_transient_alert_does_not_suppress_later_actionable_alert _________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8115/test_transient_alert_does_not_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10ef83dd0>
+
+    def test_transient_alert_does_not_suppress_later_actionable_alert(tmp_path, monkeypatch):
+        """Per-category DM cooldowns: a transient-outage DM inside the 6h window must
+        not eat a subsequent cookie-death DM (Codex review 2026-08-11 #8) — while a
+        REPEAT of the same category inside the window stays throttled."""
+        import bts.dm
+        from click.testing import CliRunner
+        from bts.cli import cli
+        from bts.leaderboard.auth import AuthError, TransientAuthError
+        sent = []
+        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: sent.append(m))
+        picks = tmp_path / "picks"; (picks / "account_state").mkdir(parents=True)
+        args = ["fetch-contest-streak", "--picks-dir", str(picks),
+                "--expected-username", "stonehengee", "--dm-recipient", "x.bsky.social"]
+    
+        _mock_auth_failure(monkeypatch, TransientAuthError("persisted after 3 attempts"))
+        assert CliRunner().invoke(cli, args).exit_code == 2
+>       assert len(sent) == 1 and "transient" in sent[0]
+E       AssertionError: assert (1 == 1 and 'transient' in 'BTS fetch-contest-streak failed: auth/cookie error — refresh via capture_bts_cookies.py on Mac. (persisted after 3 attempts)')
+E        +  where 1 = len(['BTS fetch-contest-streak failed: auth/cookie error — refresh via capture_bts_cookies.py on Mac. (persisted after 3 attempts)'])
+
+tests/test_contest_fetch.py:484: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_contest_fetch.py::test_fetch_cli_transient_auth_failure_says_outage_not_cookies
+FAILED tests/test_contest_fetch.py::test_transient_alert_does_not_suppress_later_actionable_alert
+========================= 2 failed, 40 passed in 1.48s =========================

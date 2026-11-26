@@ -1,0 +1,159 @@
+{
+ "id": "I-016",
+ "working_id": "E16",
+ "title": "4/08 live prediction timed out: the new bullpen feature rescanned ~23K raw feeds on every run",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "L",
+  "secondary": []
+ },
+ "tier": "tier_pending",
+ "tier_reason": "the live pipeline timed out (reported the same day), but whether every tier timed out at a check, leaving it without predictions, and whether any lock or delivery was delayed is not evidenced",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "A live prediction run completes within its tier's timeout so the cascade returns predictions at each scheduled check.",
+  "source": "src/bts/orchestrator.py ssh_predict / run_cascade (per-tier timeout_min) at ec648cd; e1aaf61 body"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "_build_probable_pitcher_lookup, added with opp_bullpen_hr_30g (44fdc84, 4/08 12:20 ET), opened and parsed every raw feed (~23K) on every prediction run, pushing live runs past the tier timeout",
+   "code": [
+    {
+     "path": "src/bts/features/compute.py",
+     "ref": "ec648cd",
+     "symbol": "_build_probable_pitcher_lookup",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "e1aaf61"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "unknown",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "worker predictions stayed slow for other reasons until 947fce8 (4/10: O(n\u00b2) dead code removed, barrel vectorised, '10x faster predictions'; I-106)",
+   "reaches_production": false,
+   "source": "947fce8 subject"
+  }
+ ],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "a scheduled lineup check ends without predictions (all tiers failed or timed out), or a prediction run exceeds its tier timeout, while a game is still pickable",
+  "recovery_assertion": "the next check returns predictions within the timeout and the pick is committed before the cutoff"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit e1aaf61 message body",
+   "written_at": "2026-04-08T15:11:54-04:00",
+   "what": "the first run scans all 23K raw feeds; caching 'fixes live pipeline timeout caused by full scan on every prediction run'"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 44fdc84 (authored 2026-04-08T12:20:19-04:00)",
+   "what": "added opp_bullpen_hr_30g to FEATURE_COLS, identified through the probable-pitcher lookup that scans raw feeds"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/orchestrator.py ssh_predict (5207a09, 4/04)",
+   "what": "worker tiers git pull origin main before each predict-json, so 44fdc84 reached them at the first check after its push and e1aaf61 at the first check after its push"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24253126060 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploy run whose head (4a82cf8) contains e1aaf61; a Fly.io deploy, log expired"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-04-08",
+   "onset": {
+    "not_before": "2026-04-08T12:20:19-04:00",
+    "not_after": "2026-04-08T15:11:54-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "unknown",
+   "alert": {
+    "attempted": "unknown",
+    "confirmed": "unknown",
+    "failed": "unknown"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-08T15:11:54-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-04-08T15:11:54-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "unknown",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "unknown",
+    "notification": "unknown",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "e1aaf61",
+   "44fdc84"
+  ],
+  "R": "pending_phase2",
+  "X": []
+ },
+ "related": [
+  "I-106",
+  "I-004"
+ ],
+ "notes": [
+  "disposition changed from the lead row (UC) to observed_incident: the same-day body says the fix 'fixes live pipeline timeout'; tier stays pending because the timeout's reach (one tier or all) is not stated",
+  "onset window assumes the lookup reached the workers only via 44fdc84's push (auto-pull); push times are not evidenced",
+  "a live timeout of the cascade could have triggered a failure DM; alert fields unknown",
+  "deployed: candidate run 24253126060 was a Fly.io deploy (workflow 'Deploy BTS to Fly', fcedf71), not a production install; the worker tiers auto-pulled origin main (5207a09), so e1aaf61 likely reached them at the next check after its push (push time not evidenced)",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; e1aaf61 added no test",
+  "deployed unknown: candidate run 24253126060 executed the Fly deploy.yml (its head lacks 51ef987, the 4/11 Hetzner workflow); production (Pi5 orchestrator, manual pulls) has no install record before the cutover"
+ ]
+}

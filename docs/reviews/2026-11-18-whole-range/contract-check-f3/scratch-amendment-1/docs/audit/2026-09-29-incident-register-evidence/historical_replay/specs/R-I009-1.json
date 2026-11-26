@@ -1,0 +1,19 @@
+{
+  "label": "R-I009-1",
+  "incident": "I-009",
+  "links": [1],
+  "fix_set": ["7638af7"],
+  "tests": ["tests/test_scheduler.py::TestSchedulerRun::test_should_lock_excludes_postponed_games",
+            "tests/test_scheduler.py::TestSchedulerRun::test_triggers_prediction_on_new_lineup", "-q"],
+  "symptom_nodes": [
+    {"node": "tests/test_scheduler.py::TestSchedulerRun::test_should_lock_excludes_postponed_games",
+     "assertion": {"path": "tests/test_scheduler.py", "text": "assert result[\"should_post\"] is True"}}
+  ],
+  "audit": {
+    "tests/test_scheduler.py": {"decision": "neutral",
+      "reason": "adds the contract's test (a postponed game's projected batter must not hold the lock gap open) and, in an existing test, patches bts.picks.get_game_statuses, which already exists at the parent (739839b), so the parent's src runs the same test unchanged"}
+  },
+  "deployed_ref": {"sha": "unknown", "basis": "unknown"},
+  "env": {"TZ": "America/New_York"},
+  "notes": "Symptom: at the parent, run_single_check compares the confirmed pick (0.82) with the postponed game's projected batter (0.80); the 0.02 gap is under early_lock_gap 0.03, so should_post is False and the assertion fails. bts.picks.get_game_statuses exists at the parent (checked with git show 739839b:src/bts/picks.py), so the patch decorator cannot fail first. The anchor occurs once in tests/test_scheduler.py at 7638af7 (line 289)."
+}

@@ -1,0 +1,1 @@
+{"node": "tests.scripts.incident_register.test_sweep_classifier::test_each_failure_shape_is_classified[import pytest\\ndef test_a():\\n    pytest.fail('not an expectation')\\n-FAILED-OTHER]", "kind": "assertion"}

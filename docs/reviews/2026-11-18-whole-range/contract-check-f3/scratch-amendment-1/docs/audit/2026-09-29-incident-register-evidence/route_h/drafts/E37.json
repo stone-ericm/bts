@@ -1,0 +1,207 @@
+{
+ "id": "I-037",
+ "working_id": "E37",
+ "title": "deploy workflow pulled origin/main on the box: a 'successful' deploy-branch run left the box on the old code (observed 4/28)",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "S",
+  "secondary": []
+ },
+ "tier": "tier_pending",
+ "tier_reason": "the observed 4/28 no-op was caught within minutes, but every deploy-branch run from 4/22 to 4/28 applied code only if origin/main had also been pushed; whether any earlier run was a silent no-op (leaving a believed-live fix undeployed) is unknown until the box reflog (deploy_history.txt, B1) is read",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "deploy",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "A successful deploy run installs exactly the commit pushed to the deploy branch on the box before restarting services and running the canary.",
+  "source": "commit 1eb432d message body; commit a5af424 message body; CLAUDE.md Deployment"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "the deploy step ran `git pull --ff-only` on the box checkout, which tracks main, so it fetched origin/main; `git push origin main:deploy` advances only origin/deploy, so unless main was also pushed the pull was a no-op while the services still restarted and the canary passed on the old code",
+   "code": [
+    {
+     "path": ".github/workflows/deploy.yml",
+     "ref": "ea0d474",
+     "symbol": "deploy step: git pull --ff-only",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "a5af424"
+    ],
+    "complete_fix_set": false
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "a5af424",
+    "live_by": "2026-04-28T15:15:48Z",
+    "run_id": 25061375968,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": {
+    "how": "4e221c8 body: the health-checks subpackage (e74c485, among the commits the 11:06 no-op left undeployed) ran its first end-of-day cycle that evening, so the box had the new code",
+    "at": {
+     "not_before": "2026-04-28T11:15:48-04:00",
+     "not_after": "2026-04-28T21:25:06-04:00",
+     "evidence": [
+      "ev4",
+      "ev3"
+     ]
+    }
+   }
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "`git reset --hard origin/deploy` read the mutable ref at execution time, so an in-flight run could ship a later queued commit its own gate never tested; closed 7/10 by resetting to the run's tested $TARGET_SHA (30452eb, round-3 F2).",
+   "reaches_production": false,
+   "source": ".github/workflows/deploy.yml at HEAD (comment); working table E109 (I-109); 30452eb"
+  }
+ ],
+ "watchdog": {
+  "boundary": "preservation",
+  "trigger": "a deploy run concludes success but the box HEAD recorded after the run (deploy_history reflog / 'Deployed <sha>' log line) differs from the run's head SHA",
+  "recovery_assertion": "the box HEAD equals the pushed deploy SHA and the restarted services report that SHA"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit a5af424 message body",
+   "written_at": "2026-04-28T11:15:44-04:00",
+   "what": "observed 4/28 11:06 ET: pushed main:deploy with 6 new commits, the workflow reported success in 45 s, but the box HEAD stayed at the pre-push SHA (verified with git log on the box)"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 25060900329 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "deploy-branch push of head ea0d474 created 2026-04-28T15:06:39Z (11:06:39 ET), conclusion success; log unavailable_expired"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 25061375968 (deploy_runs.json)",
+   "what": "deploy-branch push of head a5af424 created 2026-04-28T15:15:48Z, conclusion success; this run executed the fixed workflow (fetch + reset --hard origin/deploy)"
+  },
+  {
+   "id": "ev4",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 4e221c8 message body",
+   "written_at": "2026-04-28T21:25:06-04:00",
+   "what": "the first end-of-day health-check cycle ran on 4/28 (the subpackage came from e74c485, an ancestor of ea0d474 that the no-op had not installed)"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 25061115097 (deploy_runs.json)",
+   "what": "workflow_dispatch on branch main at ea0d474, created 2026-04-28T15:10:46Z, conclusion success - between the no-op and the fix; its purpose is not recorded"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-04-28",
+   "onset": {
+    "at": "2026-04-28T11:06:39-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_detectable": {
+    "not_before": "2026-04-28T11:06:39-04:00",
+    "not_after": "2026-04-28T11:15:44-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_before": "2026-04-28T11:06:39-04:00",
+    "not_after": "2026-04-28T11:15:44-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-04-28T11:15:48-04:00",
+    "evidence": [
+     "ev1",
+     "ev3"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": {
+    "not_before": "2026-04-28T11:15:48-04:00",
+    "not_after": "2026-04-28T21:25:06-04:00",
+    "evidence": [
+     "ev3",
+     "ev4"
+    ]
+   },
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": {
+     "min_minutes": 9.15,
+     "max_minutes": 618.46
+    }
+   },
+   "continuing": true
+  }
+ ],
+ "routes": {
+  "H": [
+   "a5af424",
+   "1eb432d"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "CLAUDE.md Deployment"
+  ]
+ },
+ "related": [
+  "I-031",
+  "I-109",
+  "I-028",
+  "I-038"
+ ],
+ "notes": [
+  "exposure window 4/21 19:03 ET (1eb432d) to 4/28 15:15Z: every deploy-branch run in between depended on origin/main having been pushed; operator reports on 4/22-4/24 (E33 polling, E35 NRestarts baseline, E36 blank cell) indicate those deploys did apply code",
+  "tier_pending settles on deploy_history.txt (B1, the box reflog) - if it shows HEAD moving at each 4/22-4/25 run, B; any run with no HEAD move is a silent no-op",
+  "complete_fix_set false: a5af424 introduced the mutable-ref race (residual) closed only by 30452eb",
+  "operator awareness came from manual inspection (git log on the box), not a machine check",
+  "log bound: live by 2026-06-07T00:11:19Z (run 27077693688)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time (workflow defect: needs its own closure per design §9.2)"
+ ]
+}

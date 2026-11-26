@@ -1,0 +1,42 @@
+nice: setpriority: Operation not permitted
+  LOCKED (review) — Pick DM sent: sent-pick
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T15:40:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write for the 2027-07-15 slate only on that ET date, with prior entries settled or absent. For a later slate date, see B8a. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  DELIVERY REFUSED (review) — Steven Kwan: submission cutoff 11:40 ET passed 0.0 min ago; not delivering an unenterable pick.
+CAPTURED
+BTS health WARN attention:
+- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T15:40:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write for the 2027-07-15 slate only on that ET date, with prior entries settled or absent. For a later slate date, see B8a. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+B8a opening control: expired cutoff refuses with stale automatic state
+CLI
+0
+('season-contract', 'status')
+ET date: 2027-07-15; year: 2027; inspected season: 2027
+switch: automatic
+  season: 2027
+  status: automatic
+  activation_id: ea341f34a757465491c9960b425187b0
+  switched_at: 2027-07-15T13:00:00Z
+  revoked_at: None
+  note: None
+manual: absent
+automatic: parsed schema='bts_contest_streak_auto_v2' streak=12 best=14 source date=2027-07-14 recorded time=2027-07-14T15:40:00-04:00
+  season: 2027; activation_id: ea341f34a757465491c9960b425187b0
+  identifier matches switch: True (comparison only)
+saver: active; season: 2027
+live decision now: accepted; source=contest; streak=12; status=fresh; saver=active
+automatic path alone: accepted (streak 12, recorded 2027-07-14T15:40:00-04:00)
+ledger: readable; rows: 1; bad lines: 0
+  recorded_at=2027-07-15T13:00:00Z; active_streak=12; best_streak=14; source_date=2027-07-14; season=2027; switched=True; activation_id=ea341f34a757465491c9960b425187b0; settled_by_year={'2027': 1}; settled_unmapped=0; unsettled=0
+C23 July 14 pending at 11:40, MLB 13/14/active: operator waits
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-chk-ea3/.codex-review/wr-ea3/probe_contest.py", line 228, in <module>
+    settlements(root)
+  File "/Users/eric/projects/bts-work/wr-chk-ea3/.codex-review/wr-ea3/probe_contest.py", line 133, in settlements
+    saved = (path / "2027-07-15.json").read_bytes()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 1019, in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py", line 1013, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/eric/projects/bts-work/wr-chk-ea3/.codex-review/wr-ea3/tmpax6xrz0t/same/picks/2027-07-15.json'

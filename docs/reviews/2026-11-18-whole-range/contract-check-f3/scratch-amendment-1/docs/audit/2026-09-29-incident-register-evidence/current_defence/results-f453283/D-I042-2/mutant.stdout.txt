@@ -1,0 +1,140 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 32 items
+
+tests/health/test_realized_calibration.py ....................F.F.F..F.. [ 93%]
+.F                                                                       [100%]
+
+=================================== FAILURES ===================================
+_____________ TestSinceDeployFilter.test_pre_deploy_picks_excluded _____________
+
+self = <tests.health.test_realized_calibration.TestSinceDeployFilter object at 0x106e7cce0>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8001/test_pre_deploy_picks_excluded0')
+
+    def test_pre_deploy_picks_excluded(self, tmp_path):
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 4, 29)
+        # 20 pre-deploy bad picks (would alert if counted)
+        for i in range(20):
+            d = today - timedelta(days=i + 1)
+            result = "miss"  # all miss → 0% realized vs 0.78 predicted, 78pp gap
+            _write_pick(picks_dir, d, 0.78, result, run_time="2026-03-15T00:00:00+00:00")
+        # since_deploy 2026-04-01 → all 20 filtered out → no alert
+        deploy_iso = "2026-04-01T00:00:00+00:00"
+>       assert check(picks_dir, today=today, since_deploy_iso=deploy_iso) == []
+E       AssertionError: assert [Alert(level=...tion:75-80%')] == []
+E         
+E         Left contains one more item: Alert(level='CRITICAL', source='realized_calibration', message='75-80% bucket overconfident by +78.0pp over last 30d (...eal current-model overconfidence signal — investigate distribution shift.', incident_key='realized_calibration:75-80%')
+E         Use -v to get more diff
+
+tests/health/test_realized_calibration.py:343: AssertionError
+________ TestSinceDeployFilter.test_filter_message_includes_skip_count _________
+
+self = <tests.health.test_realized_calibration.TestSinceDeployFilter object at 0x106e7d4f0>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8001/test_filter_message_includes_s0')
+
+    def test_filter_message_includes_skip_count(self, tmp_path):
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 4, 29)
+        # 5 pre-deploy + 20 post-deploy, all miss
+        for i in range(5):
+            d = today - timedelta(days=i + 1)
+            _write_pick(picks_dir, d, 0.78, "miss", run_time="2026-03-15T00:00:00+00:00")
+        for i in range(20):
+            d = today - timedelta(days=i + 6)  # different dates
+            _write_pick(picks_dir, d, 0.78, "miss", run_time="2026-04-15T00:00:00+00:00")
+        alerts = check(picks_dir, today=today,
+                       since_deploy_iso="2026-04-01T00:00:00+00:00")
+        assert len(alerts) == 1
+>       assert "skipped 5 pre-deploy" in alerts[0].message
+E       AssertionError: assert 'skipped 5 pre-deploy' in '75-80% bucket overconfident by +78.0pp over last 30d (n=25, predicted 0.780, realized 0.000, attribution=all-slots sl...-deploy=2026-04-01 (skipped 0 pre-deploy)). Real current-model overconfidence signal — investigate distribution shift.'
+E        +  where '75-80% bucket overconfident by +78.0pp over last 30d (n=25, predicted 0.780, realized 0.000, attribution=all-slots sl...-deploy=2026-04-01 (skipped 0 pre-deploy)). Real current-model overconfidence signal — investigate distribution shift.' = Alert(level='CRITICAL', source='realized_calibration', message='75-80% bucket overconfident by +78.0pp over last 30d (...eal current-model overconfidence signal — investigate distribution shift.', incident_key='realized_calibration:75-80%').message
+
+tests/health/test_realized_calibration.py:372: AssertionError
+_______ TestSinceDeployFilter.test_pick_without_run_time_field_excluded ________
+
+self = <tests.health.test_realized_calibration.TestSinceDeployFilter object at 0x106e7dc70>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8001/test_pick_without_run_time_fie0')
+
+    def test_pick_without_run_time_field_excluded(self, tmp_path):
+        # Old pick files might lack run_time. With since_deploy_iso set,
+        # they're excluded (we can't verify they're post-deploy).
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 4, 29)
+        for i in range(20):
+            d = today - timedelta(days=i + 1)
+            _write_pick(picks_dir, d, 0.78, "miss")  # no run_time
+        # All 20 missing run_time → all filtered out → no alert
+>       assert check(picks_dir, today=today,
+                     since_deploy_iso="2026-04-01T00:00:00+00:00") == []
+E       AssertionError: assert [Alert(level=...tion:75-80%')] == []
+E         
+E         Left contains one more item: Alert(level='CRITICAL', source='realized_calibration', message='75-80% bucket overconfident by +78.0pp over last 30d (...eal current-model overconfidence signal — investigate distribution shift.', incident_key='realized_calibration:75-80%')
+E         Use -v to get more diff
+
+tests/health/test_realized_calibration.py:396: AssertionError
+__ TestRegimeFingerprintPooling.test_unstamped_picks_keep_deploy_iso_fallback __
+
+self = <tests.health.test_realized_calibration.TestRegimeFingerprintPooling object at 0x106b6d6a0>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8001/test_unstamped_picks_keep_depl0')
+
+    def test_unstamped_picks_keep_deploy_iso_fallback(self, tmp_path):
+        # Pre-provenance pick files (no hashes): legacy wall-clock filtering
+        # still applies — 4 post-deploy < min_bucket_n -> quiet.
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 9)
+        for i in range(8):
+            d = today - timedelta(days=i + 1)
+            _write_pick(picks_dir, d, 0.78, "miss",
+                        run_time=f"{d.isoformat()}T16:00:00+00:00")
+        mid_deploy = (today - timedelta(days=4)).isoformat() + "T00:00:00+00:00"
+    
+>       assert check(picks_dir, today=today, since_deploy_iso=mid_deploy) == []
+E       AssertionError: assert [Alert(level=...tion:75-80%')] == []
+E         
+E         Left contains one more item: Alert(level='CRITICAL', source='realized_calibration', message='75-80% bucket overconfident by +78.0pp over last 30d (...eal current-model overconfidence signal — investigate distribution shift.', incident_key='realized_calibration:75-80%')
+E         Use -v to get more diff
+
+tests/health/test_realized_calibration.py:462: AssertionError
+_ TestRegimeFingerprintStability.test_newest_pick_unstamped_falls_back_to_deploy_iso _
+
+self = <tests.health.test_realized_calibration.TestRegimeFingerprintStability object at 0x106e7d6d0>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8001/test_newest_pick_unstamped_fal0')
+
+    def test_newest_pick_unstamped_falls_back_to_deploy_iso(self, tmp_path):
+        # Codex review #7: a partial/missing stamp on the NEWEST pick must not
+        # silently adopt an older pick's regime — fall back to the wall-clock
+        # deploy filter for the whole computation instead.
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 9)
+        for i in range(6):
+            d = today - timedelta(days=i + 2)
+            _write_pick(picks_dir, d, 0.78, "miss",
+                        run_time=f"{d.isoformat()}T16:00:00+00:00",
+                        fingerprint=(f"m-{i}", "policy-X", "env-X"))
+        # newest pick: stamps lost (e.g. I/O failure during write)
+        _write_pick(picks_dir, today - timedelta(days=1), 0.78, "miss",
+                    run_time=f"{(today - timedelta(days=1)).isoformat()}T16:00:00+00:00")
+        recent_deploy = (today - timedelta(days=1)).isoformat() + "T00:00:00+00:00"
+    
+        alerts = check(picks_dir, today=today, since_deploy_iso=recent_deploy)
+    
+        # fallback keeps only the 1 post-deploy pick (< min_bucket_n) -> quiet;
+        # adopting the older regime would have pooled 6 and fired.
+>       assert alerts == []
+E       AssertionError: assert [Alert(level=...tion:75-80%')] == []
+E         
+E         Left contains one more item: Alert(level='CRITICAL', source='realized_calibration', message='75-80% bucket overconfident by +78.0pp over last 30d (...eal current-model overconfidence signal — investigate distribution shift.', incident_key='realized_calibration:75-80%')
+E         Use -v to get more diff
+
+tests/health/test_realized_calibration.py:536: AssertionError
+=========================== short test summary info ============================
+FAILED tests/health/test_realized_calibration.py::TestSinceDeployFilter::test_pre_deploy_picks_excluded
+FAILED tests/health/test_realized_calibration.py::TestSinceDeployFilter::test_filter_message_includes_skip_count
+FAILED tests/health/test_realized_calibration.py::TestSinceDeployFilter::test_pick_without_run_time_field_excluded
+FAILED tests/health/test_realized_calibration.py::TestRegimeFingerprintPooling::test_unstamped_picks_keep_deploy_iso_fallback
+FAILED tests/health/test_realized_calibration.py::TestRegimeFingerprintStability::test_newest_pick_unstamped_falls_back_to_deploy_iso
+========================= 5 failed, 27 passed in 0.89s =========================

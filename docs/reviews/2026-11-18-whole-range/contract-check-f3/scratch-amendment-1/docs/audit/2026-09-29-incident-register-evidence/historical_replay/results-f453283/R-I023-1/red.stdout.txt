@@ -1,0 +1,94 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I023-1
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_shadow_scheduler.py F                                         [100%]
+
+=================================== FAILURES ===================================
+_ TestRunShadowPrediction.test_writes_independent_shadow_file_when_production_locked _
+
+self = <tests.test_shadow_scheduler.TestRunShadowPrediction object at 0x10b328080>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-7939/test_writes_independent_shadow0')
+
+    def test_writes_independent_shadow_file_when_production_locked(self, tmp_path):
+        """Integration test: when production is locked + bluesky_posted=True, the
+        shadow prediction pipeline must still write its OWN pick (not a copy of
+        production) to {date}.shadow.json.
+    
+        Regression for the select_pick short-circuit bug: before the fix, the
+        scheduler called select_pick without for_shadow=True, so the function
+        loaded production from disk, saw bluesky_posted=True, and returned
+        production's DailyPick. The shadow predictions were silently discarded.
+    
+        This test deliberately does NOT mock select_pick — it uses the real
+        function to catch any future regression in this integration.
+        """
+        # Arrange: production is locked and posted
+        prod = DailyPick(
+            date="2026-04-12",
+            run_time="2026-04-12T17:19:41.741015+00:00",
+            pick=Pick(
+                batter_name="Brendan Donovan", batter_id=680977, team="SEA",
+                lineup_position=1, pitcher_name="Cody Bolton", pitcher_id=675989,
+                p_game_hit=0.7169, flags=[], projected_lineup=False,
+                game_pk=823154, game_time="2026-04-12T20:10:00Z",
+                pitcher_team="HOU",
+            ),
+            double_down=None, runner_up=None,
+            bluesky_posted=True,
+            bluesky_uri="at://did:plc:test/app.bsky.feed.post/abc",
+        )
+        save_pick(prod, tmp_path)
+    
+        # Shadow predictions: a completely different top batter in a different
+        # game. Probabilities are above SKIP_THRESHOLD (0.80) so heuristic mode
+        # (used when MDP policy file is absent in tests) will actually pick.
+        shadow_preds = pd.DataFrame([
+            {
+                "batter_name": "Nico Hoerner", "batter_id": 663538, "team": "CHC",
+                "lineup": 1, "pitcher_name": "Opposing SP", "pitcher_id": 111111,
+                "game_pk": 824696, "game_time": "2026-04-12T18:20:00Z",
+                "p_game_hit": 0.82, "p_hit_pa": 0.30, "flags": "",
+                "projected_lineup": False,
+            },
+            {
+                "batter_name": "Steven Kwan", "batter_id": 680757, "team": "CLE",
+                "lineup": 1, "pitcher_name": "Opposing SP2", "pitcher_id": 222222,
+                "game_pk": 824938, "game_time": "2026-04-12T23:20:00Z",
+                "p_game_hit": 0.81, "p_hit_pa": 0.29, "flags": "",
+                "projected_lineup": False,
+            },
+        ])
+    
+        statuses = {823154: "P", 824696: "P", 824938: "P"}
+    
+        # Act: run shadow with REAL select_pick (only mocking the predict call
+        # and the game-status HTTP lookup)
+        with patch("bts.scheduler.predict_local_shadow", return_value=shadow_preds), \
+             patch("bts.strategy.get_game_statuses", return_value=statuses):
+            _run_shadow_prediction(
+                config={"orchestrator": {"picks_dir": str(tmp_path)}},
+                date="2026-04-12",
+                production_pick_name="Brendan Donovan",
+            )
+    
+        # Assert: the written shadow file reflects the shadow predictions,
+        # NOT the production pick that's locked on disk.
+        shadow_path = tmp_path / "2026-04-12.shadow.json"
+        assert shadow_path.exists(), "shadow file was not written"
+        shadow_data = json.loads(shadow_path.read_text())
+>       assert shadow_data["pick"]["batter_name"] == "Nico Hoerner"
+E       AssertionError: assert 'Brendan Donovan' == 'Nico Hoerner'
+E         
+E         - Nico Hoerner
+E         + Brendan Donovan
+
+tests/test_shadow_scheduler.py:106: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  [SHADOW MODEL] Brendan Donovan (SEA) 71.7% — AGREES
+=========================== short test summary info ============================
+FAILED tests/test_shadow_scheduler.py::TestRunShadowPrediction::test_writes_independent_shadow_file_when_production_locked
+============================== 1 failed in 0.75s ===============================

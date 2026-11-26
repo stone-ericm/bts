@@ -1,0 +1,60 @@
+{
+ "id": "E12",
+ "episode_row": [
+  "E12",
+  "4/05",
+  "scorecard fielder labels",
+  "U",
+  "UC",
+  "B",
+  "27be68e d99c5ef"
+ ],
+ "commits": [
+  {
+   "sha": "27be68e",
+   "authored": "2026-04-05T14:12:50-04:00",
+   "subject": "fix(scorecard): handle assisted groundout credits (5-3, 6-3, etc.)",
+   "body": "_extract_fielder_position only checked f_fielded_ball credits, which\nare used for fly outs and unassisted plays. Assisted groundouts use\nf_assist + f_putout credits instead, so groundouts showed \"G?\" on\nthe dashboard. Now checks f_fielded_ball first, then f_assist.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scorecard.py",
+    "tests/test_scorecard.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24253126060,
+    "created_at": "2026-04-10T16:29:24Z",
+    "head_sha": "4a82cf8",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "d99c5ef",
+   "authored": "2026-04-05T15:53:00-04:00",
+   "subject": "fix(scorecard): handle f_putout credit for fly outs",
+   "body": "MLB API uses f_putout (not f_fielded_ball) for some routine fly outs.\nPriority chain is now: f_fielded_ball > f_assist > f_putout, so\ngroundouts still show the assist fielder (6-3 \u2192 G6, not G3).\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scorecard.py",
+    "tests/test_scorecard.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24253126060,
+    "created_at": "2026-04-10T16:29:24Z",
+    "head_sha": "4a82cf8",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

@@ -1,0 +1,37 @@
+{
+ "id": "E29",
+ "episode_row": [
+  "E29",
+  "4/15",
+  "02:00 reconcile reset the streak to 0 (walk broke on today's preview)",
+  "G",
+  "OI",
+  "A",
+  "1d61908"
+ ],
+ "commits": [
+  {
+   "sha": "1d61908",
+   "authored": "2026-04-15T12:05:29-04:00",
+   "subject": "fix(picks): reconcile streak walk skips preview/future/shadow pick files",
+   "body": "The 2am reconcile_results() was resetting streak to 0 every night because\nits backward walk hit today's pre-generated preview pick (from `bts preview`)\nand broke on the result=None sentinel. The preview file has no game result\nyet \u2014 that's \"not played\", not \"miss\".\n\nSymptom observed 2026-04-15: yesterday's Hoerner + D\u00edaz double-down both hit\n(streak should be 2), but streak.json was rewritten to 0 at 02:00 ET when\nthe reconcile cron ran.\n\nFix: filter the backward walk to only strict YYYY-MM-DD pick files AND skip\nany file dated today or later. Strict date filter also incidentally fixes a\nlatent bug where *.shadow.json files (separate eval track) were being walked\n\u2014 they always have result=None so they'd break the loop too.\n\nAdds two regression tests:\n- test_preview_pick_for_tomorrow_does_not_break_streak_walk\n- test_shadow_pick_files_are_ignored_in_streak_walk\n\n499 tests passing.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/picks.py",
+    "tests/test_picks.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24464954045,
+    "created_at": "2026-04-15T16:05:33Z",
+    "head_sha": "1d61908",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

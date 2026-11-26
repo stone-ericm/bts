@@ -1,0 +1,307 @@
+{
+ "id": "I-072",
+ "working_id": "E72",
+ "title": "7/08 double-down leg never entered: check-pick-entered sent one 18:00 alert, then treated 'alerted' as terminal and never re-verified",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "E",
+  "secondary": [
+   "A"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "entry/contest impact: one slot of the delivered double-down was not entered before the cutoff; the entry check went blind after a single alert",
+ "plan_named": false,
+ "delivery_mode": "dm",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "contest",
+ "contract": {
+  "text": "Every slot of a committed pick (both double-down slots) is entered in the contest before the cutoff; once an entry alert fires, the check keeps re-verifying the account and escalates until it confirms an exact match or the cutoff passes.",
+  "source": "ARCHITECTURE.md 'bts check-pick-entered' (identity-verified: BOTH double-down slots; v3 'alerted is NON-terminal'); docs/audit/2026-07-09-gpt56-sol-audit.md F1"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "after the entry alert the operator did not enter the double-down's second slot before the cutoff (a manual step outside the system)",
+   "code": []
+  },
+  {
+   "n": 2,
+   "text": "check_pick_entered returned immediately when the day's marker status was 'alerted' (as for 'confirmed'), so after the single 18:00 DM every later */15 run exited without querying the account; the partial entry was never re-verified or escalated before the cutoff",
+   "code": [
+    {
+     "path": "src/bts/cli.py",
+     "ref": "115c0cf",
+     "symbol": "check_pick_entered (prior status in ('confirmed', 'alerted') -> return; marker 'alerted' written after the DM)",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": "not_applicable",
+   "deployed": "not_applicable",
+   "mitigated": "none",
+   "verified_recovered": "not_applicable"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "8bceda1",
+     "e5ef7ca"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "49f2538",
+    "live_by": "2026-07-10T15:20:06Z",
+    "not_live_before": "2026-07-10T15:20:03Z",
+    "run_id": 29103040814,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "Any contest fetch/auth failure still skips quietly; if the account cannot be read through the window, re-verification and escalation do not happen and only the EOD pick_entry backstop (WARN alerted-past-cutoff, CRITICAL dm_failed) reports it.",
+   "reaches_production": true,
+   "source": "ARCHITECTURE.md 'bts check-pick-entered' (v3 'Transient auth outages keep the quiet-skip'; 'EOD backstop: the pick_entry health source')"
+  },
+  {
+   "text": "No postponed-game awareness: a pre-pitch postponement keeps nagging for a selection that will Pass (product call pending).",
+   "reaches_production": true,
+   "source": "ARCHITECTURE.md 'bts check-pick-entered' ('Known deferral')"
+  }
+ ],
+ "watchdog": {
+  "boundary": "entry",
+  "trigger": "for a scoreable commit, any */15 run between the first entry alert and the cutoff (first pitch − 5 min of the earliest selected game) that does not query the contest account, or a commit whose slots are not all an exact identity match in the account at T−15",
+  "recovery_assertion": "before the cutoff the account shows every delivered slot entered (exact match) and the marker records confirmed; otherwise the escalation tiers fired and the EOD pick_entry source flags the date"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "docs/audit/2026-07-09-gpt56-sol-audit.md 'Triage verdicts' F1 (commit ace5aee)",
+   "written_at": "2026-07-09T21:21:14-04:00",
+   "exposure_row": "X-01",
+   "what": "F1 confirmed live twice: 7/08 the double-down leg was never entered (+1 not +2); 7/09 the entry happened only after an out-of-band warning; check-pick-entered treats 'alerted' as terminal — one DM, then never re-verifies or escalates"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 8bceda1 message body",
+   "written_at": "2026-07-09T22:32:26-04:00",
+   "what": "'One DM then blindness let 7/08's DD leg go unentered past a single 18:00 alert, and 7/09's entry landed only after an out-of-band warning'"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "reported",
+   "locator": "docs/audit/2026-07-09-gpt56-sol-audit.md raw report finding 1 'Live command' block",
+   "what": "7/09 marker {status: alerted, reason: no_pick, checked_at 2026-07-09T18:00:03-04:00}, 'DM sent', then 'already alerted for 2026-07-09' on each later run (box output quoted by the auditor; the log itself is not located here)"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 28917813894 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "pre-deploy 39b02bd -> deployed 115c0cf at 2026-07-08T04:39:20Z, canary passed; 115c0cf stayed installed until run 29103040814, covering 7/08 and 7/09"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 29103040814 (deploy_runs.json)",
+   "what": "pre-deploy 115c0cf -> deployed 49f2538 at 2026-07-10T15:20:05Z, canary passed; 49f2538 contains 8bceda1 and e5ef7ca"
+  },
+  {
+   "id": "ev6",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit e5ef7ca message body and diff (review #1)",
+   "what": "the first loop-closure fix still had a terminal escape: present_unverified counted as terminal; now only an exact match is terminal and a missing slot count is a mismatch regardless of crosswalk coverage"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-07-08 (DD leg not entered)",
+   "onset": {
+    "not_before": "2026-07-08T18:00:00-04:00",
+    "not_after": "2026-07-09",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_detectable": {
+    "at": "2026-07-08T18:00:00-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "first_machine_detection": {
+    "detector": "check-pick-entered v2 (*/15 cron)",
+    "at": {
+     "at": "2026-07-08T18:00:00-04:00",
+     "evidence": [
+      "ev2"
+     ]
+    }
+   },
+   "alert": {
+    "attempted": {
+     "at": "2026-07-08T18:00:00-04:00",
+     "evidence": [
+      "ev2"
+     ]
+    },
+    "confirmed": {
+     "at": "2026-07-08T18:00:00-04:00",
+     "evidence": [
+      "ev2"
+     ]
+    },
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-07-09T21:21:14-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-07-09T22:32:26-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": {
+     "min_minutes": 0,
+     "max_minutes": 0
+    },
+    "recovery": "unknown"
+   }
+  },
+  {
+   "label": "2026-07-09 (one alert, then blind; entry made after an out-of-band warning)",
+   "onset": {
+    "at": "2026-07-09T18:00:03-04:00",
+    "evidence": [
+     "ev3",
+     "ev2"
+    ]
+   },
+   "first_detectable": {
+    "at": "2026-07-09T18:00:03-04:00",
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "first_machine_detection": {
+    "detector": "check-pick-entered v2 (*/15 cron)",
+    "at": {
+     "at": "2026-07-09T18:00:03-04:00",
+     "evidence": [
+      "ev3"
+     ]
+    }
+   },
+   "alert": {
+    "attempted": {
+     "at": "2026-07-09T18:00:03-04:00",
+     "evidence": [
+      "ev3"
+     ]
+    },
+    "confirmed": {
+     "at": "2026-07-09T18:00:03-04:00",
+     "evidence": [
+      "ev3"
+     ]
+    },
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-07-09T21:21:14-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-07-09T22:32:26-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigation": {
+    "not_after": "2026-07-09T21:21:14-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": {
+     "min_minutes": 0,
+     "max_minutes": 0
+    },
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "8bceda1",
+   "e5ef7ca",
+   "ace5aee",
+   "a6ec548"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-07-09-gpt56-sol-audit.md F1",
+   "ARCHITECTURE.md 'bts check-pick-entered' (v3)"
+  ]
+ },
+ "related": [
+  "I-061",
+  "I-062",
+  "I-071",
+  "I-073",
+  "I-082",
+  "I-110"
+ ],
+ "notes": [
+  "defective ref 115c0cf = the installed tree (log: deployed 7/08 04:39Z, pre-deploy SHA of run 29103040814 on 7/10); 8bceda1^ (40c0094) differs in cli.py only by the F15 preview-date change, check_pick_entered identical",
+  "7/08 onset = the cutoff passing with the slot unentered: not before the 18:00 alert (the slot was missing then), not after end of day; the game time is not in the repo (Route R: 7/08 pick file + ledger slot entry status). detection latency not_applicable: the detector fired before the violation instant — the failure was the missing re-verification",
+  "alert confirmed = the reports' 'a single 18:00 alert' / 'DM sent' (the marker is written only after a successful send); receipt by the operator is not evidenced",
+  "the 7/09 occurrence had no entry impact (entry made after an out-of-band warning, time and source not stated); the 18:00:03 time and log lines come from the auditor's quoted box output (reported)",
+  "e5ef7ca is in the fix set because the present_unverified terminal escape would still have closed the loop on a missing slot; the same escape during 7/04–7/09 is its own record (I-110)",
+  "'+1 not +2' appears only because the incident is its cost (exposure_row X-01 on ev1)",
+  "design §6.5 lists 7/08 as the V4 entry-evidence-gap discovery case; the r2 design review notes that an unknown slot alone cannot prove absence — the operator reports carry that",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; 8bceda1 adds re-verification/escalation tests in tests/test_cli_integration.py and tests/health/test_pick_entry_source.py (EOD backstop)"
+ ]
+}

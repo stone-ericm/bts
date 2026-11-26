@@ -1,0 +1,19 @@
+finale-exclusive: strategy.py :: 2027: "2027-09-27" -> 2027: "2027-09-26"
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-closing-blind
+configfile: pyproject.toml
+collected 1 item
+
+../../../tests/test_season_end_date.py F                                 [100%]
+
+=================================== FAILURES ===================================
+_________________________ test_2027_last_day_and_after _________________________
+../../../tests/test_season_end_date.py:30: in test_2027_last_day_and_after
+    assert _days_remaining("2027-09-26") == 1
+E   AssertionError: assert 0 == 1
+E    +  where 0 = _days_remaining('2027-09-26')
+=========================== short test summary info ============================
+FAILED ../../../tests/test_season_end_date.py::test_2027_last_day_and_after
+============================== 1 failed in 0.20s ===============================
+mutation-result finale-exclusive 1

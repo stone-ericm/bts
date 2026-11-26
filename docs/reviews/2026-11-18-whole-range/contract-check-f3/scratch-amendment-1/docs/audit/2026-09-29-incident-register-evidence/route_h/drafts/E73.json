@@ -1,0 +1,686 @@
+{
+ "id": "I-073",
+ "working_id": "E73",
+ "title": "GPT-5.6 sol audit latent batch (7/09–7/10): projected-DD early lock (F2), green crash loop (F3), dead health checks (F4, F6), R2 sync (F8), F10, stale unit (F12), scoring race (F13), F15, R4",
+ "disposition": "deployed_latent_defect",
+ "counted": true,
+ "classes": {
+  "primary": "A",
+  "secondary": [
+   "L",
+   "D",
+   "G",
+   "S",
+   "R",
+   "U"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "no harmful firing is evidenced for any link; tier A by the B -> A rule: unfixed residuals (streak/pick two-file pair under a crash, postponed cached-fallback delivery, manual-run and final-fallback lineup-gate bypasses, F6 fingerprint scope, best-effort churn check) can still change state, delivery or alerting; F3 (liveness), F8/F12 (recoverability), F13 (state) and F2/R4 (delivery) are A-class if they fire",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "unknown",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "Each audited path meets its contract: a normal early lock commits only lineup-confirmed selected slots whose games are still available (F2, R4); a torn state file never yields a crash loop that monitors score healthy (F3); a crashing health check surfaces CRITICAL (F4); realized_calibration evaluates the current regime's last 30 days once 5 bucket picks exist (F6); an interrupted R2 sync leaves the prior manifest restorable (F8); the skip-shadow verdict and its breakeven are reproducible from the repo and valid under nightly re-looks (F10); the repo's tracked units reproduce production (F12); each result changes streak state at most once (F13); and `bts preview` defaults to tomorrow in ET (F15).",
+  "source": "F2: strategy.should_lock docstring condition 2 at 9643d83; R4: design §10.3 postponed cached-fallback oracle ('no delivery naming a postponed game') + 6d74d39 R4; F3: util.atomic_write_text docstring (audit D1) at a349ac5; F4: health/runner.py _safe_run docstring (audit H3, 0f2bc3c); F6: health/realized_calibration.py module docstring (30-day lookback, minimum bucket count 5); F8: data/sync.py sync_to_r2 docstring 'Writes the manifest last, atomically' at cca6761; F10: docs/audit/2026-06-20-skip-policy-shadow.md (verdict vs the 0.744 breakeven) + audit F10; F12: audit memo raw finding 12 (DR from the tracked unit); F13: design §10.3 scoring crash/restart oracle ('one result affects streak and saver at most once') + ARCHITECTURE.md 'Scoring serialization'; F15: cli.py preview --date help 'Defaults to tomorrow' + the _today_et ET convention"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "F2: should_lock rejected only a projected primary and _lock_decision_from_predictions passed only daily.pick, so on a double day a projected double-down rode the primary's confirmation through the normal early lock (the gap rule was built for a single pick racing projected alternatives)",
+   "code": [
+    {
+     "path": "src/bts/strategy.py",
+     "ref": "ede5c28",
+     "symbol": "should_lock",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "ede5c28",
+     "symbol": "_lock_decision_from_predictions",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "F3: save_state wrote scheduler_state.json with a bare write_text and load_state parsed it with no recovery, while run_day wrote the RUNNING heartbeat and signalled READY/watchdog before loading state; a torn file would crash every start and restart every 30 s with a fresh heartbeat, check_heartbeat scored any fresh 'running' heartbeat healthy, restart_spike ran only at EOD inside the crashing process and the deploy canary checked is-active at +30 s",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "a349ac5",
+     "symbol": "save_state / load_state / run_day",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "scripts/check_heartbeat.py",
+     "ref": "bc56439",
+     "symbol": "is_stale (no restart-churn signal)",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "text": "F4: calibration, projected_lineup, post_failure and disk_fill caught exceptions inside check() and returned [], so an evaluation failure looked healthy and never reached _safe_run's CRITICAL-on-crash conversion (the audit-H3 contract)",
+   "code": [
+    {
+     "path": "src/bts/health/calibration.py",
+     "ref": "b25f348",
+     "symbol": "check",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/health/projected_lineup.py",
+     "ref": "b25f348",
+     "symbol": "check",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/health/post_failure.py",
+     "ref": "b25f348",
+     "symbol": "check",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/health/disk_fill.py",
+     "ref": "b25f348",
+     "symbol": "check",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "text": "F6: realized_calibration.check dropped every pick whose run_time preceded the latest deploy stamp and every deploy (docs, shadow, ops) re-stamped, so the bucket sample could not reach min_bucket_n while deploys were frequent and the check was effectively dead",
+   "code": [
+    {
+     "path": "src/bts/health/realized_calibration.py",
+     "ref": "a081bab",
+     "symbol": "check (since_deploy_iso filter)",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "text": "F8: sync_to_r2 overwrote stable object keys before replacing the manifest, so an interrupted sync left the old manifest pointing at new bytes; sync_from_r2 downloaded into the final path and deleted it on a checksum mismatch; verify_manifest checked only manifest metadata and age",
+   "code": [
+    {
+     "path": "src/bts/data/sync.py",
+     "ref": "cca6761",
+     "symbol": "sync_to_r2 / sync_from_r2 / verify_manifest",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "text": "F10: the skip-policy shadow re-tested a fixed-N 95% Wilson interval against the 0.744 breakeven at every nightly rebuild (repeated looks, not time-uniform), and the breakeven's derivation existed only as /tmp/skip_qdelta.py on the box, outside the repo",
+   "code": [
+    {
+     "path": "src/bts/skip_policy_shadow.py",
+     "ref": "950fb80",
+     "symbol": "_verdict / build_skip_policy_shadow_status",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "text": "F12: the tracked scripts/bts-scheduler.service was the stale Pi5 unit (Type=simple, /home/stonehengee paths, Restart=on-failure, RestartSec=300) while production ran notify + watchdog with Restart=always/30 s; no dashboard unit was tracked and nothing detected drift, so a rebuild from the repo would install a broken unit",
+   "code": [
+    {
+     "path": "scripts/bts-scheduler.service",
+     "ref": "78c424a",
+     "symbol": "unit file [Service] Type/WorkingDirectory/Restart",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "text": "F13: check-results (01:00 cron) and the daemon's result polling (until 05:00) each did load pick -> resolve -> update_streak -> save_pick with no shared lock (only saver state had a flock), and the daemon's cap/unresolved/suspended writers and the 02:00 reconcile_results also wrote unlocked, so an interleave could double-apply or lose a streak update or overwrite a terminal result",
+   "code": [
+    {
+     "path": "src/bts/cli.py",
+     "ref": "a374fa4",
+     "symbol": "check_results",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "a374fa4",
+     "symbol": "run_result_polling",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "3a09b2c",
+     "symbol": "run_result_polling (cap/unresolved/suspended branches)",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/picks.py",
+     "ref": "3a09b2c",
+     "symbol": "reconcile_results",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "text": "F15: bts preview computed its default date as UTC now + 1 day, so a manual run between about 20:00 and 23:59 ET wrote the slate for the day after tomorrow (the 03:00 ET cron was unaffected)",
+   "code": [
+    {
+     "path": "src/bts/cli.py",
+     "ref": "ace5aee",
+     "symbol": "preview",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "text": "R4: _lock_decision_from_predictions status-filtered contender rows but not the already-selected pick/double-down, so a selected game that went postponed or started between selection and lock could ride its stale lineup flag into delivery",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "092230b",
+     "symbol": "_lock_decision_from_predictions",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "9643d83"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "6919e19",
+    "live_by": "2026-07-10T18:41:03Z",
+    "not_live_before": "2026-07-10T18:41:00Z",
+    "run_id": 29114882915,
+    "evidence": [
+     "ev11"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "bc56439",
+     "a081bab",
+     "e5ef7ca"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "49f2538",
+    "live_by": "2026-07-10T15:20:06Z",
+    "not_live_before": "2026-07-10T15:20:03Z",
+    "run_id": 29103040814,
+    "evidence": [
+     "ev10"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 3,
+   "implemented": {
+    "commits": [
+     "a349ac5",
+     "e5ef7ca"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "49f2538",
+    "live_by": "2026-07-10T15:20:06Z",
+    "not_live_before": "2026-07-10T15:20:03Z",
+    "run_id": 29103040814,
+    "evidence": [
+     "ev10"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 4,
+   "implemented": {
+    "commits": [
+     "40c0094",
+     "e5ef7ca"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "49f2538",
+    "live_by": "2026-07-10T15:20:06Z",
+    "not_live_before": "2026-07-10T15:20:03Z",
+    "run_id": 29103040814,
+    "evidence": [
+     "ev10"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 5,
+   "implemented": {
+    "commits": [
+     "ede5c28"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "6919e19",
+    "live_by": "2026-07-10T18:41:03Z",
+    "not_live_before": "2026-07-10T18:41:00Z",
+    "run_id": 29114882915,
+    "evidence": [
+     "ev11"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 6,
+   "implemented": {
+    "commits": [
+     "0ea2132"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "6919e19",
+    "live_by": "2026-07-10T18:41:03Z",
+    "not_live_before": "2026-07-10T18:41:00Z",
+    "run_id": 29114882915,
+    "evidence": [
+     "ev11"
+    ]
+   },
+   "mitigated": {
+    "action": "breakeven derivation re-created in the repo (scripts/audit/skip_breakeven_derivation.py) and re-run on the box; the recorded constant was kept",
+    "at": {
+     "not_after": "2026-07-10T13:26:18-04:00",
+     "evidence": [
+      "ev8"
+     ]
+    }
+   },
+   "verified_recovered": {
+    "how": "the re-derivation reproduced the recorded breakeven within its recorded band; inputs fingerprinted in docs/audit/2026-07-10-skip-breakeven-derivation.json",
+    "at": {
+     "not_after": "2026-07-10T13:26:18-04:00",
+     "evidence": [
+      "ev8"
+     ]
+    }
+   }
+  },
+  {
+   "link": 7,
+   "implemented": {
+    "commits": [
+     "cca6761"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "6919e19",
+    "live_by": "2026-07-10T18:41:03Z",
+    "not_live_before": "2026-07-10T18:41:00Z",
+    "run_id": 29114882915,
+    "evidence": [
+     "ev11"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 8,
+   "implemented": {
+    "commits": [
+     "3a09b2c",
+     "49f2538"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "49f2538",
+    "live_by": "2026-07-10T15:20:06Z",
+    "not_live_before": "2026-07-10T15:20:03Z",
+    "run_id": 29103040814,
+    "evidence": [
+     "ev10"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 9,
+   "implemented": {
+    "commits": [
+     "b25f348"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "49f2538",
+    "live_by": "2026-07-10T15:20:06Z",
+    "not_live_before": "2026-07-10T15:20:03Z",
+    "run_id": 29103040814,
+    "evidence": [
+     "ev10"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 10,
+   "implemented": {
+    "commits": [
+     "6d74d39"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "6d74d39",
+    "live_by": "2026-07-10T19:49:39Z",
+    "not_live_before": "2026-07-10T19:49:36Z",
+    "run_id": 29119047694,
+    "evidence": [
+     "ev12"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "streak.json and the pick file remain a two-file non-atomic pair under a crash between update_streak and the terminal pick save (a restart can re-apply a result); deferred, healed by the 02:00 replay + contest anchoring",
+   "reaches_production": true,
+   "source": "49f2538 body; ARCHITECTURE.md 'Scoring serialization' known deferral (I-204)"
+  },
+  {
+   "text": "the cached-fallback safety net can still deliver a pick whose game went postponed when no replacement is eligible, and postponed_pick health ignores delivered picks (round-3 F1 deferred; round-2 accepted 'deeper postponed-commit hardening')",
+   "reaches_production": true,
+   "source": "30452eb body; 6d74d39 body; docs/audit/2026-07-09-gpt56-sol-audit.md '2026-07-10 round 3' (I-203)"
+  },
+  {
+   "text": "by design the T-35 final fallback, and (after ea73b78 L1) a gate-only block at the in-loop fallback deadline, still deliver a projected double-down; manual bts run / bts orchestrate delivery bypasses both lineup gates (won't-fix L4, operator-gated recovery tools)",
+   "reaches_production": true,
+   "source": "9643d83 body; ea73b78 body (L1, won't-fix L4); audit memo 'Won't-fix, recorded'"
+  },
+  {
+   "text": "the realized_calibration regime fingerprint (policy_npz_sha256, feature_env_hash) does not change on predictor-code-only changes, and partial/missing stamps on the newest pick fall back to the wall-clock deploy filter",
+   "reaches_production": true,
+   "source": "docs/audit/2026-07-09-gpt56-sol-audit.md 'Fix-batch adversarial review round' #2, #7"
+  },
+  {
+   "text": "restart-churn detection is best-effort: an unreadable systemctl skips the churn check quietly, leaving heartbeat freshness as the only liveness signal",
+   "reaches_production": true,
+   "source": "a081bab body"
+  },
+  {
+   "text": "verify-manifest checks referenced R2 objects for existence + size only; content hashes are verified only at restore",
+   "reaches_production": true,
+   "source": "6d74d39 body (#5)"
+  },
+  {
+   "text": "health lookback windows span 31 calendar days (pre-existing off-by-one, deferred as cosmetic)",
+   "reaches_production": false,
+   "source": "docs/audit/2026-07-09-gpt56-sol-audit.md 'Fix-batch adversarial review round' deferred #9"
+  },
+  {
+   "text": "the 0.744 breakeven is one model era's number: skip-shadow records carry the regime fingerprint but stratification is deferred, and the high-streak tail band runs above the headline value",
+   "reaches_production": false,
+   "source": "0ea2132 body; ea73b78 body (L2)"
+  },
+  {
+   "text": "public-mode reply dedup deferred (dormant while delivery is DM or private); static-capture bytes telemetry undercounts on a kill mid-capture",
+   "reaches_production": false,
+   "source": "49f2538 body"
+  },
+  {
+   "text": "static-snapshot retention policy deferred; the pre-gzip plain-JSON backlog was left in place (F14)",
+   "reaches_production": false,
+   "source": "a374fa4 body"
+  }
+ ],
+ "watchdog": {
+  "boundary": "restart",
+  "trigger": "a cron job outside the scheduler samples bts-scheduler NRestarts every 5 min; +3 restarts within 20 or 60 min (+4 within 180 min), or a game day with no executed lineup check by the earliest game's first pitch minus 5 min, alerts even while the heartbeat is fresh (per-part boundaries for a split are in notes)",
+  "recovery_assertion": "NRestarts stays flat for at least 60 min, scheduler_state.json parses with no new *.corrupt-* quarantine, and the day records an executed lineup check followed by a scoreable commit or a deliberate skip"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-07-09-gpt56-sol-audit.md 'Triage verdicts' + raw findings 2, 3, 4, 6, 8, 10, 12, 13, 15 (commit ace5aee, 2026-07-09T21:21:14-04:00)",
+   "what": "external audit of repo @41dbda7 with read-only box access @115c0cf identified these defects with code line citations; Claude re-verified F2, F3, F4, F6, F10 and F15 (among others) against source"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "reported",
+   "locator": "docs/audit/2026-07-09-gpt56-sol-audit.md raw finding 2 ('Production scan')",
+   "what": "a read-only scan of production pick files found 11 days (2026-04-06 to 2026-05-28) that delivered a confirmed primary with a projected double-down, 4 of them locked 51.6-132.6 min before the earliest game (beyond the 35-min final fallback)"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 9643d83 message body",
+   "written_at": "2026-07-10T13:04:55-04:00",
+   "exposure_row": "X-01",
+   "what": "F2 fix body: 11 production days with a projected DD, 4 locked 51-133 min early, 0 realized scratches; the gate is tail insurance against displacement (Eric's 7/10 call); the T-35 final fallback bypasses should_lock"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "reported",
+   "locator": "docs/audit/2026-07-09-gpt56-sol-audit.md raw finding 3 (production systemctl output)",
+   "what": "on 7/09 the production scheduler unit had Restart=always, RestartSec=30, WatchdogUSec=30min, NRestarts=1, ActiveState=active: F3 was not firing at inspection"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "reported",
+   "locator": "docs/audit/2026-07-09-gpt56-sol-audit.md raw finding 6",
+   "what": "production deploy stamp 2026-07-08T04:39:53Z and 11 deployments 6/29-7/08 (reflog): the realized_calibration pool had just been reset by a deploy"
+  },
+  {
+   "id": "ev6",
+   "kind": "machine_observation",
+   "strength": "reported",
+   "locator": "docs/audit/2026-07-09-gpt56-sol-audit.md raw finding 12",
+   "what": "the production scheduler unit (Type=notify, WatchdogSec=1800, Restart=always, RestartSec=30; sha 74a3cf3e...) differed from the tracked scripts/bts-scheduler.service (Type=simple, /home/stonehengee, Restart=on-failure, RestartSec=300; sha 3dc527a5...); no dashboard unit was tracked"
+  },
+  {
+   "id": "ev7",
+   "kind": "machine_observation",
+   "strength": "reported",
+   "locator": "docs/audit/2026-07-09-gpt56-sol-audit.md raw finding 13",
+   "what": "no daemon vs 01:00-cron scoring overlap in July logs (latest midnight result finalized 00:26); earlier months were not examined"
+  },
+  {
+   "id": "ev8",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 0ea2132 message body",
+   "written_at": "2026-07-10T13:26:18-04:00",
+   "what": "the 0.744 breakeven derivation had lived only at /tmp/skip_qdelta.py on the box and was confirmed gone on 7/10; it was re-derived from repo artifacts, reproduced within the recorded band, and the constant was kept"
+  },
+  {
+   "id": "ev9",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy runs 28917813894 and 29103040814 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json); git show 115c0cf",
+   "what": "115c0cf was installed 2026-07-08T04:39:20Z (canary passed) and logged as the pre-deploy SHA at 2026-07-10T15:20:03Z; it carries the pre-fix code of F3 (scheduler.py bare write_text L467, READY L1896 before load_state L1936), F4 (calibration.py L190), F6 (realized_calibration.py L198), F13 (no scoring_lock) and F15 (cli.py L1236)"
+  },
+  {
+   "id": "ev10",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 29103040814 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "pre-deploy 115c0cf -> deployed 49f2538 at 2026-07-10T15:20:05Z, canary passed: first install of b25f348, a349ac5, bc56439, a081bab, 40c0094, e5ef7ca, 3a09b2c and 49f2538"
+  },
+  {
+   "id": "ev11",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy runs 29114359533 and 29114882915 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "run 29114359533 (head 2a75db2) failed its test gate and deployed nothing; run 29114882915 then moved pre-deploy 49f2538 (still carrying the pre-fix F2, F8, F10 and F12 code) to 6919e19 at 2026-07-10T18:41:02Z, canary passed: first install of cca6761, ede5c28, 9643d83, 0ea2132 and ea73b78"
+  },
+  {
+   "id": "ev12",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy runs 29117580783 and 29119047694 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json); git show 934b2f3",
+   "what": "934b2f3, installed 2026-07-10T19:23:32Z without the R4 selected-slot revalidation, was replaced by 6d74d39 at 19:49:38Z, canary passed: first install of the R4 fix"
+  },
+  {
+   "id": "ev13",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 29216777239 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "pre-deploy 6d74d39 -> deployed 230f65c at 2026-07-13T01:12:47Z, canary passed: first install of d960958 (R3 fail-closed prev-manifest copy) and 30452eb (round-3 fixes)"
+  },
+  {
+   "id": "ev14",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit message bodies bc56439, a081bab, a349ac5, 40c0094, 3a09b2c, 49f2538, ede5c28, cca6761, 0ea2132, b25f348, 6d74d39 (R4)",
+   "what": "each fix body states the pre-fix mechanism of its link and the change; 3a09b2c records a red test demonstrating the double-count and ede5c28 a regression test reproducing the interrupted-sync scenario"
+  },
+  {
+   "id": "ev15",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 0f2bc3c message body (2026-06-09, audit H3)",
+   "what": "_safe_run was changed to surface a crashing health check as CRITICAL; the four F4 checks swallowed their own exceptions and so bypassed that contract"
+  },
+  {
+   "id": "ev16",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-07-09-gpt56-sol-audit.md 'Fix-batch adversarial review round', '2026-07-10 review round on the backburner batch', '2026-07-10 round 2', '2026-07-10 round 3'",
+   "what": "review rounds before first install caught F6's first fingerprint shipping dead (#2), single-window churn missing slow loops (#3) and the F2 gate losing days via the fallback deferral (L1); they list the deferrals and won't-fixes carried here as residuals and the R3 fix that was claimed but not made"
+  },
+  {
+   "id": "ev17",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "ARCHITECTURE.md 'Scoring serialization (picks.scoring_lock, 2026-07-09/10)'",
+   "what": "every result writer holds the shared scoring flock; known deferral: streak.json + pick file remain a two-file non-atomic pair under crash"
+  },
+  {
+   "id": "ev18",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-06-20-skip-policy-shadow.md 'Why backtest could not answer it' item 2",
+   "what": "the calibrated breakeven was cited to a Q-delta diagnostic at /tmp/skip_qdelta.py reproduced from the conversation, i.e. outside the repo"
+  }
+ ],
+ "occurrences": [],
+ "routes": {
+  "H": [
+   "b25f348",
+   "a349ac5",
+   "bc56439",
+   "a081bab",
+   "40c0094",
+   "a374fa4",
+   "3a09b2c",
+   "49f2538",
+   "cca6761",
+   "ede5c28",
+   "9643d83",
+   "0ea2132",
+   "6d74d39",
+   "e5ef7ca",
+   "ea73b78",
+   "d960958",
+   "30452eb",
+   "ace5aee",
+   "0f2bc3c"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-07-09-gpt56-sol-audit.md",
+   "docs/audit/2026-06-20-skip-policy-shadow.md",
+   "docs/audit/2026-07-10-skip-breakeven-derivation.json",
+   "ARCHITECTURE.md 'Scoring serialization'"
+  ]
+ },
+ "related": [
+  "I-059",
+  "I-072",
+  "I-075",
+  "I-091",
+  "I-100",
+  "I-109",
+  "I-110",
+  "I-203",
+  "I-204"
+ ],
+ "notes": [
+  "split? proposed parts: (a) F2 projected-DD early lock (link 1) - 11 hazard exposures 4/06-5/28 with no control; the scan is reported-strength (ev2), so unresolved_candidate pending Route R (B1 data/picks: projected_lineup on the committed double_down, lock time vs earliest game), observed_incident without harm if confirmed (see ev3, X-01); D, A-class; (b) R4 (link 10) deployed_latent_defect, D, A via residual I-203; (c) F3 (link 2) deployed_latent_defect, L/A, A-class; (d) F4 + F6 (links 3-4) deployed_latent_defect, A; B-class on impact but A under B->A via the F6 fingerprint residual; (e) F13 (link 8) deployed_latent_defect, G, A via residual I-204; (f) F8 + F12 (links 5, 7) deployed_latent_defect, S, restore coverage, A-class if fired; (g) F10 (link 6) lost derivation - absence observed 7/10 (ev8) but loss time unknown (not before the 6/20 memo, ev18): observed_incident or unresolved_candidate (missing: when /tmp/skip_qdelta.py disappeared, e.g. a box reboot/tmp-clean in the journal); S/R, B (re-derived within band); the peeking verdict never fired (verdict was insufficient_n on 7/09); (h) F15 (link 9) manual recovery tool only, U, B - the lead may drop it (no watchdog/restore relevance)",
+  "if (g) is split with an onset not_before 2026-06-20, ev8 (written 7/10) fails the 48 h contemporaneous rule; ev8 is labelled contemporaneous here because it reports the absence seen live on 7/10, not the loss moment",
+  "per-part watchdog boundaries for a split: F2/R4 delivery (at lock, every committed slot is lineup-confirmed and its game available unless the decision is the logged final fallback); F13 grading (per date the persisted streak delta equals the result-implied delta exactly once); F8/F12 preservation (scheduled restore drill from the R2 manifest + tracked unit templates on a scratch host); F4/F6 alerting (each health source reports evaluated/insufficient/failed and prolonged insufficient_n escalates)",
+  "exposure intervals (introducing commit -> fix live): F2 should_lock 473274b (4/03) -> 2026-07-10T18:41:02Z; F3 bare write 5e8fd04 (4/03), sd_notify READY added d4dae2c (4/22) -> 2026-07-10T15:20:05Z; F4 blanket excepts e74c485 (4/27; post_failure 1c6fad6 5/19), bypassing the H3 contract from 0f2bc3c (6/09) -> 15:20:05Z; F6 since-deploy filter c5256e6 (5/01) -> 15:20:05Z; F8 69765eb (4/09) -> 18:41:02Z; F10 d73face (6/21) -> 18:41:02Z; F12 Pi5 unit 5f73a59/5d9b803 (4/03; Pi5 decommissioned 4/14 per CLAUDE.md) -> 18:41:02Z; F13 daemon polling 762c051 (4/03) + Hetzner 01:00 cron d5c466c (4/12) -> 15:20:05Z; F15 0729031 (4/10) -> 15:20:05Z; R4 _lock_decision_from_predictions 324c4a2 (5/23; the earlier lock path was not examined) -> 19:49:38Z",
+  "ref_basis candidate on every link: no fix parent (or descendant lacking the fix) was ever a logged install; the pre-fix code was verified by git at the logged installs 115c0cf (2026-07-08T04:39:20Z to 2026-07-10T15:20:03Z), 49f2538 (15:20:05Z to 18:41:00Z) and 934b2f3 (19:23:32Z to 19:49:36Z)",
+  "multi-commit links: e5ef7ca is included in links 2-4 because it reworked those fixes before first install (#2 fingerprint without the daily-retrained model sha, #3 multi-horizon churn windows, #5 per-file OSError); e5ef7ca also carries F1/E110 changes that belong to I-072/I-110",
+  "pre-ship items inside this record (not counted): 40c0094's first fingerprint would have shipped F6 dead (e5ef7ca #2); a081bab's single 20-min churn window missed slow loops (e5ef7ca #3); 9643d83's gate composed with the in-loop fallback deferral would have archived a deliverable pair (ea73b78 L1, HIGH) - all fixed before first install (ev16)",
+  "fix-of-fix items: R3 prev-manifest copy did not fail closed (introduced by ea73b78 I2, live in 6919e19 from 2026-07-10T18:41:02Z; claimed in 6d74d39 but the code edit was not made; fixed by d960958, live in 230f65c 2026-07-13T01:12:47Z, run 29216777239, ev13) - reasoning only: prune deletes only objects/ keys older than 7 d and objects/ keys first appeared with ede5c28 on 7/10, so it could not fire before 7/17; unit_drift symlink / dangling-symlink edge cases (6d74d39 #11, 30452eb F9); skip-shadow look-membership immutability (ea73b78 L3, 6d74d39 R5); legacy v1 verdict labels (30452eb F7)",
+  "not in this record: F1 entry loop-closure = E72/I-072 (and E110/I-110 present_unverified, e5ef7ca); F5 backup = E91/I-091 (its fix-of-fix items R1, I1, I3, I4, I8 and round-3 F6 in ea73b78/6d74d39/30452eb belong there); F7 saver mutation over tailnet = accepted risk with an audit-trail control, no episode row; F9 = methodology (EX); F11 mutable workflow actions + no permissions block fixed in 1010924 (2026-07-09T23:07) - no episode row, lead to decide (S, deployed_latent_defect?); R6 deploy concurrency cancelled an in-flight run before the environment gate (6d74d39) - no row, adjacent to E109/I-109 (round-3 F2 deploy race, 30452eb); F14 snapshot growth (a374fa4) is not drafted as a link: a capacity trajectory with no sourced contract and no impact (only its retention deferral is listed as a residual)",
+  "F3: the 7/12 eve-of-break restart loop (NRestarts 3->50 per 9551818 body; E75/I-075, the lead's record) ran after this record's churn detector went live (2026-07-10T15:20:05Z); whether check_heartbeat's churn check fired is a Route R question for I-075",
+  "F13: the auditor checked July logs only (ev7); an overlap during 4/14-6/30 is unexamined - Phase 2 Route R: journals (5/11+) and cron.log around 01:00 on dates whose result finalized near 01:00",
+  "axes: delivery_mode unknown (no single date; the F2 exposures span public 4/06-5/19 and unknown 5/20-5/28); policy_objective unknown for the bundle (F2/R4/F10 concern reach-57-era decisions, the rest involve none); authority local (F2/R4 delivery and F13 grading used local state), not_applicable for the other links; stream production (F10 is skip_shadow, F8 backup, F12 deploy)",
+  "possible residual (inference, not asserted): the audit also recommended tracking non-secret orchestrator configuration; cca6761 tracked unit templates only and the repo holds config/orchestrator.example.toml, not the production TOML - restore coverage of ~/.bts-orchestrator.toml was not checked here",
+  "mitigated none / verified_recovered unknown on links without a firing follow the guide literally; not_applicable may read better for latent links",
+  "reproducing tests in the fix commits: tests/test_scheduler_state_integrity.py::test_load_state_corrupt_json_quarantines_and_returns_none and ::test_run_day_loads_state_before_signaling_ready (F3); tests/test_heartbeat_churn.py::test_crash_loop_delta_fires (F3); tests/health/test_f4_exception_propagation.py (F4); tests/health/test_realized_calibration.py::test_pools_across_deploy_when_regime_unchanged (F6); tests/test_sync.py::test_interrupted_sync_leaves_old_manifest_fully_restorable (F8, 'reproduces the audit scenario'); tests/test_skip_policy_shadow.py checkpoint tests (F10); tests/health/test_unit_drift.py::test_drifted_unit_warns_with_name (F12); tests/test_scoring_lock.py::test_check_results_skips_when_peer_scored_mid_flight (F13, 'red test demonstrated the double-count') and ::test_save_nonterminal_result_refuses_to_clobber_terminal; tests/test_cli_preview_date.py::test_preview_summer_evening_uses_eastern_tomorrow (F15); tests/test_strategy.py::test_projected_double_down_blocks_early_lock and tests/test_scheduler.py::test_projected_double_down_blocks_lock_decision (F2); tests/test_scheduler.py::test_lock_blocked_when_selected_slot_game_unavailable (R4)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

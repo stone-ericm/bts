@@ -1,0 +1,169 @@
+{
+ "id": "I-036",
+ "working_id": "E36",
+ "title": "4/24 new 'batters away' dashboard cell went blank whenever the picked team was in the field",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "U",
+  "secondary": []
+ },
+ "tier": "B",
+ "tier_reason": "dashboard display only, live for about 15 minutes between the feature's deploy and the fix; no pick, delivery or grading effect",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "dashboard",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "While the pick's game is in progress, the upcoming-PA cell shows how many batters away the pick is, including when the picked team is fielding.",
+  "source": "docs/superpowers/specs/2026-04-24-batters-away-display-design.md; commit 140940b message body"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "extract_batter_pas used linescore current_batter as the distance reference; when the picked team was fielding, that batter belonged to the opponent, the lookup in the picked team's players failed and the status fell back to pre_game, which renders a blank cell",
+   "code": [
+    {
+     "path": "src/bts/scorecard.py",
+     "ref": "dc64e93",
+     "symbol": "extract_batter_pas / _compute_lineup_status",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "140940b"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "140940b",
+    "live_by": "2026-04-25T00:40:22Z",
+    "run_id": 24918263920,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "none",
+  "trigger": "display-only dashboard cell; no delivery, entry, grading, restart or preservation boundary is involved",
+  "recovery_assertion": "not_applicable"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 140940b message body",
+   "written_at": "2026-04-24T20:40:18-04:00",
+   "what": "with the picked batter's team in the field (a present-tense live example from that evening's game), the lookup fell back to pre_game and the dashboard cell was blank"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24917931183 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "deploy of head 9a89f5a (contains a98f1ad lineup_status + _render_pa_cell) created 2026-04-25T00:25:46Z (20:25:46 ET), conclusion success: the first deploy carrying the defective display"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24918263920 (deploy_runs.json)",
+   "what": "deploy of head 140940b created 2026-04-25T00:40:22Z (20:40:22 ET), conclusion success; log unavailable_expired"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "git log 2026-04-24 20:09-20:40 ET (aaaa5d8 spec .. dc64e93)",
+   "what": "the batters-away feature was specified, planned and built between 20:09 and 20:30 ET during the live game and deployed in three runs"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-04-24 evening",
+   "onset": {
+    "not_before": "2026-04-24T20:25:46-04:00",
+    "not_after": "2026-04-24T20:40:18-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_detectable": {
+    "not_before": "2026-04-24T20:25:46-04:00",
+    "not_after": "2026-04-24T20:40:18-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "not_applicable",
+    "confirmed": "not_applicable",
+    "failed": "not_applicable"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-24T20:40:18-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-04-24T20:40:22-04:00",
+    "evidence": [
+     "ev1",
+     "ev3"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   },
+   "continuing": true
+  }
+ ],
+ "routes": {
+  "H": [
+   "140940b",
+   "a98f1ad",
+   "9a89f5a"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/superpowers/specs/2026-04-24-batters-away-display-design.md"
+  ]
+ },
+ "related": [],
+ "notes": [
+  "prelim OI?: the body does not say 'observed', but its example is in present tense and matches the live game the feature was built around (spec: in-flight observation 19:51 ET); treated as a contemporaneous report - if the lead reads it as a constructed example this is a deployed_latent_defect (display)",
+  "borderline pre-ship: introduced and fixed within about 15 minutes of shipping, but it was deployed (ev2) and seen on the dashboard",
+  "E37 caveat: 4/22-4/28 deploys pulled origin/main; the blank cell itself shows the new display code was live",
+  "log bound: live by 2026-06-07T00:11:19Z (run 27077693688)",
+  "regression tests named in the fix: tests/test_scorecard.py TestExtractBatterPasFieldingState::test_picked_team_fielding_uses_next_leadoff_as_reference + TestNextLeadoffIdForTeam",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

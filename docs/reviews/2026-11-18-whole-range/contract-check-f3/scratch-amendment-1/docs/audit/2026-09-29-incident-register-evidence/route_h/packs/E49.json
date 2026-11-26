@@ -1,0 +1,37 @@
+{
+ "id": "E49",
+ "episode_row": [
+  "E49",
+  "5/09",
+  "restart loop after day completion (wake built on today's date)",
+  "L",
+  "OI?",
+  "A",
+  "864d3aa"
+ ],
+ "commits": [
+  {
+   "sha": "864d3aa",
+   "authored": "2026-05-09T19:28:42-04:00",
+   "subject": "Use schedule date for next wakeup",
+   "body": "Use schedule date for next wakeup\n\nBuild scheduler default wake-up timestamps on the schedule game date rather than the current wall-clock date, so tomorrow lookahead wake-ups are future timestamps.\n\nThis prevents the scheduler from exiting immediately after day completion and being relaunched repeatedly by Restart=always.",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_scheduler.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 25614503862,
+    "created_at": "2026-05-09T23:29:08Z",
+    "head_sha": "864d3aa",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

@@ -1,0 +1,46 @@
+nice: setpriority: Operation not permitted
+/Users/eric/.matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/matplotlib-qbp46ebm because there was an issue with the default path (/Users/eric/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-03-24...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:42 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0%, gap=1.0% vs projected 98.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK DEFERRED — gap_contender_window_feasible; window at 18:42 ET; archived deferred_fallback_20270324T184301-0400.json.
+
+[18:43 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/probe-ecax88rt/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=30 best=30 saver=used reason=None
+contest_streak: 30 (best 30, saver used) for 2027-03-24, in effect today
+GAP_WINDOW {"base": false, "correction": false, "extra_status": true, "forecast": [["2027-03-24T18:25:00-04:00", true], ["2027-03-24T18:43:01-04:00", true]], "plans": [["2027-03-24T18:42:59-04:00", "defer", "gap_contender_window_feasible", 12.0, 10.0, [102]], ["2027-03-24T18:42:59-04:00", "defer", "gap_contender_window_feasible", 12.0, 10.0, [102]]], "health": [], "pick_dm": [], "record": null, "clock": "2027-03-24T18:43:01-04:00", "history": [{"started": "2027-03-24T18:42:59-04:00", "finished": "2027-03-24T18:43:01-04:00", "duration_sec": 0.0, "reused_check_cascade": true, "action": "defer", "reason": "gap_contender_window_feasible"}], "archive_count": 1}
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:25 ET] Fetching schedule for 2027-03-24...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:42 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0%, gap=1.0% vs projected 98.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK DEFERRED — gap_contender_window_feasible; window at 18:42 ET; archived deferred_fallback_20270324T184301-0400.json.
+
+[18:43 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+CLI 2027-03-24T18:25:00-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/probe-ztqi5gii/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=30 best=30 saver=used reason=None
+contest_streak: 30 (best 30, saver used) for 2027-03-24, in effect today
+CLI 2027-03-24T18:43:01-04:00 set-contest-streak --date: 0
+Observation written at /Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/probe-ztqi5gii/data/picks/account_state/contest_streak.manual.json: date=2027-03-24 streak=30 best=31 saver=used reason=None
+contest_streak: 30 (best 31, saver used) for 2027-03-24, in effect today
+GAP_WINDOW {"base": false, "correction": true, "extra_status": true, "forecast": [["2027-03-24T18:25:00-04:00", true], ["2027-03-24T18:43:01-04:00", true]], "plans": [["2027-03-24T18:42:59-04:00", "defer", "gap_contender_window_feasible", 12.0, 10.0, [102]], ["2027-03-24T18:42:59-04:00", "defer", "gap_contender_window_feasible", 12.0, 10.0, [102]]], "health": [], "pick_dm": [], "record": null, "clock": "2027-03-24T18:43:01-04:00", "history": [{"started": "2027-03-24T18:42:59-04:00", "finished": "2027-03-24T18:43:01-04:00", "duration_sec": 0.0, "reused_check_cascade": true, "action": "defer", "reason": "gap_contender_window_feasible"}], "archive_count": 1}

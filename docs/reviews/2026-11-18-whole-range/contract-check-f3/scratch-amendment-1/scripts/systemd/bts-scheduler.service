@@ -1,0 +1,20 @@
+[Unit]
+Description=BTS Dynamic Lineup Scheduler
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+NotifyAccess=all
+WatchdogSec=1800
+WorkingDirectory=/home/bts/projects/bts
+Environment=UV_CACHE_DIR=/tmp/uv-cache
+Environment=PATH=/home/bts/.local/bin:/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=/home/bts/projects/bts/.env
+ExecStart=/home/bts/.local/bin/uv run bts schedule --config /home/bts/.bts-orchestrator.toml
+Restart=always
+SuccessExitStatus=143
+RestartSec=30
+
+[Install]
+WantedBy=default.target

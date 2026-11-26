@@ -1,0 +1,72 @@
+{
+  "auto_stale_dm": {
+    "byte_identical": true,
+    "diffs": {},
+    "ok": true
+  },
+  "caller_already_delivered": {
+    "byte_identical": true,
+    "diffs": {},
+    "ok": true
+  },
+  "caller_attempted_unconfirmed": {
+    "byte_identical": true,
+    "diffs": {},
+    "ok": true
+  },
+  "caller_contest_refusal": {
+    "byte_identical": true,
+    "diffs": {},
+    "ok": true
+  },
+  "caller_late_refusal": {
+    "byte_identical": true,
+    "diffs": {},
+    "ok": true
+  },
+  "caller_void_refusal": {
+    "byte_identical": true,
+    "diffs": {},
+    "ok": true
+  },
+  "lineup_dm": {
+    "byte_identical": true,
+    "diffs": {},
+    "ok": true
+  },
+  "lineup_private": {
+    "byte_identical": true,
+    "diffs": {},
+    "ok": true
+  },
+  "lineup_public": {
+    "byte_identical": true,
+    "diffs": {},
+    "ok": true
+  },
+  "post_loop_fallback_dm": {
+    "byte_identical": true,
+    "diffs": {},
+    "ok": true
+  },
+  "post_loop_missed_pick": {
+    "byte_identical": true,
+    "diffs": {},
+    "ok": true
+  },
+  "slept_fallback_dm": {
+    "byte_identical": true,
+    "diffs": {},
+    "ok": true
+  },
+  "slept_fallback_private": {
+    "byte_identical": true,
+    "diffs": {},
+    "ok": true
+  },
+  "slept_fallback_public": {
+    "byte_identical": true,
+    "diffs": {},
+    "ok": true
+  }
+}

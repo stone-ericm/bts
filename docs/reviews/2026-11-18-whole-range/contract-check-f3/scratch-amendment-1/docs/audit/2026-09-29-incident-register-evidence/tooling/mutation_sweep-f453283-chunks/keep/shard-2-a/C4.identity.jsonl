@@ -1,0 +1,3 @@
+{"node": "tests.scripts.incident_register.test_certify::test_event_before_the_branch_is_rejected", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_certify::test_reused_frame_id_splits_invocations", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_certify::test_exit_then_frame_reuse_splits_invocations", "kind": "assertion"}

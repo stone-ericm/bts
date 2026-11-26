@@ -1,0 +1,3 @@
+{"node": "tests.scripts.incident_register.test_defence::test_collection_error_in_the_baseline_is_rejected", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_replay::test_collection_error_at_the_parent_is_rejected", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_runner::test_collection_error_rejects_the_run", "kind": "assertion"}

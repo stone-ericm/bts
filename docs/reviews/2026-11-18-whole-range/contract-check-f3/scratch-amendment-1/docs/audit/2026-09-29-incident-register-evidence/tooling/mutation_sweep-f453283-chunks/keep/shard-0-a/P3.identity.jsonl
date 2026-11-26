@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_replay::test_collection_error_at_the_parent_is_rejected", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_replay::test_an_unrelated_red_teardown_error_is_rejected", "kind": "assertion"}

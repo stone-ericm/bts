@@ -1,0 +1,512 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-cs1
+configfile: pyproject.toml
+testpaths: tests
+plugins: anyio-4.13.0
+collected 4966 items / 6 deselected / 1 skipped / 4960 selected
+
+tests/data/test_build.py .........................                       [  0%]
+tests/data/test_pull.py ..........                                       [  0%]
+tests/data/test_schema.py ....                                           [  0%]
+tests/data/test_swing_pull.py .....                                      [  0%]
+tests/health/test_alert.py .......................                       [  1%]
+tests/health/test_analytics_artifacts_missing.py .............           [  1%]
+tests/health/test_attention.py .................                         [  1%]
+tests/health/test_backup_freshness.py ..........                         [  2%]
+tests/health/test_blend_training.py .........                            [  2%]
+tests/health/test_calibration.py ..........................              [  2%]
+tests/health/test_contest_state.py ................                      [  3%]
+tests/health/test_deploy_iso_stamp.py ...                                [  3%]
+tests/health/test_disk_fill.py ......                                    [  3%]
+tests/health/test_f4_exception_propagation.py .........                  [  3%]
+tests/health/test_fallback_defer.py ......                               [  3%]
+tests/health/test_h6_resurface.py ....                                   [  3%]
+tests/health/test_late_delivery.py ............                          [  3%]
+tests/health/test_leaderboard_freshness.py .....                         [  4%]
+tests/health/test_live_forward_resolution.py .........                   [  4%]
+tests/health/test_mdp_policy_alignment.py ........                       [  4%]
+tests/health/test_memory_growth.py ......................                [  4%]
+tests/health/test_park_drag_freshness.py .......                         [  5%]
+tests/health/test_pick_entry_source.py ......                            [  5%]
+tests/health/test_pitcher_sparsity.py .........                          [  5%]
+tests/health/test_pooled_training.py .........                           [  5%]
+tests/health/test_post_failure.py ................                       [  5%]
+tests/health/test_postponed_pick.py ........                             [  5%]
+tests/health/test_predicted_vs_realized.py ...................           [  6%]
+tests/health/test_projected_lineup.py ......                             [  6%]
+tests/health/test_realized_calibration.py .............................. [  7%]
+..                                                                       [  7%]
+tests/health/test_restart_spike.py .............                         [  7%]
+tests/health/test_result_resolution.py ............                      [  7%]
+tests/health/test_runner.py .....................                        [  8%]
+tests/health/test_same_team_corr.py ..............                       [  8%]
+tests/health/test_scheduler_state_integrity_source.py .....              [  8%]
+tests/health/test_since_deploy_iso_compare.py ....                       [  8%]
+tests/health/test_slate_auc.py .........                                 [  8%]
+tests/health/test_streak_validation.py ........                          [  8%]
+tests/health/test_tail_policy_health.py .....                            [  8%]
+tests/health/test_unit_drift.py .........                                [  9%]
+tests/leaderboard/test_analysis.py ............                          [  9%]
+tests/leaderboard/test_auth.py ......................................... [ 10%]
+......                                                                   [ 10%]
+tests/leaderboard/test_auth_session.py ..                                [ 10%]
+tests/leaderboard/test_cli.py ........                                   [ 10%]
+tests/leaderboard/test_models.py ...........                             [ 10%]
+tests/leaderboard/test_ratelimit.py ...                                  [ 10%]
+tests/leaderboard/test_safe_filename.py ...                              [ 10%]
+tests/leaderboard/test_scraper.py ..........................             [ 11%]
+tests/leaderboard/test_scraper_stealth.py ...........                    [ 11%]
+tests/leaderboard/test_static_capture.py .................               [ 11%]
+tests/leaderboard/test_storage.py ............                           [ 12%]
+tests/scripts/c1_r3/test_count_build_e2e.py ............................ [ 12%]
+.........................................                                [ 13%]
+tests/scripts/c1_r3/test_count_build_parts.py .......................... [ 14%]
+............                                                             [ 14%]
+tests/scripts/c1_r3/test_count_meta.py ................                  [ 14%]
+tests/scripts/c1_r4a/test_calendar_population_outcomes.py .............. [ 14%]
+........................................................                 [ 16%]
+tests/scripts/c1_r4a/test_fit_evaluate.py ..................             [ 16%]
+tests/scripts/c1_r4a/test_provenance_stored.py .....s................... [ 16%]
+....                                                                     [ 17%]
+tests/scripts/c1_r4a/test_run_e2e.py .................................   [ 17%]
+tests/scripts/c1_r4b/test_data_fit.py ....................               [ 18%]
+tests/scripts/c1_r4b/test_generator_check.py ............                [ 18%]
+tests/scripts/c1_r4b/test_project.py .................                   [ 18%]
+tests/scripts/c1_r4b/test_replay.py ............                         [ 18%]
+tests/scripts/c1_r4b/test_run_e2e.py ....................                [ 19%]
+tests/scripts/c1_r4b/test_run_logic.py ................................. [ 20%]
+.......                                                                  [ 20%]
+tests/scripts/c1_r4b/test_solvers.py .........                           [ 20%]
+tests/scripts/c2_framing/test_f26_hook.py ...............                [ 20%]
+tests/scripts/c2_framing/test_f26_rules.py ............................. [ 21%]
+.......................................................................  [ 22%]
+tests/scripts/c2_framing/test_f26_run.py ............................... [ 23%]
+........................................................................ [ 24%]
+........................................................................ [ 26%]
+..............                                                           [ 26%]
+tests/scripts/c2_framing/test_f26_studio.py ....................         [ 26%]
+tests/scripts/c2_framing/test_screen.py ................................ [ 27%]
+........................................................................ [ 28%]
+........................................................................ [ 30%]
+........................................................................ [ 31%]
+....................F.............................                       [ 32%]
+tests/scripts/incident_register/test_certify.py ........................ [ 33%]
+..............                                                           [ 33%]
+tests/scripts/incident_register/test_defence.py ........................ [ 34%]
+.....                                                                    [ 34%]
+tests/scripts/incident_register/test_deploy_runs.py .................    [ 34%]
+tests/scripts/incident_register/test_expected_failure.py ............... [ 34%]
+..                                                                       [ 34%]
+tests/scripts/incident_register/test_fresh_counterexamples.py .......... [ 35%]
+.......................                                                  [ 35%]
+tests/scripts/incident_register/test_owned.py .......................... [ 36%]
+                                                                         [ 36%]
+tests/scripts/incident_register/test_r10_counterexamples.py ............ [ 36%]
+........................................................................ [ 37%]
+.................................                                        [ 38%]
+tests/scripts/incident_register/test_r4_counterexamples.py ............. [ 38%]
+....                                                                     [ 38%]
+tests/scripts/incident_register/test_r5_counterexamples.py ............. [ 39%]
+....sssss.......                                                         [ 39%]
+tests/scripts/incident_register/test_r6_counterexamples.py .........sss. [ 39%]
+.                                                                        [ 39%]
+tests/scripts/incident_register/test_r7_counterexamples.py ............. [ 39%]
+.                                                                        [ 39%]
+tests/scripts/incident_register/test_r8_counterexamples.py ............. [ 40%]
+.....                                                                    [ 40%]
+tests/scripts/incident_register/test_r9_counterexamples.py ............. [ 40%]
+...............                                                          [ 40%]
+tests/scripts/incident_register/test_replay.py ...........               [ 41%]
+tests/scripts/incident_register/test_runner.py ......................... [ 41%]
+......                                                                   [ 41%]
+tests/scripts/incident_register/test_sweep_classifier.py ............... [ 42%]
+.                                                                        [ 42%]
+tests/scripts/season_ledger/test_acquire.py ..                           [ 42%]
+tests/scripts/season_ledger/test_bundle_io.py .............              [ 42%]
+tests/scripts/season_ledger/test_compile.py .....................        [ 42%]
+tests/scripts/season_ledger/test_contest.py .........                    [ 42%]
+tests/scripts/season_ledger/test_day_records.py ........                 [ 43%]
+tests/scripts/season_ledger/test_matching.py ...........                 [ 43%]
+tests/scripts/season_ledger/test_outcomes.py ......                      [ 43%]
+tests/scripts/season_ledger/test_pick_files.py ...........               [ 43%]
+tests/scripts/season_ledger/test_reconcile.py .......................... [ 44%]
+..................                                                       [ 44%]
+tests/scripts/season_ledger/test_rows.py ..............................  [ 45%]
+tests/scripts/season_ledger/test_static.py .........                     [ 45%]
+tests/scripts/test_audit_mdp_live_aggressiveness.py .                    [ 45%]
+tests/scripts/test_benchmark_bridge.py ...........................       [ 45%]
+tests/scripts/test_bin_collapse_read.py ..                               [ 45%]
+tests/scripts/test_bts_scoring_change_check.py ..........                [ 46%]
+tests/scripts/test_c1_admission.py .........................             [ 46%]
+tests/scripts/test_c1_cycle.py .................................FF...... [ 47%]
+...............................FF.......                                 [ 48%]
+tests/scripts/test_c1_r3_acquire.py .................................... [ 49%]
+                                                                         [ 49%]
+tests/scripts/test_canonicalize_realized_picks.py ...........            [ 49%]
+tests/scripts/test_canonicalize_realized_picks_p1.py ................    [ 49%]
+tests/scripts/test_dd_p_value_sensitivity.py ................            [ 49%]
+tests/scripts/test_determinism_gap_bound.py .....                        [ 50%]
+tests/scripts/test_dr_mdp_gap_measure.py ............                    [ 50%]
+tests/scripts/test_evaluate_mdp_dd_guardrail.py ........                 [ 50%]
+tests/scripts/test_field_products_census.py ..........                   [ 50%]
+tests/scripts/test_field_products_cohort.py ..........                   [ 50%]
+tests/scripts/test_field_products_compare.py ..............              [ 51%]
+tests/scripts/test_field_products_leaders.py ...                         [ 51%]
+tests/scripts/test_field_products_ledger.py .........                    [ 51%]
+tests/scripts/test_field_products_picks.py ............................. [ 51%]
+                                                                         [ 51%]
+tests/scripts/test_field_products_run.py ....................            [ 52%]
+tests/scripts/test_field_products_sources.py ....                        [ 52%]
+tests/scripts/test_field_products_streaks.py ..................          [ 52%]
+tests/scripts/test_final_leaderboard_grab.py ........................... [ 53%]
+...............................                                          [ 53%]
+tests/scripts/test_gate_b_fair_comparator_rebaseline.py ...              [ 53%]
+tests/scripts/test_gate_b_production_metric_rebaseline.py ..             [ 54%]
+tests/scripts/test_gate_b_walk_forward_policy_eval.py ...                [ 54%]
+tests/scripts/test_generate_mdp_dd_guardrail_profiles.py .               [ 54%]
+tests/scripts/test_inventory_validation_splits.py ......                 [ 54%]
+tests/scripts/test_leaderboard_backfilled_model_audit.py ........        [ 54%]
+tests/scripts/test_leaderboard_candidate_join_audit.py ...               [ 54%]
+tests/scripts/test_leaderboard_mechanism_mining.py .....                 [ 54%]
+tests/scripts/test_live_forward_capture_once.py ........................ [ 55%]
+........................                                                 [ 55%]
+tests/scripts/test_live_forward_provenance_inventory.py .........        [ 55%]
+tests/scripts/test_live_forward_resolve_once.py ...........              [ 55%]
+tests/scripts/test_live_forward_surface_export.py .....                  [ 56%]
+tests/scripts/test_measure_pa_basis_rebin_gate.py ....                   [ 56%]
+tests/scripts/test_measure_raw_rebin_gate.py ...                         [ 56%]
+tests/scripts/test_mining87_consensus.py ............................... [ 56%]
+......                                                                   [ 56%]
+tests/scripts/test_mining87_inference.py ......................          [ 57%]
+tests/scripts/test_mining87_production.py ..........                     [ 57%]
+tests/scripts/test_mining87_run.py .........................             [ 58%]
+tests/scripts/test_mining87_surfaces.py ..........................       [ 58%]
+tests/scripts/test_mining87_units.py ......                              [ 58%]
+tests/scripts/test_mlb_benchmark.py .......................              [ 59%]
+tests/scripts/test_mlb_benchmark_metrics.py .........                    [ 59%]
+tests/scripts/test_p05_tail_policy_audit.py ...                          [ 59%]
+tests/scripts/test_phase_d_pooled_policy_outer_eval.py .....             [ 59%]
+tests/scripts/test_phase_d_pooled_policy_postmortem.py ....              [ 59%]
+tests/scripts/test_pooled_policy_gap_ci.py ..                            [ 59%]
+tests/scripts/test_production_live_boundary_feasibility.py ..            [ 59%]
+tests/scripts/test_readme_live_record.py .                               [ 59%]
+tests/scripts/test_repeat_batter_conditioning.py .......                 [ 59%]
+tests/scripts/test_rolling_origin_policy_candidate_screen.py ......      [ 59%]
+tests/scripts/test_run_audit_verdict_fdr.py ...                          [ 60%]
+tests/scripts/test_run_falsification_harness.py ...                      [ 60%]
+tests/scripts/test_state_segment_policy_candidate_screen.py .....        [ 60%]
+tests/scripts/test_v2_5_attribution.py .....                             [ 60%]
+tests/scripts/test_v2_5_orchestration.py ..............                  [ 60%]
+tests/scripts/test_validate_calibration.py ....                          [ 60%]
+tests/scripts/test_w13_tests.py .....................                    [ 61%]
+tests/test_atomic_write.py ..                                            [ 61%]
+tests/test_audit_driver.py ............................................. [ 62%]
+....                                                                     [ 62%]
+tests/test_audit_progress.py .........................                   [ 62%]
+tests/test_audit_progress_traversal.py ...                               [ 62%]
+tests/test_backup.py ...........................                         [ 63%]
+tests/test_backup_cli.py .....                                           [ 63%]
+tests/test_bluesky_password.py ....                                      [ 63%]
+tests/test_boundary_shadow_census.py ..........                          [ 63%]
+tests/test_build_schema_assert.py ....                                   [ 63%]
+tests/test_check_hit_suspension.py ..........                            [ 63%]
+tests/test_check_results_wait.py ..............                          [ 64%]
+tests/test_cli_integration.py .......................................... [ 65%]
+............................                                             [ 65%]
+tests/test_cli_preview_date.py ...                                       [ 65%]
+tests/test_cli_schedule_date.py .                                        [ 65%]
+tests/test_cold_start_integration.py ...x                                [ 65%]
+tests/test_contest_fetch.py ..........................................   [ 66%]
+tests/test_contest_ledger.py .......                                     [ 66%]
+tests/test_contest_state.py .................                            [ 67%]
+tests/test_contest_state_best_trust.py .........                         [ 67%]
+tests/test_contest_state_corrupt_precedence.py ..                        [ 67%]
+tests/test_context_features.py ................                          [ 67%]
+tests/test_cutoff_candidate_exclusion.py .........                       [ 67%]
+tests/test_daily_decision.py ........                                    [ 67%]
+tests/test_daily_decision_v2.py ....                                     [ 68%]
+tests/test_daily_decision_v3.py ...                                      [ 68%]
+tests/test_dashboard_bind.py ...                                         [ 68%]
+tests/test_data_build_empty.py ......................................... [ 68%]
+.....................................................................    [ 70%]
+tests/test_day_outcome.py .............................................. [ 71%]
+..........                                                               [ 71%]
+tests/test_day_outcome_entry_sequence.py ............................... [ 72%]
+....                                                                     [ 72%]
+tests/test_decide_action.py .............                                [ 72%]
+tests/test_decision_saver_fallback.py ...                                [ 72%]
+tests/test_dm.py ......                                                  [ 72%]
+tests/test_e2_delivery_idempotency.py ...                                [ 72%]
+tests/test_e3_missed_pick_alert.py .......                               [ 72%]
+tests/test_entry_intent.py ............................................. [ 73%]
+...                                                                      [ 73%]
+tests/test_entry_receipt.py ............................................ [ 74%]
+.....                                                                    [ 74%]
+tests/test_fallback_plan.py .............                                [ 75%]
+tests/test_health_endpoint.py ............                               [ 75%]
+tests/test_heartbeat.py .................                                [ 75%]
+tests/test_heartbeat_churn.py ..........                                 [ 75%]
+tests/test_heartbeat_staleness.py .............                          [ 76%]
+tests/test_incident_2026_08_30.py ....                                   [ 76%]
+tests/test_incident_register_2026.py ................................... [ 76%]
+...........................                                              [ 77%]
+tests/test_incident_register_2026_meta.py ...                            [ 77%]
+tests/test_is_resume_date_game.py .....                                  [ 77%]
+tests/test_late_delivery_guard.py ........                               [ 77%]
+tests/test_lgb_params.py ..........                                      [ 77%]
+tests/test_lightgbm_optional.py .                                        [ 77%]
+tests/test_lineup_analyze.py .........                                   [ 78%]
+tests/test_lineup_collect.py ...........                                 [ 78%]
+tests/test_local_tier.py ....                                            [ 78%]
+tests/test_lock_decision.py .......                                      [ 78%]
+tests/test_london_series_tz.py ....                                      [ 78%]
+tests/test_orchestrator.py .............                                 [ 78%]
+tests/test_park_drag_feature.py ..................................       [ 79%]
+tests/test_park_drag_producer.py .............                           [ 79%]
+tests/test_pickpath_review_pp1.py ....                                   [ 79%]
+tests/test_pickpath_review_pp2.py ...................................... [ 80%]
+ss....ss....ss....ss.........                                            [ 81%]
+tests/test_picks.py .................................................... [ 82%]
+....................                                                     [ 82%]
+tests/test_picks_lineup_evolution.py ........                            [ 82%]
+tests/test_posting.py ................                                   [ 83%]
+tests/test_postponed_delivery_guard.py ........................          [ 83%]
+tests/test_predict_json.py ....                                          [ 83%]
+tests/test_private_mode.py ..                                            [ 83%]
+tests/test_private_mode_transport.py ........                            [ 84%]
+tests/test_progress.py ........                                          [ 84%]
+tests/test_receipt_io.py ......                                          [ 84%]
+tests/test_reconcile_cutoff.py ..................                        [ 84%]
+tests/test_reconcile_receipt.py ......................................   [ 85%]
+tests/test_refresh_memo.py ..........                                    [ 85%]
+tests/test_saver_state.py ................                               [ 85%]
+tests/test_scheduler.py ................................................ [ 86%]
+............................                                             [ 87%]
+tests/test_scheduler_decision_record.py .........                        [ 87%]
+tests/test_scheduler_decision_record_integration.py .................... [ 88%]
+....                                                                     [ 88%]
+tests/test_scheduler_eve_of_break.py ..........                          [ 88%]
+tests/test_scheduler_fallback_deadline.py .......                        [ 88%]
+tests/test_scheduler_no_games.py .                                       [ 88%]
+tests/test_scheduler_skip_visibility.py ................................ [ 89%]
+.......                                                                  [ 89%]
+tests/test_scheduler_state_integrity.py .......                          [ 89%]
+tests/test_scheduler_tail_objective.py .........                         [ 89%]
+tests/test_scheduler_watchdog_discipline.py .                            [ 89%]
+tests/test_schema_version.py ....                                        [ 89%]
+tests/test_scorecard.py ................................................ [ 90%]
+..................................................                       [ 91%]
+tests/test_scoring_lock.py .......                                       [ 91%]
+tests/test_sd_notify.py .FF.F                                            [ 91%]
+tests/test_season_end_date.py ........                                   [ 92%]
+tests/test_season_rollover_data.py .............................         [ 92%]
+tests/test_shadow_eval.py ................                               [ 93%]
+tests/test_shadow_picks.py ......                                        [ 93%]
+tests/test_shadow_pipeline.py ....                                       [ 93%]
+tests/test_shadow_predict_once.py ....                                   [ 93%]
+tests/test_shadow_report.py .....                                        [ 93%]
+tests/test_shadow_scheduler.py ........                                  [ 93%]
+tests/test_skip_policy_shadow.py ...................................     [ 94%]
+tests/test_slate.py ........                                             [ 94%]
+tests/test_slate_rank.py ......                                          [ 94%]
+tests/test_state_export.py ....                                          [ 94%]
+tests/test_state_regenerate.py ...............                           [ 94%]
+tests/test_state_verify.py ....                                          [ 95%]
+tests/test_strategy.py ................................................  [ 95%]
+tests/test_streak_applied_dates.py .......                               [ 96%]
+tests/test_streak_replay.py .........                                    [ 96%]
+tests/test_submission_cutoff.py .....                                    [ 96%]
+tests/test_swing_features.py ............                                [ 96%]
+tests/test_sync.py .........................                             [ 97%]
+tests/test_tail_policy_artifact_contract.py ....                         [ 97%]
+tests/test_tail_policy_r3_fixes.py ...................                   [ 97%]
+tests/test_tail_policy_strategy.py .........................             [ 98%]
+tests/test_tail_provenance.py ...                                        [ 98%]
+tests/test_thin_slate_checks.py ..............                           [ 98%]
+tests/test_util.py ..........                                            [ 98%]
+tests/test_warmup_lock_classification.py ........                        [ 98%]
+tests/test_web_audit_progress.py ..........                              [ 99%]
+tests/test_web_render.py ............................                    [ 99%]
+tests/test_web_saver.py .........F..                                     [ 99%]
+tests/test_web_skip_policy_shadow.py ...                                 [ 99%]
+tests/test_web_streak_subtitle.py .....                                  [100%]
+
+=================================== FAILURES ===================================
+___________________ test_the_boundary_admits_the_real_suite ____________________
+
+    def test_the_boundary_admits_the_real_suite():
+>       assert R.boundary_problems(ROOT, ["tests/scripts/c2_framing/test_screen.py"]) == []
+E       AssertionError: assert ['tests/test_...ot committed'] == []
+E         
+E         Left contains 2 more items, first extra item: 'tests/test_contest_state_best_trust.py: differs from the commit'
+E         Use -v to get more diff
+
+tests/scripts/c2_framing/test_screen.py:2346: AssertionError
+_ test_the_guard_runs_the_job_in_the_payload_leaf_and_writes_a_terminal_receipt _
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-3364/test_the_guard_runs_the_job_in0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x119630860>
+
+    def test_the_guard_runs_the_job_in_the_payload_leaf_and_writes_a_terminal_receipt(tmp_path, monkeypatch):
+        cg = fake_cgroup(tmp_path)
+        rc, rec = run_guard(tmp_path, monkeypatch, cg, [sys.executable, "-c", "import os; print(os.getpid())"])
+>       assert rc == 0 and rec["result"] == "exit" and rec["rc"] == 0 and rec["cpu_seconds"] == 1.0
+E       assert (87 == 0)
+
+tests/scripts/test_c1_cycle.py:277: AssertionError
+----------------------------- Captured stderr call -----------------------------
+guard preexec failed: PermissionError: [Errno 1] Operation not permitted
+_________ test_the_guard_reports_an_overrun_after_killing_the_payload __________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-3364/test_the_guard_reports_an_over0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118202f00>
+
+    def test_the_guard_reports_an_overrun_after_killing_the_payload(tmp_path, monkeypatch):
+        cg = fake_cgroup(tmp_path, usage_usec=399_000_000)
+        rc, rec = run_guard(tmp_path, monkeypatch, cg, [sys.executable, "-c", "import time; time.sleep(0.2)"])
+>       assert rc == guard.OVERRUN_EXIT and rec["result"] == "overrun"
+E       assert (87 == 86)
+E        +  where 86 = guard.OVERRUN_EXIT
+
+tests/scripts/test_c1_cycle.py:284: AssertionError
+----------------------------- Captured stderr call -----------------------------
+guard preexec failed: PermissionError: [Errno 1] Operation not permitted
+__________ test_a_nested_descendant_is_killed_before_the_measurement ___________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-3364/test_a_nested_descendant_is_ki0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1197b8770>
+
+    def test_a_nested_descendant_is_killed_before_the_measurement(tmp_path, monkeypatch):
+        """r2 N5: the leader exits; the recursive payload is still populated (a nested cgroup). The guard kills it and
+        confirms emptiness before recording."""
+        cg = fake_cgroup(tmp_path)
+        events = cg / "payload" / "cgroup.events"
+        real_populated = guard.populated
+    
+        def populated(c):
+            if (c / "cgroup.kill").read_text() == "1":          # the kill was written: the fake subtree empties
+                events.write_text("populated 0\n")
+            return real_populated(c)
+        monkeypatch.setattr(guard, "populated", populated)
+        events.write_text("populated 1\n")
+        rc, rec = run_guard(tmp_path, monkeypatch, cg, [sys.executable, "-c", "pass"])
+>       assert rec["result"] == "exit" and rec["leftover"] is True and (cg / "payload" / "cgroup.kill").read_text() == "1"
+E       AssertionError: assert ('guard-error' == 'exit'
+E         
+E         - exit
+E         + guard-error)
+
+tests/scripts/test_c1_cycle.py:584: AssertionError
+----------------------------- Captured stderr call -----------------------------
+guard preexec failed: PermissionError: [Errno 1] Operation not permitted
+_________ test_an_unconfirmed_empty_payload_is_an_enforcement_failure __________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-3364/test_an_unconfirmed_empty_payl0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1197b9700>
+
+    def test_an_unconfirmed_empty_payload_is_an_enforcement_failure(tmp_path, monkeypatch):
+        cg = fake_cgroup(tmp_path)
+        (cg / "payload" / "cgroup.events").write_text("populated 1\n")      # never empties
+        monkeypatch.setattr(guard, "CONFIRM_S", 0.4)
+        monkeypatch.setattr(guard.time, "sleep", lambda s: None)
+        rc, rec = run_guard(tmp_path, monkeypatch, cg, [sys.executable, "-c", "pass"])
+>       assert rc == guard.GUARD_ERROR_EXIT and rec["result"] == "guard-error" and "not confirmed empty" in rec["reason"]
+E       AssertionError: assert (87 == 87 and 'guard-error' == 'guard-error'
+E        +  where 87 = guard.GUARD_ERROR_EXIT
+E         
+E           guard-error and 'not confirmed empty' in 'the job could not start: Exception occurred in preexec_fn.')
+
+tests/scripts/test_c1_cycle.py:593: AssertionError
+----------------------------- Captured stderr call -----------------------------
+guard preexec failed: PermissionError: [Errno 1] Operation not permitted
+_________________ test_sends_watchdog_message_when_socket_set __________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x119dc1df0>
+short_sock_path = '/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/sd_ck9z3c_y/s'
+
+    def test_sends_watchdog_message_when_socket_set(monkeypatch, short_sock_path):
+        """When NOTIFY_SOCKET is a valid unix socket, WATCHDOG=1 is sent."""
+        srv = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+>       srv.bind(short_sock_path)
+E       PermissionError: [Errno 1] Operation not permitted
+
+tests/test_sd_notify.py:55: PermissionError
+___________________ test_sends_ready_message_when_socket_set ___________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x119dc1670>
+short_sock_path = '/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/sd_0493648q/s'
+
+    def test_sends_ready_message_when_socket_set(monkeypatch, short_sock_path):
+        """notify_ready() sends READY=1."""
+        srv = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+>       srv.bind(short_sock_path)
+E       PermissionError: [Errno 1] Operation not permitted
+
+tests/test_sd_notify.py:69: PermissionError
+__________________ test_non_encodable_message_does_not_raise ___________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x119dc0260>
+short_sock_path = '/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/sd_xh80q2pq/s'
+
+    def test_non_encodable_message_does_not_raise(monkeypatch, short_sock_path):
+        """notify_raw with a non-ASCII-surrogate message must not raise
+        UnicodeEncodeError — it's fire-and-forget."""
+        srv = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+>       srv.bind(short_sock_path)
+E       PermissionError: [Errno 1] Operation not permitted
+
+tests/test_sd_notify.py:91: PermissionError
+_________________ test_do_post_saver_transition_socket_wiring __________________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-3364/test_do_post_saver_transition_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x11c8aa5d0>
+
+    def test_do_post_saver_transition_socket_wiring(tmp_path, monkeypatch):
+        _setup(tmp_path, "active")
+>       srv = _serve(tmp_path, monkeypatch)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_web_saver.py:132: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_web_saver.py:107: in _serve
+    srv = HTTPServer(("127.0.0.1", 0), web.Handler)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/socketserver.py:457: in __init__
+    self.server_bind()
+../../.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/http/server.py:140: in server_bind
+    socketserver.TCPServer.server_bind(self)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <http.server.HTTPServer object at 0x11c8aa900>
+
+    def server_bind(self):
+        """Called by constructor to bind the socket.
+    
+        May be overridden.
+    
+        """
+        if self.allow_reuse_address and hasattr(socket, "SO_REUSEADDR"):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # Since Linux 6.12.9, SO_REUSEPORT is not allowed
+        # on other address families than AF_INET/AF_INET6.
+        if (
+            self.allow_reuse_port and hasattr(socket, "SO_REUSEPORT")
+            and self.address_family in (socket.AF_INET, socket.AF_INET6)
+        ):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+>       self.socket.bind(self.server_address)
+E       PermissionError: [Errno 1] Operation not permitted
+
+../../.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/socketserver.py:478: PermissionError
+=========================== short test summary info ============================
+FAILED tests/scripts/c2_framing/test_screen.py::test_the_boundary_admits_the_real_suite
+FAILED tests/scripts/test_c1_cycle.py::test_the_guard_runs_the_job_in_the_payload_leaf_and_writes_a_terminal_receipt
+FAILED tests/scripts/test_c1_cycle.py::test_the_guard_reports_an_overrun_after_killing_the_payload
+FAILED tests/scripts/test_c1_cycle.py::test_a_nested_descendant_is_killed_before_the_measurement
+FAILED tests/scripts/test_c1_cycle.py::test_an_unconfirmed_empty_payload_is_an_enforcement_failure
+FAILED tests/test_sd_notify.py::test_sends_watchdog_message_when_socket_set
+FAILED tests/test_sd_notify.py::test_sends_ready_message_when_socket_set - Pe...
+FAILED tests/test_sd_notify.py::test_non_encodable_message_does_not_raise - P...
+FAILED tests/test_web_saver.py::test_do_post_saver_transition_socket_wiring
+= 9 failed, 4933 passed, 18 skipped, 6 deselected, 1 xfailed in 1964.00s (0:32:43) =

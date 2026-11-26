@@ -1,0 +1,2 @@
+2026-11-20 01:02:57 started pid 67920: env TZ=America/New_York PYTHONDONTWRITEBYTECODE=1 MPLCONFIGDIR=.codex-review/wr-c2b/.mplconfig .venv/bin/python -m pytest -p no:cacheprovider tests/test_wr_c2_recovery.py tests/test_wr_c2_carbon_v2.py tests/test_wr_c2_r2_carbon.py tests/test_wr_c2_receipt_identity.py tests/test_lightgbm_optional.py tests/test_web_saver.py tests/test_alert_status_callers_cs6b2.py tests/test_late_delivery_guard.py tests/test_stale_delivery_cs4c.py tests/test_stale_delivery_cs4c_carbon.py tests/test_morning_state_cs6b1.py
+2026-11-20 01:03:57 exited rc=0

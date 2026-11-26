@@ -1,0 +1,928 @@
+"""Daily BTS prediction: generate ranked picks for a given date."""
+
+import json
+import os
+import pickle  # noqa: S403 — caching trained ML models, not untrusted data
+import sys
+import numpy as np
+import pandas as pd
+import lightgbm as lgb
+from pathlib import Path
+from urllib.request import urlopen
+
+from bts import progress
+from bts.features.compute import compute_all_features, FEATURE_COLS, CONTEXT_COLS, STATCAST_COLS, TRAIN_START_YEAR
+from bts.features.park_drag import with_pinned_artifact as _park_drag_pin
+from bts.picks import is_resume_date_game
+from bts.util import is_regular_season_game
+
+API_BASE = "https://statsapi.mlb.com"
+
+def _build_blend_configs(base_feature_cols: list[str] | None = None) -> list[tuple[str, list[str]]]:
+    """Build the 12-model blend config list.
+
+    When base_feature_cols is None, uses FEATURE_COLS (production).
+    When provided (e.g., FEATURE_COLS + CONTEXT_COLS), substitutes
+    the base for shadow model training.
+    """
+    base = base_feature_cols or FEATURE_COLS
+    return [
+        ("baseline", base),
+        ("barrel", base + ["batter_barrel_rate_30g"]),
+        ("hard_hit", base + ["batter_hard_hit_rate_30g"]),
+        ("sweet_spot", base + ["batter_sweet_spot_rate_30g"]),
+        ("avg_ev", base + ["batter_avg_ev_30g"]),
+        ("velo", base + ["pitcher_avg_velo_30g"]),
+        ("spin", base + ["pitcher_avg_spin_30g"]),
+        ("extension", base + ["pitcher_avg_extension_30g"]),
+        ("break", base + ["pitcher_break_total_30g"]),
+        ("velo_faced", base + ["batter_avg_velo_faced_30g"]),
+        ("best_two", base + ["batter_sweet_spot_rate_30g", "pitcher_avg_extension_30g"]),
+        ("all_statcast", base + STATCAST_COLS),
+    ]
+
+
+# Module-level constant for backward compat (used by train_model, coercion loop)
+BLEND_CONFIGS = _build_blend_configs()
+
+LGB_PARAMS = dict(
+    n_estimators=200, max_depth=6, learning_rate=0.05, num_leaves=31,
+    min_child_samples=50, subsample=0.8, colsample_bytree=0.8,
+    verbose=-1,
+)
+
+# Cross-provider / cross-machine bit-identical training is opt-in via env var.
+# Set BTS_LGBM_DETERMINISTIC=1 to force LightGBM into bit-exact-reproducible mode
+# (required to pool seeds across providers — see project_bts_oci_provider_add.md +
+# project_bts_ax102_pivot.md for the OCI E5.Flex drift evidence that motivated this).
+# Default OFF preserves shipped P(57)=8.17% pooled until a deliberate re-baseline
+# cycle. When ON, LightGBM trades a small amount of training speed for parallel-
+# reduction order stability.
+import os as _os
+if _os.environ.get("BTS_LGBM_DETERMINISTIC", "0") == "1":
+    LGB_PARAMS["deterministic"] = True
+    LGB_PARAMS["force_row_wise"] = True
+
+
+def _lgbm_random_state() -> int:
+    """Training random_state, overridable for multi-seed live prediction runs."""
+    return int(_os.environ.get("BTS_LGBM_RANDOM_STATE", "42"))
+
+
+# Pitchers averaging < 3 IP over their recent appearances are likely openers/relievers
+OPENER_IP_THRESHOLD = 3.0
+OPENER_MIN_APPEARANCES = 5
+
+# Players with this many days rest get flagged as IL return risk
+IL_RETURN_DAYS_THRESHOLD = 7
+
+
+def train_model(df: pd.DataFrame, feature_cols: list[str] | None = None) -> lgb.LGBMClassifier:
+    """Train single LightGBM on historical PA data (2019+)."""
+    cols = feature_cols or FEATURE_COLS
+    train = df[df["season"] >= TRAIN_START_YEAR]
+    train_X = train[cols]
+    train_y = train["is_hit"]
+    mask = train_X.notna().any(axis=1)
+
+    model = lgb.LGBMClassifier(**LGB_PARAMS, random_state=_lgbm_random_state())
+    model.fit(train_X[mask], train_y[mask])
+    return model
+
+
+def train_blend(
+    df: pd.DataFrame,
+    base_feature_cols: list[str] | None = None,
+    blend_configs: list | None = None,
+    lgb_params: dict | None = None,
+) -> dict:
+    """Train 12-model blend on historical PA data (2019+).
+
+    Returns dict of {name: (model, feature_cols)} for each blend variant.
+    When base_feature_cols is provided, uses it instead of FEATURE_COLS
+    as the base for all blend configs (shadow model).
+    ``blend_configs``/``lgb_params`` are an opt-in experiment path used by
+    live-forward audit artifact logging; the default production path is
+    unchanged when they are not supplied.
+    """
+    configs = blend_configs or _build_blend_configs(base_feature_cols)
+    params = lgb_params or LGB_PARAMS
+    train = df[df["season"] >= TRAIN_START_YEAR]
+    train_y = train["is_hit"]
+    random_state = _lgbm_random_state()
+    blend = {}
+
+    for config in configs:
+        progress.mark(f"training_blend_{config[0]}")
+        if len(config) == 2:
+            name, cols = config
+            extra_params = {}
+        else:
+            name, cols, extra_params = config
+
+        if extra_params:
+            unsupported = extra_params.get("engine") or extra_params.get("objective")
+            if unsupported:
+                raise ValueError(
+                    "live prediction blend overrides only support LightGBM "
+                    f"classifier configs; {name!r} has unsupported {unsupported!r}"
+                )
+            from bts.simulate.backtest_blend import _train_lgbm_classifier
+
+            model = _train_lgbm_classifier(train, cols, {**params, **extra_params})
+        else:
+            train_X = train[cols]
+            mask = train_X.notna().any(axis=1)
+            model = lgb.LGBMClassifier(**params, random_state=random_state)
+            model.fit(train_X[mask], train_y[mask])
+        blend[name] = (model, cols)
+
+    return blend
+
+
+def save_blend(blend: dict, path) -> None:
+    """Save trained blend models to disk."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "wb") as f:
+        pickle.dump(blend, f)
+
+
+def load_blend(path) -> dict:
+    """Load trained blend models from disk."""
+    with open(path, "rb") as f:
+        return pickle.load(f)  # noqa: S301 — loading our own cached models
+
+
+def _check_opener(pitcher_id: int, df: pd.DataFrame) -> dict:
+    """Check if a pitcher is likely an opener based on recent usage.
+
+    Returns dict with is_opener flag and avg innings per appearance.
+    """
+    pitcher_pas = df[df["pitcher_id"] == pitcher_id]
+    if len(pitcher_pas) == 0:
+        return {"is_opener": False, "avg_ip_approx": None, "appearances": 0, "note": "unknown pitcher"}
+
+    # Approximate IP from PA count per game (rough: 3 PA ≈ 1 IP)
+    game_pas = pitcher_pas.groupby(["date", "game_pk"]).size().reset_index(name="pa_count")
+    game_pas["approx_ip"] = game_pas["pa_count"] / 3.0
+
+    recent = game_pas.tail(10)  # last 10 appearances
+    avg_ip = recent["approx_ip"].mean()
+    n_apps = len(recent)
+
+    is_opener = avg_ip < OPENER_IP_THRESHOLD and n_apps >= OPENER_MIN_APPEARANCES
+
+    return {
+        "is_opener": is_opener,
+        "avg_ip_approx": round(avg_ip, 1),
+        "appearances": n_apps,
+        "note": "likely opener/reliever" if is_opener else "",
+    }
+
+
+def _pitcher_hand_lookup(df: pd.DataFrame) -> dict:
+    """pitcher_id -> throwing hand from history.
+
+    Handedness is a static attribute, so the latest observed value is not
+    temporal leakage. Used to resolve platoon_hr at inference (see
+    _resolve_pitcher_hand / audit M1).
+    """
+    return df.dropna(subset=["pitch_hand"]).groupby("pitcher_id")["pitch_hand"].last().to_dict()
+
+
+def _resolve_pitcher_hand(slot: dict, lookups: dict) -> str | None:
+    """Pitcher throwing hand for the platoon feature.
+
+    Live play data carries it, but at the game_time-45min pick the feed has no
+    plays and the schedule's probablePitcher hydrate omits pitchHand, so
+    slot["pitcher_hand"] is None for every production pick — making platoon_hr
+    silently NaN at inference while it is fully populated in training/backtest
+    (audit M1). Fall back to the pitcher's static handedness from history.
+    """
+    return slot.get("pitcher_hand") or lookups.get("pitcher_hand", {}).get(slot.get("pitcher_id"))
+
+
+def _blend_average_by_slot(pred_df: pd.DataFrame, per_model_pgame: list) -> pd.Series:
+    """Average each blend model's game-probability per SLOT (row), not per
+    batter, so a doubleheader batter's two game-rows don't collapse to one
+    shared value (audit M5). NaN model outputs for a row are skipped.
+    """
+    scores: dict = {}
+    for series in per_model_pgame:
+        for idx, val in series.items():
+            if pd.notna(val):
+                scores.setdefault(idx, []).append(val)
+    avg = {idx: float(np.mean(vals)) for idx, vals in scores.items()}
+    return pd.Series(pred_df.index.map(avg), index=pred_df.index)
+
+
+def _build_feature_lookups(df: pd.DataFrame) -> dict:
+    """Build lookup tables for latest feature values per entity."""
+    lookups = {}
+
+    # Batter rolling features
+    batter_cols = ["batter_hr_7g", "batter_hr_30g", "batter_hr_60g", "batter_hr_120g",
+                   "batter_whiff_60g", "batter_count_tendency_30g", "batter_gb_hit_rate"]
+    lookups["batter"] = {}
+    for col in batter_cols:
+        lookups["batter"][col] = df.dropna(subset=[col]).groupby("batter_id")[col].last().to_dict()
+
+    # Platoon
+    lookups["platoon"] = df.dropna(subset=["platoon_hr"]).groupby(
+        ["batter_id", "pitch_hand"]
+    )["platoon_hr"].last().to_dict()
+
+    # Pitcher
+    lookups["pitcher_hr"] = df.dropna(subset=["pitcher_hr_30g"]).groupby(
+        "pitcher_id"
+    )["pitcher_hr_30g"].last().to_dict()
+    lookups["pitcher_ent"] = df.dropna(subset=["pitcher_entropy_30g"]).groupby(
+        "pitcher_id"
+    )["pitcher_entropy_30g"].last().to_dict()
+
+    # Pitcher throwing hand (static) — lets platoon_hr resolve at inference when
+    # live play data and the schedule's probablePitcher hydrate lack pitchHand.
+    lookups["pitcher_hand"] = _pitcher_hand_lookup(df)
+
+    # Batter context features (shadow model)
+    if "batter_hard_contact_30g" in df.columns:
+        lookups["batter"]["batter_hard_contact_30g"] = df.dropna(
+            subset=["batter_hard_contact_30g"]
+        ).groupby("batter_id")["batter_hard_contact_30g"].last().to_dict()
+
+    # Umpire hit rate (shadow model)
+    if "ump_hr_30g" in df.columns and "hp_umpire_id" in df.columns:
+        lookups["umpire_hr"] = df.dropna(subset=["ump_hr_30g"]).groupby(
+            "hp_umpire_id"
+        )["ump_hr_30g"].last().to_dict()
+
+    # Batter Statcast features
+    batter_statcast_cols = ["batter_barrel_rate_30g", "batter_hard_hit_rate_30g",
+                            "batter_sweet_spot_rate_30g", "batter_avg_ev_30g",
+                            "batter_avg_velo_faced_30g"]
+    for col in batter_statcast_cols:
+        if col in df.columns:
+            lookups["batter"][col] = df.dropna(subset=[col]).groupby("batter_id")[col].last().to_dict()
+
+    # Catcher framing proxy
+    if "pitcher_catcher_framing" in df.columns:
+        lookups["pitcher_framing"] = df.dropna(subset=["pitcher_catcher_framing"]).groupby(
+            "pitcher_id"
+        )["pitcher_catcher_framing"].last().to_dict()
+
+    # Pitcher Statcast features
+    pitcher_statcast_cols = ["pitcher_avg_velo_30g", "pitcher_avg_spin_30g",
+                             "pitcher_avg_extension_30g", "pitcher_break_total_30g"]
+    lookups["pitcher_statcast"] = {}
+    for col in pitcher_statcast_cols:
+        if col in df.columns:
+            lookups["pitcher_statcast"][col] = df.dropna(subset=[col]).groupby(
+                "pitcher_id"
+            )[col].last().to_dict()
+
+    # Park factor
+    lookups["park"] = df.dropna(subset=["park_factor"]).groupby(
+        "venue_id"
+    )["park_factor"].last().to_dict()
+
+    # Team bullpen quality (opposing team's reliever hit rate)
+    if "opp_bullpen_hr_30g" in df.columns and "opp_pitching_team_id" in df.columns:
+        lookups["bullpen"] = df.dropna(subset=["opp_bullpen_hr_30g"]).groupby(
+            "opp_pitching_team_id"
+        )["opp_bullpen_hr_30g"].last().to_dict()
+
+    # Batter × pitcher Bayesian-shrunk hit rate (bpm). Promoted to FEATURE_COLS
+    # 2026-04-29; inference must lookup latest value per (batter, pitcher) pair
+    # because the model now expects this column. Missing pairs (debuts, new
+    # matchups) fall back to the league prior 0.2195 (see compute.py:636-664).
+    if "batter_pitcher_shrunk_hr" in df.columns:
+        lookups["batter_pitcher_hr"] = df.dropna(
+            subset=["batter_pitcher_shrunk_hr"]
+        ).groupby(["batter_id", "pitcher_id"])[
+            "batter_pitcher_shrunk_hr"
+        ].last().to_dict()
+    else:
+        lookups["batter_pitcher_hr"] = {}
+
+    # Batter last played date
+    lookups["last_date"] = df.groupby("batter_id")["date"].max().to_dict()
+
+    # --- Team bullpen composite ---
+    # Identify relievers: pitchers who aren't the first pitcher faced by batters in a game
+    import numpy as np
+    game_starters = {}
+    for gpk, game in df.groupby("game_pk"):
+        for is_home in [True, False]:
+            side = game[game["is_home"] == is_home]
+            if len(side) > 0:
+                game_starters[(gpk, is_home)] = side.iloc[0]["pitcher_id"]
+
+    df_copy = df.copy()
+    df_copy["_starter_id"] = df_copy.apply(
+        lambda r: game_starters.get((r["game_pk"], r["is_home"])), axis=1
+    )
+    df_copy["_is_reliever"] = df_copy["pitcher_id"] != df_copy["_starter_id"]
+
+    # Reliever PAs, grouped by opposing team (the team whose relievers are pitching)
+    # The "opposing team" for a batter is identified by NOT is_home
+    # We need team_id — approximate from venue or game structure
+    # Simpler: group by (game_pk, pitcher side) to get team identity
+    # Actually, we need team_id in the data. Let's use a simpler approach:
+    # compute bullpen stats per pitcher, then average across a team's relievers
+    reliever_pas = df_copy[df_copy["_is_reliever"]]
+    if len(reliever_pas) > 0:
+        # Per-pitcher reliever stats (last 30 dates)
+        rp_dates = reliever_pas.groupby(["pitcher_id", "date"]).agg(
+            rp_hits=("is_hit", "sum"), rp_pas=("is_hit", "count"),
+        ).reset_index().sort_values(["pitcher_id", "date"])
+        rp_dates["rp_hr"] = rp_dates["rp_hits"] / rp_dates["rp_pas"]
+        rp_dates["rp_hr_30g"] = rp_dates.groupby("pitcher_id")["rp_hr"].transform(
+            lambda x: x.shift(1).rolling(30, min_periods=5).mean()
+        )
+        lookups["reliever_hr"] = rp_dates.dropna(subset=["rp_hr_30g"]).groupby(
+            "pitcher_id"
+        )["rp_hr_30g"].last().to_dict()
+
+        # League-average reliever stats as fallback for debut pitchers
+        all_reliever_hr = reliever_pas["is_hit"].mean()
+        lookups["league_avg_reliever_hr"] = all_reliever_hr
+    else:
+        lookups["reliever_hr"] = {}
+        lookups["league_avg_reliever_hr"] = 0.22
+
+    # League-average starter stats for debut pitcher fallback
+    starter_pas = df_copy[~df_copy["_is_reliever"]]
+    lookups["league_avg_starter_hr"] = starter_pas["is_hit"].mean() if len(starter_pas) > 0 else 0.22
+    lookups["league_avg_entropy"] = df.dropna(subset=["pitcher_entropy_30g"])["pitcher_entropy_30g"].mean()
+
+    return lookups
+
+
+def _fetch_prior_lineup(team_id: int, season: int) -> list[dict]:
+    """Fetch a team's most recent game lineup as fallback.
+
+    ``season`` scopes the schedule window to the prediction year (not a hardcoded
+    2026, which would serve last year's lineup in 2027 — audit M6).
+
+    Returns list of {batter_id, batter_name, lineup} dicts.
+    """
+    try:
+        sched = json.loads(urlopen(
+            f"{API_BASE}/api/v1/schedule?sportId=1&teamId={team_id}"
+            f"&startDate={season}-03-20&endDate={season}-12-31&gameType=R",
+            timeout=15,
+        ).read())
+        # Walk backwards through dates to find most recent Final game
+        all_games = []
+        for d in sched.get("dates", []):
+            for g in d.get("games", []):
+                if g["status"]["detailedState"] == "Final":
+                    all_games.append(g)
+        if not all_games:
+            return []
+
+        last_game = all_games[-1]
+        feed = json.loads(urlopen(
+            f"{API_BASE}/api/v1.1/game/{last_game['gamePk']}/feed/live", timeout=15
+        ).read())
+        bs = feed["liveData"]["boxscore"]
+
+        # Figure out which side this team was on
+        for side_name in ["away", "home"]:
+            side = bs["teams"][side_name]
+            players = side.get("players", {})
+            all_batters = []
+            for key, player in players.items():
+                bo = player.get("battingOrder")
+                if bo and int(bo) <= 900:
+                    all_batters.append({
+                        "batter_id": player["person"]["id"],
+                        "batter_name": player["person"]["fullName"],
+                        "lineup": int(bo) // 100,
+                        "_raw_bo": int(bo),
+                    })
+            # Deduplicate: keep only the original starter per position
+            # (lowest battingOrder — starters are 100,200,...,900; subs are 101,201,...)
+            seen_pos = {}
+            for b in sorted(all_batters, key=lambda x: x["_raw_bo"]):
+                if b["lineup"] not in seen_pos:
+                    seen_pos[b["lineup"]] = b
+            lineup = list(seen_pos.values())
+            for b in lineup:
+                del b["_raw_bo"]
+            if lineup:
+                # Verify this is the right team by checking team ID
+                side_team_id = feed["gameData"]["teams"][side_name]["id"]
+                if side_team_id == team_id:
+                    return sorted(lineup, key=lambda x: x["lineup"])
+    except Exception:
+        pass
+    return []
+
+
+def _fetch_game_slots(date: str) -> list[dict]:
+    """Fetch all batter-game slots for a date from MLB API.
+
+    When lineups aren't posted yet (pre-game), falls back to each team's
+    most recent lineup with a PROJECTED flag. Uses probable pitchers from
+    the schedule when play data isn't available.
+
+    Returns list of dicts with batter/pitcher/venue/weather info.
+    """
+    sched = json.loads(urlopen(
+        f"{API_BASE}/api/v1/schedule?sportId=1&date={date}"
+        f"&hydrate=probablePitcher", timeout=15
+    ).read())
+
+    slots = []
+    projected_count = 0
+    resume_skipped = 0
+    for d in sched.get("dates", []):
+        for g in d.get("games", []):
+            if not is_regular_season_game(g):
+                continue  # All-Star/exhibition: never a pickable slate (review #3)
+            if is_resume_date_game(g, date):
+                resume_skipped += 1
+                continue  # suspended game resumed today -> never scoreable, don't offer
+            pk = g["gamePk"]
+            status = g["status"]["detailedState"]
+            game_time = g.get("gameDate", "")
+
+            try:
+                feed = json.loads(urlopen(
+                    f"{API_BASE}/api/v1.1/game/{pk}/feed/live", timeout=15
+                ).read())
+            except Exception:
+                continue
+
+            gd = feed["gameData"]
+            venue_id = gd["venue"]["id"]
+            weather = gd.get("weather", {})
+            temp_str = weather.get("temp")
+            temp = int(temp_str) if temp_str else None
+            wind_dir = weather.get("wind", "")  # e.g. "12 mph, Out To CF"
+            wind_speed_str = weather.get("wind", "").split(" mph")[0] if "mph" in weather.get("wind", "") else None
+            wind_speed = float(wind_speed_str) if wind_speed_str else 0.0
+            # Parse wind direction from the "speed mph, Direction" format
+            wind_direction = wind_dir.split(", ", 1)[1] if ", " in wind_dir else ""
+            roof_type = gd.get("venue", {}).get("fieldInfo", {}).get("roofType", "")
+            # HP umpire
+            hp_umpire_id = None
+            for official in gd.get("officials", []):
+                if official.get("officialType") == "Home Plate":
+                    hp_umpire_id = official.get("official", {}).get("id")
+                    break
+            boxscore = feed["liveData"]["boxscore"]
+            plays = feed["liveData"]["plays"]["allPlays"]
+
+            # Build pitcher hand lookup from plays
+            pitcher_hands = {}
+            for play in plays:
+                pid = play["matchup"]["pitcher"]["id"]
+                ph = play["matchup"].get("pitchHand", {}).get("code")
+                if ph:
+                    pitcher_hands[pid] = ph
+
+            for side in ["away", "home"]:
+                opp = "home" if side == "away" else "away"
+                team_abbr = gd["teams"][side]["abbreviation"]
+                opp_team_abbr = gd["teams"][opp]["abbreviation"]
+                team_id = gd["teams"][side]["id"]
+                target_half = "top" if side == "away" else "bottom"
+
+                # Find opposing pitcher — from plays if available, else from schedule
+                opp_pitcher_id = None
+                opp_pitcher_name = "TBD"
+                opp_pitcher_hand = None
+                for play in plays:
+                    if play["about"]["halfInning"] == target_half:
+                        opp_pitcher_id = play["matchup"]["pitcher"]["id"]
+                        opp_pitcher_name = play["matchup"]["pitcher"]["fullName"]
+                        opp_pitcher_hand = pitcher_hands.get(opp_pitcher_id)
+                        break
+
+                if opp_pitcher_id is None:
+                    # Use probable pitcher from schedule
+                    pp = g["teams"][opp].get("probablePitcher", {})
+                    if pp:
+                        opp_pitcher_id = pp.get("id")
+                        opp_pitcher_name = pp.get("fullName", "TBD")
+
+                # Get lineup — from boxscore if posted, else fallback to prior game
+                players = boxscore["teams"][side]["players"]
+                lineup_players = []
+                for key, player in players.items():
+                    bo = player.get("battingOrder")
+                    if bo and int(bo) <= 900:
+                        lineup_players.append({
+                            "batter_id": player["person"]["id"],
+                            "batter_name": player["person"]["fullName"],
+                            "lineup": int(bo) // 100,
+                        })
+
+                is_projected = False
+                if not lineup_players:
+                    # Fallback: use prior game's lineup
+                    lineup_players = _fetch_prior_lineup(team_id, int(date[:4]))
+                    is_projected = True
+                    if lineup_players:
+                        projected_count += 1
+
+                opp_team_id = gd["teams"][opp]["id"]
+                for lp in lineup_players:
+                    slot = {
+                        "batter_id": lp["batter_id"],
+                        "batter_name": lp["batter_name"],
+                        "team": team_abbr,
+                        "pitcher_team": opp_team_abbr,
+                        "opp_team_id": opp_team_id,
+                        "lineup": lp["lineup"],
+                        "pitcher_id": opp_pitcher_id,
+                        "pitcher_name": opp_pitcher_name,
+                        "pitcher_hand": opp_pitcher_hand,
+                        "venue_id": venue_id,
+                        "weather_temp": temp,
+                        "weather_wind_dir": wind_direction,
+                        "weather_wind_speed": wind_speed,
+                        "roof_type": roof_type,
+                        "hp_umpire_id": hp_umpire_id,
+                        "game_pk": pk,
+                        "game_time": game_time,
+                        "status": status,
+                    }
+                    if is_projected:
+                        slot["projected"] = True
+                    slots.append(slot)
+
+    if projected_count > 0:
+        print(f"  NOTE: {projected_count} teams using projected lineups (prior game)", file=sys.stderr)
+    if resume_skipped > 0:
+        print(
+            f"  NOTE: skipped {resume_skipped} resume-date suspended game(s) — not scoreable per BTS rules",
+            file=sys.stderr,
+        )
+
+    return slots
+
+
+def predict(
+    date: str,
+    df: pd.DataFrame,
+    model,
+    lookups: dict,
+    check_openers: bool = True,
+    blend: dict | None = None,
+    feature_cols: list[str] | None = None,
+) -> pd.DataFrame:
+    """Generate ranked BTS picks for a date.
+
+    Args:
+        date: YYYY-MM-DD
+        df: Feature-enriched PA DataFrame (for opener checks)
+        model: Trained LightGBM model (used when blend is None)
+        lookups: Feature lookup tables from _build_feature_lookups
+        check_openers: Whether to flag likely openers
+        blend: Optional dict from train_blend. If provided, uses 12-model
+            blend for ranking instead of single model.
+        feature_cols: Feature columns for single-model prediction. Defaults
+            to FEATURE_COLS when not provided.
+
+    Returns:
+        DataFrame of picks sorted by P(game hit), with flags for edge cases.
+    """
+    today = pd.Timestamp(date)
+
+    # park_drag_delta serving state (context/shadow): the SAME external as-of
+    # table the training merge reads — value at (venue_id, today) is computed
+    # from strictly-prior games, so train and serve agree by construction.
+    from bts.features import park_drag as _park_drag
+    _park_drag_table = _park_drag.get_table()
+    _park_drag_manifest = _park_drag.get_manifest()
+    slots = _fetch_game_slots(date)
+
+    if not slots:
+        return pd.DataFrame()
+
+    # Build features for each slot
+    known_pitchers = set(df["pitcher_id"])
+    rows = []
+    for slot in slots:
+        row = {}
+        bid = slot["batter_id"]
+
+        # Batter features from lookups (baseline + Statcast)
+        for col in ["batter_hr_7g", "batter_hr_30g", "batter_hr_60g", "batter_hr_120g",
+                     "batter_whiff_60g", "batter_count_tendency_30g", "batter_gb_hit_rate",
+                     "batter_barrel_rate_30g", "batter_hard_hit_rate_30g",
+                     "batter_sweet_spot_rate_30g", "batter_avg_ev_30g",
+                     "batter_avg_velo_faced_30g"]:
+            row[col] = lookups["batter"].get(col, {}).get(bid)
+
+        # Platoon — resolve pitcher hand from live data or history (audit M1)
+        hand = _resolve_pitcher_hand(slot, lookups)
+        row["platoon_hr"] = lookups["platoon"].get((bid, hand))
+
+        # Pitcher — with debut fallback
+        pitcher_hr = lookups["pitcher_hr"].get(slot["pitcher_id"])
+        pitcher_ent = lookups["pitcher_ent"].get(slot["pitcher_id"])
+        is_debut = pitcher_hr is None
+        if is_debut:
+            pitcher_hr = lookups.get("league_avg_starter_hr", 0.22)
+            pitcher_ent = lookups.get("league_avg_entropy")
+
+        row["pitcher_hr_30g"] = pitcher_hr
+        row["pitcher_entropy_30g"] = pitcher_ent
+        row["pitcher_catcher_framing"] = lookups.get("pitcher_framing", {}).get(slot["pitcher_id"])
+
+        # Pitcher Statcast features
+        for col in ["pitcher_avg_velo_30g", "pitcher_avg_spin_30g",
+                     "pitcher_avg_extension_30g", "pitcher_break_total_30g"]:
+            row[col] = lookups.get("pitcher_statcast", {}).get(col, {}).get(slot["pitcher_id"])
+
+        # Batter × pitcher Bayesian-shrunk hit rate (bpm, in FEATURE_COLS as of
+        # 2026-04-29). Fall back to league prior 0.2195 for matchups with no
+        # history — matches compute.py's fillna(_PRIOR_RATE) behavior.
+        row["batter_pitcher_shrunk_hr"] = lookups.get("batter_pitcher_hr", {}).get(
+            (bid, slot["pitcher_id"]), 0.2195
+        )
+
+        # Context
+        row["weather_temp"] = slot["weather_temp"]
+        row["park_factor"] = lookups["park"].get(slot["venue_id"])
+        row["opp_bullpen_hr_30g"] = lookups.get("bullpen", {}).get(slot.get("opp_team_id"))
+
+        # Context features (shadow model) — always populated so shadow blend can use them
+        row["batter_hard_contact_30g"] = lookups["batter"].get("batter_hard_contact_30g", {}).get(bid)
+        row["ump_hr_30g"] = lookups.get("umpire_hr", {}).get(slot.get("hp_umpire_id"))
+        # Wind vector: compute from slot weather data (same logic as compute.py)
+        wind_dir_str = str(slot.get("weather_wind_dir", "")).lower()
+        wind_spd = float(slot.get("weather_wind_speed", 0) or 0)
+        if "out to cf" in wind_dir_str or "out to center" in wind_dir_str:
+            dir_score = 1.0
+        elif "in from cf" in wind_dir_str or "in from center" in wind_dir_str:
+            dir_score = -1.0
+        elif "out to lf" in wind_dir_str or "out to rf" in wind_dir_str:
+            dir_score = 0.5
+        elif "in from lf" in wind_dir_str or "in from rf" in wind_dir_str:
+            dir_score = -0.5
+        else:
+            dir_score = 0.0
+        row["wind_out_cf"] = dir_score * wind_spd
+        # Indoor flag
+        rt = str(slot.get("roof_type", "")).lower()
+        row["is_indoor"] = 1 if rt in ("dome", "closed", "retractable") else 0
+        # Park drag delta (stale table -> None -> NaN; never a stale number)
+        row["park_drag_delta"] = _park_drag.serving_value(
+            _park_drag_table, _park_drag_manifest, slot["venue_id"], today
+        )
+
+        # Days rest
+        last = lookups["last_date"].get(bid)
+        row["days_rest"] = (today - last).days if last else None
+
+        # Flags
+        flags = []
+        if row["days_rest"] and row["days_rest"] > IL_RETURN_DAYS_THRESHOLD:
+            flags.append(f"IL? ({int(row['days_rest'])}d rest)")
+
+        is_opener = False
+        if check_openers and slot["pitcher_id"]:
+            opener_info = _check_opener(slot["pitcher_id"], df)
+            if opener_info["is_opener"]:
+                is_opener = True
+                flags.append(f"OPENER ({opener_info['avg_ip_approx']}ip avg)")
+
+        if is_debut:
+            has_history = slot["pitcher_id"] in known_pitchers
+            if has_history:
+                flags.append("LIMITED pitcher data (using league avg)")
+            else:
+                flags.append("DEBUT pitcher (using league avg)")
+
+        if slot.get("projected"):
+            flags.append("PROJECTED lineup")
+
+        rows.append({**slot, **row, "flags": ", ".join(flags), "_is_opener": is_opener})
+
+    pred_df = pd.DataFrame(rows)
+
+    # --- Single-model prediction (used for display and as fallback) ---
+    # Ensure numeric dtypes (lookups can produce mixed object columns).
+    # Must cover BOTH base feature cols and STATCAST_COLS because the blend
+    # models use base_cols + individual Statcast features.
+    base_cols = feature_cols or FEATURE_COLS
+    for col in set(base_cols) | set(STATCAST_COLS):
+        if col in pred_df.columns:
+            pred_df[col] = pd.to_numeric(pred_df[col], errors="coerce")
+
+    feat_df = pred_df[base_cols]
+    valid = feat_df.notna().any(axis=1)
+    pred_df.loc[valid, "p_hit_vs_starter"] = model.predict_proba(feat_df[valid])[:, 1]
+
+    # Reliever features: swap pitcher features for league averages
+    feat_reliever = feat_df.copy()
+    feat_reliever["pitcher_hr_30g"] = lookups.get("league_avg_reliever_hr", 0.22)
+    feat_reliever["pitcher_entropy_30g"] = lookups.get("league_avg_entropy")
+    pred_df.loc[valid, "p_hit_vs_reliever"] = model.predict_proba(feat_reliever[valid])[:, 1]
+
+    # Split aggregation: PAs 1-2.5 face starter, PAs 3+ face relievers
+    pa_est = {1: 4.5, 2: 4.3, 3: 4.2, 4: 4.1, 5: 4.0, 6: 3.9, 7: 3.8, 8: 3.7, 9: 3.6}
+    pred_df["est_pas"] = pred_df["lineup"].map(pa_est).fillna(4.0)
+
+    starter_pas = 2.5
+    pred_df["reliever_pas"] = (pred_df["est_pas"] - starter_pas).clip(lower=0)
+    pred_df["starter_pas"] = pred_df["est_pas"] - pred_df["reliever_pas"]
+
+    # For openers, ALL PAs effectively face relievers
+    if "_is_opener" in pred_df.columns:
+        pred_df.loc[pred_df["_is_opener"], "reliever_pas"] = pred_df.loc[pred_df["_is_opener"], "est_pas"]
+        pred_df.loc[pred_df["_is_opener"], "starter_pas"] = 0
+
+    # P(>=1 hit) = 1 - P(no hit in starter PAs) * P(no hit in reliever PAs)
+    pred_df["p_game_hit"] = 1 - (
+        (1 - pred_df["p_hit_vs_starter"]) ** pred_df["starter_pas"] *
+        (1 - pred_df["p_hit_vs_reliever"]) ** pred_df["reliever_pas"]
+    )
+
+    # Convenience: average PA probability for display
+    pred_df["p_hit_pa"] = (
+        pred_df["p_hit_vs_starter"] * pred_df["starter_pas"] +
+        pred_df["p_hit_vs_reliever"] * pred_df["reliever_pas"]
+    ) / pred_df["est_pas"]
+
+    # --- Blend ranking (if blend is provided) ---
+    if blend:
+        # Each blend model predicts P(hit|PA) for starter features,
+        # then we aggregate to game level and average across models.
+        per_model_pgame = []
+        for name, (bmodel, bcols) in blend.items():
+            bfeat = pred_df[bcols]
+            bvalid = bfeat.notna().any(axis=1)
+            p_starter = pd.Series(np.nan, index=pred_df.index)
+            if bvalid.any():
+                p_starter[bvalid] = bmodel.predict_proba(bfeat[bvalid])[:, 1]
+
+            # Game-level: 1 - (1-p)^starter_pas * (1-p_reliever)^reliever_pas
+            # Use single-model reliever estimate (blend is for starter matchup ranking)
+            p_game = 1 - (
+                (1 - p_starter) ** pred_df["starter_pas"] *
+                (1 - pred_df["p_hit_vs_reliever"]) ** pred_df["reliever_pas"]
+            )
+            per_model_pgame.append(p_game)
+
+        # Average across models per SLOT (row), not per batter, so a doubleheader
+        # batter's two games keep distinct blends (audit M5).
+        pred_df["p_game_blend"] = _blend_average_by_slot(pred_df, per_model_pgame)
+
+        # Use blend score for ranking, keep single-model scores for display
+        pred_df["p_game_hit"] = pred_df["p_game_blend"].fillna(pred_df["p_game_hit"])
+
+    return pred_df.sort_values("p_game_hit", ascending=False).reset_index(drop=True)
+
+
+def _refresh_season_data(date: str, raw_dir: str = "data/raw", processed_dir: str = "data/processed"):
+    """Pull recent game feeds and rebuild current season parquet.
+
+    Downloads any new Final games from season start through yesterday,
+    then rebuilds the season's parquet. Skips already-downloaded games.
+
+    Memoized per (season, yesterday): a successful pull+rebuild writes
+    ``{processed_dir}/.refreshed_{season}_through_{yesterday}`` and later
+    calls the same day return immediately. The training window ends at
+    yesterday, so re-running intraday re-discovers the same schedule and
+    rebuilds the same parquet (~12 min/cascade; 2026-08-30 late-pick incident).
+    ``BTS_REFRESH_ALWAYS=1`` forces a refresh. Known limitation: a game from
+    yesterday that finalizes later today (suspended/resumed) is picked up by
+    tomorrow's first refresh, not intraday.
+    """
+    from bts.data.pull import pull_feeds
+    from bts.data.build import build_season
+    from datetime import datetime, timedelta
+
+    pred_date = datetime.strptime(date, "%Y-%m-%d")
+    season = pred_date.year
+    yesterday = (pred_date - timedelta(days=1)).strftime("%Y-%m-%d")
+    season_start = f"{season}-03-20"
+
+    if yesterday < season_start:
+        return  # Too early in the year
+
+    raw = Path(raw_dir)
+    proc = Path(processed_dir)
+
+    marker = proc / f".refreshed_{season}_through_{yesterday}"
+    output_path = proc / f"pa_{season}.parquet"
+    # The parquet must exist too: a marker alone must never hide a missing
+    # season file (run_pipeline loads pa_*.parquet right after this).
+    if (marker.exists() and output_path.exists()
+            and os.environ.get("BTS_REFRESH_ALWAYS", "0") != "1"):
+        print(f"  Season data already refreshed through {yesterday} "
+              f"({marker.name}); skipping intraday re-pull.", file=sys.stderr)
+        return
+
+    print(f"  Refreshing {season} data through {yesterday}...", file=sys.stderr)
+    paths = pull_feeds(season_start, yesterday, raw, delay=0.3)
+    print(f"  {len(paths)} game feeds ({sum(1 for _ in (raw / str(season)).glob('*.json'))} total)", file=sys.stderr)
+
+    df = build_season(raw, output_path, season)
+    if df is None:
+        print(f"  Season {season} has no regular-season games yet; using historical data.", file=sys.stderr)
+        return
+    print(f"  Rebuilt {output_path.name}: {len(df)} PAs", file=sys.stderr)
+
+    # Written only after a successful pull+rebuild so a failed build re-runs
+    # on the next cascade.
+    proc.mkdir(parents=True, exist_ok=True)
+    marker.write_text(datetime.now().isoformat())
+
+
+@_park_drag_pin
+def run_pipeline(
+    date: str,
+    data_dir: str = "data/processed",
+    check_openers: bool = True,
+    cached_blend: dict | None = None,
+    save_blend_path=None,
+    refresh_data: bool = True,
+    feature_cols_override: list[str] | None = None,
+    blend_configs_override: list | None = None,
+    lgb_params_override: dict | None = None,
+) -> pd.DataFrame:
+    """Run the full prediction pipeline for a date.
+
+    Loads historical data, computes features, trains the 12-model blend,
+    and returns ranked picks sorted by P(game hit).
+
+    Args:
+        cached_blend: Pre-trained blend dict to skip retraining. Must include
+            a "_model" key with the single model.
+        save_blend_path: If provided and no cached_blend, save the trained
+            blend (including single model) to this path.
+        refresh_data: Pull latest game feeds and rebuild current season
+            parquet before running. Set False for backtesting.
+        blend_configs_override/lgb_params_override: Experiment-only blend
+            training overrides for audit artifact logging. Production callers
+            leave these as None.
+    """
+    if refresh_data:
+        progress.mark("refreshing_data")
+        _refresh_season_data(date, processed_dir=data_dir)
+
+    proc = Path(data_dir)
+    progress.mark("loading_parquets")
+    dfs = []
+    for parquet in sorted(proc.glob("pa_*.parquet")):
+        dfs.append(pd.read_parquet(parquet))
+    if not dfs:
+        raise RuntimeError("No Parquet files found. Run 'bts data build' first.")
+
+    df = pd.concat(dfs, ignore_index=True)
+    progress.mark("computing_features")
+    df = compute_all_features(df)
+    df["date"] = pd.to_datetime(df["date"])
+
+    # Ensure all feature columns are numeric before training. On some
+    # platforms (Fly with pyarrow-rebuilt parquets), computed features can
+    # end up as object dtype despite pd.to_numeric in compute.py, because
+    # the merge/concat path can re-introduce object dtype from NaN handling.
+    base_cols = feature_cols_override or FEATURE_COLS
+    all_feature_cols = set(base_cols) | set(STATCAST_COLS)
+    coerced = []
+    for col in all_feature_cols:
+        if col in df.columns and df[col].dtype == object:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+            coerced.append(col)
+    if coerced:
+        print(f"  Coerced {len(coerced)} object-dtype cols to numeric: {coerced}", file=sys.stderr)
+    # Final check: flag any remaining object-dtype feature columns
+    remaining = [c for c in all_feature_cols if c in df.columns and df[c].dtype == object]
+    if remaining:
+        print(f"  WARNING: {len(remaining)} feature cols still object after coercion: {remaining}", file=sys.stderr)
+
+    if cached_blend:
+        model = cached_blend.pop("_model")
+        blend = cached_blend
+    else:
+        progress.mark("training_single_model")
+        model = train_model(df, feature_cols=feature_cols_override)
+        blend = train_blend(
+            df,
+            base_feature_cols=feature_cols_override,
+            blend_configs=blend_configs_override,
+            lgb_params=lgb_params_override,
+        )
+        if save_blend_path:
+            to_save = {**blend, "_model": model}
+            save_blend(to_save, save_blend_path)
+
+    progress.mark("building_lookups")
+    lookups = _build_feature_lookups(df)
+
+    progress.mark("predicting")
+    return predict(
+        date, df, model, lookups,
+        check_openers=check_openers,
+        blend=blend,
+        feature_cols=feature_cols_override,
+    )

@@ -1,0 +1,74 @@
+--- a/src/bts/reconcile_receipt.py
++++ b/src/bts/reconcile_receipt.py
+@@ -228,11 +228,13 @@
+                 actual = (resp["gameData"].get("game") or {}).get("pk")
+                 grade = grade_pick_in_feed(resp, slot["batter_id"], slot["batter_name"])
+                 by_id = ReconcileReceipt._has_batter_id(resp, slot["batter_id"])
++                grade_by_id = grade_pick_in_feed(resp, slot["batter_id"])
+             except (KeyError, TypeError, AttributeError):
+                 continue
+             if grade is None:
+                 continue                         # the batter is not in this feed
+-            if type(actual) is not int or not by_id or not final or grade != slot["result"]:
++            if (type(actual) is not int or not by_id or not final or grade != slot["result"]
++                    or grade_by_id != slot["result"]):
+                 return "unqualified", actual if type(actual) is int else None
+             if actual != slot["game_pk"]:
+                 return "fallback_other_game", actual
+--- a/tests/test_reconcile_receipt.py
++++ b/tests/test_reconcile_receipt.py
+@@ -559,3 +559,44 @@
+     assert r["degraded"][0]["hook"] == hook                                   # (a failed intent also fails its done)
+     assert {g["day"] for g in r["degraded"]} == {ix} and ix != len(r["days"]) - 1
+     assert day_of(r)["slots"][0]["covered"] is True                          # coverage and the write are separate
++
++
++@pytest.mark.parametrize("name_hits, id_hits", [(1, 0), (0, 1)])
++def test_r4_d3_id_presence_cannot_qualify_another_players_grade(tmp_path, name_hits, id_hits):
++    """Away name fallback wins before the home ID lookup; qualify the returned result by ID separately."""
++    from bts.picks import grade_pick_in_feed
++    payload = feed(hits=name_hits, batter=123)
++    payload["liveData"]["boxscore"]["teams"]["home"]["players"][f"ID{BATTER}"] = {
++        "person": {"id": BATTER, "fullName": "Bound ID Batter"},
++        "stats": {"batting": {"hits": id_hits}}}
++    legacy = "hit" if name_hits else "miss"
++    assert grade_pick_in_feed(payload, BATTER) != legacy
++    plant(tmp_path, result="miss" if name_hits else "hit")
++    corrections, r = run(tmp_path, Net({"/schedule": schedule(), f"/game/{GAME}/": payload}), SimClock(AT_0200))
++    assert [c["new_result"] for c in corrections] == [legacy]  # unchanged business grading
++    assert load_pick(DAY, tmp_path).result == legacy
++    slot = day_of(r)["slots"][0]
++    assert (slot["result"], slot["basis"], slot["actual_game_pk"], slot["covered"]) == (
++        legacy, "unqualified", GAME, False)
++
++
++@pytest.mark.parametrize("bound_grade", ["miss", "void"])
++def test_r4_d3_id_presence_cannot_qualify_a_name_contaminated_suspended_grade(tmp_path, bound_grade):
++    """The selected ID has no pre-suspension hit; another ID with its saved name does."""
++    from bts.picks import grade_pick_in_feed
++    payload = suspended_feed(GAME)
++    if bound_grade == "miss":
++        play = payload["liveData"]["plays"]["allPlays"][0]
++        play["result"]["eventType"] = "field_out"
++        play["about"]["startTime"] = "2026-08-21T19:00:00Z"
++    payload["liveData"]["plays"]["allPlays"].append({
++        "result": {"eventType": "single"},
++        "matchup": {"batter": {"id": 123, "fullName": "Chandler Simpson"}},
++        "about": {"startTime": "2026-08-21T19:01:00Z"}})
++    assert grade_pick_in_feed(payload, BATTER) == bound_grade
++    plant(tmp_path)
++    _, r = run(tmp_path, Net({"/schedule": schedule(), f"/game/{GAME}/": payload}), SimClock(AT_0200))
++    assert load_pick(DAY, tmp_path).result == "hit"  # unchanged business grading
++    slot = day_of(r)["slots"][0]
++    assert (slot["result"], slot["basis"], slot["actual_game_pk"], slot["covered"]) == (
++        "hit", "unqualified", GAME, False)
+--- a/docs/ops/reconcile-receipt-v1.md
++++ b/docs/ops/reconcile-receipt-v1.md
+@@ -67,6 +67,7 @@
+ **`basis`** is established at publication from the consumed payloads themselves (producer review r2/r3 D3), never from how many payloads there were, from a request URL, or from a name match:
+ - `final_feed`: the decisive feed (the first one containing the batter) is Final, holds the batter **by id** (a boxscore entry or a play's matchup), grades to the slot's result, and names its **own** game (`gameData.game.pk`) equal to the selected game.
+ - `suspended_no_evaluable_pa`: the same, including the game agreement, for a suspended game graded void.
++- **ID-bound grade agreement (r4 D3):** the decisive feed must also grade to the slot result with only the selected batter ID supplied. Presence of that ID elsewhere in the feed cannot qualify a name-fallback result from another player. A disagreement or absent ID-only grade is `unqualified`; the production grader and its returned result stay unchanged.
+ - `schedule_void_state:<state>`: the consumed schedule lists the selected game, in a void state.
+ - `fallback_other_game`: the decisive feed is Final and agrees, but is another game. It is **not** coverage.
+ - `unqualified`: there is no qualifying decisive feed. Examples: a fallback feed still Live, a feed with no `gameData.game.pk` of its own, a batter matched only by name, or a void the consumed schedule does not confirm. It is **not** coverage.

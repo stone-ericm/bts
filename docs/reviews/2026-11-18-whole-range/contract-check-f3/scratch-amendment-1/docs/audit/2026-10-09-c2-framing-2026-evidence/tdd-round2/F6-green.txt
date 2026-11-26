@@ -1,0 +1,11 @@
+UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run --offline pytest -q -p no:cacheprovider tests/scripts/c2_framing/test_f26_run.py -k 'launcher_unit or clean_launcher_receipt or clean_receipt or already_has_a_run'
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-c2f26-code
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 65 items / 52 deselected / 13 selected
+
+tests/scripts/c2_framing/test_f26_run.py .............                   [100%]
+
+====================== 13 passed, 52 deselected in 11.93s ======================

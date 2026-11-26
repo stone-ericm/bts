@@ -1,0 +1,168 @@
+{
+ "id": "I-098",
+ "working_id": "E98",
+ "title": "6/22 skip day: a deploy restarted the scheduler at ~21:36 ET and installed the new finalization code mid-evening; the skip-day read was confounded and no decision.json exists for 6/22",
+ "disposition": "unresolved_candidate",
+ "counted": true,
+ "missing_evidence": [
+  "the bts-scheduler journal for 2026-06-22 ~18:00-24:00 ET (B1, Phase 2 Route R V1/V9): the deploy stop/restart time and whether the restarted run finalized 6/22 (skip record, EOD health)",
+  "the log of deploy run 27996097986 (expired; Phase 2 deploy_history.txt) for the exact install time",
+  "what 'the skip-day read' was and how it was muddied: the only source is a 7/02 CLAUDE.md line (a151ebf)"
+ ],
+ "classes": {
+  "primary": "S",
+  "secondary": [
+   "R"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "B -> A: deploy timing is still guarded only by documentation, and a restart inside an active scheduler window can change delivery; the 6/22 event itself was a skip day (no delivery) whose effect beyond the confounded read is unknown",
+ "residual_reaches_production": true,
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "reach57",
+ "stream": "deploy",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "A deploy (which restarts the scheduler) lands inside a scheduler sleep window and never on a decisive live observation day.",
+  "source": "CLAUDE.md 'Deploys restart the scheduler' (a151ebf, 2026-07-02; written after the event, no earlier written rule)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "every push to deploy restarts bts-scheduler with no check of the scheduler's current window; the 6/22 push (run 27996097986, 21:35:58 ET) landed on a skip day, so the day's end ran on newly installed #144/#145 finalization code (decision.json writer, skip-day gates)",
+   "code": [
+    {
+     "path": ".github/workflows/deploy.yml",
+     "ref": "5fa36c3",
+     "symbol": "deploy step (restart bts-scheduler, bts-dashboard)",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": "unfixed",
+   "deployed": "not_applicable",
+   "mitigated": {
+    "action": "operator guidance: check the scheduler's 'Sleeping until' journal line before a midday deploy and never deploy on a decisive observation day (CLAUDE.md)",
+    "at": {
+     "not_after": "2026-07-02T12:17:29-04:00",
+     "evidence": [
+      "ev1"
+     ]
+    }
+   },
+   "verified_recovered": "not_applicable"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "No mechanical guard: deploy timing relies on the documented sleep-window check; a restart inside a lineup-check or result-polling window is Route R's V9 candidate class",
+   "reaches_production": true,
+   "source": "CLAUDE.md 'Deploys restart the scheduler'; design §6.2 V9"
+  }
+ ],
+ "watchdog": {
+  "boundary": "restart",
+  "trigger": "a deploy run's restart falls inside an evidenced active scheduler window (lineup check, fallback, result polling) or before the day's finalization record is written",
+  "recovery_assertion": "the day still ends with a finalization record (committed selection or deliberate skip) written by one code version"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "CLAUDE.md deploy bullet added by a151ebf",
+   "written_at": "2026-07-02T12:17:29-04:00",
+   "what": "'never deploy during a decisive live observation day (a deploy-transition muddied the 6/22 skip-day read)'"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "deploy run 27996097986 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "successful deploy of head 5fa36c3 created 2026-06-23T01:35:58Z (21:35:58 ET on 6/22); log expired"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "deploy_runs.json runs 27799639516 (2026-06-19T01:23:43Z, 9dc8ee4) and 27996097986",
+   "what": "no deploy ran between them, so the #144/#145 commits of 6/21-6/22 (d929479 decision.json writer ... 5fa36c3) were first installed by the 6/22 evening run"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-09-28-w07-final-snapshot.md 'Unavailable history'",
+   "what": "decision.json exists from 2026-06-23 only (writer deployed 6/22)"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-06-22 (evening deploy)",
+   "onset": {
+    "not_before": "2026-06-23T01:35:58Z",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "unknown",
+   "alert": {
+    "attempted": "unknown",
+    "confirmed": "unknown",
+    "failed": "unknown"
+   },
+   "operator_awareness": {
+    "not_after": "2026-07-02T12:17:29-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "at": "2026-07-02T12:17:29-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "unknown",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "a151ebf",
+   "d929479",
+   "5fa36c3"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "CLAUDE.md 'Deploys restart the scheduler'",
+   "docs/audit/2026-09-28-w07-final-snapshot.md"
+  ]
+ },
+ "related": [
+  "I-066"
+ ],
+ "notes": [
+  "the absence of a 6/22 decision.json although the writer was installed that evening is consistent with the restarted run not finalizing 6/22 (or finalizing before the install), not established; Route R V1 reads it",
+  "tier A comes only from the B -> A rule on the documentation-only deploy-timing guard; if the lead treats that residual as generic (Route R V9) rather than this record's, the event itself is tier_pending",
+  "policy_objective reach57: the day's decision was a reach-57 MDP skip (an action, not an outcome)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

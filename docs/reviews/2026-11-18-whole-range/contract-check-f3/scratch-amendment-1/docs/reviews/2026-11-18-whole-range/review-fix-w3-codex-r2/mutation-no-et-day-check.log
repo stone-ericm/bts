@@ -1,0 +1,128 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-review-w3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 76 items / 72 deselected / 4 selected
+
+tests/test_wr_w3.py FFFF                                                 [100%]
+
+=================================== FAILURES ===================================
+________ test_reuse_checks_live_day_at_midnight[during_read-2027-06-18] ________
+tests/test_wr_w3.py:474: in test_reuse_checks_live_day_at_midnight
+    assert not world.sends("dm")
+E   assert not ["Today's pick: Synthetic Batter 101 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 0"]
+E    +  where ["Today's pick: Synthetic Batter 101 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 0"] = sends('dm')
+E    +    where sends = <wr_w3_offline.Offline object at 0x110c49430>.sends
+----------------------------- Captured stdout call -----------------------------
+CLI 2027-06-18T23:20:00-04:00 set-contest-streak --date: 0
+Observation written at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-121/test_reuse_checks_live_day_at_0/probe-deeskpls/data/picks/account_state/contest_streak.manual.json: date=2027-06-18 streak=0 best=0 saver=used reason=None
+contest_streak: 0 (best 0, saver used) for 2027-06-18, in effect today
+TRANSPORT dm 2027-06-19T00:00:01-04:00 "Today's pick: Synthetic Batter 101 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 0"
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:20 ET] Fetching schedule for 2027-06-18...
+  1 games, 1 scheduled checks:
+    23:20 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:20 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK — delivering (primary_projected_no_window) before the 00:25 ET cutoff.
+  LOCKED (fallback) — Pick DM sent: captured-dm
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Sat 06-19 10:00 ET
+  Waiting until 00:40 ET (game start + 10min, 40 min)...
+  Day complete. Result: captured-poll
+________ test_reuse_checks_live_day_at_midnight[during_read-2026-12-31] ________
+tests/test_wr_w3.py:474: in test_reuse_checks_live_day_at_midnight
+    assert not world.sends("dm")
+E   assert not ["Today's pick: Synthetic Batter 101 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 0"]
+E    +  where ["Today's pick: Synthetic Batter 101 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 0"] = sends('dm')
+E    +    where sends = <wr_w3_offline.Offline object at 0x11871b1a0>.sends
+----------------------------- Captured stdout call -----------------------------
+CLI 2026-12-31T23:20:00-05:00 set-contest-streak --date: 0
+Observation written at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-121/test_reuse_checks_live_day_at_1/probe-ta_vz7yn/data/picks/account_state/contest_streak.manual.json: date=2026-12-31 streak=0 best=0 saver=used reason=None
+contest_streak: 0 (best 0, saver used) for 2026-12-31, in effect today
+TRANSPORT dm 2027-01-01T00:00:01-05:00 "Today's pick: Synthetic Batter 101 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 0"
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:20 ET] Fetching schedule for 2026-12-31...
+  1 games, 1 scheduled checks:
+    23:20 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:20 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK — delivering (primary_projected_no_window) before the 00:25 ET cutoff.
+  LOCKED (fallback) — Pick DM sent: captured-dm
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 01-01 10:00 ET
+  Waiting until 00:40 ET (game start + 10min, 40 min)...
+  Day complete. Result: captured-poll
+_______ test_reuse_checks_live_day_at_midnight[during_marker-2027-06-18] _______
+tests/test_wr_w3.py:474: in test_reuse_checks_live_day_at_midnight
+    assert not world.sends("dm")
+E   assert not ["Today's pick: Synthetic Batter 101 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 0"]
+E    +  where ["Today's pick: Synthetic Batter 101 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 0"] = sends('dm')
+E    +    where sends = <wr_w3_offline.Offline object at 0x11871fe30>.sends
+----------------------------- Captured stdout call -----------------------------
+CLI 2027-06-18T23:20:00-04:00 set-contest-streak --date: 0
+Observation written at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-121/test_reuse_checks_live_day_at_2/probe-49vvp8_5/data/picks/account_state/contest_streak.manual.json: date=2027-06-18 streak=0 best=0 saver=used reason=None
+contest_streak: 0 (best 0, saver used) for 2027-06-18, in effect today
+TRANSPORT dm 2027-06-19T00:00:01-04:00 "Today's pick: Synthetic Batter 101 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 0"
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:20 ET] Fetching schedule for 2027-06-18...
+  1 games, 1 scheduled checks:
+    23:20 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:20 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK — delivering (primary_projected_no_window) before the 00:25 ET cutoff.
+  LOCKED (fallback) — Pick DM sent: captured-dm
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Sat 06-19 10:00 ET
+  Waiting until 00:40 ET (game start + 10min, 40 min)...
+  Day complete. Result: captured-poll
+_______ test_reuse_checks_live_day_at_midnight[during_marker-2026-12-31] _______
+tests/test_wr_w3.py:474: in test_reuse_checks_live_day_at_midnight
+    assert not world.sends("dm")
+E   assert not ["Today's pick: Synthetic Batter 101 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 0"]
+E    +  where ["Today's pick: Synthetic Batter 101 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 0"] = sends('dm')
+E    +    where sends = <wr_w3_offline.Offline object at 0x118729be0>.sends
+----------------------------- Captured stdout call -----------------------------
+CLI 2026-12-31T23:20:00-05:00 set-contest-streak --date: 0
+Observation written at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-121/test_reuse_checks_live_day_at_3/probe-b80znt4o/data/picks/account_state/contest_streak.manual.json: date=2026-12-31 streak=0 best=0 saver=used reason=None
+contest_streak: 0 (best 0, saver used) for 2026-12-31, in effect today
+TRANSPORT dm 2027-01-01T00:00:01-05:00 "Today's pick: Synthetic Batter 101 (ABC)\nvs Synthetic Pitcher | 99.0%\n\nStreak: 0"
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:20 ET] Fetching schedule for 2026-12-31...
+  1 games, 1 scheduled checks:
+    23:20 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:20 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Synthetic Batter 101 (ABC) 99.0% → should_lock=False
+  FALLBACK: reusing this check's fresh cascade decision (no second refresh).
+  FALLBACK — delivering (primary_projected_no_window) before the 00:25 ET cutoff.
+  LOCKED (fallback) — Pick DM sent: captured-dm
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 01-01 10:00 ET
+  Waiting until 00:40 ET (game start + 10min, 40 min)...
+  Day complete. Result: captured-poll
+=========================== short test summary info ============================
+FAILED tests/test_wr_w3.py::test_reuse_checks_live_day_at_midnight[during_read-2027-06-18]
+FAILED tests/test_wr_w3.py::test_reuse_checks_live_day_at_midnight[during_read-2026-12-31]
+FAILED tests/test_wr_w3.py::test_reuse_checks_live_day_at_midnight[during_marker-2027-06-18]
+FAILED tests/test_wr_w3.py::test_reuse_checks_live_day_at_midnight[during_marker-2026-12-31]
+======================= 4 failed, 72 deselected in 2.02s =======================

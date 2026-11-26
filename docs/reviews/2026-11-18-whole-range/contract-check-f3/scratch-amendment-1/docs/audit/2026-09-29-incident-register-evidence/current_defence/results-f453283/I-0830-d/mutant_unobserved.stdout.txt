@@ -1,0 +1,67 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 11 items
+
+tests/health/test_late_delivery.py FF..FF.....                           [100%]
+
+=================================== FAILURES ===================================
+________________________ test_after_cutoff_is_critical _________________________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8134/test_after_cutoff_is_critical0')
+
+    def test_after_cutoff_is_critical(tmp_path):
+        from bts.health import late_delivery
+        _delivered(tmp_path, "2026-08-30T13:36:14-04:00")
+        a = late_delivery.check(tmp_path, today=D)
+>       assert len(a) == 1 and a[0].level == "CRITICAL" and a[0].source == "late_delivery"
+E       assert (0 == 1)
+E        +  where 0 = len([])
+
+tests/health/test_late_delivery.py:38: AssertionError
+__________________________ test_at_cutoff_is_critical __________________________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8134/test_at_cutoff_is_critical0')
+
+    def test_at_cutoff_is_critical(tmp_path):
+        from bts.health import late_delivery
+        _delivered(tmp_path, "2026-08-30T13:35:00-04:00")
+>       assert late_delivery.check(tmp_path, today=D)[0].level == "CRITICAL"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+tests/health/test_late_delivery.py:45: IndexError
+__________________ test_utc_timestamp_and_earlier_double_down __________________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8134/test_utc_timestamp_and_earlier0')
+
+    def test_utc_timestamp_and_earlier_double_down(tmp_path):
+        """delivered_at may be UTC; the cutoff keys on the EARLIEST slot."""
+        from bts.health import late_delivery
+        _delivered(tmp_path, "2026-08-30T17:36:00Z", dd=True)      # 13:36 ET; primary game 13:40
+>       assert late_delivery.check(tmp_path, today=D)[0].level == "CRITICAL"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+tests/health/test_late_delivery.py:65: IndexError
+______________________ test_falls_back_to_pick_locked_at _______________________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8134/test_falls_back_to_pick_locked0')
+
+    def test_falls_back_to_pick_locked_at(tmp_path):
+        from bts.health import late_delivery
+        _delivered(tmp_path, None)
+        _state(tmp_path, pick_locked=True, pick_locked_at="2026-08-30T13:36:14-04:00")
+>       assert late_delivery.check(tmp_path, today=D)[0].level == "CRITICAL"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+tests/health/test_late_delivery.py:72: IndexError
+=========================== short test summary info ============================
+FAILED tests/health/test_late_delivery.py::test_after_cutoff_is_critical - as...
+FAILED tests/health/test_late_delivery.py::test_at_cutoff_is_critical - Index...
+FAILED tests/health/test_late_delivery.py::test_utc_timestamp_and_earlier_double_down
+FAILED tests/health/test_late_delivery.py::test_falls_back_to_pick_locked_at
+========================= 4 failed, 7 passed in 0.87s ==========================

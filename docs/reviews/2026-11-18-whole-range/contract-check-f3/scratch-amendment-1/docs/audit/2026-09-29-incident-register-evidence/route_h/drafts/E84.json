@@ -1,0 +1,371 @@
+{
+ "id": "I-084",
+ "working_id": "E84",
+ "title": "8/30 late pick: the fallback deferred an enterable pick on a stale plan and re-picked it after the cutoff (DM 13:36:14, cutoff 13:35); nothing alerted",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "D",
+  "secondary": [
+   "L",
+   "A"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "the recommended pick was delivered after its entry cutoff and could not be entered; no monitor fired",
+ "plan_named": true,
+ "delivery_mode": "dm",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "An enterable pick is delivered before the entry cutoff (first pitch minus 5 minutes of its earliest game), leaving the operator time to enter it; a fallback may defer only while a later confirmation window can still finish before that cutoff.",
+  "source": "docs/audit/2026-08-30-late-pick-delivery.md; picks.SUBMISSION_CUTOFF_MIN (734bdb3); CLAUDE.md 'Cutoff guard + deadline-aware fallback (2026-08-30)'"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "the T-35 fallback refresh finished at 13:20 with the pick still enterable, then deferred it on a has_pending_future_window value snapshotted at 12:50 that counted the overdue 13:10 check and post-first-pitch checks as future windows",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "3e1791c",
+     "symbol": "run_day fallback branch / _should_defer_at_fallback",
+     "ref_basis": "log"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "no enterability guard existed: candidate filtering keyed only on MLB game status and _deliver_and_lock_pick never looked at the clock, so the overdue 13:10 check locked and DMed the same pick at 13:36:14",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "3e1791c",
+     "symbol": "_deliver_and_lock_pick",
+     "ref_basis": "log"
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "text": "each intraday cascade spent about 11 minutes asleep (pull_feeds slept 0.3 s after every cached feed, plus per-date discovery and a full parquet rebuild), stretching the refresh and the overdue check past the cutoff",
+   "code": [
+    {
+     "path": "src/bts/data/pull.py",
+     "ref": "3e1791c",
+     "symbol": "pull_feeds",
+     "ref_basis": "log"
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "text": "fallback_defer validated 'never miss' as 'a delivered pick file exists', which was true, so no health source reported the late delivery",
+   "code": [
+    {
+     "path": "src/bts/health/fallback_defer.py",
+     "ref": "3e1791c",
+     "symbol": "check",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "a681e89",
+     "32057b7",
+     "67338cd",
+     "3697512"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "2ff2db9",
+    "live_by": "2026-08-30T21:10:23Z",
+    "not_live_before": "2026-08-30T21:10:20Z",
+    "run_id": 33335535999,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": {
+    "action": "operator hand-entered a different pick for the day",
+    "at": {
+     "not_before": "2026-08-30T13:36:14-04:00",
+     "evidence": [
+      "ev1"
+     ],
+     "not_after": "2026-08-30T14:54:10-04:00"
+    }
+   },
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "734bdb3",
+     "ac0ce8d",
+     "fa977c3",
+     "2ff2db9"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "2ff2db9",
+    "live_by": "2026-08-30T21:10:23Z",
+    "not_live_before": "2026-08-30T21:10:20Z",
+    "run_id": 33335535999,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "not_applicable",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 3,
+   "implemented": {
+    "commits": [
+     "c0c0a97",
+     "0c8ed32"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "2ff2db9",
+    "live_by": "2026-08-30T21:10:23Z",
+    "not_live_before": "2026-08-30T21:10:20Z",
+    "run_id": 33335535999,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "not_applicable",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 4,
+   "implemented": {
+    "commits": [
+     "314154d"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "2ff2db9",
+    "live_by": "2026-08-30T21:10:23Z",
+    "not_live_before": "2026-08-30T21:10:20Z",
+    "run_id": 33335535999,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "not_applicable",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "No delivery_unknown non-scoreable terminal state for unconfirmed delivery attempts (review F2, deferred).",
+   "reaches_production": true,
+   "source": "memo §Round 2 (I-205)"
+  },
+  {
+   "text": "No feed-file validation or atomic temp-file downloads for the feed cache (review F10, deferred).",
+   "reaches_production": true,
+   "source": "memo §Round 2 (I-205)"
+  },
+  {
+   "text": "The cutoff is not enforced inside the Bluesky transport; a residual race of the transport's own seconds remains after the pre-send re-check (review F1).",
+   "reaches_production": true,
+   "source": "memo §Round 2 (I-205)"
+  },
+  {
+   "text": "The singleton-slate / moved-up-game gap is unchanged; the planner composes with it.",
+   "reaches_production": true,
+   "source": "memo §Follow-ups (I-077)"
+  },
+  {
+   "text": "check_confirmed_lineups swallows per-game HTTP errors and reports 'nothing confirmed' (only makes the planner more willing to wait); a log line was suggested.",
+   "reaches_production": false,
+   "source": "memo §Follow-ups"
+  }
+ ],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "a pick DM or pick-file delivered_at at or after the earliest pick game's first pitch minus 5 minutes, or a fallback deferral after which no enterable delivery can land before that cutoff",
+  "recovery_assertion": "the day's pick is delivered before the cutoff with the operator reserve (about T-10), or the delivery is refused, archived and alerted"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "docs/audit/2026-08-30-late-pick-delivery.md §Summary and §Timeline (1cd5da8)",
+   "written_at": "2026-08-30T14:54:10-04:00",
+   "exposure_row": "X-01",
+   "what": "checks 11:15 and 12:35 did not lock (gap to a projected contender); the 13:05 fallback refresh ended 13:20 and deferred; the overdue 13:10 check locked the same pick and DMed it at 13:36:14 against a 13:35 cutoff; nothing alerted; the operator hand-entered a different pick"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "same memo §What the adversarial review corrected, §Round 2",
+   "written_at": "2026-08-30T15:21:25-04:00",
+   "what": "root-cause ranking (stale sequential deadline-blind state machine = cause; missing delivery guard = containment failure; cached-feed sleeps = amplifier) and the deferred review items F1, F2, F10"
+  },
+  {
+   "id": "ev3",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit bodies ac0ce8d, fa977c3, 32057b7, 67338cd, c0c0a97, 0c8ed32, 314154d, 3697512, 2ff2db9",
+   "written_at": "2026-08-30T15:25:12-04:00",
+   "what": "the fix set per layer: hard cutoff guard at the delivery chokepoint, live re-pick without past-cutoff games, deadline-aware planner, no sleep on cached feeds, late_delivery health source"
+  },
+  {
+   "id": "ev4",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "memo §Summary ('FALLBACK DEFERRED had fired three times in four days')",
+   "written_at": "2026-08-30T14:54:10-04:00",
+   "what": "the same deferral fired on 8/27 and 8/29; those days re-picked later games under the then-current gap rule"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 33335535999 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "pre-deploy 3e1791c -> deployed 2ff2db9 at 2026-08-30T21:10:22Z, canary passed 21:10:55Z"
+  },
+  {
+   "id": "ev6",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 31831299733 (deploy_runs.json)",
+   "what": "3e1791c installed 2026-08-14T19:04:35Z and not replaced until run 33335535999: the defective code was live on 8/30"
+  },
+  {
+   "id": "ev7",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "memo §Summary ('FALLBACK DEFERRED had fired three times in four days')",
+   "what": "the same 8/30 write-up's account of the 8/27 recurrence, written more than 48 h after it (later analysis, not a contemporaneous report of 8/27)"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-08-30",
+   "onset": {
+    "at": "2026-08-30T13:20:00-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": {
+    "at": "2026-08-30T13:35:00-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_before": "2026-08-30T13:36:14-04:00",
+    "not_after": "2026-08-30T14:32:44-04:00",
+    "evidence": [
+     "ev1",
+     "ev2",
+     "ev3"
+    ]
+   },
+   "operator_action": {
+    "not_before": "2026-08-30T13:36:14-04:00",
+    "evidence": [
+     "ev1"
+    ],
+    "not_after": "2026-08-30T14:54:10-04:00"
+   },
+   "mitigation": {
+    "not_before": "2026-08-30T13:36:14-04:00",
+    "evidence": [
+     "ev1"
+    ],
+    "not_after": "2026-08-30T14:54:10-04:00"
+   },
+   "restored_verification": "unknown",
+   "recurrence": {
+    "before_fix": [
+     {
+      "at": "2026-08-27",
+      "evidence": [
+       "ev7"
+      ]
+     },
+     {
+      "at": "2026-08-29",
+      "evidence": [
+       "ev4"
+      ]
+     }
+    ],
+    "after_fix": []
+   },
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "734bdb3",
+   "ac0ce8d",
+   "fa977c3",
+   "c0c0a97",
+   "0c8ed32",
+   "a681e89",
+   "32057b7",
+   "67338cd",
+   "314154d",
+   "1cd5da8",
+   "3697512",
+   "2ff2db9"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-08-30-late-pick-delivery.md"
+  ]
+ },
+ "related": [
+  "I-077",
+  "I-205"
+ ],
+ "notes": [
+  "operator_awareness upper bound = the fix-plan commit ad17b3a (14:32:44)",
+  "recurrence.before_fix lists the 8/27 and 8/29 deferrals: the same stale-plan deferral fired, but those days delivered a later pick under the then-current gap rule, so they are recurrences of the mechanism, not of the late delivery",
+  "the 8/30 policy change (a gap-rule block no longer abandons an enterable pick when the contender cannot confirm in time) was approved by Eric the same day; a projected primary keeps the 7/06 product choice",
+  "the memo's follow-up (confirm the 8/31 cascade logs ~5 min) is a Route R check",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

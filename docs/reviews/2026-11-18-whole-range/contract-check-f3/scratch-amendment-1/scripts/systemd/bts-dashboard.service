@@ -1,0 +1,17 @@
+[Unit]
+Description=BTS Dashboard
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/bts/projects/bts
+Environment=UV_CACHE_DIR=/tmp/uv-cache
+Environment=PATH=/home/bts/.local/bin:/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=/home/bts/projects/bts/.env
+ExecStart=/home/bts/.local/bin/uv run python3 -m bts.web
+Restart=on-failure
+SuccessExitStatus=143
+RestartSec=10
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,393 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-c2-rev-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 78 items
+
+tests/test_wr_c2_recovery.py .........FFFFF............................. [ 55%]
+.............FFFFFFFFFFFF..........                                      [100%]
+
+=================================== FAILURES ===================================
+______________ test_only_unknown_alert_requires_message_id[None] _______________
+tests/test_wr_c2_recovery.py:168: in test_only_unknown_alert_requires_message_id
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * (1 if acknowledged else 2)
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     At index 1 diff: "⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory b...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+Unknown-outcome alert failed: transport: send_dm returned no usable message id
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+________________ test_only_unknown_alert_requires_message_id[] _________________
+tests/test_wr_c2_recovery.py:168: in test_only_unknown_alert_requires_message_id
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * (1 if acknowledged else 2)
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     At index 1 diff: "⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory b...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+Unknown-outcome alert failed: transport: send_dm returned no usable message id
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+______________ test_only_unknown_alert_requires_message_id[ \t ] _______________
+tests/test_wr_c2_recovery.py:168: in test_only_unknown_alert_requires_message_id
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * (1 if acknowledged else 2)
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     At index 1 diff: "⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory b...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+Unknown-outcome alert failed: transport: send_dm returned no usable message id
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+_______________ test_only_unknown_alert_requires_message_id[17] ________________
+tests/test_wr_c2_recovery.py:168: in test_only_unknown_alert_requires_message_id
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * (1 if acknowledged else 2)
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     At index 1 diff: "⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory b...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+Unknown-outcome alert failed: transport: send_dm returned no usable message id
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+_____________ test_only_unknown_alert_requires_message_id[reply4] ______________
+tests/test_wr_c2_recovery.py:168: in test_only_unknown_alert_requires_message_id
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * (1 if acknowledged else 2)
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     At index 1 diff: "⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory b...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+Unknown-outcome alert failed: transport: offline
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+______ test_unknown_alert_operator_copy[never_left-18-35-0-False-direct] _______
+tests/test_wr_c2_recovery.py:480: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     At index 1 diff: "⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory b...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+Unknown-outcome alert failed: transport: send_dm returned no usable message id
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+__ test_unknown_alert_operator_copy[never_left-18-35-0-False-classification] ___
+tests/test_wr_c2_recovery.py:480: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     At index 1 diff: "⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory b...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+Unknown-outcome alert failed: transport: send_dm returned no usable message id
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+________ test_unknown_alert_operator_copy[accepted-18-35-0-True-direct] ________
+tests/test_wr_c2_recovery.py:480: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     At index 1 diff: "⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory b...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+Unknown-outcome alert failed: transport: send_dm returned no usable message id
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+____ test_unknown_alert_operator_copy[accepted-18-35-0-True-classification] ____
+tests/test_wr_c2_recovery.py:480: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     At index 1 diff: "⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory b...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+Unknown-outcome alert failed: transport: send_dm returned no usable message id
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+_________ test_unknown_alert_operator_copy[cutoff-19-6-0-False-direct] _________
+tests/test_wr_c2_recovery.py:480: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     At index 1 diff: "⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory b...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+Unknown-outcome alert failed: transport: send_dm returned no usable message id
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+_____ test_unknown_alert_operator_copy[cutoff-19-6-0-False-classification] _____
+tests/test_wr_c2_recovery.py:480: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     At index 1 diff: "⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory b...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[19:06 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[19:06 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+Unknown-outcome alert failed: transport: send_dm returned no usable message id
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 14 min)...
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[19:06 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[19:06 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 14 min)...
+  Day complete. Result: final
+______ test_unknown_alert_operator_copy[first_pitch-19-14-0-False-direct] ______
+tests/test_wr_c2_recovery.py:480: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     At index 1 diff: "⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory b...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+Unknown-outcome alert failed: transport: send_dm returned no usable message id
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+__ test_unknown_alert_operator_copy[first_pitch-19-14-0-False-classification] __
+tests/test_wr_c2_recovery.py:480: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     At index 1 diff: "⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory b...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[19:14 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[19:14 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+Unknown-outcome alert failed: transport: send_dm returned no usable message id
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 6 min)...
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[19:14 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[19:14 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 6 min)...
+  Day complete. Result: final
+________ test_unknown_alert_operator_copy[overnight-0-1-1-False-direct] ________
+tests/test_wr_c2_recovery.py:480: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     At index 1 diff: "⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory b...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+Unknown-outcome alert failed: transport: send_dm returned no usable message id
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+____ test_unknown_alert_operator_copy[overnight-0-1-1-False-classification] ____
+tests/test_wr_c2_recovery.py:480: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     At index 1 diff: "⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory b...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[00:01 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[00:01 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+Unknown-outcome alert failed: transport: send_dm returned no usable message id
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[00:01 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[00:01 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Day complete. Result: final
+___ test_unknown_alert_operator_copy[switched_private-18-35-0-False-direct] ____
+tests/test_wr_c2_recovery.py:480: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     At index 1 diff: "⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory b...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+Unknown-outcome alert failed: transport: send_dm returned no usable message id
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+_ test_unknown_alert_operator_copy[switched_private-18-35-0-False-classification] _
+tests/test_wr_c2_recovery.py:480: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ... that slate.'] == ['BTS health ... that slate.']
+E     
+E     At index 1 diff: "⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory b...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[18:35 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+Unknown-outcome alert failed: transport: send_dm returned no usable message id
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+=========================== short test summary info ============================
+FAILED tests/test_wr_c2_recovery.py::test_only_unknown_alert_requires_message_id[None]
+FAILED tests/test_wr_c2_recovery.py::test_only_unknown_alert_requires_message_id[]
+FAILED tests/test_wr_c2_recovery.py::test_only_unknown_alert_requires_message_id[ \t ]
+FAILED tests/test_wr_c2_recovery.py::test_only_unknown_alert_requires_message_id[17]
+FAILED tests/test_wr_c2_recovery.py::test_only_unknown_alert_requires_message_id[reply4]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[never_left-18-35-0-False-direct]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[never_left-18-35-0-False-classification]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[accepted-18-35-0-True-direct]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[accepted-18-35-0-True-classification]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[cutoff-19-6-0-False-direct]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[cutoff-19-6-0-False-classification]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[first_pitch-19-14-0-False-direct]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[first_pitch-19-14-0-False-classification]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[overnight-0-1-1-False-direct]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[overnight-0-1-1-False-classification]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[switched_private-18-35-0-False-direct]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[switched_private-18-35-0-False-classification]
+======================== 17 failed, 61 passed in 2.85s =========================

@@ -1,0 +1,36 @@
+{
+ "id": "E03",
+ "episode_row": [
+  "E03",
+  "4/01",
+  "live picks on a stale season parquet",
+  "D",
+  "UC",
+  "P",
+  "b6b1865"
+ ],
+ "commits": [
+  {
+   "sha": "b6b1865",
+   "authored": "2026-04-01T01:44:05-04:00",
+   "subject": "fix: auto-refresh season data before predictions",
+   "body": "run_pipeline now pulls recent game feeds and rebuilds the current season\nparquet before running predictions. Skips already-downloaded games so\nit's fast for daily use. Set refresh_data=False for backtesting.\n\nFixes stale features (days_rest, rolling hit rates) caused by parquets\nnot being rebuilt after new games.",
+   "files": [
+    "src/bts/model/predict.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24253126060,
+    "created_at": "2026-04-10T16:29:24Z",
+    "head_sha": "4a82cf8",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

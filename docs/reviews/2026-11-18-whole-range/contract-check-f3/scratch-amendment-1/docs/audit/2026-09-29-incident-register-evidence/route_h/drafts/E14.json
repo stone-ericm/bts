@@ -1,0 +1,170 @@
+{
+ "id": "I-014",
+ "working_id": "E14",
+ "title": "Dashboard read 'Final \u2014 pick missed' while one leg of a cross-game double was still live (4/06)",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "U",
+  "secondary": []
+ },
+ "tier": "B",
+ "tier_reason": "dashboard status wording only; the same commit's DEBUT\u2192LIMITED change is flag text in prediction output (the league-average treatment was unchanged)",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "dashboard",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "For a cross-game double, the merged scorecard shows Final only when both games are final.",
+  "source": "0ba01e1 body; src/bts/scorecard.py merge_scorecards docstring (6168e1d)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "merge_scorecards kept the most advanced status (F > L > P), so one finished game made the merged double read 'Final \u2014 pick missed' while the other leg was live",
+   "code": [
+    {
+     "path": "src/bts/scorecard.py",
+     "ref": "a002b04",
+     "symbol": "merge_scorecards",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "predict flagged pitchers with fewer than 10 career starts as 'DEBUT pitcher' because pitcher_hr_30g needs min_periods=10 (flag text only)",
+   "code": [
+    {
+     "path": "src/bts/model/predict.py",
+     "ref": "a002b04",
+     "symbol": "predict",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "0ba01e1"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "0ba01e1"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "0ba01e1's 'least advanced status' comparison made Preview outrank Live, blanking the scorecard when the primary's game had not started but the double-down's had (I-024, fixed 6168e1d on 4/12)",
+   "reaches_production": false,
+   "source": "0ba01e1 and 6168e1d diffs"
+  }
+ ],
+ "watchdog": {
+  "boundary": "none",
+  "trigger": "display-only: dashboard status wording; no W4 boundary applies",
+  "recovery_assertion": "the merged status is Final only when every leg's game is final"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 0ba01e1 message body",
+   "written_at": "2026-04-06T19:32:31-04:00",
+   "exposure_row": "X-01",
+   "what": "merge_scorecards used the most advanced status, 'so a double-pick with one Final + one Live game showed \"Final \u2014 pick missed\" prematurely'; pitchers with <10 career starts were flagged DEBUT"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "git history: 9e0014a (4/04 21:34 ET) added different-game double-down handling to the scorecard",
+   "what": "merge_scorecards existed from 4/04 evening"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24253126060 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploy run whose head (4a82cf8) contains 0ba01e1; a Fly.io deploy, log expired"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-04-06 (cross-game double)",
+   "onset": {
+    "not_before": "2026-04-04T21:34:57-04:00",
+    "not_after": "2026-04-06T19:32:31-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-06T19:32:31-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "0ba01e1"
+  ],
+  "R": "pending_phase2",
+  "X": []
+ },
+ "related": [
+  "I-024",
+  "I-015"
+ ],
+ "notes": [
+  "disposition changed from the lead row (UC) to observed_incident: the body reports the status as shown ('showed \u2026 prematurely'), written the same evening",
+  "the quoted 'Final \u2014 pick missed' is the dashboard's premature text; ev1 carries X-01 because the label is outcome-shaped, but the day's actual result is not restated",
+  "the same day is the likely cross-game double relevant to I-015",
+  "deployed: candidate run 24253126060 was a Fly.io deploy (workflow 'Deploy BTS to Fly', fcedf71), not a production install; the Pi5 dashboard install time is not evidenced",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; 0ba01e1 added test_merge_stays_live_when_one_game_finished",
+  "deployed unknown: candidate run 24253126060 executed the Fly deploy.yml (its head lacks 51ef987, the 4/11 Hetzner workflow); production (Pi5 orchestrator, manual pulls) has no install record before the cutover"
+ ]
+}

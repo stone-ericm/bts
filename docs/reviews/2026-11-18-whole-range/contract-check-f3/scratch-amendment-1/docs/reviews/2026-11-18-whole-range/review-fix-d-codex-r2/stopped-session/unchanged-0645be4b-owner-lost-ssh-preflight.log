@@ -1,0 +1,14 @@
+Replay owner-lost-ssh-preflight 0645be4b 2026-11-20T17:37:07.939016
+workflow 9d2f537ac1972dd404ea8ce11476099baa3867a48d38bb1a335cf74bcabcfad7 phase 4cb0eef49d19f5e0e655d5fdc8ff7ae01b51dd702720348b198d1f5e03f6833d
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-d/.codex-review/wr-d/r2/trees/0645be4b/.codex-review/wr-d/owner_probe.py", line 481, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-d/.codex-review/wr-d/r2/trees/0645be4b/.codex-review/wr-d/owner_probe.py", line 476, in main
+    trial(Path(temp), boundary, fault, recovery)
+  File "/Users/eric/projects/bts-work/wr-review-d/.codex-review/wr-d/r2/trees/0645be4b/.codex-review/wr-d/owner_probe.py", line 417, in trial
+    wait_until(lambda: (case / 'owner-exited').exists())
+  File "/Users/eric/projects/bts-work/wr-review-d/.codex-review/wr-d/r2/trees/0645be4b/.codex-review/wr-d/owner_probe.py", line 62, in wait_until
+    raise TimeoutError('fixture wait deadline')
+TimeoutError: fixture wait deadline
+exit 1

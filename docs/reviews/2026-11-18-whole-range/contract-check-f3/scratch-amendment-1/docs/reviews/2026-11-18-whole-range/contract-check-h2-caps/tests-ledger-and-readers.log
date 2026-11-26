@@ -1,0 +1,33 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-check-h2b/.codex-review/wr-h2-check/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 385 items
+
+tests/scripts/season_ledger/test_acquire.py ..                           [  0%]
+tests/scripts/season_ledger/test_bundle_io.py .............              [  3%]
+tests/scripts/season_ledger/test_compile.py .....................        [  9%]
+tests/scripts/season_ledger/test_contest.py .........                    [ 11%]
+tests/scripts/season_ledger/test_day_records.py ........                 [ 13%]
+tests/scripts/season_ledger/test_matching.py ...........                 [ 16%]
+tests/scripts/season_ledger/test_outcomes.py ......                      [ 18%]
+tests/scripts/season_ledger/test_pick_files.py ...........               [ 21%]
+tests/scripts/season_ledger/test_reconcile.py .......................... [ 27%]
+..................                                                       [ 32%]
+tests/scripts/season_ledger/test_rows.py ..............................  [ 40%]
+tests/scripts/season_ledger/test_static.py .........                     [ 42%]
+tests/scripts/test_live_forward_capture_once.py ........................ [ 48%]
+........................                                                 [ 55%]
+tests/test_health_endpoint.py ............                               [ 58%]
+tests/test_heartbeat.py .................                                [ 62%]
+tests/test_heartbeat_churn.py ..........                                 [ 65%]
+tests/test_audit_f6_review_probes.py ...                                 [ 65%]
+tests/test_day_outcome_entry_sequence.py ............................... [ 74%]
+....                                                                     [ 75%]
+tests/test_incident_register_2026.py ................................... [ 84%]
+...........................                                              [ 91%]
+tests/test_park_drag_feature.py ..................................       [100%]
+
+============================= 385 passed in 4.46s ==============================

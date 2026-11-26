@@ -1,0 +1,63 @@
+model_state_corrupt: /Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/row6-pwnfljky/streak.json: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+model_state_corrupt: /Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/row7-m6v_dw07/streak.json: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+model_state_corrupt: /Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/row6-21d71cpw/streak.json: TypeError: expected object
+model_state_corrupt: /Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/row7-svxmy9hd/streak.json: TypeError: expected object
+model_state_corrupt: /Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/row6-p38hihfn/streak.json: JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+model_state_corrupt: /Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/row7-3dyd9rgw/streak.json: JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+model_state_corrupt: /Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/row6-2ewsa6h9/streak.json: IsADirectoryError: [Errno 21] Is a directory: '/Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/row6-2ewsa6h9/streak.json'
+model_state_corrupt: /Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/row7-scm7kqa3/streak.json: IsADirectoryError: [Errno 21] Is a directory: '/Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/row7-scm7kqa3/streak.json'
+model_state_corrupt: /Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/row6-qpswschh/streak.json: PermissionError: [Errno 13] Permission denied: '/Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/row6-qpswschh/streak.json'
+model_state_corrupt: /Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/row7-spm45xmq/streak.json: PermissionError: [Errno 13] Permission denied: '/Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/row7-spm45xmq/streak.json'
+model_state_corrupt: /Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/production-corrupt_model-tt_aapht/streak.json: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+model_state_corrupt: /Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/production-corrupt_model-tt_aapht/streak.json: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+model_state_corrupt: /Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/production-corrupt_model-tt_aapht/streak.json: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+model_state_corrupt: /Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/production-corrupt_model-tt_aapht/streak.json: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+model_state_corrupt: /Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/production-corrupt_model-tt_aapht/streak.json: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+model_state_corrupt: /Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/production-corrupt_model-tt_aapht/streak.json: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+model_state_corrupt: /Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/production-corrupt_model-tt_aapht/streak.json: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+model_state_corrupt: /Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/production-corrupt_model-tt_aapht/streak.json: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+model_state_corrupt: /Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/production-corrupt_model-tt_aapht/streak.json: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+  LOCKED (probe) — Pick DM sent: synthetic-id
+  CONTEST STATE ERROR — pick delivery blocked: automatic contest observation is undated at /Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/production-empty_timestamp-jpmsq83_/account_state/contest_streak.json
+  CONTEST STATE ERROR — pick delivery blocked: automatic contest observation is undated at /Users/eric/projects/bts-work/cs1-rev-codex/.codex-review/cs1-review/cases/production-malformed_timestamp-ssn4m_75/account_state/contest_streak.json
+  LOCKED (probe) — Pick DM sent: synthetic-id
+{
+  "rows": 55,
+  "dates": 216,
+  "precedence": 28,
+  "model_matrix": {
+    "count": 2178,
+    "mismatches": [],
+    "picks_diff": ""
+  },
+  "production": {
+    "normal": {
+      "main_selection": "accepted",
+      "head_selection": "accepted"
+    },
+    "null_coverage": {
+      "main_selection": "accepted",
+      "head_selection": "accepted"
+    },
+    "producer_above57": {
+      "main_selection": "accepted",
+      "head_selection": "ContestStateError"
+    },
+    "corrupt_model": {
+      "main_selection": "UnicodeDecodeError",
+      "head_selection": "accepted"
+    },
+    "empty_timestamp": {
+      "main_selection": "accepted",
+      "head_selection": "ContestStateError"
+    },
+    "malformed_timestamp": {
+      "main_selection": "accepted",
+      "head_selection": "ContestStateError"
+    },
+    "shadowed_as_of": {
+      "main_selection": "accepted",
+      "head_selection": "accepted"
+    }
+  }
+}

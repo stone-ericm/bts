@@ -1,0 +1,191 @@
+direct: missing schema_version: 1 C2 sends over two encounters
+direct: schema_version=None: 1 C2 sends over two encounters
+direct: schema_version=False: 1 C2 sends over two encounters
+direct: schema_version=17: 1 C2 sends over two encounters
+direct: schema_version=1.5: 1 C2 sends over two encounters
+direct: schema_version={}: 1 C2 sends over two encounters
+direct: schema_version='damaged': 1 C2 sends over two encounters
+direct: schema_version=['bts_health_dm_delivery_status_v1']: 1 C2 sends over two encounters
+direct: missing status: 1 C2 sends over two encounters
+direct: status=None: 1 C2 sends over two encounters
+direct: status=False: 1 C2 sends over two encounters
+direct: status=17: 1 C2 sends over two encounters
+direct: status=1.5: 1 C2 sends over two encounters
+direct: status={}: 1 C2 sends over two encounters
+direct: status='failed': 1 C2 sends over two encounters
+direct: status='skipped_no_recipient': 1 C2 sends over two encounters
+direct: status='SENT': 1 C2 sends over two encounters
+direct: status=['sent']: 1 C2 sends over two encounters
+direct: missing sent_day: 1 C2 sends over two encounters
+direct: sent_day=None: 1 C2 sends over two encounters
+direct: sent_day=False: 1 C2 sends over two encounters
+direct: sent_day=17: 1 C2 sends over two encounters
+direct: sent_day=1.5: 1 C2 sends over two encounters
+direct: sent_day={}: 1 C2 sends over two encounters
+direct: sent_day='2027-03-26': 1 C2 sends over two encounters
+direct: sent_day='2027-03-25 ': 1 C2 sends over two encounters
+direct: sent_day=['2027-03-25']: 1 C2 sends over two encounters
+direct: missing sent_sources: 1 C2 sends over two encounters
+direct: sent_sources=None: 1 C2 sends over two encounters
+direct: sent_sources=False: 1 C2 sends over two encounters
+direct: sent_sources=17: 1 C2 sends over two encounters
+direct: sent_sources=1.5: 1 C2 sends over two encounters
+direct: sent_sources={}: 1 C2 sends over two encounters
+direct: sent_sources='CRITICAL:late_delivery': 1 C2 sends over two encounters
+direct: sent_sources=[]: 1 C2 sends over two encounters
+direct: sent_sources=['CRITICAL:pick_delivery']: 1 C2 sends over two encounters
+direct: sent_sources=['CRITICAL:late_delivery', 'CRITICAL:late_delivery']: 1 C2 sends over two encounters
+direct: sent_sources=['CRITICAL:late_delivery', 'CRITICAL:pick_delivery']: 1 C2 sends over two encounters
+direct: sent_sources=['CRITICAL:pick_delivery', 'CRITICAL:late_delivery']: 1 C2 sends over two encounters
+direct: sent_sources=[True]: 1 C2 sends over two encounters
+direct: sent_sources=[None]: 1 C2 sends over two encounters
+direct: sent_sources={'CRITICAL:late_delivery': True}: 1 C2 sends over two encounters
+direct: missing message_id: 1 C2 sends over two encounters
+direct: message_id=None: 1 C2 sends over two encounters
+direct: message_id=False: 1 C2 sends over two encounters
+direct: message_id=17: 1 C2 sends over two encounters
+direct: message_id=1.5: 1 C2 sends over two encounters
+direct: message_id={}: 1 C2 sends over two encounters
+direct: message_id='': 1 C2 sends over two encounters
+direct: message_id='\t \r\n': 1 C2 sends over two encounters
+direct: message_id='\u2003': 1 C2 sends over two encounters
+direct: message_id=['seed-id']: 1 C2 sends over two encounters
+direct: missing body hash (round-2 writer shape): 1 C2 sends over two encounters
+direct: extra error: 1 C2 sends over two encounters
+direct: extra member: 1 C2 sends over two encounters
+direct: duplicate status: 1 C2 sends over two encounters
+direct: duplicate key with escape: 1 C2 sends over two encounters
+direct: duplicate schema: 1 C2 sends over two encounters
+direct: duplicate identical value: 1 C2 sends over two encounters
+direct: nested duplicate: 1 C2 sends over two encounters
+direct: NaN: 1 C2 sends over two encounters
+direct: Infinity: 1 C2 sends over two encounters
+direct: integer at conversion limit: 1 C2 sends over two encounters
+direct: integer beyond conversion limit: 1 C2 sends over two encounters
+direct: deep array: 1 C2 sends over two encounters
+direct: malformed: 1 C2 sends over two encounters
+direct: not an object: 1 C2 sends over two encounters
+direct: UTF-8 BOM: 1 C2 sends over two encounters
+direct: UTF-16 with BOM: 1 C2 sends over two encounters
+direct: invalid UTF-8: 1 C2 sends over two encounters
+direct: non-JSON whitespace: 1 C2 sends over two encounters
+direct: NFKC-equivalent status: 1 C2 sends over two encounters
+direct: NFKC-equivalent day: 1 C2 sends over two encounters
+direct: NFKC-equivalent source: 1 C2 sends over two encounters
+direct: uppercase hash: 1 C2 sends over two encounters
+direct: padded hash: 1 C2 sends over two encounters
+direct: other slate hash: 1 C2 sends over two encounters
+direct: null hash: 1 C2 sends over two encounters
+direct: numeric hash: 1 C2 sends over two encounters
+direct: escaped keys and values: 0 C2 sends over two encounters
+direct: reordered and whitespace: 0 C2 sends over two encounters
+direct: literal UTF-8 message ID: 0 C2 sends over two encounters
+direct: NFD message ID: 0 C2 sends over two encounters
+direct: escaped NUL and surrogate message ID: 0 C2 sends over two encounters
+direct: real cutoff: 1 C2 sends over two encounters
+direct: cutoff plus ID: 1 C2 sends over two encounters
+direct: foreign opt-in: 1 C2 sends over two encounters
+foreign opt-in bytes: b'{\n  "body_sha256": "2f999346d277a7a2236ddceb2061320d6b04b68b80ddbe9dcef93154f9bf5111",\n  "message_id": "cutoff-id",\n  "schema_version": "bts_health_dm_delivery_status_v1",\n  "sent_day": "2027-03-25",\n  "sent_sources": [\n    "CRITICAL:late_delivery"\n  ],\n  "status": "sent"\n}\n'
+direct: same body legacy runner override: 1 C2 sends over two encounters
+same body legacy runner override bytes: b'{\n  "body_first_line": "BTS health CRITICAL alert(s):",\n  "body_sha256": "9f08c9013aec667f9a4208b4e930043efefe9a21d2c9c09cb35afaf1edc2cef2",\n  "critical_count": 1,\n  "recipient": "offline.test",\n  "recipient_configured": true,\n  "schema_version": "bts_health_dm_delivery_status_v1",\n  "sent_day": "2027-03-25",\n  "sent_sources": [\n    "CRITICAL:late_delivery"\n  ],\n  "status": "sent",\n  "updated_at": "2027-03-25T22:20:00+00:00",\n  "warn_attention_count": 0\n}\n'
+direct: genuine other-slate copy: 1 C2 sends over two encounters
+direct: genuine same-slate copy: 0 C2 sends over two encounters
+genuine same-slate copy bytes: b'{\n  "body_sha256": "9f08c9013aec667f9a4208b4e930043efefe9a21d2c9c09cb35afaf1edc2cef2",\n  "message_id": "seed-id",\n  "schema_version": "bts_health_dm_delivery_status_v1",\n  "sent_day": "2027-03-25",\n  "sent_sources": [\n    "CRITICAL:late_delivery"\n  ],\n  "status": "sent"\n}\n'
+direct: 2027-03-25T23:58:00-04:00 through 2027-03-26T00:08:00-04:00: same-slate C2 DM sent once over four encounters
+direct: 2026-12-31T23:58:00-05:00 through 2027-01-01T00:08:00-05:00: same-slate C2 DM sent once over four encounters
+classification: missing schema_version: 1 C2 sends over two encounters
+classification: schema_version=None: 1 C2 sends over two encounters
+classification: schema_version=False: 1 C2 sends over two encounters
+classification: schema_version=17: 1 C2 sends over two encounters
+classification: schema_version=1.5: 1 C2 sends over two encounters
+classification: schema_version={}: 1 C2 sends over two encounters
+classification: schema_version='damaged': 1 C2 sends over two encounters
+classification: schema_version=['bts_health_dm_delivery_status_v1']: 1 C2 sends over two encounters
+classification: missing status: 1 C2 sends over two encounters
+classification: status=None: 1 C2 sends over two encounters
+classification: status=False: 1 C2 sends over two encounters
+classification: status=17: 1 C2 sends over two encounters
+classification: status=1.5: 1 C2 sends over two encounters
+classification: status={}: 1 C2 sends over two encounters
+classification: status='failed': 1 C2 sends over two encounters
+classification: status='skipped_no_recipient': 1 C2 sends over two encounters
+classification: status='SENT': 1 C2 sends over two encounters
+classification: status=['sent']: 1 C2 sends over two encounters
+classification: missing sent_day: 1 C2 sends over two encounters
+classification: sent_day=None: 1 C2 sends over two encounters
+classification: sent_day=False: 1 C2 sends over two encounters
+classification: sent_day=17: 1 C2 sends over two encounters
+classification: sent_day=1.5: 1 C2 sends over two encounters
+classification: sent_day={}: 1 C2 sends over two encounters
+classification: sent_day='2027-03-26': 1 C2 sends over two encounters
+classification: sent_day='2027-03-25 ': 1 C2 sends over two encounters
+classification: sent_day=['2027-03-25']: 1 C2 sends over two encounters
+classification: missing sent_sources: 1 C2 sends over two encounters
+classification: sent_sources=None: 1 C2 sends over two encounters
+classification: sent_sources=False: 1 C2 sends over two encounters
+classification: sent_sources=17: 1 C2 sends over two encounters
+classification: sent_sources=1.5: 1 C2 sends over two encounters
+classification: sent_sources={}: 1 C2 sends over two encounters
+classification: sent_sources='CRITICAL:late_delivery': 1 C2 sends over two encounters
+classification: sent_sources=[]: 1 C2 sends over two encounters
+classification: sent_sources=['CRITICAL:pick_delivery']: 1 C2 sends over two encounters
+classification: sent_sources=['CRITICAL:late_delivery', 'CRITICAL:late_delivery']: 1 C2 sends over two encounters
+classification: sent_sources=['CRITICAL:late_delivery', 'CRITICAL:pick_delivery']: 1 C2 sends over two encounters
+classification: sent_sources=['CRITICAL:pick_delivery', 'CRITICAL:late_delivery']: 1 C2 sends over two encounters
+classification: sent_sources=[True]: 1 C2 sends over two encounters
+classification: sent_sources=[None]: 1 C2 sends over two encounters
+classification: sent_sources={'CRITICAL:late_delivery': True}: 1 C2 sends over two encounters
+classification: missing message_id: 1 C2 sends over two encounters
+classification: message_id=None: 1 C2 sends over two encounters
+classification: message_id=False: 1 C2 sends over two encounters
+classification: message_id=17: 1 C2 sends over two encounters
+classification: message_id=1.5: 1 C2 sends over two encounters
+classification: message_id={}: 1 C2 sends over two encounters
+classification: message_id='': 1 C2 sends over two encounters
+classification: message_id='\t \r\n': 1 C2 sends over two encounters
+classification: message_id='\u2003': 1 C2 sends over two encounters
+classification: message_id=['seed-id']: 1 C2 sends over two encounters
+classification: missing body hash (round-2 writer shape): 1 C2 sends over two encounters
+classification: extra error: 1 C2 sends over two encounters
+classification: extra member: 1 C2 sends over two encounters
+classification: duplicate status: 1 C2 sends over two encounters
+classification: duplicate key with escape: 1 C2 sends over two encounters
+classification: duplicate schema: 1 C2 sends over two encounters
+classification: duplicate identical value: 1 C2 sends over two encounters
+classification: nested duplicate: 1 C2 sends over two encounters
+classification: NaN: 1 C2 sends over two encounters
+classification: Infinity: 1 C2 sends over two encounters
+classification: integer at conversion limit: 1 C2 sends over two encounters
+classification: integer beyond conversion limit: 1 C2 sends over two encounters
+classification: deep array: 1 C2 sends over two encounters
+classification: malformed: 1 C2 sends over two encounters
+classification: not an object: 1 C2 sends over two encounters
+classification: UTF-8 BOM: 1 C2 sends over two encounters
+classification: UTF-16 with BOM: 1 C2 sends over two encounters
+classification: invalid UTF-8: 1 C2 sends over two encounters
+classification: non-JSON whitespace: 1 C2 sends over two encounters
+classification: NFKC-equivalent status: 1 C2 sends over two encounters
+classification: NFKC-equivalent day: 1 C2 sends over two encounters
+classification: NFKC-equivalent source: 1 C2 sends over two encounters
+classification: uppercase hash: 1 C2 sends over two encounters
+classification: padded hash: 1 C2 sends over two encounters
+classification: other slate hash: 1 C2 sends over two encounters
+classification: null hash: 1 C2 sends over two encounters
+classification: numeric hash: 1 C2 sends over two encounters
+classification: escaped keys and values: 0 C2 sends over two encounters
+classification: reordered and whitespace: 0 C2 sends over two encounters
+classification: literal UTF-8 message ID: 0 C2 sends over two encounters
+classification: NFD message ID: 0 C2 sends over two encounters
+classification: escaped NUL and surrogate message ID: 0 C2 sends over two encounters
+classification: real cutoff: 1 C2 sends over two encounters
+classification: cutoff plus ID: 1 C2 sends over two encounters
+classification: foreign opt-in: 1 C2 sends over two encounters
+foreign opt-in bytes: b'{\n  "body_sha256": "2f999346d277a7a2236ddceb2061320d6b04b68b80ddbe9dcef93154f9bf5111",\n  "message_id": "cutoff-id",\n  "schema_version": "bts_health_dm_delivery_status_v1",\n  "sent_day": "2027-03-25",\n  "sent_sources": [\n    "CRITICAL:late_delivery"\n  ],\n  "status": "sent"\n}\n'
+classification: same body legacy runner override: 1 C2 sends over two encounters
+same body legacy runner override bytes: b'{\n  "body_first_line": "BTS health CRITICAL alert(s):",\n  "body_sha256": "9f08c9013aec667f9a4208b4e930043efefe9a21d2c9c09cb35afaf1edc2cef2",\n  "critical_count": 1,\n  "recipient": "offline.test",\n  "recipient_configured": true,\n  "schema_version": "bts_health_dm_delivery_status_v1",\n  "sent_day": "2027-03-25",\n  "sent_sources": [\n    "CRITICAL:late_delivery"\n  ],\n  "status": "sent",\n  "updated_at": "2027-03-25T22:20:00+00:00",\n  "warn_attention_count": 0\n}\n'
+classification: genuine other-slate copy: 1 C2 sends over two encounters
+classification: genuine same-slate copy: 0 C2 sends over two encounters
+genuine same-slate copy bytes: b'{\n  "body_sha256": "9f08c9013aec667f9a4208b4e930043efefe9a21d2c9c09cb35afaf1edc2cef2",\n  "message_id": "seed-id",\n  "schema_version": "bts_health_dm_delivery_status_v1",\n  "sent_day": "2027-03-25",\n  "sent_sources": [\n    "CRITICAL:late_delivery"\n  ],\n  "status": "sent"\n}\n'
+classification: 2027-03-25T23:58:00-04:00 through 2027-03-26T00:08:00-04:00: same-slate C2 DM sent once over four encounters
+classification: 2026-12-31T23:58:00-05:00 through 2027-01-01T00:08:00-05:00: same-slate C2 DM sent once over four encounters
+PASS: 180 receipt route cases and four ET rollover runs

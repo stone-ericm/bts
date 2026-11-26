@@ -1,0 +1,44 @@
+{
+  "bad_configs_all_refused_count": 20,
+  "research_skips_loader": true,
+  "live_unusable_all_refused": {
+    "dm": [
+      1,
+      1,
+      1
+    ],
+    "public": [
+      1,
+      1,
+      1
+    ],
+    "bluesky_alias": [
+      1,
+      1,
+      1
+    ],
+    "implicit_public": [
+      1,
+      1,
+      1
+    ]
+  },
+  "pinned_boundaries": {
+    "midseason_midnight": {
+      "23_59_59": "deploy canary 2027-07-15T23:59:59-04:00: live contest state accepted (dated, streak 12)",
+      "00_00_01": "deploy canary 2027-07-16T00:00:01-04:00: contest state refused"
+    },
+    "year_end_midnight": {
+      "23_59_59": "deploy canary 2027-12-31T23:59:59-05:00: live contest state accepted (dated, streak 12)",
+      "00_00_01": "deploy canary 2028-01-01T00:00:01-05:00: contest state refused"
+    }
+  },
+  "adversarial_notes": {
+    "dm_missing_recipient_and_bad_float_exit_code": 0,
+    "dm_missing_recipient_output": "deploy canary 2027-07-15T14:00:00-04:00: live contest state accepted (dated, streak 12)",
+    "bts_posting_imported_in_dm_canary": false,
+    "scheduler_imported": true,
+    "model_predict_imported": true,
+    "dm_imported": true
+  }
+}

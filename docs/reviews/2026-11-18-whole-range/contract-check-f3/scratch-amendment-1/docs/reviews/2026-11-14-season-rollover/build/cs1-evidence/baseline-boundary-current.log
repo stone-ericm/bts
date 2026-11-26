@@ -1,0 +1,20 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-cs1
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/scripts/c2_framing/test_screen.py F                                [100%]
+
+=================================== FAILURES ===================================
+___________________ test_the_boundary_admits_the_real_suite ____________________
+tests/scripts/c2_framing/test_screen.py:2346: in test_the_boundary_admits_the_real_suite
+    assert R.boundary_problems(ROOT, ["tests/scripts/c2_framing/test_screen.py"]) == []
+E   AssertionError: assert ['tests/test_...ot committed'] == []
+E     
+E     Left contains 2 more items, first extra item: 'tests/test_contest_state_best_trust.py: differs from the commit'
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/scripts/c2_framing/test_screen.py::test_the_boundary_admits_the_real_suite
+============================== 1 failed in 0.54s ===============================

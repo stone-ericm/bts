@@ -1,0 +1,22 @@
+diff --git a/src/bts/health/predicted_vs_realized.py b/src/bts/health/predicted_vs_realized.py
+index 433cca4..186d211 100644
+--- a/src/bts/health/predicted_vs_realized.py
++++ b/src/bts/health/predicted_vs_realized.py
+@@ -115,7 +115,8 @@ def compute_metrics(picks_dir: Path, today: date | None = None,
+             if outcome == "void":
+                 return
+             if outcome in ("hit", "miss"):
+-                slots.append((float(predicted), 1 if outcome == "hit" else 0))
++                pass  # W1.5 mutant: pre-230f65c — the slot's p is graded against the DAY-level result, not its own outcome
++                slots.append((float(predicted), 1 if result == "hit" else 0))
+             elif dd is None:
+                 # Legacy single-pick file: day result IS the primary outcome.
+                 slots.append((float(predicted), 1 if result == "hit" else 0))
+@@ -126,7 +127,6 @@ def compute_metrics(picks_dir: Path, today: date | None = None,
+             # (round-2 review #7).
+ 
+         _grade("pick", data.get("pick") or {})
+-        _grade("double_down", dd)
+         if not slots:
+             continue
+         daily[data.get("date") or p.stem] = {

@@ -1,0 +1,354 @@
+1:diff --git a/config/orchestrator.example.toml b/config/orchestrator.example.toml
+5:@@ -6,7 +6,14 @@ dm_recipient = "did:plc:your-did-here"
+21:@@ -31,7 +38,7 @@ shadow_model_trigger_timeout_sec = 10
+30:diff --git a/deploy/systemd/bts-leaderboard.service b/deploy/systemd/bts-leaderboard.service
+34:@@ -12,7 +12,7 @@ EnvironmentFile=/home/bts/projects/bts/.env
+43:diff --git a/scripts/audit/bullpen_r52_compare.py b/scripts/audit/bullpen_r52_compare.py
+48:@@ -0,0 +1,303 @@
+51:+Ruling R52 (docs/reviews/2026-11-18-whole-range/FINDINGS.md, written 2026-11-20 before any
+96:+SEASON_FLOOR = Fraction(-1, 100)  # a season mean below this fails; equal passes
+127:+            key, when = (arm, int(seed)), datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
+238:+    cond2 = all(m >= SEASON_FLOOR for m in season_means.values())
+352:diff --git a/scripts/audit/c2_framing/f26.py b/scripts/audit/c2_framing/f26.py
+357:@@ -0,0 +1,1943 @@
+358:+"""C2 side item (e): the catcher-grouped framing measure's 2026 out-of-sample test (design
+359:+`docs/sota_audit/2026-10-09-prereg-c2-framing-2026-test.md`, frozen at `9b344d9` "at its reviewed commit plus the
+360:+verbatim r1 diff, confirmed by r2"; register rows C2-framing-2026-test, Eric 2026-10-09 "Option 1", and
+361:+C2-framing-2026-design-frozen).
+364:+against the screen-recipe baseline on 2026, in three arms per seed:
+388:+TEST_SEASON = 2026
+396:+BOOTSTRAP_SEED = 20261009
+428:+        ok = isinstance(d, str) and bool(ISO_DATE.fullmatch(d)) and _date.fromisoformat(d).year == season
+666:+    """The sorted official dates with at least one scoreable (original-portion) batter-game, from the pinned 2026 rows.
+670:+        raise InputRefused("pa_2026 has no is_resumed_portion column")
+673:+        raise InputRefused("pa_2026's is_resumed_portion is not a boolean column without missing values")
+727:+SEASONS_IN = tuple(range(2017, 2027))
+728:+PROXY_SEASONS = (2025, 2026)
+729:+LOOKUP_NAME = "probable_pitcher_lookup.2017-2026.json"
+730:+TABLE_NAME = "starter_proxy.2025-2026.json"
+731:+SOURCES_NAME = "raw_sources.2025-2026.json"
+732:+EXPECT_NAME = "expected_catcher_evidence.2026.parquet"
+733:+FROZEN_PA = "pa_2026.parquet"                       # the frozen copy, read from the inputs directory
+735:+OUT_ROOT = Path.home() / "projects" / "bts" / "data" / "hetzner_results" / "c2" / "framing_2026"
+739:+ADMISSION_REL = "scripts/audit/c2_framing/admission_2026.json"
+740:+REGISTER_REL = "docs/audit/2026-09-22-exposure-register.md"
+741:+DESIGN = "docs/sota_audit/2026-10-09-prereg-c2-framing-2026-test.md"
+743:+SCOPE = "catcher framing 2026 test"
+744:+INPUTS_ROW = "C2-framing-2026-inputs"
+745:+ALLOWANCE_ROW = "C2-framing-2026-allowance"
+746:+PREP_ROW = "C2-framing-2026-prep-read"
+747:+INVENTORY_REL = "docs/audit/c2-framing-2026-source-inventory.json"   # published in the X-37 commit (review c2 R2-1)
+748:+INVENTORY_CITE = re.compile(r"source inventory `(docs/audit/c2-framing-2026-source-inventory\.json)` sha256 `([0-9a-f]{64})`")
+751:+PREPARED_SCHEMA = "c2_framing_2026_prepared_v1"
+753:+EXPECTED_SCHEMA = "c2_framing_2026_expected_v1"
+757:+PREPARED_ROW = "C2-framing-2026-prepared"          # the register row binding PREPARED.json's bytes (B1)
+758:+PREPARED_RE = re.compile(r"^\*\*PREPARED (\d{4}-\d{2}-\d{2}): the catcher framing 2026 test's preparation record "
+760:+INVOCATION_ROW = "C2-framing-2026-invocation-"     # + <unit>: Eric's acknowledgement of another invocation (B3)
+762:+                           r"framing 2026 test\*\*$")
+764:+             "pa_2026 parquets, once each, and no other file under <raw_root>")
+783:+INPUTS_RE = re.compile(r"^\*\*PINNED (\d{4}-\d{2}-\d{2}): catcher framing 2026 test inputs `([0-9a-f]{64})`\*\*$")
+784:+PREP_RE = re.compile(r"^\*\*DECLARED (\d{4}-\d{2}-\d{2}): the catcher framing 2026 test's preparation read\*\*$")
+785:+ALLOW_RE = re.compile(r"^\*\*RULED (\d{4}-\d{2}-\d{2}) \(Eric\): ALLOW the catcher framing 2026 test; shared C1/C2 "
+813:+    `INVENTORY_REL` and its sha256; that file is published in the exposure commit itself, so it precedes any 2026 open
+856:+    """The pinned source manifest is exactly the raw feeds of the pinned 2025 and 2026 PA game ids (§3): one entry per
+871:+        return "the source manifest is not exactly the pinned 2025 and 2026 games, once each"
+880:+    """The starter-proxy table covers exactly the pinned 2025 and 2026 games (two sides each, by `table_frame`)."""
+883:+    return None if got == want else "the starter-proxy table does not cover exactly the pinned 2025 and 2026 games"
+902:+    ruling cell is exactly "**PINNED <date>: catcher framing 2026 test inputs `<sha256 of the canonical pins>`**"."""
+912:+    """The first 2026 read has its own register row, recorded after X-37 (the manager's gate, 2026-10-09): row
+913:+    PREP_ROW whose ruling cell is exactly "**DECLARED <date>: the catcher framing 2026 test's preparation read**"."""
+919:+    PREPARED_ROW whose ruling cell is exactly "**PREPARED <date>: the catcher framing 2026 test's preparation record
+932:+    without his decision; review f1 round 2, B3): row `C2-framing-2026-invocation-<unit>` whose ruling cell is exactly
+933:+    "**RULED <date> (Eric): ACKNOWLEDGE invocation `<unit>` of the catcher framing 2026 test**", source token Eric."""
+1042:+    records and the box ledger does not (the manager's ruling (b), 2026-10-09). Created exclusively."""
+1046:+           "recorded_utc": datetime.now(timezone.utc).isoformat()}
+1087:+    to the allowance; the manager's erratum of 2026-10-09). The record must already exist and be well formed (seeded
+1092:+    row = {"step": step, "cpu_s": float(cpu_s), "recorded_utc": datetime.now(timezone.utc).isoformat(), **extra}
+1310:+    """The ten PA parquets from their pinned bytes: 2017-2025 from the data directory (the screen's pins), 2026 from the
+1339:+        ok = isinstance(d, str) and bool(ISO_DATE.fullmatch(d)) and _date.fromisoformat(d).year == r["season"]
+1382:+    """The 2026 rows' resumed-portion flag: flagged and unflagged row counts (review c1 nonblocking 10)."""
+1388:+    """2026 rows on which some model of some arm has every feature missing (A's catcher column counted as missing,
+1421:+    """The preparation read (§3, §8 step 3), once, after X-37 and its own register row: the frozen copy of `pa_2026`,
+1422:+    the 2026 lookup entries and the 2025-2026 starter-proxy table from exactly the raw feeds of the game ids in the
+1423:+    pinned 2025 and 2026 PA files, and the source manifest. Only identity and schedule fields are extracted. Writes
+1426:+    records that file's sha256 in the register row `C2-framing-2026-prepared`, which `expect` requires. Its CPU is
+1437:+    # The acquisition boundary (review c1 finding 5): before any 2026 file is opened or hashed, X-37 and the reviewed
+1450:+    require_record(root)                                           # fail closed before any 2026 read (ruling (c))
+1478:+                    raise InputRefused(f"2026 game {pk} is already in the screen's frozen lookup")
+1502:+           "lookup_2026_missing_probable_sides": missing_pitchers, "cpu_s": cpu}
+1523:+    side-games with their PA-row counts (every 2026 row, as the walk-forward predicts it); and each side-game's team and
+1530:+        self.resumed_flag_2026 = resumed_totals(pa26)   # the pinned rows' flagged/unflagged totals (the lead's F5)
+1533:+                raise InputRefused(f"pa_2026's {col} is not an integer column")
+1538:+            raise InputRefused("a 2026 batter-game has more than one official date")
+1680:+    source inventory's; `PREPARED.json` there must be the record the register row `C2-framing-2026-prepared` binds by
+1798:+        stamp = (now or datetime.now(timezone.utc)).strftime("%Y%m%dT%H%M%SZ")
+1824:+    manifest = {"schema": "c2_framing_2026_run_v1", "head": head, "claim_sha256": claim_sha, "seed": seed,
+1831:+                "resumed_portion_rows": S.resumed_counts(raw_df), "resumed_flag_2026": resumed_totals(raw_df),
+1887:+    """An A arm's P@1 delta on 2026 and its reported streak deltas (no decision weight, §6)."""
+1937:+    derived from the pinned 2026 PA rows (never the run's own declarations). Raises RunInvalid; returns
+1962:+        "schema": man.get("schema") == "c2_framing_2026_run_v1",
+2019:+    if man.get("resumed_flag_2026") != truth.resumed_flag_2026:
+2020:+        raise RunInvalid(f"{d}: resumed_flag_2026 {man.get('resumed_flag_2026')} is not the pinned pa_2026's "
+2021:+                         f"{truth.resumed_flag_2026}")
+2024:+            and by_season.get(str(TEST_SEASON), 0) == truth.resumed_flag_2026["flagged"]):
+2025:+        raise RunInvalid(f"{d}: resumed_portion_rows' {TEST_SEASON} entry is not the pinned pa_2026's flagged count")
+2269:+    pr = sub.add_parser("prepare", help="once, after X-37 and its own register row: the 2026 inputs and their pins, "
+2301:diff --git a/scripts/audit/c2_framing/f26_studio.py b/scripts/audit/c2_framing/f26_studio.py
+2306:@@ -0,0 +1,348 @@
+2307:+"""The 2026 framing test, run off the box (exposure row X-37, 2026-11-12).
+2312:+policies of 2026-11-12. What it keeps from that path: every input is read from bytes whose sha256 is recorded in
+2315:+    prepare    --data-dir D --raw-dir R --lookup L --inputs I     once: table, 2017-2026 lookup, sources, pa_2026 copy
+2334:+SCHEMA = "c2_framing_2026_studio_v1"
+2354:+    """Design §3: the frozen pa_2026 copy, the 2017-2026 lookup, the 2025-2026 starter-proxy table and the raw-source
+2390:+                    raise F.InputRefused(f"2026 game {pk} is already in the 2017-2025 lookup")
+2408:+           "lookup_2026_missing_probable_sides": sum(1 for pk in games[F.TEST_SEASON] for k in ("away", "home")
+2410:+           "machine": platform.platform(), "at": time.strftime("%Y-%m-%dT%H:%M:%S%z")}
+2417:+def calendar_2026(inputs: Path, pins: dict) -> list[str]:
+2418:+    """The evaluation calendar from the frozen pa_2026 file ALONE. The concatenated ten-season frame cannot be used:
+2420:+    values and f26.expected_calendar rightly refuses it (found on the first real seed-1 start, 2026-11-12)."""
+2457:+        calendar = calendar_2026(inputs, pins)
+2471:+        "self_check": check, "calendar": calendar, "resumed_flag_2026": F.resumed_totals(raw_df),
+2555:+        raise F.RunInvalid(f"seed {seed}: its calendar is not the pinned pa_2026's complete calendar")
+2644:+                                              "lookup_2026_missing_probable_sides")}, indent=1))
+2655:diff --git a/scripts/audit/cold_start/rehearse.py b/scripts/audit/cold_start/rehearse.py
+2660:@@ -0,0 +1,185 @@
+2846:diff --git a/scripts/audit/cold_start/run_coldstart.sh b/scripts/audit/cold_start/run_coldstart.sh
+2851:@@ -0,0 +1,48 @@
+2900:diff --git a/scripts/cron-setup-hetzner.sh b/scripts/cron-setup-hetzner.sh
+2904:@@ -1,32 +1,33 @@
+2915: #   23:30 — skip-policy shadow: record today's pick-vs-skip-band decision + reconcile (docs/audit/2026-06-20-skip-policy-shadow.md)
+2938:@@ -48,22 +49,27 @@ YESTERDAY='$(date -d yesterday +\%Y-\%m-\%d)'
+2940: DATA_PULL_START='$(date -d "7 days ago" +\%Y-\%m-\%d)'
+2941: DATA_PULL_END='$(date +\%Y-\%m-\%d)'
+2942:+# The season to build is the current year, evaluated when cron runs the line (it was a hardcoded 2026).
+2943:+DATA_BUILD_SEASON='$(date +\%Y)'
+2967:@@ -72,33 +78,35 @@ esac
+2993:-0 3 * * * $PREFIX ($UV_BIN run bts data pull --start $DATA_PULL_START --end $DATA_PULL_END && $UV_BIN run bts data build --seasons 2026 && { $UV_BIN run bts preview ; $UV_BIN run bts data sync-to-r2 ; }) >> $LOG_DIR/cron.log 2>&1 $MARKER
+3008:diff --git a/scripts/leakage_audit.py b/scripts/leakage_audit.py
+3012:@@ -2,8 +2,52 @@
+3065:@@ -130,3 +174,7 @@ if common_batters:
+3073:diff --git a/scripts/live_forward_capture_once.py b/scripts/live_forward_capture_once.py
+3077:@@ -188,7 +188,9 @@ def production_pick_snapshot_json(manifest: dict[str, Any]) -> dict[str, Any] |
+3087:diff --git a/scripts/live_forward_provenance_inventory.py b/scripts/live_forward_provenance_inventory.py
+3091:@@ -65,10 +65,11 @@ def _read_json(path: Path) -> dict[str, Any] | None:
+3103:diff --git a/src/bts/cli.py b/src/bts/cli.py
+3107:@@ -846,23 +846,26 @@ def pull(start: str, end: str, data_dir: str, delay: float):
+3134:@@ -1083,429 +1086,589 @@ def data_archive_historical_raw(raw_dir, exclude_season, tarball_key):
+3163:     click.echo(f"[{datetime.now(timezone.utc).strftime('%H:%M UTC')}] Running predictions for {date}...")
+3245:             if not dry_run and should_post_now(top.get("game_time", ""), False):
+3320:     if should_post_now(daily.pick.game_time, daily.bluesky_posted):
+3517:+@click.option("--date", "effective_date", type=click.DateTime(formats=["%Y-%m-%d"]),
+3578:+        now = datetime.now(timezone.utc)
+3603:+    now_et = datetime.now(ZoneInfo("America/New_York"))
+3606:-        observed_date = datetime.now(ZoneInfo("America/New_York")).date()
+3610:             observed_date = date.fromisoformat(source_date)
+3628:         expires_dt = datetime.now(timezone.utc) + timedelta(hours=ttl_hours)
+3635:         "recorded_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+3654:-    _season = season_for(observed_date, now_year=datetime.now(ZoneInfo("America/New_York")).year)
+3681:     season = season or datetime.now(ZoneInfo("America/New_York")).year
+3747:@@ -1551,90 +1714,173 @@ def _fetch_bts_to_mlb(client=None):
+3797:     cookie/identity DM inside the same window (Codex review 2026-08-11 #8).
+3800:     now = datetime.now(timezone.utc)
+3904:+    date_str = date_str or datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
+3937:@@ -1695,369 +1941,565 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
+3961:     # silent for previews/deferred picks. (2026-07-06 premature-DM fix.)
+3995:     # (Codex review, 2026-07-03).
+4024:         # is already the outer retry loop (Codex review 2026-08-11 #2).
+4089:     # mid-fetch is worse than none; Codex review 2026-08-11 #2). monotonic
+4154:     # (Codex review, 2026-07-03).
+4185:+    now = datetime.now(timezone.utc)
+4204:+    now = datetime.now(timezone.utc)
+4251:+    now = datetime.now(timezone.utc)
+4271:+    stamp = utc.strftime("%Y%m%dT%H%M%S%fZ")
+4351:+    now = datetime.now(timezone.utc)
+4376:         # clears it. (2026-08-11 incident: the cookie-refresh advice below
+4416:-            datetime.now(timezone.utc),
+4461:         "last_success_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+4478:-        "recorded_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+4512:-    _season = season_for(source_date, now_year=datetime.now(ZoneInfo("America/New_York")).year)
+4525:@@ -2123,380 +2565,419 @@ def predict_json(date: str, data_dir: str, models_dir: str):
+4731:         reconciliation first: the 2026-07-10 shadow stayed unresolved for a
+4904:     receipt = ReconcileReceipt(clock=lambda: datetime.now(et), lookback_days=lookback)
+4953:diff --git a/src/bts/contest_fetch.py b/src/bts/contest_fetch.py
+4957:@@ -191,9 +191,11 @@ def _require_streak_int(success: dict, field: str) -> int:
+4969:diff --git a/src/bts/contest_state.py b/src/bts/contest_state.py
+4973:@@ -9,98 +9,284 @@ simulation, shadow, and replay paths should keep using ``streak.json``.
+5048:     # tail policy may TRUST it to authorise its terminal stop (2026-09-03). Only a
+5181:+        effective_date = date.fromisoformat(raw_date)
+5266:@@ -130,86 +316,174 @@ def _contest_state_paths(picks_dir: Path) -> list[Path]:
+5391:     now = now or datetime.now(timezone.utc)
+5435:             pick_date = date.fromisoformat(path.stem)
+5436:         except ValueError:        # ISO-shaped but invalid (e.g. 2026-99-99)
+5453:@@ -235,23 +509,25 @@ def resolved_pick_settlement_gap(picks_dir: Path, source_date: date) -> int:
+5465:             pick_date = date.fromisoformat(path.stem)
+5466:         except ValueError:        # ISO-shaped but invalid (e.g. 2026-99-99)
+5481:@@ -276,86 +552,143 @@ def contest_state_is_fresh(
+5519:     NEVER raise it (the 2026-06-17 inflation bug). ``status`` in {fresh, lagged,
+5526:     now_dt = now or datetime.now(timezone.utc)
+5592:     # 2026-06-18 spec. Read-only here; the flag is written by the fetch-path auto-earn and the
+5604:     # 2026-06-17 inflation bug). Doubles are no longer frozen on staleness — Phase 1
+5634:diff --git a/src/bts/data/build.py b/src/bts/data/build.py
+5638:@@ -2,6 +2,7 @@
+5646:@@ -326,72 +327,92 @@ REGULAR_SEASON_TYPE = "R"
+5674:         game_types = {REGULAR_SEASON_TYPE}
+5745:diff --git a/src/bts/data/pull.py b/src/bts/data/pull.py
+5749:@@ -1,7 +1,9 @@
+5759:@@ -53,28 +55,38 @@ def discover_games(start_date: str, end_date: str) -> list[dict]:
+5799:diff --git a/src/bts/day_outcome.py b/src/bts/day_outcome.py
+5804:@@ -0,0 +1,166 @@
+5805:+"""The end-of-day outcome check: every day must end in a known state (2026-11-13).
+5971:diff --git a/src/bts/entry_intent.py b/src/bts/entry_intent.py
+5975:@@ -20,36 +20,78 @@ EXPECTED_DELIVERY = {"enter": ("dm", "public"), "research": ("private",)}
+6056:diff --git a/src/bts/features/compute.py b/src/bts/features/compute.py
+6060:@@ -9,7 +9,6 @@ dates strictly before D. This is enforced by:
+6068:@@ -17,7 +16,9 @@ import pandas as pd
+6078:@@ -48,55 +49,11 @@ _probable_pitcher_cache_path = Path("data/models/probable_pitcher_lookup.json")
+6135:@@ -131,555 +88,565 @@ def _total_break(vert_list, horiz_list):
+6669:     # Promoted to FEATURE_COLS 2026-04-29 after 4-way replication:
+6689:         # heartbeat threshold (caught 2026-04-29 17:30 ET); this rewrite
+6710: # the 2026-04-29 Phase 2 validation: batter_pitcher_shrunk_hr.
+6712:diff --git a/src/bts/features/probable_pitcher_cache.py b/src/bts/features/probable_pitcher_cache.py
+6717:@@ -0,0 +1,298 @@
+6950:+    at = datetime.now(timezone.utc)
+6959:+            target = folder / f"probable_pitcher_lookup.{at:%Y%m%dT%H%M%SZ}.{original_sha[:12]}.json"
+7016:diff --git a/src/bts/health/alert.py b/src/bts/health/alert.py
+7020:@@ -13,9 +13,13 @@ from __future__ import annotations
+7034:@@ -50,48 +54,99 @@ def log_alerts(alerts: list[Alert]) -> None:
+7053:         "updated_at": datetime.now(timezone.utc).isoformat(),
+7135:@@ -146,123 +201,290 @@ def format_health_dm_body(
+7342:     Per-day source-set dedup (2026-07-12 incident): this dispatcher was
+7370:     now_day = (now_et_date or datetime.now(ZoneInfo("America/New_York")).date()).isoformat()
+7457:diff --git a/src/bts/health/attention.py b/src/bts/health/attention.py
+7461:@@ -17,11 +17,13 @@ STATE_SCHEMA_VERSION = "bts_warn_attention_state_v1"
+7470:     "result_resolution",           # stranded result must not rot silently (2026-07-10 incident)
+7473:     "tail_policy",                 # an invalid tail artifact is a deploy defect (2026-09-03)
+7475:diff --git a/src/bts/health/contest_state.py b/src/bts/health/contest_state.py
+7479:@@ -3,139 +3,259 @@
+7548:     now = now or datetime.now(timezone.utc)
+7764:diff --git a/src/bts/health/late_delivery.py b/src/bts/health/late_delivery.py
+7768:@@ -44,34 +44,41 @@ def _state(picks_dir: Path, day: date) -> dict:
+7772:     day = today or (now or datetime.now(ET)).astimezone(ET).date()
+7780:+        reason = r.get("reason") or "past_submission_cutoff"       # records before 2026-11-13 carry no reason
+7814:diff --git a/src/bts/health/probable_pitcher_cache.py b/src/bts/health/probable_pitcher_cache.py
+7819:@@ -0,0 +1,121 @@
+7941:diff --git a/src/bts/health/runner.py b/src/bts/health/runner.py
+7945:@@ -10,37 +10,40 @@ from __future__ import annotations
+7987:@@ -48,6 +51,7 @@ from bts.health.alert import Alert, dispatch_dm_for_health_alerts, log_alerts
+7995:@@ -89,211 +93,246 @@ def _repo_path(picks_dir: Path, value: Path | str) -> Path:
+8027:+    wall_date_et = datetime.now(timezone.utc).astimezone(ET).date()
+8075:     # EOD backstop for the delivery-cutoff guard (2026-08-30): a pick sent
+8201:-        today = date.today()
+8250:diff --git a/src/bts/health/tail_policy.py b/src/bts/health/tail_policy.py
+8254:@@ -32,39 +32,58 @@ def _days_remaining(today: date) -> int:
+8261:+    from bts.strategy import SEASON_END_DATES, season_end_date
+8262:+    if today.year in SEASON_END_DATES:
+8268:+                 f"bts.strategy.SEASON_END_DATES"),
+8273:     today = today or date.today()
+8313:diff --git a/src/bts/model/predict.py b/src/bts/model/predict.py
+8317:@@ -784,54 +784,57 @@ def predict(
+8328:     rebuilds the same parquet (~12 min/cascade; 2026-08-30 late-pick incident).
+8337:     pred_date = datetime.strptime(date, "%Y-%m-%d")
+8339:     yesterday = (pred_date - timedelta(days=1)).strftime("%Y-%m-%d")
+8371:     marker.write_text(datetime.now().isoformat())
+8375:diff --git a/src/bts/orchestrator.py b/src/bts/orchestrator.py
+8379:@@ -249,203 +249,219 @@ def _contest_state_required(config: dict) -> bool:
+8436:         # Tail policy (2026-09-03): the contest season-best + its trust status.
+8510:             if should_post_now(top.get("game_time", ""), False):
+8582:     if should_post_now(daily.pick.game_time, daily.bluesky_posted):
+8606:diff --git a/src/bts/picks.py b/src/bts/picks.py
+8610:@@ -12,7 +12,7 @@ import re
+8619:@@ -20,6 +20,8 @@ _ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+8628:@@ -206,45 +208,138 @@ class Pick:
+8645:     # ET ISO timestamp of the successful DM/post (2026-08-30). run_time is the
+8655:     # Provenance v1 (added 2026-05-04, per Codex bus #168). All optional;
+8664:     # 2026-09-03: sha256 of mdp_tail_policy.npz (the artifact that chooses the
+8667:     # 2026-09-03: the strategy.PolicyDecision (as a dict) that chose this pick, so a
+8767:@@ -419,41 +514,43 @@ def save_shadow_pick(daily: DailyPick, picks_dir: Path) -> Path:
+8811:@@ -483,65 +580,168 @@ def _read_text_bytes(raw: bytes) -> str:
+8865:+            return datetime.strptime(date, "%Y-%m-%d").year
+8871:+    """2027.0 == 2027 and True == 1: an unchecked argument could match a tag, or write one that no
+8983:         "updated": datetime.now(timezone.utc).isoformat(),
+8995:@@ -563,31 +763,50 @@ def scoring_lock(picks_dir: Path):
+9011:+    ``date`` makes the update apply AT MOST ONCE per contest date (incident L04, fixed 2026-11-13). The
+9052:@@ -607,38 +826,56 @@ def _apply_streak_day(streak: int, saver: bool, is_hit: bool, increment: int) ->
+9096:+        # a miss had consumed) on any reconcile run later the same day (incident L02, fixed 2026-11-13).
+9117:@@ -984,64 +1221,84 @@ def _play_matches_batter(play: dict, batter_id: int, batter_name: str | None = N
+9172:+    # an official at-bat by then (it was graded "miss" until 2026-11-13: incident L01). saw_pre_pa is kept for
+9212:+    (6A, 6B). None: on neither roster. Until 2026-11-13 every no-hit line graded "miss" (incident L01)."""
+9224:@@ -1056,17 +1313,19 @@ def _check_hit_in_game(resp: dict, batter_id: int, batter_name: str | None = Non
+9248:@@ -1134,131 +1393,135 @@ def save_pick_shadow(pick_data, shadow_dir, source: str) -> Path:
+9264:     at the locked write. MLB re-scored two settled hits as errors days later in 2026
+9274:     clock = clock or (lambda: datetime.now(et))
+9326:     # 2026-07-09 #4). Reload each pick inside the lock and re-derive against
+9387:diff --git a/src/bts/probable_pitcher_status.py b/src/bts/probable_pitcher_status.py
+9392:@@ -0,0 +1,93 @@
+9486:diff --git a/src/bts/reconcile_receipt.py b/src/bts/reconcile_receipt.py
+9490:@@ -69,259 +69,259 @@ def _parse(raw):
+9745:             stamp = self.started_at.strftime("%Y%m%dT%H%M%S%f")
+9752:diff --git a/src/bts/saver_state.py b/src/bts/saver_state.py
+9756:@@ -11,7 +11,7 @@ from dataclasses import dataclass
+9765:@@ -28,6 +28,11 @@ class SaverState:
+9777:@@ -40,18 +45,23 @@ def season_for(source_date: date | None, *, now_year: int) -> int:
+9802:@@ -69,8 +79,8 @@ def _write_state(picks_dir: Path, *, state: str, season: int, source: str) -> No
+9812:diff --git a/src/bts/scheduler.py b/src/bts/scheduler.py
+9816:@@ -16,16 +16,18 @@ from pathlib import Path
+9836:@@ -60,19 +62,172 @@ def _alert_contest_state_failure(config: dict, error: Exception) -> None:
+10014:@@ -128,15 +283,38 @@ def _maybe_alert_missed_pick(
+10058:@@ -186,6 +364,56 @@ def compute_run_times(
+10062:+# Thin slates (2026-07-16; Opening Night 2027-03-24 is a one-game slate). With one or two games the regular plan
+10115:@@ -929,179 +1157,229 @@ def _format_pick_delivery_text(daily, streak: int) -> str:
+10224:     # Fail-closed submission-cutoff guard (2026-08-30 incident: a lineup lock
+10367:@@ -1734,164 +2012,164 @@ def run_single_check(
+10533:@@ -2156,36 +2434,91 @@ def _defer_pick_at_fallback(picks_dir: Path, date: str, daily, reason: str) -> P
+10536:     """Delivery-guard action (2026-08-30): archive+remove the dead candidate, record
+10626:@@ -2350,164 +2683,165 @@ def save_nonterminal_result(date: str, picks_dir: Path, result_value: str):
+10796:@@ -2516,707 +2850,747 @@ def run_result_polling(
+10835:     # Deadline model (2026-08-30): a cascade is assumed to take cascade_budget_min
+10937:     coalesced: set[int] = set()   # run indexes covered by a fallback refresh (2026-08-30)
+11210:                     # confirmations (2026-08-30: the old boolean was snapshotted
+11301:+                # register's L03 control caught it (2026-11-13). A standing skip does not wait.
+11376:     # any delivery (2026-08-13 incident) and must still alert; skip days are
+11416:     # (2026-07-12 incident, NRestarts 3→50). The no-games path already used
+11500:                 # The day being processed (NOT date.today()): a post-midnight or
+11502:                 today=datetime.strptime(date, "%Y-%m-%d").date(),
+11547:diff --git a/src/bts/season_contract.py b/src/bts/season_contract.py
+11552:@@ -0,0 +1,347 @@
+11900:diff --git a/src/bts/simulate/backtest_blend.py b/src/bts/simulate/backtest_blend.py
+11904:@@ -653,66 +653,88 @@ def _starter_matchup_representative_rows(day_data: "pd.DataFrame") -> tuple["pd.
+11993:@@ -721,189 +743,218 @@ def _estimated_pa_game_predictions(
+12049:+            training frames never see it. Research plumbing for the 2026
+12050:+            framing test (``docs/sota_audit/2026-10-09-prereg-c2-framing-2026-test.md``
+12115:                 day_str = pd.Timestamp(day).strftime("%Y-%m-%d")
+12212:diff --git a/src/bts/strategy.py b/src/bts/strategy.py
+12216:@@ -23,7 +23,7 @@ import pandas as pd
+12225:@@ -36,10 +36,27 @@ log = logging.getLogger(__name__)
+12232:-SEASON_END_DATE = "2026-09-28"
+12237:+# 2027 date as zero days left = skip all season; found 2026-11-12).
+12238:+# The 2027 playing finale is September 26. Recheck the boundary if it moves.
+12239:+SEASON_END_DATES = {2026: "2026-09-28", 2027: "2027-09-27"}
+12240:+_DEFAULT_SEASON_END_MMDD = "09-28"
+12241:+# The 2026 audit scripts (gate_b rebaseline, mdp aggressiveness, boundary-shadow
+12242:+# census) import this name and mean 2026. The pick path uses season_end_date().
+12243:+SEASON_END_DATE = SEASON_END_DATES[2026]
+12252:+    return SEASON_END_DATES.get(year, f"{year}-{_DEFAULT_SEASON_END_MMDD}")
+12256:@@ -225,7 +242,7 @@ class PolicyDecision:
+12260:-    end = datetime.strptime(SEASON_END_DATE, "%Y-%m-%d")
+12261:+    end = datetime.strptime(season_end_date(date), "%Y-%m-%d")
+12262:     today = datetime.strptime(date, "%Y-%m-%d")
+12265:@@ -433,177 +450,178 @@ def should_lock(
+12353:         # passed — NOT a margin; 2026-08-30). Offline callers pass nothing.
+12363:             # recreates the 2026-08-13 silent pass when the pick's own games
+12431:         run_time=datetime.now(timezone.utc).isoformat(),
+12445:diff --git a/src/bts/util.py b/src/bts/util.py
+12449:@@ -1,6 +1,8 @@
+12458:@@ -8,6 +10,18 @@ from urllib.error import HTTPError, URLError
+12477:diff --git a/src/bts/web.py b/src/bts/web.py
+12481:@@ -134,28 +134,28 @@ class SaverDashboardContext:
+12519:@@ -165,21 +165,24 @@ _DASHBOARD_TRANSITIONS = {("active", "used"), ("used", "active")}
+12547:@@ -197,24 +200,26 @@ def _same_origin(headers, host) -> bool:
+12575:@@ -1086,615 +1091,616 @@ def _build_live_game_data(pick_data: dict) -> tuple[list[dict | None], dict | No
+12582:     today = datetime.now().strftime("%Y-%m-%d")
+12588:-            saver_dashboard_context(PICKS_DIR, now=datetime.now(timezone.utc)))
+12589:+            saver_dashboard_context(PICKS_DIR, now=datetime.now(timezone.utc)),
+12600:         # hide a standing skip (2026-07-01). pick_locked is deliberately not
+12785:                 game_started = datetime.now(game_dt.tzinfo) > game_dt

@@ -1,0 +1,3 @@
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_an_application_tracer_during_the_call_phase_refuses_the_interval[none]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_an_application_tracer_during_the_call_phase_refuses_the_interval[jump]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_a_tracer_with_a_real_alert_is_refused_not_accepted", "kind": "assertion"}

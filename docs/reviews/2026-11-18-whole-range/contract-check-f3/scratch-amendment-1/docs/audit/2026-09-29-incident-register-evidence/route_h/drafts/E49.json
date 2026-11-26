@@ -1,0 +1,196 @@
+{
+ "id": "I-049",
+ "working_id": "E49",
+ "title": "next-day wake computed on today's date: after day completion the scheduler exited and was relaunched repeatedly (fixed 5/09)",
+ "disposition": "unresolved_candidate",
+ "counted": true,
+ "missing_evidence": [
+  "a machine record of the end-of-day exit/relaunch cycle on 2026-05-09 (or any game day 4/23-5/09): ~/logs/heartbeat.log (+ rotations, B2) state/age lines around day completion, or scheduler journal lifecycle lines (the retained journal starts 5/11, so pre-5/11 days cannot come from it)",
+  "the box reflog in deploy_history.txt (B1) around 2026-05-09T23:13Z confirming the canary-failure rollback of run 25614229839 (supports, but does not prove, the loop state)"
+ ],
+ "classes": {
+  "primary": "L",
+  "secondary": []
+ },
+ "tier": "A",
+ "tier_reason": "if it fired it is a production restart loop (liveness); independently, the past-wake no-op it exposed is still in deployed code (residual reaches production)",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "At day completion the scheduler idles until a future next-day wake-up; it does not exit and get relaunched in a loop.",
+  "source": "commit 864d3aa message body; ARCHITECTURE.md at 4bd8193 'Daily lifecycle'; src/bts/scheduler.py _idle_until_next_wakeup docstring"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "run_day step 7 computed the next wake with compute_wakeup_time(tomorrow_games), whose default path used datetime.now(ET) at the default hour - today's 10:00 ET, already past at day completion - so _idle_until_next_wakeup no-opped on a past wake, run_day returned, the process exited 0 and Restart=always relaunched it; before 20:00 ET the relaunch re-ran the same date and completed again",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "ac4a959",
+     "symbol": "compute_wakeup_time (today_et default) / run_day step 7",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "ac4a959",
+     "symbol": "_idle_until_next_wakeup (past-wake no-op)",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "864d3aa"
+    ],
+    "complete_fix_set": false
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "864d3aa",
+    "live_by": "2026-05-09T23:29:08Z",
+    "run_id": 25614503862,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "No-games days still returned today's 10:00 from compute_wakeup_time([]) and thrashed ~30 s restarts (Fable-5 P2), fixed 736ea8f (6/09); the eve-of-break past wake recurred 7/12 (E75/I-075), fixed 9551818.",
+   "reaches_production": false,
+   "source": "docs/audit/2026-06-09-fable5-full-audit.md P2 'No-games day'; 736ea8f; 9551818"
+  },
+  {
+   "text": "At HEAD _idle_until_next_wakeup still returns on an unset/malformed/past wake (loud WARNING, bounded churn by design).",
+   "reaches_production": true,
+   "source": "src/bts/scheduler.py _idle_until_next_wakeup docstring at HEAD"
+  }
+ ],
+ "watchdog": {
+  "boundary": "restart",
+  "trigger": "three or more clean scheduler exits/relaunches within 60 minutes outside a date transition, or a heartbeat IDLE_END_OF_DAY/SLEEPING whose sleeping_until is not in the future",
+  "recovery_assertion": "at day completion next_wakeup is on the next schedule date and in the future, and NRestarts stays flat until it"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 864d3aa message body",
+   "written_at": "2026-05-09T19:28:42-04:00",
+   "what": "builds default wake-ups on the schedule game date 'so tomorrow lookahead wake-ups are future timestamps'; 'prevents the scheduler from exiting immediately after day completion and being relaunched repeatedly by Restart=always'"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 25614229839 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "deploy at 19:13:29 ET that day concluded failure; ac4a959 (19:20 ET) then accepted 'a clean Restart=always auto-restart cycle after day completion' in the canary (I-048)"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 25614503862 (deploy_runs.json)",
+   "what": "deploy of head 864d3aa created 2026-05-09T23:29:08Z, conclusion success; log unavailable_expired"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/scheduler.py compute_wakeup_time and run_day step 7 at ddee3db and ac4a959; git log -S (d3b7606, cd3f867)",
+   "what": "the today-based default and the tomorrow lookahead both date from 4/03; combined with ddee3db's idle-until-wake (4/23), every day completing before 20:00 ET would loop until the UTC date rolled over"
+  },
+  {
+   "id": "ev5",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 4e221c8 message body",
+   "written_at": "2026-04-28T21:25:06-04:00",
+   "what": "an unexplained scheduler restart (NRestarts 0 to 1) right after the first end-of-day health cycle on 4/28 (after 20:00 ET, where this mechanism predicts exactly one restart)"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-05-09 evening (indicated)",
+   "onset": {
+    "not_before": "2026-05-09",
+    "not_after": "2026-05-09T19:13:29-04:00",
+    "evidence": [
+     "ev2",
+     "ev1"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "unknown",
+   "alert": {
+    "attempted": "unknown",
+    "confirmed": "unknown",
+    "failed": "unknown"
+   },
+   "operator_awareness": {
+    "not_after": "2026-05-09T19:28:42-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-05-09T19:29:08-04:00",
+    "evidence": [
+     "ev1",
+     "ev3"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "unknown",
+    "notification": "unknown",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "864d3aa",
+   "ddee3db",
+   "ac4a959"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-06-09-fable5-full-audit.md P1 UTC date default / P2 no-games day"
+  ]
+ },
+ "related": [
+  "I-035",
+  "I-048",
+  "I-038",
+  "I-075"
+ ],
+ "notes": [
+  "UC, not observed: no located artifact says the loop was seen; the evidence is the fix's own description (ev1, typed inference because it describes the prevented behaviour), the concurrent canary failure (ev2) and code (ev4)",
+  "this is the reason I-035's ddee3db fix most likely never engaged (my code reading): the wake it slept until was always already past; if Phase 2 confirms, the exposure window is 4/23 18:59 ET to 5/09 19:29 ET on days completing before 20:00 ET, with a single restart on later days (cf. ev5, I-038)",
+  "I'm guessing on ev5's link: 4e221c8 attributes the 4/28 restart to an unclear cause",
+  "merge with I-048? same evening, causally linked",
+  "log bound: live by 2026-06-07T00:11:19Z (run 27077693688)",
+  "regression test named in the fix: tests/test_scheduler.py test_default_uses_game_date_for_tomorrow_lookahead",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

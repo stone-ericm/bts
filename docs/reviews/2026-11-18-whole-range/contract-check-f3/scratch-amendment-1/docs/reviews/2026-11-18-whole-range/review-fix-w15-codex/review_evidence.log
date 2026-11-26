@@ -1,0 +1,24 @@
+independent A4 hash, exact repeat, other date, no-copy then copy: ['2026-12-31.invalid_entries.1fa2e36c3aa8.json', '2026-12-31.invalid_entries.63bd2cf485bd.json', '2027-01-01.invalid_entries.63bd2cf485bd.json']
+identical ten-id sample and totals, different unsampled outcomes: ['c9c0023fce845babb659dd2f2d5e896e190ce0854378061897f1b0ab822aab65', '2a7494a4858858995597a1d8abcf9c3f4976355d2c44b5c22dbfc42477cbee12']
+earliest verified full digest selected: probable_pitcher_lookup.20261230T030000Z.00457e12dd2b.json
+whole-cache unreadable, original bytes match: b'\xff\x00\r\n' WARNING: unreadable probable-pitcher cache data/models/probable_pitcher_lookup.json (UnicodeDecodeError); rebuilding it from raw feeds
+whole-cache unreadable, original bytes match: b'[]' WARNING: unreadable probable-pitcher cache data/models/probable_pitcher_lookup.json (AttributeError); rebuilding it from raw feeds
+whole-cache unreadable, original bytes match: b'{"100":null,"bad":{}}' WARNING: unreadable probable-pitcher cache data/models/probable_pitcher_lookup.json (ValueError); rebuilding it from raw feeds
+whole-cache unreadable, original bytes match: b'\xff\xfe{\x00}\x00' WARNING: unreadable probable-pitcher cache data/models/probable_pitcher_lookup.json (UnicodeDecodeError); rebuilding it from raw feeds
+producer and reader accept 65536, producer rejects 65537
+hard exit and fresh process: evidence before commits at exit 0
+hard exit and fresh process: evidence after commits at exit 1
+hard exit and fresh process: status before commits at exit 1
+hard exit and fresh process: status after commits at exit 2
+hard exit and fresh process: cache before commits at exit 2
+hard exit and fresh process: cache after commits at exit 3
+evidence directory active intact; committed evidence is verified only: WARNING: could not preserve probable-pitcher cache evidence at data/models/rejected/probable_pitcher_lookup.20261231T230000Z.00457e12dd2b.json (FileExistsError)
+evidence fifo active intact; committed evidence is verified only: WARNING: could not preserve probable-pitcher cache evidence at data/models/rejected/probable_pitcher_lookup.20261231T230000Z.00457e12dd2b.json (FileExistsError)
+evidence symlink active intact; committed evidence is verified only: WARNING: could not preserve probable-pitcher cache evidence at data/models/rejected/probable_pitcher_lookup.20261231T230000Z.00457e12dd2b.json (FileExistsError)
+evidence fake active intact; committed evidence is verified only: WARNING: could not preserve probable-pitcher cache evidence at data/models/rejected/probable_pitcher_lookup.20261231T230000Z.00457e12dd2b.json (FileExistsError)
+status directory active intact; committed evidence is verified only: WARNING: could not write probable-pitcher cache status at data/health_state/probable_pitcher_cache/2026-12-31.invalid_entries.1fa2e36c3aa8.json (IsADirectoryError)
+status fifo active intact; committed evidence is verified only: WARNING: could not write probable-pitcher cache status at data/health_state/probable_pitcher_cache/2026-12-31.invalid_entries.1fa2e36c3aa8.json (NonRegularFile)
+status symlink active intact; committed evidence is verified only: WARNING: could not write probable-pitcher cache status at data/health_state/probable_pitcher_cache/2026-12-31.invalid_entries.1fa2e36c3aa8.json (OSError)
+status malformed active intact; committed evidence is verified only: WARNING: could not write probable-pitcher cache status at data/health_state/probable_pitcher_cache/2026-12-31.invalid_entries.1fa2e36c3aa8.json (JSONDecodeError)
+status conflict active intact; committed evidence is verified only: WARNING: could not write probable-pitcher cache status at data/health_state/probable_pitcher_cache/2026-12-31.invalid_entries.1fa2e36c3aa8.json (FileExistsError)
+both directory active intact; committed evidence is verified only: WARNING: could not preserve probable-pitcher cache evidence at data/models/rejected/probable_pitcher_lookup.20261231T230000Z.00457e12dd2b.json (FileExistsError) / WARNING: could not write probable-pitcher cache status at data/health_state/probable_pitcher_cache/2026-12-31.invalid_entries.144f1365904e.json (IsADirectoryError)

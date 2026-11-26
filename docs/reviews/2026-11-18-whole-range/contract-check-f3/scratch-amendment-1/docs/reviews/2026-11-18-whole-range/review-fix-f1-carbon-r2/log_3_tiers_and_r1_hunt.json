@@ -1,0 +1,22 @@
+{
+  "r1_reproduction": {
+    "r1_1d30de86": {
+      "bts_file": "/Users/eric/projects/bts-work/wr-rev-f1b-cb/carbon-review/wr-f1-r2/r1_archive/src/bts/__init__.py",
+      "failed_cases": [
+        "M11:crosswalk",
+        "M11:removal",
+        "M11:mismatch",
+        "M12:crosswalk",
+        "M12:removal",
+        "M12:mismatch"
+      ]
+    },
+    "r2_15b27474": {
+      "bts_file": "/Users/eric/projects/bts-work/wr-rev-f1b-cb/src/bts/__init__.py",
+      "failed_cases": []
+    }
+  },
+  "sequences_checked": 116,
+  "violations": 0,
+  "tier_lifecycle_and_midnight": "passed"
+}

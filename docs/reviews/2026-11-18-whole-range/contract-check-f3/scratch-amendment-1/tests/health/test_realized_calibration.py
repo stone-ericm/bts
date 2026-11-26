@@ -1,0 +1,536 @@
+"""Tests for the realized_calibration health check (2026-04-29).
+
+Detects ABSOLUTE-LEVEL overconfidence in the 75-80% predicted-P bucket of
+production picks vs realized outcomes. Distinct from predicted_vs_realized,
+which detects DRIFT in the gap over time. F's analysis on 2026-04-29 found
++14pp overconfidence in this bucket sitting unaddressed for weeks because
+no one ran the analysis manually until then.
+"""
+from __future__ import annotations
+
+import json
+from datetime import date, timedelta
+from pathlib import Path
+
+import pytest
+
+from bts.health.realized_calibration import check, SOURCE
+
+
+def _write_pick(picks_dir: Path, d: date, predicted_p: float, result: str | None,
+                run_time: str | None = None, fingerprint: tuple | None = None):
+    picks_dir.mkdir(parents=True, exist_ok=True)
+    body = {
+        "date": d.isoformat(),
+        "pick": {"p_game_hit": predicted_p, "batter_name": "X"},
+    }
+    if result is not None:
+        body["result"] = result
+    if run_time is not None:
+        body["run_time"] = run_time
+    if fingerprint is not None:
+        body["model_pickle_sha256"] = fingerprint[0]
+        body["policy_npz_sha256"] = fingerprint[1]
+        body["feature_env_hash"] = fingerprint[2]
+    (picks_dir / f"{d.isoformat()}.json").write_text(json.dumps(body))
+
+
+def _well_calibrated_75_80(picks_dir: Path, today: date, n: int):
+    """n picks at 0.78 predicted with 78% realized hit rate (well-calibrated)."""
+    for i in range(n):
+        d = today - timedelta(days=i + 1)
+        result = "hit" if i < int(0.78 * n) else "miss"
+        _write_pick(picks_dir, d, 0.78, result)
+
+
+def _overconfident_75_80(picks_dir: Path, today: date, n: int, realized_rate: float):
+    """n picks at 0.78 predicted with `realized_rate` actual hit rate."""
+    for i in range(n):
+        d = today - timedelta(days=i + 1)
+        result = "hit" if i < int(realized_rate * n) else "miss"
+        _write_pick(picks_dir, d, 0.78, result)
+
+
+class TestRealizedCalibration:
+    def test_well_calibrated_no_alert(self, tmp_path):
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 4, 29)
+        _well_calibrated_75_80(picks_dir, today, n=20)
+        assert check(picks_dir, today=today) == []
+
+    def test_info_at_8pp_overconfidence(self, tmp_path):
+        # Thresholds raised 2026-05-01 after attribution-bias finding (DD picks were
+        # over-counted as misses, inflating apparent overconfidence). New floor: 8pp.
+        # n=20 at 0.78 predicted, 70% realized → 8pp gap → INFO
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 4, 29)
+        _overconfident_75_80(picks_dir, today, n=20, realized_rate=0.70)
+        alerts = check(picks_dir, today=today)
+        assert len(alerts) == 1
+        assert alerts[0].level == "INFO"
+        assert alerts[0].source == SOURCE
+        assert "75-80" in alerts[0].message
+
+    def test_warn_at_15pp_overconfidence(self, tmp_path):
+        # 0.78 predicted, 0.63 realized → 15pp gap → WARN
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 4, 29)
+        _overconfident_75_80(picks_dir, today, n=20, realized_rate=0.63)
+        alerts = check(picks_dir, today=today)
+        assert alerts[0].level == "WARN"
+
+    def test_critical_at_25pp_overconfidence(self, tmp_path):
+        # 0.78 predicted, 0.50 realized → 28pp gap → CRITICAL (the true distribution-shift signal)
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 4, 29)
+        _overconfident_75_80(picks_dir, today, n=20, realized_rate=0.50)
+        alerts = check(picks_dir, today=today)
+        assert alerts[0].level == "CRITICAL"
+
+    def test_no_alert_with_empty_picks_dir(self, tmp_path):
+        picks_dir = tmp_path / "picks"; picks_dir.mkdir()
+        assert check(picks_dir, today=date(2026, 4, 29)) == []
+
+    def test_no_alert_with_nonexistent_picks_dir(self, tmp_path):
+        picks_dir = tmp_path / "no_picks_yet"
+        assert check(picks_dir, today=date(2026, 4, 29)) == []
+
+    def test_skips_appledouble_and_invalid_utf8_files(self, tmp_path):
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 4, 29)
+        _write_pick(picks_dir, today - timedelta(days=1), 0.78, "hit")
+        (picks_dir / "._2026-04-28.json").write_bytes(
+            bytes.fromhex("00051607000200004d6163204f5320582020202020202020a3")
+        )
+        (picks_dir / "2026-04-27.json").write_bytes(b"\x80not utf-8")
+        assert check(picks_dir, today=today) == []
+
+    def test_no_alert_when_only_unresolved_picks(self, tmp_path):
+        # Picks without a `result` field (e.g. tomorrow's preview) are excluded
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 4, 29)
+        for i in range(10):
+            _write_pick(picks_dir, today + timedelta(days=i + 1), 0.78, None)
+        assert check(picks_dir, today=today) == []
+
+    def test_picks_outside_75_80_bucket_dont_trigger(self, tmp_path):
+        # Picks in 70-75% or 80%+ buckets shouldn't drive the 75-80% alert
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 4, 29)
+        for i in range(20):
+            d = today - timedelta(days=i + 1)
+            # All picks at 0.72 (in 70-75% bucket) — wildly overconfident if all miss
+            _write_pick(picks_dir, d, 0.72, "miss" if i < 15 else "hit")
+        # No alert: the overconfident bucket is 70-75, not 75-80. The check
+        # specifically targets the 75-80% bucket per F's finding.
+        assert check(picks_dir, today=today) == []
+
+    def test_n_too_low_no_alert(self, tmp_path):
+        # With <5 picks in the bucket, the calibration estimate is too noisy
+        # to alert on. The check should defer until enough data exists.
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 4, 29)
+        _overconfident_75_80(picks_dir, today, n=4, realized_rate=0.50)
+        # 0.78 predicted, 50% realized = +28pp gap, but n=4 → no alert
+        assert check(picks_dir, today=today) == []
+
+
+def _write_dd_day(picks_dir: Path, d: date, p1: float, pdd: float,
+                  slot_pick: str, slot_dd: str):
+    picks_dir.mkdir(parents=True, exist_ok=True)
+    both = slot_pick == "hit" and slot_dd == "hit"
+    body = {
+        "date": d.isoformat(),
+        "pick": {"p_game_hit": p1, "batter_name": "X", "batter_id": 1},
+        "double_down": {"p_game_hit": pdd, "batter_name": "Y", "batter_id": 2},
+        "result": "hit" if both else "miss",
+        "slot_results": {"pick": slot_pick, "double_down": slot_dd},
+    }
+    (picks_dir / f"{d.isoformat()}.json").write_text(json.dumps(body))
+
+
+class TestDDLegBucket:
+    """DD-band coverage (2026-07-12 analysis): season DD legs realized 0.545
+    vs stated 0.731 in [0.70, 0.75) while primaries in the SAME band were
+    calibrated (-2.8pp) — pooling would dilute the signal below WARN, and the
+    only absolute-level monitor watched [0.75, 0.80). The DD-leg-only
+    [0.70, 0.75) bucket closes the hole. Slot outcomes come from
+    slot_results (production-graded), the same priority predicted_vs_realized
+    uses — no PA frame needed.
+    """
+
+    def test_dd_leg_70_75_overconfidence_alerts(self, tmp_path):
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 12)
+        # 10 DD days: primaries at 0.79 all hit (calibrated); DD legs at 0.73
+        # realize 5/10 → +23pp → WARN.
+        for i in range(10):
+            _write_dd_day(picks_dir, today - timedelta(days=i + 1),
+                          p1=0.79, pdd=0.73,
+                          slot_pick="hit", slot_dd="hit" if i < 5 else "miss")
+        alerts = check(picks_dir, today=today)
+        assert len(alerts) == 1, alerts
+        assert alerts[0].level == "WARN"
+        assert "70-75% DD-leg" in alerts[0].message
+        assert alerts[0].incident_key and "70-75" in alerts[0].incident_key
+
+    def test_primary_70_75_does_not_feed_dd_bucket(self, tmp_path):
+        # Primaries at 0.72 wildly overconfident + only 4 DD legs (below
+        # min_bucket_n): the DD-only bucket must not borrow primary slots.
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 12)
+        for i in range(16):
+            _write_pick(picks_dir, today - timedelta(days=i + 1), 0.72,
+                        "miss" if i < 12 else "hit")
+        for i in range(4):
+            _write_dd_day(picks_dir, today - timedelta(days=20 + i),
+                          p1=0.79, pdd=0.73, slot_pick="hit", slot_dd="miss")
+        assert check(picks_dir, today=today) == []
+
+    def test_both_buckets_alert_with_distinct_incident_keys(self, tmp_path):
+        # 20 DD days carrying BOTH an overconfident 75-80 primary (0.78
+        # stated, 12/20 realized → +18pp WARN) AND a collapsed DD leg (0.73
+        # stated, 2/20 realized → +63pp, n=20 → CRITICAL).
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 12)
+        for i in range(20):
+            _write_dd_day(picks_dir, today - timedelta(days=i + 1),
+                          p1=0.78, pdd=0.73,
+                          slot_pick="hit" if i < 12 else "miss",
+                          slot_dd="hit" if i < 2 else "miss")
+        alerts = check(picks_dir, today=today)
+        assert len(alerts) == 2, alerts
+        keys = {a.incident_key for a in alerts}
+        assert len(keys) == 2
+        levels = {a.level for a in alerts}
+        assert levels == {"WARN", "CRITICAL"}
+
+    def test_small_n_caps_critical_at_warn(self, tmp_path):
+        # 2/8 at 0.73 stated is +48pp but only an exact tail of ~0.0064 —
+        # above the 1e-3 catastrophic epsilon, so it caps at WARN
+        # (2026-07-12 analysis: the live DD shortfall is suggestive, not
+        # conclusive; a CRITICAL claiming "real signal" would overstate it).
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 12)
+        for i in range(8):
+            _write_dd_day(picks_dir, today - timedelta(days=i + 1),
+                          p1=0.82, pdd=0.73,
+                          slot_pick="hit", slot_dd="hit" if i < 2 else "miss")
+        alerts = check(picks_dir, today=today)
+        assert len(alerts) == 1
+        assert alerts[0].level == "WARN"
+
+    def test_zero_hits_small_n_still_escalates_critical(self, tmp_path):
+        # 0/8 at 0.73 has exact tail 2.8e-5 — effectively impossible under
+        # calibration (a grading/serving pipeline failure signature). The
+        # small-n gate must not hide it (round-2 review #4).
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 12)
+        for i in range(8):
+            _write_dd_day(picks_dir, today - timedelta(days=i + 1),
+                          p1=0.82, pdd=0.73,
+                          slot_pick="hit", slot_dd="miss")
+        alerts = check(picks_dir, today=today)
+        assert len(alerts) == 1
+        assert alerts[0].level == "CRITICAL"
+
+    def test_legacy_bucket_override_translated(self, tmp_path):
+        # A pre-2026-07-12 override supplying only bucket_low/high must keep
+        # working as a single-bucket spec, not be silently ignored (r2#7).
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 4, 29)
+        for i in range(20):
+            _write_pick(picks_dir, today - timedelta(days=i + 1), 0.65,
+                        "miss" if i < 15 else "hit")
+        alerts = check(picks_dir, today=today,
+                       thresholds={"bucket_low": 0.60, "bucket_high": 0.70})
+        assert len(alerts) == 1
+        assert "60-70%" in alerts[0].message
+        # And the default buckets are replaced, not merged: 0.65 picks are
+        # the only data, so no second alert can exist anyway; assert the
+        # translated label to pin the path.
+        assert alerts[0].incident_key == "realized_calibration:60-70%"
+
+    def test_slot_results_beats_pa_frame_on_conflict(self, tmp_path):
+        # Production slot_results (live-feed graded, contest-semantic) wins
+        # over the PA-frame join when both exist (r2#9 conflict boundary).
+        import pandas as pd
+        picks_dir = tmp_path / "picks"
+        data_dir = tmp_path / "processed"
+        data_dir.mkdir()
+        today = date(2026, 4, 29)
+        # 8 primaries at 0.78, slot_results says ALL HIT; PA frame says the
+        # batter had zero hits every day (a stale/contradictory parquet).
+        for i in range(8):
+            d = today - timedelta(days=i + 1)
+            body = {
+                "date": d.isoformat(),
+                "pick": {"p_game_hit": 0.78, "batter_name": "X", "batter_id": 7},
+                "result": "hit",
+                "slot_results": {"pick": "hit"},
+            }
+            picks_dir.mkdir(parents=True, exist_ok=True)
+            (picks_dir / f"{d.isoformat()}.json").write_text(json.dumps(body))
+        pd.DataFrame({
+            "batter_id": [7] * 8,
+            "date": [(today - timedelta(days=i + 1)).isoformat() for i in range(8)],
+            "is_hit": [0] * 8,
+        }).to_parquet(data_dir / "pa_2026.parquet")
+        # slot_results wins → realized 1.0 at 0.78 stated → no alert.
+        # (PA precedence would read 0/8 → +78pp CRITICAL.)
+        assert check(picks_dir, today=today, data_dir=data_dir) == []
+
+    def test_dd_slot_results_grading_beats_day_result(self, tmp_path):
+        # A DD day where the primary missed (day result "miss") but the DD
+        # leg HIT must count the DD leg as a hit — day-level attribution was
+        # the exact bias the 2026-05-01 fix documented. Primary p sits at
+        # 0.82 (outside every bucket) so only the DD-leg grading is under
+        # test.
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 12)
+        for i in range(8):
+            _write_dd_day(picks_dir, today - timedelta(days=i + 1),
+                          p1=0.82, pdd=0.73,
+                          slot_pick="miss", slot_dd="hit")
+        # All 8 DD legs hit at 0.73 stated → under-confident, no alert.
+        assert check(picks_dir, today=today) == []
+
+    def test_lookback_window_30d(self, tmp_path):
+        # Old picks (>30d) should not influence the check
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 4, 29)
+        # Recent: well-calibrated
+        _well_calibrated_75_80(picks_dir, today, n=20)
+        # Old (60d ago): wildly miscalibrated — should be IGNORED
+        for i in range(20):
+            d = today - timedelta(days=60 + i)
+            _write_pick(picks_dir, d, 0.78, "miss")
+        # Should not alert because recent (within 30d) data is fine
+        assert check(picks_dir, today=today) == []
+
+    def test_threshold_overrides(self, tmp_path):
+        # Custom thresholds override defaults.
+        # n=20 picks at 0.78 predicted, realized_rate=0.755 → int(15.1)=15 hits
+        # → 0.75 realized → 3pp gap (under default 8pp INFO, over 2pp override)
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 4, 29)
+        _overconfident_75_80(picks_dir, today, n=20, realized_rate=0.755)
+        # Default: 8pp INFO threshold, 3pp gap → no alert
+        assert check(picks_dir, today=today) == []
+        # Override: 2pp INFO threshold → fires INFO
+        alerts = check(picks_dir, today=today, thresholds={"info_pp": 2, "warn_pp": 8, "critical_pp": 13})
+        assert len(alerts) == 1
+        assert alerts[0].level == "INFO"
+
+
+class TestSinceDeployFilter:
+    """Filter out pre-deploy picks (per project_bts_production_realized_contaminated.md).
+
+    Without this filter the alert pools picks generated by many model iterations
+    and produces noise rather than signal about the current model.
+    """
+
+    def test_pre_deploy_picks_excluded(self, tmp_path):
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 4, 29)
+        # 20 pre-deploy bad picks (would alert if counted)
+        for i in range(20):
+            d = today - timedelta(days=i + 1)
+            result = "miss"  # all miss → 0% realized vs 0.78 predicted, 78pp gap
+            _write_pick(picks_dir, d, 0.78, result, run_time="2026-03-15T00:00:00+00:00")
+        # since_deploy 2026-04-01 → all 20 filtered out → no alert
+        deploy_iso = "2026-04-01T00:00:00+00:00"
+        assert check(picks_dir, today=today, since_deploy_iso=deploy_iso) == []
+
+    def test_post_deploy_picks_counted(self, tmp_path):
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 4, 29)
+        # 20 post-deploy bad picks → should still alert
+        for i in range(20):
+            d = today - timedelta(days=i + 1)
+            result = "miss"
+            _write_pick(picks_dir, d, 0.78, result, run_time="2026-04-15T00:00:00+00:00")
+        deploy_iso = "2026-04-01T00:00:00+00:00"
+        alerts = check(picks_dir, today=today, since_deploy_iso=deploy_iso)
+        assert len(alerts) == 1
+        assert alerts[0].level == "CRITICAL"
+        assert "since-deploy" in alerts[0].message
+
+    def test_filter_message_includes_skip_count(self, tmp_path):
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 4, 29)
+        # 5 pre-deploy + 20 post-deploy, all miss
+        for i in range(5):
+            d = today - timedelta(days=i + 1)
+            _write_pick(picks_dir, d, 0.78, "miss", run_time="2026-03-15T00:00:00+00:00")
+        for i in range(20):
+            d = today - timedelta(days=i + 6)  # different dates
+            _write_pick(picks_dir, d, 0.78, "miss", run_time="2026-04-15T00:00:00+00:00")
+        alerts = check(picks_dir, today=today,
+                       since_deploy_iso="2026-04-01T00:00:00+00:00")
+        assert len(alerts) == 1
+        assert "skipped 5 pre-deploy" in alerts[0].message
+
+    def test_no_filter_when_since_deploy_iso_none(self, tmp_path):
+        # Backward compat: when since_deploy_iso=None, no filter applied
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 4, 29)
+        for i in range(20):
+            d = today - timedelta(days=i + 1)
+            _write_pick(picks_dir, d, 0.78, "miss", run_time="2026-03-15T00:00:00+00:00")
+        # All 20 counted; alert fires
+        alerts = check(picks_dir, today=today, since_deploy_iso=None)
+        assert len(alerts) == 1
+        # Message should flag the unfiltered (iteration-contaminated) state
+        assert "ALL-PICKS" in alerts[0].message or "iteration-contaminated" in alerts[0].message
+
+    def test_pick_without_run_time_field_excluded(self, tmp_path):
+        # Old pick files might lack run_time. With since_deploy_iso set,
+        # they're excluded (we can't verify they're post-deploy).
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 4, 29)
+        for i in range(20):
+            d = today - timedelta(days=i + 1)
+            _write_pick(picks_dir, d, 0.78, "miss")  # no run_time
+        # All 20 missing run_time → all filtered out → no alert
+        assert check(picks_dir, today=today,
+                     since_deploy_iso="2026-04-01T00:00:00+00:00") == []
+
+
+class TestRegimeFingerprintPooling:
+    """Audit F6: reset the calibration pool on production-REGIME change, not on
+    every deploy stamp. 11 deploys in 10 days (docs/shadow/ops) kept erasing the
+    sample so min_bucket_n was never reached — the check was dead exactly during
+    active development. Pick files already stamp model/policy/feature-env hashes;
+    those define the regime."""
+
+    REGIME_A = ("model-aaa", "policy-aaa", "env-aaa")
+    REGIME_B = ("model-bbb", "policy-bbb", "env-bbb")
+
+    def test_pools_across_deploy_when_regime_unchanged(self, tmp_path):
+        # 8 badly overconfident picks: 4 before + 4 after a deploy stamp, all
+        # the SAME regime. Wall-clock filtering kept 4 (< min_bucket_n=5) and
+        # stayed silent; regime pooling must keep all 8 and fire.
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 9)
+        for i in range(8):
+            d = today - timedelta(days=i + 1)
+            _write_pick(picks_dir, d, 0.78, "miss",
+                        run_time=f"{d.isoformat()}T16:00:00+00:00",
+                        fingerprint=self.REGIME_A)
+        mid_deploy = (today - timedelta(days=4)).isoformat() + "T00:00:00+00:00"
+
+        alerts = check(picks_dir, today=today, since_deploy_iso=mid_deploy)
+
+        assert alerts, "same-regime picks straddling a deploy must pool together"
+        assert alerts[0].source == SOURCE
+        assert "n=8" in alerts[0].message
+
+    def test_regime_change_resets_pool(self, tmp_path):
+        # 4 old-regime + 3 new-regime overconfident picks. Only the newest
+        # regime may pool (3 < min_bucket_n) -> silence, even though 7 picks
+        # share the window and the deploy stamp covers them all.
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 9)
+        for i in range(4):
+            d = today - timedelta(days=i + 4)
+            _write_pick(picks_dir, d, 0.78, "miss",
+                        run_time=f"{d.isoformat()}T16:00:00+00:00",
+                        fingerprint=self.REGIME_A)
+        for i in range(3):
+            d = today - timedelta(days=i + 1)
+            _write_pick(picks_dir, d, 0.78, "miss",
+                        run_time=f"{d.isoformat()}T16:00:00+00:00",
+                        fingerprint=self.REGIME_B)
+        ancient = "2026-01-01T00:00:00+00:00"
+
+        assert check(picks_dir, today=today, since_deploy_iso=ancient) == [], (
+            "old-regime picks must not contaminate the new regime's pool"
+        )
+
+    def test_unstamped_picks_keep_deploy_iso_fallback(self, tmp_path):
+        # Pre-provenance pick files (no hashes): legacy wall-clock filtering
+        # still applies — 4 post-deploy < min_bucket_n -> quiet.
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 9)
+        for i in range(8):
+            d = today - timedelta(days=i + 1)
+            _write_pick(picks_dir, d, 0.78, "miss",
+                        run_time=f"{d.isoformat()}T16:00:00+00:00")
+        mid_deploy = (today - timedelta(days=4)).isoformat() + "T00:00:00+00:00"
+
+        assert check(picks_dir, today=today, since_deploy_iso=mid_deploy) == []
+
+    def test_message_names_regime_filter(self, tmp_path):
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 9)
+        for i in range(6):
+            d = today - timedelta(days=i + 1)
+            _write_pick(picks_dir, d, 0.78, "miss",
+                        run_time=f"{d.isoformat()}T16:00:00+00:00",
+                        fingerprint=self.REGIME_A)
+
+        alerts = check(picks_dir, today=today, since_deploy_iso=None)
+
+        assert alerts
+        assert "regime" in alerts[0].message
+
+
+class TestRegimeFingerprintStability:
+    """Codex review #2: the blend model retrains DAILY (blend_<date>.pkl), so
+    model_pickle_sha256 changes every pick day. A fingerprint that includes it
+    pools one day at a time — the check stays dead. The regime identity is
+    (policy_npz_sha256, feature_env_hash); verified stable on the box across
+    2026-07-06..08 including a deploy, while the model sha changed daily."""
+
+    def test_daily_model_retrain_still_pools(self, tmp_path):
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 9)
+        for i in range(8):
+            d = today - timedelta(days=i + 1)
+            _write_pick(picks_dir, d, 0.78, "miss",
+                        run_time=f"{d.isoformat()}T16:00:00+00:00",
+                        fingerprint=(f"model-daily-{i}", "policy-X", "env-X"))
+
+        alerts = check(picks_dir, today=today, since_deploy_iso=None)
+
+        assert alerts, "daily model retrains must not fragment the regime pool"
+        assert "n=8" in alerts[0].message
+
+    def test_policy_change_still_resets(self, tmp_path):
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 9)
+        for i in range(4):
+            d = today - timedelta(days=i + 4)
+            _write_pick(picks_dir, d, 0.78, "miss",
+                        run_time=f"{d.isoformat()}T16:00:00+00:00",
+                        fingerprint=(f"m-{i}", "policy-OLD", "env-X"))
+        for i in range(3):
+            d = today - timedelta(days=i + 1)
+            _write_pick(picks_dir, d, 0.78, "miss",
+                        run_time=f"{d.isoformat()}T16:00:00+00:00",
+                        fingerprint=(f"m-new-{i}", "policy-NEW", "env-X"))
+
+        assert check(picks_dir, today=today, since_deploy_iso=None) == []
+
+    def test_newest_pick_unstamped_falls_back_to_deploy_iso(self, tmp_path):
+        # Codex review #7: a partial/missing stamp on the NEWEST pick must not
+        # silently adopt an older pick's regime — fall back to the wall-clock
+        # deploy filter for the whole computation instead.
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 9)
+        for i in range(6):
+            d = today - timedelta(days=i + 2)
+            _write_pick(picks_dir, d, 0.78, "miss",
+                        run_time=f"{d.isoformat()}T16:00:00+00:00",
+                        fingerprint=(f"m-{i}", "policy-X", "env-X"))
+        # newest pick: stamps lost (e.g. I/O failure during write)
+        _write_pick(picks_dir, today - timedelta(days=1), 0.78, "miss",
+                    run_time=f"{(today - timedelta(days=1)).isoformat()}T16:00:00+00:00")
+        recent_deploy = (today - timedelta(days=1)).isoformat() + "T00:00:00+00:00"
+
+        alerts = check(picks_dir, today=today, since_deploy_iso=recent_deploy)
+
+        # fallback keeps only the 1 post-deploy pick (< min_bucket_n) -> quiet;
+        # adopting the older regime would have pooled 6 and fired.
+        assert alerts == []

@@ -1,0 +1,241 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-review-c2b-carbon
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 283 items
+
+tests/test_wr_c2_recovery.py ........................................... [ 15%]
+..........................................................               [ 35%]
+tests/test_wr_c2_carbon_v2.py .....................                      [ 43%]
+tests/test_wr_c2_r2_carbon.py ..................                         [ 49%]
+tests/test_wr_c2_receipt_identity.py ....FFFF........................... [ 61%]
+........................................................................ [ 87%]
+...................................F                                     [100%]
+
+=================================== FAILURES ===================================
+____________ test_rejects_invalid_receipt[duplicate-status-direct] _____________
+
+encounter = (PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3249/test_rejects_invalid_receipt_d0/health_state/delivery_outcome_unknown/2027-07-15.json'), <function encounter.<locals>.run at 0x1199c96c0>)
+document = '{"status":"failed","schema_version": "bts_health_dm_delivery_status_v1", "status": "sent", "sent_day": "2027-07-15", ...elivery"], "message_id": "seed-id", "body_sha256": "349183d31296312d5858178d4304a170bbb7f62d6ea2a1e7fc16bac6ad7206d7"}'
+
+    @pytest.mark.parametrize("route", ["direct", "classification"])
+    @pytest.mark.parametrize("document", [*extra_cases(), *wrong_field_cases()])
+    def test_rejects_invalid_receipt(encounter, document):
+        path, run = encounter
+        path.write_text(document, encoding="utf-8")
+>       assert_replaced(path, run)
+
+tests/test_wr_c2_receipt_identity.py:104: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_wr_c2_receipt_identity.py:94: in assert_replaced
+    alert.send_dm.assert_called_once_with("offline.test", copy(DAY))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Mock id='4718889776'>
+args = ('offline.test', "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send ...tract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate.")
+kwargs = {}, msg = "Expected 'mock' to be called once. Called 0 times."
+
+    def assert_called_once_with(self, /, *args, **kwargs):
+        """assert that the mock was called exactly once and that that call was
+        with the specified arguments."""
+        if not self.call_count == 1:
+            msg = ("Expected '%s' to be called once. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+>           raise AssertionError(msg)
+E           AssertionError: Expected 'mock' to be called once. Called 0 times.
+
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:960: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2b) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+  DELIVERY OUTCOME UNKNOWN (C2b) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+________ test_rejects_invalid_receipt[duplicate-status-classification] _________
+
+encounter = (PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3249/test_rejects_invalid_receipt_d1/health_state/delivery_outcome_unknown/2027-07-15.json'), <function encounter.<locals>.run at 0x119a27420>)
+document = '{"status":"failed","schema_version": "bts_health_dm_delivery_status_v1", "status": "sent", "sent_day": "2027-07-15", ...elivery"], "message_id": "seed-id", "body_sha256": "349183d31296312d5858178d4304a170bbb7f62d6ea2a1e7fc16bac6ad7206d7"}'
+
+    @pytest.mark.parametrize("route", ["direct", "classification"])
+    @pytest.mark.parametrize("document", [*extra_cases(), *wrong_field_cases()])
+    def test_rejects_invalid_receipt(encounter, document):
+        path, run = encounter
+        path.write_text(document, encoding="utf-8")
+>       assert_replaced(path, run)
+
+tests/test_wr_c2_receipt_identity.py:104: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_wr_c2_receipt_identity.py:94: in assert_replaced
+    alert.send_dm.assert_called_once_with("offline.test", copy(DAY))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Mock id='4718896544'>
+args = ('offline.test', "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send ...tract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate.")
+kwargs = {}, msg = "Expected 'mock' to be called once. Called 0 times."
+
+    def assert_called_once_with(self, /, *args, **kwargs):
+        """assert that the mock was called exactly once and that that call was
+        with the specified arguments."""
+        if not self.call_count == 1:
+            msg = ("Expected '%s' to be called once. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+>           raise AssertionError(msg)
+E           AssertionError: Expected 'mock' to be called once. Called 0 times.
+
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:960: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+____________ test_rejects_invalid_receipt[duplicate-schema-direct] _____________
+
+encounter = (PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3249/test_rejects_invalid_receipt_d2/health_state/delivery_outcome_unknown/2027-07-15.json'), <function encounter.<locals>.run at 0x119a27240>)
+document = '{"schema_version":null,"schema_version": "bts_health_dm_delivery_status_v1", "status": "sent", "sent_day": "2027-07-1...elivery"], "message_id": "seed-id", "body_sha256": "349183d31296312d5858178d4304a170bbb7f62d6ea2a1e7fc16bac6ad7206d7"}'
+
+    @pytest.mark.parametrize("route", ["direct", "classification"])
+    @pytest.mark.parametrize("document", [*extra_cases(), *wrong_field_cases()])
+    def test_rejects_invalid_receipt(encounter, document):
+        path, run = encounter
+        path.write_text(document, encoding="utf-8")
+>       assert_replaced(path, run)
+
+tests/test_wr_c2_receipt_identity.py:104: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_wr_c2_receipt_identity.py:94: in assert_replaced
+    alert.send_dm.assert_called_once_with("offline.test", copy(DAY))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Mock id='4720130480'>
+args = ('offline.test', "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send ...tract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate.")
+kwargs = {}, msg = "Expected 'mock' to be called once. Called 0 times."
+
+    def assert_called_once_with(self, /, *args, **kwargs):
+        """assert that the mock was called exactly once and that that call was
+        with the specified arguments."""
+        if not self.call_count == 1:
+            msg = ("Expected '%s' to be called once. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+>           raise AssertionError(msg)
+E           AssertionError: Expected 'mock' to be called once. Called 0 times.
+
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:960: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2b) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+  DELIVERY OUTCOME UNKNOWN (C2b) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+________ test_rejects_invalid_receipt[duplicate-schema-classification] _________
+
+encounter = (PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3249/test_rejects_invalid_receipt_d3/health_state/delivery_outcome_unknown/2027-07-15.json'), <function encounter.<locals>.run at 0x119a26d40>)
+document = '{"schema_version":null,"schema_version": "bts_health_dm_delivery_status_v1", "status": "sent", "sent_day": "2027-07-1...elivery"], "message_id": "seed-id", "body_sha256": "349183d31296312d5858178d4304a170bbb7f62d6ea2a1e7fc16bac6ad7206d7"}'
+
+    @pytest.mark.parametrize("route", ["direct", "classification"])
+    @pytest.mark.parametrize("document", [*extra_cases(), *wrong_field_cases()])
+    def test_rejects_invalid_receipt(encounter, document):
+        path, run = encounter
+        path.write_text(document, encoding="utf-8")
+>       assert_replaced(path, run)
+
+tests/test_wr_c2_receipt_identity.py:104: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_wr_c2_receipt_identity.py:94: in assert_replaced
+    alert.send_dm.assert_called_once_with("offline.test", copy(DAY))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Mock id='4720132016'>
+args = ('offline.test', "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send ...tract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate.")
+kwargs = {}, msg = "Expected 'mock' to be called once. Called 0 times."
+
+    def assert_called_once_with(self, /, *args, **kwargs):
+        """assert that the mock was called exactly once and that that call was
+        with the specified arguments."""
+        if not self.call_count == 1:
+            msg = ("Expected '%s' to be called once. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+>           raise AssertionError(msg)
+E           AssertionError: Expected 'mock' to be called once. Called 0 times.
+
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:960: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+_________ test_reader_rejects_duplicate_members_inside_nested_objects __________
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3249/test_reader_rejects_duplicate_0')
+
+    def test_reader_rejects_duplicate_members_inside_nested_objects(tmp_path):
+        path = tmp_path / "receipt.json"
+        path.write_text('{"array":[{"key":1,"key":2}]}', encoding="utf-8")
+        directory_fd = os.open(tmp_path, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+>           assert alert._read_receipt(directory_fd, path.name) is None
+E           AssertionError: assert {'array': [{'key': 2}]} is None
+E            +  where {'array': [{'key': 2}]} = <function _read_receipt at 0x110d6c2c0>(12, 'receipt.json')
+E            +    where <function _read_receipt at 0x110d6c2c0> = alert._read_receipt
+E            +    and   'receipt.json' = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3249/test_reader_rejects_duplicate_0/receipt.json').name
+
+tests/test_wr_c2_receipt_identity.py:163: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_c2_receipt_identity.py::test_rejects_invalid_receipt[duplicate-status-direct]
+FAILED tests/test_wr_c2_receipt_identity.py::test_rejects_invalid_receipt[duplicate-status-classification]
+FAILED tests/test_wr_c2_receipt_identity.py::test_rejects_invalid_receipt[duplicate-schema-direct]
+FAILED tests/test_wr_c2_receipt_identity.py::test_rejects_invalid_receipt[duplicate-schema-classification]
+FAILED tests/test_wr_c2_receipt_identity.py::test_reader_rejects_duplicate_members_inside_nested_objects
+======================== 5 failed, 278 passed in 3.33s =========================

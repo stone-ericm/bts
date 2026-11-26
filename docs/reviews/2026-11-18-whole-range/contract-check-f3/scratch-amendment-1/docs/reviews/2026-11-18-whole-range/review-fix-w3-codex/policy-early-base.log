@@ -1,0 +1,5 @@
+nice: setpriority: Operation not permitted
+  File "/Users/eric/projects/bts-work/wr-review-w3/.codex-review/wr-w3/probe_policy.py", line 165
+    {"time_et": at(h, m), "game_pks": [pk]} for h, m, pk in [(18,25,101), (18,42,103), (18,50,102)],
+                                                                                                   ^
+SyntaxError: invalid syntax

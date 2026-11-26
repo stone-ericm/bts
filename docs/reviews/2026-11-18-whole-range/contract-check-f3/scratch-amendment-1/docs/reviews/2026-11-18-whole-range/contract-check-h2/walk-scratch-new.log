@@ -1,0 +1,8 @@
+nice: setpriority: Operation not permitted
+bts /Users/eric/projects/bts-work/wr-check-h2/.codex-review/wr-h-check2/scratch/src/bts/__init__.py walk /Users/eric/projects/bts-work/wr-check-h2/.codex-review/wr-h-check2/scratch/scripts/audit/season_walk/walk.py
+new 219 Counter({('single', 'longest_streak', True, 'dated', False): 184, ('single', 'longest_streak', False, 'dated', False): 23, ('skip', 'reach57', False, None, False): 9, ('double', 'longest_streak', True, 'dated', True): 3})
+double dates ['2027-09-24', '2027-09-25', '2027-09-26']
+problems 0 []
+wrong single: []
+named skip: []
+boundary {'problems': [], 'season_end_2028': '2028-09-28', 'warn_2028': ['season end for 2028 is not configured: days-left uses the default 2028-09-28 — add 2028 to bts.strategy.SEASON_END_DATES'], 'warn_2027': [], 'days_2026_12_31': 0, 'days_2027_01_01': 269, 'days_2028_09_27': 1, 'tail_policy_alerts_2027_09_10': [], 'year_setup': [], 'switch_2027_at_2027_12_31_2359': 'accepted', 'switch_2027_at_2028_01_01_0001': 'refused: Live decision refused: season 2028 switch is other_season (file season 2027).'}

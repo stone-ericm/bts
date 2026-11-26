@@ -1,0 +1,747 @@
+UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run --offline pytest -q -p no:cacheprovider tests/scripts/c2_framing/test_f26_run.py -k 'coherently_wrong or count_says_otherwise or rederives_the_catcher or recorded_counts or recomputes_every'
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-c2f26-code
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 95 items / 81 deselected / 14 selected
+
+tests/scripts/c2_framing/test_f26_run.py FFFFFFFFFFFFFF                  [100%]
+
+=================================== FAILURES ===================================
+______ test_validation_refuses_coherently_wrong_profiles[<lambda>-label] _______
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x116a24ec0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_validation_refuses_cohere0/inputs'), ...}
+edit = <function <lambda> at 0x110209800>, match = 'label'
+
+    @pytest.mark.parametrize("edit, match", [
+        (lambda f: f.assign(actual_hit=1), "label"),
+        (lambda f: f.assign(game_pk=-1), "batter-game"),
+        (lambda f: f.assign(batter_id=f["batter_id"] + 1000000), "batter-game"),
+        (lambda f: f.assign(p_game_hit_basis="actual_pa"), "basis"),
+        (lambda f: pd.concat([f, f[f["rank"] == 10].assign(rank=11)]), "10 rows|batter-game"),
+    ])
+    def test_validation_refuses_coherently_wrong_profiles(world, edit, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        d = _run_dir(world, seed)
+        for a in F.ARMS:
+            p = d / f"profiles_{a}_2026.parquet"
+            p.write_bytes(_parquet(edit(pd.read_parquet(p))))
+        _recohere(world, seed)
+        with pytest.raises(F.RunInvalid, match=match):
+>           _validate(world, seed)
+
+tests/scripts/c2_framing/test_f26_run.py:792: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:189: in _validate
+    truth=_truth(w), c1_dir=w["c1"], **k)
+          ^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x116a24ec0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_validation_refuses_cohere0/inputs'), ...}
+
+    def _truth(w):
+>       return F.Trusted(w["df"][w["df"]["season"] == 2026], F.table_frame(w["table"]))
+               ^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'Trusted'
+
+tests/scripts/c2_framing/test_f26_run.py:184: AttributeError
+___ test_validation_refuses_coherently_wrong_profiles[<lambda>-batter-game0] ___
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x117dc3a40>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_validation_refuses_cohere1/inputs'), ...}
+edit = <function <lambda> at 0x1102098a0>, match = 'batter-game'
+
+    @pytest.mark.parametrize("edit, match", [
+        (lambda f: f.assign(actual_hit=1), "label"),
+        (lambda f: f.assign(game_pk=-1), "batter-game"),
+        (lambda f: f.assign(batter_id=f["batter_id"] + 1000000), "batter-game"),
+        (lambda f: f.assign(p_game_hit_basis="actual_pa"), "basis"),
+        (lambda f: pd.concat([f, f[f["rank"] == 10].assign(rank=11)]), "10 rows|batter-game"),
+    ])
+    def test_validation_refuses_coherently_wrong_profiles(world, edit, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        d = _run_dir(world, seed)
+        for a in F.ARMS:
+            p = d / f"profiles_{a}_2026.parquet"
+            p.write_bytes(_parquet(edit(pd.read_parquet(p))))
+        _recohere(world, seed)
+        with pytest.raises(F.RunInvalid, match=match):
+>           _validate(world, seed)
+
+tests/scripts/c2_framing/test_f26_run.py:792: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:189: in _validate
+    truth=_truth(w), c1_dir=w["c1"], **k)
+          ^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x117dc3a40>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_validation_refuses_cohere1/inputs'), ...}
+
+    def _truth(w):
+>       return F.Trusted(w["df"][w["df"]["season"] == 2026], F.table_frame(w["table"]))
+               ^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'Trusted'
+
+tests/scripts/c2_framing/test_f26_run.py:184: AttributeError
+___ test_validation_refuses_coherently_wrong_profiles[<lambda>-batter-game1] ___
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x117e35940>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_validation_refuses_cohere2/inputs'), ...}
+edit = <function <lambda> at 0x110209940>, match = 'batter-game'
+
+    @pytest.mark.parametrize("edit, match", [
+        (lambda f: f.assign(actual_hit=1), "label"),
+        (lambda f: f.assign(game_pk=-1), "batter-game"),
+        (lambda f: f.assign(batter_id=f["batter_id"] + 1000000), "batter-game"),
+        (lambda f: f.assign(p_game_hit_basis="actual_pa"), "basis"),
+        (lambda f: pd.concat([f, f[f["rank"] == 10].assign(rank=11)]), "10 rows|batter-game"),
+    ])
+    def test_validation_refuses_coherently_wrong_profiles(world, edit, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        d = _run_dir(world, seed)
+        for a in F.ARMS:
+            p = d / f"profiles_{a}_2026.parquet"
+            p.write_bytes(_parquet(edit(pd.read_parquet(p))))
+        _recohere(world, seed)
+        with pytest.raises(F.RunInvalid, match=match):
+>           _validate(world, seed)
+
+tests/scripts/c2_framing/test_f26_run.py:792: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:189: in _validate
+    truth=_truth(w), c1_dir=w["c1"], **k)
+          ^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x117e35940>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_validation_refuses_cohere2/inputs'), ...}
+
+    def _truth(w):
+>       return F.Trusted(w["df"][w["df"]["season"] == 2026], F.table_frame(w["table"]))
+               ^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'Trusted'
+
+tests/scripts/c2_framing/test_f26_run.py:184: AttributeError
+______ test_validation_refuses_coherently_wrong_profiles[<lambda>-basis] _______
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x116a744a0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_validation_refuses_cohere3/inputs'), ...}
+edit = <function <lambda> at 0x1102099e0>, match = 'basis'
+
+    @pytest.mark.parametrize("edit, match", [
+        (lambda f: f.assign(actual_hit=1), "label"),
+        (lambda f: f.assign(game_pk=-1), "batter-game"),
+        (lambda f: f.assign(batter_id=f["batter_id"] + 1000000), "batter-game"),
+        (lambda f: f.assign(p_game_hit_basis="actual_pa"), "basis"),
+        (lambda f: pd.concat([f, f[f["rank"] == 10].assign(rank=11)]), "10 rows|batter-game"),
+    ])
+    def test_validation_refuses_coherently_wrong_profiles(world, edit, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        d = _run_dir(world, seed)
+        for a in F.ARMS:
+            p = d / f"profiles_{a}_2026.parquet"
+            p.write_bytes(_parquet(edit(pd.read_parquet(p))))
+        _recohere(world, seed)
+        with pytest.raises(F.RunInvalid, match=match):
+>           _validate(world, seed)
+
+tests/scripts/c2_framing/test_f26_run.py:792: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:189: in _validate
+    truth=_truth(w), c1_dir=w["c1"], **k)
+          ^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x116a744a0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_validation_refuses_cohere3/inputs'), ...}
+
+    def _truth(w):
+>       return F.Trusted(w["df"][w["df"]["season"] == 2026], F.table_frame(w["table"]))
+               ^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'Trusted'
+
+tests/scripts/c2_framing/test_f26_run.py:184: AttributeError
+_ test_validation_refuses_coherently_wrong_profiles[<lambda>-10 rows|batter-game] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x117e97f80>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_validation_refuses_cohere4/inputs'), ...}
+edit = <function <lambda> at 0x110209a80>, match = '10 rows|batter-game'
+
+    @pytest.mark.parametrize("edit, match", [
+        (lambda f: f.assign(actual_hit=1), "label"),
+        (lambda f: f.assign(game_pk=-1), "batter-game"),
+        (lambda f: f.assign(batter_id=f["batter_id"] + 1000000), "batter-game"),
+        (lambda f: f.assign(p_game_hit_basis="actual_pa"), "basis"),
+        (lambda f: pd.concat([f, f[f["rank"] == 10].assign(rank=11)]), "10 rows|batter-game"),
+    ])
+    def test_validation_refuses_coherently_wrong_profiles(world, edit, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        d = _run_dir(world, seed)
+        for a in F.ARMS:
+            p = d / f"profiles_{a}_2026.parquet"
+            p.write_bytes(_parquet(edit(pd.read_parquet(p))))
+        _recohere(world, seed)
+        with pytest.raises(F.RunInvalid, match=match):
+>           _validate(world, seed)
+
+tests/scripts/c2_framing/test_f26_run.py:792: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:189: in _validate
+    truth=_truth(w), c1_dir=w["c1"], **k)
+          ^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x117e97f80>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_validation_refuses_cohere4/inputs'), ...}
+
+    def _truth(w):
+>       return F.Trusted(w["df"][w["df"]["season"] == 2026], F.table_frame(w["table"]))
+               ^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'Trusted'
+
+tests/scripts/c2_framing/test_f26_run.py:184: AttributeError
+_ test_a_posted_arm_with_no_identified_catcher_is_refused_even_if_its_count_says_otherwise _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x117ebf3e0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_a_posted_arm_with_no_iden0/inputs'), ...}
+
+    def test_a_posted_arm_with_no_identified_catcher_is_refused_even_if_its_count_says_otherwise(world):
+        _no_catchers(world)
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        with pytest.raises(F.RunInvalid, match="identified"):
+>           _validate(world, seed)
+
+tests/scripts/c2_framing/test_f26_run.py:810: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:189: in _validate
+    truth=_truth(w), c1_dir=w["c1"], **k)
+          ^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x117ebf3e0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_a_posted_arm_with_no_iden0/inputs'), ...}
+
+    def _truth(w):
+>       return F.Trusted(w["df"][w["df"]["season"] == 2026], F.table_frame(w["table"]))
+               ^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'Trusted'
+
+tests/scripts/c2_framing/test_f26_run.py:184: AttributeError
+__ test_validation_rederives_the_catcher_evidence[A_posted-<lambda>-catcher] ___
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x117e95610>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_validation_rederives_the_0/inputs'), ...}
+arm = 'A_posted', fn = <function <lambda> at 0x110209da0>, match = 'catcher'
+
+    @pytest.mark.parametrize("arm, fn, match", [
+        ("A_posted", lambda e: e.assign(catcher_id=e["catcher_id"].where(e.index != e["catcher_id"].first_valid_index(), 99)),
+         "catcher"),
+        ("A_projected", lambda e: e.assign(catcher_id=e["catcher_id"].where(e.index != e["catcher_id"].first_valid_index(), 99)),
+         "catcher"),
+        ("A_posted", lambda e: e.iloc[1:], "side-games"),
+        ("A_posted", lambda e: e.assign(n_pa=e["n_pa"] + 1), "side-games"),
+        ("A_posted", lambda e: e.assign(reason="identified"), "reason"),
+        ("A_posted", lambda e: e.assign(team_id=e["team_id"] + 1), "team"),
+    ])
+    def test_validation_rederives_the_catcher_evidence(world, arm, fn, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+>       _validate(world, seed)
+
+tests/scripts/c2_framing/test_f26_run.py:836: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:189: in _validate
+    truth=_truth(w), c1_dir=w["c1"], **k)
+          ^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x117e95610>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_validation_rederives_the_0/inputs'), ...}
+
+    def _truth(w):
+>       return F.Trusted(w["df"][w["df"]["season"] == 2026], F.table_frame(w["table"]))
+               ^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'Trusted'
+
+tests/scripts/c2_framing/test_f26_run.py:184: AttributeError
+_ test_validation_rederives_the_catcher_evidence[A_projected-<lambda>-catcher] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x11836bce0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_validation_rederives_the_1/inputs'), ...}
+arm = 'A_projected', fn = <function <lambda> at 0x110209e40>, match = 'catcher'
+
+    @pytest.mark.parametrize("arm, fn, match", [
+        ("A_posted", lambda e: e.assign(catcher_id=e["catcher_id"].where(e.index != e["catcher_id"].first_valid_index(), 99)),
+         "catcher"),
+        ("A_projected", lambda e: e.assign(catcher_id=e["catcher_id"].where(e.index != e["catcher_id"].first_valid_index(), 99)),
+         "catcher"),
+        ("A_posted", lambda e: e.iloc[1:], "side-games"),
+        ("A_posted", lambda e: e.assign(n_pa=e["n_pa"] + 1), "side-games"),
+        ("A_posted", lambda e: e.assign(reason="identified"), "reason"),
+        ("A_posted", lambda e: e.assign(team_id=e["team_id"] + 1), "team"),
+    ])
+    def test_validation_rederives_the_catcher_evidence(world, arm, fn, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+>       _validate(world, seed)
+
+tests/scripts/c2_framing/test_f26_run.py:836: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:189: in _validate
+    truth=_truth(w), c1_dir=w["c1"], **k)
+          ^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x11836bce0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_validation_rederives_the_1/inputs'), ...}
+
+    def _truth(w):
+>       return F.Trusted(w["df"][w["df"]["season"] == 2026], F.table_frame(w["table"]))
+               ^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'Trusted'
+
+tests/scripts/c2_framing/test_f26_run.py:184: AttributeError
+_ test_validation_rederives_the_catcher_evidence[A_posted-<lambda>-side-games0] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x117e34b00>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_validation_rederives_the_2/inputs'), ...}
+arm = 'A_posted', fn = <function <lambda> at 0x110209ee0>, match = 'side-games'
+
+    @pytest.mark.parametrize("arm, fn, match", [
+        ("A_posted", lambda e: e.assign(catcher_id=e["catcher_id"].where(e.index != e["catcher_id"].first_valid_index(), 99)),
+         "catcher"),
+        ("A_projected", lambda e: e.assign(catcher_id=e["catcher_id"].where(e.index != e["catcher_id"].first_valid_index(), 99)),
+         "catcher"),
+        ("A_posted", lambda e: e.iloc[1:], "side-games"),
+        ("A_posted", lambda e: e.assign(n_pa=e["n_pa"] + 1), "side-games"),
+        ("A_posted", lambda e: e.assign(reason="identified"), "reason"),
+        ("A_posted", lambda e: e.assign(team_id=e["team_id"] + 1), "team"),
+    ])
+    def test_validation_rederives_the_catcher_evidence(world, arm, fn, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+>       _validate(world, seed)
+
+tests/scripts/c2_framing/test_f26_run.py:836: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:189: in _validate
+    truth=_truth(w), c1_dir=w["c1"], **k)
+          ^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x117e34b00>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_validation_rederives_the_2/inputs'), ...}
+
+    def _truth(w):
+>       return F.Trusted(w["df"][w["df"]["season"] == 2026], F.table_frame(w["table"]))
+               ^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'Trusted'
+
+tests/scripts/c2_framing/test_f26_run.py:184: AttributeError
+_ test_validation_rederives_the_catcher_evidence[A_posted-<lambda>-side-games1] _
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x117ebfbf0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_validation_rederives_the_3/inputs'), ...}
+arm = 'A_posted', fn = <function <lambda> at 0x110209f80>, match = 'side-games'
+
+    @pytest.mark.parametrize("arm, fn, match", [
+        ("A_posted", lambda e: e.assign(catcher_id=e["catcher_id"].where(e.index != e["catcher_id"].first_valid_index(), 99)),
+         "catcher"),
+        ("A_projected", lambda e: e.assign(catcher_id=e["catcher_id"].where(e.index != e["catcher_id"].first_valid_index(), 99)),
+         "catcher"),
+        ("A_posted", lambda e: e.iloc[1:], "side-games"),
+        ("A_posted", lambda e: e.assign(n_pa=e["n_pa"] + 1), "side-games"),
+        ("A_posted", lambda e: e.assign(reason="identified"), "reason"),
+        ("A_posted", lambda e: e.assign(team_id=e["team_id"] + 1), "team"),
+    ])
+    def test_validation_rederives_the_catcher_evidence(world, arm, fn, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+>       _validate(world, seed)
+
+tests/scripts/c2_framing/test_f26_run.py:836: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:189: in _validate
+    truth=_truth(w), c1_dir=w["c1"], **k)
+          ^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x117ebfbf0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_validation_rederives_the_3/inputs'), ...}
+
+    def _truth(w):
+>       return F.Trusted(w["df"][w["df"]["season"] == 2026], F.table_frame(w["table"]))
+               ^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'Trusted'
+
+tests/scripts/c2_framing/test_f26_run.py:184: AttributeError
+___ test_validation_rederives_the_catcher_evidence[A_posted-<lambda>-reason] ___
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1183943b0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_validation_rederives_the_4/inputs'), ...}
+arm = 'A_posted', fn = <function <lambda> at 0x11020a020>, match = 'reason'
+
+    @pytest.mark.parametrize("arm, fn, match", [
+        ("A_posted", lambda e: e.assign(catcher_id=e["catcher_id"].where(e.index != e["catcher_id"].first_valid_index(), 99)),
+         "catcher"),
+        ("A_projected", lambda e: e.assign(catcher_id=e["catcher_id"].where(e.index != e["catcher_id"].first_valid_index(), 99)),
+         "catcher"),
+        ("A_posted", lambda e: e.iloc[1:], "side-games"),
+        ("A_posted", lambda e: e.assign(n_pa=e["n_pa"] + 1), "side-games"),
+        ("A_posted", lambda e: e.assign(reason="identified"), "reason"),
+        ("A_posted", lambda e: e.assign(team_id=e["team_id"] + 1), "team"),
+    ])
+    def test_validation_rederives_the_catcher_evidence(world, arm, fn, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+>       _validate(world, seed)
+
+tests/scripts/c2_framing/test_f26_run.py:836: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:189: in _validate
+    truth=_truth(w), c1_dir=w["c1"], **k)
+          ^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1183943b0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_validation_rederives_the_4/inputs'), ...}
+
+    def _truth(w):
+>       return F.Trusted(w["df"][w["df"]["season"] == 2026], F.table_frame(w["table"]))
+               ^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'Trusted'
+
+tests/scripts/c2_framing/test_f26_run.py:184: AttributeError
+____ test_validation_rederives_the_catcher_evidence[A_posted-<lambda>-team] ____
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x117e96c90>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_validation_rederives_the_5/inputs'), ...}
+arm = 'A_posted', fn = <function <lambda> at 0x11020a0c0>, match = 'team'
+
+    @pytest.mark.parametrize("arm, fn, match", [
+        ("A_posted", lambda e: e.assign(catcher_id=e["catcher_id"].where(e.index != e["catcher_id"].first_valid_index(), 99)),
+         "catcher"),
+        ("A_projected", lambda e: e.assign(catcher_id=e["catcher_id"].where(e.index != e["catcher_id"].first_valid_index(), 99)),
+         "catcher"),
+        ("A_posted", lambda e: e.iloc[1:], "side-games"),
+        ("A_posted", lambda e: e.assign(n_pa=e["n_pa"] + 1), "side-games"),
+        ("A_posted", lambda e: e.assign(reason="identified"), "reason"),
+        ("A_posted", lambda e: e.assign(team_id=e["team_id"] + 1), "team"),
+    ])
+    def test_validation_rederives_the_catcher_evidence(world, arm, fn, match):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+>       _validate(world, seed)
+
+tests/scripts/c2_framing/test_f26_run.py:836: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:189: in _validate
+    truth=_truth(w), c1_dir=w["c1"], **k)
+          ^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x117e96c90>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_validation_rederives_the_5/inputs'), ...}
+
+    def _truth(w):
+>       return F.Trusted(w["df"][w["df"]["season"] == 2026], F.table_frame(w["table"]))
+               ^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'Trusted'
+
+tests/scripts/c2_framing/test_f26_run.py:184: AttributeError
+___ test_validation_reconciles_the_recorded_counts_and_ids_with_the_evidence ___
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x117e94680>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_validation_reconciles_the0/inputs'), ...}
+
+    def test_validation_reconciles_the_recorded_counts_and_ids_with_the_evidence(world):
+        seed = F.SEEDS[0]
+        assert _run(world, seed) == 0
+        _edit_json(_run_dir(world, seed), "results.json",
+                   lambda r: r["units"][2]["catcher"].update(identified_ids=[1]))
+        with pytest.raises(F.RunInvalid, match="counts|ids"):
+>           _validate(world, seed)
+
+tests/scripts/c2_framing/test_f26_run.py:848: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:189: in _validate
+    truth=_truth(w), c1_dir=w["c1"], **k)
+          ^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x117e94680>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_validation_reconciles_the0/inputs'), ...}
+
+    def _truth(w):
+>       return F.Trusted(w["df"][w["df"]["season"] == 2026], F.table_frame(w["table"]))
+               ^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'Trusted'
+
+tests/scripts/c2_framing/test_f26_run.py:184: AttributeError
+______________ test_the_aggregate_recomputes_every_catcher_value _______________
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x1183aefc0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12260/test_the_aggregate_recomputes_0/inputs'), ...}
+ten = [PosixPath('<pytest-tmp>/pytest-12260/test_the_aggregate_recomputes_0/out/seed_1277948386/aaaaaaa-20261009T213655Z'), ...]
+
+    def test_the_aggregate_recomputes_every_catcher_value(world, ten):
+>       _edit_evidence(ten[3], "A_posted", lambda e: e.assign(value=e["value"].where(e["value"].isna(), e["value"] + 0.01)))
+
+tests/scripts/c2_framing/test_f26_run.py:852: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:820: in _edit_evidence
+    p.write_bytes(_parquet(fn(pd.read_parquet(p))))
+                              ^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/pandas/io/parquet.py:671: in read_parquet
+    return impl.read(
+.venv/lib/python3.12/site-packages/pandas/io/parquet.py:253: in read
+    path_or_handle, handles, filesystem = _get_path_or_handle(
+.venv/lib/python3.12/site-packages/pandas/io/parquet.py:141: in _get_path_or_handle
+    handles = get_handle(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path_or_buf = '<pytest-tmp>/pytest-12260/test_the_aggregate_recomputes_0/out/seed_2048/aaaaaaa-20261009T213650Z/catcher_A_posted_2026.parquet'
+mode = 'rb'
+
+    def get_handle(
+        path_or_buf: FilePath | BaseBuffer,
+        mode: str,
+        *,
+        encoding: str | None = None,
+        compression: CompressionOptions | None = None,
+        memory_map: bool = False,
+        is_text: bool = True,
+        errors: str | None = None,
+        storage_options: StorageOptions | None = None,
+    ) -> IOHandles[str] | IOHandles[bytes]:
+        """
+        Get file handle for given path/buffer and mode.
+    
+        Parameters
+        ----------
+        path_or_buf : str or file handle
+            File path or object.
+        mode : str
+            Mode to open path_or_buf with.
+        encoding : str or None
+            Encoding to use.
+        compression : str or dict, default 'infer'
+            For on-the-fly compression of the output data. If 'infer' and 'path_or_buf'
+            is path-like, then detect compression from the following extensions: '.gz',
+            '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+            (otherwise no compression).
+            Set to ``None`` for no compression.
+            Can also be a dict with key ``'method'`` set
+            to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``}
+            and other key-value pairs are forwarded to
+            ``zipfile.ZipFile``, ``gzip.GzipFile``,
+            ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
+            ``tarfile.TarFile``, respectively.
+            As an example, the following could be passed for faster compression and to
+            create a reproducible gzip archive:
+            ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
+    
+               May be a dict with key 'method' as compression mode
+               and other keys as compression options if compression
+               mode is 'zip'.
+    
+               Passing compression options as keys in dict is
+               supported for compression modes 'gzip', 'bz2', 'zstd' and 'zip'.
+    
+        memory_map : bool, default False
+            See parsers._parser_params for more information. Only used by read_csv.
+        is_text : bool, default True
+            Whether the type of the content passed to the file/buffer is string or
+            bytes. This is not the same as `"b" not in mode`. If a string content is
+            passed to a binary file/buffer, a wrapper is inserted.
+        errors : str, default 'strict'
+            Specifies how encoding and decoding errors are to be handled.
+            See the errors argument for :func:`open` for a full list
+            of options.
+        storage_options: StorageOptions = None
+            Passed to _get_filepath_or_buffer
+    
+        Returns the dataclass IOHandles
+        """
+        # Windows does not default to utf-8. Set to utf-8 for a consistent behavior
+        encoding = encoding or "utf-8"
+    
+        errors = errors or "strict"
+    
+        # read_csv does not know whether the buffer is opened in binary/text mode
+        if _is_binary_mode(path_or_buf, mode) and "b" not in mode:
+            mode += "b"
+    
+        # validate encoding and errors
+        codecs.lookup(encoding)
+        if isinstance(errors, str):
+            codecs.lookup_error(errors)
+    
+        # open URLs
+        ioargs = _get_filepath_or_buffer(
+            path_or_buf,
+            encoding=encoding,
+            compression=compression,
+            mode=mode,
+            storage_options=storage_options,
+        )
+    
+        handle = ioargs.filepath_or_buffer
+        handles: list[BaseBuffer]
+    
+        # memory mapping needs to be the first step
+        # only used for read_csv
+        handle, memory_map, handles = _maybe_memory_map(handle, memory_map)
+    
+        is_path = isinstance(handle, str)
+        compression_args = dict(ioargs.compression)
+        compression = compression_args.pop("method")
+    
+        # Only for write methods
+        if "r" not in mode and is_path:
+            check_parent_directory(str(handle))
+    
+        if compression:
+            if compression != "zstd":
+                # compression libraries do not like an explicit text-mode
+                ioargs.mode = ioargs.mode.replace("t", "")
+            elif compression == "zstd" and "b" not in ioargs.mode:
+                # python-zstandard defaults to text mode, but we always expect
+                # compression libraries to use binary mode.
+                ioargs.mode += "b"
+    
+            # GZ Compression
+            if compression == "gzip":
+                if isinstance(handle, str):
+                    # error: Incompatible types in assignment (expression has type
+                    # "GzipFile", variable has type "Union[str, BaseBuffer]")
+                    handle = gzip.GzipFile(  # type: ignore[assignment]
+                        filename=handle,
+                        mode=ioargs.mode,
+                        **compression_args,
+                    )
+                else:
+                    handle = gzip.GzipFile(
+                        # No overload variant of "GzipFile" matches argument types
+                        # "Union[str, BaseBuffer]", "str", "Dict[str, Any]"
+                        fileobj=handle,  # type: ignore[call-overload]
+                        mode=ioargs.mode,
+                        **compression_args,
+                    )
+    
+            # BZ Compression
+            elif compression == "bz2":
+                import bz2
+    
+                # Overload of "BZ2File" to handle pickle protocol 5
+                # "Union[str, BaseBuffer]", "str", "Dict[str, Any]"
+                handle = bz2.BZ2File(  # type: ignore[call-overload]
+                    handle,
+                    mode=ioargs.mode,
+                    **compression_args,
+                )
+    
+            # ZIP Compression
+            elif compression == "zip":
+                # error: Argument 1 to "_BytesZipFile" has incompatible type
+                # "Union[str, BaseBuffer]"; expected "Union[Union[str, PathLike[str]],
+                # ReadBuffer[bytes], WriteBuffer[bytes]]"
+                handle = _BytesZipFile(
+                    handle,  # type: ignore[arg-type]
+                    ioargs.mode,
+                    **compression_args,
+                )
+                if handle.buffer.mode == "r":
+                    handles.append(handle)
+                    zip_names = handle.buffer.namelist()
+                    if len(zip_names) == 1:
+                        handle = handle.buffer.open(zip_names.pop())
+                    elif not zip_names:
+                        raise ValueError(f"Zero files found in ZIP file {path_or_buf}")
+                    else:
+                        raise ValueError(
+                            "Multiple files found in ZIP file. "
+                            f"Only one file per ZIP: {zip_names}"
+                        )
+    
+            # TAR Encoding
+            elif compression == "tar":
+                compression_args.setdefault("mode", ioargs.mode)
+                if isinstance(handle, str):
+                    handle = _BytesTarFile(name=handle, **compression_args)
+                else:
+                    # error: Argument "fileobj" to "_BytesTarFile" has incompatible
+                    # type "BaseBuffer"; expected "Union[ReadBuffer[bytes],
+                    # WriteBuffer[bytes], None]"
+                    handle = _BytesTarFile(
+                        fileobj=handle,  # type: ignore[arg-type]
+                        **compression_args,
+                    )
+                assert isinstance(handle, _BytesTarFile)
+                if "r" in handle.buffer.mode:
+                    handles.append(handle)
+                    files = handle.buffer.getnames()
+                    if len(files) == 1:
+                        file = handle.buffer.extractfile(files[0])
+                        assert file is not None
+                        handle = file
+                    elif not files:
+                        raise ValueError(f"Zero files found in TAR archive {path_or_buf}")
+                    else:
+                        raise ValueError(
+                            "Multiple files found in TAR archive. "
+                            f"Only one file per TAR archive: {files}"
+                        )
+    
+            # XZ Compression
+            elif compression == "xz":
+                # error: Argument 1 to "LZMAFile" has incompatible type "Union[str,
+                # BaseBuffer]"; expected "Optional[Union[Union[str, bytes, PathLike[str],
+                # PathLike[bytes]], IO[bytes]], None]"
+                import lzma
+    
+                handle = lzma.LZMAFile(
+                    handle,  # type: ignore[arg-type]
+                    ioargs.mode,
+                    **compression_args,
+                )
+    
+            # Zstd Compression
+            elif compression == "zstd":
+                zstd = import_optional_dependency("zstandard")
+                if "r" in ioargs.mode:
+                    open_args = {"dctx": zstd.ZstdDecompressor(**compression_args)}
+                else:
+                    open_args = {"cctx": zstd.ZstdCompressor(**compression_args)}
+                handle = zstd.open(
+                    handle,
+                    mode=ioargs.mode,
+                    **open_args,
+                )
+    
+            # Unrecognized Compression
+            else:
+                msg = f"Unrecognized compression type: {compression}"
+                raise ValueError(msg)
+    
+            assert not isinstance(handle, str)
+            handles.append(handle)
+    
+        elif isinstance(handle, str):
+            # Check whether the filename is to be opened in binary mode.
+            # Binary mode does not support 'encoding' and 'newline'.
+            if ioargs.encoding and "b" not in ioargs.mode:
+                # Encoding
+                handle = open(
+                    handle,
+                    ioargs.mode,
+                    encoding=ioargs.encoding,
+                    errors=errors,
+                    newline="",
+                )
+            else:
+                # Binary mode
+>               handle = open(handle, ioargs.mode)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E               FileNotFoundError: [Errno 2] No such file or directory: '<pytest-tmp>/pytest-12260/test_the_aggregate_recomputes_0/out/seed_2048/aaaaaaa-20261009T213650Z/catcher_A_posted_2026.parquet'
+
+.venv/lib/python3.12/site-packages/pandas/io/common.py:935: FileNotFoundError
+=========================== short test summary info ============================
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_validation_refuses_coherently_wrong_profiles[<lambda>-label]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_validation_refuses_coherently_wrong_profiles[<lambda>-batter-game0]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_validation_refuses_coherently_wrong_profiles[<lambda>-batter-game1]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_validation_refuses_coherently_wrong_profiles[<lambda>-basis]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_validation_refuses_coherently_wrong_profiles[<lambda>-10 rows|batter-game]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_a_posted_arm_with_no_identified_catcher_is_refused_even_if_its_count_says_otherwise
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_validation_rederives_the_catcher_evidence[A_posted-<lambda>-catcher]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_validation_rederives_the_catcher_evidence[A_projected-<lambda>-catcher]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_validation_rederives_the_catcher_evidence[A_posted-<lambda>-side-games0]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_validation_rederives_the_catcher_evidence[A_posted-<lambda>-side-games1]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_validation_rederives_the_catcher_evidence[A_posted-<lambda>-reason]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_validation_rederives_the_catcher_evidence[A_posted-<lambda>-team]
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_validation_reconciles_the_recorded_counts_and_ids_with_the_evidence
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_the_aggregate_recomputes_every_catcher_value
+====================== 14 failed, 81 deselected in 36.89s ======================

@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.codex-review/wr-c2-r2/replay/carbon/probe_1b_restart_and_base_parity.py", line 371, in <module>
+    main()
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.codex-review/wr-c2-r2/replay/carbon/probe_1b_restart_and_base_parity.py", line 349, in main
+    assert h["missed_pick_dms"] == b["missed_pick_dms"] == (2 if variant == "write_decision_none" else 0)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

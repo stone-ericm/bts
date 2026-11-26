@@ -1,0 +1,8 @@
+nice: setpriority: Operation not permitted
+  0 new confirmed lineup(s). Running predictions...
+  Pick: Steven Kwan (CLE) 80.0% → should_lock=True
+  0 new confirmed lineup(s). Running predictions...
+  SKIP — Candidate used in the decision: Steven Kwan (CLE) 80.0%, below the streak-15 bar (81.1%) using unrounded values. Streak used at this check: 15.
+  LOCKED (probe) — Pick DM sent: pick-dm
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+Timing during original double corrected skip delivered True transport calls 1

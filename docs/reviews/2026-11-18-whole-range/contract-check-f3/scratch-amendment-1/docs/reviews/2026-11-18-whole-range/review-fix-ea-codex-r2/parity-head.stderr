@@ -1,0 +1,92 @@
+  Skip DM failed (send); will retry next cycle.
+  MISSED-PICK ALERT — no delivery with ~0min to first pitch.
+  MORNING STATE CHECK — stale contest reading: last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later slate date, see B8a. On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  MORNING STATE CHECK — stale contest reading: last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later slate date, see B8a. On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  MORNING STATE CHECK — stale contest reading: last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later slate date, see B8a. On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  Stale-reading warning failed: 'capture fault'
+  MORNING STATE CHECK — stale contest reading: last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later slate date, see B8a. On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  Stale-reading warning failed: 'capture fault'
+  MORNING STATE CHECK — stale contest reading: last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later slate date, see B8a. On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  Stale-reading warning failed: 'capture fault'
+  MORNING STATE CHECK — stale contest reading: last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later slate date, see B8a. On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  Stale-reading warning failed: 'capture fault'
+  MORNING STATE CHECK — stale contest reading: last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago
+send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: capture fault
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-ea2-codex/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-ea2-codex/.codex-review/wr-ea2/probe_parity.py", line 207, in send
+    raise fault('capture fault')
+OSError: capture fault
+[health_dm_delivery CRITICAL] health alert DM delivery failed
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later slate date, see B8a. On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: capture fault
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-ea2-codex/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-ea2-codex/.codex-review/wr-ea2/probe_parity.py", line 207, in send
+    raise fault('capture fault')
+OSError: capture fault
+[health_dm_delivery CRITICAL] health alert DM delivery failed
+  MORNING STATE CHECK — stale contest reading: last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago
+send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: capture fault
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-ea2-codex/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-ea2-codex/.codex-review/wr-ea2/probe_parity.py", line 207, in send
+    raise fault('capture fault')
+OSError: capture fault
+[health_dm_delivery CRITICAL] health alert DM delivery failed
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later slate date, see B8a. On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: capture fault
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-ea2-codex/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-ea2-codex/.codex-review/wr-ea2/probe_parity.py", line 207, in send
+    raise fault('capture fault')
+OSError: capture fault
+[health_dm_delivery CRITICAL] health alert DM delivery failed
+  DELIVERY REFUSED (late) — Steven Kwan: submission cutoff 18:34 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (void) — game 101 is Postponed; not delivering a pick on it.

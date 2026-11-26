@@ -1,0 +1,132 @@
+{
+ "id": "I-113",
+ "working_id": "E113",
+ "title": "R2 sync omitted mdp_policy.npz: a host restored from R2 (the Fly instance, 4/10) silently ran the heuristic instead of the MDP policy",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "S",
+  "secondary": [
+   "P"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "restore coverage: a restore from the R2 bundle produced a host that decided with a different policy and said nothing; the same class recurs for the tail artifact (residual)",
+ "residual_reaches_production": true,
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "reach57",
+ "stream": "backup",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "Every artifact the live decision path loads is in the R2 restore bundle, so a restored host decides with the same policy as production.",
+  "source": "src/bts/data/sync.py sync_to_r2 (947fce8); CLAUDE.md 'MDP-optimal strategy: auto-loads data/models/mdp_policy.npz'"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "sync_to_r2 uploaded the processed data but not data/models/mdp_policy.npz, so a host bootstrapped from R2 found no policy file and the strategy fell back to the heuristic without an alert",
+   "code": [
+    {
+     "path": "src/bts/data/sync.py",
+     "ref": "bb33616",
+     "symbol": "sync_to_r2",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "947fce8"
+    ],
+    "complete_fix_set": false
+   },
+   "deployed": "unknown",
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "sync_to_r2 still ships only mdp_policy.npz, not data/models/mdp_tail_policy.npz (added 9/03): a tail-regime host restored from R2 alone runs the forced fallback action (recorded as degraded_reason, not silent). Both artifacts are also force-tracked in git.",
+   "reaches_production": true,
+   "source": "src/bts/data/sync.py at HEAD (lines ~194-242)"
+  }
+ ],
+ "watchdog": {
+  "boundary": "preservation",
+  "trigger": "a restore drill (or R2 manifest check) finds a model/policy artifact that the live decision path loads missing from the bundle, or a restored host whose decision records carry a degraded or heuristic source",
+  "recovery_assertion": "the restored host's decision records show the same policy sha and objective as production with no degraded_reason"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 947fce8 message body",
+   "written_at": "2026-04-10T18:18:03-04:00",
+   "what": "reported contemporaneous fallback on Fly: 947fce8's body says the R2-restored Fly host lacked mdp_policy.npz and the strategy fell back to the heuristic (the restore log itself is not retained)"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-04-10 (Fly host restored from R2)",
+   "onset": {
+    "not_before": "2026-04-10",
+    "not_after": "2026-04-10T18:18:03-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-10T18:18:03-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   },
+   "continuing": false
+  }
+ ],
+ "routes": {
+  "H": [
+   "947fce8"
+  ],
+  "R": "pending_phase2",
+  "X": []
+ },
+ "related": [
+  "I-106",
+  "I-090"
+ ],
+ "notes": [
+  "split from E106 per Codex phase-1 r3 answer 7: the same commit fixed a restore-coverage defect with its own mechanism",
+  "deployed unknown: the fix's candidate run executed the Fly deploy.yml; production (Pi5) has no install record before the 4/11 cutover",
+  "fixtures: filled from Task 5/6 acceptance objects at build time",
+  "observed on the Fly shadow host (the 2nd bot of I-017), a real restore from R2: the design's scope covers restore dependencies on any host (§2), so the restore contract's deviation is an observed incident; whether any public Fly pick was decided by the heuristic is not evidenced",
+  "evidence strength (Codex phase-1 r4 ruling): reported contemporaneous fallback on Fly; the R2 omission (sync_to_r2 at 947fce8^) and the bootstrap path (scripts/fly-bootstrap.sh runs sync-from-r2 for the model directory on an empty volume) are verified in code. Not established: an exact outage start, a witnessed contest pick, a verified repair, or any production impact."
+ ]
+}

@@ -1,0 +1,222 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 25 items
+
+tests/test_tail_policy_strategy.py F..FFFFFFFFFFFF.FFF......             [100%]
+
+=================================== FAILURES ===================================
+___________ test_tail_regime_uses_tail_table_and_records_provenance ____________
+
+    def test_tail_regime_uses_tail_table_and_records_provenance():
+        dec = resolve_policy_decision(_ctx(), streak=0, saver=False)
+        assert isinstance(dec, PolicyDecision)
+>       assert (dec.action, dec.source, dec.objective) == ("double", "mdp", OBJECTIVE_TAIL)
+E       AssertionError: assert ('skip', 'mdp', 'reach57') == ('double', 'm..._season_best')
+E         
+E         At index 0 diff: 'skip' != 'double'
+E         Use -v to get more diff
+
+tests/test_tail_policy_strategy.py:63: AssertionError
+____________________ test_stop_rule_skip_has_a_human_reason ____________________
+
+    def test_stop_rule_skip_has_a_human_reason():
+        dec = resolve_policy_decision(_ctx(date=D9), streak=0, saver=False)
+>       assert dec.action == "skip" and dec.objective == OBJECTIVE_TAIL
+E       AssertionError: assert ('skip' == 'skip'
+E         
+E           skip and 'reach57' == 'emax_season_best'
+E         
+E         - emax_season_best
+E         + reach57)
+
+tests/test_tail_policy_strategy.py:86: AssertionError
+________________ test_untrusted_best_cannot_authorise_the_stop _________________
+
+    def test_untrusted_best_cannot_authorise_the_stop():
+        dec = resolve_policy_decision(_ctx(date=D9, best_status="untrusted"), streak=0, saver=False)
+>       assert dec.action != "skip"
+E       AssertionError: assert 'skip' != 'skip'
+E        +  where 'skip' = PolicyDecision(action='skip', policy_action='skip', source='mdp', objective='reach57', streak=0, days_effective=9, bes...d=18, best_status='untrusted', effective_best=None, tail_sha256=None, degraded_reason=None, reason=None, pick_bar=None).action
+
+tests/test_tail_policy_strategy.py:94: AssertionError
+__________________ test_missing_best_means_best_equals_streak __________________
+
+    def test_missing_best_means_best_equals_streak():
+        dec = resolve_policy_decision(_ctx(date=D9, best_streak=None, best_status=None), streak=3, saver=False)
+>       assert dec.best_status == "missing" and dec.effective_best == 3 and dec.action != "skip"
+E       AssertionError: assert ('missing' == 'missing'
+E         
+E           missing and None == 3)
+E        +  where None = PolicyDecision(action='skip', policy_action='skip', source='mdp', objective='reach57', streak=3, days_effective=9, bes...d=None, best_status='missing', effective_best=None, tail_sha256=None, degraded_reason=None, reason=None, pick_bar=None).effective_best
+
+tests/test_tail_policy_strategy.py:100: AssertionError
+_________________ test_stale_low_best_is_clamped_up_to_streak __________________
+
+    def test_stale_low_best_is_clamped_up_to_streak():
+        dec = resolve_policy_decision(_ctx(best_streak=2), streak=5, saver=False)
+>       assert dec.effective_best == 5
+E       AssertionError: assert None == 5
+E        +  where None = PolicyDecision(action='skip', policy_action='skip', source='mdp', objective='reach57', streak=5, days_effective=24, be...lied=2, best_status='trusted', effective_best=None, tail_sha256=None, degraded_reason=None, reason=None, pick_bar=None).effective_best
+
+tests/test_tail_policy_strategy.py:105: AssertionError
+__________ test_whole_mdp_absent_in_tail_never_reaches_the_heuristic ___________
+
+    def test_whole_mdp_absent_in_tail_never_reaches_the_heuristic():
+        # p=0.72 < SKIP_THRESHOLD: the heuristic would skip; the tail contract forbids that.
+        dec = resolve_policy_decision(_ctx(mdp=None), streak=0, saver=False)
+>       assert (dec.action, dec.source, dec.objective) == ("single", "mdp", OBJECTIVE_TAIL)
+E       AssertionError: assert ('skip', 'heu...c', 'reach57') == ('single', 'm..._season_best')
+E         
+E         At index 0 diff: 'skip' != 'single'
+E         Use -v to get more diff
+
+tests/test_tail_policy_strategy.py:113: AssertionError
+______________ test_whole_mdp_absent_still_honours_the_stop_rule _______________
+
+    def test_whole_mdp_absent_still_honours_the_stop_rule():
+        dec = resolve_policy_decision(_ctx(mdp=None, date=D9), streak=0, saver=False)
+>       assert dec.action == "skip" and dec.degraded_reason
+E       AssertionError: assert ('skip' == 'skip'
+E         
+E           skip and None)
+E        +  where None = PolicyDecision(action='skip', policy_action='skip', source='heuristic', objective='reach57', streak=0, days_effective=...lied=18, best_status='trusted', effective_best=None, tail_sha256=None, degraded_reason=None, reason=None, pick_bar=0.8).degraded_reason
+
+tests/test_tail_policy_strategy.py:119: AssertionError
+____ test_base_missing_makes_the_tail_unverifiable_and_forces_the_fallback _____
+
+    def test_base_missing_makes_the_tail_unverifiable_and_forces_the_fallback():
+        # Codex r3 P1: without the base sha the tail's pairing cannot be verified.
+        dec = resolve_policy_decision(_ctx(mdp=_mdp(base=False)), streak=0, saver=False)
+>       assert dec.action == "single" and "unverifiable" in dec.degraded_reason
+E       AssertionError: assert ('skip' == 'single'
+E         
+E         - single
+E         + skip)
+
+tests/test_tail_policy_strategy.py:125: AssertionError
+__________________ test_tail_missing_carries_the_loader_error __________________
+
+    def test_tail_missing_carries_the_loader_error():
+        dec = resolve_policy_decision(_ctx(mdp=_mdp(tail=None, tail_error="stop rule violated")), 0, False)
+>       assert dec.action == "single" and "stop rule violated" in dec.degraded_reason
+E       AssertionError: assert ('skip' == 'single'
+E         
+E         - single
+E         + skip)
+
+tests/test_tail_policy_strategy.py:130: AssertionError
+_____________ test_tail_lookup_exception_degrades_to_forced_action _____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x109919610>
+
+    def test_tail_lookup_exception_degrades_to_forced_action(monkeypatch):
+        def boom(*a, **k):
+            raise TailPolicyError("horizon")
+        monkeypatch.setattr("bts.strategy.lookup_tail_action", boom)
+        dec = resolve_policy_decision(_ctx(), streak=0, saver=False)
+>       assert dec.action == "single" and "horizon" in dec.degraded_reason
+E       AssertionError: assert ('skip' == 'single'
+E         
+E         - single
+E         + skip)
+
+tests/test_tail_policy_strategy.py:138: AssertionError
+_____________ test_tail_double_downgrades_without_a_different_game _____________
+
+    def test_tail_double_downgrades_without_a_different_game():
+        dec = resolve_policy_decision(_ctx(has_diff=False, second_p=None), streak=0, saver=False)
+>       assert dec.action == "single" and dec.policy_action == "double"
+E       AssertionError: assert ('skip' == 'single'
+E         
+E         - single
+E         + skip)
+
+tests/test_tail_policy_strategy.py:145: AssertionError
+_____________ test_tail_double_downgrades_when_allow_double_false ______________
+
+    def test_tail_double_downgrades_when_allow_double_false():
+        dec = resolve_policy_decision(_ctx(allow_double=False), streak=0, saver=False)
+>       assert dec.action == "single" and dec.policy_action == "double"
+E       AssertionError: assert ('skip' == 'single'
+E         
+E         - single
+E         + skip)
+
+tests/test_tail_policy_strategy.py:150: AssertionError
+_________ test_pick_bar_in_tail_is_zero_for_play_and_none_at_the_stop __________
+
+    def test_pick_bar_in_tail_is_zero_for_play_and_none_at_the_stop():
+>       assert effective_pick_bar(0, D24, False, mdp=_mdp(), best_streak=18, best_status="trusted") == 0.0
+E       AssertionError: assert None == 0.0
+E        +  where None = effective_pick_bar(0, '2026-09-04', False, mdp={'base_sha256': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'boundaries': [0.796, 0.811, 0.825...\n\n        [[0, 0, 0, 0, 0],\n         [0, 0, 0, 0, 0]]]], shape=(58, 181, 2, 5), dtype=int8), 'season_length': 180, ...}, best_streak=18, best_status='trusted')
+E        +    where {'base_sha256': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'boundaries': [0.796, 0.811, 0.825...\n\n        [[0, 0, 0, 0, 0],\n         [0, 0, 0, 0, 0]]]], shape=(58, 181, 2, 5), dtype=int8), 'season_length': 180, ...} = _mdp()
+
+tests/test_tail_policy_strategy.py:156: AssertionError
+_________________ test_select_pick_first_tail_day_is_a_double __________________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8141/test_select_pick_first_tail_da0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10e07ec90>
+
+    def test_select_pick_first_tail_day_is_a_double(tmp_path, monkeypatch):
+        monkeypatch.setattr("bts.strategy._load_mdp", lambda: _mdp())
+        res = select_pick(_preds(_TWO), D24, tmp_path, streak=0, saver_available=False,
+                          best_streak=18, best_status="trusted",
+                          game_statuses_detailed={111: _AVAIL, 222: _AVAIL})
+>       assert res.pick_result.daily.double_down is not None
+               ^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'NoneType' object has no attribute 'daily'
+
+tests/test_tail_policy_strategy.py:183: AttributeError
+__________ test_select_pick_with_no_artifacts_in_tail_picks_a_single ___________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8141/test_select_pick_with_no_artif0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10e0816a0>
+
+    def test_select_pick_with_no_artifacts_in_tail_picks_a_single(tmp_path, monkeypatch):
+        monkeypatch.setattr("bts.strategy._load_mdp", lambda: None)
+        res = select_pick(_preds(_TWO), D24, tmp_path, streak=0, saver_available=False,
+                          best_streak=18, best_status="trusted",
+                          game_statuses_detailed={111: _AVAIL, 222: _AVAIL})
+>       assert res.pick_result is not None and res.pick_result.daily.double_down is None
+E       AssertionError: assert (None is not None)
+E        +  where None = SelectionResult(pick_result=None, action='skip', source='heuristic', primary_candidate={'batter_id': 100001, 'batter_n...ied=18, best_status='trusted', effective_best=None, tail_sha256=None, degraded_reason=None, reason=None, pick_bar=0.8)).pick_result
+
+tests/test_tail_policy_strategy.py:193: AssertionError
+____________ test_select_pick_stop_rule_returns_skip_with_decision _____________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8141/test_select_pick_stop_rule_ret0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10e084380>
+
+    def test_select_pick_stop_rule_returns_skip_with_decision(tmp_path, monkeypatch):
+        monkeypatch.setattr("bts.strategy._load_mdp", lambda: _mdp())
+        res = select_pick(_preds(_TWO), D9, tmp_path, streak=0, saver_available=False,
+                          best_streak=18, best_status="trusted",
+                          game_statuses_detailed={111: _AVAIL, 222: _AVAIL})
+        assert res.pick_result is None and res.action == "skip" and res.source == "mdp"
+>       assert res.decision.reason and res.decision.pick_bar is None
+E       AssertionError: assert (None)
+E        +  where None = PolicyDecision(action='skip', policy_action='skip', source='mdp', objective='reach57', streak=0, days_effective=9, bes...ied=18, best_status='trusted', effective_best=None, tail_sha256=None, degraded_reason=None, reason=None, pick_bar=None).reason
+E        +    where PolicyDecision(action='skip', policy_action='skip', source='mdp', objective='reach57', streak=0, days_effective=9, bes...ied=18, best_status='trusted', effective_best=None, tail_sha256=None, degraded_reason=None, reason=None, pick_bar=None) = SelectionResult(pick_result=None, action='skip', source='mdp', primary_candidate={'batter_id': 100001, 'batter_name': ...ed=18, best_status='trusted', effective_best=None, tail_sha256=None, degraded_reason=None, reason=None, pick_bar=None)).decision
+
+tests/test_tail_policy_strategy.py:203: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_tail_policy_strategy.py::test_tail_regime_uses_tail_table_and_records_provenance
+FAILED tests/test_tail_policy_strategy.py::test_stop_rule_skip_has_a_human_reason
+FAILED tests/test_tail_policy_strategy.py::test_untrusted_best_cannot_authorise_the_stop
+FAILED tests/test_tail_policy_strategy.py::test_missing_best_means_best_equals_streak
+FAILED tests/test_tail_policy_strategy.py::test_stale_low_best_is_clamped_up_to_streak
+FAILED tests/test_tail_policy_strategy.py::test_whole_mdp_absent_in_tail_never_reaches_the_heuristic
+FAILED tests/test_tail_policy_strategy.py::test_whole_mdp_absent_still_honours_the_stop_rule
+FAILED tests/test_tail_policy_strategy.py::test_base_missing_makes_the_tail_unverifiable_and_forces_the_fallback
+FAILED tests/test_tail_policy_strategy.py::test_tail_missing_carries_the_loader_error
+FAILED tests/test_tail_policy_strategy.py::test_tail_lookup_exception_degrades_to_forced_action
+FAILED tests/test_tail_policy_strategy.py::test_tail_double_downgrades_without_a_different_game
+FAILED tests/test_tail_policy_strategy.py::test_tail_double_downgrades_when_allow_double_false
+FAILED tests/test_tail_policy_strategy.py::test_pick_bar_in_tail_is_zero_for_play_and_none_at_the_stop
+FAILED tests/test_tail_policy_strategy.py::test_select_pick_first_tail_day_is_a_double
+FAILED tests/test_tail_policy_strategy.py::test_select_pick_with_no_artifacts_in_tail_picks_a_single
+FAILED tests/test_tail_policy_strategy.py::test_select_pick_stop_rule_returns_skip_with_decision
+========================= 16 failed, 9 passed in 1.01s =========================

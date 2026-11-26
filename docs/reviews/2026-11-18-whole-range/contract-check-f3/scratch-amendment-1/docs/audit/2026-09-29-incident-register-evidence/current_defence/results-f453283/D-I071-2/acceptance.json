@@ -1,0 +1,180 @@
+{
+  "baseline": "f453283d0a0ec39a939b22c6500b5fb36f5452c0",
+  "branch_line": 1809,
+  "certificates": {
+    "tests/test_cli_integration.py::TestCheckPickEntered::test_dm_countdown_uses_submission_cutoff": {
+      "coverage": {
+        "boundary_call": "a call that started the code of a value the declared binding held in the interval (the binding is tracked at every store on its path from sys's own namespace, by CPython dict watchers; a held function's __code__ replaced in place is registered at the new code's first start while the thread is alone, never by a function watcher, whose Python callback replaces an exception pending in C (own review during r14)); a call's start is a PY_START at the code's first RESUME carrying the entry argument, and a start reported anywhere else is not read (Codex phase-1 r15 #1); for a mock, the arguments its standard __call__ received, which is what the mock itself records",
+        "claims": "a positive witness in this pinned synthetic execution: a recorded call of a declared boundary with the declared bad category, or a recorded return from the declared function's source with the declared value or category, linked to the mutated line through a common live invocation of the declared entry",
+        "missed_not_false": "a call through anything the recorder does not observe (an unsupported namespace, lookup that bypasses the raw namespace, a C-implemented callable, another process) is not recorded: it can only fail to witness an event",
+        "observation": "inside a certifiable call phase the observer hashes, compares or dispatches only on values it owns or has type-checked as exact builtins: a dict it reads is walked item by item and is unsupported when it holds a key that is not an exact str; heap class module metadata is read by raw namespace iteration, and instance dicts through the standard C getset found by raw MRO namespace iteration; a code object's name that is not an exact str reads as unnamed, and code objects themselves are never hashed or compared (the observer's maps key them by id: a code object's hash and equality reach its co_name and co_consts) (plan ruling 11: Codex phase-1 r9; code objects: self-review during r10). Arguments are read from the frame's own slots, never through frame.f_locals, whose refresh can release an application reference (Codex phase-1 r12 #1). Other application reads happen only after a sample shows the observed thread is the interpreter's only registered thread, since another thread could make a temporary reference it holds the last one and run a finalizer (plan ruling 12, Codex phase-1 r11 #1). (Codex phase-1 r13 #3, verbatim:) While another thread is alive, application arguments, cell contents and binding namespaces are not read. A mock boundary may retain only `self` from its verified non-cell frame slot and compare its identity with observer-held targets to select an unavailable record. The paused frame owns that reference. Code/frame identity and a live replacement-code operand are also admitted metadata. Calls and returns requiring other application reads are unavailable; stores cut the binding before key/value conversion. (Since the r14 answer there is no function watcher, so no replacement-code operand is read; a held function's swapped __code__ is compared by identity at its first start, only while alone.) The sample is a point predicate: a Python-accessing native thread of the reviewed venv that attaches after it is not excluded (open: Codex phase-1 r13 #4; kept open by Eric's decision, 2026-10-02)",
+        "outside_the_model": [
+          "deliberate tampering with the observer, its evidence or the interpreter",
+          "native code other than the reviewed venv",
+          "audit hooks installed before the trusted bootstrap (only site initialisation and the reviewed .pth hooks run before it)",
+          "garbage collection or signal handlers switched on and off again inside the call phase",
+          "a test or helper that replaces a standard-library function the observer itself calls",
+          "a held mock's class changed and restored between the moments the recorder reads it",
+          "application behaviour that can see the observer: a boundary event or returned-value decision that changes with observable finalization, weak-reference liveness, callbacks or counts, reference counts, or garbage-collector introspection (Codex phase-1 r18's wording); with the sys.monitoring tool registry or event sets, instrumented or adaptive bytecode, or another thread's frames; with elapsed time or resource use; or with object addresses. An in-process observer holds every value a binding held, and its code, until the observation ends; it occupies a monitoring tool and instruments the code it watches; and it takes time and memory (ruling 13, adopted by Eric 2026-10-02; Codex phase-1 r17 #1, r18 #1-#3). Fixed fixture clock values, prewritten files and ordinary object identity relations are inputs; they are not elapsed observation cost or numeric address-dependent choices (Codex phase-1 r19, verbatim). The defence refuses a divergence when the twins' recorded failure-message digests differ after normalization, or either digest is missing. Normalization replaces text shaped like a default repr's address, the id in a mock's repr and the number of pytest's /pytest-of-<user>/pytest-N/ directory without identifying its meaning; it can therefore erase meaningful application data. Equal normalized messages do not prove equal boundary events, equal returned values or observer invisibility. The exclusion requires the independent source review of each prepared closure (Codex phase-1 r19's wording, with the patterns as narrowed after it). The closure screen flags selected literal spellings in src/bts and tests; it does not resolve aliases, imports or generated code, so each prepared closure requires independent source review for this exclusion (Codex phase-1 r18 #3, verbatim)"
+        ],
+        "return_identity": "Entry and return identity are source-file and qualname identities, not Python function-object, globals or receiver identities. The fixture review must establish that the observed code invocation belongs to the declared contract and selection. A claim requiring exact callable or receiver identity needs an additional witness or reads unavailable.",
+        "unattributed_when": [
+          "a callable bound to several boundaries",
+          "a callable the binding held earlier in the interval",
+          "a boundary code object shared by several live functions",
+          "a call on another receiver",
+          "a mock whose effective __call__ is not the standard one, or whose class changed",
+          "a value incomplete at any depth",
+          "a binding whose path passes through a namespace holding a key that is not an exact str, or was changed by a store through such a key (until a per-key store re-resolves it)",
+          "a call observed while another thread was alive (only the reads `observation` admits then happen; plan ruling 12, Codex phase-1 r13 #3)",
+          "an argument the observer could not read: never read as a null or as an empty call (Codex phase-1 r13 #1)",
+          "a call the binding does not resolve to AT THE CALL, through watched namespaces that are all supported, read under the lock every watched store takes before its change (Codex phase-1 r10 part 2 #1)",
+          "an identity read from a keyword dict holding a key that is not an exact str"
+        ],
+        "unavailable_when": [
+          "an absence claim (ABSENCE_REFUSAL)",
+          "an audit hook added after the trusted bootstrap",
+          "no audit-hook census",
+          "automatic garbage collection on at either end of the call phase",
+          "an application signal handler at either end of the call phase",
+          "an application trace, profile or monitoring function active at either end of the call phase, or installed in any thread at any time since the trusted bootstrap (it runs inside the observer's callbacks and can set f_lineno to re-run a frame's entry; Codex phase-1 r16)",
+          "observer errors",
+          "an incomplete observation window",
+          "a coroutine or async-generator frame, the boundary callee's own included (Codex phase-1 r13 #2)",
+          "a return observed while another thread was alive (its value is not read; plan ruling 12)",
+          "a run whose bts import provenance is unreadable without application dispatch (refused at every stage's gate)"
+        ]
+      },
+      "linked": {
+        "branch": 3,
+        "entry": 2,
+        "event": 4
+      },
+      "ok": true,
+      "reasons": []
+    }
+  },
+  "events_sha256": {
+    "green": "c3c533bfb0b25eb8ce5be27b67bc66318237b7bb01f32d147c5405b15a579f0b",
+    "green_unobserved": "a6813d132bf5f5726288953ccbcf185f526be8bd0cc95113632719977ae4fddb",
+    "mutant": "495d730e71c93bd25c90a7a36c3c3a3bc278ee515b1d1649dc4dba5c1f3ab29c",
+    "mutant_unobserved": "3bf2e4b50d18f0209bb63504fe228364a71dd6be0f4c90980c1aa2a8618c7490",
+    "restored": "7942ca5f132ba7d7956c753628ace5eb4f8f5757330888b14a5c8a7ac6e9eee4"
+  },
+  "label": "D-I071-2",
+  "manifest_sha256": "c3d98ff30425ecdcf51f9bdaf9c010e0314e1fa606f755318385d6138646f40d",
+  "patch_sha256": "4d4259a522a7942a1aaf80bc35016b87543de35c188f70b46dc59fc0c806647f",
+  "reasons": [],
+  "spec": {
+    "allowed_mocks": [
+      "bts.leaderboard.auth.load_session_cookies",
+      "bts.leaderboard.auth.extract_uid",
+      "bts.leaderboard.auth.fetch_login_session",
+      "bts.contest_fetch.fetch_profile",
+      "bts.contest_fetch.fetch_pending_predictions",
+      "bts.cli._fetch_rounds",
+      "bts.cli._fetch_bts_to_mlb",
+      "bts.dm.send_dm"
+    ],
+    "allowed_paths": [
+      "src/bts/cli.py"
+    ],
+    "baseline": "f453283d0a0ec39a939b22c6500b5fb36f5452c0",
+    "boundaries": [
+      {
+        "binding": "bts.dm:send_dm",
+        "classify": [
+          [
+            "first_pitch_countdown",
+            "\\(-?\\d+ min\\)\\. Fix it now!"
+          ],
+          [
+            "cutoff_countdown",
+            "min to submit\\)\\. Fix it now!"
+          ],
+          [
+            "other_dm",
+            "."
+          ]
+        ],
+        "name": "dm",
+        "value": [
+          "args[1]",
+          "kw:text"
+        ]
+      }
+    ],
+    "branch": {
+      "path": "src/bts/cli.py",
+      "text": "W1.5 mutant: pre-af6329f \u2014 the DM countdown reports minutes to first pitch, not to the cutoff"
+    },
+    "contract": {
+      "entry_mode": "real `bts check-pick-entered` via CliRunner with --now-et",
+      "symptom_kind": "wrong event content (DM countdown in minutes to first pitch)",
+      "text": "The 'not entered' DM counts down to the submission cutoff (first pitch - 5 min), not to first pitch.",
+      "trigger": "a committed, unentered pick 40 min before first pitch"
+    },
+    "entry": {
+      "path": "src/bts/cli.py",
+      "qualname": "check_pick_entered"
+    },
+    "env": {
+      "TZ": "America/New_York"
+    },
+    "killing": [
+      {
+        "_line": 1152,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence/tests/test_cli_integration.py",
+        "assertion": {
+          "line": 1152,
+          "path": "tests/test_cli_integration.py",
+          "text": "assert \"35 min to submit\" in msg, msg"
+        },
+        "node": "tests/test_cli_integration.py::TestCheckPickEntered::test_dm_countdown_uses_submission_cutoff"
+      }
+    ],
+    "label": "D-I071-2",
+    "level": "component",
+    "level_justification": "the tests replace the auth internals (load_session_cookies, extract_uid, fetch_login_session) besides the external contest fetches, the crosswalk fetch and the DM transport",
+    "link": "I-071 link 2",
+    "mutation_edits": [
+      [
+        "src/bts/cli.py",
+        "        msg = (f\"\\u26a0\\ufe0f {lead} in MLB app: {names} \u2014 first pitch \"\n               f\"{first_pitch.strftime('%-I:%M %p ET')} \"\n               f\"({minutes_to_cutoff:.0f} min to submit). Fix it now!\")\n",
+        "        pass  # W1.5 mutant: pre-af6329f \u2014 the DM countdown reports minutes to first pitch, not to the cutoff\n        msg = (f\"\\u26a0\\ufe0f {lead} in MLB app: {names} \u2014 first pitch \"\n               f\"{first_pitch.strftime('%-I:%M %p ET')} ({minutes_to_pitch:.0f} min). Fix it now!\")\n"
+      ]
+    ],
+    "symptom": {
+      "boundary": "dm",
+      "category": "first_pitch_countdown",
+      "kind": "event"
+    },
+    "tests": [
+      "tests/test_cli_integration.py::TestCheckPickEntered",
+      "-q"
+    ]
+  },
+  "spec_sha256": "b7b1f0d48b9a7d3e45ac8a3578add1c6445809c98b68ebc9780c66ee0196ebfb",
+  "stages": {
+    "green": {
+      "gate": [],
+      "nodes": 21,
+      "returncode": 0
+    },
+    "mutant": {
+      "gate": [],
+      "kills": [
+        "tests/test_cli_integration.py::TestCheckPickEntered::test_dm_countdown_uses_submission_cutoff"
+      ],
+      "returncode": 1
+    },
+    "restored": {
+      "gate": [],
+      "returncode": 0
+    }
+  },
+  "touched": [
+    "src/bts/cli.py"
+  ],
+  "verdict": "accepted"
+}

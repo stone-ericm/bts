@@ -1,0 +1,40 @@
+bts loaded from: /Users/eric/projects/bts-work/wr-review-w3-carbon/.codex-review/wr-w3/target_59b72c04/src/bts/__init__.py
+=== Running required 11-file suite in one process ===
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-review-w3-carbon
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 335 items
+
+tests/test_wr_w3.py .................................................... [ 15%]
+.............                                                            [ 19%]
+tests/test_incident_2026_08_30.py ....                                   [ 20%]
+tests/test_saved_pick_paths_cs5a.py .................................... [ 31%]
+..ss..ss.........................................................        [ 50%]
+tests/test_fallback_plan.py .............                                [ 54%]
+tests/test_scheduler.py ................................................ [ 68%]
+............................                                             [ 77%]
+tests/test_scheduler_decision_record_integration.py .................... [ 83%]
+....                                                                     [ 84%]
+tests/test_e2_delivery_idempotency.py ...                                [ 85%]
+tests/test_late_delivery_guard.py ........                               [ 87%]
+tests/test_alert_status_cs6b2_carbon.py ............................     [ 96%]
+tests/test_lightgbm_optional.py .                                        [ 96%]
+tests/test_web_saver.py ............                                     [100%]
+
+======================= 331 passed, 4 skipped in 20.94s ========================
+=== 11-file returncode: 0 ===
+=== Running 59b72c04 save_pick hook regression tests ===
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-review-w3-carbon
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 13 items
+
+tests/test_wr_a_pick.py ..........                                       [ 76%]
+tests/test_wr_a_review_carbon.py ...                                     [100%]
+
+============================== 13 passed in 2.25s ==============================
+=== hook-regression returncode: 0 ===

@@ -1,0 +1,83 @@
+dated-correction: picks.py :: live_kind == "dated" and record["dated"] == live_dated -> live_kind == "dated"
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-closing-blind
+configfile: pyproject.toml
+collected 12 items
+
+../../../tests/test_saved_pick_paths_cs5a.py FF..FFFFFFFF                [100%]
+
+=================================== FAILURES ===================================
+_____ test_scheduler_uses_same_cycle_object_and_policy_decision[fresh-dm] ______
+../../../tests/test_saved_pick_paths_cs5a.py:211: in test_scheduler_uses_same_cycle_object_and_policy_decision
+    assert result is fresh
+E   assert True is False
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (lineup) — Pick DM sent: pick-dm
+___ test_scheduler_uses_same_cycle_object_and_policy_decision[fresh-public] ____
+../../../tests/test_saved_pick_paths_cs5a.py:211: in test_scheduler_uses_same_cycle_object_and_policy_decision
+    assert result is fresh
+E   assert True is False
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (lineup) — Posted to Bluesky: at://post
+_____ test_scheduler_uses_same_cycle_object_and_policy_decision[reused-dm] _____
+../../../tests/test_saved_pick_paths_cs5a.py:211: in test_scheduler_uses_same_cycle_object_and_policy_decision
+    assert result is fresh
+E   assert True is False
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (lineup) — Pick DM sent: pick-dm
+___ test_scheduler_uses_same_cycle_object_and_policy_decision[reused-public] ___
+../../../tests/test_saved_pick_paths_cs5a.py:211: in test_scheduler_uses_same_cycle_object_and_policy_decision
+    assert result is fresh
+E   assert True is False
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (lineup) — Posted to Bluesky: at://post
+____ test_scheduler_uses_same_cycle_object_and_policy_decision[reloaded-dm] ____
+../../../tests/test_saved_pick_paths_cs5a.py:211: in test_scheduler_uses_same_cycle_object_and_policy_decision
+    assert result is fresh
+E   assert True is False
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (lineup) — Pick DM sent: pick-dm
+__ test_scheduler_uses_same_cycle_object_and_policy_decision[reloaded-public] __
+../../../tests/test_saved_pick_paths_cs5a.py:211: in test_scheduler_uses_same_cycle_object_and_policy_decision
+    assert result is fresh
+E   assert True is False
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (lineup) — Posted to Bluesky: at://post
+______ test_scheduler_uses_same_cycle_object_and_policy_decision[skip-dm] ______
+../../../tests/test_saved_pick_paths_cs5a.py:211: in test_scheduler_uses_same_cycle_object_and_policy_decision
+    assert result is fresh
+E   assert True is False
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (lineup) — Pick DM sent: pick-dm
+____ test_scheduler_uses_same_cycle_object_and_policy_decision[skip-public] ____
+../../../tests/test_saved_pick_paths_cs5a.py:211: in test_scheduler_uses_same_cycle_object_and_policy_decision
+    assert result is fresh
+E   assert True is False
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (lineup) — Posted to Bluesky: at://post
+______ test_scheduler_uses_same_cycle_object_and_policy_decision[none-dm] ______
+../../../tests/test_saved_pick_paths_cs5a.py:211: in test_scheduler_uses_same_cycle_object_and_policy_decision
+    assert result is fresh
+E   assert True is False
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (lineup) — Pick DM sent: pick-dm
+____ test_scheduler_uses_same_cycle_object_and_policy_decision[none-public] ____
+../../../tests/test_saved_pick_paths_cs5a.py:211: in test_scheduler_uses_same_cycle_object_and_policy_decision
+    assert result is fresh
+E   assert True is False
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (lineup) — Posted to Bluesky: at://post
+=========================== short test summary info ============================
+FAILED ../../../tests/test_saved_pick_paths_cs5a.py::test_scheduler_uses_same_cycle_object_and_policy_decision[fresh-dm]
+FAILED ../../../tests/test_saved_pick_paths_cs5a.py::test_scheduler_uses_same_cycle_object_and_policy_decision[fresh-public]
+FAILED ../../../tests/test_saved_pick_paths_cs5a.py::test_scheduler_uses_same_cycle_object_and_policy_decision[reused-dm]
+FAILED ../../../tests/test_saved_pick_paths_cs5a.py::test_scheduler_uses_same_cycle_object_and_policy_decision[reused-public]
+FAILED ../../../tests/test_saved_pick_paths_cs5a.py::test_scheduler_uses_same_cycle_object_and_policy_decision[reloaded-dm]
+FAILED ../../../tests/test_saved_pick_paths_cs5a.py::test_scheduler_uses_same_cycle_object_and_policy_decision[reloaded-public]
+FAILED ../../../tests/test_saved_pick_paths_cs5a.py::test_scheduler_uses_same_cycle_object_and_policy_decision[skip-dm]
+FAILED ../../../tests/test_saved_pick_paths_cs5a.py::test_scheduler_uses_same_cycle_object_and_policy_decision[skip-public]
+FAILED ../../../tests/test_saved_pick_paths_cs5a.py::test_scheduler_uses_same_cycle_object_and_policy_decision[none-dm]
+FAILED ../../../tests/test_saved_pick_paths_cs5a.py::test_scheduler_uses_same_cycle_object_and_policy_decision[none-public]
+========================= 10 failed, 2 passed in 2.34s =========================
+mutation-result dated-correction 1

@@ -1,0 +1,3 @@
+~/bts-runs/yield_run.sh .codex-review/wr-d3b/pytest_focused.log .venv/bin/python -m pytest -m "slow or not slow" tests/test_deploy_workflow.py tests/test_deploy_canary.py tests/test_heartbeat_staleness.py tests/test_heartbeat_churn.py tests/test_lightgbm_optional.py tests/test_web_saver.py
+~/bts-runs/yield_run.sh .codex-review/wr-d3b/probe_replay_r2_budget.log .venv/bin/python .codex-review/wr-d3b/probe_replay_r2_budget.py
+~/bts-runs/yield_run.sh .codex-review/wr-d3b/probe_mutations_targeted.log .venv/bin/python .codex-review/wr-d3b/probe_mutations_targeted.py

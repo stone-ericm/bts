@@ -1,0 +1,1 @@
+{"node": "tests.scripts.incident_register.test_records::test_latency_tighter_than_its_bounds_is_rejected", "kind": "assertion"}

@@ -1,0 +1,37 @@
+{
+ "id": "E98",
+ "episode_row": [
+  "E98",
+  "6/22",
+  "a deploy on a live skip day muddied the skip-day read",
+  "S/R",
+  "OI",
+  "B",
+  "a151ebf"
+ ],
+ "commits": [
+  {
+   "sha": "a151ebf",
+   "authored": "2026-07-02T12:17:29-04:00",
+   "subject": "docs: session-end sync \u2014 skip-day rendering semantics, deploy sleep-window guidance, test count",
+   "body": "Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01AfKioxXQo1kE7dgk6XUFE1",
+   "files": [
+    "ARCHITECTURE.md",
+    "CLAUDE.md"
+   ],
+   "first_live_log": {
+    "sha": "720651a",
+    "live_by": "2026-07-04T03:07:46Z",
+    "not_live_before": "2026-07-04T03:07:46Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 28692943534,
+    "created_at": "2026-07-04T03:03:16Z",
+    "head_sha": "720651a",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

@@ -1,0 +1,9 @@
+nice: setpriority: Operation not permitted
+top-prediction DETECTED
+below-equality DETECTED
+drop-label-k2 DETECTED
+swap-k1-k5 DETECTED
+swap-k1-k2 DETECTED
+drop-delivery-saver DETECTED
+drop-morning-saver DETECTED
+string-probability DETECTED

@@ -1,0 +1,4 @@
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_a_nested_incomplete_identity_is_unavailable[sequence]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_a_nested_incomplete_identity_is_unavailable[unsupported]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_a_nested_incomplete_identity_is_unavailable[depth]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_runner::test_an_incompletely_observed_value_is_never_classified", "kind": "assertion"}

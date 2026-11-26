@@ -1,0 +1,62 @@
+{
+ "id": "E23",
+ "episode_row": [
+  "E23",
+  "4/12",
+  "shadow file overwritten by production pick (DISAGREES \u2192 AGREES)",
+  "R",
+  "OI",
+  "A",
+  "634768e 80fd31f"
+ ],
+ "commits": [
+  {
+   "sha": "634768e",
+   "authored": "2026-04-12T14:32:08-04:00",
+   "subject": "fix(shadow): bypass production-lock short-circuit in shadow pipeline",
+   "body": "select_pick short-circuits and returns the loaded production DailyPick\nwhen production is already locked (game started or bluesky_posted=True).\nThis is correct for the production cascade but wrong for the shadow\ncascade: _run_shadow_prediction was calling the same select_pick with\nshadow predictions, so when shadow ran after production locked, the\nfunction discarded the shadow predictions and returned production's\nDailyPick. save_shadow_pick then wrote production's data to\n{date}.shadow.json, silently masking every disagreement as \"AGREES\" in\nthe eval.\n\nRepro on 2026-04-12: production picked Brendan Donovan (SEA) 71.7%, but\nthe real shadow top was Nico Hoerner (CHC) 70.5% with Steven Kwan (CLE)\n69.8% double-down \u2014 a real DISAGREES day that the bug converted to\nAGREES, and 2026-04-12.shadow.json was byte-identical to the production\nfile (same run_time microseconds).\n\nFix: add for_shadow=False parameter to select_pick; when True, skip the\nproduction-lock short-circuit so the shadow always computes its own pick\nfrom its own predictions. Scheduler's _run_shadow_prediction now passes\nfor_shadow=True.\n\nTests:\n- test_strategy::test_for_shadow_ignores_locked_production \u2014 unit test\n  showing the bypass behavior at the strategy layer\n- test_shadow_scheduler::test_writes_independent_shadow_file_when_production_locked\n  \u2014 integration test using the REAL select_pick (not mocked). Catches\n  this class of bug in the future; the existing tests mocked select_pick\n  entirely which is why the bug was invisible to CI\n\nWhy 4/10 and 4/11 escaped: 4/10 shadow file was written by Eric's manual\nverification of commit 8c900c8 (production was on pre-shadow-wiring\nscheduler). 4/11 was written by Fly running in shadow_mode=true where\nsave_pick wrote bluesky_posted=False, so the short-circuit couldn't\nfire. 4/12 was the first end-to-end Hetzner run with the normal-post\nflow.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scheduler.py",
+    "src/bts/strategy.py",
+    "tests/test_shadow_scheduler.py",
+    "tests/test_strategy.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24313526076,
+    "created_at": "2026-04-12T18:33:34Z",
+    "head_sha": "634768e",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "80fd31f",
+   "authored": "2026-04-12T14:46:28-04:00",
+   "subject": "refactor(picks): load_shadow_pick honors bluesky_posted on disk",
+   "body": "Previously load_shadow_pick force-overrode bluesky_posted=False and\nbluesky_uri=None on every load, regardless of what was in the file. That\nwas a secondary masking layer for the select_pick short-circuit bug\n(634768e): the corrupted shadow file written with production's\nbluesky_posted=True would silently have that field reset to False on the\nnext check-results save-back, hiding the evidence of corruption.\n\nNow that the root cause is fixed, the load should be honest \u2014 if a\nshadow file ever shows bluesky_posted=True again, it means something\nupstream is wrong and we want to see it on disk immediately.\n\nNormal operation is unchanged: shadow files are written with\nbluesky_posted=False and stay False. Only corrupted files behave\ndifferently, which is the point.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/picks.py",
+    "tests/test_shadow_picks.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24313770929,
+    "created_at": "2026-04-12T18:46:31Z",
+    "head_sha": "80fd31f",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

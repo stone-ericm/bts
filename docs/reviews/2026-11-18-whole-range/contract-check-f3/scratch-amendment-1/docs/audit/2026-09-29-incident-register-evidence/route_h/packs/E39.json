@@ -1,0 +1,36 @@
+{
+ "id": "E39",
+ "episode_row": [
+  "E39",
+  "4/29",
+  "bpm feature slowed prediction >5 min \u2192 stale heartbeat \u2192 HC failure DM",
+  "L",
+  "OI",
+  "A",
+  "a512851 (PR #5)"
+ ],
+ "commits": [
+  {
+   "sha": "a512851",
+   "authored": "2026-04-29T17:40:28-04:00",
+   "subject": "fix(features): vectorize bpm cumsum \u2014 restore prediction-cycle latency",
+   "body": "PR #4 (deployed 17:24 ET 2026-04-29) used .transform(lambda s: s.cumsum().shift(1).fillna(0))\nin the bpm computation. On the prod 1.5M-PA frame, that lambda-per-group pattern\npushed compute_all_features past the 5-min heartbeat-watchdog threshold\n(stale=True at 17:30:01 ET, 330s old, fired Healthchecks failure DM).\n\nReplaces the lambda with vectorized:\n  groupby().cumsum() - current_value\nwhich is bit-exact equivalent (verified: max abs diff 0.0 across 65k paired\nrows on real 2026 data) but avoids per-group Python overhead.\n\nTiming on 33k-PA 2026 frame:\n  Vectorized (this commit):            1.77s\n  Lambda (PR#4 / experiment-class):    5.53s\n  \u2192 3.1\u00d7 faster\n\nExtrapolated to prod's 1.5M frame: ~80s vs ~250s. The 250s was right at the\n5-min heartbeat threshold; the 80s is comfortably under.\n\nThe BatterPitcherMatchupExperiment.modify_features still uses the slower\nlambda variant \u2014 left untouched since the experiment is now idempotent (early-\nreturns when column already exists from compute_all_features) and only runs\nin batch contexts (Phase 1/2 audits) where 5-min heartbeat doesn't apply.\n\n846/846 non-slow tests pass.\n\nCo-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/features/compute.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 25135350202,
+    "created_at": "2026-04-29T21:40:53Z",
+    "head_sha": "6a21c78",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

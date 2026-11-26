@@ -1,0 +1,101 @@
+{
+  "isolated_early_exits_identical": 9,
+  "rows": {
+    "closing_snapshots": {
+      "wrong_game": [
+        1,
+        1,
+        1,
+        "alerted"
+      ],
+      "right_game": [
+        1,
+        0,
+        0,
+        "confirmed"
+      ],
+      "unbound": [
+        1,
+        0,
+        0,
+        "confirmed"
+      ]
+    },
+    "N1": "pass",
+    "N2": "pass",
+    "N3": "pass",
+    "N4": "pass",
+    "N5": "pass",
+    "N6_N7": "pass",
+    "N8": "pass",
+    "N9": "pass",
+    "N10": "pass",
+    "N11": "pass",
+    "N12": "pass",
+    "N13": "pass",
+    "M1_to_M10": "pass"
+  },
+  "item3_count": 10,
+  "item3_cases": [
+    {
+      "case": "prebinding_null_then_wrong_bound",
+      "expect_wrong_game": true,
+      "exit": 1,
+      "reason": "wrong_game"
+    },
+    {
+      "case": "settled_profile_plus_pending_same_row",
+      "expect_wrong_game": true,
+      "exit": 1,
+      "reason": "wrong_game"
+    },
+    {
+      "case": "profile_only_wrong_game",
+      "expect_wrong_game": true,
+      "exit": 1,
+      "reason": "wrong_game"
+    },
+    {
+      "case": "single_with_extra_unmapped_row",
+      "expect_wrong_game": true,
+      "exit": 1,
+      "reason": "wrong_game"
+    },
+    {
+      "case": "double_swapped_games",
+      "expect_wrong_game": true,
+      "exit": 1,
+      "reason": "wrong_game"
+    },
+    {
+      "case": "double_null_leg1_wrong_leg2",
+      "expect_wrong_game": true,
+      "exit": 1,
+      "reason": "wrong_game"
+    },
+    {
+      "case": "prebinding_conflicting_round_confirms",
+      "expect_wrong_game": false,
+      "exit": 0,
+      "reason": "match"
+    },
+    {
+      "case": "rebind_two_feeds_confirms",
+      "expect_wrong_game": false,
+      "exit": 0,
+      "reason": "match"
+    },
+    {
+      "case": "unit_null_round_confirms",
+      "expect_wrong_game": false,
+      "exit": 0,
+      "reason": "match"
+    },
+    {
+      "case": "other_season_capture_ignored",
+      "expect_wrong_game": false,
+      "exit": 0,
+      "reason": "match"
+    }
+  ]
+}

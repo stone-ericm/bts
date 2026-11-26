@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.codex-review/wr-c2-r2/replay/carbon/probe_5d_operator_text_and_watchdog.py", line 260, in <module>
+    main()
+  File "/Users/eric/projects/bts-work/wr-c2-r2-codex/.codex-review/wr-c2-r2/replay/carbon/probe_5d_operator_text_and_watchdog.py", line 238, in main
+    assert chk.exit_code == 1
+           ^^^^^^^^^^^^^^^^^^
+AssertionError

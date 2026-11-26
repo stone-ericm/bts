@@ -1,0 +1,237 @@
+{
+ "id": "I-004",
+ "working_id": "E04",
+ "title": "4/01 compute tiers failed: predict-json stdout carried log lines (Mac 'Invalid JSON output'); Alienware build_season crashed on cp1252",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "L",
+  "secondary": [
+   "D"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "liveness failure of the only prediction path: the projected-lineup NOTE (link 2) went to stdout on every tier whenever any team used a projected lineup, so the orchestrator cascade could not return predictions before lineups posted (inference from code); the Mac tier's live failure and the Alienware crash are reported contemporaneously; whether a scheduled run consequently made no pick is not evidenced",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "unknown",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "Each compute tier's bts predict-json writes only the JSON prediction payload to stdout and completes on its host platform, so the orchestrator cascade can use the first healthy tier.",
+  "source": "ARCHITECTURE.md at 4442873 ('predict-json \u2014 worker command: runs pipeline, outputs JSON to stdout, logs to stderr'); src/bts/cli.py predict_json docstring 'All log messages go to stderr' (1929f5a)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "b6b1865 made every predict-json run refresh the season first; pull_feeds printed its skip/fail lines to stdout, so the payload was no longer pure JSON and ssh_predict rejected it ('Invalid JSON output')",
+   "code": [
+    {
+     "path": "src/bts/data/pull.py",
+     "ref": "b6b1865",
+     "symbol": "pull_feeds",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/orchestrator.py",
+     "ref": "b6b1865",
+     "symbol": "ssh_predict",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "_fetch_game_slots printed 'NOTE: N teams using projected lineups' to stdout (present since ab3db97, before predict-json existed), contaminating the payload on every tier whenever a projected lineup was used",
+   "code": [
+    {
+     "path": "src/bts/model/predict.py",
+     "ref": "1929f5a",
+     "symbol": "_fetch_game_slots",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "text": "the refresh's build_season and enrich_weather read and wrote feed JSON with the platform default encoding; on Windows (cp1252) accented player names raised charmap errors and the Alienware tier crashed",
+   "code": [
+    {
+     "path": "src/bts/data/build.py",
+     "ref": "cb4c1cc",
+     "symbol": "build_season",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/data/pull.py",
+     "ref": "cb4c1cc",
+     "symbol": "enrich_weather",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "1929f5a"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "unknown",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "cb4c1cc"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "unknown",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 3,
+   "implemented": {
+    "commits": [
+     "64ae365"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "unknown",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "worker tiers ran whatever checkout they had until 5207a09 (4/04) made them git pull origin main before each predict-json, so a pushed fix reached a tier only on a manual pull (I-104)",
+   "reaches_production": false,
+   "source": "5207a09 body"
+  }
+ ],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "a scheduled prediction run ends with every compute tier failed (orchestrator 'All compute tiers failed' or no predictions saved) while a game is still pickable",
+  "recovery_assertion": "a later run on the same day returns predictions and a pick is committed before the earliest pickable cutoff, or the day is alerted as missed"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 1929f5a message body",
+   "written_at": "2026-04-01T11:06:32-04:00",
+   "what": "pull_feeds printed skip/fail messages to stdout, contaminating predict-json's JSON output; fixes the Mac tier failing with 'Invalid JSON output'"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit cb4c1cc subject",
+   "written_at": "2026-04-01T11:16:58-04:00",
+   "what": "'projected lineup NOTE was going to stdout, breaking predict-json'"
+  },
+  {
+   "id": "ev3",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 64ae365 message body",
+   "written_at": "2026-04-01T12:00:49-04:00",
+   "what": "Windows defaults to cp1252; accented player names caused charmap errors; fixes the Alienware build_season crash"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/orchestrator.py orchestrate/run_cascade at b6b1865; src/bts/model/predict.py _fetch_game_slots NOTE print (added ab3db97, 3/29); predict-json added 2bb3234 (3/31 23:32 ET)",
+   "what": "a tier returning non-JSON counts as failed; when every tier fails, orchestrate DMs 'All compute tiers failed. No pick made.' and makes no pick"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24253126060 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploy run whose head (4a82cf8) contains the three fixes; a Fly.io deploy, log expired"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-04-01",
+   "onset": {
+    "not_before": "2026-03-31T23:32:29-04:00",
+    "not_after": "2026-04-01T11:06:32-04:00",
+    "evidence": [
+     "ev1",
+     "ev4"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "unknown",
+   "alert": {
+    "attempted": "unknown",
+    "confirmed": "unknown",
+    "failed": "unknown"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-01T11:06:32-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-04-01T12:00:49-04:00",
+    "evidence": [
+     "ev2",
+     "ev3"
+    ]
+   },
+   "mitigation": "unknown",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "unknown",
+    "notification": "unknown",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "1929f5a",
+   "cb4c1cc",
+   "64ae365",
+   "b6b1865"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "ARCHITECTURE.md (4442873) Orchestration / predict-json"
+  ]
+ },
+ "related": [
+  "I-003"
+ ],
+ "notes": [
+  "disposition changed from the lead row (UC, P) to observed_incident / A: 1929f5a quotes the orchestrator's own 'Invalid JSON output' failure and 64ae365 the Alienware crash, both within an hour of the 11:00 slot",
+  "links 1 and 3 were introduced by the E03 fix b6b1865 (01:44 ET the same morning); link 2 predates it",
+  "the three fixes landed 6, 16 and 60 minutes after the 11:00 ET orchestrator cron slot (scripts/cron-setup-pi5.sh); no body names the failing run, so onset is bounded by predict-json's creation and the first report",
+  "whether the orchestrator's total-failure DM was sent is unknown (alert fields unknown)",
+  "policy_objective unknown: 4/01 morning ran the pre-MDP strategy (MDP deployed 17:15 ET, 68a87a7)",
+  "tier: if the lead requires evidence that a scheduled run made no pick, this is tier_pending instead of A",
+  "deployed: candidate run 24253126060 was a Fly.io deploy (workflow 'Deploy BTS to Fly', fcedf71), not a production install; the Mac tier ran the development checkout and the Alienware needed a manual pull, so production install times are not evidenced",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time",
+  "deployed unknown: candidate run 24253126060 executed the Fly deploy.yml (its head lacks 51ef987, the 4/11 Hetzner workflow); production (Pi5 orchestrator, manual pulls) has no install record before the cutover"
+ ]
+}

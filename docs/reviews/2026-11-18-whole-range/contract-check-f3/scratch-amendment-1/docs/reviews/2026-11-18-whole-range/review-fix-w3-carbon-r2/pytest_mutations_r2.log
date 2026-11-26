@@ -1,0 +1,30 @@
+[KILLED] m01_drop_byte_comparison (3.51s): ======================= 3 failed, 73 deselected in 3.09s =======================
+[KILLED] m02_reuse_after_sleep (2.34s): ======================= 1 failed, 75 deselected in 1.86s =======================
+[KILLED] m03_skip_post_marker_cutoff_recheck (2.31s): ======================= 4 failed, 72 deselected in 1.92s =======================
+[SURVIVED] m04a_skip_et_day_recheck_after_read (2.36s): ======================= 8 passed, 68 deselected in 1.97s =======================
+[KILLED] m04b_skip_et_day_recheck_before_transport (2.38s): ================== 4 failed, 4 passed, 68 deselected in 1.98s ==================
+[SURVIVED] m05a_drop_pre_poll_scoreable_check (2.29s): ======================= 3 passed, 73 deselected in 1.89s =======================
+[KILLED] m05b_drop_post_poll_scoreable_check (2.32s): ================== 1 failed, 2 passed, 73 deselected in 1.89s ==================
+[KILLED] m06a_separate_status_budget (7.6s): ================== 1 failed, 1 passed, 74 deselected in 7.19s ==================
+[KILLED] m06b_late_worker_mutates_confirmed_sides_after_return (4.25s): ======================= 1 failed, 75 deselected in 3.86s =======================
+[KILLED] m07a_pass_selection_whatever_it_matched (2.26s): ======================= 1 failed, 75 deselected in 1.87s =======================
+[SURVIVED] m07b_reuse_commit_selection_ignore_double_slot (13.55s): ======================= 173 passed, 4 skipped in 13.15s ========================
+[KILLED] m08_coalesce_after_reuse_defer (2.26s): ======================= 1 failed, 75 deselected in 1.85s =======================
+[SURVIVED] m09_post_poll_pick_blocking_read (13.47s): ======================= 173 passed, 4 skipped in 13.06s ========================
+[SURVIVED] m10_drop_prior_reading_restore_on_refusal (13.55s): ======================= 173 passed, 4 skipped in 13.10s ========================
+[SURVIVED] m11_pick_matches_reuse_commit_ignore_double_leg (12.96s): ============================= 100 passed in 12.54s =============================
+[SURVIVED] m12_drop_coalesced_filter_in_reuse_planner (12.96s): ============================= 93 passed in 12.50s ==============================
+[SURVIVED] m13_cutoff_3s_guard_relaxed_to_0s (12.92s): ============================= 89 passed in 12.46s ==============================
+[KILLED] m14a_observer_takes_last_write_instead_of_candidate_first (2.24s): ======================= 1 failed, 75 deselected in 1.84s =======================
+[SURVIVED] m14b_observer_drops_identity_check_only (13.62s): ======================= 173 passed, 4 skipped in 13.21s ========================
+[KILLED] r2_m01_drop_second_planner_run (2.26s): ======================= 2 failed, 74 deselected in 1.86s =======================
+[KILLED] r2_m02_drop_marker_clear_retry (2.42s): ================== 4 failed, 2 passed, 70 deselected in 1.99s ==================
+[KILLED] r2_m03_drop_locked_unconfirmed_alert (2.41s): ======================= 1 failed, 75 deselected in 1.90s =======================
+[KILLED] r2_m04_put_late_refusal_before_void_refusal (2.31s): ================== 1 failed, 1 passed, 74 deselected in 1.92s ==================
+[KILLED] r2_m05a_drop_shadow_on_pre_poll_scoreable_break (2.26s): ======================= 1 failed, 75 deselected in 1.86s =======================
+[SURVIVED] r2_m05b_drop_shadow_on_pre_poll_attempt_break (13.18s): ============================= 76 passed in 12.78s ==============================
+[KILLED] r2_m05c_drop_shadow_on_post_poll_scoreable_break (2.24s): ======================= 1 failed, 75 deselected in 1.84s =======================
+[KILLED] r2_m05d_drop_shadow_on_post_poll_attempt_break (2.34s): ======================= 3 failed, 73 deselected in 1.94s =======================
+[KILLED] r2_m06_require_trusted_record_for_post_poll_attempt (2.23s): ======================= 1 failed, 75 deselected in 1.84s =======================
+[KILLED] r2_m07_print_reuse_journal_before_extra_checks (2.26s): ======================= 1 failed, 75 deselected in 1.87s =======================
+Done in 163.1s: 19 killed, 10 survived.

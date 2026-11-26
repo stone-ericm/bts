@@ -1,0 +1,22 @@
+nice: setpriority: Operation not permitted
+  MORNING STATE CHECK — stale contest reading: last accepted fetch 2027-07-14T14:00:00-04:00, about 20.00 hours ago
+Reading the morning warning before the first lineup check, MLB 12/14/active.
+ET date: 2027-07-15; year: 2027; inspected season: 2027
+switch: automatic
+  season: 2027
+  status: automatic
+  activation_id: 5fb69b492c5148289e45ecf0ae8bfc14
+  switched_at: 2027-07-15T13:00:00Z
+  revoked_at: None
+  note: None
+manual: dated date=2027-07-15 streak=3 best=14 saver=used in effect=True
+automatic: parsed schema='bts_contest_streak_auto_v2' streak=12 best=14 source date=2027-07-14 recorded time=2027-07-14T14:00:00-04:00
+  season: 2027; activation_id: 5fb69b492c5148289e45ecf0ae8bfc14
+  identifier matches switch: True (comparison only)
+saver: active; season: 2027
+live decision now: accepted; source=contest; streak=3; status=fresh; saver=used
+automatic path alone: accepted (streak 12, recorded 2027-07-14T14:00:00-04:00)
+ledger: readable; rows: 1; bad lines: 0
+  recorded_at=2027-07-15T13:00:00Z; active_streak=12; best_streak=14; source_date=2027-07-14; season=2027; switched=True; activation_id=5fb69b492c5148289e45ecf0ae8bfc14; settled_by_year={'2027': 1}; settled_unmapped=0; unsettled=0
+
+Probability, action with wrong dated reading, action with correct dated reading: [(0.7, 'double', 'skip'), (0.72, 'double', 'skip'), (0.74, 'double', 'skip'), (0.76, 'double', 'skip'), (0.78, 'double', 'skip'), (0.8, 'double', 'single'), (0.82, 'double', 'single'), (0.86, 'double', 'single'), (0.9, 'double', 'single'), (0.95, 'double', 'single'), (0.99, 'double', 'single')]

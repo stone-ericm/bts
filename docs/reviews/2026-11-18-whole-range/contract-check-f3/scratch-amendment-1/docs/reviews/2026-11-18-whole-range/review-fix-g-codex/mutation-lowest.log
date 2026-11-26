@@ -1,0 +1,23 @@
+nice: setpriority: Operation not permitted
+/Users/eric/projects/bts-work/wr-rev-g-codex/.codex-review/wr-g/scratch/lowest/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-g-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 259 items / 1 deselected / 258 selected
+
+tests/test_wr_g_guard.py .......F
+
+=================================== FAILURES ===================================
+___________________________ test_lookup_edge_shapes ____________________________
+tests/test_wr_g_guard.py:179: in test_lookup_edge_shapes
+    assert lookup(table, [0.7, 0.8, 0.9], 10, 105, False, p, 100) == (
+E   AssertionError: assert ('double', {'...ion': 'skip'}) == ('single', {'...ion': 'skip'})
+E     
+E     At index 0 diff: 'double' != 'single'
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/test_wr_g_guard.py::test_lookup_edge_shapes - AssertionError: as...
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+================== 1 failed, 7 passed, 1 deselected in 3.57s ===================

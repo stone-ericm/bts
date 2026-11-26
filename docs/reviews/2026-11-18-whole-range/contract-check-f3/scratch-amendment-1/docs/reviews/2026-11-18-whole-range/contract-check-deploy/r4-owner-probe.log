@@ -1,0 +1,140 @@
+{
+  "exact_base_replay": {
+    "pass": 0,
+    "sync-error": 1,
+    "restart-error": 1,
+    "rollback": 1,
+    "broken-rollback": 1,
+    "curl-28": 0
+  },
+  "owner_model": {
+    "preflight": {
+      "events": [],
+      "owner_rc": 0,
+      "ssh_rc": -1,
+      "lock_busy_after": false,
+      "trap_ran": false,
+      "started": true,
+      "hold": null,
+      "result": "committed"
+    },
+    "armed": {
+      "events": [],
+      "owner_rc": 0,
+      "ssh_rc": -1,
+      "lock_busy_after": false,
+      "trap_ran": false,
+      "started": true,
+      "hold": null,
+      "result": "committed"
+    },
+    "reset": {
+      "events": [],
+      "owner_rc": 0,
+      "ssh_rc": -1,
+      "lock_busy_after": false,
+      "trap_ran": false,
+      "started": true,
+      "hold": null,
+      "result": "committed"
+    },
+    "candidate": {
+      "events": [],
+      "owner_rc": 0,
+      "ssh_rc": -1,
+      "lock_busy_after": false,
+      "trap_ran": false,
+      "started": true,
+      "hold": null,
+      "result": "committed"
+    },
+    "released": {
+      "events": [],
+      "owner_rc": 0,
+      "ssh_rc": -1,
+      "lock_busy_after": false,
+      "trap_ran": false,
+      "started": true,
+      "hold": null,
+      "result": "committed"
+    },
+    "activation": {
+      "events": [],
+      "owner_rc": 0,
+      "ssh_rc": -1,
+      "lock_busy_after": false,
+      "trap_ran": false,
+      "started": true,
+      "hold": null,
+      "result": "committed"
+    },
+    "rejected": {
+      "events": [],
+      "owner_rc": 1,
+      "ssh_rc": -1,
+      "lock_busy_after": false,
+      "trap_ran": false,
+      "started": false,
+      "hold": "failed",
+      "result": "failed"
+    },
+    "term-short": {
+      "events": [
+        "TERM main"
+      ],
+      "owner_rc": 1,
+      "ssh_rc": 1,
+      "lock_busy_after": false,
+      "trap_ran": true,
+      "started": false,
+      "hold": "failed",
+      "result": "failed"
+    },
+    "term-stuck": {
+      "events": [
+        "TERM main",
+        "KILL group"
+      ],
+      "owner_rc": -9,
+      "ssh_rc": 1,
+      "lock_busy_after": false,
+      "trap_ran": false,
+      "started": false,
+      "hold": "pending",
+      "result": null
+    },
+    "kill-main": {
+      "events": [
+        "after KILL main, inherited lock busy=True"
+      ],
+      "owner_rc": -9,
+      "ssh_rc": 1,
+      "lock_busy_after": false,
+      "trap_ran": false,
+      "started": false,
+      "hold": "pending",
+      "result": null
+    },
+    "kill-post-release": {
+      "events": [
+        "KILL group after release"
+      ],
+      "owner_rc": -9,
+      "ssh_rc": 1,
+      "lock_busy_after": false,
+      "trap_ran": false,
+      "started": false,
+      "hold": null,
+      "result": null
+    }
+  },
+  "current_tree": {
+    "draft_import_found": false,
+    "actual_module_found": true,
+    "after_release_old_heartbeat": [
+      false,
+      "fresh sleeping"
+    ],
+    "anonymous_exclusive_holder_passes_flock_only_liveness_test": true
+  }
+}

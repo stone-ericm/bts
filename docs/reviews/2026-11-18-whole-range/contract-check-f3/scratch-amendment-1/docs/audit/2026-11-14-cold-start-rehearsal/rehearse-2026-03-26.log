@@ -1,0 +1,42 @@
+REHEARSAL date=2026-03-26 cwd=/Users/eric/bts-runs/coldstart/repo
+parquets before: ['pa_2017.parquet', 'pa_2018.parquet', 'pa_2019.parquet', 'pa_2020.parquet', 'pa_2021.parquet', 'pa_2022.parquet', 'pa_2023.parquet', 'pa_2024.parquet', 'pa_2025.parquet']
+refresh markers before: []
+json files in data/raw/2026 before: 70
+probable-pitcher cache at data/models/probable_pitcher_lookup.json: present
+park-drag table at data/external/park_drag/park_drag_export.csv: absent
+season end used for this date: 2026-09-28
+  [park_drag] WARNING: table not found at data/external/park_drag/park_drag_export.csv; park_drag_delta will be NaN
+  Refreshing 2026 data through 2026-03-25...
+  71 game feeds (71 total)
+  Rebuilt pa_2026.parquet: 74 PAs
+pipeline seconds: 113
+parquets after: ['pa_2017.parquet', 'pa_2018.parquet', 'pa_2019.parquet', 'pa_2020.parquet', 'pa_2021.parquet', 'pa_2022.parquet', 'pa_2023.parquet', 'pa_2024.parquet', 'pa_2025.parquet', 'pa_2026.parquet']
+refresh markers after: ['.refreshed_2026_through_2026-03-25']
+json files in data/raw/2026 after (cached and new): 71
+pa_2026.parquet: 74 rows, 1 games, dates 2026-03-25 to 2026-03-25
+PIPELINE: returned 222 rows, 222 with a finite game probability in [0, 1]
+first 12 rows:
+         batter_name team  lineup        pitcher_name  game_pk             game_time  p_hit_pa  p_game_hit            flags
+0         Yandy Díaz   TB       1  Matthew Liberatore   823081  2026-03-26T20:15:00Z  0.281618    0.767505  IL? (180d rest)
+1        Trea Turner  PHI       1      Nathan Eovaldi   823486  2026-03-26T20:15:00Z  0.252933    0.732381  IL? (179d rest)
+2    Brendan Donovan  SEA       1        Tanner Bibee   823163  2026-03-27T02:10:00Z  0.262042    0.730179  IL? (183d rest)
+3   Chandler Simpson   TB       2  Matthew Liberatore   823081  2026-03-26T20:15:00Z  0.256774    0.726399  IL? (180d rest)
+4        Bo Bichette  NYM       3         Paul Skenes   823649  2026-03-26T17:15:00Z  0.253873    0.703544  IL? (201d rest)
+5      Austin Martin  MIN       1       Trevor Rogers   824865  2026-03-26T19:05:00Z  0.236274    0.699018  IL? (179d rest)
+6        Jose Altuve  HOU       1        José Soriano   824218  2026-03-26T20:10:00Z  0.227015    0.696342  IL? (180d rest)
+7       Trevor Story  BOS       2       Andrew Abbott   824541  2026-03-26T20:10:00Z  0.238427    0.694492  IL? (179d rest)
+8     Yordan Alvarez  HOU       2        José Soriano   824218  2026-03-26T20:10:00Z  0.234914    0.687222  IL? (192d rest)
+9   Gunnar Henderson  BAL       2            Joe Ryan   824865  2026-03-26T19:05:00Z  0.236529    0.686097  IL? (179d rest)
+10     Roman Anthony  BOS       1       Andrew Abbott   824541  2026-03-26T20:10:00Z  0.227295    0.685418  IL? (205d rest)
+11     Alec Burleson  STL       3      Drew Rasmussen   823081  2026-03-26T20:15:00Z  0.241747    0.684476  IL? (180d rest)
+games with prediction rows: 11
+SELECTION (statuses substituted, streak 0 supplied): action double | source mdp
+  decision: {'action': 'double', 'policy_action': 'double', 'source': 'mdp', 'objective': 'reach57', 'streak': 0, 'days_effective': 180, 'best_supplied': None, 'best_status': 'missing', 'effective_best': None, 'tail_sha256': None, 'degraded_reason': None, 'reason': None, 'pick_bar': None}
+  pick: Yandy Díaz 0.7675 | double: ('Trea Turner', 0.7324)
+policy artifacts: base table loaded | tail loaded | base error: None | tail error: None
+  policy at streak 0, p=0.7/0.68: double (source mdp; objective reach57)
+  policy at streak 0, p=0.76/0.74: double (source mdp; objective reach57)
+  policy at streak 0, p=0.8/0.78: double (source mdp; objective reach57)
+  policy at streak 0, p=0.84/0.82: double (source mdp; objective reach57)
+  policy at streak 0, p=0.88/0.86: double (source mdp; objective reach57)
+RESULT: ok

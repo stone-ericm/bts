@@ -1,0 +1,5 @@
+{"node": "tests.scripts.incident_register.test_expected_failure::test_a_literal_oracle_value_disconnected_from_production_is_rejected", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_fresh_counterexamples::test_a_value_match_never_equates_distinct_json_types[false-0-return]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_fresh_counterexamples::test_a_value_match_never_equates_distinct_json_types[true-1-return]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_fresh_counterexamples::test_a_value_match_never_equates_distinct_json_types[0-false-return]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_fresh_counterexamples::test_a_value_match_never_equates_distinct_json_types[int-float-return]", "kind": "assertion"}

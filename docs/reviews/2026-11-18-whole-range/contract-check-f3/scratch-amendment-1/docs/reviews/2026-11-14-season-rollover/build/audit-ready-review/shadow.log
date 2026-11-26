@@ -1,0 +1,28 @@
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/audit-ready-rev/.codex-review/audit-ready/shadow.py", line 179, in <module>
+    raise SystemExit(offline_probe(probe, compare))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/audit-ready-rev/.codex-review/audit-ready/probe_support.py", line 23, in offline_probe
+    return revision_probe(probe, compare)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/audit-ready-rev/.codex-review/audit-ready/review_runner.py", line 52, in revision_probe
+    probe(directory, source)
+  File "/Users/eric/projects/bts-work/audit-ready-rev/.codex-review/audit-ready/shadow.py", line 88, in probe
+    record(mixed, day, 'hit')
+  File "/Users/eric/projects/bts-work/audit-ready-rev/.codex-review/audit-ready/shadow.py", line 32, in record
+    daily_decision.write_decision(day, folder, action='skip', source='mdp', rank1=_cand(),
+TypeError: write_decision() got an unexpected keyword argument 'rank1'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/audit-ready-rev/.codex-review/audit-ready/shadow.py", line 179, in <module>
+    raise SystemExit(offline_probe(probe, compare))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/audit-ready-rev/.codex-review/audit-ready/probe_support.py", line 23, in offline_probe
+    return revision_probe(probe, compare)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/audit-ready-rev/.codex-review/audit-ready/review_runner.py", line 52, in revision_probe
+    probe(directory, source)
+  File "/Users/eric/projects/bts-work/audit-ready-rev/.codex-review/audit-ready/shadow.py", line 88, in probe
+    record(mixed, day, 'hit')
+  File "/Users/eric/projects/bts-work/audit-ready-rev/.codex-review/audit-ready/shadow.py", line 32, in record
+    daily_decision.write_decision(day, folder, action='skip', source='mdp', rank1=_cand(),
+TypeError: write_decision() got an unexpected keyword argument 'rank1'

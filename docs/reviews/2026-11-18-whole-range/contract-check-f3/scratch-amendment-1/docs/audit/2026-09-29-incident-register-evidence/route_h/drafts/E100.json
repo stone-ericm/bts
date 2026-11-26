@@ -1,0 +1,281 @@
+{
+ "id": "I-100",
+ "working_id": "E100",
+ "title": "Deploy test gate blocked two deploys on test-only defects: 6/10-6/11 stale audit-driver assertion (~11 h), 7/10 CI-branch-dependent sync test (~18 min)",
+ "disposition": "pre_ship_exclusion",
+ "counted": false,
+ "classes": {
+  "primary": "S",
+  "secondary": []
+ },
+ "tier": "B",
+ "tier_reason": "test-only defects (the production code was correct); the gate failed closed and delayed two deploys; no production effect evidenced",
+ "residual_reaches_production": false,
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "deploy",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "The deploy test gate fails a deploy only for a genuine defect: tests track the code they exercise and do not depend on the CI checkout's branch.",
+  "source": "1ac0b0c (deploys gated on the test suite); df01882 body; 6919e19 body"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "049e851 made render_profile_command always emit --game-probability-mode without updating tests/test_audit_driver.py; the first gated deploy after it (run 27321348039, head 6471f40) failed on that test",
+   "code": [
+    {
+     "path": "tests/test_audit_driver.py",
+     "ref": "6471f40",
+     "symbol": "render_profile_command assertion"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "the interrupted-sync round-trip test built its manifest through the real sync_to_r2, whose provenance stamp reads the checkout's branch; on the deploy workflow that is 'deploy', so sync_from_r2's main-branch refusal fired and run 29114359533 (head 2a75db2) failed",
+   "code": [
+    {
+     "path": "tests/test_sync.py",
+     "ref": "2a75db2",
+     "symbol": "interrupted-sync round-trip test"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "df01882"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "not_applicable",
+   "mitigated": "not_applicable",
+   "verified_recovered": {
+    "how": "next deploy run 27354604212 (head df01882) concluded success",
+    "at": {
+     "not_before": "2026-06-11T14:36:14Z",
+     "evidence": [
+      "ev2"
+     ]
+    }
+   }
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "6919e19"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "not_applicable",
+   "mitigated": "not_applicable",
+   "verified_recovered": {
+    "how": "run 29114882915 passed the gate and installed 6919e19 (canary passed)",
+    "at": {
+     "at": "2026-07-10T18:41:02Z",
+     "evidence": [
+      "ev4"
+     ]
+    }
+   }
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "none",
+  "trigger": "test-only defects (pre-ship); the gate itself is the control, not a W4 rank-2 boundary",
+  "recovery_assertion": "n/a"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "deploy run 27321348039 (deploy_runs.json, log retained)",
+   "what": "head 6471f40, created 2026-06-11T03:14:35Z: test gate 1 failed / 1842 passed; no pre-deploy or deployed line"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "deploy run 27354604212 (deploy_runs.json)",
+   "what": "success for head df01882 created 2026-06-11T14:36:14Z (log expired)"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "deploy run 29114359533 (deploy_runs.json, log retained)",
+   "what": "head 2a75db2, created 2026-07-10T18:23:23Z: test gate 1 failed / 2417 passed; no deploy"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "deploy run 29114882915 (deploy_runs.json, log retained)",
+   "what": "head 6919e19: gate 2418 passed; pre-deploy 49f2538 -> deployed 6919e19 at 2026-07-10T18:41:02Z; canary passed"
+  },
+  {
+   "id": "ev5",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit df01882 message body",
+   "written_at": "2026-06-11T10:36:07-04:00",
+   "what": "the flag was added for the MDP re-solve but its test was not updated ('red in CI since that commit; blocked the deferred-tail deploy')"
+  },
+  {
+   "id": "ev6",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 6919e19 message body",
+   "written_at": "2026-07-10T14:31:26-04:00",
+   "what": "the test's provenance stamp read the CI checkout's branch ('deploy') and sync_from_r2's main-branch refusal (correctly) fired; verified from a non-main branch"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-06-11 blocked deploy (head 6471f40)",
+   "onset": {
+    "at": "2026-06-11T03:14:35Z",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": {
+    "at": "2026-06-11T03:14:35Z",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_machine_detection": {
+    "detector": "deploy workflow test gate (run 27321348039)",
+    "at": {
+     "not_before": "2026-06-11T03:14:35Z",
+     "evidence": [
+      "ev1"
+     ]
+    }
+   },
+   "alert": {
+    "attempted": "unknown",
+    "confirmed": "unknown",
+    "failed": "unknown"
+   },
+   "operator_awareness": {
+    "not_after": "2026-06-11T10:36:07-04:00",
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "operator_action": {
+    "at": "2026-06-11T10:36:07-04:00",
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigation": "not_applicable",
+   "restored_verification": {
+    "not_before": "2026-06-11T14:36:14Z",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "latencies": {
+    "detection": "unknown",
+    "notification": "unknown",
+    "recovery": "unknown"
+   }
+  },
+  {
+   "label": "2026-07-10 blocked deploy (head 2a75db2)",
+   "onset": {
+    "at": "2026-07-10T18:23:23Z",
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "first_detectable": {
+    "at": "2026-07-10T18:23:23Z",
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "first_machine_detection": {
+    "detector": "deploy workflow test gate (run 29114359533)",
+    "at": {
+     "not_before": "2026-07-10T18:23:23Z",
+     "evidence": [
+      "ev3"
+     ]
+    }
+   },
+   "alert": {
+    "attempted": "unknown",
+    "confirmed": "unknown",
+    "failed": "unknown"
+   },
+   "operator_awareness": {
+    "not_after": "2026-07-10T14:31:26-04:00",
+    "evidence": [
+     "ev6"
+    ]
+   },
+   "operator_action": {
+    "at": "2026-07-10T14:31:26-04:00",
+    "evidence": [
+     "ev6"
+    ]
+   },
+   "mitigation": "not_applicable",
+   "restored_verification": {
+    "at": "2026-07-10T18:41:02Z",
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "latencies": {
+    "detection": "unknown",
+    "notification": "unknown",
+    "recovery": {
+     "min_minutes": 17.65,
+     "max_minutes": 17.65
+    }
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "1ac0b0c",
+   "049e851",
+   "df01882",
+   "6919e19"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "deploy runs 27321348039, 27354604212, 29114359533, 29114882915 (deploy_runs.json)"
+  ]
+ },
+ "related": [
+  "I-059",
+  "I-060"
+ ],
+ "notes": [
+  "disposition changed from the row's near_miss_control_held: in both cases the test, not the code, was wrong (df01882: stale assertion; 6919e19: the refusal 'correctly' fired), so the gate held against no hazard; the design lists test-only defects as pre_ship_exclusion. If the lead wants the gate listed as a working control, near_miss is the alternative reading",
+  "another failed run, 27393707216 (2026-06-12T04:04:08Z, head 0591ee5, log expired), was followed 4 min later by a success (0a9e2d7); its cause is unknown and it is not in this row",
+  "occurrence 1 recovery: the successful run's install time is unknown (log expired), so the latency stays unknown (>= 681 min from the failed run's creation)",
+  "blocked content on 6/11 was 6471f40 (H6 failed-DM resurfacing) and earlier commits: latent improvements, no evidenced harm from the ~11 h delay",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

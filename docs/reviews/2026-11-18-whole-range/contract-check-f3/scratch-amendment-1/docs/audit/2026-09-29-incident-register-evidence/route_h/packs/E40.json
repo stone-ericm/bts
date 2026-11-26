@@ -1,0 +1,36 @@
+{
+ "id": "E40",
+ "episode_row": [
+  "E40",
+  "4/29\u20134/30",
+  "bpm missing from inference: every tick crashed; 4/30 pick never locked/posted",
+  "D/L",
+  "OI",
+  "A",
+  "ee4190f"
+ ],
+ "commits": [
+  {
+   "sha": "ee4190f",
+   "authored": "2026-04-30T12:27:30-04:00",
+   "subject": "fix(predict): wire batter_pitcher_shrunk_hr through inference path",
+   "body": "bpm was promoted to FEATURE_COLS on 2026-04-29 and is now baked into the\ntrained blend model (blend_2026-04-30.pkl), but the inference path in\npredict() builds rows from a lookup dict and never populated bpm \u2014 so\nevery scheduler tick after the 2026-04-29 deploy crashed with:\n\n  Prediction failed: \"['batter_pitcher_shrunk_hr'] not in index\"\n\nThe pick file from morning's 3 AM cron carried PROJECTED-lineup picks\nforward unchanged, never locked, never posted to Bluesky.\n\nFix:\n1. _build_feature_lookups: build a (batter_id, pitcher_id) \u2192 bpm dict\n   from the historical frame's last value per pair (~500K entries on\n   prod 2026 data).\n2. predict(): populate row[\"batter_pitcher_shrunk_hr\"] from the lookup,\n   falling back to the league prior 0.2195 for new matchups (matches\n   compute.py's fillna(_PRIOR_RATE) behavior).\n\nSanity-checked on real data: lookup populated, fallback returns 0.2195,\nall existing predict tests still pass.\n\nCo-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/model/predict.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 25176998666,
+    "created_at": "2026-04-30T16:27:37Z",
+    "head_sha": "ee4190f",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

@@ -1,0 +1,5 @@
+nice: setpriority: Operation not permitted
+  MORNING STATE CHECK — stale contest reading: last accepted fetch 2027-07-15T13:00:00Z, about 15.33 hours ago
+00:20 ET. July 15 pending in MLB fixture. Following the condition skips the July 16 write.
+BTS health WARN attention:
+- [contest_state] Morning check for 2027-07-16: the automatic contest reading was stale at startup (last accepted fetch 2027-07-15T13:00:00Z, about 15.33 hours ago). This reading is eligible if it remains in use. Before the first check, if prior entries are settled or absent and MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-16 --streak N --best-streak B --saver S --picks-dir DIR on 2027-07-16 ET only. DIR is the absolute scheduler picks path. This leaves the saver flag unchanged. On 2027-07-16 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.

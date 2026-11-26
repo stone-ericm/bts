@@ -1,0 +1,207 @@
+{
+ "id": "I-034",
+ "working_id": "E34",
+ "title": "4/22-23 systemd watchdog SIGABRT killed the sleeping scheduler every ~30.5 min overnight (NRestarts=21)",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "L",
+  "secondary": []
+ },
+ "tier": "A",
+ "tier_reason": "liveness failure: a kill/restart loop of the production scheduler (21 automatic restarts overnight)",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "Under Type=notify with WatchdogSec=1800, every scheduler wait longer than the watchdog interval sends sd_notify WATCHDOG pings, so a healthy sleeping daemon is never killed.",
+  "source": "ARCHITECTURE.md at 4bd8193 (bts-scheduler.service Type=notify, WatchdogSec=1800; 'Heartbeat-watchdog discipline: any time.sleep(>60s) must be wrapped')"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "three SLEEPING-state waits in run_day (main-loop sleep between checks, fallback-deadline wait, pre-result-polling wait) were bare time.sleep calls with no notify_watchdog; once the box unit ran with WatchdogSec=1800 (Phase B, 4/22), systemd SIGABRT-ed the daemon about 30 min into each long sleep and Restart=always relaunched it into the same sleep",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "c43869d",
+     "symbol": "run_day (main-loop, fallback-deadline and pre-polling time.sleep)",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "684c160"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "684c160",
+    "live_by": "2026-04-23T14:24:40Z",
+    "run_id": 24840805271,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": {
+    "how": "ddee3db body: NRestarts stayed 0 from the 684c160 deploy restart until both games ended, and the later restarts were clean exits, 'not SIGABRT'",
+    "at": {
+     "not_before": "2026-04-23T10:24:40-04:00",
+     "not_after": "2026-04-23T18:59:11-04:00",
+     "evidence": [
+      "ev2",
+      "ev3"
+     ]
+    }
+   }
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "The doubleheader game-2 recheck loop kept two un-pinged 15-min sleeps (enough to trip WatchdogSec=1800) after this fix; found by the Fable-5 audit (#6) and closed by ce5f51d (6/09).",
+   "reaches_production": false,
+   "source": "docs/audit/2026-06-09-fable5-full-audit.md (DH game-2 recheck); src/bts/scheduler.py at c43869d line ~975; ce5f51d"
+  }
+ ],
+ "watchdog": {
+  "boundary": "restart",
+  "trigger": "three or more unplanned scheduler restarts within 60 minutes (NRestarts delta or journal lifecycle lines), or any watchdog/SIGABRT exit of bts-scheduler",
+  "recovery_assertion": "NRestarts unchanged across a full overnight sleep and the next day's first scheduled check runs"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 684c160 message body",
+   "written_at": "2026-04-23T10:24:35-04:00",
+   "what": "observed live overnight 4/22-23: NRestarts=21 since the deploy of c43869d at 16:30 the previous day; every ~30:30 min (matching WatchdogSec) the scheduler was killed while in idle-end-of-day / next-wake sleep"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit ddee3db message body",
+   "written_at": "2026-04-23T18:59:11-04:00",
+   "what": "on 4/23 NRestarts grew from 0 only after both games ended, and those restarts were 'clean process exits, not SIGABRT'"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24840805271 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "deploy-branch push of head 684c160 created 2026-04-23T14:24:40Z (10:24:40 ET), conclusion success; log unavailable_expired"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24801075979 (deploy_runs.json)",
+   "what": "deploy of c43869d created 2026-04-22T20:30:30Z (16:30:30 ET), the restart from which the NRestarts count in ev1 runs"
+  },
+  {
+   "id": "ev5",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "ARCHITECTURE.md at 4bd8193",
+   "what": "the box unit became Type=notify + WatchdogSec=1800 + NotifyAccess=all + RestartSec=30 in Phase B (was Type=simple, RestartSec=300); the unit files were box-only until cca6761 (7/10)"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-04-22/23 overnight",
+   "onset": {
+    "not_before": "2026-04-22T16:30:30-04:00",
+    "not_after": "2026-04-23T10:24:35-04:00",
+    "evidence": [
+     "ev1",
+     "ev4"
+    ]
+   },
+   "first_detectable": {
+    "not_before": "2026-04-22T16:30:30-04:00",
+    "not_after": "2026-04-23T10:24:35-04:00",
+    "evidence": [
+     "ev1",
+     "ev4"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "unknown",
+    "confirmed": "unknown",
+    "failed": "unknown"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-23T10:24:35-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-04-23T10:24:40-04:00",
+    "evidence": [
+     "ev1",
+     "ev3"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": {
+    "not_before": "2026-04-23T10:24:40-04:00",
+    "not_after": "2026-04-23T18:59:11-04:00",
+    "evidence": [
+     "ev2",
+     "ev3"
+    ]
+   },
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "unknown",
+    "recovery": {
+     "min_minutes": 0.08,
+     "max_minutes": 1588.69
+    }
+   },
+   "continuing": true
+  }
+ ],
+ "routes": {
+  "H": [
+   "684c160"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "ARCHITECTURE.md at 4bd8193 'Daily lifecycle' + 'Heartbeat-watchdog discipline'",
+   "docs/audit/2026-06-09-fable5-full-audit.md DH game-2 recheck finding"
+  ]
+ },
+ "related": [
+  "I-035",
+  "I-032",
+  "I-059"
+ ],
+ "notes": [
+  "config + code interaction: the WatchdogSec=1800 unit was a hand edit on the box on 4/22 (no repo ref); the code defect is the un-pinged sleeps",
+  "onset bound is the counting baseline in ev1 (restart at the c43869d deploy); kills may also have occurred between the Phase B unit change and 16:30 (not evidenced); by arithmetic 21 kills at ~30.5 min imply the first counted kill no later than about 00:15 ET 4/23",
+  "alert unknown: whether the restarts reached the operator through Healthchecks (heartbeat monitor) is not recorded; the operator found NRestarts=21 by inspection",
+  "E37 caveat: 4/22-4/28 deploys pulled origin/main; ev2 suggests 684c160 did go live",
+  "log bound: live by 2026-06-07T00:11:19Z (run 27077693688)",
+  "regression tests named in the fix: tests/test_scheduler.py TestWatchdogPingSleep (sleep helper only; no run_day-level watchdog test)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

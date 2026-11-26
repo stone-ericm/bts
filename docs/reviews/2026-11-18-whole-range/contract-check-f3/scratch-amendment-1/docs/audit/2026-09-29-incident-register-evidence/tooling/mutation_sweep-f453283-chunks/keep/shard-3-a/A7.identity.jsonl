@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_expected_failure::test_foreign_oracle_module_is_rejected", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_expected_failure::test_oracle_fed_a_literal_has_no_production_invocation", "kind": "assertion"}

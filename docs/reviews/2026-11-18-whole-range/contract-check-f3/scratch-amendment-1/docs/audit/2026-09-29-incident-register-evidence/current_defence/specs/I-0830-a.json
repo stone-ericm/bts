@@ -1,0 +1,90 @@
+{
+ "label": "I-0830-a",
+ "link": "I-084 link 2",
+ "tests": [
+  "tests/test_late_delivery_guard.py",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/scheduler.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/scheduler.py",
+   "    cutoff = submission_cutoff_et(daily)\n    now = _now_et()\n    if now >= cutoff:\n",
+   "    cutoff = submission_cutoff_et(daily)\n    now = _now_et()\n    pass  # W1.5 mutant: pre-ac0ce8d \u2014 no cutoff guard at the chokepoint\n    if False:\n"
+  ],
+  [
+   "src/bts/scheduler.py",
+   "        now = _now_et()\n        if now >= cutoff:\n            _refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)\n            return False\n        daily.delivery_attempted = True  # persist BEFORE the network call (E2 idempotency)\n        save_pick(daily, picks_dir)\n        try:\n            from bts.dm import send_dm\n            msg_id = send_dm(recipient, text)\n",
+   "        now = _now_et()\n        if False:\n            _refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)\n            return False\n        daily.delivery_attempted = True  # persist BEFORE the network call (E2 idempotency)\n        save_pick(daily, picks_dir)\n        try:\n            from bts.dm import send_dm\n            msg_id = send_dm(recipient, text)\n"
+  ],
+  [
+   "src/bts/scheduler.py",
+   "    now = _now_et()\n    if now >= cutoff:\n        _refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)\n        return False\n    daily.delivery_attempted = True  # persist BEFORE the network call (E2 idempotency)\n    save_pick(daily, picks_dir)\n    try:\n        from bts.posting import post_to_bluesky\n",
+   "    now = _now_et()\n    if False:\n        _refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)\n        return False\n    daily.delivery_attempted = True  # persist BEFORE the network call (E2 idempotency)\n    save_pick(daily, picks_dir)\n    try:\n        from bts.posting import post_to_bluesky\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/scheduler.py",
+  "text": "W1.5 mutant: pre-ac0ce8d \u2014 no cutoff guard at the chokepoint"
+ },
+ "entry": {
+  "path": "src/bts/scheduler.py",
+  "qualname": "_deliver_and_lock_pick"
+ },
+ "boundaries": [
+  {
+   "name": "dm",
+   "binding": "bts.dm:send_dm",
+   "value": [
+    "args[1]",
+    "kw:text"
+   ],
+   "classify": [
+    [
+     "alert",
+     "^BTS health"
+    ],
+    [
+     "pick",
+     ".*"
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "event",
+  "boundary": "dm",
+  "category": "pick"
+ },
+ "killing": [
+  {
+   "node": "tests/test_late_delivery_guard.py::test_at_cutoff_refuses_archives_and_alerts",
+   "assertion": {
+    "path": "tests/test_late_delivery_guard.py",
+    "text": "assert ok is False",
+    "line": 76
+   }
+  }
+ ],
+ "contract": {
+  "text": "No pick is delivered at or after the earliest slot's cutoff (first pitch minus 5).",
+  "entry_mode": "direct call of _deliver_and_lock_pick",
+  "trigger": "clock at the cutoff",
+  "symptom_kind": "extra event (pick DM after cutoff)"
+ },
+ "level": "component",
+ "level_justification": "the tests replace the DM transport (external) and internal collaborators: the contest-state loader, the live-forward trigger and the health-alert dispatcher",
+ "allowed_mocks": [
+  "bts.dm.send_dm",
+  "bts.contest_state.load_decision_streak_state",
+  "bts.scheduler._trigger_live_forward_capture_on_lock",
+  "bts.health.alert.dispatch_dm_for_health_alerts",
+  "bts.scheduler._now_et"
+ ],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

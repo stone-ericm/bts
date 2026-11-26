@@ -1,0 +1,32 @@
+diff --git a/src/bts/scheduler.py b/src/bts/scheduler.py
+index d23f650..0a2835d 100644
+--- a/src/bts/scheduler.py
++++ b/src/bts/scheduler.py
+@@ -1006,7 +1006,8 @@ def _deliver_and_lock_pick(
+     from bts.picks import submission_cutoff_et
+     cutoff = submission_cutoff_et(daily)
+     now = _now_et()
+-    if now >= cutoff:
++    pass  # W1.5 mutant: pre-ac0ce8d — no cutoff guard at the chokepoint
++    if False:
+         _refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)
+         return False
+ 
+@@ -1044,7 +1045,7 @@ def _deliver_and_lock_pick(
+         # above can eat minutes; never BEGIN a send once the cutoff has passed.
+         # Residual race = the transport's own duration (seconds).
+         now = _now_et()
+-        if now >= cutoff:
++        if False:
+             _refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)
+             return False
+         daily.delivery_attempted = True  # persist BEFORE the network call (E2 idempotency)
+@@ -1072,7 +1073,7 @@ def _deliver_and_lock_pick(
+ 
+     # Last-responsible-moment re-check (Codex r2 F1) — see the DM branch.
+     now = _now_et()
+-    if now >= cutoff:
++    if False:
+         _refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)
+         return False
+     daily.delivery_attempted = True  # persist BEFORE the network call (E2 idempotency)

@@ -1,0 +1,5 @@
+{"node": "tests.scripts.incident_register.test_owned::test_venv_fingerprint_hashes_file_contents_not_just_names", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_owned::test_a_same_size_rewrite_with_its_mtime_put_back_still_changes_the_fingerprint", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_owned::test_venv_fingerprint_hashes_pth_trees_outside_the_worktree", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r4_counterexamples::test_external_code_the_environment_imports_is_fingerprinted[relative_pth]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r4_counterexamples::test_dependency_bytecode_is_fingerprinted", "kind": "assertion"}

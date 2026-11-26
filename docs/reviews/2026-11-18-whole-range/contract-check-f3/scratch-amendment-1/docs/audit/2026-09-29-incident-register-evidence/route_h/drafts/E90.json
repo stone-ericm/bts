@@ -1,0 +1,82 @@
+{
+ "id": "I-090",
+ "working_id": "E90",
+ "title": "6/05 laptop loss destroyed the only copy of pooled_bins_run: the shipped reach-57 policy can no longer be re-solved",
+ "disposition": "unresolved_candidate",
+ "counted": true,
+ "missing_evidence": [
+  "a contemporaneous (by 2026-06-07) record of the 2026-06-05 laptop failure and of pooled_bins_run's only location — the repo's earliest mention of the laptop loss is docs/audit/2026-07-09-gpt56-sol-audit.md F5 and of the profiles' loss docs/audit/2026-09-03-emax-tail-policy.md; the memory note project_macbook_loss_2026_06_05.md is outside the repo (Route X pointer, stays reported)",
+  "a machine listing showing no pooled_bins_run copy in any preserved location (box data/hetzner_results, the R2 bucket, restic archive snapshots — names only) — Phase 2 B2; the 9/22 W0 memo reports the box held only audit_full_48seed_v2 (reported)"
+ ],
+ "classes": {"primary": "S", "secondary": ["R"]},
+ "tier": "A",
+ "tier_reason": "loss of recoverability: the deployed reach-57 policy's derivation inputs are gone, so mdp_policy.npz (sha 66d15471…) can be preserved and extended but never re-solved (per later operator documents); no delivery/entry/state impact and no residual reaches production",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "backup",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "The inputs the deployed decision policy was solved from are preserved off their working host, so the policy can be re-solved or rebuilt (a preservation/restore dependency of the deployed service).",
+  "source": "incident-register design §2 scope ('preservation/restore dependencies … on any host') and plan W0.1 (docs/superpowers/plans/2026-09-14-season-wrap-plan.md) — both written after the loss; no written contract existed on 2026-06-05"
+ },
+ "mechanism": [
+  {"n": 1, "text": "the shipped pooled reach-57 policy (e1ebde9, 2026-04-15) is rebuilt from the 24-seed profiles under data/hetzner_results/pooled_bins_run, which the research launcher retrieved to the operator's local machine; no copy was on the production box and none survived elsewhere, so the 2026-06-05 laptop failure destroyed the only copy",
+   "code": [
+    {"path": "scripts/baseline_profiles_hetzner.py", "ref": "e1ebde9", "symbol": "module docstring (retrieval to local data/hetzner_results/pooled_bins_run)", "ref_basis": "candidate"},
+    {"path": "scripts/rebuild_mdp_policy_pooled.py", "ref": "e1ebde9", "symbol": "module docstring (--seed-dirs data/hetzner_results/pooled_bins_run/*/simulation_seed*)", "ref_basis": "candidate"}
+   ]}
+ ],
+ "fix": [
+  {"link": 1, "implemented": "unfixed",
+   "deployed": "not_applicable",
+   "mitigated": {"action": "W0.1: the remaining re-solve basis (mdp_estpa_run, until then on the operator's Mac only) was copied into the box's restic archive set and its sha256 manifest matched on Mac, box and a restore into an empty directory; earlier, the 9/03 tail policy was stitched onto the unre-solvable base instead of regenerating the table", "at": {"at": "2026-09-22", "evidence": ["ev5"]}},
+   "verified_recovered": "not_applicable"}
+ ],
+ "fixtures": {"historical_replay": [], "current_defence": [], "expected_failure": [], "characterization": []},
+ "residual": [
+  {"text": "mdp_policy.npz (sha 66d15471…) cannot be re-solved, only extended; re-solving from the estimated-PA profiles gives different boundaries, so any base-policy change is a new policy rather than a rebuild", "reaches_production": false, "source": "CLAUDE.md 'Strategy Simulation'; docs/audit/2026-09-03-emax-tail-policy.md"},
+  {"text": "Research profile runs are retrieved to the operator machine (scripts/baseline_profiles_hetzner.py, unchanged since e1ebde9); off-host preservation depends on a manual copy into the box's restic archive set (W0.1 did it once, for mdp_estpa_run); whether other laptop-only runs exist is unknown", "reaches_production": false, "source": "docs/audit/2026-09-22-w0-preservation.md §W0.1; scripts/baseline_profiles_hetzner.py docstring"}
+ ],
+ "watchdog": {
+  "boundary": "preservation",
+  "trigger": "a profile set that a shipped or tail policy was solved from (named by sha in the policy's manifest) has no copy in a verified off-host backup set within a day of the policy shipping",
+  "recovery_assertion": "a restore into an empty directory reproduces the profile set's sha256 manifest and the pinned re-solve or diagnostic output (the W0.1 / W0.1b pattern)"
+ },
+ "evidence": [
+  {"id": "ev1", "kind": "inference", "strength": "reported", "locator": "docs/audit/2026-09-03-emax-tail-policy.md (commit 0abf503, 2026-09-03T15:14:46-04:00), artifact paragraph",
+   "what": "the base policy's source profiles pooled_bins_run 'are lost with the old laptop and it cannot be re-solved, which is why the tail is stitched onto it rather than the whole table regenerated'"},
+  {"id": "ev2", "kind": "inference", "strength": "reported", "locator": "CLAUDE.md 'Strategy Simulation' (commit 0b0b149, 2026-09-04)",
+   "what": "the shipped policy's own profiles (data/hetzner_results/pooled_bins_run, 24 seeds) are lost — died with the 6/05 MacBook, not on the box — so mdp_policy.npz cannot be re-solved, only extended"},
+  {"id": "ev3", "kind": "inference", "strength": "reported", "locator": "docs/audit/2026-07-09-gpt56-sol-audit.md F5",
+   "what": "earliest repo mention of the laptop loss ('post-MacBook-loss backup posture')"},
+  {"id": "ev4", "kind": "inference", "strength": "reported", "locator": "docs/audit/2026-09-28-w07-final-snapshot.md 'Unavailable history'; docs/superpowers/plans/2026-09-14-season-wrap-plan.md W0.1",
+   "what": "the shipped policy's own training profiles were lost with the 2026-06-05 MacBook; the estimated-PA run is 'the only valid re-solve basis left'"},
+  {"id": "ev5", "kind": "machine_observation", "strength": "reported", "locator": "docs/audit/2026-09-22-w0-preservation.md §W0.1 (commit 34c0f4d; artifacts on the box — not read)",
+   "what": "before 9/22 mdp_estpa_run existed on the operator's Mac only and the box's data/hetzner_results held only audit_full_48seed_v2; after the 9/22 copy all 146 files matched the manifest on the box and in a restic restore into an empty directory"},
+  {"id": "ev6", "kind": "inference", "strength": "primary", "locator": "scripts/baseline_profiles_hetzner.py and scripts/rebuild_mdp_policy_pooled.py at e1ebde9; commit e1ebde9 message (ships the pooled policy as data/models/mdp_policy.npz)",
+   "what": "the pooled policy's rebuild inputs are data/hetzner_results/pooled_bins_run/*/simulation_seed*, which the launcher retrieves to the local machine"}
+ ],
+ "occurrences": [{
+  "label": "2026-06-05",
+  "onset": {"at": "2026-06-05", "evidence": ["ev2", "ev4"]},
+  "first_detectable": "unknown",
+  "first_machine_detection": "none",
+  "alert": {"attempted": "none", "confirmed": "none", "failed": "none"},
+  "operator_awareness": {"not_after": "2026-09-03T15:14:46-04:00", "evidence": ["ev1"]},
+  "operator_action": {"at": "2026-09-22", "evidence": ["ev5"]},
+  "mitigation": {"at": "2026-09-22", "evidence": ["ev5"]},
+  "restored_verification": "not_applicable",
+  "latencies": {"detection": "not_applicable", "notification": "not_applicable", "recovery": "not_applicable"}
+ }],
+ "routes": {"H": ["e1ebde9", "0abf503", "0b0b149", "34c0f4d"], "R": "pending_phase2",
+            "X": ["docs/audit/2026-09-03-emax-tail-policy.md", "docs/audit/2026-07-09-gpt56-sol-audit.md F5", "docs/audit/2026-09-22-w0-preservation.md §W0.1", "docs/audit/2026-09-28-w07-final-snapshot.md 'Unavailable history'", "docs/superpowers/plans/2026-09-14-season-wrap-plan.md W0.1", "memory pointer project_macbook_loss_2026_06_05.md (outside the repo)"]},
+ "related": ["I-091"],
+ "notes": [
+  "scope: IN — design §2 covers preservation/restore dependencies 'on any host' and plan W0.1 treats this loss as a preservation failure; counter-argument for EX: the service's own run/restore never depended on these files (mdp_policy.npz is tracked in git and was never lost) — the loss removed the ability to re-solve the policy, not to run or restore the service",
+  "disposition: every repo account is ≥ 34 days after 6/05 (7/09 first mention of the laptop, 9/03 first mention of the profiles), so none is contemporaneous; if the lead accepts later operator documents for a permanent-loss state, observed_incident (tier A)",
+  "not a code defect: the mechanism cites the research scripts that define the dependency; there is no fix commit and no defective deployed ref",
+  "operator_awareness: the laptop loss is on record by 2026-07-09 (ev3), the profiles' loss by 2026-09-03 (ev1); first_detectable unknown",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; no test reproduces a data loss"
+ ]
+}

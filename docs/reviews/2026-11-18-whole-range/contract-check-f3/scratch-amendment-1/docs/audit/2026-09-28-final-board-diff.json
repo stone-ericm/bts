@@ -1,0 +1,38 @@
+{
+ "diff": "final_grab_20260927 (board updatedAt ['2026-09-27T18:51:54-04:00']) vs final_grab_20260928 (board updatedAt ['2026-09-28T08:11:55-04:00'])",
+ "terminal_states": {
+  "final_grab_20260927": "complete",
+  "final_grab_20260928": "complete"
+ },
+ "users": {
+  "final_grab_20260927": 121852,
+  "final_grab_20260928": 121852,
+  "only_in_27": [],
+  "only_in_28": [],
+  "n_only_in_27": 0,
+  "n_only_in_28": 0
+ },
+ "season_best_changed": [],
+ "active_streak_changed": {
+  "n": 0,
+  "rows": []
+ },
+ "rank_changed_n": 0,
+ "tabs": {
+  "active_streak": {
+   "rows_27": 100,
+   "rows_28": 100,
+   "differing_users": []
+  },
+  "all_time": {
+   "rows_27": 100,
+   "rows_28": 100,
+   "differing_users": []
+  },
+  "yesterday": {
+   "rows_27": 100,
+   "rows_28": 100,
+   "differing_users": []
+  }
+ }
+}

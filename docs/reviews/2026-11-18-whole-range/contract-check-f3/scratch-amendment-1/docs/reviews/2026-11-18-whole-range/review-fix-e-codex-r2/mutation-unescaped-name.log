@@ -1,0 +1,25 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev2-e-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 55 items
+
+tests/test_wr_e_texts.py ..........F
+
+=================================== FAILURES ===================================
+____________________ test_malformed_persisted_fields[None] _____________________
+tests/test_wr_e_texts.py:66: in test_malformed_persisted_fields
+    assert "<span>" + html.escape(body) + "</span>" in web.render_skip_banner(summary)
+E   assert (('<span>' + 'Top model prediction (eligibility unverified): &lt;A&gt; B (?) ?. No probability comparison is available for this check.') + '</span>') in '<div class="skip-banner"><strong>NO PICK AT LAST CHECK</strong><span>Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.</span></div>'
+E    +  where 'Top model prediction (eligibility unverified): &lt;A&gt; B (?) ?. No probability comparison is available for this check.' = <function escape at 0x106b5d440>('Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.')
+E    +    where <function escape at 0x106b5d440> = html.escape
+E    +  and   '<div class="skip-banner"><strong>NO PICK AT LAST CHECK</strong><span>Top model prediction (eligibility unverified): <A> B (?) ?. No probability comparison is available for this check.</span></div>' = <function render_skip_banner at 0x10c12c860>({'bar': None, 'best_batter': '<A>\r\nB', 'best_p': None, 'best_team': [], ...})
+E    +    where <function render_skip_banner at 0x10c12c860> = web.render_skip_banner
+=========================== short test summary info ============================
+FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[None] - asse...
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+========================= 1 failed, 10 passed in 1.06s =========================
+ 
+unescaped-name DETECTED

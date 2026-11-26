@@ -1,0 +1,3 @@
+first-eod CRITICALS [] sent [690] rejected [] receipt sent
+eod-restart CRITICALS ['shadow artifact missing for 2026-07-22 after locked pick (status=dispatched); scheduler death evidence: Jul 22 23:40:00 synthetic bts[1]: Probable-pitcher cache status unreadable at data/health_state/probable_pitcher_cache/2026-07-22.oom-kill.json. Send this alert to the supervised BTS lead Claude session (bts-lead), or to Eric if the session'] sent [958] rejected [] receipt sent
+genuine-oom CRITICALS ["shadow artifact missing for 2026-07-22 after locked pick (status=dispatched); scheduler death evidence: Jul 22 23:30:00 synthetic systemd[2]: bts-scheduler.service: Failed with result 'oom-kill'."] sent [809] rejected [] receipt sent

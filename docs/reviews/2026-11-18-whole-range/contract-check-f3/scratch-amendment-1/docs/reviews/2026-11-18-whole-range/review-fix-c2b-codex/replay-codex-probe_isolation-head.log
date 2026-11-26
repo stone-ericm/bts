@@ -1,0 +1,4 @@
+('unknown', 'cutoff'): two independent initial DMs, failed unrelated alert and other-slate EOD; all intervening receipt byte comparisons passed.
+('cutoff', 'unknown'): two independent initial DMs, failed unrelated alert and other-slate EOD; all intervening receipt byte comparisons passed.
+2027-03-25 -> 2027-03-26: same-slate dedup at 00:01 ET, distinct next slate receipt, shared bytes unchanged.
+2027-12-31 -> 2028-01-01: same-slate dedup at 00:01 ET, distinct next slate receipt, shared bytes unchanged.

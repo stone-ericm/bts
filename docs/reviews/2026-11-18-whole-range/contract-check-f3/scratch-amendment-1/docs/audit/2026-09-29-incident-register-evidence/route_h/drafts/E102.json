@@ -1,0 +1,164 @@
+{
+ "id": "I-102",
+ "working_id": "E102",
+ "title": "6/24: the local pick-result replay ran above the contest streak the decision used; contest anchoring held",
+ "disposition": "near_miss_control_held",
+ "counted": true,
+ "classes": {
+  "primary": "G",
+  "secondary": [
+   "P"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "near miss for the decision (the contest-anchored value was used); tier A by the B -> A rule: the local replay/streak.json still diverges from the contest whenever a delivered pick is not entered or local grading differs, and local state is state on the deployed service",
+ "residual_reaches_production": true,
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "contest",
+ "contract": {
+  "text": "The decision streak is the real contest streak and the local model replay can never raise it; local grading is meant to reproduce the contest's settled results.",
+  "source": "ARCHITECTURE.md contest-account section (real-streak anchoring, PR #143, 2026-06-17); docs/superpowers/specs/2026-08-09-boundary-shadow-measurement.md; design §10.1 (grading contract)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "the local replay (pick-file results through update_streak, the chain streak.json carries) counts every delivered pick; on 6/24 it stood above the contest streak. The control that held: load_decision_streak_state returns the contest value as the decision streak, so the 6/24 decision record carried the contest value. The cause of the gap is not attributed here",
+   "code": [
+    {
+     "path": "src/bts/picks.py",
+     "ref": "494f1d2",
+     "symbol": "update_streak / _replay_season_streak",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/contest_state.py",
+     "ref": "494f1d2",
+     "symbol": "load_decision_streak_state",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": "not_applicable",
+   "deployed": "not_applicable",
+   "mitigated": "none",
+   "verified_recovered": "not_applicable"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "The local replay/streak.json still diverges from the contest when a delivered pick is not entered (I-061) or local grading differs (Pass grading I-201, post-cutoff regrades I-089); decisions are contest-anchored, but local state and any model-state fallback (I-202's residual) read it",
+   "reaches_production": true,
+   "source": "I-063 residual (6db921c); docs/audit/2026-09-28-reconcile-cutoff-codex-r3.md #1 via I-202"
+  }
+ ],
+ "watchdog": {
+  "boundary": "private_vs_contest",
+  "trigger": "daily after the contest fetch: the local replay streak (streak.json) differs from the contest activeStreak for the latest settled date",
+  "recovery_assertion": "the difference is explained by a recorded unentered, void or corrected day, and the decision record's streak equals the contest value"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/superpowers/specs/2026-08-09-boundary-shadow-measurement.md status paragraph and 'r4 review trail'",
+   "written_at": "2026-08-09T21:27:16-04:00",
+   "exposure_row": "X-01",
+   "what": "'local replay gives 15 where the 6/24 decision record says 13'; the 6/17 anchoring design is explicit that model replay can never raise the decision streak; claims 'independently verified against code/docs/mirror'"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "reported",
+   "locator": "the 2026-06-24 decision.json on the box (quoted by the 8/09 spec; not read here: data/ is out of bounds; B1, Phase 2)",
+   "exposure_row": "X-01",
+   "what": "the decision record's streak field carried the contest value (13)"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 6db921c message body",
+   "written_at": "2026-08-09T21:27:16-04:00",
+   "exposure_row": "X-01",
+   "what": "r0's state replay contradicted production's contest-anchored streak (6/24 record 13 vs local replay 15)"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 2b4ff1d (2026-06-17T16:17:23-04:00) subject and contest_state.load_decision_streak_state",
+   "what": "the anchoring control: the decision streak is the real MLB streak, never the model"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-06-24",
+   "onset": {
+    "not_after": "2026-06-24",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "unknown",
+   "alert": {
+    "attempted": "unknown",
+    "confirmed": "unknown",
+    "failed": "unknown"
+   },
+   "operator_awareness": {
+    "not_after": "2026-08-09T21:27:16-04:00",
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigation": "not_applicable",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "unknown",
+    "notification": "unknown",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "2b4ff1d",
+   "6db921c"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/superpowers/specs/2026-08-09-boundary-shadow-measurement.md",
+   "I-063"
+  ]
+ },
+ "related": [
+  "I-061",
+  "I-063",
+  "I-089",
+  "I-201",
+  "I-202"
+ ],
+ "notes": [
+  "disposition changed from the row's OI: the only source is an 8/09 spec (46 days later), and it reports that the control held; a local-state deviation is implied but not contemporaneously observed",
+  "hypothesis, not verified: the +2 matches I-063's inflation, which that record traces to the unentered 6/11 double-down (I-061) counted in the model replay; the W1.1 ledger (B3) can attribute it per date",
+  "merge? the lead may fold this into I-063 as a post-fix observation of its residual",
+  "streak values appear only because the record is about them (exposure_row X-01 on ev1-ev3)",
+  "code refs at 494f1d2 (install candidate on 6/24, run 28055174203, log expired)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

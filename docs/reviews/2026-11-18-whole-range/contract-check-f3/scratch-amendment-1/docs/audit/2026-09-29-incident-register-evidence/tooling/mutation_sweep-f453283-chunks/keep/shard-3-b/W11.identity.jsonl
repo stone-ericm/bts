@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_an_untracked_symlinks_target_bytes_are_in_the_manifest", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_a_pair_whose_symlinked_helper_changes_is_rejected", "kind": "assertion"}

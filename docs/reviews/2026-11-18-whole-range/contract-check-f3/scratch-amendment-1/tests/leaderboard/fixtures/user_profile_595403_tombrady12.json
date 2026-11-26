@@ -1,0 +1,590 @@
+{
+  "success": {
+    "activeStreak": 35,
+    "seasonBestStreak": 35,
+    "accuracy": 100,
+    "favouriteBatter": {
+      "playerId": 1040,
+      "selectionsCount": 4
+    },
+    "predictions": [
+      {
+        "roundId": 859,
+        "result": "hit",
+        "streak": 35,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 465,
+            "playerId": 1419,
+            "result": "hit",
+            "hits": 2,
+            "atBats": 3
+          }
+        ]
+      },
+      {
+        "roundId": 858,
+        "result": "hit",
+        "streak": 34,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 449,
+            "playerId": 1040,
+            "result": "hit",
+            "hits": 3,
+            "atBats": 3
+          }
+        ]
+      },
+      {
+        "roundId": 857,
+        "result": "hit",
+        "streak": 33,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 443,
+            "playerId": 1235,
+            "result": "hit",
+            "hits": 1,
+            "atBats": 5
+          }
+        ]
+      },
+      {
+        "roundId": 856,
+        "result": "hit",
+        "streak": 32,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 428,
+            "playerId": 214,
+            "result": "hit",
+            "hits": 3,
+            "atBats": 4
+          }
+        ]
+      },
+      {
+        "roundId": 855,
+        "result": "hit",
+        "streak": 31,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 418,
+            "playerId": 663,
+            "result": "hit",
+            "hits": 1,
+            "atBats": 4
+          }
+        ]
+      },
+      {
+        "roundId": 853,
+        "result": "hit",
+        "streak": 30,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 388,
+            "playerId": 693,
+            "result": "hit",
+            "hits": 1,
+            "atBats": 5
+          }
+        ]
+      },
+      {
+        "roundId": 852,
+        "result": "hit",
+        "streak": 29,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 372,
+            "playerId": 209,
+            "result": "hit",
+            "hits": 1,
+            "atBats": 5
+          }
+        ]
+      },
+      {
+        "roundId": 851,
+        "result": "hit",
+        "streak": 28,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 368,
+            "playerId": 694,
+            "result": "hit",
+            "hits": 2,
+            "atBats": 4
+          }
+        ]
+      },
+      {
+        "roundId": 850,
+        "result": "hit",
+        "streak": 27,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 347,
+            "playerId": 1235,
+            "result": "hit",
+            "hits": 2,
+            "atBats": 5
+          }
+        ]
+      },
+      {
+        "roundId": 849,
+        "result": "hit",
+        "streak": 26,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 336,
+            "playerId": 1902,
+            "result": "hit",
+            "hits": 1,
+            "atBats": 5
+          }
+        ]
+      },
+      {
+        "roundId": 848,
+        "result": "hit",
+        "streak": 25,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 315,
+            "playerId": 662,
+            "result": "hit",
+            "hits": 2,
+            "atBats": 4
+          }
+        ]
+      },
+      {
+        "roundId": 847,
+        "result": "hit",
+        "streak": 24,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 312,
+            "playerId": 1737,
+            "result": "hit",
+            "hits": 1,
+            "atBats": 3
+          }
+        ]
+      },
+      {
+        "roundId": 846,
+        "result": "hit",
+        "streak": 23,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 292,
+            "playerId": 459,
+            "result": "hit",
+            "hits": 2,
+            "atBats": 5
+          }
+        ]
+      },
+      {
+        "roundId": 845,
+        "result": "hit",
+        "streak": 22,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 283,
+            "playerId": 143,
+            "result": "hit",
+            "hits": 2,
+            "atBats": 4
+          }
+        ]
+      },
+      {
+        "roundId": 844,
+        "result": "hit",
+        "streak": 21,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 263,
+            "playerId": 554,
+            "result": "hit",
+            "hits": 3,
+            "atBats": 4
+          }
+        ]
+      },
+      {
+        "roundId": 843,
+        "result": "hit",
+        "streak": 20,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 247,
+            "playerId": 377,
+            "result": "hit",
+            "hits": 3,
+            "atBats": 4
+          }
+        ]
+      },
+      {
+        "roundId": 842,
+        "result": "hit",
+        "streak": 19,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 239,
+            "playerId": 591,
+            "result": "hit",
+            "hits": 1,
+            "atBats": 4
+          }
+        ]
+      },
+      {
+        "roundId": 841,
+        "result": "hit",
+        "streak": 18,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 230,
+            "playerId": 214,
+            "result": "hit",
+            "hits": 1,
+            "atBats": 1
+          }
+        ]
+      },
+      {
+        "roundId": 840,
+        "result": "hit",
+        "streak": 17,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 213,
+            "playerId": 662,
+            "result": "hit",
+            "hits": 1,
+            "atBats": 4
+          }
+        ]
+      },
+      {
+        "roundId": 839,
+        "result": "hit",
+        "streak": 16,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 189,
+            "playerId": 1235,
+            "result": "hit",
+            "hits": 1,
+            "atBats": 4
+          }
+        ]
+      },
+      {
+        "roundId": 838,
+        "result": "hit",
+        "streak": 15,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 187,
+            "playerId": 1458,
+            "result": "hit",
+            "hits": 2,
+            "atBats": 5
+          }
+        ]
+      },
+      {
+        "roundId": 837,
+        "result": "hit",
+        "streak": 14,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 174,
+            "playerId": 459,
+            "result": "hit",
+            "hits": 1,
+            "atBats": 4
+          }
+        ]
+      },
+      {
+        "roundId": 836,
+        "result": "hit",
+        "streak": 13,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 166,
+            "playerId": 591,
+            "result": "hit",
+            "hits": 1,
+            "atBats": 5
+          }
+        ]
+      },
+      {
+        "roundId": 835,
+        "result": "hit",
+        "streak": 12,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 140,
+            "playerId": 281,
+            "result": "hit",
+            "hits": 2,
+            "atBats": 4
+          }
+        ]
+      },
+      {
+        "roundId": 834,
+        "result": "hit",
+        "streak": 11,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 131,
+            "playerId": 1040,
+            "result": "hit",
+            "hits": 1,
+            "atBats": 3
+          }
+        ]
+      },
+      {
+        "roundId": 833,
+        "result": "hit",
+        "streak": 10,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 112,
+            "playerId": 694,
+            "result": "hit",
+            "hits": 2,
+            "atBats": 5
+          }
+        ]
+      },
+      {
+        "roundId": 832,
+        "result": "hit",
+        "streak": 9,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 96,
+            "playerId": 94,
+            "result": "hit",
+            "hits": 2,
+            "atBats": 5
+          }
+        ]
+      },
+      {
+        "roundId": 831,
+        "result": "hit",
+        "streak": 8,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 94,
+            "playerId": 591,
+            "result": "hit",
+            "hits": 1,
+            "atBats": 4
+          }
+        ]
+      },
+      {
+        "roundId": 830,
+        "result": "hit",
+        "streak": 7,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 86,
+            "playerId": 1235,
+            "result": "hit",
+            "hits": 3,
+            "atBats": 5
+          }
+        ]
+      },
+      {
+        "roundId": 829,
+        "result": "hit",
+        "streak": 6,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 67,
+            "playerId": 1040,
+            "result": "hit",
+            "hits": 2,
+            "atBats": 3
+          }
+        ]
+      },
+      {
+        "roundId": 828,
+        "result": "hit",
+        "streak": 5,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 60,
+            "playerId": 750,
+            "result": "hit",
+            "hits": 1,
+            "atBats": 3
+          }
+        ]
+      },
+      {
+        "roundId": 827,
+        "result": "hit",
+        "streak": 4,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 45,
+            "playerId": 281,
+            "result": "hit",
+            "hits": 5,
+            "atBats": 6
+          }
+        ]
+      },
+      {
+        "roundId": 826,
+        "result": "hit",
+        "streak": 3,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 23,
+            "playerId": 1040,
+            "result": "hit",
+            "hits": 1,
+            "atBats": 3
+          }
+        ]
+      },
+      {
+        "roundId": 825,
+        "result": "hit",
+        "streak": 2,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 13,
+            "playerId": 750,
+            "result": "hit",
+            "hits": 1,
+            "atBats": 4
+          }
+        ]
+      },
+      {
+        "roundId": 824,
+        "result": "hit",
+        "streak": 1,
+        "streakIncrease": 1,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 9,
+            "playerId": 281,
+            "result": "hit",
+            "hits": 3,
+            "atBats": 5
+          }
+        ]
+      },
+      {
+        "roundId": 823,
+        "result": "void",
+        "streak": 0,
+        "streakIncrease": 0,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 1,
+            "playerId": 1277,
+            "result": "void",
+            "hits": 0,
+            "atBats": 0
+          }
+        ]
+      }
+    ]
+  },
+  "errors": []
+}

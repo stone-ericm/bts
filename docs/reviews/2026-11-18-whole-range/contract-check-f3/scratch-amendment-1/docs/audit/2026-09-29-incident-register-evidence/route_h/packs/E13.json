@@ -1,0 +1,59 @@
+{
+ "id": "E13",
+ "episode_row": [
+  "E13",
+  "4/06",
+  "scheduler could sleep past first pitch; restart past deadline skipped fallback post",
+  "D",
+  "UC",
+  "P",
+  "0632976 a002b04"
+ ],
+ "commits": [
+  {
+   "sha": "0632976",
+   "authored": "2026-04-06T15:55:46-04:00",
+   "subject": "fix: scheduler fallback when pick's game starts before next check",
+   "body": "The scheduler would sleep past the picked player's game start when\nshould_lock returned False (0% gap) and the next cluster check was\nhours later. Now detects this gap and wakes up at game_time - 15min\nto force-post, matching the existing post-loop fallback behavior.\n\nAlso fixes missing double_down team/pitcher args in the post-loop\nfallback's format_post call.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_scheduler.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24253126060,
+    "created_at": "2026-04-10T16:29:24Z",
+    "head_sha": "4a82cf8",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "a002b04",
+   "authored": "2026-04-06T15:58:28-04:00",
+   "subject": "fix: fallback posts immediately when past deadline but pre-game",
+   "body": "If the scheduler restarts or runs a check after the fallback deadline\n(game_time - 15min) has passed, it should post immediately rather than\nskipping the fallback entirely. Previous code gated both the sleep AND\nthe post on now < deadline; now the sleep is conditional but the post\nalways fires when no earlier check exists.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scheduler.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24253126060,
+    "created_at": "2026-04-10T16:29:24Z",
+    "head_sha": "4a82cf8",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

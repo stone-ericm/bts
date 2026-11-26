@@ -1,0 +1,3 @@
+nice: setpriority: Operation not permitted
+bts /Users/eric/projects/bts-work/wr-check-h/.codex-review/wr-h-check/base/src/bts/__init__.py walk /Users/eric/projects/bts-work/wr-check-h/.codex-review/wr-h-check/scratch/scripts/audit/season_walk/walk.py
+existing records 1134 saved 4599 diffs Counter() checks 163

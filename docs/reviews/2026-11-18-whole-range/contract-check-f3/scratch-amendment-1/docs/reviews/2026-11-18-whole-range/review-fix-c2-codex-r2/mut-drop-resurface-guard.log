@@ -1,0 +1,101 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-c2-r2-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 122 items
+
+tests/test_wr_c2_recovery.py ........................................... [ 35%]
+..........................................................               [ 82%]
+tests/test_wr_c2_carbon_v2.py .........FFFF........                      [100%]
+
+=================================== FAILURES ===================================
+_ test_prior_failed_with_critical_count_never_adds_resurface_banner[own_file-direct] _
+tests/test_wr_c2_carbon_v2.py:204: in test_prior_failed_with_critical_count_never_adds_resurface_banner
+    alert.send_dm.assert_called_once_with("offline.test", _copy(DAY))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock('offline.test', "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate.")
+E     Actual: mock('offline.test', "⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate.")
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (c2-carbon) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+_ test_prior_failed_with_critical_count_never_adds_resurface_banner[own_file-classification] _
+tests/test_wr_c2_carbon_v2.py:204: in test_prior_failed_with_critical_count_never_adds_resurface_banner
+    alert.send_dm.assert_called_once_with("offline.test", _copy(DAY))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock('offline.test', "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate.")
+E     Actual: mock('offline.test', "⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate.")
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+_ test_prior_failed_with_critical_count_never_adds_resurface_banner[symlink_to_shared-direct] _
+tests/test_wr_c2_carbon_v2.py:204: in test_prior_failed_with_critical_count_never_adds_resurface_banner
+    alert.send_dm.assert_called_once_with("offline.test", _copy(DAY))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock('offline.test', "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate.")
+E     Actual: mock('offline.test', "⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate.")
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (c2-carbon) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+Unknown-outcome alert failed: read receipt at /Users/eric/projects/bts-work/wr-c2-r2-codex/.codex-review/wr-c2-r2/t-m5/test_prior_failed_with_critica2/health_state/delivery_outcome_unknown/2027-07-15.json: receipt must be an unali
+_ test_prior_failed_with_critical_count_never_adds_resurface_banner[symlink_to_shared-classification] _
+tests/test_wr_c2_carbon_v2.py:204: in test_prior_failed_with_critical_count_never_adds_resurface_banner
+    alert.send_dm.assert_called_once_with("offline.test", _copy(DAY))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock('offline.test', "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate.")
+E     Actual: mock('offline.test', "⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate.")
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+Unknown-outcome alert failed: read receipt at /Users/eric/projects/bts-work/wr-c2-r2-codex/.codex-review/wr-c2-r2/t-m5/test_prior_failed_with_critica3/health_state/delivery_outcome_unknown/2027-07-15.json: receipt must be an unali
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+=========================== short test summary info ============================
+FAILED tests/test_wr_c2_carbon_v2.py::test_prior_failed_with_critical_count_never_adds_resurface_banner[own_file-direct]
+FAILED tests/test_wr_c2_carbon_v2.py::test_prior_failed_with_critical_count_never_adds_resurface_banner[own_file-classification]
+FAILED tests/test_wr_c2_carbon_v2.py::test_prior_failed_with_critical_count_never_adds_resurface_banner[symlink_to_shared-direct]
+FAILED tests/test_wr_c2_carbon_v2.py::test_prior_failed_with_critical_count_never_adds_resurface_banner[symlink_to_shared-classification]
+======================== 4 failed, 118 passed in 2.82s =========================

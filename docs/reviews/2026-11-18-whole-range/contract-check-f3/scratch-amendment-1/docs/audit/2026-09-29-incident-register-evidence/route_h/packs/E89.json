@@ -1,0 +1,34 @@
+{
+ "id": "E89",
+ "episode_row": [
+  "E89",
+  "5/10, 8/20",
+  "C-03 reconcile applied post-cutoff MLB re-scoring to local files",
+  "G",
+  "OI",
+  "A",
+  "ce6676d (main only)"
+ ],
+ "commits": [
+  {
+   "sha": "ce6676d",
+   "authored": "2026-09-28T11:14:43-04:00",
+   "subject": "fix(reconcile): never regrade a date past the BTS 08:00-next-day cutoff (C-03)",
+   "body": "The BTS Official Rules freeze a game day's Streak scores at 08:00 ET the next\nday; MLB statistic changes after that never count. MLB re-scored two settled\nChandler Simpson singles as fielding errors days later (5/10, 8/20) and the\nold 8-day recheck applied both at the day+6 run, overwriting true hits.\n\nreconcile_results now changes a date only while its cutoff is still ahead,\nchecked at three points: at the start, when that date's feed answer arrives\n(the answer may already carry a post-cutoff change -- this also covers a\nwall-clock step back), and under scoring_lock right before writing. The\nclock is injectable and must be timezone-aware; \"today\" is the Eastern\ncalendar day; the season-replay boundary is read fresh under the lock so a\nrun that waits past midnight keeps the day that just ended. A second cron\nrun at 07:40 ET narrows the unobserved window before the cutoff.\n\nBest-effort contract (ARCHITECTURE, C-03): \"frozen\" means no further MLB\nregrading, not verified agreement with the contest; a change between the\nlast run and 08:00 is not picked up. Follow-ups for the 2027 deployment\nreview: observation receipts, missed-check visibility, contest-ledger\nfinalization of entered days, and installing the cron line on the box.\n\nTests: failure-path fixtures for the day+6 overwrite, winter/both-DST/UTC\ninstants, the UTC-vs-ET calendar day, late answers, lock waits and the\nmidnight replay; the existing reconcile tests now use fixed dates and an\nexplicit 02:00 clock. Codex review: r1 BLOCK (2), r2 SIGN, r3 SIGN.\nNot deployed: main only; ships with the 2027 season.\n\nCo-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_011Y7eGyqtbDVvH7uZHhSdNz",
+   "files": [
+    "ARCHITECTURE.md",
+    "docs/audit/2026-09-28-reconcile-cutoff-codex-r1.md",
+    "docs/audit/2026-09-28-reconcile-cutoff-codex-r2.md",
+    "docs/audit/2026-09-28-reconcile-cutoff-codex-r3.md",
+    "scripts/cron-setup-hetzner.sh",
+    "src/bts/cli.py",
+    "src/bts/picks.py",
+    "tests/test_picks.py",
+    "tests/test_reconcile_cutoff.py",
+    "tests/test_scoring_lock.py"
+   ],
+   "first_live_log": null,
+   "first_success_deploy_candidate": null
+  }
+ ]
+}

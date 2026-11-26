@@ -1,0 +1,244 @@
+{
+ "id": "I-047",
+ "working_id": "E47",
+ "title": "5/08-09 inline shadow generation ran without watchdog pings and re-ran after restarts: scheduler restart loop; shadow disabled on the box",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "L",
+  "secondary": [
+   "R"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "liveness of the production scheduler (a restart loop driven by the in-process shadow run) required a production config mitigation; the shadow stream lost the 5/09 record",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "Every long RUNNING-state operation inside the scheduler (including the shadow prediction) keeps the heartbeat and the systemd watchdog fed, and a restart does not redo work whose artifact already exists.",
+  "source": "ARCHITECTURE.md at 4bd8193 'Heartbeat-watchdog discipline'; commit 150ed4c message body"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "_run_shadow_prediction called predict_local_shadow (feature computation plus shadow blend) inside the scheduler with no heartbeat_watchdog, so a long shadow run left the systemd watchdog unfed",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "77b36f5",
+     "symbol": "_run_shadow_prediction",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "the shadow step did not skip a date whose shadow artifact was already written, so after any restart it ran again, re-entering the unfed long run - the restart loop 'after successful writes'",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "77b36f5",
+     "symbol": "run_day (shadow trigger after production lock)",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "150ed4c"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "a142c14",
+    "live_by": "2026-05-09T23:02:03Z",
+    "run_id": 25614033235,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": {
+    "action": "shadow_model = false in /home/bts/.bts-orchestrator.toml (backup .bak-20260509-shadow-watchdog)",
+    "at": {
+     "not_after": "2026-05-09T15:42:48-04:00",
+     "evidence": [
+      "ev2"
+     ]
+    }
+   },
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "150ed4c"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "a142c14",
+    "live_by": "2026-05-09T23:02:03Z",
+    "run_id": 25614033235,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": {
+    "action": "same config mitigation",
+    "at": {
+     "not_after": "2026-05-09T15:42:48-04:00",
+     "evidence": [
+      "ev2"
+     ]
+    }
+   },
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "Inline shadow still shared the scheduler process and memory; it was moved to its own unit by 43ddf0c (5/22) after the OOM indications of E52 (I-052).",
+   "reaches_production": false,
+   "source": "commit 43ddf0c (scripts/systemd/README.md 'Shadow prediction')"
+  }
+ ],
+ "watchdog": {
+  "boundary": "restart",
+  "trigger": "three or more scheduler restarts within 60 minutes, or a watchdog/SIGABRT exit, while a shadow run is recorded in progress for a date whose shadow artifact already exists",
+  "recovery_assertion": "the day's shadow artifact is written once and NRestarts stays flat through the shadow run"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 150ed4c message body (PR #66; same change as f8c9b41)",
+   "written_at": "2026-05-09T15:20:39-04:00",
+   "what": "wraps shadow model generation in heartbeat/watchdog pings and skips existing daily shadow artifacts 'to avoid restart loops after successful writes'"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "docs/superpowers/runbooks/2026-05-09-live-forward-daily-ops.md at d01839f ('Safety Gates' 5 and the shadow mitigation block)",
+   "written_at": "2026-05-09T15:42:48-04:00",
+   "what": "records the 2026-05-09 temporary production mitigation shadow_model = false (config backup .bak-20260509-shadow-watchdog), keep it until the watchdog fix is deployed and verified; the missing 2026-05-09.shadow.json is an expected one-day gap"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 25614033235 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploy whose head (a142c14) contains 150ed4c, created 2026-05-09T23:02:03Z; log unavailable_expired"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/scheduler.py _run_shadow_prediction at 77b36f5",
+   "what": "predict_local_shadow is called with no heartbeat_watchdog context"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy runs 25590588217 (23:34 ET 5/08) and 25590839160 (23:46 ET 5/08) (deploy_runs.json)",
+   "what": "two deploys restarted the scheduler late on 5/08, after that day's shadow artifact existed"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-05-08/09",
+   "onset": {
+    "not_before": "2026-05-08",
+    "not_after": "2026-05-09T15:13:44-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_detectable": {
+    "not_before": "2026-05-08",
+    "not_after": "2026-05-09T15:13:44-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_machine_detection": "unknown",
+   "alert": {
+    "attempted": "unknown",
+    "confirmed": "unknown",
+    "failed": "unknown"
+   },
+   "operator_awareness": {
+    "not_after": "2026-05-09T15:13:44-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-05-09T15:42:48-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigation": {
+    "not_after": "2026-05-09T15:42:48-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "unknown",
+    "notification": "unknown",
+    "recovery": "unknown"
+   },
+   "continuing": true
+  }
+ ],
+ "routes": {
+  "H": [
+   "150ed4c",
+   "f8c9b41",
+   "d01839f"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "PR #66",
+   "docs/superpowers/runbooks/2026-05-09-live-forward-daily-ops.md"
+  ]
+ },
+ "related": [
+  "I-039",
+  "I-052",
+  "I-032"
+ ],
+ "notes": [
+  "duplicate of E96 (I-096, other batch: 'shadow prediction starved the systemd watchdog; shadow_model=false set on the box') - merge; I drafted the mechanism + mitigation here",
+  "prelim OI?: the symptom itself (kills/restart loop) is described only as what the fix avoids; observed status rests on the same-day production mitigation (ev2), which shows a live problem - the journal is not retained before 5/11, so the loop's times cannot be recovered",
+  "onset lower bound 5/08: the 5/08 shadow file exists (backfill memo) and two late 5/08 deploys restarted the scheduler after it was written (ev5), matching 'restart loops after successful writes' - my reading",
+  "when shadow_model was restored after the 23:02Z deploy is not recorded (runbook 'Restore Shadow Model' step)",
+  "log bound: live by 2026-06-07T00:11:19Z (run 27077693688)",
+  "regression tests named in the fix: tests/test_shadow_scheduler.py test_wraps_prediction_with_heartbeat_watchdog, test_skips_existing_shadow_pick",
+  "fixtures: filled from Task 5/6 acceptance objects at build time",
+  "merged I-096 (E96): the same deviation was drafted twice; this record carries it"
+ ]
+}

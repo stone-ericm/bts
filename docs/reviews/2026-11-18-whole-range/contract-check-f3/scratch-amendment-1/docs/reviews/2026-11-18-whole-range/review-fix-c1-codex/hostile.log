@@ -1,0 +1,37 @@
+manual fifo {'attempts': ['os.open'], 'reasons': ['The manual contest streak file is malformed or unreadable.'], 'alerts': [['CRITICAL', 'contest_state']]}
+manual directory {'attempts': ['os.open'], 'reasons': ['The manual contest streak file is malformed or unreadable.'], 'alerts': [['CRITICAL', 'contest_state']]}
+manual malformed {'attempts': ['os.open'], 'reasons': ['The manual contest streak file is malformed or unreadable.'], 'alerts': [['CRITICAL', 'contest_state']]}
+manual non-UTF8 {'attempts': ['os.open'], 'reasons': ['The manual contest streak file is malformed or unreadable.'], 'alerts': [['CRITICAL', 'contest_state']]}
+manual regular-link {'attempts': ['os.open', 'os.open'], 'reasons': ['A legacy or expired manual override file is present.'], 'alerts': [['WARN', 'contest_state']]}
+manual dangling-link {'attempts': [], 'reasons': [], 'alerts': []}
+manual fifo-link {'attempts': ['os.open'], 'reasons': ['The manual contest streak file is malformed or unreadable.'], 'alerts': [['CRITICAL', 'contest_state']]}
+automatic fifo {'attempts': ['os.open'], 'reasons': ['The automatic contest streak file is malformed or unreadable.'], 'alerts': [['CRITICAL', 'contest_state']]}
+automatic directory {'attempts': ['os.open'], 'reasons': ['The automatic contest streak file is malformed or unreadable.'], 'alerts': [['CRITICAL', 'contest_state']]}
+automatic malformed {'attempts': ['os.open'], 'reasons': ['The automatic contest streak file is malformed or unreadable.'], 'alerts': [['CRITICAL', 'contest_state']]}
+automatic non-UTF8 {'attempts': ['os.open'], 'reasons': ['The automatic contest streak file is malformed or unreadable.'], 'alerts': [['CRITICAL', 'contest_state']]}
+automatic regular-link {'attempts': ['os.open'], 'reasons': [], 'alerts': []}
+automatic dangling-link {'attempts': [], 'reasons': ['Contest streak observation is missing from account_state.', 'There is no automatic observation for the switch activation.'], 'alerts': [['CRITICAL', 'contest_state'], ['CRITICAL', 'contest_state']]}
+automatic fifo-link {'attempts': ['os.open'], 'reasons': ['The automatic contest streak file is malformed or unreadable.'], 'alerts': [['CRITICAL', 'contest_state']]}
+switch fifo {'attempts': ['os.open'], 'reasons': ['The season switch file is malformed or unreadable.'], 'alerts': [['CRITICAL', 'contest_state']]}
+switch directory {'attempts': ['os.open'], 'reasons': ['The season switch file is malformed or unreadable.'], 'alerts': [['CRITICAL', 'contest_state']]}
+switch malformed {'attempts': ['os.open'], 'reasons': ['The season switch file is malformed or unreadable.'], 'alerts': [['CRITICAL', 'contest_state']]}
+switch non-UTF8 {'attempts': ['os.open'], 'reasons': ['The season switch file is malformed or unreadable.'], 'alerts': [['CRITICAL', 'contest_state']]}
+switch regular-link {'attempts': ['os.open'], 'reasons': [], 'alerts': []}
+switch dangling-link {'attempts': ['os.open'], 'reasons': ['The season switch file is malformed or unreadable.'], 'alerts': [['CRITICAL', 'contest_state']]}
+switch fifo-link {'attempts': ['os.open'], 'reasons': ['The season switch file is malformed or unreadable.'], 'alerts': [['CRITICAL', 'contest_state']]}
+saver fifo {'attempts': ['os.open'], 'reasons': ['The saver flag is uninitialized or unreadable. The saver counted as spent.'], 'alerts': [['WARN', 'saver_state']]}
+saver directory {'attempts': ['os.open'], 'reasons': ['The saver flag is uninitialized or unreadable. The saver counted as spent.'], 'alerts': [['WARN', 'saver_state']]}
+saver malformed {'attempts': ['os.open'], 'reasons': ['The saver flag is uninitialized or unreadable. The saver counted as spent.'], 'alerts': [['WARN', 'saver_state']]}
+saver non-UTF8 {'attempts': ['os.open'], 'reasons': ['The saver flag is uninitialized or unreadable. The saver counted as spent.'], 'alerts': [['WARN', 'saver_state']]}
+saver regular-link {'attempts': ['os.open'], 'reasons': [], 'alerts': []}
+saver dangling-link {'attempts': [], 'reasons': ['The saver flag is uninitialized or unreadable. The saver counted as spent.'], 'alerts': [['WARN', 'saver_state']]}
+saver fifo-link {'attempts': ['os.open'], 'reasons': ['The saver flag is uninitialized or unreadable. The saver counted as spent.'], 'alerts': [['WARN', 'saver_state']]}
+coverage fifo {'attempts': ['os.open', 'os.open'], 'reasons': ['Coverage trails by one settled pick, the expected ledger lag.'], 'alerts': [['INFO', 'contest_state']]}
+coverage directory {'attempts': ['os.open', 'os.open'], 'reasons': ['Coverage trails by one settled pick, the expected ledger lag.'], 'alerts': [['INFO', 'contest_state']]}
+coverage malformed {'attempts': ['os.open', 'os.open'], 'reasons': ['Coverage trails by one settled pick, the expected ledger lag.'], 'alerts': [['INFO', 'contest_state']]}
+coverage non-UTF8 {'attempts': ['os.open', 'os.open'], 'reasons': ['Coverage trails by one settled pick, the expected ledger lag.'], 'alerts': [['INFO', 'contest_state']]}
+coverage regular-link {'attempts': ['os.open', 'os.open'], 'reasons': ['Coverage trails by more than one settled pick. The predictions array can trail the live counter.'], 'alerts': [['WARN', 'contest_state']]}
+coverage dangling-link {'attempts': ['os.open', 'os.open'], 'reasons': ['Coverage trails by one settled pick, the expected ledger lag.'], 'alerts': [['INFO', 'contest_state']]}
+coverage fifo-link {'attempts': ['os.open', 'os.open'], 'reasons': ['Coverage trails by one settled pick, the expected ledger lag.'], 'alerts': [['INFO', 'contest_state']]}
+base: unchanged full-run calibration reached coverage FIFO before the contest slot and blocked
+head: unchanged full-run calibration reached coverage FIFO before the contest slot and blocked

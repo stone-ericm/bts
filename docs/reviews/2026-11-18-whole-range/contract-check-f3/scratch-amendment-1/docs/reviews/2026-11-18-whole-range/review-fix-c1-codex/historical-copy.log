@@ -1,0 +1,85 @@
+absent [('CRITICAL', 'contest_state', None), ('CRITICAL', 'contest_state', None)] ['Contest streak observation is missing from account_state.', 'The season switch is absent.']
+approved_no_auto [('CRITICAL', 'contest_state', None), ('CRITICAL', 'contest_state', None)] ['Contest streak observation is missing from account_state.', 'There is no automatic observation for the switch activation.']
+optional_bypass [] []
+healthy_dated [] []
+dated_saver [('WARN', 'saver_state', None)] ['The saver state in the dated observation contradicts its streak. The saver counted as spent.']
+legacy_expired [('WARN', 'contest_state', None)] ['A legacy or expired manual override file is present.']
+legacy_selected [('CRITICAL', 'contest_state', None)] ['The selected legacy manual override is ineligible for a live decision.']
+corrupt_manual [('CRITICAL', 'contest_state', None)] ['The manual contest streak file is malformed or unreadable.']
+corrupt_auto [('CRITICAL', 'contest_state', None)] ['The automatic contest streak file has an invalid streak.']
+corrupt_switch [('CRITICAL', 'contest_state', None)] ['The season switch is corrupt because its season field failed validation.']
+refused_revoked [('CRITICAL', 'contest_state', None)] ['The season switch is revoked.']
+refused_other [('CRITICAL', 'contest_state', None)] ['The season switch is for another season.']
+schema_text [('CRITICAL', 'contest_state', None)] ['The automatic observation uses an unsupported schema.']
+schema_none [('CRITICAL', 'contest_state', None)] ['The automatic observation schema is missing, null or invalid.']
+auto_season [('CRITICAL', 'contest_state', None)] ['The automatic observation is for another season.']
+auto_activation [('CRITICAL', 'contest_state', None)] ['The automatic observation and season switch have different activation IDs.']
+undated [('CRITICAL', 'contest_state', None)] ['The automatic contest observation is undated.']
+missing_source [('CRITICAL', 'contest_state', None)] ['The contest streak file has no coverage date, so coverage and freshness could not be verified.']
+future_source [('CRITICAL', 'contest_state', None)] ['The contest streak file has a coverage date beyond the allowed future grace.']
+grace [] []
+coverage_one [('INFO', 'contest_state', None)] ['Coverage trails by one settled pick, the expected ledger lag.']
+coverage_two [('WARN', 'contest_state', None)] ['Coverage trails by more than one settled pick. The predictions array can trail the live counter.']
+later_pick [('WARN', 'contest_state', None)] ['Coverage trails by more than one settled pick. The predictions array can trail the live counter.']
+flag_missing [('WARN', 'saver_state', None)] ['The saver flag is uninitialized or unreadable. The saver counted as spent.']
+flag_contradiction [('WARN', 'saver_state', None)] ['The saver flag contradicts the recorded streak. The saver counted as spent.']
+new_year_good [] []
+new_year_refused [('WARN', 'saver_state', None), ('CRITICAL', 'contest_state', None)] ['The saver flag is for another season. The saver counted as spent.', 'The season switch is revoked.']
+manual-non-UTF8 [('CRITICAL', 'contest_state', None)] ['The manual contest streak file is malformed or unreadable.']
+manual-streak [('CRITICAL', 'contest_state', None)] ['The manual contest streak file has an invalid streak.']
+manual-saver [('CRITICAL', 'contest_state', None)] ['The manual contest streak file has an invalid saver value.']
+automatic-non-UTF8 [('CRITICAL', 'contest_state', None)] ['The automatic contest streak file is malformed or unreadable.']
+automatic-streak [('CRITICAL', 'contest_state', None)] ['The automatic contest streak file has an invalid streak.']
+automatic-saver [('CRITICAL', 'contest_state', None)] ['The automatic contest streak file has an invalid saver value.']
+effective_date [('CRITICAL', 'contest_state', None)] ['The dated manual contest streak file failed validation for effective_date.']
+season [('CRITICAL', 'contest_state', None)] ['The dated manual contest streak file failed validation for season.']
+expires_at [('CRITICAL', 'contest_state', None)] ['The dated manual contest streak file failed validation for expires_at.']
+active_streak [('CRITICAL', 'contest_state', None)] ['The dated manual contest streak file failed validation for active_streak.']
+best_streak [('CRITICAL', 'contest_state', None)] ['The dated manual contest streak file failed validation for best_streak.']
+saver_state [('CRITICAL', 'contest_state', None)] ['The dated manual contest streak file failed validation for saver_state.']
+recorded_at [('CRITICAL', 'contest_state', None)] ['The dated manual contest streak file failed validation for recorded_at.']
+source [('CRITICAL', 'contest_state', None)] ['The dated manual contest streak file failed validation for source.']
+reason [('CRITICAL', 'contest_state', None)] ['The dated manual contest streak file failed validation for reason.']
+best_streak [('CRITICAL', 'contest_state', None)] ['The automatic contest streak file has an invalid streak or best streak.']
+season [('CRITICAL', 'contest_state', None)] ['The automatic contest streak file failed validation for season.']
+activation_id [('CRITICAL', 'contest_state', None)] ['The automatic contest streak file failed validation for activation_id.']
+schema_version [('CRITICAL', 'contest_state', None)] ['The season switch is corrupt because its schema_version field failed validation.']
+season [('CRITICAL', 'contest_state', None)] ['The season switch is corrupt because its season field failed validation.']
+status [('CRITICAL', 'contest_state', None)] ['The season switch is corrupt because its status field failed validation.']
+activation_id [('CRITICAL', 'contest_state', None)] ['The season switch is corrupt because its activation_id field failed validation.']
+switched_at [('CRITICAL', 'contest_state', None)] ['The season switch is corrupt because its switched_at field failed validation.']
+revoked_at [('CRITICAL', 'contest_state', None)] ['The season switch is corrupt because its revoked_at field failed validation.']
+note [('CRITICAL', 'contest_state', None)] ['The season switch is corrupt because its note field failed validation.']
+file [('CRITICAL', 'contest_state', None)] ['The season switch file is malformed or unreadable.']
+bad-current-flag-optional [('WARN', 'saver_state', None)] ['The saver flag is uninitialized or unreadable. The saver counted as spent.']
+hostile-path [('CRITICAL', 'contest_state', None), ('CRITICAL', 'contest_state', None)] ['Contest streak observation is missing from account_state.', 'The season switch is absent.']
+BTS health WARN attention:
+- [saver_state] Prior slate 2027-12-31 ET. The saver flag contradicts the recorded streak. The saver counted as spent. (1st observed day) This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+BTS health CRITICAL alert(s):
+- [contest_state] Prior slate 2027-12-31 ET. The season switch is revoked. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+
+WARN attention:
+- [saver_state] Prior slate 2027-12-31 ET. The saver flag contradicts the recorded streak. The saver counted as spent. (1st observed day) This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+BTS health CRITICAL alert(s):
+- [contest_state] Prior slate 2027-12-31 ET. The season switch is revoked. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+
+WARN attention:
+- [saver_state] Prior slate 2027-12-31 ET. The saver flag contradicts the recorded streak. The saver counted as spent. (3rd consecutive day) This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+BTS health CRITICAL alert(s):
+- [health_runner] Prior slate 2027-03-24 ET. The contest state health check failed before it could finish. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+2027-07-12 2027-07-13T03:59:59.999999+00:00 legacy offset -1: WARN
+2027-07-12 2027-07-13T03:59:59.999999+00:00 legacy offset 0: WARN
+2027-07-12 2027-07-13T03:59:59.999999+00:00 legacy offset 1: CRITICAL
+2027-07-12 D+2, wall D+4: accepted
+2027-07-12 D+3, wall D+4: rejected
+2027-02-10 2027-02-11T04:59:59.999999+00:00 legacy offset -1: WARN
+2027-02-10 2027-02-11T04:59:59.999999+00:00 legacy offset 0: WARN
+2027-02-10 2027-02-11T04:59:59.999999+00:00 legacy offset 1: CRITICAL
+2027-02-10 D+2, wall D+4: accepted
+2027-02-10 D+3, wall D+4: rejected
+2027-12-31 2028-01-01T04:59:59.999999+00:00 legacy offset -1: WARN
+2027-12-31 2028-01-01T04:59:59.999999+00:00 legacy offset 0: WARN
+2027-12-31 2028-01-01T04:59:59.999999+00:00 legacy offset 1: CRITICAL
+2027-12-31 D+2, wall D+4: accepted
+2027-12-31 D+3, wall D+4: rejected
+47 unique exact historical reason variants including the crash

@@ -1,0 +1,4 @@
+{"node": "tests.scripts.incident_register.test_certify::test_an_impure_observation_certifies_nothing[tracing-start]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_certify::test_an_impure_observation_certifies_nothing[tracing-end]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_certify::test_an_impure_observation_certifies_nothing[tracing-unknown-start]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_certify::test_an_impure_observation_certifies_nothing[tracing-unknown-end]", "kind": "assertion"}

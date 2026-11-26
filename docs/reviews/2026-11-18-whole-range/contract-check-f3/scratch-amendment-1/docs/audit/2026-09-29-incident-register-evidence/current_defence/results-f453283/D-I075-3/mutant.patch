@@ -1,0 +1,17 @@
+diff --git a/src/bts/health/alert.py b/src/bts/health/alert.py
+index 6a1dda2..e2acb3a 100644
+--- a/src/bts/health/alert.py
++++ b/src/bts/health/alert.py
+@@ -213,11 +213,7 @@ def dispatch_dm_for_health_alerts(
+         ):
+             prior_sent_sources = list(prior.get("sent_sources") or [])
+             if alert_key and set(alert_key) <= set(prior_sent_sources):
+-                log.info(
+-                    "health DM suppressed: %s already covered by today's DM (day=%s)",
+-                    alert_key, now_day,
+-                )
+-                return False
++                pass  # W1.5 mutant: pre-ec242da — no per-day dedup: an identity already DMed today is sent again
+ 
+     if not dm_recipient:
+         _write_health_dm_delivery_status(

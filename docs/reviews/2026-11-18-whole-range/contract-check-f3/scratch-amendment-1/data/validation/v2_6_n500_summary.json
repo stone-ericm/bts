@@ -1,0 +1,62 @@
+[
+  {
+    "cell": "000",
+    "params_mode": "pooled",
+    "rho_pair_mode": "scalar",
+    "policy_mode": "global",
+    "point": 0.008333333333333333,
+    "ci_lower": 0.0,
+    "ci_upper": 0.175,
+    "runtime_seconds": 302.14903712272644
+  },
+  {
+    "cell": "010",
+    "params_mode": "pooled",
+    "rho_pair_mode": "per-bin",
+    "policy_mode": "global",
+    "point": 0.025,
+    "ci_lower": 0.0,
+    "ci_upper": 0.175,
+    "runtime_seconds": 295.872407913208
+  },
+  {
+    "cell": "001",
+    "params_mode": "pooled",
+    "rho_pair_mode": "scalar",
+    "policy_mode": "per-fold",
+    "point": 0.025,
+    "ci_lower": 0.0,
+    "ci_upper": 0.16666666666666669,
+    "runtime_seconds": 300.5798192024231
+  },
+  {
+    "cell": "011",
+    "params_mode": "pooled",
+    "rho_pair_mode": "per-bin",
+    "policy_mode": "per-fold",
+    "point": 0.03333333333333333,
+    "ci_lower": 0.0,
+    "ci_upper": 0.16666666666666669,
+    "runtime_seconds": 299.15245389938354
+  },
+  {
+    "cell": "101",
+    "params_mode": "fold-local",
+    "rho_pair_mode": "scalar",
+    "policy_mode": "per-fold",
+    "point": 0.025,
+    "ci_lower": 0.0,
+    "ci_upper": 0.16666666666666669,
+    "runtime_seconds": 1043.8822801113129
+  },
+  {
+    "cell": "111",
+    "params_mode": "fold-local",
+    "rho_pair_mode": "per-bin",
+    "policy_mode": "per-fold",
+    "point": 0.03333333333333333,
+    "ci_lower": 0.0,
+    "ci_upper": 0.16666666666666669,
+    "runtime_seconds": 1052.9143698215485
+  }
+]

@@ -1,0 +1,37 @@
+{
+ "id": "E26",
+ "episode_row": [
+  "E26",
+  "4/10\u20134/13",
+  "in-place sort reordered the training frame; live model silently changed",
+  "D",
+  "DL",
+  "P",
+  "6cd1761"
+ ],
+ "commits": [
+  {
+   "sha": "6cd1761",
+   "authored": "2026-04-13T14:25:41-04:00",
+   "subject": "fix(compute): preserve row order in hard-contact context feature",
+   "body": "The hard-contact rolling block at compute.py:521 mutated df via\nsort_values([\"batter_id\", \"date\"]), reordering the main dataframe for\nthe rest of compute_all_features. LightGBM's subsample=0.8 with\nrandom_state=42 picks rows by index, so a reordered training frame\nsilently sampled different rows and produced a ~1pp P@1 regression\non the 2024 holdout (84.86% -> 83.78%) starting at 30ed4fa.\n\nSort a view instead. Feature values are byte-identical; only the\nin-place mutation is removed. Adds a regression test that asserts\ncompute_all_features output is not monotone in batter_id.\n\nBisect: 947fce8 good -> 8224d08 good -> 30ed4fa bad -> HEAD bad\nVerified three ways:\n- feature-output byte equality vs pre-30ed4fa\n- Mac 1-season backtest: P@1 2024 = 84.86%\n- 5-season backtest on Hetzner CPX51: P@1 2024 = 84.86%\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/features/compute.py",
+    "tests/test_context_features.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24380051289,
+    "created_at": "2026-04-14T03:53:05Z",
+    "head_sha": "defbec3",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

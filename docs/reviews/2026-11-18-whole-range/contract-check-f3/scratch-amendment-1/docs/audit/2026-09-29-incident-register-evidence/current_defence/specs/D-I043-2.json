@@ -1,0 +1,81 @@
+{
+  "label": "D-I043-2",
+  "link": "I-043 link 2",
+  "tests": [
+    "tests/test_scheduler.py::TestPollResults::test_run_result_polling_voids_primary_and_scores_double_once",
+    "tests/test_scheduler.py::TestPollResults::test_run_result_polling_uses_schedule_void_when_live_feed_preview",
+    "-q"
+  ],
+  "allowed_paths": [
+    "src/bts/picks.py"
+  ],
+  "mutation_edits": [
+    [
+      "src/bts/picks.py",
+      "    if _slot_is_voided(pick, detailed_statuses):\n        return \"void\"\n",
+      "    if _slot_is_voided(pick, detailed_statuses):\n        pass  # W1.5 mutant: pre-a142c14 — a postponed/cancelled slot is graded by check_hit like a played slot\n"
+    ]
+  ],
+  "branch": {
+    "path": "src/bts/picks.py",
+    "text": "W1.5 mutant: pre-a142c14 — a postponed/cancelled slot is graded by check_hit like a played slot"
+  },
+  "entry": {
+    "path": "src/bts/picks.py",
+    "qualname": "resolve_pick_slot_result"
+  },
+  "returns": [
+    {
+      "path": "src/bts/picks.py",
+      "qualname": "resolve_pick_slot_result",
+      "classify": [
+        [
+          "graded",
+          "^(hit|miss)$"
+        ]
+      ]
+    }
+  ],
+  "symptom": {
+    "kind": "return",
+    "path": "src/bts/picks.py",
+    "qualname": "resolve_pick_slot_result",
+    "category": "graded"
+  },
+  "killing": [
+    {
+      "node": "tests/test_scheduler.py::TestPollResults::test_run_result_polling_voids_primary_and_scores_double_once",
+      "assertion": {
+        "path": "tests/test_scheduler.py",
+        "text": "assert daily.slot_results == {\"pick\": \"void\", \"double_down\": \"hit\"}",
+        "line": 1005
+      }
+    },
+    {
+      "node": "tests/test_scheduler.py::TestPollResults::test_run_result_polling_uses_schedule_void_when_live_feed_preview",
+      "assertion": {
+        "path": "tests/test_scheduler.py",
+        "text": "assert daily.slot_results == {\"pick\": \"void\", \"double_down\": \"hit\"}",
+        "line": 1032
+      }
+    }
+  ],
+  "contract": {
+    "text": "A locked slot whose game is postponed or cancelled grades void (neither hit nor miss), and the day is scored from the remaining played slot.",
+    "entry_mode": "real run_result_polling, which calls resolve_daily_slot_results -> resolve_pick_slot_result",
+    "trigger": "double-down day: primary game detailed Postponed, DD game Final, check_hit answers hit",
+    "symptom_kind": "wrong return (the postponed slot graded 'hit' instead of 'void')"
+  },
+  "level": "component",
+  "level_justification": "the tests replace internal functions that wrap the MLB fetches: poll_game_result (live-feed status) and check_hit (boxscore grading), plus the schedule status lookup",
+  "allowed_mocks": [
+    "bts.scheduler.poll_game_result",
+    "bts.picks.get_game_statuses_detailed",
+    "bts.picks.check_hit",
+    "bts.scheduler.retry_urlopen"
+  ],
+  "baseline": "BASELINE",
+  "env": {
+    "TZ": "America/New_York"
+  }
+}

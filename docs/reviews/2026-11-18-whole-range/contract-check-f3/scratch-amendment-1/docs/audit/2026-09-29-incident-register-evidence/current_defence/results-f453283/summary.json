@@ -1,0 +1,282 @@
+{
+  "kind": "defence",
+  "pin": "f453283d0a0ec39a939b22c6500b5fb36f5452c0",
+  "observer_sha256": "fc1b38da7bbec42e634156750def91f78c93d3e5e7b69783d2aff9d740f0933a",
+  "results": [
+    {
+      "label": "D-I009-1",
+      "spec_sha256": "187a1cbdd0ec4c352ca10083f49a4ba98aee79b12c6227cb3a1cc3f9cc6ce814",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "c61249e377e49070799e02166986c842a74b42423b9719c2e11a35995e96e291",
+      "seconds": 21
+    },
+    {
+      "label": "D-I011-1",
+      "spec_sha256": "611bd1ef9c9140cfa48efee10351eaaa1864ec1befb22e6c04bb3377be583079",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "d98d949a3a5d486fe22f74d77cce027f8943243eff802105a1bbc419e99ff73d",
+      "seconds": 15
+    },
+    {
+      "label": "D-I023-1",
+      "spec_sha256": "2c84bff6668e3201d7d0a1467484098964f94a1ef746834e9a5a181681d2f498",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "3425f9f6620641413d8a9ba710e93145e4f457f2f75da0f589e7c8181cfe3a52",
+      "seconds": 14
+    },
+    {
+      "label": "D-I023-2",
+      "spec_sha256": "7a3a5118ab8ff8cff70316a4bc06866449d474084d231ddcd478284668eccbbd",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "f3d91949ed0d602705c845e02bb3eddd00d54bb8b7cdca7b06450eb39a6b7aa2",
+      "seconds": 8
+    },
+    {
+      "label": "D-I025-1",
+      "spec_sha256": "cd60b6cc1a70868e42e2ef31836045774257f312f0ac73b571a16624ad30b62e",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "d342dd55afa68cc81e731036d841431ee9b934bbb0f47ab18caa02e350ff68d4",
+      "seconds": 13
+    },
+    {
+      "label": "D-I029-1",
+      "spec_sha256": "c345316ef21e1ba1fd4e6d9f150e48c2e9099c226724265ff9d6ebf9c722d735",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "a1ccbb20f929eedf101f66e71a8f3cf43b317a7b889dd857a0c3a0620bfb32f8",
+      "seconds": 13
+    },
+    {
+      "label": "D-I042-1",
+      "spec_sha256": "a3fd9fe3bd4ad6e2e8cecb73b2ba6f832491433a40864c1959e12edf8d029772",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "a1de199aa65034719c2a6f9f9ff0757c42c47f0ddd682376c0b9bf8d2ec7fdd9",
+      "seconds": 13
+    },
+    {
+      "label": "D-I042-2",
+      "spec_sha256": "28115335dfb82e760762152110bf7b64510eb0b2fbeaaad3c32746ee92f2497e",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "1b9b81d58a7d0f69861fd57d63f14727a648a9615c11a4e3fe5156a0834aa131",
+      "seconds": 12
+    },
+    {
+      "label": "D-I043-1",
+      "spec_sha256": "57c0a5f4a88c9d6f7725e7418952d5503b598eab5a0120c26c8fdeca4bc62d10",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "eff5d6bedd67cd9bc93edd9dee0eb30e64d23a513bb18eda8f6d7b4ad0af14ac",
+      "seconds": 13
+    },
+    {
+      "label": "D-I043-2",
+      "spec_sha256": "cb55386bc2d3154c8efd6582edd2f2a3ed1e4f8c32a9beabf492b113fa6fe14b",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "95397915a96944cd9b8451ce30566bfa802fdb0a5d2caffb40213434215a0548",
+      "seconds": 12
+    },
+    {
+      "label": "D-I043-3",
+      "spec_sha256": "645067b70bdb6b62e06c68654c887a140f5bf0057dcf86ccdc038579f7eed96e",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "5cbf6e09e7124cb5f9c2fce21e211c955ce487f43321cf8869b131bd429728d3",
+      "seconds": 13
+    },
+    {
+      "label": "D-I043-4",
+      "spec_sha256": "8b6e2394de3c3af8d9fecb15b0e1aaa2f5c5a7ca7fdd2712c1012423fe1ed790",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "a7f98b360d90d3343a0d1785b170588d59598705427ef0ca7cd6941ade1cfdac",
+      "seconds": 13
+    },
+    {
+      "label": "D-I056-2",
+      "spec_sha256": "3156ea4d358acbffb37b12eb247db1aae8d9d77175dafef184fd1ff96376fd34",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "fd901bbfcb03201f7d55970aedffdb1faeddbe73df33cc373d07916dace54c49",
+      "seconds": 13
+    },
+    {
+      "label": "D-I056-3",
+      "spec_sha256": "f1d7fe80b18a927f2898d86ac2f21ffe7498612ec0fa48c3fc5fa692a1080977",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "451a78b857e0bd325ea3b6a40990af4b61e4a601c60df9ad8bcaecbd44b7ad5c",
+      "seconds": 8
+    },
+    {
+      "label": "D-I063-1",
+      "spec_sha256": "73aeebd737304f63f6550ea9ec4c139bb6caf7d0cc90836b1e30939e352a5bc5",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "f10e33b2ccf3d7ef5f5f3a4f5e0b75e821c6d30688dd8eeff11b880533cc97e2",
+      "seconds": 13
+    },
+    {
+      "label": "D-I063-2",
+      "spec_sha256": "a842eacaadc1b1ac6bf96d812c97e6747b92613855be6ddf66bc4bdc46832beb",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "806ed15a5d6bc5208f5bafea6d9102b5caeebb9226b6ddcd428a4c0c1a045af2",
+      "seconds": 15
+    },
+    {
+      "label": "D-I063-4",
+      "spec_sha256": "231728f57e1a2ef4a248e5827ad344f430f28189fcbaee60345c012c961aabd4",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "d8b90a430726b3ffaa038c6575f79ba306ddcf30d1946a482200b7775da4ec63",
+      "seconds": 8
+    },
+    {
+      "label": "D-I071-2",
+      "spec_sha256": "bef6f4d7aed55f20d58da19f2d84450f80b786c1bcf028aff812455610810477",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "2b16b3467acef609437e68533441db0056d59496624188087d4c2d62ecbb4ecd",
+      "seconds": 15
+    },
+    {
+      "label": "D-I075-1",
+      "spec_sha256": "ff8fba7a14771587e2a3ccd5f635b2224963272fb8acb5fe6a06a79c3e2f647f",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "a9885be50fafb395a7bb7ff5ec58cd0872030f1609e6b49d5d74c37f08b5ba27",
+      "seconds": 12
+    },
+    {
+      "label": "D-I075-3",
+      "spec_sha256": "cbddbcb035825d0cd5f639f55a0b4811c2c38f7e9a5fa098116b917e280e8a4c",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "0ced3cf1d18a7c7ae9c8aea447015300c631e82927e7db430bcc81237856821f",
+      "seconds": 8
+    },
+    {
+      "label": "D-I075-4",
+      "spec_sha256": "89d50060179a5b30c4c990d30bc44e27b58c7997026855fb166c9fbfd02e6def",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "e116d1928c73c400f9ae55fc7794a616245d77333ee44a20eb942f2a41158d23",
+      "seconds": 8
+    },
+    {
+      "label": "D-I075-5",
+      "spec_sha256": "2d64ccfc1ac24bd143aedc5ea99113e36777f1ce99182e68b7e4635a407d1d48",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "9b2142f6d4d502bbf918e07c076618eeb2468a2ec2b9cb526fb028098cb875e8",
+      "seconds": 8
+    },
+    {
+      "label": "I-0811-a",
+      "spec_sha256": "13f86142345d8144a14ab57578c6b3ec5be7b69f0d6a8df0fa5c1e56ea8e8986",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "48ef691903dbe557e247e28379485c309267386cc7ed2cea5f60095bf86dc071",
+      "seconds": 9
+    },
+    {
+      "label": "I-0811-b",
+      "spec_sha256": "f606ed6a5baeb847b0045617b0db55d4925fd9cfb4344117748815c0203e311b",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "3545c64394f8aadffb93522aebd686af3401529b511c174d7df5473c9a759116",
+      "seconds": 15
+    },
+    {
+      "label": "I-0813-a",
+      "spec_sha256": "67e589dc81f8a294b69d80040bd4db95b029036c37c5aa0c9e532e7ec8c0c524",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "df6003bf461a0fc41fb3c4ac8b39274b59ff5909e6b4af05ab66663ada183b37",
+      "seconds": 7
+    },
+    {
+      "label": "I-0813-b",
+      "spec_sha256": "c3e99be0cedcf32be5e254b2d1bee89105fd731fecad547c5d7cb39d71bf31b1",
+      "verdict": "rejected",
+      "reasons": [
+        "refused: SpecError: absence (a missing event) is not certifiable by the Phase 1 recorder (plan ruling 10): report this link unavailable with this reason and keep its regression evidence"
+      ],
+      "acceptance_sha256": "6a5fcdae1ddcdd1586d5d8869ddf04d538c84c067b2b211e42525331dc726c16",
+      "seconds": 0
+    },
+    {
+      "label": "I-0830-b",
+      "spec_sha256": "a4d2ddc87f18ff09e1abe188874d5d99e803935c34f41af6d1165a9e7abf06ca",
+      "verdict": "rejected",
+      "reasons": [
+        "refused: SpecError: absence (a missing event) is not certifiable by the Phase 1 recorder (plan ruling 10): report this link unavailable with this reason and keep its regression evidence"
+      ],
+      "acceptance_sha256": "3477d17c68cebf51dc624d3d2d001cbecdac9060339e7cbec6a75db4a4f7c74e",
+      "seconds": 0
+    },
+    {
+      "label": "I-0830-a",
+      "spec_sha256": "75f4101b83a57fd295af9f9e64af213b081e613f4cb60b8ebb931c039823835d",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "0b6134772618be54590dc383490cb50b05825bcbb13b6a215e95f31d3cffe799",
+      "seconds": 13
+    },
+    {
+      "label": "I-0830-c",
+      "spec_sha256": "5be4f3a330bda64de8278a86e3cdbd706bebf83abc16c3b8d818b7f257ace0b6",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "5c45a98ab154a6ec519407102e495ca7cb797b07b4f3541cec2360504fcd6214",
+      "seconds": 9
+    },
+    {
+      "label": "I-0830-d",
+      "spec_sha256": "d4df0154075f8dbd49df7e46cc2388a68f850ce17bb8eb8f094b544f008b0d7d",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "28713dd2cd6fc4dbc5193fce038521a99cad8203640fc784ef9d24a293d84173",
+      "seconds": 12
+    },
+    {
+      "label": "I-0903-a",
+      "spec_sha256": "e4494ec5957f8512312bb1134e93342077e75abecbf8fa0f04163e577aafb892",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "73715abd09239be4bde7acfd666d0c25785300884adfd01516ae0a6972420eb6",
+      "seconds": 13
+    },
+    {
+      "label": "D-I071-1",
+      "spec_sha256": "458feab9452a96b47f6b46820d5d56ae6f5bf9f8886ba8f4783d8bef20bd376c",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "66ce2c923cbbcde26548e0d4b979bf4ac1d7efc41a368fa1d63cdc37421359a2",
+      "seconds": 21
+    }
+  ],
+  "superseded": [
+    {
+      "label": "D-I071-1",
+      "spec_sha256": "6e9add79d97d0e08ad22c1d32b07389e100e40a0b4599bac2c5d2fba9e4edb86",
+      "verdict": "rejected",
+      "reasons": [
+        "certificate tests/test_cli_integration.py::TestCheckPickEntered::test_skip_day_decision_no_dm: no 'not_entered_nag' event after the branch within a common live entry invocation"
+      ],
+      "acceptance_sha256": "ade63145cbf4ff582e14be9407ed6e1fd2954700dd26cb218574a91b720ad876",
+      "seconds": 14,
+      "outputs": "out-defence/D-I071-1.r1-rejected",
+      "spec": "defence-specs-superseded/D-I071-1.r1.json",
+      "superseded_because": "node 2's DM identity unavailable (boundary code shared by 2 live functions); re-run narrowed to node 1"
+    }
+  ]
+}

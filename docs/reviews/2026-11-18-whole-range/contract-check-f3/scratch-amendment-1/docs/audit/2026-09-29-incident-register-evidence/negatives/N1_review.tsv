@@ -1,0 +1,187 @@
+hash	date	exclusion_reason	sensitive_path	changed	note
+00444c4	2026-03-29	feature	no	new pyproject.toml, uv.lock, click cli group scaffold, empty data package	project scaffold; no live code existed yet
+7e1b491	2026-03-29	feature	no	new data/schema.py: HIT_EVENTS, PA_ENDING_EVENTS, PA_COLUMNS	new module; nothing live yet
+23051b7	2026-03-29	feature	no	new data/pull.py: discover_games, download_game_feed, pull_feeds	new module; nothing live yet
+d991a79	2026-03-29	feature	no	cli: new `bts data pull` command	new command; nothing live yet
+aaea34a	2026-03-29	feature	no	new data/build.py: parse_game_feed, _parse_wind, _get_lineup_positions, _get_hp_umpire_id	new module; nothing live yet
+242a292	2026-03-29	feature	no	build.py: new build_season; cli: new `bts data build`	new function/command; nothing live yet
+0a33000	2026-03-29	feature	no	pull.py: new enrich_weather; build_season merges weather sidecar; schema atm_pressure/humidity; cli enrich-weather	new capability; nothing live yet
+54a618b	2026-03-29	preship_fix	no	pull.download_game_feed: 3-attempt retry with exponential backoff	fixes download added ~40 min earlier same night; data tooling, no live service yet
+369312e	2026-03-29	preship_fix	no	pull.pull_feeds: catch per-game download failure, skip and report failed list	same-night fix to new pull tooling; no live service yet
+973c968	2026-03-29	preship_fix	no	build.build_season: new game_types filter, default regular season only	fixes build added hours earlier; pre-predict-CLI, nothing live yet
+ae5a0a8	2026-03-29	feature	no	build.parse_game_feed + schema: add bat_side, pitch_hand columns	new columns; nothing live yet
+fdc028e	2026-03-29	feature	no	new features/compute.py: compute_all_features, _compute_pitcher_archetypes, FEATURE_COLS; lightgbm/sklearn deps	new feature pipeline; nothing live yet
+0da6013	2026-03-29	research	no	compute.FEATURE_COLS: drop batter_whiff_30g, lineup_position, is_home	ablation-driven feature-list change; predict CLI not yet built
+b936947	2026-03-29	research	no	compute_all_features: add pitcher_entropy_30g; FEATURE_COLS drops batter_hr_14g, batter_whiff_60g	ablation-driven; predict CLI not yet built
+5b9f17b	2026-03-29	preship_fix	no	compute_all_features: gb/platoon/arch/park features made expanding shift(1)	leakage fix to feature code written same morning; no live predictions yet
+16f9242	2026-03-29	preship_fix	no	compute_all_features rewrite: date-level shift(1) aggregates; drop K-Means archetype features; expanding league mean	same-morning leakage rewrite; predict CLI not yet built
+d54cb29	2026-03-29	preship_fix	no	build.build_season: skip 7-inning doubleheader games (doubleHeader flag + max inning <=7)	training-data cleanup same day; pre-predict-CLI, nothing live
+e17eebf	2026-03-29	research	no	compute.py: new TRAIN_START_YEAR=2019 constant	constant only (consumer is backtest, outside runtime paths); pre-predict-CLI
+c96d4b0	2026-03-29	feature	no	new model/predict.py: train_model, _check_opener, _build_feature_lookups, _fetch_game_slots, predict; cli `bts predict`	first prediction CLI; new capability
+cefbc76	2026-03-29	feature	no	predict: starter/reliever split aggregation, debut-pitcher league-avg fallback, reliever lookups	modifies 5-minute-old predict code; not yet in use
+ccc1c95	2026-03-29	feature	no	schema.PA_COLUMNS: add 9 Statcast fields	new columns
+990b7c0	2026-03-29	feature	no	build.parse_game_feed: extract Statcast hitData and per-pitch lists	new columns
+bf2249c	2026-03-29	feature	no	compute: _is_barrel/_mean_of_list/_total_break + 9 Statcast rolling features added to FEATURE_COLS	new model features (broke predict lookups until ae6afb5 same night)
+0941373	2026-03-29	feature	no	predict: BASELINE_COLS/BLEND_CONFIGS/LGB_PARAMS, train_blend, blend ranking in predict(); cli --no-blend	new 12-model blend ranking
+2816e79	2026-03-29	feature	no	cli predict: DOUBLE_THRESHOLD=0.65 double-down recommendation output	new recommendation output for manual picks
+ab3db97	2026-03-29	feature	no	predict: new _fetch_prior_lineup; _fetch_game_slots projected-lineup + probablePitcher fallback	new pre-lineup (morning) prediction capability
+ae6afb5	2026-03-29	preship_fix	no	predict: Statcast lookups + slot rows; NaN masks notna().all->any; numeric dtype coercion	fixes same-evening bf2249c FEATURE_COLS change that broke predict; predict CLI <8h old
+3e629a6	2026-03-30	feature	no	build.parse_game_feed + schema: ABS challenge fields	data columns only; not model inputs
+e0a6a78	2026-03-30	feature	no	build.parse_game_feed + schema: challenge_role	data column only
+9ca4346	2026-03-30	preship_fix	no	build.parse_game_feed: only reviewType MJ challenges	fixes 3e629a6 from 16 min earlier; data columns unused by model
+ae1d355	2026-03-30	refactor	no	cli predict: remove --no-blend flag (blend unconditional)	default path unchanged (blend was already default); removes single-model option
+85b61f1	2026-03-31	feature	yes	cli: new `bts post` Bluesky posting command (keychain password, createSession/createRecord)	new manual pick-publishing command (delivery channel)
+664a71c	2026-03-31	possible_fix_of_live_behaviour	no	compute FEATURE_COLS 22->13 + new STATCAST_COLS; predict BLEND_CONFIGS rebased on FEATURE_COLS	live single model (display + reliever term in every blend score) used 22 feats 3/29-3/31, now 13; backtest tuning
+31ead55	2026-03-31	feature	no	compute: new pitcher_catcher_framing proxy (_borderline_csr) in FEATURE_COLS; predict framing lookup	new model feature
+38bc71c	2026-03-31	feature	no	build: _get_starting_catchers, fielding_catcher_id; compute: Savant framing with proxy fallback	new data source for framing feature
+0bfbb93	2026-03-31	research	no	compute: framing back to borderline-CSR proxy (Savant path removed)	backtest-driven revert of 38bc71c from 9 min earlier
+6798410	2026-03-31	feature	yes	new picks.py: Pick/DailyPick, pick_from_row, save/load_pick, load/save_streak, update_streak	new pick persistence + streak state; no automation yet
+f8beeaa	2026-03-31	feature	yes	picks: new get_game_statuses, check_hit (boxscore hits>0; absent batter -> False)	new grading helper; not yet called by any job
+8efeb70	2026-03-31	refactor	no	predict: extract run_pipeline(); add game_time to slots; cli predict wraps run_pipeline	same load/compute/train/predict sequence; behaviour-neutral
+7b16afc	2026-03-31	feature	yes	new posting.py: format_post, get_bluesky_password, post_to_bluesky, should_post_now; cli post delegates	extraction of `bts post` + new post-timing rule; post text unchanged
+bcaf315	2026-03-31	preship_fix	yes	posting.should_post_now: 3h window bounded to future games (0<=dt<=3h)	fixes 13-min-old function before `bts run` existed
+8fc68cb	2026-03-31	feature	yes	cli: new `bts run` (pipeline, not-started filter, lock-if-started, double-down, save_pick, post)	new automated pick/lock/post command
+6db9705	2026-03-31	preship_fix	yes	cli run: select only notna p_game_hit rows before pick; dry-run shows would_post	fixes 14-min-old `bts run` before cron script existed
+dd3b954	2026-03-31	feature	yes	new scripts/cron-setup.sh: Mac cron for bts run 11:00/16:00/19:30 + check-results 01:00	new cron automation script
+1e6970b	2026-03-31	feature	yes	cli: new `check-results` (check_hit per slot, update_streak, save pick)	new grading/streak job; first cron run would be 4/01 01:00
+7d0c1d5	2026-03-31	preship_fix	yes	cli run/check-results: try/except around get_game_statuses/check_hit; posting.get_bluesky_password raises	hardening of <1h-old code; before first scheduled grading run
+42de5d5	2026-03-31	feature	no	new util.py: retry_urlopen (retry 5xx/network, no retry on 400/401/403/404)	new helper; not yet wired
+659db6e	2026-03-31	preship_fix	yes	check_hit: absent batter -> None (was False); retry_urlopen; posting HTTP errors + env pw; DailyPick.streak removed	grading rule changed before first 01:00 check-results run; review batch on same-evening code
+dafa2af	2026-03-31	preship_fix	yes	cli run: streak not stored in pick file, blend cache; check-results: None -> warn, streak unchanged	same-evening review fix; precedes first grading run (Mac cron, if installed, may have run bts run once 19:30)
+65e62d6	2026-03-31	feature	no	predict: new save_blend/load_blend; run_pipeline cached_blend/save_blend_path	new model caching
+cbbe3ca	2026-03-31	feature	yes	cron-setup.sh: log rotation + Linux yesterday-date variant	adds rotation/Linux support; macOS command unchanged
+af76d33	2026-03-31	feature	yes	cli run: densest-bucket window selection; cron-setup: drop 19:30 run	new pick-timing strategy (odds data files not read)
+dbfa3d8	2026-03-31	preship_fix	yes	cli run step 4: catch-up Bluesky post when locked pick was never posted	same-evening fix to 2h-old bts run; automation started 4/01 (1c2efaa backfills days 1-3)
+d575afb	2026-03-31	feature	yes	cli run: OVERRIDE_THRESHOLD=0.78 override of densest bucket	strategy addition
+b8b5d55	2026-03-31	feature	yes	cli run: asymmetric override (densest no threshold, others >78%); cron-setup: restore 19:30 run	strategy revision same evening
+7101025	2026-03-31	feature	no	new web.py: LAN dashboard (load_all_picks, load_streak, fetch_bluesky_posts, render_page)	new dashboard
+267a189	2026-03-31	preship_fix	yes	cli: remove `bts predict`/`bts post`; run prints rankings; --dry-run now returns before save/post	also stops --dry-run writing the pick file (3h-old behaviour); retires manual commands
+1c2efaa	2026-03-31	preship_fix	yes	cli run lock condition: locked if game started OR already posted	blocks overwrite of posted pick; fixed before first automated day (4/01)
+35f81c8	2026-03-31	refactor	no	pyproject: lightgbm/scikit-learn moved to optional 'model' extra	packaging only; existing envs keep lightgbm (uv run syncs inexactly)
+aa5aed4	2026-03-31	refactor	yes	new strategy.py: select_pick/_apply_densest_bucket/PickResult (lock check, double-down)	extraction of cli run logic; not wired until d1d89cd
+d1d89cd	2026-03-31	refactor	yes	cli run delegates to strategy.select_pick; lock/catch-up post preserved	status-fetch try/except dropped (error now raises); otherwise equivalent
+2bb3234	2026-03-31	feature	no	cli: new `predict-json` worker command (JSON stdout, logs stderr, exit 1 on error)	new worker interface
+e293713	2026-03-31	feature	yes	new dm.py: get_dm_password, send_dm (chat via PDS proxy)	new failure-alert channel
+b7eb422	2026-03-31	feature	yes	new orchestrator.py: ssh_predict, run_cascade, orchestrate (strategy/save/post/DM); cli orchestrate	new Pi5 orchestration service
+5ef88b0	2026-03-31	feature	yes	new scripts/cron-setup-pi5.sh: orchestrate 11/16/19:30 + check-results 01:00	new Pi5 cron
+d4a396a	2026-03-31	preship_fix	yes	cron-setup-pi5: PATH prefix + source .env; orchestrator.ssh_predict: export PATH	fixes 13-min-old cron/SSH command before first Pi5 cron run
+1bb95aa	2026-04-01	preship_fix	yes	orchestrator.ssh_predict/run_cascade: tier platform=windows command (cd /d, full uv path)	Alienware tier bring-up same night; before first orchestrate run
+bec89d7	2026-04-01	preship_fix	yes	orchestrator.ssh_predict: drop `set UV_CACHE_DIR` on windows	follow-up 1 min later; tier bring-up
+5354bad	2026-04-01	preship_fix	yes	dm.send_dm: call api.bsky.chat directly (no atproto-proxy header)	45-min-old DM path never worked; before first orchestrate run
+f98f874	2026-04-01	feature	no	web: MLB theme, TEAM_IDS, team_logo_url	dashboard styling
+34d2a9a	2026-04-01	feature	no	web: CSS light theme	style only
+5bbba0b	2026-04-01	preship_fix	no	web: fixed table column widths; pending-state text	dashboard tweak same night
+54bf213	2026-04-01	feature	no	web: _at_uri_to_web_url, Bluesky embed blocks	dashboard feature
+b9004ca	2026-04-01	feature	yes	check-results writes DailyPick.result hit/miss; picks.DailyPick.result; web result column	new result field before first 01:00 grading run; streak logic unchanged
+98d23a6	2026-04-01	feature	no	web: hit/miss row classes	style only
+0d8bb98	2026-04-01	feature	no	web: Play BTS link	display only
+ed38648	2026-04-01	feature	no	web: BTS game iframe	display only
+9114224	2026-04-01	preship_fix	no	web: remove iframe	reverts 3-min-old iframe
+9c3a2f5	2026-04-01	research	no	new simulate/strategies.py: Strategy profiles for streak simulation	simulation tooling only
+5cbc4a6	2026-04-01	research	no	cli: register `bts simulate` group (top-level import); pyproject adds rich	simulation CLI; import pulls no model deps
+5cfdca4	2026-04-01	feature	yes	strategy.select_pick: SKIP_THRESHOLD 0.80 skip, streak-aware _double_threshold; run/orchestrate pass streak	new live decision policy (skip days, streak-aware doubling); not a defect fix
+76d32c7	2026-04-01	feature	yes	posting.format_skip_post; cli run + orchestrate post skip-day message via should_post_now	new skip-day post; posted-state not tracked (hard-coded False), so later runs can repost
+2ae0ab3	2026-04-01	research	no	new simulate/quality_bins.py	MDP research tooling
+11f2158	2026-04-01	research	no	new simulate/mdp.py: solve_mdp	MDP research tooling
+68a87a7	2026-04-01	feature	yes	mdp: save/load_policy, lookup_action; strategy: _load_mdp/_mdp_action drive skip/single/double, heuristic fallback	new live decision source (MDP table); saver hard-coded True until 2be445e
+d5c17b4	2026-04-01	research	no	simulate/mdp.solve_mdp: phase-aware late_bins/late_phase_days	solver only; live effect only via separately committed policy file
+2be445e	2026-04-01	possible_fix_of_live_behaviour	yes	picks.update_streak saver rule (miss at 10-15 holds once), load_saver_available, save_streak; strategy passes saver	live grading rule: any miss reset to 0 since 4/01 01:00 cron, now contest saver applied; MDP saver no longer fixed True
+9ac1bbe	2026-04-02	feature	no	web.render_page: double pick as second row/hero card	dashboard display
+b130207	2026-04-02	feature	no	web: _format_game_time; game times in hero	dashboard display
+c864b85	2026-04-02	research	no	cli: new `bts validate scorecard` group/command	validation tooling
+9da2187	2026-04-02	preship_fix	no	cli validate scorecard: --profiles-dir exists=True	fixes 7-min-old research CLI
+bfc2306	2026-04-02	research	no	data/models/mdp_policy.npz replaced (late_phase_days=30); old kept as backup (binary, not read)	per message differs only in Aug-Sep states; superseded 4/08 before those states were reachable
+811e116	2026-04-03	feature	yes	picks: new get_game_statuses_detailed; DailyPick.result doc adds suspended/unresolved	additive helper for scheduler result handling
+7382f6b	2026-04-03	refactor	yes	orchestrator: extract run_and_pick() (cascade + select_pick); orchestrate() calls it	external behaviour unchanged (same empty/skip/locked branches)
+473274b	2026-04-03	feature	yes	strategy: new should_lock(top_pick, all_picks, early_lock_gap)	new lock rule; not yet wired
+cd3f867	2026-04-03	feature	yes	new scheduler.py: fetch_schedule, _game_time_et, compute_run_times, detect_doubleheader_game2s, compute_wakeup_time	new scheduler service (timing/liveness)
+12ca0a4	2026-04-03	feature	yes	scheduler: new check_confirmed_lineups, count_new_confirmations	new lineup-confirmation input to lock decision
+5e8fd04	2026-04-03	feature	yes	scheduler: new SchedulerState, save_state, load_state	new persisted lock/result state
+dfc3cc6	2026-04-03	feature	yes	scheduler: new _now_et, run_single_check (cascade, candidate save, should_lock)	new lock-decision cycle
+762c051	2026-04-03	feature	yes	scheduler: new poll_game_result, run_result_polling (final/suspended/5am unresolved)	new grading loop
+d3b7606	2026-04-03	feature	yes	scheduler: new run_day main loop (sleeps, lock/post, fallback, DH re-check, polling); cli `bts schedule`	new daemon; replaces fixed cron runs
+5f73a59	2026-04-03	feature	yes	cron-setup-pi5.sh: remove 3 orchestrate cron lines (check-results 01:00 kept)	cutover to scheduler service; not a fix
+18b661b	2026-04-03	docs_or_config_text	no	web: pending-state hero text	wording only
+b430e45	2026-04-03	possible_fix_of_live_behaviour	yes	posting.format_post double_team/double_pitcher; callers in cli run, orchestrator, scheduler pass them	live DD Bluesky post showed only primary pitcher (2nd batter team/opponent omitted); wording/display
+0c7797b	2026-04-03	feature	yes	posting: resolve_post_cid, reply_to_bluesky, format_result_reply; result reply from check-results + scheduler polling	new result reply; miss reply always says reset to 0 (ignores saver)
+3724bcb	2026-04-03	feature	yes	scheduler _check_hits_midgame, early streak update/reply, polling from game+10min (was 1am); reconcile_results + cli	new early grading + 8-day reconciliation
+0c6f307	2026-04-03	feature	no	web.render_page: LOCKED/PENDING hero badge (from bluesky_posted)	dashboard display
+08cf91e	2026-04-03	preship_fix	no	web: move lock badge above both cards	fixes 2-min-old badge layout
+ef252e7	2026-04-03	feature	no	web: flags column replaced by lineup-status emoji (void/projected/confirmed)	dashboard display
+7e1b667	2026-04-03	feature	no	web: notes dot for non-lineup flags	dashboard display
+a1f9bbf	2026-04-04	feature	no	web: CSS hover tooltips (data-tip), table overflow visible	dashboard display
+5207a09	2026-04-04	possible_fix_of_live_behaviour	yes	orchestrator.ssh_predict: `git pull -q origin main &&` before predict-json (unix + windows)	workers previously ran whatever was checked out (stale code unless pulled by hand); a pull failure now fails the tier
+6de6c8d	2026-04-04	feature	no	new scorecard.py: _RESULT_MAP, format_result_code	dashboard scorecard
+b54b4db	2026-04-04	feature	no	scorecard: _ordinal, _extract_fielder_position, _extract_pa, extract_batter_pas	dashboard scorecard
+a96a22b	2026-04-04	feature	no	scorecard: fetch_live_scorecard	dashboard scorecard
+abbaca0	2026-04-04	feature	no	web: pitch grid/diamond/PA cell renderers, render_scorecard_section, /api/live, polling JS	dashboard live scorecard
+9e0014a	2026-04-04	preship_fix	no	scorecard.merge_scorecards; extract_batter_pas keeps 0-PA batters; web fetches each DD game	fixes 20-min-old scorecard
+3f32254	2026-04-04	feature	no	web: sticky batter columns	dashboard display
+9b27cce	2026-04-04	feature	no	web: /api/live-html partial refresh	dashboard display
+0c05bbc	2026-04-04	preship_fix	no	web.render_scorecard_section: define sticky vars before loop	fixes UnboundLocalError from 3f32254 (5 min earlier)
+0dd5085	2026-04-04	feature	no	scorecard: in-progress PA, estimated innings, HR basepath end=None; web render	scorecard polish; HR path fix to 30-min-old code
+59ddd53	2026-04-07	feature	no	web CSS: center pct-cell	style only
+ab2ba2e	2026-04-07	feature	no	web CSS: notes-dot vertical-align	style only
+99b6510	2026-04-07	feature	no	predict slots pitcher_team; picks.Pick.pitcher_team + load_pick backfill; web pitcher logos	additive field for dashboard
+4d7f60b	2026-04-07	feature	no	web: drop double-row class	style only
+0d9852d	2026-04-07	feature	no	web CSS: lineup-cell vertical-align	style only
+48def2f	2026-04-08	possible_fix_of_live_behaviour	yes	strategy.select_pick: remove _apply_densest_bucket/_classify_et_hour/OVERRIDE_THRESHOLD	live pick filter removed (densest window, live since 4/01 -> always top blend pick); backtest tuning, no defect evident
+01a4a58	2026-04-08	docs_or_config_text	no	cli run docstring	docstring only
+44fdc84	2026-04-08	feature	no	compute: _build_probable_pitcher_lookup + opp_bullpen_hr_30g in FEATURE_COLS; predict bullpen lookup	new model feature; carried O(n^2) dead map (removed 947fce8)
+3e0f11b	2026-04-08	possible_fix_of_live_behaviour	yes	strategy.select_pick: double-down/runner-up restricted to a different game_pk	live DD guard changed: same-game doubles allowed since 4/01, now excluded; research-driven
+b9670d6	2026-04-08	possible_fix_of_live_behaviour	no	data/models/mdp_policy.npz re-solved for different-game doubles (binary, not read)	live skip/single/double table replaced; tuning paired with 3e0f11b
+d3e9337	2026-04-08	possible_fix_of_live_behaviour	no	scorecard.merge_scorecards: per-game innings in DD score_label	dashboard display: DD header showed one game's inning beside a two-game label
+575f76f	2026-04-08	preship_fix	no	web.render_scorecard_section: suppress extra inning when score_label present	fixes d3e9337 from 2 min earlier
+ab74987	2026-04-08	research	no	cli: register `bts experiment` group (top-level import)	experiment tooling; import has no model deps
+212304f	2026-04-09	feature	no	new data/lineup_collect.py: LineupPollResult, poll_game_lineup	lineup-time collection tooling
+200ebc8	2026-04-09	feature	no	lineup_collect: GameCollectionEntry, CollectionState	collection tooling
+2fd8763	2026-04-09	feature	no	lineup_collect: run_collection_tick	collection tooling
+dfe4d3c	2026-04-09	docs_or_config_text	no	lineup_collect docstring line removed	docstring only
+0322ecf	2026-04-09	feature	no	cli `data collect-lineup-times`; lineup_collect collect_for_date/_load_or_create_state	collection tooling
+1f4f2d9	2026-04-09	refactor	yes	scheduler: rename _game_time_et -> game_time_et (all callers incl. lineup_collect)	pure rename; no remaining old-name callers
+4d14ec3	2026-04-09	docs_or_config_text	no	lineup_collect comment; cli --out-dir help text	comment/help only
+645aeb5	2026-04-09	research	no	new data/lineup_analyze.py: Distribution, compute_minutes_before_first_pitch, compute_distribution	analysis tooling
+ce91c0a	2026-04-09	research	no	cli `data analyze-lineup-times`; lineup_analyze load_samples_from_jsonl	analysis tooling
+c2fc82f	2026-04-09	research	no	cli `data backfill-lineup-times`; lineup_analyze backfill_from_scheduler_state	analysis tooling
+9bfc0e9	2026-04-09	feature	yes	new scripts/systemd bts-lineup-collect.service/.timer + README	new Pi5 timer for collection job
+d13761d	2026-04-09	preship_fix	no	lineup_collect.collect_for_date refreshes game_time_et each pass	branch fix before merge 448322f
+5320d0d	2026-04-09	preship_fix	no	lineup_collect.CollectionState.write_jsonl atomic tmp+replace	branch fix before merge
+c78f44b	2026-04-09	feature	no	schema.SCHEMA_VERSION (hash of PA_COLUMNS); pyproject boto3	new version stamp
+4f2cab5	2026-04-09	feature	no	build: assert_columns_match_schema + column reorder in build_season	new guard in build path used by live pre-predict refresh (can now raise)
+9b63cd8	2026-04-09	feature	yes	new data/sync.py: R2Client, sha256_file, read/write_manifest_atomic; pyproject boto3	new R2 sync/preservation module
+69765eb	2026-04-09	feature	yes	sync: sync_to_r2 incremental upload + atomic manifest	new
+6f75c7d	2026-04-09	feature	yes	sync: sync_from_r2 with checksum/version checks	new
+cd3abfc	2026-04-09	feature	yes	sync: verify_manifest, archive_historical_raw	new
+2dc873e	2026-04-09	feature	yes	cli: sync-to-r2, sync-from-r2, verify-manifest, archive-historical-raw	new commands
+330e583	2026-04-09	refactor	yes	sync.py: drop unused io import	no behaviour change
+0f58789	2026-04-09	preship_fix	yes	sync_to_r2 half-manifest guard; manifest version guard; verify undated=stale; CLI dir options/defaults	review fixes before merge 99232be
+e51ce8c	2026-04-10	feature	yes	new state/export.py: export_initial_state, UnresolvedPickError, _project_pick	new restore tooling
+2ee0e4b	2026-04-10	feature	yes	cli `state export`	new command
+ed3d870	2026-04-10	feature	yes	new state/regenerate.py: fetch_bluesky_posts, parse_pick_from_post	new restore tooling
+d25e158	2026-04-10	preship_fix	yes	regenerate: regexes match real posting.format_post text	fixes 5-min-old parser before merge
+eaf750e	2026-04-10	feature	yes	regenerate: parse_result_from_reply, HistoricalPickRecord, Timeline, reconstruct_pick_timeline	new
+b40af6e	2026-04-10	feature	yes	regenerate timeline: saver availability reconstruction	new (replaces placeholder default)
+11059dd	2026-04-10	feature	yes	regenerate: compose_state_from_snapshot_and_timeline, _hist_to_pick_file, _record_to_pick_file	new
+97035fc	2026-04-10	feature	yes	cli `state regenerate`; regenerate()	new command
+5a77f58	2026-04-10	feature	yes	cli `state verify`; new state/verify.py DriftReport, diff_pick_files	new command
+5019851	2026-04-10	preship_fix	yes	state export/regenerate/verify: streak key, full Pick fields, _backfill_pick_fields, saver compare; atproto dep	fixes before merge a8a5c9d
+5a18a2a	2026-04-10	feature	yes	new heartbeat.py: HeartbeatState, write_heartbeat, read_heartbeat, is_heartbeat_fresh	new liveness signal
+f7328b8	2026-04-10	feature	yes	scheduler run_day/run_result_polling: write_heartbeat at start, sleeps, polling, end of day	additive liveness writes (not exception-guarded)
+357a166	2026-04-10	refactor	yes	scheduler.run_day: fallback_deadline_min/missed_pick_alert_min from config (default 15/10)	defaults equal old hard-coded 15; alert_min read but unused
+70289ff	2026-04-10	feature	yes	orchestrator: predict_local; run_cascade tier type local/ssh	new tier type; ssh default unchanged
+6808ffc	2026-04-10	feature	yes	posting.get_bluesky_password env-first precedence (APP, legacy, DM) + -dm keychain first; dm uses same helper	consolidation; changes live credential choice (DM may now use posting env password where both set)
+c6eb9d2	2026-04-10	feature	yes	web: health_check() + /health route; _json_response status_code	new health endpoint
+fcedf71	2026-04-10	feature	yes	new .github/workflows/deploy.yml (Fly deploy on push to main)	new deploy workflow
+d5e0d7b	2026-04-10	feature	no	picks: new save_pick_shadow	additive helper (scheduler wiring came in 5075fba)
+151bfe4	2026-04-10	preship_fix	no	compute_all_features: pd.to_numeric on per-PA Statcast stats	Fly shadow (pre-cutover) dtype crash; no-op for already-numeric live worker data
+039641d	2026-04-10	preship_fix	no	predict.run_pipeline: coerce object-dtype feature cols before training	Fly shadow bring-up
+a7647fe	2026-04-10	preship_fix	no	predict.run_pipeline: log coerced/remaining object cols	diagnostics for Fly bring-up
+9c3d8ee	2026-04-10	preship_fix	no	predict.predict: numeric coercion covers STATCAST_COLS	Fly shadow crash; message says invisible on Mac
+947fce8	2026-04-10	possible_fix_of_live_behaviour	yes	compute: drop O(n^2) df.loc map in bullpen block, vectorize barrel + total_break; sync_to_r2 adds mdp_policy.npz	O(n^2) dead code ran on auto-pulled workers since 4/08 (slow predict-json vs tier timeout?); Fly lacked MDP policy
+8224d08	2026-04-10	refactor	no	compute: _borderline_csr via list comprehension	perf only; same outputs
+30ed4fa	2026-04-10	feature	no	compute: ump_hr_30g, wind_out_cf, batter_hard_contact_30g, is_indoor; CONTEXT_COLS	also re-sorted prod df by batter/date (training rows, order-dependent .last() lookups); fixed 6cd1761 4/13
+ec4e392	2026-04-10	feature	no	predict: _build_blend_configs, feature_cols/feature_cols_override plumbing	production defaults unchanged
+cbbbc4f	2026-04-10	feature	no	picks: save_shadow_pick, load_shadow_pick	shadow stream persistence
+555e8f5	2026-04-10	feature	yes	orchestrator.predict_local_shadow; scheduler._run_shadow_prediction after lock	shadow calls select_pick on prod picks_dir -> returns locked prod pick (fixed 634768e 4/12)
+d03c63c	2026-04-10	feature	no	cli `shadow-report`	shadow research report
+8c900c8	2026-04-10	preship_fix	no	predict: context lookups; _fetch_game_slots parses wind/roof/umpire; predict fills context cols	fixes 30-min-old shadow path; also adds wind/umpire parsing to production slot fetch

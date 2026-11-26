@@ -1,0 +1,204 @@
+{
+  "audit_problems": [],
+  "classes": {
+    "tests/test_scheduler.py::TestRunDay::test_fallback_delivers_when_future_checks_have_no_pending_lineups": "symptom_candidate",
+    "tests/test_scheduler.py::TestRunDay::test_fallback_delivers_when_no_future_checks_remain": "passes_at_parent"
+  },
+  "closure": "src_swap",
+  "events_sha256": {
+    "green": "6582b1fb0d26791d46e59e6cac987593ada95410ebab51d092cb4240296049fa",
+    "red": "d9f121813956659ca02f364d5ea7ec569c3ab939c61f34682f46bd213d1e97b7"
+  },
+  "fix": "36975125a430bfefdbf24df65e07aa1a511cf12d",
+  "harness_changes": [
+    {
+      "path": "ARCHITECTURE.md",
+      "status": "M"
+    },
+    {
+      "path": "CLAUDE.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/audit/2026-08-30-late-pick-delivery.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/audit/2026-08-30-same-game-pair-correlation.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/optimization-ideas.md",
+      "status": "M"
+    },
+    {
+      "path": "scripts/audit/same_game_pair_lift.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/health/test_fallback_defer.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/health/test_late_delivery.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_cutoff_candidate_exclusion.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_fallback_plan.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_incident_2026_08_30.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_late_delivery_guard.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_lock_decision.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_scheduler.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_scheduler_decision_record_integration.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_scheduler_skip_visibility.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_submission_cutoff.py",
+      "status": "M"
+    }
+  ],
+  "label": "R-I084-1",
+  "label_kind": "semantic_regression_replay",
+  "parent": "0c8ed3287d8ce7fa434d4b563938da87b8b8cbac",
+  "reasons": [],
+  "spec": {
+    "audit": {
+      "ARCHITECTURE.md": {
+        "decision": "irrelevant",
+        "reason": "documentation"
+      },
+      "CLAUDE.md": {
+        "decision": "irrelevant",
+        "reason": "documentation"
+      },
+      "docs/audit/2026-08-30-late-pick-delivery.md": {
+        "decision": "irrelevant",
+        "reason": "incident memo"
+      },
+      "docs/audit/2026-08-30-same-game-pair-correlation.md": {
+        "decision": "irrelevant",
+        "reason": "audit memo"
+      },
+      "docs/optimization-ideas.md": {
+        "decision": "irrelevant",
+        "reason": "documentation"
+      },
+      "scripts/audit/same_game_pair_lift.py": {
+        "decision": "irrelevant",
+        "reason": "audit script (pair-correlation backtest, 1cd5da8); never imported by tests"
+      },
+      "tests/health/test_fallback_defer.py": {
+        "decision": "irrelevant",
+        "reason": "not selected; 314154d (link 4) adds the double-down slot comparison test"
+      },
+      "tests/health/test_late_delivery.py": {
+        "decision": "irrelevant",
+        "reason": "not selected; 314154d (link 4) adds the late_delivery health source's tests"
+      },
+      "tests/test_cutoff_candidate_exclusion.py": {
+        "decision": "irrelevant",
+        "reason": "not selected; 3697512 adds run_single_check past-cutoff archive tests (r2 F5), candidate-exclusion behaviour of link 2"
+      },
+      "tests/test_fallback_plan.py": {
+        "decision": "irrelevant",
+        "reason": "not selected; tests plan_fallback_action, effective_cascade_budget_min, _measured_cascade_durations and _fallback_min_with_floor, all added by the fix (ImportError at the parent)"
+      },
+      "tests/test_incident_2026_08_30.py": {
+        "decision": "irrelevant",
+        "reason": "not selected and never loaded by the selected tests; the 8/30 replay (test_kwan_delivered_at_13_20) and its siblings build FallbackRefreshResult(block_reason=..., contender_game_pk=...) or import LockDecision, which a681e89 added, so at the parent they fail with TypeError/ImportError (new API only); test_stale_refresh_result_never_sends_after_cutoff encodes the link-2 delivery guard"
+      },
+      "tests/test_late_delivery_guard.py": {
+        "decision": "irrelevant",
+        "reason": "not selected; 3697512 adds the pre-send cutoff re-check (r2 F1) and the locked_unconfirmed page (r2 F2) tests of the delivery chokepoint, link 2's contract"
+      },
+      "tests/test_lock_decision.py": {
+        "decision": "irrelevant",
+        "reason": "not selected; asserts LockDecision attributes on _lock_decision_from_predictions' return, which a681e89 changed from a 3-tuple (AttributeError at the parent)"
+      },
+      "tests/test_scheduler.py": {
+        "decision": "neutral",
+        "reason": "(1) adds the autouse _no_live_mlb_api fixture patching bts.scheduler.retry_urlopen (present at the parent 0c8ed32, imported from bts.util) to raise, so no run reaches the live MLB API; the parent's in-loop fallback never calls it; (2) the run_day configs gain cascade_budget_min and operator_reserve_min, keys the parent's run_day does not read; (3) in the symptom test, 'no pending lineups' is now established by patching bts.scheduler.check_confirmed_lineups (present at the parent, line 318) to report every side confirmed, instead of patching the parent's own predicate _has_pending_future_confirmation_window to False, so the parent's real deferral predicate now runs on its own pre-refresh confirmation snapshot (see open question); (4) the _lock_decision_from_predictions tests now read LockDecision attributes and the 16:10/19:05 deferral test is rewritten into a gap-delivery test plus a primary-projected sibling, both constructing FallbackRefreshResult(block_reason=...): new API at the parent, not selected"
+      },
+      "tests/test_scheduler_decision_record_integration.py": {
+        "decision": "irrelevant",
+        "reason": "not selected; adds the same autouse _no_live_mlb_api fixture"
+      },
+      "tests/test_scheduler_skip_visibility.py": {
+        "decision": "irrelevant",
+        "reason": "not selected; adds a carry-forward test for delivery_refusals and fallback_refreshes across restarts (r2 F6)"
+      },
+      "tests/test_submission_cutoff.py": {
+        "decision": "irrelevant",
+        "reason": "not selected; 3697512 adds the naive-UTC game_time cutoff test (r2 F8), the cutoff computation of link 2"
+      }
+    },
+    "deployed_ref": {
+      "basis": "log",
+      "sha": "2ff2db9"
+    },
+    "env": {
+      "TZ": "America/New_York"
+    },
+    "fix_set": [
+      "a681e89",
+      "32057b7",
+      "67338cd",
+      "3697512"
+    ],
+    "incident": "I-084",
+    "label": "R-I084-1",
+    "links": [
+      1
+    ],
+    "notes": "Symptom: games 100 (16:10) and 200 (19:05), clock fixed at 15:29, run_single_check mocked (should_post False), the fallback refresh returns FallbackRefreshResult(daily, should_post=False), and check_confirmed_lineups reports every side confirmed. At the parent 0c8ed32, run_day computes has_pending_future_window BEFORE the sleep and the refresh, from the in-memory confirmed_sides that only run_single_check updates (empty here), so the 18:20 run for game 200 counts as a pending window; _should_defer_at_fallback(should_post=False, should_post_ungated=None, pending=True) defers, the pick is archived and removed, nothing is posted, and mock_post.assert_called_once() fails at line 1540. The 18:20 window could not finish before the 16:05 cutoff anyway. At F, the loop re-syncs confirmations for the remaining runs' games after the refresh, plan_fallback_action finds no pending window (legacy rule for an unknown block reason) and delivers. This is the flow of the parent's own deferral test (same schedule, clock and mocks; it asserted the archive and no post at the parent), so the red is the deferral decision, not a broken harness. Control: test_fallback_delivers_when_no_future_checks_remain (one game, no future run) delivers at both, showing mock_post is reachable on the parent's fallback path. EOD health checks run in both tests (no health_checks key); the health sources at 0c8ed32 make no network calls (subprocess git/systemctl only). Static checks at 0c8ed32: every patch target exists (fetch_schedule, _now_et, time, run_single_check, run_result_polling, _trigger_live_forward_capture_on_lock, _refresh_pick_at_fallback_decision, check_confirmed_lineups, retry_urlopen; bts.posting.post_to_bluesky; bts.picks.get_game_statuses_detailed); FallbackRefreshResult(daily, should_post) is valid there. The anchor text occurs on lines 1219, 1304, 1540 and 1603 of tests/test_scheduler.py at 3697512; line 1540 is inside the symptom test.",
+    "symptom_nodes": [
+      {
+        "_line": 1540,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I084-1/tests/test_scheduler.py",
+        "assertion": {
+          "line": 1540,
+          "path": "tests/test_scheduler.py",
+          "text": "mock_post.assert_called_once()"
+        },
+        "node": "tests/test_scheduler.py::TestRunDay::test_fallback_delivers_when_future_checks_have_no_pending_lineups"
+      }
+    ],
+    "tests": [
+      "tests/test_scheduler.py::TestRunDay::test_fallback_delivers_when_future_checks_have_no_pending_lineups",
+      "tests/test_scheduler.py::TestRunDay::test_fallback_delivers_when_no_future_checks_remain",
+      "-q"
+    ]
+  },
+  "spec_sha256": "6aec5e0d6ce30486fcbfc519f6a04b7cd9502544ad74ab3fad128df3362fad93",
+  "src_tree": {
+    "fix": "f445159c095c42eedabe77816b226d4eaa6e8515",
+    "parent": "63888a8ccd85ccf781889c745b17ecdaf765f440"
+  },
+  "symptoms": {
+    "tests/test_scheduler.py::TestRunDay::test_fallback_delivers_when_future_checks_have_no_pending_lineups": []
+  },
+  "verdict": "accepted"
+}

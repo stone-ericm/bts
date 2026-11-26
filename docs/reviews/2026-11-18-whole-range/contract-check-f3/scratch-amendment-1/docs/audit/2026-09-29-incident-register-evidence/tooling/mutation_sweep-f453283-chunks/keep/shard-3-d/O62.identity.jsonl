@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_r6_counterexamples::test_a_module_with_overridden_attribute_dispatch_is_a_coverage_gap", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r9_counterexamples::test_session_imports_of_a_module_subclass_run_no_application_dispatch", "kind": "assertion"}

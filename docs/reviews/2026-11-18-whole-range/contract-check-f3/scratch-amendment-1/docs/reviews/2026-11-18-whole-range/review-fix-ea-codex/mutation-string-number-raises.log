@@ -1,0 +1,27 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-ea-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 56 items / 48 deselected / 8 selected
+
+tests/test_wr_e_texts.py .F......                                        [100%]
+
+=================================== FAILURES ===================================
+____________________ test_malformed_persisted_fields[0.99] _____________________
+tests/test_wr_e_texts.py:65: in test_malformed_persisted_fields
+    assert scheduler.format_skip_dm("day", summary) == "BTS day: No pick at this check. " + body
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/wr-ea/mutant/src/bts/scheduler.py:1808: in format_skip_dm
+    return f"BTS {date}: No pick at this check. {format_skip_summary(summary)}"
+                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/wr-ea/mutant/src/bts/scheduler.py:1773: in format_skip_summary
+    probability = _skip_display_number(fields.get("best_p"))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/wr-ea/mutant/src/bts/scheduler.py:1755: in _skip_display_number
+    return math.isfinite(value)
+           ^^^^^^^^^^^^^^^^^^^^
+E   TypeError: must be real number, not str
+=========================== short test summary info ============================
+FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[0.99] - Type...
+================== 1 failed, 7 passed, 48 deselected in 1.08s ==================

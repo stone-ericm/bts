@@ -1,0 +1,807 @@
+slice	hash	date	class	live_dates	incident_class	evidence_quote	note
+A	00444c4	2026-03-29	feature				project scaffold
+A	7e1b491	2026-03-29	feature				
+A	23051b7	2026-03-29	feature				
+A	d991a79	2026-03-29	feature				
+A	aaea34a	2026-03-29	feature				
+A	242a292	2026-03-29	feature				
+A	0a33000	2026-03-29	feature				
+A	54a618b	2026-03-29	preship_fix				data-pull tooling during initial build, pre-production
+A	369312e	2026-03-29	preship_fix				data-pull tooling during initial build, pre-production
+A	973c968	2026-03-29	preship_fix				initial data build, pre-production
+A	ae5a0a8	2026-03-29	feature				
+A	fdc028e	2026-03-29	feature				initial feature pipeline + walk-forward eval
+A	0da6013	2026-03-29	experiment_or_research				pre-production feature ablation
+A	b936947	2026-03-29	experiment_or_research				pre-production feature ablation
+A	5b9f17b	2026-03-29	preship_fix				leakage fix before first live pick
+A	16f9242	2026-03-29	preship_fix				leakage fix before first live pick
+A	d54cb29	2026-03-29	preship_fix				data cleaning, pre-production
+A	e17eebf	2026-03-29	experiment_or_research				training-window study
+A	c96d4b0	2026-03-29	feature				
+A	cefbc76	2026-03-29	feature				
+A	ccc1c95	2026-03-29	feature				
+A	990b7c0	2026-03-29	feature				
+A	bf2249c	2026-03-29	feature				
+A	0941373	2026-03-29	feature				
+A	2816e79	2026-03-29	feature				
+A	ab3db97	2026-03-29	feature				
+A	ae6afb5	2026-03-29	preship_fix				fixes the blend prediction path committed 30 min earlier
+A	3e629a6	2026-03-30	feature				
+A	e0a6a78	2026-03-30	feature				
+A	9ca4346	2026-03-30	preship_fix				ABS extraction added the same morning
+A	245a971	2026-03-30	incident_fix?		D	Pre-existing bug surfaced when games have partial play data (just started).	live predict used each team's OWN pitcher as opponent once games had started; manual-pick era, no date stated (commit 3/30)
+A	ae1d355	2026-03-30	feature				removes --no-blend flag
+A	85b61f1	2026-03-31	feature				
+A	664a71c	2026-03-31	experiment_or_research				backtest-driven model-config revert; 22-feature base was in predict 3/29-3/31 but no live statement
+A	31ead55	2026-03-31	feature				
+A	38bc71c	2026-03-31	feature				
+A	0bfbb93	2026-03-31	experiment_or_research				backtest-driven revert
+A	50d14d9	2026-03-31	docs				automation spec + odds research script
+A	6798410	2026-03-31	feature				
+A	f8beeaa	2026-03-31	feature				
+A	8efeb70	2026-03-31	refactor_or_test				
+A	7b16afc	2026-03-31	feature				
+A	bcaf315	2026-03-31	preship_fix				posting module added the same evening
+A	8fc68cb	2026-03-31	feature				
+A	6db9705	2026-03-31	preship_fix				bts run built the same evening
+A	dd3b954	2026-03-31	ops_config				
+A	1e6970b	2026-03-31	feature				
+A	7d0c1d5	2026-03-31	preship_fix				hardening of unshipped automation
+A	42de5d5	2026-03-31	feature				
+A	659db6e	2026-03-31	preship_fix				review hardening of unshipped automation (scratched -> None etc.)
+A	dafa2af	2026-03-31	preship_fix				'issue 3/9' = review-list items on unshipped bts run; GH #3/#9 were created 4/29 and 5/4
+A	65e62d6	2026-03-31	feature				
+A	cbbe3ca	2026-03-31	ops_config				
+A	af76d33	2026-03-31	feature				
+A	dbfa3d8	2026-03-31	preship_fix				hypothetical ('e.g.') catch-up post; bts run built the same evening
+A	d575afb	2026-03-31	feature				
+A	b8b5d55	2026-03-31	feature				
+A	7101025	2026-03-31	feature				
+A	267a189	2026-03-31	refactor_or_test				
+A	1c2efaa	2026-03-31	preship_fix				preventive lock before the cron's first run; backfills day 1-3 pick files
+A	35f81c8	2026-03-31	infra_migration				Pi5 orchestration host prep
+A	aa5aed4	2026-03-31	refactor_or_test				
+A	d1d89cd	2026-03-31	refactor_or_test				
+A	2bb3234	2026-03-31	feature				worker interface for the Pi5 SSH cascade
+A	e293713	2026-03-31	feature				
+A	b7eb422	2026-03-31	infra_migration				Pi5 orchestrator
+A	5ef88b0	2026-03-31	infra_migration				Pi5 cron + config
+A	d4a396a	2026-03-31	infra_migration				Pi5/SSH setup fix before first run
+A	1bb95aa	2026-04-01	infra_migration				Windows (Alienware) SSH tier setup
+A	bec89d7	2026-04-01	infra_migration				Windows (Alienware) SSH tier setup
+A	5354bad	2026-04-01	preship_fix				DM module added 45 min earlier
+A	f98f874	2026-04-01	feature				
+A	34d2a9a	2026-04-01	feature				
+A	5bbba0b	2026-04-01	preship_fix				dashboard built 3h earlier
+A	54bf213	2026-04-01	feature				
+A	b9004ca	2026-04-01	feature				
+A	98d23a6	2026-04-01	feature				
+A	0d8bb98	2026-04-01	feature				
+A	ed38648	2026-04-01	feature				
+A	9114224	2026-04-01	preship_fix				reverts iframe added 2 min earlier
+A	50d4ee5	2026-04-01	incident_fix?		G	If batter_id isn't found in the expected game, search all Final games on that date by name. Handles wrong game_pk and wrong batter_id gracefully.	check_hit could not grade picks with wrong game_pk/batter_id; committed 9 min after the 1am check-results cron (4/1); not explicit
+A	4442873	2026-04-01	docs				
+A	b6b1865	2026-04-01	incident_fix?		D	Fixes stale features (days_rest, rolling hit rates) caused by parquets not being rebuilt after new games.	live picks computed on a stale season parquet (features not refreshed after new games); no explicit live statement
+A	1929f5a	2026-04-01	incident_fix?		L	"Fixes Mac tier failing with ""Invalid JSON output""."	Mac compute tier failed (stdout-polluted predict-json), likely the first Pi5-orchestrator cron run 4/1 11:00; could be setup
+A	cb4c1cc	2026-04-01	incident_fix?		L	projected lineup NOTE was going to stdout, breaking predict-json	second cause of the same 4/1 predict-json breakage as 1929f5a (projected-lineup NOTE on stdout)
+A	64ae365	2026-04-01	incident_fix?		L	Fixes Alienware build_season crash.	Alienware tier crashed on accented player names (cp1252) on the 4/1 cascade day; could be tier setup
+A	9c3a2f5	2026-04-01	experiment_or_research				
+A	4e95a11	2026-04-01	experiment_or_research				
+A	d832116	2026-04-01	experiment_or_research				
+A	b274edb	2026-04-01	experiment_or_research				
+A	5cbc4a6	2026-04-01	experiment_or_research				
+A	2f59f55	2026-04-01	preship_fix				simulate tooling
+A	6675050	2026-04-01	preship_fix				simulate tooling
+A	55acba1	2026-04-01	preship_fix				simulate tooling
+A	5cfdca4	2026-04-01	feature				streak-aware strategy into production
+A	76d32c7	2026-04-01	feature				
+A	2ae0ab3	2026-04-01	experiment_or_research				
+A	f897257	2026-04-01	experiment_or_research				
+A	11f2158	2026-04-01	experiment_or_research				
+A	6687841	2026-04-01	experiment_or_research				
+A	68a87a7	2026-04-01	feature				MDP policy into the production strategy
+A	d5c17b4	2026-04-01	feature				phase-aware MDP policy
+A	2be445e	2026-04-01	feature				
+A	9ac1bbe	2026-04-02	feature				
+A	b130207	2026-04-02	feature				
+A	966391c	2026-04-02	experiment_or_research				
+A	7285fbc	2026-04-02	preship_fix				validate tooling review fixes
+A	c864b85	2026-04-02	experiment_or_research				
+A	e805eb6	2026-04-02	experiment_or_research				
+A	a9ac842	2026-04-02	experiment_or_research				
+A	fb2e902	2026-04-02	experiment_or_research				
+A	9da2187	2026-04-02	preship_fix				validate tooling review fixes
+A	2f7feb5	2026-04-02	experiment_or_research				
+A	f072b47	2026-04-02	experiment_or_research				
+A	e496da3	2026-04-02	experiment_or_research				
+A	0ea2d0b	2026-04-02	experiment_or_research				
+A	47eda10	2026-04-02	experiment_or_research				
+A	1fb9de5	2026-04-02	experiment_or_research				
+A	bfc2306	2026-04-02	feature				Sept-only MDP policy deployed
+A	811e116	2026-04-03	feature				
+A	7382f6b	2026-04-03	refactor_or_test				
+A	473274b	2026-04-03	feature				
+A	cd3f867	2026-04-03	feature				
+A	12ca0a4	2026-04-03	feature				
+A	5e8fd04	2026-04-03	feature				
+A	dfc3cc6	2026-04-03	feature				
+A	762c051	2026-04-03	feature				
+A	d3b7606	2026-04-03	feature				
+A	5f73a59	2026-04-03	ops_config				scheduler systemd unit + cron
+A	f7e1ffe	2026-04-03	experiment_or_research				
+A	962352e	2026-04-03	preship_fix				backtest script column names
+A	5d9b803	2026-04-03	ops_config				unit failed to start at initial install (216/GROUP), before the scheduler's first run
+A	18b661b	2026-04-03	docs				
+A	b430e45	2026-04-03	feature				
+A	0c7797b	2026-04-03	feature				
+A	3724bcb	2026-04-03	feature				
+A	0c6f307	2026-04-03	feature				
+A	08cf91e	2026-04-03	preship_fix				badge added 2 min earlier
+A	ef252e7	2026-04-03	feature				
+A	7e1b667	2026-04-03	feature				
+A	f5ce1ed	2026-04-03	incident_fix?		D	a game marked confirmed because the *opposing* team posted a lineup would not re-trigger when the picked team's lineup posted later.	scheduler's first live day (4/3): picked team's later lineup did not re-trigger predictions; not stated as observed
+A	515cfa3	2026-04-03	incident_fix?		D	The fallback was returning all of them, inflating the batter count from 9 to 11+ and shifting prediction rankings.	projected-lineup fallback (live since 3/29) included pinch-hit subs, skewing rankings; not explicit
+A	619d109	2026-04-04	incident_fix		D	"The 1am check-results cron had no guard, causing a second ""Streak reset to 0"" reply on miss days."	duplicate public 'Streak reset to 0' Bluesky reply; committed 10 min after the 4/4 1am cron (4/3 miss)
+A	a6cae41	2026-04-04	incident_fix?	2026-03-29,2026-03-30	G	Pre-scheduler picks (Mar 29-30) have game_pk: null, which caused check_hit to request .../game/None/feed/live — an HTTP 400.	reconcile hit HTTP 400 on null-game_pk pick files; dates = the affected picks, the run date is not stated
+A	a1f9bbf	2026-04-04	feature				
+A	7638af7	2026-04-04	incident_fix	2026-04-04	D	This caused today's pick (Díaz) to never lock because a projected batter (Kwan) from the postponed CHC@CLE game was within 3% of the confirmed pick.	the day's pick (Díaz) never locked/posted: a postponed game's projected batter kept the gap check open
+A	823ccb3	2026-04-04	incident_fix?		L	the restarted scheduler didn't set state.pick_locked — causing it to replay all check times and skip result polling.	restarted scheduler ignored an already-posted pick (replayed checks, no result polling); same 4/4 session as 7638af7
+A	6d36adb	2026-04-04	incident_fix?	2026-04-04	D	Four improvements from today's debugging session:	short-circuit/logging/audit-trail follow-ups to the 4/4 live Díaz never-lock debugging
+A	5207a09	2026-04-04	ops_config				workers git-pull before predict (deploy mechanism)
+A	6de6c8d	2026-04-04	feature				
+A	b54b4db	2026-04-04	feature				
+A	a96a22b	2026-04-04	feature				
+A	abbaca0	2026-04-04	feature				
+A	9e0014a	2026-04-04	preship_fix				scorecard built 7 min earlier
+A	3f32254	2026-04-04	feature				
+A	9b27cce	2026-04-04	feature				
+A	0c05bbc	2026-04-04	preship_fix				UnboundLocalError from 3f32254 five min earlier (dev loop)
+A	0dd5085	2026-04-04	feature				
+A	5e02676	2026-04-05	incident_fix	2026-04-04	G	Bug caused streak to show 4 instead of correct 2 after April 4.	1am cron re-applied a result the scheduler had already graded; streak double-counted (4 vs 2)
+A	27be68e	2026-04-05	incident_fix?		U	"so groundouts showed ""G?"" on the dashboard."	live scorecard showed 'G?' for assisted groundouts (cosmetic display)
+A	d99c5ef	2026-04-05	incident_fix?		U	MLB API uses f_putout (not f_fielded_ball) for some routine fly outs.	follow-up to 27be68e scorecard fielder labels; no symptom stated
+A	0632976	2026-04-06	incident_fix?		D	The scheduler would sleep past the picked player's game start when should_lock returned False (0% gap) and the next cluster check was hours later.	scheduler could sleep past the pick's first pitch without posting (late/missed delivery); reads live (4/6?) but not stated
+A	a002b04	2026-04-06	incident_fix?		D	If the scheduler restarts or runs a check after the fallback deadline (game_time - 15min) has passed, it should post immediately rather than skipping the fallback entirely.	companion to 0632976 (3 min later): a check/restart past the deadline skipped the fallback post
+A	0ba01e1	2026-04-06	incident_fix?		U	"so a double-pick with one Final + one Live game showed ""Final — pick"	dashboard showed 'Final — pick missed' early on a cross-game double; debut flag mislabel (Bubba Chandler)
+A	1d9c199	2026-04-07	incident_fix?		G	if check_hit returned None, the result list had only 1 element instead of 2, so streak incremented by 1 instead of 2.	cross-game double graded off the primary game only: streak +1 not +2 (4/6 had a cross-game double per 0ba01e1)
+A	59ddd53	2026-04-07	feature				
+A	ab2ba2e	2026-04-07	feature				
+A	99b6510	2026-04-07	feature				
+A	4d7f60b	2026-04-07	feature				
+A	0d9852d	2026-04-07	feature				
+A	04477bf	2026-04-07	experiment_or_research				
+A	23ccf7b	2026-04-07	experiment_or_research				
+A	7ea3d3b	2026-04-07	experiment_or_research				
+A	48def2f	2026-04-08	feature				densest-bucket removed from the production strategy
+A	8773a82	2026-04-08	experiment_or_research				
+A	01a4a58	2026-04-08	docs				
+A	44fdc84	2026-04-08	feature				
+A	ec648cd	2026-04-08	experiment_or_research				
+A	e1aaf61	2026-04-08	incident_fix		L	Fixes live pipeline timeout caused by full scan on every prediction run.	live prediction pipeline timed out scanning ~23K raw feeds per run after the 4/8 bullpen feature
+A	53bb7a4	2026-04-08	experiment_or_research				
+A	3e0f11b	2026-04-08	feature				
+A	c7c2f73	2026-04-08	incident_fix?		L	The variable was renamed from status to statuses for multi-game double-down tracking, but the suspended check still used the old name.	NameError on every non-final result poll since 1d9c199 (4/7); whether it crashed live polling is not stated
+A	b9670d6	2026-04-08	feature				
+A	d3e9337	2026-04-08	feature				cosmetic: both innings in the cross-game double header
+A	575f76f	2026-04-08	preship_fix				fixes d3e9337 from 2 min earlier
+A	8128f78	2026-04-08	experiment_or_research				
+A	afd7dff	2026-04-08	experiment_or_research				
+A	c85cef9	2026-04-08	experiment_or_research				
+A	ab74987	2026-04-08	experiment_or_research				
+A	fb6e00d	2026-04-08	experiment_or_research				
+A	80a67e1	2026-04-08	experiment_or_research				
+A	0b2e8d1	2026-04-09	preship_fix				experiment framework
+A	6d1fece	2026-04-09	experiment_or_research				
+A	ed243e8	2026-04-09	preship_fix				scorecard diff tooling
+A	7a7879b	2026-04-09	experiment_or_research				
+A	d69e15e	2026-04-09	preship_fix				experiment tooling/metric fixes
+A	212304f	2026-04-09	feature				lineup-time collection
+A	200ebc8	2026-04-09	feature				
+A	2fd8763	2026-04-09	feature				
+A	dfe4d3c	2026-04-09	docs				
+A	0322ecf	2026-04-09	feature				
+A	1f4f2d9	2026-04-09	refactor_or_test				
+A	4d14ec3	2026-04-09	docs				
+A	645aeb5	2026-04-09	experiment_or_research				
+A	ce91c0a	2026-04-09	experiment_or_research				
+A	c2fc82f	2026-04-09	experiment_or_research				
+A	9bfc0e9	2026-04-09	ops_config				
+A	d13761d	2026-04-09	preship_fix				collector built the same day
+A	5320d0d	2026-04-09	preship_fix				collector built the same day
+A	c78f44b	2026-04-09	feature				
+A	4f2cab5	2026-04-09	feature				
+A	9b63cd8	2026-04-09	infra_migration				R2 sync for the Fly move
+A	69765eb	2026-04-09	infra_migration				
+A	6f75c7d	2026-04-09	infra_migration				
+A	cd3abfc	2026-04-09	infra_migration				
+A	2dc873e	2026-04-09	infra_migration				
+A	330e583	2026-04-09	refactor_or_test				
+A	0f58789	2026-04-09	preship_fix				Plan 02 review fixes
+A	32ccb4c	2026-04-09	experiment_or_research				
+A	e51ce8c	2026-04-10	infra_migration				state export/regenerate for the host move
+A	2ee0e4b	2026-04-10	infra_migration				
+A	ed3d870	2026-04-10	infra_migration				
+A	d25e158	2026-04-10	preship_fix				unshipped regenerate parser
+A	eaf750e	2026-04-10	infra_migration				
+A	b40af6e	2026-04-10	infra_migration				
+A	11059dd	2026-04-10	infra_migration				
+A	97035fc	2026-04-10	infra_migration				
+A	5a77f58	2026-04-10	infra_migration				
+A	5019851	2026-04-10	preship_fix				review fixes C1-C3/I1 on unshipped state tools
+A	5a18a2a	2026-04-10	feature				
+A	f7328b8	2026-04-10	feature				
+A	357a166	2026-04-10	feature				
+A	70289ff	2026-04-10	infra_migration				local tier for single-host Fly
+A	6808ffc	2026-04-10	infra_migration				unified env var for the container
+A	c6eb9d2	2026-04-10	feature				
+A	884d45b	2026-04-10	infra_migration				
+A	c5005b6	2026-04-10	infra_migration				
+A	7081319	2026-04-10	infra_migration				
+A	e5b9795	2026-04-10	infra_migration				
+A	fcedf71	2026-04-10	infra_migration				
+A	4fd12ed	2026-04-10	infra_migration				
+A	7e5073e	2026-04-10	infra_migration				
+A	ffa423e	2026-04-10	infra_migration				
+A	4a82cf8	2026-04-10	infra_migration				
+A	0514203	2026-04-10	infra_migration				
+A	d5e0d7b	2026-04-10	infra_migration				cutover shadow_mode
+A	8913846	2026-04-10	infra_migration				
+A	d95e679	2026-04-10	infra_migration				
+A	5799517	2026-04-10	infra_migration				
+A	48649fd	2026-04-10	infra_migration				
+A	0e3cdbf	2026-04-10	docs				
+A	151bfe4	2026-04-10	infra_migration				dtype crash on the Fly shadow host
+A	039641d	2026-04-10	infra_migration				dtype hardening for Fly
+A	a7647fe	2026-04-10	infra_migration				
+A	8176efc	2026-04-10	infra_migration				
+A	9c3d8ee	2026-04-10	infra_migration				broke LightGBM on Fly (shadow host)
+A	0e6b598	2026-04-10	infra_migration				Fly OOM (shadow host)
+A	5075fba	2026-04-10	incident_fix		D	The Fly machine was posting to Bluesky as a second production instance.	Fly shadow instance published picks to the public Bluesky feed as a 2nd bot (shadow_mode never read); ~4/10
+A	f4e6660	2026-04-10	infra_migration				
+A	bb33616	2026-04-10	infra_migration				
+A	947fce8	2026-04-10	infra_migration				30+ min predictions + mdp_policy missing from R2 on the Fly shadow host
+A	8224d08	2026-04-10	refactor_or_test				perf
+A	2f1504f	2026-04-10	infra_migration				
+A	30ed4fa	2026-04-10	feature				
+A	ec4e392	2026-04-10	feature				
+A	cbbbc4f	2026-04-10	feature				
+A	555e8f5	2026-04-10	feature				
+A	d03c63c	2026-04-10	feature				
+A	8c900c8	2026-04-10	preship_fix				shadow model wired the same evening
+A	a2b2e32	2026-04-10	preship_fix				audit fixes to shadow wiring from 20 min earlier
+A	921a825	2026-04-10	infra_migration				
+A	0dff887	2026-04-10	infra_migration				
+A	0f86abb	2026-04-10	preship_fix				dup rows from shadow files added the same evening; PENDING badge = Fly shadow_mode
+A	c21df2e	2026-04-10	feature				cosmetic
+A	975fdc4	2026-04-10	feature				
+A	6f48e47	2026-04-10	feature				
+A	c30138b	2026-04-10	feature				cosmetic row styling
+A	0729031	2026-04-10	feature				
+A	d16bae4	2026-04-10	feature				
+A	12c51e9	2026-04-10	docs				static stats text on the dashboard
+A	ecab05c	2026-04-11	infra_migration				
+A	51ef987	2026-04-11	infra_migration				
+A	d771ae1	2026-04-11	docs				
+A	76b63fa	2026-04-11	preship_fix				preview-pick feature 3h old
+A	17ca511	2026-04-11	preship_fix				lock-time display added 3h earlier
+A	870cede	2026-04-11	incident_fix?		S	add safe.directory for git pull (was silently failing)	Hetzner deploy git pull silently failing, ~1h after cutover; likely a setup fix (infra_migration)
+A	cda8c1c	2026-04-11	incident_fix?		S	Previous `systemctl restart` silently failed since the units only exist under the bts user's service manager.	deploys did not restart Hetzner services (silent); cutover day 4/11, may be setup (infra_migration)
+A	d5c466c	2026-04-12	incident_fix	2026-04-11	L	yesterday's result-checking, the 2am reconcile, the 3am preview pick generation, and the 5-min lineup time collector were all silently broken since the Hetzner cutover on April 11.	every Hetzner cron job died ('source: not found' under dash): result check, reconcile, preview, lineup collector
+A	2ee1763	2026-04-12	feature				
+A	cef825b	2026-04-12	feature				
+A	b7d2135	2026-04-12	feature				
+A	715c932	2026-04-12	ops_config				3am chain reorder + log capture; the R2 failure is hypothetical
+A	e997155	2026-04-12	infra_migration				
+A	8193909	2026-04-12	incident_fix	2026-04-11,2026-04-12	S	"every ""kill orphan"" was followed by a fresh orphan from the OTHER unit's restart policy 5 minutes later."	system- and user-level scheduler units both ran on Hetzner; an orphan scheduler respawned after every deploy
+A	1b28720	2026-04-12	docs				
+A	0cc7f23	2026-04-12	refactor_or_test				
+A	6fd61f9	2026-04-12	incident_fix	2026-04-12	D	Reproduced live on 2026-04-12: morning preview had Luke Keaschall (MIN, 13:37 game) as primary + Roman Anthony (BOS, 14:15 game) as double-down.	fallback deadline taken from the later primary game = 13:40, 3 min after the double-down's first pitch/BTS cutoff
+A	bd8bcd3	2026-04-12	incident_fix	2026-04-12	U	Observed live on 2026-04-12: two back-to-back lineup-check runs, both against the same 14-game confirmed set.	confirmation counter logged '0 new' while new team-level lineups flipped the pick (misleading scheduler log/state)
+A	634768e	2026-04-12	incident_fix	2026-04-12	R	a real DISAGREES day that the bug converted to AGREES, and 2026-04-12.shadow.json was byte-identical to the production file	shadow pick overwritten by production's after lock; a DISAGREES day was recorded as AGREES
+A	80fd31f	2026-04-12	incident_fix?		R	That was a secondary masking layer for the select_pick short-circuit bug (634768e)	follow-up to 634768e: shadow loader reset bluesky_posted, hiding the corrupted 4/12 shadow file
+A	6168e1d	2026-04-12	incident_fix	2026-04-12	U	Result: empty /api/live-html response, no scorecard on the dashboard all afternoon even though Anthony's game had live PAs.	no live scorecard all afternoon for a cross-game double (Preview outranked Live in merge)
+A	1e4859d	2026-04-12	latent_fix		U	render_scorecard_section built live_badge, score_str, and inning_display but never inserted them into the returned HTML — standing dead code since before today.	scorecard header never rendered; per-game badges went stale after page load (found while fixing 6168e1d)
+A	dd25664	2026-04-12	incident_fix	2026-04-12	D	Audit of 2026-04-12 picks revealed that the fallback deadline path was posting stale predictions.	fallback posted a stale cached pick (Donovan) though a fresh cascade had Trea Turner higher
+A	6cd1761	2026-04-13	latent_fix		D	produced a ~1pp P@1 regression on the 2024 holdout (84.86% -> 83.78%) starting at 30ed4fa.	in-place sort reordered the training frame since 30ed4fa (4/10): live model silently changed; found by backtest bisect
+A	defbec3	2026-04-13	feature				
+A	dccbfbb	2026-04-14	feature				
+A	28732c2	2026-04-14	incident_fix	2026-04-14	L	production was running with a blend trained 2-3 days stale relative to the latest compute.py, creating a feature drift that nobody noticed until I probed the 3am retrain watcher tonight.	nightly 3am pull/build/preview chain failed on missing --start; production blend 2-3 days stale
+A	6e1256e	2026-04-14	preship_fix				research dep (its uv.lock change tripped the deploy bug fixed in 6bffd63)
+A	5876753	2026-04-14	preship_fix				experiment tooling
+A	7fa90b4	2026-04-14	preship_fix				experiment framework audit fixes
+A	6bffd63	2026-04-14	incident_fix	2026-04-14	S	This session's catboost commit was the first uv.lock change in 3 days and tripped it.	deploy git pull failed on uv.lock drift; services restarted on stale code while CI showed green
+A	4c4cf6f	2026-04-14	experiment_or_research				
+A	013edcd	2026-04-14	experiment_or_research				
+B	1d61908	2026-04-15	incident_fix	2026-04-15	G	Symptom observed 2026-04-15: yesterday's Hoerner + Díaz double-down both hit (streak should be 2), but streak.json was rewritten to 0 at 02:00 ET when the reconcile cron ran.	02:00 reconcile reset streak 2->0 (backward walk broke on today's preview pick); message says it reset 'every night'
+B	859464f	2026-04-15	experiment_or_research				new audit driver; fixes audit-infra bugs from 4/14-15 overnight research audit (cloud boxes, not prod pick system)
+B	fa41861	2026-04-15	experiment_or_research				audit result / seed-outlier analysis scripts
+B	0528bfd	2026-04-15	experiment_or_research				pooled-seed MDP policy research + A/B; also fixes hardcoded random_state in research script arch_eval.py
+B	f5e51dc	2026-04-15	incident_fix?	2026-04-11	U	"The display read ""Production P@1: 1/5"" when it actually meant ""1 of 5 days had both picks hit"""	shadow-report CLI labelled DD-aware day hit rate as 'Production P@1' (misleading on live data); label-only fix, math unchanged
+B	e1ebde9	2026-04-15	feature				ships 24-seed pooled MDP policy to production (research-validated)
+B	5c22b43	2026-04-15	experiment_or_research				48-seed audit expansion
+B	e8538cd	2026-04-16	preship_fix				research tooling: statcast_add_* crash (dup cols) caught in 4/16 audit; message says prod prediction paths unaffected
+B	e75b737	2026-04-20	experiment_or_research				OCI as audit compute provider + determinism validator (research infra, not prod hosting)
+B	2b1b7c1	2026-04-21	experiment_or_research				OCI audit launch pattern + rolling launcher (research infra)
+B	1eb432d	2026-04-21	ops_config				deploys move to deploy-branch push to avoid restarting scheduler mid-game
+B	fa1a070	2026-04-21	ops_config				deploy canary health check + auto-rollback
+B	2664c86	2026-04-21	preship_fix				audit-infra live failure: 4/21 Vultr API timeout crashed research driver, orphaned an instance (not prod)
+B	f6fcc16	2026-04-22	incident_fix	2026-04-22	S	First main:deploy push today silently skipped the canary workflow	first deploy-branch push fired no workflow run (paths filter); deploy had to be kicked via workflow_dispatch
+B	d4dae2c	2026-04-22	feature				PR #2: heartbeat staleness monitor, morning-game dynamic fallback, sd_notify Phase A
+B	0830ef4	2026-04-22	incident_fix	2026-04-22	A	No heartbeat was written during that window, so scripts/check_heartbeat.py false-fired every cold wake: first Phase B cron run at 13:15 ET today reported	new heartbeat monitor false /fail to Healthchecks during 5-6 min cold-wake prediction (spurious alert)
+B	b681f8a	2026-04-22	incident_fix	2026-04-22	L	Observed live 2026-04-22: Laureano (SD, 20:40 ET) primary + Henderson (BAL, 14:10 ET) double-down. Scheduler slept until 20:50, missing Henderson's full live-game window.	result polling keyed to primary game: slept through earlier DD game, result not persisted mid-game (1 AM cron backfilled)
+B	55bb1df	2026-04-22	experiment_or_research				audit tooling; recovery script used 4/22 on 26 research Vultr boxes idle 19h after driver died (research infra)
+B	c43869d	2026-04-22	incident_fix	2026-04-22	A	Observed live today 2026-04-22 starting 19:05 ET when the scheduler entered result_polling for the Laureano+Henderson slate	15-min result-polling sleep had no heartbeat -> ~2-3 false Healthchecks /fail per cycle (12 stale entries in 2h)
+B	684c160	2026-04-23	incident_fix	2026-04-22,2026-04-23	L	Observed live 2026-04-23 overnight: NRestarts=21 since deploy of c43869d yesterday 16:30.	no watchdog pings during SLEEPING waits -> systemd WatchdogSec SIGABRT killed scheduler every ~30 min (restart loop)
+B	ddee3db	2026-04-23	incident_fix	2026-04-23	L	Observed live 2026-04-23 post-games: NRestarts grew from 0 → 7 in 25 min after both picks' games ended.	clean exit at IDLE_END_OF_DAY -> Restart=always relaunch loop; same class recurs 5/09 (864d3aa)
+B	4e222b4	2026-04-24	feature				dashboard /api/audit-progress endpoint for research-audit monitoring
+B	fd7a8eb	2026-04-24	feature				audit-progress CLI smoke entry + audit_attach proc visibility
+B	fc2a8a6	2026-04-24	preship_fix				audit tooling: gate teardown on retrieve success (partial-retrieve data-loss hazard; no live loss stated)
+B	7bfa722	2026-04-24	preship_fix				audit tooling: wire audit_driver.main to teardown_retrieved
+B	6ccd7e5	2026-04-24	preship_fix				audit tooling: wire audit_attach.main to teardown_retrieved (completes data-loss hazard fix)
+B	277ed35	2026-04-24	feature				scorecard lineup-status helpers
+B	a98f1ad	2026-04-24	feature				scorecard lineup_status + batters_away
+B	9a89f5a	2026-04-24	feature				dashboard upcoming-PA cell uses lineup status
+B	dc64e93	2026-04-24	feature				lineup-status badge styling
+B	140940b	2026-04-24	incident_fix?		U	when the picked batter's team is currently in the field (e.g. Yoshida just made the 3rd out and BAL is now batting bottom 5)	new lineup-status cell went blank when picked team fielding; feature deployed 20:25 ET 4/24, fix 20:40 ET; example reads live
+B	ba5b42e	2026-04-24	feature				tinted upcoming-PA placeholder cells
+B	498c5a8	2026-04-24	feature				opt-in BTS_LGBM_DETERMINISTIC flag (default OFF); research-motivated
+B	abbfb0d	2026-04-25	incident_fix?	2026-04-25	L	Regression for 2026-04-25 09:36 ET incident: audit_attach.py crashed	LIKELY OUT OF SCOPE (research-audit tooling on bts-hetzner): audit_attach crashed on SSH timeout, abandoning 25 Vultr boxes
+B	b15bdbd	2026-04-26	experiment_or_research				factored experiment runner (strategy fast path)
+B	f8b4cc2	2026-04-26	preship_fix				Task 1 review fixes (research runner)
+B	d63841c	2026-04-26	refactor_or_test				pure refactor of blend_walk_forward helper
+B	f91d517	2026-04-26	preship_fix				Task 2 review fixes (research)
+B	e5dd76e	2026-04-26	experiment_or_research				factored runner model-swap cache
+B	4f78cf3	2026-04-26	experiment_or_research				two-stage screening decision logic
+B	b9f4f9f	2026-04-26	experiment_or_research				audit --two-stage orchestration
+B	e94d99c	2026-04-26	preship_fix				Task 5 review fixes (audit tooling)
+B	37d60b7	2026-04-26	experiment_or_research				--use-factored dispatch
+B	f647cfb	2026-04-26	experiment_or_research				factored-pipeline bit-exact validation harness
+B	20a2c7e	2026-04-26	preship_fix				Task 7a review fixes (research)
+B	3772be1	2026-04-26	experiment_or_research				LambdaRankTop1 experiment
+B	3bd4143	2026-04-27	preship_fix				audit tooling: add determinism flag to audit launch env
+B	d0eed9a	2026-04-27	feature				end-of-day calibration drift alerting
+B	e74c485	2026-04-27	feature				health-checks subpackage (9 alerts); cites earlier 4/22-23 heartbeat-gap fixes as motivation
+B	050592e	2026-04-28	preship_fix				validation script: determinism flag (research tooling)
+B	bfdb8f1	2026-04-28	experiment_or_research				merge of throughput-plan research branch (no code files listed)
+B	ea0d474	2026-04-28	experiment_or_research				flip --use-factored default (research)
+B	a5af424	2026-04-28	incident_fix	2026-04-28	S	Observed today (2026-04-28 11:06 ET): pushed main:deploy with 6 new commits, workflow reported success in 45s, but bts-mlb's HEAD remained at the pre-push SHA.	silent no-op deploy: workflow pulled origin/main, so a main:deploy-only push deployed nothing while canary passed
+B	a9165ec	2026-04-28	preship_fix				research tooling: Phase 2 selection ignored feature_cols + single-seed ceiling (research results wrong, not prod)
+B	4e221c8	2026-04-28	incident_fix	2026-04-28	A	First end-of-day health-check cycle on 2026-04-28 fired a spurious CRITICAL alert for the scheduler at 2.9 GB RSS.	memory_growth false CRITICAL (thresholds from sleeping baseline); also unexplained scheduler restart NRestarts 0->1
+B	19adf9f	2026-04-28	experiment_or_research				Phase 2 keep rule tightening
+B	1fd1dd9	2026-04-28	experiment_or_research				unregister inert experiments
+B	b28893b	2026-04-29	experiment_or_research				experiment CLI keep-rule knobs + seed sets
+B	0ef3cec	2026-04-29	experiment_or_research				multi-seed screen; audit_driver cpx51->cpx62
+B	c538978	2026-04-29	experiment_or_research				aggregate seed-corpora verdict table
+B	2647f74	2026-04-29	feature				draft daily pooled-training orchestrator (not production)
+B	2203220	2026-04-29	feature				pooled_training health check
+B	599cfd3	2026-04-29	experiment_or_research				pooled calibration backtest harness
+B	43d2c69	2026-04-29	experiment_or_research				regenerate audit experiment lists
+B	d428f54	2026-04-29	feature				memory_growth history + weekly digest
+B	3c15bb7	2026-04-29	feature				realized_calibration alert (later shown to fire on biased signal: b08769d, c5256e6)
+B	7afee63	2026-04-29	feature				promote bpm to FEATURE_COLS (PR #4); its deploy caused 4/29 latency (a512851) and 4/29-30 inference crash (ee4190f)
+B	a512851	2026-04-29	incident_fix	2026-04-29	L	that lambda-per-group pattern pushed compute_all_features past the 5-min heartbeat-watchdog threshold (stale=True at 17:30:01 ET, 330s old, fired Healthchecks failure DM).	bpm promotion (PR #4) slowed prediction cycle past 5 min -> stale heartbeat -> Healthchecks failure DM
+B	77673e8	2026-04-29	experiment_or_research				phase2_audit runner + aggregator
+B	f0c3af9	2026-04-30	incident_fix		A	Both alerts had no time-of-day guard, so they fired daily false positives during the natural pre-cron / pre-post window	blend_training + bluesky_post health checks paged false positives before cron/post; test comment cites 12:37 AM ET 4/30
+B	018ba87	2026-04-30	experiment_or_research				aggregator split pooling
+B	ee4190f	2026-04-30	incident_fix	2026-04-29,2026-04-30	D	The pick file from morning's 3 AM cron carried PROJECTED-lineup picks forward unchanged, never locked, never posted to Bluesky.	bpm missing from inference path: every scheduler tick crashed after 4/29 deploy; 4/30 pick never locked/posted before fix
+B	f5d58f7	2026-04-30	refactor_or_test				ARCHITECTURE drift + feature-coverage guard test for the ee4190f bug class + monotone-duplicate research audit
+B	88c8582	2026-04-30	feature				pitcher_sparsity health check
+B	b08769d	2026-05-01	incident_fix?		A	Effect: the daily-CRITICAL alert that was firing on the methodologically-inflated +14pp signal will now fire only on genuine ≥25pp distribution-shift events.	realized_calibration fired daily CRITICAL on DD-attribution-biased signal ('was firing', undated); also adds calibrator, default OFF
+B	38e4951	2026-05-01	feature				deps for leaderboard watcher
+B	cfa59fc	2026-05-01	feature				leaderboard package skeleton
+B	94429ea	2026-05-01	feature				cookie capture script
+B	7c620c3	2026-05-01	preship_fix				dev script fix inside unshipped leaderboard feature
+B	ce960c3	2026-05-01	feature				leaderboard endpoints + fixtures
+B	9f44391	2026-05-01	feature				leaderboard pydantic models
+B	78c115e	2026-05-01	feature				leaderboard parquet storage
+B	ee3cdde	2026-05-01	feature				leaderboard auth
+B	993eb38	2026-05-01	feature				rate-limit decorator
+B	aed9e4d	2026-05-01	preship_fix				models corrected to real API inside unshipped leaderboard feature
+B	e6931e1	2026-05-01	feature				leaderboard scraper
+B	9b6f417	2026-05-01	feature				leaderboard CLI
+B	00a2084	2026-05-01	preship_fix				pre-deploy live smoke found None API fields (TypeError) in new scraper; fixed same morning before merge/deploy
+B	40d8cfd	2026-05-01	feature				file-based cookie fallback
+B	37ccea7	2026-05-01	feature				leaderboard_freshness health check
+B	b687826	2026-05-01	feature				wire leaderboard_freshness
+B	07a0f60	2026-05-01	ops_config				systemd service + timer for leaderboard scraper
+B	f2c14cb	2026-05-01	ops_config				install script for leaderboard systemd units
+B	a4da0d1	2026-05-01	feature				leaderboard analysis layer
+B	51875a4	2026-05-01	feature				/api/leaderboard endpoint
+B	b4cafe7	2026-05-01	feature				lineup_evolution audit log in save_pick
+B	c5256e6	2026-05-01	latent_fix		A	The check was structurally compromised: it pooled picks generated by many different model iterations across the season as if they came from a single model.	realized_calibration pooled picks across model iterations (found by diagnostic); new HEAD-time filter later noted to drop 100% (81fd2fd)
+B	82c2ae6	2026-05-01	experiment_or_research				deps for research harness
+B	5d761d0	2026-05-01	experiment_or_research				per-PA prediction logging in backtest
+B	edb13ff	2026-05-01	preship_fix				code-review fix in new backtest logging
+B	26984b6	2026-05-01	experiment_or_research				FQE primitive
+B	07e4e2e	2026-05-02	experiment_or_research				DR-OPE estimator
+B	5ca02e7	2026-05-02	refactor_or_test				remove unused import
+B	a6c075d	2026-05-02	experiment_or_research				block bootstrap
+B	2876d9f	2026-05-02	experiment_or_research				OPE audit modes
+B	7b6217e	2026-05-02	experiment_or_research				latent factor simulator
+B	884a554	2026-05-02	docs				docstring fix
+B	3afd76e	2026-05-02	experiment_or_research				CE-IS estimator
+B	ebfaeb7	2026-05-02	experiment_or_research				Pearson residual diagnostics
+B	543c2ec	2026-05-02	experiment_or_research				logistic-normal fit
+B	2f33a4d	2026-05-02	experiment_or_research				pair residual permutation test
+B	ae2d8ec	2026-05-02	experiment_or_research				corrected transition table
+B	605e7ce	2026-05-02	experiment_or_research				falsification harness driver + CLI
+B	2d54b3e	2026-05-02	preship_fix				Codex pre-merge review fix (research harness)
+B	7f35c13	2026-05-02	preship_fix				Codex pre-merge review fix (research harness)
+B	a1e2918	2026-05-02	preship_fix				Codex pre-merge review fix (research harness)
+B	cbcce45	2026-05-02	preship_fix				Codex pre-merge review fix (research harness)
+B	182016c	2026-05-02	refactor_or_test				rename/doc per Codex review; no behavior change
+B	e9b7d7a	2026-05-02	preship_fix				second Codex review fixes (research harness)
+B	5398fe6	2026-05-02	experiment_or_research				LOSO corrected-policy path
+B	5ee6854	2026-05-02	experiment_or_research				wire PA logging flag into backtest CLI
+B	3a549b9	2026-05-02	experiment_or_research				Task 13 research verdict + harness perf fix
+B	9c525b2	2026-05-02	experiment_or_research				research harness perf
+B	77fec80	2026-05-02	experiment_or_research				harness perf + corrected policy artifact (not deployed)
+B	c296984	2026-05-02	experiment_or_research				per-bin rho_pair
+B	5efd5f4	2026-05-02	preship_fix				T1 code-review fixes (research)
+B	e5fb58c	2026-05-02	preship_fix				T1 Codex-review fixes (research)
+B	5c00c1f	2026-05-02	experiment_or_research				per-bin rho_pair in transition table
+B	e6afae4	2026-05-02	preship_fix				T2 code-review fixes (research)
+B	0c75e60	2026-05-02	experiment_or_research				stability dict
+B	18c89fa	2026-05-02	preship_fix				T3 code-review fixes (research)
+B	9320a57	2026-05-02	preship_fix				T3 Codex-review fixes (research)
+B	799165a	2026-05-03	experiment_or_research				fold-local dependence refit
+B	f4962ea	2026-05-03	preship_fix				T4 Codex-review fixes (research)
+B	5bcac6d	2026-05-03	experiment_or_research				per-cell diagnostic heatmap
+B	c8c9910	2026-05-03	preship_fix				T5 code-review fixes (research)
+B	d2ede30	2026-05-03	preship_fix				T5 Codex-review fixes (research)
+B	89ce17d	2026-05-03	experiment_or_research				harness v2 (also repairs research-script call-site regression)
+B	e5336ec	2026-05-03	preship_fix				T6 code-review fixes (research)
+B	7559a29	2026-05-03	preship_fix				T6 Codex-review fixes (research)
+B	8a900f2	2026-05-03	experiment_or_research				v2.5 ablation flags
+B	088aa4b	2026-05-03	preship_fix				v2.5 T1 code-review fixes (research)
+B	983753d	2026-05-03	preship_fix				error-message fix (research)
+B	4cf31b0	2026-05-03	preship_fix				v2.5 T1 Codex-review fixes (research)
+B	d449826	2026-05-03	experiment_or_research				v2.5 cloud orchestration scripts
+B	c972d4c	2026-05-03	preship_fix				script rename for module import (research)
+B	766a12c	2026-05-03	preship_fix				v2.5 T2 Codex-review fixes (research scripts)
+B	2324e8f	2026-05-03	experiment_or_research				v2.5 attribution decomposition
+B	ed00d2f	2026-05-03	experiment_or_research				v2.5 attribution result
+B	c4349db	2026-05-03	experiment_or_research				v2.6 block-bootstrap CI
+B	ddfb163	2026-05-03	experiment_or_research				v2.6 CLI wiring
+B	81e73ed	2026-05-03	experiment_or_research				v2.6 default glob + smoke
+B	d1566a0	2026-05-03	experiment_or_research				v2.6 smoke script
+B	d3ff541	2026-05-03	experiment_or_research				v2.6 run-all-cells script
+B	1c1069e	2026-05-04	experiment_or_research				SOTA #12 proper scoring
+B	e982bab	2026-05-04	experiment_or_research				SOTA #5 validation contract
+B	99fc20e	2026-05-04	experiment_or_research				SOTA #11 conformal gate
+B	fe4faa4	2026-05-04	experiment_or_research				SOTA #13 policy-value eval
+B	59accb1	2026-05-04	experiment_or_research				SOTA #14 CE-IS eval
+B	81fd2fd	2026-05-04	experiment_or_research				realized-picks calibration memo; notes realized_calibration HEAD-time filter would drop 100% of picks (not fixed here)
+B	363707b	2026-05-04	feature				pick provenance fields
+B	3ce43e6	2026-05-04	preship_fix				research script/test preflight fix
+B	29ede7d	2026-05-05	experiment_or_research				realized-picks park attribution
+B	36038b8	2026-05-05	experiment_or_research				realized-picks skill quartile
+B	74b552a	2026-05-05	experiment_or_research				FDR baseline
+B	7b701c9	2026-05-06	incident_fix?		D	fix(scheduler): regenerate stale postponed picks	body empty; unposted pick on postponed game stayed 'locked' (not re-picked); ARCHITECTURE.md: 'the 2026-05-05 incident class'; PR #24 hotfix
+B	27c0b4d	2026-05-06	feature				health check for stale postponed picks (follow-up to 7b701c9 / 5/05 incident class)
+B	c02142b	2026-05-06	experiment_or_research				MDP objective audit + saved-policy replay
+B	d96388a	2026-05-06	experiment_or_research				DR-MDP gap screen
+B	1567186	2026-05-06	experiment_or_research				pooled-seed inventory
+B	8b2e74d	2026-05-06	experiment_or_research				pooled policy gap screen
+B	193aedb	2026-05-06	experiment_or_research				pooled raw DR-MDP gap
+B	09eff17	2026-05-06	experiment_or_research				pooled gap determinism screen
+B	3d47c0b	2026-05-06	experiment_or_research				nested CV lockbox inventory
+B	9af1177	2026-05-06	experiment_or_research				nested season split
+B	e5ade78	2026-05-07	experiment_or_research				audit verdict FDR retrospective
+B	bf712a5	2026-05-07	experiment_or_research				audit driver split flags
+B	8396771	2026-05-07	experiment_or_research				OCI canary launch prep (research infra)
+B	c7f68ec	2026-05-07	experiment_or_research				audit provider provenance tags
+B	ca71f06	2026-05-07	experiment_or_research				raw profile audit mode
+B	4761b57	2026-05-08	experiment_or_research				close pooled-policy audit cycle
+B	517d3a2	2026-05-08	experiment_or_research				decision-weighted LightGBM candidate
+B	b366bc8	2026-05-08	experiment_or_research				candidate artifact comparison
+B	5004b1c	2026-05-08	experiment_or_research				live-forward candidate artifact export (research stream)
+B	8671709	2026-05-08	incident_fix?		R	fix shadow result reconciliation	body empty; shadow results never reconciled once prod resolved + primary-only semantics; 5/09 memo: 27/29 shadow files 4/10-5/08 unresolved
+B	84b8e06	2026-05-08	feature				shadow backfill tooling (PR #57) used 5/08 to repair stranded shadow results (see 8671709); small load_shadow_pick DD fix
+B	96b6e4f	2026-05-08	incident_fix?		U	Update dashboard live progress refresh	message silent; per tests, game-progress pill sat outside the auto-refresh wrapper -> stale pill above fresh scorecard; live notice unconfirmed
+B	52db4d7	2026-05-08	incident_fix?		A	Skip macOS AppleDouble sidecar files and invalid UTF-8 JSON files when scanning realized calibration pick data.	._* files in picks dir raised UnicodeDecodeError, killing the check; 5/09 memo calls it a 'narrow health hotfix'; live firing unstated
+B	15da954	2026-05-09	feature				shadow-status monitoring artifact (research stream), follow-up to stranded shadow results
+B	77b36f5	2026-05-09	experiment_or_research				candidate artifact verifier
+B	150ed4c	2026-05-09	incident_fix?		L	skip existing daily shadow artifacts to avoid restart loops after successful writes	shadow generation had no watchdog pings and re-ran after restarts -> restart loops; wording implies live, undated (5/09?)
+B	bcc0447	2026-05-09	experiment_or_research				live-forward outcome resolver (non-prod)
+B	9424db7	2026-05-09	feature				dashboard live xBA estimate
+B	a142c14	2026-05-09	incident_fix?		G	Treat locked postponed/cancelled pick slots as terminal voids and score remaining active slots normally.	no void grading for locked picks on postponed games; message silent on live event; part of 5/09 evening postponement cluster
+B	68e4cdb	2026-05-09	incident_fix?		G	so postponed/cancelled locked-pick games stop blocking the all-final gate when the live feed still reports preview	postponed locked game blocked result polling's all-final gate; cap could overwrite resolved picks; this deploy run FAILED 5/09 23:13Z
+B	ac4a959	2026-05-09	incident_fix?		S	Treat the scheduler as healthy when it is active, or when systemd reports a clean Restart=always auto-restart cycle after day completion.	message silent; 68e4cdb deploy failed canary 8 min earlier (scheduler in auto-restart) -> canary relaxed; see 864d3aa
+B	864d3aa	2026-05-09	incident_fix?		L	This prevents the scheduler from exiting immediately after day completion and being relaunched repeatedly by Restart=always.	restart loop after day completion (default wakeup built on today's date, already past); recurrence of 4/23 class (ddee3db); likely live 5/09
+B	5455132	2026-05-09	feature				per-PA live xBA display
+B	f526b69	2026-05-09	feature				scorecard alignment polish
+B	5a1beb7	2026-05-09	incident_fix?		U	Fix resolved scorecard banner state (#80)	body empty; banner derived from PA data ignored resolved pick result (void/partial void) and posted badge hid after resolution
+B	c2cee87	2026-05-09	experiment_or_research				live-forward artifacts snapshot the production pick (parity evidence)
+B	013389e	2026-05-09	experiment_or_research				leaderboard clue audit tooling
+C	91d7066	2026-05-10	experiment_or_research				leaderboard backfilled model audit script (research)
+C	74b19af	2026-05-10	experiment_or_research				realized production surface audit support (research script)
+C	b3876fb	2026-05-10	experiment_or_research				pre-registered leaderboard mechanism-mining lane (research-only)
+C	3a688be	2026-05-10	experiment_or_research				read-only live-forward provenance inventory tooling
+C	9510f9c	2026-05-10	experiment_or_research				live-forward ranked-surface export tooling
+C	d4684a7	2026-05-10	feature				live-forward capture automation: script + systemd timer (PR #90)
+C	6213680	2026-05-10	preship_fix				commissioning-night fix to capture automation added 45 min earlier (partial pick JSON read = transient)
+C	66e192b	2026-05-10	preship_fix				PR #91 idempotency fix on capture-automation commissioning night (verify existing manifest first)
+C	cb0e74c	2026-05-10	ops_config				PR #92 timer window 05-22h; comment says late enable could fire on a resolved pick (commissioning)
+C	425f62f	2026-05-11	incident_fix?		U	Fix dashboard scorecard unresolved results	empty msg; branch dashboard-slot-results-hotfix (PR #93): DD scorecard read final/missed with a game pending; App.B lists 5/10-5/12
+C	6b17cc9	2026-05-11	feature				live-forward resolve automation: script + systemd timer (PR #94)
+C	09ee616	2026-05-11	incident_fix?		R	Handle terminal voids in live-forward resolver	weak; empty msg; prereg (PR #95) cites a previously pending postponed slate: live-forward row stuck pending (resolver commissioning)
+C	de45604	2026-05-12	preship_fix				PR #96 resolver commissioning: skip pick-snapshot gate for pre-5/10 legacy backfill artifacts
+C	429a998	2026-05-12	incident_fix?		R	Guard live-forward capture against stale pick snapshots	empty msg; PR #97; App.B lists it under 5/13-5/26 live-forward snapshot drift (pick changed after capture?) - verify
+C	285f3a5	2026-05-15	incident_fix?		L	Fix preview pick NaN pitcher IDs	empty msg; PR #98: int(NaN) raised in pick_from_row/select_pick when pitcher_id missing; App.B lists 5/15 live
+C	9340218	2026-05-18	incident_fix?		R	Treat post-game result updates as mutable metadata instead of stale locked-pick drift	post-game result writes made the capture guard flag valid live-forward artifacts as stale; App.B lists (PR #99?)
+C	bf72736	2026-05-18	feature				dashboard shows EAT/Kenya time next to ET during travel (PR #100)
+C	1c6fad6	2026-05-19	feature				pick_delivery dm mode: locked picks sent by private DM (PR #101)
+C	3a8d1bd	2026-05-22	incident_fix?		A	Add BTS health alert policy	empty msg; PR #102 adds OOM-evidence alert promotion (5/21 fixtures); App.B lists #102 for 5/22-5/23 inline shadow OOM loop
+C	c2caf63	2026-05-22	feature				BTS_LGBM_RANDOM_STATE now honored by live predict/backtest for multi-seed runs; default 42 unchanged
+C	4fd3f0e	2026-05-22	feature				merge commit of PR #103 (= c2caf63)
+C	43ddf0c	2026-05-22	incident_fix?		L	Dispatch shadow predictions out of process	empty msg; PR #104 shadow-capture-serialization moves shadow out of scheduler after 5/21 oom-kill (see a3df746 fixtures)
+C	a3df746	2026-05-23	incident_fix?		A	fix(health): escalate inline shadow OOM visibility	empty msg; PR #105; fixtures: scheduler oom-kill/status=9 at 2026-05-21 13:53 during inline shadow; App.B lists
+C	324c4a2	2026-05-23	incident_fix?		D	Defer unsafe fallback picks	empty msg; PR #106; 5/28 audit memo: 2026-05-22 Hoerner force-delivered with should_lock=False before lineups (missed)
+C	20cee9d	2026-05-23	ops_config				PR #107 shadow unit env alignment (rollout of out-of-process shadow = OOM remediation)
+C	05d6f63	2026-05-23	incident_fix?		A	Split DD pair shortfall alert semantics	weak; empty msg; PR #108: same_team_corr WARN labeled model-pair shortfall as pair correlation; live firing unconfirmed
+C	1479fd1	2026-05-23	feature				new mdp_policy_alignment health check (PR #109)
+C	2e9470f	2026-05-23	experiment_or_research				calibration re-solve validation gate (research, PR #110)
+C	a01bd72	2026-05-23	experiment_or_research				Gate B raw rebin measurement (research, PR #111)
+C	2efd40a	2026-05-23	incident_fix?		R	Skip stale live-forward archives in resolver scan	empty msg; PR #112; 5/23 disposition doc: bts-live-forward-resolve.service sat in failed state scanning stale archives
+C	279f190	2026-05-23	incident_fix?		A	Recalibrate scheduler memory growth alerts	empty msg; PR #114; code: normal 2.8-3.6GB post-prediction RSS looked actionable; App.B lists 5/23 false alerts
+C	3055644	2026-05-23	feature				new canonical live-forward resolution-stall health check (#115)
+C	c511a03	2026-05-23	incident_fix?		R	Handle final no-PA live-forward voids (#116)	weak; empty msg: final games with no PA row left live-forward rows pending; a live stuck slate is not confirmed
+C	23ca5a2	2026-05-23	feature				fallback_defer health visibility (#117); doc: journal since 5/01 shows fallback force-deliveries
+C	2eff8f9	2026-05-23	feature				persist health-DM delivery status + dashboard banner (#118); gap from alert walkthrough
+C	0799bf2	2026-05-24	incident_fix?		D	Fix postponed game candidate filtering (#119)	empty msg: live pick path used abstract status so postponed games stayed eligible; App.B lists 5/24-5/26; may be latent
+C	3710227	2026-05-24	incident_fix?		R	Normalize outcome_status_counts verification for old manifests missing newly-added zero-count statuses.	weak; regression from #116 (void_no_pa): old manifests failed verification, likely in box resolver; not stated
+C	27d1896	2026-05-24	experiment_or_research				Gate B PA-basis rebin screen (PR #122)
+C	26014bf	2026-05-24	experiment_or_research				Gate B walk-forward policy harness (PR #123)
+C	74494af	2026-05-24	experiment_or_research				Gate B fair comparator rebaseline (PR #125)
+C	71b12d4	2026-05-24	experiment_or_research				Gate B production metric rebaseline (PR #127)
+C	5d23bb1	2026-05-24	experiment_or_research				production live boundary feasibility inventory (PR #128)
+C	3e4f615	2026-05-25	feature				feature_env fingerprint on picks (PR #130); its nullable fields later tripped the 5/25 capture drift
+C	abbfdc5	2026-05-25	incident_fix?		D	Fix postponed-game lock status fallback	empty msg; PR #131: failed detailed-status lookup fell back to coarse status; App.B lists 5/24-5/26; may be latent
+C	f03a98b	2026-05-26	incident_fix?		R	Fix live-forward snapshot null provenance drift	empty msg; runbook in commit: 2026-05-25 EOD false CRITICAL analytics_artifacts_missing (null provenance read as drift)
+C	ac09137	2026-05-27	incident_fix?		A	fix: broaden restart spike alert wording	empty msg; PR #136: restart_spike CRITICAL blamed heartbeat gap when OOM was likely (wrong advice); App.B lists 5/27
+C	c127673	2026-05-27	incident_fix?		L	fix: keep dashboard health responsive	empty msg; PR #137; runbook in commit: 5/27 dashboard /health timed out (single-threaded), dashboard restart needed
+C	2890b2c	2026-05-29	feature				live picks driven by contest streak state + manual override (PR #138); its 5/29 manual value later froze
+C	6d3611a	2026-05-30	experiment_or_research				PR #139 audit + tests; memo documents 5/22 Hoerner early force-lock (fixed by 324c4a2) + 5/28 natural defer
+C	5a3a7ec	2026-05-30	experiment_or_research				MDP double-down guardrail evaluation (#141)
+C	aeb73c1	2026-06-06	feature				PR #142 contest auto-fetch (response to the silent contest-state freeze; see 365ea40)
+C	fc56f16	2026-06-06	feature				PR #142 contest auto-fetch: profile fetch + source_date (see 365ea40)
+C	5746144	2026-06-06	feature				PR #142 contest auto-fetch: observation builder (see 365ea40)
+C	f5b60af	2026-06-06	feature				PR #142 contest_state: expiring manual override precedence (see 365ea40)
+C	fa30ecb	2026-06-06	feature				PR #142 core fetch-contest-streak CLI: the fix for the silent freeze (see 365ea40)
+C	365ea40	2026-06-06	incident_fix		G	Closes the alert gap that hid the silent freeze: stale (source_date < latest resolved pick) now alarms when contest state is expected.	contest state silently frozen at 7 while real streak 0, no alert (5/29-6/06 per spec d383db5); fix = PR #142 aeb73c1..46c83c3
+C	46c83c3	2026-06-06	preship_fix				Codex integration-review fixes inside PR #142 before merge
+C	68a35d3	2026-06-06	ops_config				cron for the new fetch-contest-streak (operational part of the PR #142 freeze fix)
+C	f2b0b47	2026-06-06	ops_config				one-shot CI workflow disabling SSH password auth on the box (security hardening)
+C	f16300c	2026-06-06	ops_config				removes the one-shot SSH-hardening workflow after its run
+C	e2e40f2	2026-06-06	ops_config				deploy host read from a secret (defense-in-depth)
+C	681eb8c	2026-06-06	ops_config				security: hardcoded hc-ping URL leaked in public repo; check rotated and box cut over; no misuse stated
+C	2b752be	2026-06-06	feature				dashboard back to ET-only after the Kenya trip (display preference, not a defect)
+C	c808dc5	2026-06-07	latent_fix		P	a fail-open path that could enable doubles on unverifiable state	freshness check was fail-open when source_date missing; review find, not stated as fired
+C	58c9adc	2026-06-07	incident_fix		A	"the expected one-day overnight lag fired a CRITICAL ""STALE"" DM most nights"	EOD contest_state check sent false CRITICAL STALE DMs on the normal overnight lag (check live since 6/06); App.B lists 6/07
+C	a436827	2026-06-07	latent_fix		P	could be treated as a different game and trigger a same-game/junk double-down	raw game_pk compare (NaN / str vs int) could fake a different-game double; review find
+C	88234ae	2026-06-09	incident_fix?		A	project diagnosed as wrong (+6.6→+14pp), inflating the daily CRITICAL DMs	daily realized_calibration CRITICAL DMs inflated by proxy attribution (audit: plausibly); day-keyed EOD checks no-op'd
+C	925db1d	2026-06-09	latent_fix		D	initialized run_day for tomorrow and abandoned tonight's result polling + late-slate delivery	audit O2 mechanism; evening restarts may have hit it silently (1am cron masks); no live statement
+C	ce5f51d	2026-06-09	latent_fix		L	two un-pinged sleeps hit WatchdogSec=1800 → SIGABRT crash-loop on any unlocked-pick day with a doubleheader	audit O1; this instance not stated as fired (the bug class shipped 5 times before)
+C	4dded87	2026-06-09	preship_fix				dev script leakage_audit.py dead import; not production
+C	12bb0b2	2026-06-09	ops_config				CI runs fast suite on push/PR (audit T1); two tests had sat red on main (not a prod event)
+C	aa6b7b1	2026-06-09	latent_fix		A	fired a deterministic false CRITICAL on the first day back	audit H2: calendar-day gap would false-CRITICAL after off-day stretches (All-Star break ahead); not stated as fired
+C	0f2bc3c	2026-06-09	latent_fix		A	a check that raised every run produced no alert, no DM, only a journalctl line nobody reads	audit H3: a crashing health check silently returned []
+C	b302935	2026-06-09	latent_fix		A	early-season drift could fire CRITICAL on ~15 days	audit: predicted_vs_realized stat-power gates mis-measured; hypothetical false CRITICAL
+C	af08426	2026-06-09	latent_fix		A	"a corrupt `""streak"": true` validated as a streak of 1"	audit P3: streak_validation accepted a boolean streak
+C	082e5b0	2026-06-09	latent_fix		L	a crash mid-write (deploy restarts are routine) could leave a truncated file	audit D1: non-atomic pick/streak writes could crash-loop every loader; not stated as fired
+C	dfcf655	2026-06-09	incident_fix?		X	slot['pitcher_hand'] was None for every production pick and platoon_hr (a production FEATURE_COL) was silently NaN at inference	silent: live picks scored without platoon_hr (MLB hydrate lacks pitchHand); found by audit M1, no visible symptom
+C	86ff4f1	2026-06-09	latent_fix		X	so in 2027+ it would return the team's last 2026 regular-season lineup as the 'projected' lineup	audit M6: hardcoded 2026 schedule window, a 2027 time bomb; no 2026 effect
+C	c27480e	2026-06-09	latent_fix		P	a batter playing both games of a doubleheader had both game-rows' 12-model scores pooled into one mean	audit M5: DH batters got pooled probabilities; not stated as affecting a live pick
+C	8550b80	2026-06-09	incident_fix?		R	Shadow/CONTEXT only, but it contaminated the context-stack promotion eval.	leaky hardness feature fed the live shadow model, contaminating shadow promotion evidence; found by audit M4
+C	1ac0b0c	2026-06-09	ops_config				deploys gated on the test suite (audit T1)
+C	63fcb67	2026-06-09	latent_fix		S	a firewall change would silently expose pre-publication picks	security (audit S2): dashboard bound 0.0.0.0 without auth; hypothetical exposure
+C	736ea8f	2026-06-09	incident_fix?		L	run_day returned immediately on an off-day; systemd Restart=always then relaunched within ~30s and cycled all day	msg = audit E1 mechanism; audit memo frames it as hypothetical; App.B lists 6/09 live; likely latent, verify
+C	6d929f8	2026-06-09	latent_fix		X	Schema drift (JSON/key/pydantic) on one tab or one user no longer aborts the	audit G: scrape aborted on schema drift; also path-traversal guard + UA email removal
+C	0794116	2026-06-09	latent_fix		G	making the saver-aware (higher-EV) MDP line at streak 10-15 unreachable on the normal 4x/day fresh-contest path	audit D3: saver pinned False on fresh path; streak not in 10-15 then (best 9)
+C	e1594e3	2026-06-10	latent_fix		G	a corrupt auto file raised before the precedence check and blocked a valid unexpired manual override	audit D2: hypothetical corrupt-file case blocking the emergency override
+C	a7663ca	2026-06-10	latent_fix		S	it gates a root-SSH fan-out, not just an info leak	security (audit G): dashboard audit-progress path traversal guard + pin deploy action SHA
+C	cb7d00b	2026-06-10	ops_config				canary probes the tailnet IP so the tailnet bind can't trigger a false auto-rollback (pre-emptive)
+C	8c93799	2026-06-10	incident_fix?		S	so `uv sync --locked` rejected uv.lock and the test gate failed before deploying (production untouched)	new CI deploy gate (1ac0b0c) blocked a real deploy on the lockfile check; prod untouched; gate commissioning
+C	279d423	2026-06-10	incident_fix?		S	a UTC runner shifted the timestamp 04:00Z->00:00Z and --locked rejected it	same deploy-gate failure as 8c93799 (the uv pin did not fix it; TZ did)
+C	8cd7207	2026-06-10	incident_fix		A	so it fired a 'failed' DM daily	fetch-contest-streak currentness gate sent a false 'failed' DM every morning since the 6/06 cron
+C	3a6e48b	2026-06-10	incident_fix?		G	so a saver-preserved streak was under-counted	audit D4 mechanism; App.B lists 6/10 live, but the 10-15 saver zone was likely never reached; probably latent
+C	049e851	2026-06-10	experiment_or_research				research fleet driver option; LOCAL_BTS no longer hardcodes the dead Mac path
+C	8522412	2026-06-10	preship_fix				research fleet tooling: SSH key after MacBook loss (dev machine), not production
+C	03c06cf	2026-06-10	experiment_or_research				estimated_pa MDP re-solve analysis harness + findings (verdict HOLD)
+C	40a091c	2026-06-10	latent_fix		D	longer retry on a lost response, which could re-send a committed request	audit E2: double-post vectors; hypothetical
+C	8e867fc	2026-06-10	latent_fix		A	lexicographic compare misclassifies picks across offsets	realized_calibration since-deploy filter misclassified picks; audit find
+C	bb7ccc1	2026-06-10	latent_fix		A	E3: implement the missed-pick early alert (was dead config)	audit E3: configured pre-first-pitch missed-pick alert was never implemented
+C	6471f40	2026-06-10	latent_fix		A	so day-keyed one-shot CRITICALs aren't lost on a transient Bluesky outage	audit H6: a failed CRITICAL DM was never retried; hypothetical
+C	d94a51f	2026-06-11	latent_fix		A	a canary rollback moving HEAD's date backward (cutoff regressed → old-model picks re-included)	since-deploy calibration filter used commit time; real deploy stamp now; audit find
+C	b9b421e	2026-06-11	experiment_or_research				M3 serving-staleness audit follow-up; verdict HOLD
+C	e9c4258	2026-06-11	feature				persist daily slates + slate_auc health check (M3 revisit trigger)
+C	2598538	2026-06-11	feature				H5b progress beacon (fix for latent audit H5 wedged-but-pinging; no live hang per design doc)
+C	4070126	2026-06-11	feature				H5b stalled heartbeat state (+ test import fix)
+C	18efce1	2026-06-11	feature				H5b progress-aware heartbeat_watchdog (core of latent audit H5 fix)
+C	883f0eb	2026-06-12	feature				H5b stage-entry marks + scheduler watchdog wiring
+C	4c2b328	2026-06-12	experiment_or_research				swing campaign S0 bronze pull layer
+C	e00cc79	2026-06-12	experiment_or_research				swing campaign S0 backfill CLI
+C	1d395e5	2026-06-12	experiment_or_research				swing campaign S0 features + controls
+C	d732a96	2026-06-12	experiment_or_research				swing campaign S0 NDCG@10 metric harness
+C	42db6c4	2026-06-12	experiment_or_research				swing campaign S0 leaderboard QA
+C	e726314	2026-06-12	preship_fix				research QA script: browser UA after Savant 403 from datacenter IP
+C	8df3784	2026-06-12	preship_fix				research feature-layer swing count bias (+3.5%) fixed before any use
+C	388c4c3	2026-06-12	experiment_or_research				swing campaign S1 aggregates
+C	a6c2146	2026-06-12	experiment_or_research				swing campaign S1 arm registry
+C	d4ac07a	2026-06-12	experiment_or_research				swing campaign S1 screen runner
+C	a5c3975	2026-06-12	experiment_or_research				swing campaign S1 screen driver + report
+C	9663a24	2026-06-12	experiment_or_research				swing campaign S1 amended screen split after controls gate stop
+C	1ba01c4	2026-06-12	experiment_or_research				swing campaign S1 amendment #2 (Codex round-3 restructure)
+C	4f13eb3	2026-06-12	incident_fix	2026-06-11,2026-06-12	E	A delivered pick was never entered in the MLB app; nothing alerted until Eric noticed the frozen streak a day later.	delivered 6/11 pick never entered in the MLB app; no alert until Eric saw the frozen streak on 6/12; adds entry check
+C	2d68102	2026-06-12	incident_fix	2026-06-12	E	Eric caught it the same night: he HAD entered the 06-12 pick, but the user-profile predictions list contains only hit/not_hit/void rows	new check-pick-entered falsely flagged the entered 6/12 pick (endpoint hides pending entries); cron disabled
+C	80e6af9	2026-06-13	experiment_or_research				swing campaign S1 amendment #3 residual-stacking core
+C	90ae06d	2026-06-13	experiment_or_research				swing campaign S1 residual driver + oracle canary
+C	604285a	2026-06-13	preship_fix				Codex round-5 fixes inside the unshipped swing screen harness
+C	f366b5e	2026-06-13	experiment_or_research				swing campaign S1 soft-oracle calibration
+C	41714d8	2026-06-13	preship_fix				first-seed sanity fixes to research screen controls before the full run
+C	2b4ff1d	2026-06-17	incident_fix	2026-06-11,2026-06-17	G	Reproduces + fixes the 2026-06-17 incident (dashboard showed 10 vs real MLB 8 after a missed 6/11 entry)	decision/dashboard streak used max(model, contest): showed 10 vs real MLB 8 after the missed 6/11 entry; PR #143
+C	a9522a4	2026-06-17	preship_fix				Codex review fixes to Task 1 inside PR #143 before merge
+C	709e68b	2026-06-17	incident_fix?		X	RESOLVED omitted not_hit, biasing freshness against reset days.	PR #143 (6/17 incident): fetch ignored MLB not_hit rows so source_date lagged on reset days; live effect not stated
+C	9a3e8ed	2026-06-17	incident_fix?		G	the predictions array lags MLB's counter, so a current activeStreak was being discarded	PR #143 (6/17 incident): fetch discarded the current MLB activeStreak whenever the predictions array lagged
+C	4bdfdb8	2026-06-17	incident_fix?		G	A current activeStreak is written even when the per-round predictions array lags	PR #143 (6/17 incident): CLI currentness gate refused to write the current streak; gate removed
+C	7f9270c	2026-06-17	feature				append-only per-round MLB ledger snapshots (PR #143)
+C	aa2efa0	2026-06-17	feature				PR #143 follow-on: dashboard labels real-streak confidence + model replay note
+C	56f9726	2026-06-17	incident_fix?		A	gap==1 (the normal coverage lag) -> INFO at any time (was a daily false WARN past noon)	noon-ET contest-state WARN (added 6/12) apparently fired falsely daily; also demotes gap>=2 CRITICAL to WARN
+C	da71149	2026-06-17	refactor_or_test				behavior-neutral extraction of decide_action from select_pick
+C	d6995c4	2026-06-17	latent_fix		L	a corrupt policy would crash pick generation instead of falling back to the heuristic safety net	non-atomic MDP policy save (manual solves only); Codex review find; never fired
+C	22a40f2	2026-06-17	feature				contest ledger parser (saver inference groundwork)
+C	810d7e0	2026-06-17	feature				saver inference from best_streak + ledger (replaced next day as unsound; no live misfire stated)
+C	9c59ac4	2026-06-18	feature				saver_state model (manual saver flag)
+C	645b90f	2026-06-18	feature				guarded saver transitions + auto-earn
+C	815cf50	2026-06-18	feature				decision reads saver_state.json as sole authority (replaces unsound inference)
+C	3e4c6e6	2026-06-18	feature				saver auto-earn on fetch/set paths
+C	e311b3b	2026-06-18	feature				bts saver-state CLI
+C	bf6ccae	2026-06-18	refactor_or_test				retire infer_saver; ledger parser kept for the dashboard nudge
+C	3dc8c62	2026-06-18	feature				dashboard saver section + guarded POST
+C	af33e76	2026-06-18	feature				health WARN for uninitialized/stale saver flag in the 10-15 zone
+C	889eeed	2026-06-18	preship_fix				final Codex review hardening of the same-day saver feature
+C	e9870fa	2026-06-18	preship_fix				styling for the same-day saver UI (text was invisible); unclear if seen live after deploy
+C	9dc8ee4	2026-06-18	incident_fix	2026-06-18	A	"the 2026-06-18 ""why no suggestion?"" incident: best was Bo Bichette 75%, correctly skipped, but nothing said so"	a correct MDP skip produced no DM/log/dashboard signal; operator could not tell a skip from a hang
+D	d73face	2026-06-21	feature				Skip-policy shadow (R stream). Body notes the pre-existing check-results skip-day scoring bug (later GH #144) as deferred
+D	2b2b120	2026-06-21	feature				decision.json reader/writer; foundation of the GH #144 fix series (PR #145, first deployed 6/23 01:35Z)
+D	c24cab1	2026-06-21	refactor_or_test				SelectionResult refactor; groundwork for decision.json (#144 series)
+D	d929479	2026-06-21	incident_fix?		G	This is the linchpin for the GH #144 fix (Task 4 reads the record).	Feature scaffolding (decision.json writer) cited as linchpin of GH #144 fix; #144 liveness unconfirmed in msg
+D	d6ae318	2026-06-21	incident_fix?		G	fix(check-results): score only committed-pick decisions (GH #144)	GH #144: check-results scored undelivered previews on skip days (streak corruption); docs: found by investigation
+D	341ea41	2026-06-22	refactor_or_test				Skip-shadow migrated from marker onto decision.json
+D	fffb2cb	2026-06-22	refactor_or_test				No functional change; isolates decision-record writes (unshipped #144 series)
+D	b0877fd	2026-06-22	feature				is_scoreable_commit predicate (D1 of the #144 daemon-path plan)
+D	f1539c1	2026-06-22	preship_fix				Shape guard on the new, not-yet-deployed decision.json reader (D2); shipped with the series 6/23
+D	25aeaee	2026-06-22	incident_fix?		G	so the stale preview got scored and the streak corrupted -- bypassing the check-results scoreable gate entirely.	GH #144 C2: daemon result polling could score a stale preview on an MDP-skip day; pre-existing path, no live date
+D	add1b3f	2026-06-22	preship_fix				#144 series D5: restart-persistence gap in the unshipped FinalizationState (deployed together 6/23)
+D	62cfe4e	2026-06-22	incident_fix?		D	delivered + locked + scored the stale preview on a skip day. Closes Critical C1.	GH #144 C1: fallback could deliver a stale preview on a skip day; 7/01 audit says flip had not yet occurred live
+D	7bd2934	2026-06-22	incident_fix?		A	gate alert/health checks on decision record so skip days don't false-fire (D6, #144)	#144 D6: missed-pick/post-failure/artifact alerts would false-fire on skip days; live firing not stated
+D	ffc9e2b	2026-06-22	refactor_or_test				DRY of the #144 scoreable gate; behavior identical
+D	5fa36c3	2026-06-22	preship_fix				Post-review fixes to the unshipped #144 skip_standing logic + load_decision (deployed together 6/23)
+D	494f1d2	2026-06-23	feature				Dashboard player-name links
+D	3081948	2026-06-29	experiment_or_research				Skip-threshold + discrimination audit scripts
+D	0dca845	2026-06-29	incident_fix	2026-06-17	R	Fixes the 2026-06-17 live_forward_resolution CRITICAL stall (game 824912 resumed from 06-16).	Live-forward resolver stalled on a suspended-then-resumed game; live_forward_resolution CRITICAL
+D	02abfcc	2026-06-29	incident_fix?		X	The resolver void in the sibling commit is the backstop; this stops them at the source.	Slate offered resume-date suspended games (never scoreable); source fix for 0dca845's 6/17 stall; no date in msg
+D	793a093	2026-06-30	feature				is_resumed_portion PA column; part of the suspended-game scoring series
+D	5801002	2026-06-30	latent_fix		R	so a resumed-portion hit could be credited to an original-gameday pick (a pre-suspension out flipped to a hit; a calibration label inflated)	Resolver/calibration lookups credited resumed-portion hits; no live firing stated
+D	a364b11	2026-06-30	latent_fix		G	The production scorer read the cumulative final boxscore hit total, which includes the resumed portion of a suspended game -- so a resumed-portion hit could falsely continue a streak.	Scorer counted resumed-portion hits ('could'); seed register lists 6/29-6/30 as an incident but msg states no firing
+D	6e3f626	2026-06-30	latent_fix		G	scheduler._check_hits_midgame read cumulative boxscore hits directly; route it through	Mixed review r1: deployed mid-game hit check + slate_auc used full suspended PA (latent); resolver BLOCKER was pre-ship
+D	63fd1d0	2026-06-30	preship_fix				Review r2: skip-shadow mapped the new 'void' (from unshipped a364b11) to miss; deployed together 6/30 18:24Z
+D	b0420a0	2026-06-30	latent_fix		S	used `;` before sync, so sync-to-r2 ran even if pull/build failed.	3am cron could publish an R2 manifest over a failed rebuild; surfaced by post-deploy review
+D	83a5cad	2026-06-30	latent_fix		R	So --apply could write a reviewed shadow result as a miss instead of a void.	shadow-backfill cached path graded void as miss (void live since 6/30 18:24Z deploy); found by final review
+D	258aaa4	2026-07-01	incident_fix	2026-07-01	U	Two fixes from the 2026-07-01 audit (F1), triggered by the first live projected-pick->real-skip flip:	Flip day: stale file hid SKIP banner, hero showed a declined pick; skip text '~80% bar' read as a contradiction
+D	cd413e4	2026-07-01	latent_fix		U	Writing the 404 case surfaced a real defect: the early-return responded without draining the request body, so closing the socket sent a TCP RST and the client never saw the 404.	Dashboard saver endpoint 404 never reached the client (TCP RST); found while writing a test
+D	598a40b	2026-07-02	refactor_or_test				Deprecation cleanup (datetime.utcnow)
+D	2c62d72	2026-07-02	incident_fix	2026-07-01,2026-07-02	U	Finishes the flip-day display class (2026-07-01 audit F1; Eric's two reports 2026-07-02):	Skip day shown as eternally-pending pick; placeholder/hero/live section contradicted the SKIP banner
+D	af8fb30	2026-07-03	feature				Static-JSON capture + deep leaderboard pagination (notes past unit->game maps lost; opponent_team NaN by design)
+D	a6ec548	2026-07-03	incident_fix	2026-06-11,2026-06-12	E	v1 (2026-06-12) was disabled the night it shipped: its only source, the user-profile predictions array, is SETTLED-only, so the pre-pitch check false-alarmed every day.	Entry check v1 false-alarmed daily and was disabled; v2 closes the 6/11 missed-entry class
+D	720651a	2026-07-03	incident_fix?		E	check-pick-entered */15 10-23 ET (the command self-gates to the pre-pitch window and exits quietly otherwise).	Cron re-adds the entry-check line (v2, a6ec548) after the v1 false-alarm disable; msg cites no live event
+D	a57bb77	2026-07-04	feature				Scraper browser identity, jitter, 403/429 kill-switch
+D	df15eb0	2026-07-04	preship_fix				Review fixes to v2 entry check; v2 deployed ~1h earlier (03:03Z) with no pre-pitch window in between
+D	86e3026	2026-07-04	preship_fix				Smoke scrape of just-deployed deep pagination showed ~600-profile footprint; nightly run not yet reached
+D	af6329f	2026-07-06	incident_fix	2026-07-06	E	"On 2026-07-06 this fired a premature ""not entered"" DM for a deferred double-down 16 min before the scheduler deleted the pick."	Entry check sent a premature 'not entered' DM for a deferred, undelivered double-down
+D	540b1ab	2026-07-06	preship_fix				Pre-merge review fix of af6329f (deployed together 7/06); seed lists it with the 7/06 incident
+D	4650e48	2026-07-06	experiment_or_research				Strategy/model/PIT lever investigation comparator
+D	4e19193	2026-07-07	feature				park_drag_delta shadow context feature
+D	d292614	2026-07-07	preship_fix				Pre-merge review hardening of the unshipped park_drag branch
+D	ac788e3	2026-07-08	preship_fix				Review r2 of unshipped park_drag branch (legacy-stamping bug came from d292614)
+D	115c0cf	2026-07-08	feature				park_drag producer, cron entry, freshness health source
+D	a0f159a	2026-07-08	experiment_or_research				park_drag 2026 backtest screen
+D	27fcf0e	2026-07-08	experiment_or_research				Screen-review corrections incl. a report-script uncertainty bug
+D	b25f348	2026-07-09	latent_fix		D	Between ~8pm and midnight ET, utcnow()+1day targets the day AFTER tomorrow, so a manual evening/recovery preview wrote the wrong slate.	Manual preview defaulted to the wrong day 8pm-midnight ET (audit F15); no live event stated
+D	a349ac5	2026-07-09	latent_fix		A	an evaluation failure was indistinguishable from healthy, structurally defeating _safe_run's promised CRITICAL-on-crash	Health checks swallowed their own crashes as healthy (audit F4)
+D	bc56439	2026-07-09	latent_fix		L	a torn write meant a 30s crash-restart loop that stayed externally green	Non-atomic scheduler state save could cause an invisible crash loop (audit F3)
+D	a081bab	2026-07-09	latent_fix		A	a 30s crash-loop refreshes the heartbeat every cycle, so freshness alone scores a crash-loop healthy.	Heartbeat monitor blind to crash loops (audit F3); adds restart-churn detection
+D	40c0094	2026-07-09	incident_fix?		A	Every deploy stamp (11 in 10 days: docs, shadow, ops) reset the calibration sample, so min_bucket_n was never reached and the check was dead exactly during active development.	realized_calibration monitor was dead in prod (deploy stamps reset its sample); audit F6; missing-alert state
+D	8bceda1	2026-07-09	incident_fix	2026-07-08,2026-07-09	E	One DM then blindness let 7/08's DD leg go unentered past a single 18:00 alert, and 7/09's entry landed only after an out-of-band warning.	Partial entry: DD leg never entered after one alert; 7/09 entry needed an out-of-band warning
+D	e5ef7ca	2026-07-09	preship_fix				Review round on the unshipped Tier-A batch (deployed together 7/10 15:16Z)
+D	1010924	2026-07-09	ops_config				CI action SHA pinning + least-privilege deploy token (latent supply-chain risk, review F11)
+D	a374fa4	2026-07-09	incident_fix?		L	Raw JSON snapshots accumulated ~190 MB/day unbounded (players/ alone 879MB).	Static-snapshot disk growth on the box (review F14); no failure stated, likely not an incident
+D	3a09b2c	2026-07-09	latent_fix		G	an interleave could double-apply or lose a streak update.	Daemon vs 1am cron streak-scoring race (review F13); red test showed a double-count
+D	49f2538	2026-07-10	latent_fix		G	the daemon's cap/unresolved-final/suspended branches wrote stale objects unlocked (a cron-scored terminal hit could be overwritten with unresolved/suspended)	Pre-existing unlocked result writers could clobber terminal grades; 2am reconcile raced the daemon
+D	78c424a	2026-07-10	feature				restic backup of ops state (audit F5: picks/health state existed only on the box)
+D	cca6761	2026-07-10	incident_fix?		S	The tracked scheduler unit was the stale Pi5 one (/home/stonehengee, Type=simple, on-failure/300s) while prod runs notify+watchdog/always/30s	Config drift: repo systemd unit was a stale Pi5 copy vs the live prod unit (audit F12); no live failure
+D	ede5c28	2026-07-10	latent_fix		S	an interrupted sync left the old manifest pointing at new bytes — the backup was inconsistent during exactly the failure window it exists to survive	R2 artifact sync not crash-consistent (audit F8)
+D	9643d83	2026-07-10	incident_fix?		D	a projected DD rode through on the primary's confirmation (11 production days, 4 locked 51-133min early; 0 realized scratches	Early lock ignored an unconfirmed double-down on 11 prod days (audit F2); no harm (0 scratches)
+D	950fb80	2026-07-10	feature				Saver transition audit trail (accepted risk F7)
+D	0ea2132	2026-07-10	incident_fix?		S	The breakeven's derivation lived only at /tmp/skip_qdelta.py on the box — confirmed gone.	Skip-shadow breakeven derivation lost from box /tmp; also fixes repeated-look verdict statistics (R, latent)
+D	16ff24d	2026-07-10	preship_fix				Fix to the same-day, not-yet-deployed backup feature (hung restic)
+D	ea73b78	2026-07-10	preship_fix				Review round on the unshipped backburner batch (deployed together 7/10 18:32Z)
+D	9381a97	2026-07-10	ops_config				One-shot deploy-key rotation workflow
+D	934b2f3	2026-07-10	ops_config				Deploy job runs in 'production' environment; key rotation
+D	092230b	2026-07-10	ops_config				Removes the one-shot key-rotation workflow
+D	6d74d39	2026-07-10	latent_fix		D	fresh game-status snapshot — a primary whose game went postponed	Mixed review r2: R4 pre-existing lock path could deliver a pick whose game went postponed; rest fix same-day batch
+D	38c2f47	2026-07-10	experiment_or_research				F9 eval-basis contamination measurement
+D	09552b1	2026-07-10	preship_fix				Boundary fix to the same-day R5 age fence (review r3)
+D	0b25484	2026-07-10	feature				Skip-shadow aged-contradiction signal
+D	d960958	2026-07-10	preship_fix				R3 fail-closed copy claimed in 6d74d39 but never implemented
+D	30452eb	2026-07-10	preship_fix				Review r3 of the same-day batch (CI tested-SHA reset, shadow exclusions, backup carry)
+D	9551818	2026-07-12	incident_fix	2026-07-12	L	Restart=always relaunched every ~48s (NRestarts 3→50, one health DM per cycle).	Eve of All-Star break: scheduler idled on a past wakeup and restart-looped every ~48s
+D	ec242da	2026-07-12	incident_fix	2026-07-12	A	The 7/12 loop sent 47 identical CRITICAL DMs because the dispatcher is designed to run once per day and sends unconditionally	Alert storm: 47 identical CRITICAL DMs; restart_spike blind to the loop
+D	230f65c	2026-07-12	incident_fix	2026-07-12	A	The 7/12 CRITICAL compared the PRIMARY's p_game_hit against the DAY-level result — on double-down days the day result requires BOTH legs	Confounded predicted_vs_realized CRITICAL (day-level result vs primary probability)
+D	a275399	2026-07-13	incident_fix?	2026-07-12	A	found a season-long DD shortfall (25/42 = 0.595 realized vs 0.734 stated, tail p=0.035) that NO monitor could see	No monitor saw the live DD-leg shortfall (found by 7/12 analysis); adds coverage and retunes WARN
+D	afbea38	2026-07-13	experiment_or_research				DD-leg calibration analysis + threshold simulation
+D	96966f2	2026-07-13	experiment_or_research				DD-p policy value sensitivity harness
+D	d374bfc	2026-07-13	experiment_or_research				Repeat-batter conditioning stage 1
+D	69ef515	2026-07-13	preship_fix				Review r2 residuals on an audit script (research tooling)
+D	950c081	2026-08-03	latent_fix		X	so a single transient MLB blip on day 40 of a 180-day backfill threw away every day already fetched.	Unretried schedule discovery; msg says backfill-only, but the 3am cron data pull calls the same path (verify)
+D	4f0257a	2026-08-09	incident_fix	2026-07-10	R	The 2026-07-10 shadow pick sat ungraded for a month: SF@COL (10:15pm ET first pitch) was not final at the 01:00 cron	Shadow result stranded a month (late game not final at 01:00, never revisited); also adds a stale-scoring guard
+D	41b2bb1	2026-08-09	incident_fix?		A	result_resolution — stranded shadow AND production results alert instead of rotting	Missing alert for stranded results; companion of 4f0257a (7/10 stranded shadow); msg has no live date
+D	9ebad52	2026-08-09	incident_fix?		R	wait-deadline + flock singleton on the 01:00 grading cron	Cron activation of the 4f0257a wait loop (7/10 stranded shadow); msg cites no live event
+D	64f0ffb	2026-08-09	refactor_or_test				Removes a superseded module from the 7/10 stranded-shadow fix batch
+D	5216ea1	2026-08-09	incident_fix?	2026-08-09	R	found v1 records unusable as a state source: 31/44 persisted no streak/saver (only MDP skips did), skip records lost the executable second candidate	Decision records lacked state provenance and dropped second candidate (8/09 census); design gap more than failure
+D	4e8f69f	2026-08-09	experiment_or_research				Boundary-shadow census harness + mechanism run
+D	404358d	2026-08-11	incident_fix	2026-08-11	A	2026-08-11 incident: MLB endpoints flapped; auth/login returned blank HTTP 200s (~1-in-3 for a stretch) and 503s.	MLB login flap: failed cron and a DM wrongly advising cookie re-capture
+D	1b50b78	2026-08-14	incident_fix	2026-08-13	D	2026-08-13 incident: the 12:35 lineup check finished at 12:49, by which point the double-down game (13:10 start) had entered MLB's Warmup state.	Silent pass: Warmup status locked the undelivered pick, so no pick was delivered
+D	224ddce	2026-08-14	incident_fix	2026-08-13	A	Companion to the Warmup classifier fix — the alerting half of the 2026-08-13 silent pass.	No missed-pick alert on the silent-pass day (alert gated on the wrong flag)
+D	734bdb3	2026-08-30	refactor_or_test				Single submission-cutoff constant; prep for the 8/30 late-pick fix
+D	ac0ce8d	2026-08-30	incident_fix?		D	fail-closed submission-cutoff guard at the delivery chokepoint	Core cutoff guard of the 8/30 late-pick fix (seed-listed); msg itself cites no live event
+D	fa977c3	2026-08-30	feature				Excludes past-cutoff games from live selection; part of the 8/30 late-pick fix batch
+D	c0c0a97	2026-08-30	incident_fix	2026-08-30	L	2,112 cached feeds = ~10.6 min of pure sleep on every intraday prediction cascade (2026-08-30 late-pick incident).	Slow prediction cascade (10.6 min of sleep on cached feeds) behind the 8/30 late pick
+D	0c8ed32	2026-08-30	incident_fix?		L	later cascades the same day skip the ~12-min no-op re-pull.	Per-cascade ~12-min re-pull latency; companion perf fix in the 8/30 late-pick batch; msg cites no date
+D	a681e89	2026-08-30	refactor_or_test				LockDecision refactor; 8/30 fix batch
+D	32057b7	2026-08-30	feature				Deadline-aware fallback planner (pure); 8/30 fix batch
+D	67338cd	2026-08-30	incident_fix	2026-08-27,2026-08-29,2026-08-30	D	previously it was abandoned whenever any pending window existed — 8/27, 8/29, 8/30).	Gap-rule deferral abandoned enterable picks on 8/27, 8/29, 8/30; 8/30 pick sent 13:36 vs 13:35 cutoff (per 314154d)
+D	314154d	2026-08-30	incident_fix		A	which is exactly how the 13:36 DM for a 13:35 cutoff read as healthy	Health check read a post-cutoff delivery (13:36 DM, 13:35 cutoff) as healthy; 8/30 per sibling commits
+D	1cd5da8	2026-08-30	experiment_or_research				8/30 late-pick incident RCA doc + DD pair-correlation backtest script
+D	3697512	2026-08-30	preship_fix				Review r2 of the 8/30 fix branch before deploy; seed lists it in the 8/30 fix set
+D	2ff2db9	2026-08-30	preship_fix				Rebase reorder inside the unshipped 8/30 branch; seed lists it in the 8/30 fix set
+D	0abf503	2026-09-03	incident_fix	2026-09-03	P	On 9/03 the contest streak was 0 with 25 game dates left. The reach-57 solver values every action at exactly 0.0 once streak + 2*days < 57	9/03: reach-57 policy returned skip once 57 was unreachable, so production would idle through 9/27; tail policy fix
+D	155f1e7	2026-09-14	feature				D8 research capture on skip days (live-forward idled at pending_pick by design)
+D	44df03f	2026-09-22	incident_fix	2026-07-04	R	so the daily snapshots' all_season / all_time rows recorded the ACTIVE streak instead of the tab's ranking quantity (7/04 snapshot: 9/100 all_season rows equal the profile best_streak	C-01: leaderboard snapshots stored the active streak in all_season/all_time rows; confirmed on box data
+D	c45222b	2026-09-22	feature				Fail-closed parsing for the final grab; also hardens prod parsers against error-only bodies
+D	7153a66	2026-09-22	feature				Bounded end-of-season grab wrapper
+D	2a20f40	2026-09-22	preship_fix				Codex code-review r1 on the unshipped grab wrapper
+D	459eb06	2026-09-22	experiment_or_research				P-01 DD tripwire formal read
+D	1fb8461	2026-09-22	preship_fix				Codex code-review r2 on the grab wrapper
+D	b8e3da5	2026-09-22	preship_fix				Codex code-review r3 on the grab wrapper
+D	40e952e	2026-09-22	preship_fix				Codex code-review r4 on the grab wrapper
+D	fed10b6	2026-09-22	feature				Uncapped board walk (owner decision 9/22)
+D	05c8c0d	2026-09-22	preship_fix				Codex code-review r6 on the grab wrapper
+D	1fdd460	2026-09-22	preship_fix				Codex code-review r7 on the grab wrapper
+D	93ece9d	2026-09-27	experiment_or_research				Post-tabulation scoring-change check (later shown blind to in-place re-scoring, 134eaf0)
+D	bf5c8c1	2026-09-28	experiment_or_research				P-03/P-05 audit readers
+D	134eaf0	2026-09-28	experiment_or_research				C-03 root-cause doc (MLB in-place re-scoring 5/10, 8/20) + audit-check fix; prod fix is ce6676d
+D	ce6676d	2026-09-28	incident_fix	2026-05-10,2026-08-20	G	MLB re-scored two settled Chandler Simpson singles as fielding errors days later (5/10, 8/20) and the old 8-day recheck applied both at the day+6 run, overwriting true hits.	C-03: reconcile overwrote true local hits with post-cutoff MLB re-scoring; local vs contest diverged; not deployed
+D	5e44bc1	2026-09-28	experiment_or_research				C-04 closure: final-board diff
+D	8a7bc82	2026-09-28	experiment_or_research				W1.1 season ledger build, task 1 (audit tooling)
+D	c3ffc64	2026-09-28	experiment_or_research				W1.1 season ledger build, task 2
+D	393e775	2026-09-28	experiment_or_research				W1.1 season ledger build, task 3
+D	c3f904b	2026-09-28	experiment_or_research				W1.1 season ledger build, task 4
+D	be5bb22	2026-09-28	experiment_or_research				W1.1 season ledger build, task 5
+D	069f9ac	2026-09-28	experiment_or_research				W1.1 season ledger build, task 6
+D	6917fe9	2026-09-28	experiment_or_research				W1.1 season ledger build, task 7
+D	cb918f0	2026-09-28	experiment_or_research				W1.1 season ledger build, task 8
+D	baf9ad3	2026-09-28	experiment_or_research				W1.1 season ledger build, task 9
+D	c7c0eb1	2026-09-28	experiment_or_research				W1.1 season ledger build, task 10
+D	d7771d7	2026-09-28	experiment_or_research				W1.1 season ledger build, task 11
+D	84b77ff	2026-09-28	preship_fix				Final review #1 on the unbuilt season ledger
+D	b703a06	2026-09-28	preship_fix				Final review #2 on the season ledger (hashing cost)
+D	dc80c74	2026-09-28	preship_fix				Final review #3 on the season ledger (schedule fetch retry/shape)
+D	0d0ea95	2026-09-28	preship_fix				Final review #4/#5 on the season ledger
+D	cd8fcab	2026-09-28	preship_fix				Codex code r1 #7 on the season ledger
+D	f27f705	2026-09-28	preship_fix				Codex code r1 #5 on the season ledger
+D	733e651	2026-09-28	preship_fix				Codex code r1 #3/#4 on the season ledger
+D	4f0a2d3	2026-09-28	preship_fix				Codex code r1 #1/#2 output-check hardening on the season ledger
+D	d112b18	2026-09-28	preship_fix				Codex code r2 #1-#3 on the season ledger
+D	54cf9b0	2026-09-28	preship_fix				Codex code r3 #1 hardening on the season ledger

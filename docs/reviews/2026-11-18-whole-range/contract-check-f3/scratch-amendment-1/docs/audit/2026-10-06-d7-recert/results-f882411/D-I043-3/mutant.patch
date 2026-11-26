@@ -1,0 +1,14 @@
+diff --git a/src/bts/scheduler.py b/src/bts/scheduler.py
+index 8e45c10..39cd00a 100644
+--- a/src/bts/scheduler.py
++++ b/src/bts/scheduler.py
+@@ -2340,8 +2340,7 @@ def save_nonterminal_result(date: str, picks_dir: Path, result_value: str):
+         fresh = load_pick(date, picks_dir)
+         if fresh is None:
+             return None
+-        if fresh.result in ("hit", "miss", "void"):
+-            return fresh
++        pass  # W1.5 mutant: pre-68e4cdb — the polling cap overwrites an already-resolved result
+         fresh.result = result_value
+         save_pick(fresh, picks_dir)
+         return fresh

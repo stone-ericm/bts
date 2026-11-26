@@ -1,0 +1,124 @@
+{
+ "counted": true,
+ "plan_named": false,
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "related": [
+  "I-115",
+  "I-117"
+ ],
+ "notes": [
+  "split out of a275399 after Codex phase-1 r4 (Task 7 ruling on the I-076 exclusion): an operational alert-routing piece, not model quality",
+  "whether a realized_calibration WARN persisted unseen before 7/13 is in the box journals (Phase 2)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ],
+ "id": "I-116",
+ "working_id": "E116",
+ "title": "realized_calibration WARNs never reached the DM digest (not a WARN-attention source) until a275399 (7/13)",
+ "disposition": "deployed_latent_defect",
+ "classes": {
+  "primary": "A",
+  "secondary": []
+ },
+ "tier": "B",
+ "tier_reason": "alert routing gap for a monitor's WARN persistence (the CRITICAL path was unaffected); fixed 7/13; no residual known",
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "A health check's persistent WARN reaches the operator's DM digest through the WARN-attention policy.",
+  "source": "a275399 body ('so persistence actually reaches the DM digest'); src/bts/health/attention.py"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "realized_calibration was in neither ALWAYS_ATTENTION_WARN_SOURCES nor REPEATED_ATTENTION_WARN_SOURCES, so its WARNs never entered the DM digest",
+   "code": [
+    {
+     "path": "src/bts/health/attention.py",
+     "ref": "57ab96c",
+     "symbol": "REPEATED_ATTENTION_WARN_SOURCES",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "a275399"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "afbea38",
+    "live_by": "2026-07-13T04:12:56Z",
+    "run_id": 29223211407,
+    "evidence": [
+     "ev2"
+    ],
+    "not_live_before": "2026-07-13T04:12:54Z"
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "residual": [],
+ "watchdog": {
+  "boundary": "none",
+  "trigger": "alert routing completeness (every WARN source with a persistence rule is in an attention list) is not one of the W4 rank-2 boundaries; W4's alert-delivery checks assume the routing",
+  "recovery_assertion": "not_applicable"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit a275399 message body and diff (src/bts/health/attention.py)",
+   "what": "'realized_calibration joins the WARN-attention list so persistence actually reaches the DM digest'; at a275399^ it is in neither attention list"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 29223211407 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "retained log: pre-deploy line at 2026-07-13T04:12:54Z, deployed afbea38 (contains a275399) at 04:12:55Z"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "latent (no evidenced firing in Phase 1)",
+   "onset": "not_applicable",
+   "first_detectable": "not_applicable",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": "unknown",
+   "mitigation": "none",
+   "restored_verification": "not_applicable",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "not_applicable"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "a275399"
+  ],
+  "R": "pending_phase2",
+  "X": []
+ }
+}

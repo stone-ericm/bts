@@ -1,0 +1,40 @@
+{
+ "id": "E88",
+ "episode_row": [
+  "E88",
+  "5/01\u20137/04",
+  "C-01 leaderboard parser stored active streak in all_season/all_time rows",
+  "R",
+  "OI",
+  "A",
+  "44df03f"
+ ],
+ "commits": [
+  {
+   "sha": "44df03f",
+   "authored": "2026-09-22T10:52:36-04:00",
+   "subject": "fix(leaderboard): tab-specific streak semantics + explicit streak columns + envelope validation (C-01)",
+   "body": "parse_leaderboard_response preferred activeStreak over streak for EVERY tab,\nso the daily snapshots' all_season / all_time rows recorded the ACTIVE streak\ninstead of the tab's ranking quantity (7/04 snapshot: 9/100 all_season rows\nequal the profile best_streak; fixture user 441 best 34 parsed as 2). Found\nby Codex during the final-grab wrapper design review, confirmed on box data.\n\n- streak = tab-semantic (season best on all_season, all-time best on all_time,\n  active streak on active_streak / yesterday); new nullable columns\n  season_best_streak + active_streak carry both raw values.\n- Error-only / malformed bodies raise LeaderboardEnvelopeError instead of\n  parsing as an empty board.\n- Historical parquet files are NOT rewritten; docs/audit/2026-09-corrections-index.md\n  C-01 records the defect and the reading rule.\n\nCo-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>",
+   "files": [
+    "docs/audit/2026-09-corrections-index.md",
+    "src/bts/leaderboard/models.py",
+    "src/bts/leaderboard/scraper.py",
+    "src/bts/leaderboard/storage.py",
+    "tests/leaderboard/test_scraper.py"
+   ],
+   "first_live_log": {
+    "sha": "d15d382",
+    "live_by": "2026-09-22T15:53:56Z",
+    "not_live_before": "2026-09-22T15:53:56Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 35749963841,
+    "created_at": "2026-09-22T15:50:14Z",
+    "head_sha": "d15d382",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

@@ -1,0 +1,38 @@
+{
+ "id": "E57",
+ "episode_row": [
+  "E57",
+  "6/06\u20136/07",
+  "EOD contest_state nightly false CRITICAL",
+  "A",
+  "OI",
+  "B",
+  "58c9adc"
+ ],
+ "commits": [
+  {
+   "sha": "58c9adc",
+   "authored": "2026-06-07T13:54:42-04:00",
+   "subject": "fix(health/contest_state): level-aware staleness; stop nightly false-CRITICAL",
+   "body": "End-of-day health runs after the scheduler settles day D (latest_resolved -> D)\nbut before the next-morning fetch advances the contest source_date to D, so the\nexpected one-day overnight lag fired a CRITICAL \"STALE\" DM most nights \u2014 alert\nfatigue that could mask a genuine stale event. Make the check gap-aware:\n  - gap == 1 (expected overnight)            -> INFO (logged, never DM'd)\n  - gap  > 1 (genuine staleness/freeze class)-> CRITICAL\n  - no source_date (unverifiable)            -> CRITICAL\n  - future source_date (corrupt/fat-fingered)-> CRITICAL\nPick-path freshness stays strict (any gap >= 1 disables doubles). Daytime fetch\nfailures remain owned by the throttled _contest_fetch_alert DM, so this check\nneed not duplicate that detection.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "ARCHITECTURE.md",
+    "src/bts/health/contest_state.py",
+    "tests/health/test_contest_state.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27100280736,
+    "created_at": "2026-06-07T17:55:03Z",
+    "head_sha": "a436827",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

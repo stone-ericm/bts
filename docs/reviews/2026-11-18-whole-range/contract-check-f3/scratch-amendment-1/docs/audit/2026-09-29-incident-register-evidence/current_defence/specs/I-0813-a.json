@@ -1,0 +1,77 @@
+{
+ "label": "I-0813-a",
+ "link": "I-083 link 1",
+ "tests": [
+  "tests/test_warmup_lock_classification.py",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/picks.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/picks.py",
+   "    if code == \"PW\" or (detailed or \"\").strip().lower() == \"warmup\":\n        # Warmup (statusCode PW) is abstract-Live but pre-first-pitch \u2014 the only\n        # MLB state where abstract != Preview yet the contest still accepts the\n        # pick. Locking here silently passed the day on 2026-08-13. statusCode\n        # is the machine signal; the detailed-string match keeps older cached\n        # status shapes (no \"code\" key) working.\n        return PickLockState(\n            locked=False,\n            reason=\"warmup_not_started\",\n            game_pk=game_pk,\n            abstract=abstract,\n            detailed=detailed,\n        )\n",
+   "    if code == \"PW\" or (detailed or \"\").strip().lower() == \"warmup\":\n        pass  # W1.5 mutant: pre-1b50b78 \u2014 Warmup falls through to the abstract != P lock\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/picks.py",
+  "text": "W1.5 mutant: pre-1b50b78 \u2014 Warmup falls through to the abstract != P lock"
+ },
+ "entry": {
+  "path": "src/bts/picks.py",
+  "qualname": "classify_pick_lock_state"
+ },
+ "returns": [
+  {
+   "path": "src/bts/picks.py",
+   "qualname": "classify_pick_lock_state",
+   "classify": [
+    [
+     "started_lock",
+     "\"locked\": true, \"reason\": \"game_started_or_final\""
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "return",
+  "path": "src/bts/picks.py",
+  "qualname": "classify_pick_lock_state",
+  "category": "started_lock"
+ },
+ "killing": [
+  {
+   "node": "tests/test_warmup_lock_classification.py::TestWarmupClassification::test_undelivered_pick_in_warmup_not_locked",
+   "assertion": {
+    "path": "tests/test_warmup_lock_classification.py",
+    "text": "assert state.locked is False",
+    "line": 44
+   }
+  },
+  {
+   "node": "tests/test_warmup_lock_classification.py::TestWarmupClassification::test_statuscode_pw_recognized_without_detailed_text",
+   "assertion": {
+    "path": "tests/test_warmup_lock_classification.py",
+    "text": "assert state.locked is False",
+    "line": 71
+   }
+  }
+ ],
+ "contract": {
+  "text": "An undelivered pick whose game is in MLB Warmup (before first pitch) is not classification-locked as started.",
+  "entry_mode": "direct call of classify_pick_lock_state",
+  "trigger": "detailed status Warmup / statusCode PW",
+  "symptom_kind": "wrong classification (locked, game_started_or_final)"
+ },
+ "level": "production_path",
+ "level_justification": "only the MLB status lookup (get_game_statuses_detailed) is replaced",
+ "allowed_mocks": [
+  "bts.picks.get_game_statuses_detailed"
+ ],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

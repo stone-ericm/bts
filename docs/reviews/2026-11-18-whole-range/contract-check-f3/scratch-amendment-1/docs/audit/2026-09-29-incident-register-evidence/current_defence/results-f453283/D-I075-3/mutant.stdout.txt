@@ -1,0 +1,103 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 23 items
+
+tests/health/test_alert.py ..............FF..F.F..                       [100%]
+
+=================================== FAILURES ===================================
+___________ TestHealthDmDedup.test_same_day_same_sources_suppressed ____________
+
+self = <tests.health.test_alert.TestHealthDmDedup object at 0x109ac8a10>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8088/test_same_day_same_sources_sup0')
+
+    def test_same_day_same_sources_suppressed(self, tmp_path):
+        status_path = tmp_path / "s.json"
+        with patch("bts.health.alert.send_dm") as mock_dm:
+            first = dispatch_dm_for_health_alerts(
+                [self._crit()], "x.bsky.social",
+                status_path=status_path, now_et_date=self.D1)
+            second = dispatch_dm_for_health_alerts(
+                [self._crit()], "x.bsky.social",
+                status_path=status_path, now_et_date=self.D1)
+>       assert first is True and second is False
+E       assert (True is True and True is False)
+
+tests/health/test_alert.py:211: AssertionError
+_________ TestHealthDmDedup.test_new_source_same_day_sends_and_unions __________
+
+self = <tests.health.test_alert.TestHealthDmDedup object at 0x109ac8d10>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8088/test_new_source_same_day_sends0')
+
+    def test_new_source_same_day_sends_and_unions(self, tmp_path):
+        status_path = tmp_path / "s.json"
+        with patch("bts.health.alert.send_dm") as mock_dm:
+            dispatch_dm_for_health_alerts(
+                [self._crit("a")], "x.bsky.social",
+                status_path=status_path, now_et_date=self.D1)
+            # New source b escalates → must send
+            sent2 = dispatch_dm_for_health_alerts(
+                [self._crit("a"), self._crit("b")], "x.bsky.social",
+                status_path=status_path, now_et_date=self.D1)
+            # b alone is a subset of the sent union {a, b} → suppressed
+            sent3 = dispatch_dm_for_health_alerts(
+                [self._crit("b")], "x.bsky.social",
+                status_path=status_path, now_et_date=self.D1)
+>       assert sent2 is True and sent3 is False
+E       assert (True is True and True is False)
+
+tests/health/test_alert.py:229: AssertionError
+_____________ TestHealthDmDedup.test_warn_attention_digest_deduped _____________
+
+self = <tests.health.test_alert.TestHealthDmDedup object at 0x109ac9640>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8088/test_warn_attention_digest_ded0')
+
+    def test_warn_attention_digest_deduped(self, tmp_path):
+        status_path = tmp_path / "s.json"
+        warn = Alert("WARN", "disk_fill", "disk 91%")
+        with patch("bts.health.alert.send_dm") as mock_dm:
+            dispatch_dm_for_health_alerts(
+                [], "x.bsky.social", warn_attention=[warn],
+                status_path=status_path, now_et_date=self.D1)
+            sent = dispatch_dm_for_health_alerts(
+                [], "x.bsky.social", warn_attention=[warn],
+                status_path=status_path, now_et_date=self.D1)
+>       assert sent is False
+E       assert True is False
+
+tests/health/test_alert.py:268: AssertionError
+__ TestHealthDmDedup.test_distinct_incident_keys_share_source_not_suppressed ___
+
+self = <tests.health.test_alert.TestHealthDmDedup object at 0x109ac9cd0>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8088/test_distinct_incident_keys_sh0')
+
+    def test_distinct_incident_keys_share_source_not_suppressed(self, tmp_path):
+        # Round-2 review #6: two DIFFERENT checks crashing both surface as
+        # source="health_runner"; the second crash must still reach the
+        # operator. incident_key (when set) is the dedup identity.
+        status_path = tmp_path / "s.json"
+        a = Alert("CRITICAL", "health_runner", "check 'a' crashed",
+                  incident_key="health_runner:a")
+        b = Alert("CRITICAL", "health_runner", "check 'b' crashed",
+                  incident_key="health_runner:b")
+        with patch("bts.health.alert.send_dm") as mock_dm:
+            dispatch_dm_for_health_alerts(
+                [a], "x.bsky.social", status_path=status_path, now_et_date=self.D1)
+            sent_b = dispatch_dm_for_health_alerts(
+                [b], "x.bsky.social", status_path=status_path, now_et_date=self.D1)
+            sent_a_again = dispatch_dm_for_health_alerts(
+                [a], "x.bsky.social", status_path=status_path, now_et_date=self.D1)
+        assert sent_b is True, "a different crashed check must not be suppressed"
+>       assert sent_a_again is False, "the same crash dedups"
+E       AssertionError: the same crash dedups
+E       assert True is False
+
+tests/health/test_alert.py:302: AssertionError
+=========================== short test summary info ============================
+FAILED tests/health/test_alert.py::TestHealthDmDedup::test_same_day_same_sources_suppressed
+FAILED tests/health/test_alert.py::TestHealthDmDedup::test_new_source_same_day_sends_and_unions
+FAILED tests/health/test_alert.py::TestHealthDmDedup::test_warn_attention_digest_deduped
+FAILED tests/health/test_alert.py::TestHealthDmDedup::test_distinct_incident_keys_share_source_not_suppressed
+========================= 4 failed, 19 passed in 0.10s =========================

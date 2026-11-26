@@ -1,0 +1,11 @@
+nice: setpriority: Operation not permitted
+bts.__file__ /Users/eric/projects/bts-work/wr-rev-e-codex/.codex-review/wr-e/base/src/bts/__init__.py
+  Skip DM failed (); will retry next cycle.
+  MISSED-PICK ALERT — no delivery with ~0min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~0min to first pitch.
+bts.__file__ /Users/eric/projects/bts-work/wr-rev-e-codex/src/bts/__init__.py
+  Skip DM failed (); will retry next cycle.
+  MISSED-PICK ALERT — no delivery with ~0min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~0min to first pitch.
+lifecycle: identical, 2 entries
+[{'error': [False, None, True, '2027-07-15T18:35:00-04:00', False, ['offline.test', 'offline.test']], 'exit': ['SystemExit', None, True, '2027-07-15T18:35:00-04:00', False, ['offline.test', 'offline.test']], 'id': [True, '2027-07-15T18:35:00-04:00', True, '2027-07-15T18:35:00-04:00', False, ['offline.test', 'offline.test']], 'interrupt': ['KeyboardInterrupt', None, True, '2027-07-15T18:35:00-04:00', False, ['offline.test', 'offline.test']], 'no_id': [True, '2027-07-15T18:35:00-04:00', True, '2027-07-15T18:35:00-04:00', False, ['offline.test', 'offline.test']]}, [1, 2, 2, 2]]

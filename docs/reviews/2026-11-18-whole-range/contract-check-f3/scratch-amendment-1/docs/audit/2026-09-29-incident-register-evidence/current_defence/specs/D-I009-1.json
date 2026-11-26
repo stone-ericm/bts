@@ -1,0 +1,79 @@
+{
+  "label": "D-I009-1",
+  "link": "I-009 link 1",
+  "tests": [
+    "tests/test_scheduler.py::TestSchedulerRun",
+    "-q"
+  ],
+  "allowed_paths": [
+    "src/bts/scheduler.py"
+  ],
+  "mutation_edits": [
+    [
+      "src/bts/scheduler.py",
+      "            if not pick_candidate_status_is_available(detailed_statuses.get(game_pk)):\n                continue\n",
+      "            pass  # W1.5 mutant: pre-7638af7 — contender rows kept whatever their game status\n"
+    ]
+  ],
+  "branch": {
+    "path": "src/bts/scheduler.py",
+    "text": "W1.5 mutant: pre-7638af7 — contender rows kept whatever their game status"
+  },
+  "entry": {
+    "path": "src/bts/scheduler.py",
+    "qualname": "run_single_check"
+  },
+  "returns": [
+    {
+      "path": "src/bts/scheduler.py",
+      "qualname": "_lock_decision_from_predictions",
+      "classify": [
+        [
+          "gap_block",
+          "\"block_reason\": \"gap\", .*\"should_lock\": false"
+        ],
+        [
+          "lock",
+          "\"should_lock\": true"
+        ]
+      ]
+    }
+  ],
+  "symptom": {
+    "kind": "return",
+    "path": "src/bts/scheduler.py",
+    "qualname": "_lock_decision_from_predictions",
+    "category": "gap_block"
+  },
+  "killing": [
+    {
+      "node": "tests/test_scheduler.py::TestSchedulerRun::test_should_lock_excludes_postponed_games",
+      "assertion": {
+        "path": "tests/test_scheduler.py",
+        "text": "assert result[\"should_post\"] is True",
+        "line": 533
+      }
+    }
+  ],
+  "contract": {
+    "text": "A confirmed-lineup pick locks once its gap over the best projected-lineup contender from a game still available for a fresh pick reaches early_lock_gap: a projected batter in a postponed (or started/final) game is not a contender.",
+    "entry_mode": "direct call of run_single_check (cascade mocked; selection, provenance, save and the lock decision real)",
+    "trigger": "projected contender (0.80) within the gap of the confirmed pick (0.82) in a game whose detailed state is Postponed while abstract is still P",
+    "symptom_kind": "wrong returned lock decision (should_lock false, block_reason gap)"
+  },
+  "level": "component",
+  "level_justification": "besides MLB/compute I/O wrappers (run_cascade, check_confirmed_lineups, get_game_statuses, get_game_statuses_detailed, retry_urlopen) the test replaces the internal policy loader strategy._load_mdp (returns None, forcing the heuristic)",
+  "allowed_mocks": [
+    "bts.scheduler.check_confirmed_lineups",
+    "bts.orchestrator.run_cascade",
+    "bts.picks.get_game_statuses_detailed",
+    "bts.strategy.get_game_statuses",
+    "bts.picks.get_game_statuses",
+    "bts.strategy._load_mdp",
+    "bts.scheduler.retry_urlopen"
+  ],
+  "baseline": "BASELINE",
+  "env": {
+    "TZ": "America/New_York"
+  }
+}

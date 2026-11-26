@@ -1,0 +1,68 @@
+--- a/src/bts/entry_receipt.py
++++ b/src/bts/entry_receipt.py
+@@ -101,7 +101,8 @@
+     {unit_id: (feedId, roundId)} and the source identity (each consumed file's path and sha256).
+     - **Conflicts:** a unit whose captures name more than one (feedId, roundId) maps to None (ambiguous), as in the
+       earlier audits' binding (`scripts/audit/season_ledger/contest.py`, `scripts/audit/mining87/run.py`).
+-    - **A null feedId** names no game: it contributes no identity, and contradicts none.
++    - **A null feedId** contributes no game identity. Its non-null roundId still participates in round
++      consistency, so a pre-binding capture cannot erase a round contradiction.
+ 
+     Returns (None, None) when the season has no capture."""
+     d = units_snapshot_dir(picks_dir)
+@@ -109,6 +110,7 @@
+     if not snaps:
+         return None, None
+     seen: dict = {}
++    rounds_seen: dict = {}
+     files = []
+     for path in snaps:
+         raw = path.read_bytes()
+@@ -119,10 +121,16 @@
+                 continue
+             feed, rnd = _typed(u.get("feedId"), int), _typed(u.get("roundId"), int)
+             seen.setdefault(u["id"], set())
++            rounds_seen.setdefault(u["id"], set())
++            if rnd is not None:
++                rounds_seen[u["id"]].add(rnd)
+             if feed is not None:
+                 seen[u["id"]].add((feed, rnd))
+     units = {uid: (next(iter(ids)) if len(ids) == 1 else (None, None) if not ids else None)
+              for uid, ids in seen.items()}
++    for uid, rounds in rounds_seen.items():
++        if len(rounds) > 1:
++            units[uid] = None
+     return units, {"files": files, "inventory_sha256": payload_sha256([f["sha256"] for f in files])}
+ 
+ 
+--- a/docs/ops/pick-entry-receipt-v1.md
++++ b/docs/ops/pick-entry-receipt-v1.md
+@@ -36,7 +36,7 @@
+ | `account` | **verified account**, once the login session returned: `expected_username` (the `--expected-username` option), `user_id`, `username` |
+ | `observation` | only for `observed`. **`response_completed_at`:** the instant the last fetch returned, before verification (C4). **`before_cutoff`:** strictly earlier than `cutoff_at`. **`sources`:** the sha256 of each consumed payload (`profile`, `pending`, `rounds`, `crosswalk`; canonical JSON) plus `units`: every local `units.json` capture of the season, as one declared inventory (`files`, each with its path, sha256 and capture time, and `inventory_sha256`), or null. **`rows`:** the target date's rows, `profile` slots and `pending` rows, restricted to the typed allowlist `roundId`, `unitId`, `playerId`, `number`, `result`. `result` must also be one of `hit`, `not_hit`, `miss`, `void` or null (review r2 C3); a mistyped or out-of-domain value is nulled and named in `mistyped`. **`entered_bts_ids`, `resolved_mlb_ids`** |
+ | `verifier` | only for `observed`: the unchanged legacy verifier's `ok`, `reason` (`match` / `present_unverified` / `no_pick` / `mismatch`), `required_mlb_ids`, and `game_qualified: false`. It is batter-only |
+-| `qualification` | only for `observed` (C1). Per selection slot, `state`: `confirmed` (the batter's single target-date row names a unit whose `feedId` across **all** the season's captures is the slot's game in the same round), or `missing`, `player_unverified`, `ambiguous` (several rows, or a row already used by another slot), `unit_unverified` (no capture, unknown unit, no `feedId`, or captures naming different games or rounds; a null `feedId` names no game and contradicts nothing), `wrong_round`, `wrong_game`, `unsupported_duplicate_selection` (two slots with the same batter and game, review r2 C8). Plus `all_confirmed` |
++| `qualification` | only for `observed` (C1). Per selection slot, `state`: `confirmed` (the batter's single target-date row names a unit whose `feedId` across **all** the season's captures is the slot's game in the same round), or `missing`, `player_unverified`, `ambiguous` (several rows, or a row already used by another slot), `unit_unverified` (no capture, unknown unit, no `feedId`, or captures naming different games or rounds; a null `feedId` contributes no game identity, but any non-null `roundId` still participates in round-consistency checks), `wrong_round`, `wrong_game`, `unsupported_duplicate_selection` (two slots with the same batter and game, review r2 C8). Plus `all_confirmed` |
+ | `references` | only for `already_confirmed`: `{confirmed_by: <attempt_id of the confirming receipt>}`. It is `null` when the marker predates receipts |
+ | `error`, `failed_at` | only for `fetch_failed`: the exception type and the HTTP status, never the message (messages can carry URLs, headers or tokens), plus the failure time |
+ | `marker_status` | the marker status this run wrote (`confirmed`, `present_unverified`, `alerted`, `dm_failed`), or null |
+--- a/tests/test_entry_receipt.py
++++ b/tests/test_entry_receipt.py
+@@ -554,3 +554,17 @@
+     q = only(tmp_path)["qualification"]
+     assert q["all_confirmed"] is False
+     assert {x["state"] for x in q["slots"]} == {"unsupported_duplicate_selection"}
++
++
++
++def test_c1_a_null_feed_still_preserves_a_round_contradiction(monkeypatch, tmp_path):
++    H._setup(monkeypatch, pending=[H._pending(100)], crosswalk={100: 1})
++    units_snapshot(tmp_path, [{"id": 1, "feedId": None, "roundId": 99}], name="20260601T120000Z")
++    units_snapshot(tmp_path, [{"id": 1, "feedId": 1, "roundId": 7}], name="20260612T120000Z")
++    picks = picks_dir(tmp_path, batter_id=1)
++    H._run(picks, IN_WINDOW)
++    r = only(tmp_path)
++    assert r["verifier"]["reason"] == "match"
++    assert r["qualification"]["slots"][0]["state"] == "unit_unverified"
++    assert r["qualification"]["all_confirmed"] is False
++    assert len(r["observation"]["sources"]["units"]["files"]) == 2

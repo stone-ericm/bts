@@ -1,0 +1,13 @@
+before_remote_accept: recovery=1, {'returns': [None, None], 'polling': [[27240, '2027-03-24', 'final']], 'first_lock': True, 'first_committed': True, 'polls_before_repeat': 1, 'pick_messages': 0, 'pick_bytes': 'a70bf3e584a3cdd342832346a117ddb5fc64bfe09cb3a5926c05de74176de40a', 'decision_bytes': '8b3605b2c85ec6f3afed20f0375678905378d7a064532661c3b7d02700288c11', 'delivery_status': 'locked_unconfirmed', 'scoreable': True, 'locked': True, 'committed': True, 'next_morning': 'not_entered'}
+after_remote_accept: recovery=1, {'returns': [None, None], 'polling': [[27240, '2027-03-24', 'final']], 'first_lock': True, 'first_committed': True, 'polls_before_repeat': 1, 'pick_messages': 1, 'pick_bytes': 'a70bf3e584a3cdd342832346a117ddb5fc64bfe09cb3a5926c05de74176de40a', 'decision_bytes': '8b3605b2c85ec6f3afed20f0375678905378d7a064532661c3b7d02700288c11', 'delivery_status': 'locked_unconfirmed', 'scoreable': True, 'locked': True, 'committed': True, 'next_morning': 'not_entered'}
+corrected_after_marker: recovery=1, {'returns': [None, None], 'polling': [[27250, '2027-03-25', 'final']], 'first_lock': True, 'first_committed': True, 'polls_before_repeat': 1, 'pick_messages': 0, 'pick_bytes': '47fee1f6f8d3333ca3a8d872abfcf8a1c548e523d2f4573d16627f4a15762128', 'decision_bytes': '1f1ee00a8114bf161bc3142cdf77d7fbaf87011739e730796def2e8d6745afb8', 'delivery_status': 'locked_unconfirmed', 'scoreable': True, 'locked': True, 'committed': True, 'next_morning': 'not_entered'}
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/.codex-review/wr-c2-review/probe_restart.py", line 184, in <module>
+    main()
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/.codex-review/wr-c2-review/probe_restart.py", line 172, in main
+    results[case] = classification(root / case, patch, opening, case, head)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/.codex-review/wr-c2-review/probe_restart.py", line 145, in classification
+    assert checkpoints == ([(True, case != "writer_none", decision_after)] if head else [])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

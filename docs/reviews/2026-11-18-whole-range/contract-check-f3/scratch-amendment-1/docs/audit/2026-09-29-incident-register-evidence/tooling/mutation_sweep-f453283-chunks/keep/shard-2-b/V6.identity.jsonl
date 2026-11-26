@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_records::test_an_uncited_operator_report_is_rejected", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_records::test_a_report_may_describe_the_fix_step_that_cites_it", "kind": "assertion"}

@@ -1,0 +1,239 @@
+{
+ "id": "I-042",
+ "working_id": "E42",
+ "title": "4/29-5/01 realized_calibration paged a daily CRITICAL on a DD-attribution-biased, iteration-pooled signal",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "A",
+  "secondary": [
+   "R"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "on its own a false daily CRITICAL (B); raised by the B-to-A rule because the pooling fix's documented residual (a predictor-code-only change does not reset the calibration pool) is unfixed in deployed code and can still change calibration alerting",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "realized_calibration compares each pick slot's stated probability with that slot's own outcome, over picks from one production model regime, and pages CRITICAL only on a genuine miscalibration.",
+  "source": "commit b08769d message body; commit c5256e6 message body; src/bts/health/realized_calibration.py _regime_fingerprint docstring at HEAD"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "the check used the day's streak result as a proxy for the primary pick's hit; on double-down days a primary that hit was counted as a miss whenever the other leg missed, inflating over-confidence",
+   "code": [
+    {
+     "path": "src/bts/health/realized_calibration.py",
+     "ref": "88c8582",
+     "symbol": "check (attribution)",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "the check pooled pick files from many model iterations across the season as if one model produced them, so its level reflected iteration mix rather than the current model",
+   "code": [
+    {
+     "path": "src/bts/health/realized_calibration.py",
+     "ref": "b4cafe7",
+     "symbol": "check (no regime/deploy filter)",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "b08769d"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "b08769d",
+    "live_by": "2026-05-01T13:50:49Z",
+    "run_id": 25216790473,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "c5256e6"
+    ],
+    "complete_fix_set": false
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "c5256e6",
+    "live_by": "2026-05-01T19:12:35Z",
+    "run_id": 25228908680,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "c5256e6's since-deploy cutoff used HEAD's commit time, not deploy time (picks between commit and deploy passed the filter; a rollback moved the cutoff backward); closed by d94a51f on 6/11.",
+   "reaches_production": false,
+   "source": "commit d94a51f message body"
+  },
+  {
+   "text": "Resetting the sample on every deploy made min_bucket_n unreachable during active development, leaving the check effectively dead (audit F6); closed by regime-fingerprint pooling 40c0094 + e5ef7ca (7/09).",
+   "reaches_production": false,
+   "source": "docs/audit/2026-07-09-gpt56-sol-audit.md F6 and Codex #2; commit 40c0094"
+  },
+  {
+   "text": "Known residual at HEAD: a predictor-code-only change flips neither regime stamp, so it does not reset the pool; an explicit regime-version stamp is the recorded future fix.",
+   "reaches_production": true,
+   "source": "src/bts/health/realized_calibration.py _regime_fingerprint docstring at HEAD; docs/audit/2026-07-09-gpt56-sol-audit.md Codex #2"
+  }
+ ],
+ "watchdog": {
+  "boundary": "none",
+  "trigger": "model-quality monitor wording/attribution defect; no delivery, entry, grading, restart or preservation boundary failed - the relevant control is a per-slot attribution test and a regime-identity pin, not a service watchdog",
+  "recovery_assertion": "not_applicable"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit b08769d message body",
+   "written_at": "2026-05-01T09:41:39-04:00",
+   "what": "the prior attribution used the streak result as a proxy for the primary hit, biased on double-down days; the daily CRITICAL 'that was firing' rested on the inflated signal; thresholds raised"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit c5256e6 message body",
+   "written_at": "2026-05-01T15:12:30-04:00",
+   "what": "'today's diagnostic' showed the check pooled picks from many model iterations; the production aggregate and a walk-forward with the current model disagreed in sign, so the signal was iteration noise"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 25130705613 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "deploy of head 95190d8 (contains 3c15bb7, which added realized_calibration) created 2026-04-29T19:57:07Z (15:57:07 ET), conclusion success"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 25216790473 (deploy_runs.json)",
+   "what": "deploy of head b08769d created 2026-05-01T13:50:49Z, conclusion success; log unavailable_expired"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 25228908680 (deploy_runs.json)",
+   "what": "deploy of head c5256e6 created 2026-05-01T19:12:35Z, conclusion success; log unavailable_expired"
+  },
+  {
+   "id": "ev6",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/health/realized_calibration.py _regime_fingerprint at HEAD",
+   "what": "docstring: 'Known residual: a predictor-CODE-only change doesn't flip either stamp and thus doesn't reset the pool'"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-04-29 to 2026-05-01 end-of-day runs",
+   "onset": {
+    "not_before": "2026-04-29T15:57:07-04:00",
+    "not_after": "2026-05-01T09:41:39-04:00",
+    "evidence": [
+     "ev1",
+     "ev2",
+     "ev3"
+    ]
+   },
+   "first_detectable": {
+    "not_before": "2026-04-29T15:57:07-04:00",
+    "not_after": "2026-05-01T09:41:39-04:00",
+    "evidence": [
+     "ev1",
+     "ev3"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "not_applicable",
+    "confirmed": "not_applicable",
+    "failed": "not_applicable"
+   },
+   "operator_awareness": {
+    "not_after": "2026-05-01T09:41:39-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-05-01T09:41:39-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   },
+   "continuing": true
+  }
+ ],
+ "routes": {
+  "H": [
+   "b08769d",
+   "c5256e6",
+   "3c15bb7",
+   "d94a51f",
+   "40c0094"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-07-09-gpt56-sol-audit.md F6"
+  ]
+ },
+ "related": [
+  "I-073"
+ ],
+ "notes": [
+  "calibration figures in the bodies (percentage-point gaps, Brier folds) are deliberately not repeated; the incident is the alert's attribution, not the values",
+  "alert fields not_applicable: the false CRITICAL is the symptom; the check was live from the 4/29 15:57 ET deploy, so 'daily' means the 4/29 and 4/30 end-of-day runs",
+  "tier: prelim B; A only through the B-to-A rule (third residual). If the lead scopes that residual to I-073 (F6), this record returns to B",
+  "watchdog none: model-quality monitor with no service boundary - outside the guide's display/pre-ship use of 'none'; flagged for the lead",
+  "b08769d also shipped default-OFF calibrator infrastructure; not part of this incident",
+  "log bounds: both fixes live by 2026-06-07T00:11:19Z (run 27077693688)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

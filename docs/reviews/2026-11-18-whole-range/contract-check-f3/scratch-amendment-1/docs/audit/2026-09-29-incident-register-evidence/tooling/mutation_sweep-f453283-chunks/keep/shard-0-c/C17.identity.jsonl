@@ -1,0 +1,3 @@
+{"node": "tests.scripts.incident_register.test_certify::test_an_impure_observation_certifies_nothing[hook-start]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_certify::test_an_impure_observation_certifies_nothing[hook-end]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r7_counterexamples::test_an_application_audit_hook_makes_the_observation_impure", "kind": "assertion"}

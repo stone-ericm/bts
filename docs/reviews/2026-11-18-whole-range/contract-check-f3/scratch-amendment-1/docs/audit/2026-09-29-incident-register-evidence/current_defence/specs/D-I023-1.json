@@ -1,0 +1,79 @@
+{
+ "label": "D-I023-1",
+ "link": "I-023 link 1",
+ "tests": [
+  "tests/test_shadow_scheduler.py",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/strategy.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/strategy.py",
+   "    current = None\n    if not for_shadow:\n        current = load_pick(date, picks_dir)\n",
+   "    current = None\n    pass  # W1.5 mutant: pre-634768e \u2014 the shadow selection reuses production's saved pick\n    if True:\n        current = load_pick(date, picks_dir)\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/strategy.py",
+  "text": "W1.5 mutant: pre-634768e \u2014 the shadow selection reuses production's saved pick"
+ },
+ "entry": {
+  "path": "src/bts/scheduler.py",
+  "qualname": "_run_shadow_prediction"
+ },
+ "boundaries": [
+  {
+   "name": "shadow_save",
+   "binding": "bts.scheduler:save_shadow_pick",
+   "value": [
+    "args[0]",
+    "kw:daily"
+   ],
+   "classify": [
+    [
+     "delivered_pick",
+     "\"(bluesky_posted|notification_sent)\": true"
+    ],
+    [
+     "shadow_pick",
+     ".*"
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "event",
+  "boundary": "shadow_save",
+  "category": "delivered_pick"
+ },
+ "killing": [
+  {
+   "node": "tests/test_shadow_scheduler.py::TestRunShadowPrediction::test_writes_independent_shadow_file_when_production_locked",
+   "assertion": {
+    "path": "tests/test_shadow_scheduler.py",
+    "text": "assert shadow_data[\"pick\"][\"batter_name\"] == \"Nico Hoerner\"",
+    "line": 171
+   }
+  }
+ ],
+ "contract": {
+  "text": "The shadow model's daily pick is computed from its own predictions and written independently of production's: a shadow run after production's pick is delivered never hands production's DailyPick to the shadow writer ({date}.shadow.json).",
+  "entry_mode": "direct call of _run_shadow_prediction with the real select_pick",
+  "trigger": "production's {date}.json on disk is delivered (bluesky_posted=True) when the shadow runs",
+  "symptom_kind": "wrong event (save_shadow_pick receives production's delivered DailyPick)"
+ },
+ "level": "component",
+ "level_justification": "the test replaces two internal collaborators, the shadow model inference (predict_local_shadow) and the MDP policy loader (_load_mdp, autouse fixture forcing heuristic mode), plus the two MLB status lookups (external); select_pick, load_pick, classify_pick_lock_state, provenance stamping, the heartbeat watchdog and save_shadow_pick run for real",
+ "allowed_mocks": [
+  "bts.strategy._load_mdp",
+  "bts.scheduler.predict_local_shadow",
+  "bts.picks.get_game_statuses_detailed",
+  "bts.strategy.get_game_statuses"
+ ],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

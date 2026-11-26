@@ -1,0 +1,46 @@
+{
+  "label": "R-I075-1",
+  "incident": "I-075",
+  "links": [
+    1
+  ],
+  "fix_set": [
+    "9551818"
+  ],
+  "tests": [
+    "tests/test_scheduler_eve_of_break.py::TestStep7NextWakeup::test_games_today_empty_tomorrow_stores_future_wakeup",
+    "tests/test_scheduler_eve_of_break.py::TestIdleGuardLoud::test_past_wakeup_logs_reason",
+    "tests/test_scheduler_eve_of_break.py::TestIdleGuardLoud::test_naive_wakeup_logs_reason",
+    "tests/test_scheduler_eve_of_break.py::TestIdleGuardLoud::test_malformed_wakeup_logs_reason",
+    "tests/test_scheduler_eve_of_break.py::TestIdleGuardLoud::test_empty_wakeup_logs_reason",
+    "tests/test_scheduler_eve_of_break.py::TestNextDayWakeupEarlySlate::test_nonempty_tomorrow_past_wake_hands_off_soon",
+    "tests/test_scheduler_eve_of_break.py::TestNextDayWakeupEarlySlate::test_malformed_schedule_entry_hands_off_not_raises",
+    "tests/test_scheduler_eve_of_break.py::TestNextDayWakeupEarlySlate::test_fetch_failure_retries_soon_not_next_morning",
+    "tests/test_scheduler_eve_of_break.py::TestFetchScheduleGameType::test_non_regular_season_games_filtered",
+    "tests/test_scheduler_eve_of_break.py::TestFetchScheduleGameType::test_missing_gametype_included",
+    "-q"
+  ],
+  "symptom_nodes": [
+    {
+      "node": "tests/test_scheduler_eve_of_break.py::TestStep7NextWakeup::test_games_today_empty_tomorrow_stores_future_wakeup",
+      "assertion": {
+        "path": "tests/test_scheduler_eve_of_break.py",
+        "text": "assert wakeup > now, ("
+      }
+    }
+  ],
+  "audit": {
+    "tests/test_scheduler_eve_of_break.py": {
+      "decision": "neutral",
+      "reason": "new file holding the fix's tests; it imports bts.scheduler (_idle_until_next_wakeup, load_state, and patches fetch_schedule, _now_et, time.sleep, run_result_polling, _trigger_live_forward_capture_on_lock, run_single_check, retry_urlopen), all present at the parent 733d3d6 with the same signatures, and the helpers _game/_result/_seq from tests/test_scheduler_decision_record_integration.py, which is unchanged between the parent and 9551818"
+    }
+  },
+  "deployed_ref": {
+    "sha": "230f65c",
+    "basis": "log"
+  },
+  "env": {
+    "TZ": "America/New_York"
+  },
+  "notes": "Symptom (link 1): at the parent 733d3d6, run_day step 7 stores compute_wakeup_time(fetch_schedule(tomorrow)); for the empty tomorrow that is datetime.now(ET) at 10:00, i.e. today, hours before the mocked 23:30 run time, so TestStep7NextWakeup::test_games_today_empty_tomorrow_stores_future_wakeup passes lines 59 and 61 and fails at line 62 (a multi-line assert; pytest's rewrite gives the generated raise the statement's first line, see _pytest/assertion/rewrite.py 'Fix locations'; if the runner places it elsewhere the anchor check fails closed, as ruled for R-I029-1). Static checks: every patched or imported name exists at 733d3d6 (run_day(date, config, dry_run), _idle_until_next_wakeup(next_wakeup_iso, heartbeat_path), _next_day_wakeup(date, sched_config), load_state(date, picks_dir), _now_et, time, run_result_polling, _trigger_live_forward_capture_on_lock, run_single_check, retry_urlopen); run_day differs P..F only in step 7, so the flow up to step 7 and its single tomorrow fetch are identical (the _seq mock returns [] from the second call on), and step 7 is the only writer of next_wakeup. Verifier trace of the rest of the parent's run_day on this input: the one 18:20 check runs (run_single_check mocked, skipped), no pick file so steps 5/5b/8 are no-ops, health checks are disabled, _write_endofday_skip has nothing to record, and the final _idle_until_next_wakeup returns on the past wakeup, so run_day returns normally with no network or data/ access; at F the final idle sleeps through the patched time.sleep (one call, no loop). The step-7 test uses date.today() and the parent's real clock by design; TZ=America/New_York keeps date.today() and datetime.now(ET) on the same date, so it fails at P on any day. Anchor unique at 9551818 (line 62). Link 2 is not covered (verifier, 2026-10-03, following the R-I082-1 precedent): 9551818's only change for link 2 is a WARNING line in _idle_until_next_wakeup (the past-wakeup no-op still returns; the draft records complete_fix_set false). TestIdleGuardLoud::test_past_wakeup_logs_reason fails at the parent only because that new message is absent (line 81, 'not idling' and 'past' in stderr), which any pre-fix code fails; no test witnesses the re-walk. Link 2 has its own unavailable manifest entry. Other nodes at the parent, all undeclared: the four TestIdleGuardLoud nodes (the new log line), the three TestNextDayWakeupEarlySlate nodes (review-round hand-off rules) and test_non_regular_season_games_filtered (All-Star filter, a different change in the same commit) fail by assertion; test_missing_gametype_included passes."
+}

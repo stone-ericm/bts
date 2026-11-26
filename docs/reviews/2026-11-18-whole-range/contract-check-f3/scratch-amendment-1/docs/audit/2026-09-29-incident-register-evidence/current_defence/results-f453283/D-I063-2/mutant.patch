@@ -1,0 +1,33 @@
+diff --git a/src/bts/cli.py b/src/bts/cli.py
+index ff0e0b5..b207aac 100644
+--- a/src/bts/cli.py
++++ b/src/bts/cli.py
+@@ -1920,6 +1920,8 @@ def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
+         predictions = success.get("predictions", [])
+         rounds = _fetch_rounds()
+         source_date = derive_source_date(predictions, rounds)  # may be None when the ledger lags
++        if source_date is None:  # W1.5 mutant (pre-4bdfdb8): no settled profile date refuses the write
++            _fail("profile proves no settled result date; refusing to claim freshness")
+         observation = build_observation(
+             success, source_date, session.user_id, session.username,
+             datetime.now(timezone.utc),
+@@ -1940,6 +1942,19 @@ def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
+     except (AttributeError, TypeError, ValueError, KeyError, ContestFetchError) as exc:
+         _fail(f"profile/rounds shape or fetch error: {exc}")
+ 
++    from bts.contest_state import latest_resolved_pick_date, resolved_pick_settlement_gap
++    latest = latest_resolved_pick_date(picks)
++    if latest is not None and source_date < latest:
++        pass  # W1.5 mutant: pre-4bdfdb8 — the currentness gate refuses a lagging snapshot
++        gap = resolved_pick_settlement_gap(picks, source_date)
++        msg = (f"profile source_date {source_date} < latest resolved pick {latest} "
++               f"({gap} settled pick(s) newer); not current, refusing to overwrite")
++        if gap <= 1:
++            click.echo(f"fetch-contest-streak: {msg}; expected overnight settlement "
++                       "lag, no alert", err=True)
++            sys.exit(0)
++        _fail(msg)
++
+     # write (atomic) or dry-run — a current activeStreak is written even when the
+     # predictions array lags; staleness is labeled by contest_state downstream, not
+     # gated here (the snapshot/coverage split).

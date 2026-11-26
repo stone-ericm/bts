@@ -1,0 +1,1023 @@
+"""Blend walk-forward backtest that saves daily prediction profiles.
+
+Adapts the existing walk_forward_evaluate to use the 12-model blend
+(same BLEND_CONFIGS from predict.py) and save top-10 ranked predictions
+per day to parquet for strategy simulation.
+
+Supports multiple model engines and objectives via 3-tuple blend configs:
+  (name, cols)                              — default LightGBM classifier
+  (name, cols, {"objective": "lambdarank"}) — LightGBM ranker
+  (name, cols, {"objective": "rank_xendcg"}) — LightGBM XE-NDCG ranker
+  (name, cols, {"engine": "catboost"})      — CatBoost classifier
+  (name, cols, {"vrex_beta": 10.0})         — V-REx season reweighting
+"""
+
+import os
+import sys
+from pathlib import Path
+
+PROFILE_COLUMNS = ["date", "rank", "batter_id", "game_pk", "p_game_hit", "actual_hit", "n_pas"]
+GAME_PROBABILITY_ACTUAL_PA = "actual_pa"
+GAME_PROBABILITY_ESTIMATED_PA = "estimated_pa"
+GAME_PROBABILITY_MODES = {GAME_PROBABILITY_ACTUAL_PA, GAME_PROBABILITY_ESTIMATED_PA}
+PA_EST_BY_LINEUP = {1: 4.5, 2: 4.3, 3: 4.2, 4: 4.1, 5: 4.0, 6: 3.9, 7: 3.8, 8: 3.7, 9: 3.6}
+DEFAULT_EST_PAS = 4.0
+STARTER_PAS_CAP = 2.5
+ESTIMATED_PA_EXTRA_COLUMNS = [
+    "est_pas",
+    "starter_pas",
+    "reliever_pas",
+    "source_n_pas",
+    "p_hit_vs_reliever",
+    "p_game_hit_basis",
+    "total_batter_games",
+    "starter_matchup_batter_games",
+    "dropped_no_starter_matchup",
+]
+
+
+def _rs() -> int:
+    """Training random_state, overridable via BTS_LGBM_RANDOM_STATE env var.
+
+    Defaults to 42 to preserve determinism of the shipped pipeline. Set the
+    env var to a different integer to run seed-variance experiments without
+    code edits.
+    """
+    return int(os.environ.get("BTS_LGBM_RANDOM_STATE", 42))
+
+# Objectives that require batter-day grouping (ranker training)
+RANKER_OBJECTIVES = {"lambdarank", "rank_xendcg"}
+
+# Regression objectives (quantile, regression, etc.)
+REGRESSION_OBJECTIVES = {"quantile", "regression", "regression_l1", "regression_l2"}
+
+
+def _is_ranker(extra_params: dict) -> bool:
+    return extra_params.get("objective") in RANKER_OBJECTIVES
+
+
+def _is_regressor(extra_params: dict) -> bool:
+    return extra_params.get("objective") in REGRESSION_OBJECTIVES
+
+
+def _is_catboost(extra_params: dict) -> bool:
+    return extra_params.get("engine") == "catboost"
+
+
+def _aggregate_to_batter_day(
+    df: "pd.DataFrame",
+    feature_cols: list[str],
+) -> "pd.DataFrame":
+    """Aggregate PA-level data to batter-day level for ranker training.
+
+    Features are taken from the first PA of each batter-day (date-level features
+    are constant across PAs for the same batter-day). Label is hit (max over PAs).
+    Returns DataFrame sorted by date with one row per (batter_id, date).
+    """
+    import pandas as pd
+
+    agg_dict: dict = {col: "first" for col in feature_cols if col in df.columns}
+    agg_dict["is_hit"] = "max"
+    bd = df.groupby(["batter_id", "date"], as_index=False).agg(agg_dict)
+    return bd.sort_values("date")
+
+
+def _train_ranker(
+    available: "pd.DataFrame",
+    cols: list[str],
+    merged_params: dict,
+):
+    """Train a LightGBM ranker on batter-day data with daily groups."""
+    import lightgbm as lgb
+
+    bd = _aggregate_to_batter_day(available, cols)
+    train_X = bd[cols]
+    train_y = bd["is_hit"]
+    mask = train_X.notna().any(axis=1)
+    bd_clean = bd[mask].sort_values("date")
+
+    # Compute group sizes per game-day (must be in same order as data)
+    groups = bd_clean.groupby("date").size().tolist()
+
+    # LGBMRanker has different params from LGBMClassifier
+    ranker_params = {k: v for k, v in merged_params.items() if k not in ("scale_pos_weight",)}
+    model = lgb.LGBMRanker(**ranker_params, random_state=_rs())
+    model.fit(bd_clean[cols], bd_clean["is_hit"], group=groups)
+    return model
+
+
+def _predict_ranker(
+    model,
+    day_data: "pd.DataFrame",
+    cols: list[str],
+):
+    """Predict with a ranker. Returns per-PA scores (broadcast from batter-day)."""
+    import numpy as np
+    import pandas as pd
+
+    # Aggregate test day to batter-day, predict, then broadcast back
+    bd = _aggregate_to_batter_day(day_data, cols)
+    pred_X = bd[cols]
+    valid = pred_X.notna().any(axis=1)
+
+    raw_scores = pd.Series(np.nan, index=bd.index)
+    if valid.any():
+        raw_scores[valid] = model.predict(pred_X[valid])
+
+    # Min-max scale per day to (0, 1) so it can blend with probabilities
+    if raw_scores.notna().any():
+        s_min = raw_scores.min()
+        s_max = raw_scores.max()
+        if s_max > s_min:
+            scaled = (raw_scores - s_min) / (s_max - s_min)
+        else:
+            scaled = raw_scores * 0 + 0.5
+    else:
+        scaled = raw_scores
+
+    # Broadcast batter-day scores back to PA-level
+    bd_scores = bd[["batter_id"]].copy()
+    bd_scores["score"] = scaled.values
+
+    pa_scores = day_data[["batter_id"]].merge(bd_scores, on="batter_id", how="left")
+    pa_scores.index = day_data.index
+    return pa_scores["score"]
+
+
+def _train_catboost(
+    available: "pd.DataFrame",
+    cols: list[str],
+    merged_params: dict,
+):
+    """Train a CatBoost classifier with has_time=True for temporal ordering."""
+    try:
+        from catboost import CatBoostClassifier
+    except ImportError:
+        raise RuntimeError(
+            "CatBoost not installed. Run: uv pip install catboost"
+        )
+
+    train_X = available[cols].copy()
+    train_y = available["is_hit"]
+    mask = train_X.notna().any(axis=1)
+
+    # Map LightGBM params to CatBoost equivalents
+    cb_params = {
+        "iterations": merged_params.get("n_estimators", 200),
+        "depth": min(merged_params.get("max_depth", 6), 8),
+        "learning_rate": merged_params.get("learning_rate", 0.05),
+        "verbose": False,
+        "random_seed": 42,
+        "has_time": merged_params.get("has_time", True),
+    }
+    # Fill NaN since CatBoost needs explicit handling
+    train_X_clean = train_X[mask].fillna(-999.0)
+    model = CatBoostClassifier(**cb_params)
+    model.fit(train_X_clean, train_y[mask])
+    return model
+
+
+def _predict_catboost(model, day_data, cols):
+    """Predict with CatBoost classifier."""
+    import numpy as np
+    import pandas as pd
+
+    pred_X = day_data[cols].fillna(-999.0)
+    probs = pd.Series(np.nan, index=day_data.index)
+    valid = day_data[cols].notna().any(axis=1)
+    if valid.any():
+        probs[valid] = model.predict_proba(pred_X[valid])[:, 1]
+    return probs
+
+
+def _train_vrex_lgbm(
+    available: "pd.DataFrame",
+    cols: list[str],
+    merged_params: dict,
+):
+    """Train LightGBM with V-REx-style iterative season reweighting.
+
+    Penalizes cross-season loss variance by upweighting samples from
+    seasons with higher-than-average loss. Iterates n_rounds times.
+    """
+    import lightgbm as lgb
+    import numpy as np
+
+    beta = merged_params.pop("vrex_beta", 10.0)
+    n_rounds = merged_params.pop("vrex_rounds", 3)
+
+    train_X = available[cols]
+    train_y = available["is_hit"]
+    mask = train_X.notna().any(axis=1)
+    X = train_X[mask]
+    y = train_y[mask]
+    seasons = available.loc[mask, "season"].values
+
+    # Initialize uniform weights
+    weights = np.ones(len(y)) / len(y) * len(y)  # mean 1
+
+    # Strip vrex-specific params before passing to LightGBM
+    lgb_only_params = {k: v for k, v in merged_params.items() if not k.startswith("vrex_")}
+
+    model = None
+    for r in range(n_rounds):
+        model = lgb.LGBMClassifier(**lgb_only_params, random_state=_rs())
+        model.fit(X, y, sample_weight=weights)
+
+        # Compute per-season loss
+        preds = model.predict_proba(X)[:, 1]
+        eps = 1e-7
+        per_sample_loss = -(y * np.log(preds + eps) + (1 - y) * np.log(1 - preds + eps))
+        season_losses: dict = {}
+        for s in np.unique(seasons):
+            sel = seasons == s
+            season_losses[s] = float(per_sample_loss[sel].mean())
+
+        mean_loss = float(np.mean(list(season_losses.values())))
+
+        # Reweight: upweight samples from seasons with above-average loss
+        new_weights = np.ones(len(y))
+        for s, sloss in season_losses.items():
+            sel = seasons == s
+            new_weights[sel] = max(0.1, 1.0 + beta * (sloss - mean_loss))
+        weights = new_weights * (len(y) / new_weights.sum())  # renormalize to mean 1
+
+    return model
+
+
+def _decision_sensitivity_sample_weights(
+    available: "pd.DataFrame",
+    pa_hit_probs,
+    *,
+    top_n: int = 10,
+    alpha: float = 2.0,
+    rank_scale: float = 3.0,
+    clip_min: float = 0.25,
+    clip_max: float = 4.0,
+):
+    """Return PA sample weights from an in-training top-slate sensitivity map.
+
+    The map is intentionally local to the training window. It uses probe-model
+    PA hit probabilities to estimate each batter-game's hit probability, then
+    upweights PA rows belonging to the top projected daily candidates. This is
+    a lightweight decision-aware proxy: rows that can plausibly move the daily
+    BTS ranking get more training mass; rows far from the slate top stay near
+    unit weight.
+    """
+    import numpy as np
+    import pandas as pd
+
+    required = {"date", "batter_id", "game_pk"}
+    if not required.issubset(available.columns):
+        return np.ones(len(available), dtype=float)
+
+    probs = np.asarray(pa_hit_probs, dtype=float)
+    if len(probs) != len(available):
+        raise ValueError("pa_hit_probs length must match available rows")
+
+    if len(probs) == 0:
+        return np.ones(0, dtype=float)
+
+    frame = available[["date", "batter_id", "game_pk"]].copy()
+    frame["_row_order"] = np.arange(len(frame))
+    frame["_p_hit"] = np.clip(probs, 1e-6, 1 - 1e-6)
+
+    def _game_hit_prob(s: pd.Series) -> float:
+        return float(1.0 - np.prod(1.0 - s.to_numpy(dtype=float)))
+
+    batter_games = (
+        frame.groupby(["date", "batter_id", "game_pk"], sort=False)["_p_hit"]
+        .agg(_game_hit_prob)
+        .reset_index(name="_p_game_hit")
+    )
+    batter_games["_daily_rank"] = batter_games.groupby("date")["_p_game_hit"].rank(
+        method="first",
+        ascending=False,
+    )
+
+    rank_component = np.where(
+        batter_games["_daily_rank"].to_numpy(dtype=float) <= float(top_n),
+        np.exp(-(batter_games["_daily_rank"].to_numpy(dtype=float) - 1.0) / rank_scale),
+        0.0,
+    )
+    # Bernoulli slope proxy: zero at 0/1, largest near uncertain hit outcomes.
+    p_game = batter_games["_p_game_hit"].to_numpy(dtype=float)
+    uncertainty_component = 4.0 * p_game * (1.0 - p_game)
+    batter_games["_weight"] = 1.0 + alpha * rank_component * uncertainty_component
+
+    weighted = frame.merge(
+        batter_games[["date", "batter_id", "game_pk", "_weight"]],
+        on=["date", "batter_id", "game_pk"],
+        how="left",
+        sort=False,
+    ).sort_values("_row_order")
+
+    weights = weighted["_weight"].fillna(1.0).to_numpy(dtype=float)
+    mean_weight = float(np.mean(weights)) if len(weights) else 1.0
+    if not np.isfinite(mean_weight) or mean_weight <= 0:
+        return np.ones(len(available), dtype=float)
+    weights = weights / mean_weight
+    return np.clip(weights, clip_min, clip_max)
+
+
+def _pop_decision_weight_params(merged_params: dict) -> tuple[dict, dict | None]:
+    """Split LightGBM params from decision-weighting control params."""
+    lgb_only_params = {
+        k: v for k, v in merged_params.items()
+        if not k.startswith("vrex_")
+        and not k.startswith("decision_weight_")
+        and k != "engine"
+        and k != "has_time"
+    }
+    mode = merged_params.get("decision_weight_mode")
+    if mode is None:
+        return lgb_only_params, None
+    if mode != "top_slate_v0":
+        raise ValueError(f"unknown decision_weight_mode: {mode!r}")
+    top_n = int(merged_params.get("decision_weight_top_n", 10))
+    rank_scale = float(merged_params.get("decision_weight_rank_scale", 3.0))
+    clip_min = float(merged_params.get("decision_weight_clip_min", 0.25))
+    clip_max = float(merged_params.get("decision_weight_clip_max", 4.0))
+    if top_n <= 0:
+        raise ValueError("decision_weight_top_n must be positive")
+    if rank_scale <= 0:
+        raise ValueError("decision_weight_rank_scale must be positive")
+    if clip_min <= 0 or clip_max < clip_min:
+        raise ValueError("decision_weight clip bounds are invalid")
+    return lgb_only_params, {
+        "top_n": top_n,
+        "alpha": float(merged_params.get("decision_weight_alpha", 2.0)),
+        "rank_scale": rank_scale,
+        "clip_min": clip_min,
+        "clip_max": clip_max,
+    }
+
+
+def _train_lgbm_classifier(
+    available: "pd.DataFrame",
+    cols: list[str],
+    merged_params: dict,
+):
+    """Default training path: LightGBM classifier."""
+    import lightgbm as lgb
+
+    train_X = available[cols]
+    train_y = available["is_hit"]
+    mask = train_X.notna().any(axis=1)
+
+    # Strip non-LightGBM params
+    lgb_only_params, decision_weight_params = _pop_decision_weight_params(merged_params)
+    model = lgb.LGBMClassifier(**lgb_only_params, random_state=_rs())
+    if decision_weight_params is None:
+        model.fit(train_X[mask], train_y[mask])
+    else:
+        X = train_X[mask]
+        y = train_y[mask]
+        probe = lgb.LGBMClassifier(**lgb_only_params, random_state=_rs())
+        probe.fit(X, y)
+        probe_probs = probe.predict_proba(X)[:, 1]
+        weights = _decision_sensitivity_sample_weights(
+            available.loc[mask],
+            probe_probs,
+            **decision_weight_params,
+        )
+        model.fit(X, y, sample_weight=weights)
+    return model
+
+
+def _predict_lgbm_classifier(model, day_data, cols):
+    """Default prediction path: LightGBM classifier predict_proba."""
+    import numpy as np
+    import pandas as pd
+
+    pred_X = day_data[cols]
+    valid = pred_X.notna().any(axis=1)
+    probs = pd.Series(np.nan, index=day_data.index)
+    if valid.any():
+        probs[valid] = model.predict_proba(pred_X[valid])[:, 1]
+    return probs
+
+
+def _train_lgbm_regressor(
+    available: "pd.DataFrame",
+    cols: list[str],
+    merged_params: dict,
+):
+    """Train LightGBM regressor (e.g., quantile regression for q10 skip signal)."""
+    import lightgbm as lgb
+
+    train_X = available[cols]
+    train_y = available["is_hit"].astype(float)
+    mask = train_X.notna().any(axis=1)
+
+    # LGBMRegressor accepts objective="quantile", "regression", etc.
+    # alpha controls the quantile level
+    lgb_only_params = {
+        k: v for k, v in merged_params.items()
+        if not k.startswith("vrex_") and k != "engine" and k != "has_time"
+    }
+    model = lgb.LGBMRegressor(**lgb_only_params, random_state=_rs())
+    model.fit(train_X[mask], train_y[mask])
+    return model
+
+
+def _predict_lgbm_regressor(model, day_data, cols):
+    """Predict with LightGBM regressor (returns continuous values)."""
+    import numpy as np
+    import pandas as pd
+
+    pred_X = day_data[cols]
+    valid = pred_X.notna().any(axis=1)
+    preds = pd.Series(np.nan, index=day_data.index)
+    if valid.any():
+        preds[valid] = model.predict(pred_X[valid])
+    return preds
+
+
+def _train_blend_for_day(
+    available: "pd.DataFrame",
+    blend_configs: list,
+    lgb_params: dict,
+    cached_models: dict | None = None,
+) -> tuple[dict, set]:
+    """Train per-config blend models. Reuse cached_models[name] when present.
+
+    Cached configs still register in side_channel_names if _is_regressor(extra_params),
+    so the cache path preserves blend-vs-side-channel semantics.
+
+    Returns (blend, side_channel_names) where:
+      blend: {name: (model, cols, predict_fn)}
+      side_channel_names: set of model names excluded from blend averaging
+    """
+    blend = {}
+    side_channel_names: set = set()
+
+    for config in blend_configs:
+        if len(config) == 2:
+            name, cols = config
+            extra_params = {}
+        else:
+            name, cols, extra_params = config
+        # Dedupe: experiments that extend FEATURE_COLS with a feature
+        # already used by a blend variant (statcast_add_*) would otherwise
+        # produce duplicate column names, which LightGBM rejects.
+        cols = list(dict.fromkeys(cols))
+
+        # If a cached model was provided for this plain baseline config, reuse
+        # it. Configs with extra params may alter the learned model without
+        # changing feature columns, so the feature-hash cache key is not enough
+        # to prove reuse is safe.
+        if cached_models and name in cached_models and not extra_params:
+            blend[name] = cached_models[name]
+            if _is_regressor(extra_params):
+                side_channel_names.add(name)
+            continue
+
+        merged_params = {**lgb_params, **extra_params}
+
+        if _is_ranker(extra_params):
+            model = _train_ranker(available, cols, merged_params)
+            predict_fn = _predict_ranker
+        elif _is_regressor(extra_params):
+            model = _train_lgbm_regressor(available, cols, merged_params)
+            predict_fn = _predict_lgbm_regressor
+            side_channel_names.add(name)
+        elif _is_catboost(extra_params):
+            model = _train_catboost(available, cols, merged_params)
+            predict_fn = _predict_catboost
+        elif "vrex_beta" in extra_params:
+            model = _train_vrex_lgbm(available, cols, dict(merged_params))
+            predict_fn = _predict_lgbm_classifier
+        else:
+            model = _train_lgbm_classifier(available, cols, merged_params)
+            predict_fn = _predict_lgbm_classifier
+
+        blend[name] = (model, cols, predict_fn)
+
+    return blend, side_channel_names
+
+
+def _feature_cols_by_config(blend_configs: list) -> dict[str, list[str]]:
+    """Build {name: deduped_cols} from a blend_configs list.
+
+    Mirrors the dedupe logic in ``_train_blend_for_day`` so that cache
+    invalidation (which hashes feature columns) sees the same canonical column
+    list as training. Used by ``blend_walk_forward`` when cache kwargs are set.
+    """
+    out: dict[str, list[str]] = {}
+    for config in blend_configs:
+        if len(config) == 2:
+            name, cols = config
+        else:
+            name, cols, _extra = config
+        out[name] = list(dict.fromkeys(cols))
+    return out
+
+
+def _write_pa_predictions_chunk(
+    day_data: "pd.DataFrame",
+    output_path: "Path",
+) -> None:
+    """Append per-PA predictions for one game day to a parquet file.
+
+    ``day_data`` must already have ``p_hit_blend`` populated. Persists the
+    columns: ``date``, ``game_pk``, ``batter_id``, ``pa_index``,
+    ``p_hit_blend``, ``is_hit``.
+
+    If output_path doesn't exist yet, creates it. If it exists, reads the
+    existing data, concatenates the new chunk, and rewrites the file
+    (pyarrow does not support native parquet append).
+
+    ``pa_index`` is the per-(batter_id, game_pk) ordinal of the PA, generated
+    from ``cumcount()`` — PA #1 = 0, PA #2 = 1, ...
+    """
+    import pandas as pd
+
+    chunk = day_data.copy()
+    chunk["pa_index"] = chunk.groupby(["batter_id", "game_pk"]).cumcount()
+    chunk = chunk[["date", "game_pk", "batter_id", "pa_index", "p_hit_blend", "is_hit"]]
+
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    if output_path.exists():
+        existing = pd.read_parquet(output_path)
+        chunk = pd.concat([existing, chunk], ignore_index=True)
+
+    chunk.to_parquet(output_path, index=False)
+
+
+def _active_blend_scores(blend_pa_scores: dict, side_channel_names: set) -> dict:
+    return {
+        name: scores for name, scores in blend_pa_scores.items()
+        if name not in side_channel_names
+    }
+
+
+def _attach_pa_blend_scores(
+    day_data: "pd.DataFrame",
+    blend_pa_scores: dict,
+    side_channel_names: set,
+) -> "pd.DataFrame":
+    import pandas as pd
+
+    out = day_data.copy()
+    active_scores = _active_blend_scores(blend_pa_scores, side_channel_names)
+    out["p_hit_blend"] = pd.DataFrame(active_scores).mean(axis=1)
+    return out
+
+
+def _actual_pa_game_predictions(
+    day_data: "pd.DataFrame",
+    blend: dict,
+    *,
+    top_n: int,
+    capture_per_model: bool,
+) -> "pd.DataFrame":
+    import numpy as np
+
+    agg_dict = {
+        "p_game_hit": ("p_hit_blend", lambda x: 1 - np.prod(1 - x.values)),
+        "actual_hit": ("is_hit", "max"),
+        "n_pas": ("is_hit", "count"),
+    }
+    if capture_per_model:
+        for name in blend.keys():
+            agg_dict[f"m_{name}"] = (f"m_{name}", "mean")
+
+    game_preds = day_data.groupby(["batter_id", "game_pk"]).agg(**agg_dict).reset_index()
+    game_preds = game_preds.nlargest(top_n, "p_game_hit").reset_index(drop=True)
+    game_preds["rank"] = range(1, len(game_preds) + 1)
+    return game_preds
+
+
+def _training_window_reliever_context(available: "pd.DataFrame") -> tuple[float, float]:
+    import numpy as np
+
+    entropy = (
+        float(available["pitcher_entropy_30g"].dropna().mean())
+        if "pitcher_entropy_30g" in available.columns
+        else float("nan")
+    )
+    required = {"game_pk", "is_home", "pitcher_id", "is_hit"}
+    if not required.issubset(available.columns):
+        return 0.22, entropy
+
+    work = available.copy()
+    starters = (
+        work.groupby(["game_pk", "is_home"], sort=False)["pitcher_id"]
+        .first()
+        .rename("_starter_pitcher_id")
+        .reset_index()
+    )
+    work = work.merge(starters, on=["game_pk", "is_home"], how="left", sort=False)
+    reliever_pas = work[work["pitcher_id"] != work["_starter_pitcher_id"]]
+    reliever_hr = float(reliever_pas["is_hit"].mean()) if len(reliever_pas) else 0.22
+    if not np.isfinite(reliever_hr):
+        reliever_hr = 0.22
+    return reliever_hr, entropy
+
+
+def _starter_matchup_representative_rows(day_data: "pd.DataFrame") -> tuple["pd.DataFrame", int, int]:
+    required = {"game_pk", "is_home", "pitcher_id", "batter_id", "is_hit"}
+    missing = required - set(day_data.columns)
+    if missing:
+        raise ValueError(f"estimated PA mode missing required columns: {sorted(missing)}")
+
+    work = day_data.copy()
+    work["_source_index"] = work.index
+    work["_row_order"] = range(len(work))
+    starters = (
+        work.groupby(["game_pk", "is_home"], sort=False)["pitcher_id"]
+        .first()
+        .rename("_starter_pitcher_id")
+        .reset_index()
+    )
+    work = work.merge(starters, on=["game_pk", "is_home"], how="left", sort=False)
+    starter_rows = work[work["pitcher_id"] == work["_starter_pitcher_id"]].copy()
+    reps = (
+        starter_rows.sort_values("_row_order")
+        .drop_duplicates(["batter_id", "game_pk"], keep="first")
+        .copy()
+    )
+
+    outcomes = (
+        work.groupby(["batter_id", "game_pk"], sort=False)["is_hit"]
+        .agg(actual_hit="max", source_n_pas="count")
+        .reset_index()
+    )
+    reps = reps.merge(outcomes, on=["batter_id", "game_pk"], how="left", sort=False)
+    reps.index = reps["_source_index"].astype(int)
+    total_batter_games = work[["batter_id", "game_pk"]].drop_duplicates().shape[0]
+    starter_matchup_batter_games = reps[["batter_id", "game_pk"]].drop_duplicates().shape[0]
+    dropped = int(total_batter_games - starter_matchup_batter_games)
+    return reps, int(starter_matchup_batter_games), dropped
+
+
+def _strict_scores(scores, index, label: str) -> None:
+    """Strict mode (``blend_walk_forward(strict_predict=True)``): a model's scores must cover exactly the required
+    rows, aligned with them, and be finite; a missing or misaligned row would otherwise be dropped from an average
+    or a ranking without a trace."""
+    import numpy as np
+    import pandas as pd
+
+    if isinstance(scores, pd.Series):
+        if not scores.index.equals(index):
+            raise ValueError(f"{label} scores are not aligned with the required rows")
+        values = scores.to_numpy(dtype=float)
+    else:
+        values = np.asarray(scores, dtype=float)
+        if values.shape != (len(index),):
+            raise ValueError(f"{label} scores are not aligned with the required rows")
+    if not np.isfinite(values).all():
+        raise ValueError(f"{label} returned non-finite scores")
+
+
+def _estimated_pa_game_predictions(
+    day_data: "pd.DataFrame",
+    *,
+    blend: dict,
+    blend_pa_scores: dict,
+    side_channel_names: set,
+    model_train_window: "pd.DataFrame",
+    top_n: int,
+    capture_per_model: bool,
+    strict: bool = False,
+) -> "pd.DataFrame":
+    import numpy as np
+    import pandas as pd
+
+    if "baseline" not in blend:
+        raise ValueError("estimated PA mode requires a 'baseline' blend model")
+
+    reps, starter_matchup_batter_games, dropped_no_starter = _starter_matchup_representative_rows(day_data)
+    if reps.empty:
+        return pd.DataFrame(columns=PROFILE_COLUMNS + ESTIMATED_PA_EXTRA_COLUMNS)
+
+    reliever_hr, entropy = _training_window_reliever_context(model_train_window)
+    baseline_model, baseline_cols, baseline_predict_fn = blend["baseline"]
+    reliever_rows = reps.copy()
+    if "pitcher_hr_30g" in baseline_cols or "pitcher_hr_30g" in reliever_rows.columns:
+        reliever_rows["pitcher_hr_30g"] = reliever_hr
+    if "pitcher_entropy_30g" in baseline_cols or "pitcher_entropy_30g" in reliever_rows.columns:
+        reliever_rows["pitcher_entropy_30g"] = entropy
+
+    p_reliever = baseline_predict_fn(baseline_model, reliever_rows, baseline_cols)
+    if strict:
+        _strict_scores(p_reliever, reliever_rows.index, "baseline (reliever rows)")
+    p_reliever = pd.Series(p_reliever, index=reps.index, dtype=float)
+
+    lineup_raw = (
+        reps["lineup_position"]
+        if "lineup_position" in reps.columns
+        else pd.Series(np.nan, index=reps.index)
+    )
+    lineup = pd.to_numeric(lineup_raw, errors="coerce")
+    reps["est_pas"] = lineup.map(PA_EST_BY_LINEUP).fillna(DEFAULT_EST_PAS).astype(float)
+    reps["reliever_pas"] = (reps["est_pas"] - STARTER_PAS_CAP).clip(lower=0)
+    reps["starter_pas"] = reps["est_pas"] - reps["reliever_pas"]
+    reps["p_hit_vs_reliever"] = p_reliever
+    reps["n_pas"] = reps["source_n_pas"].astype(int)
+    reps["p_game_hit_basis"] = GAME_PROBABILITY_ESTIMATED_PA
+    reps["total_batter_games"] = int(starter_matchup_batter_games + dropped_no_starter)
+    reps["starter_matchup_batter_games"] = int(starter_matchup_batter_games)
+    reps["dropped_no_starter_matchup"] = dropped_no_starter
+
+    active_scores = _active_blend_scores(blend_pa_scores, side_channel_names)
+    game_scores = {}
+    for name, scores in active_scores.items():
+        p_starter = pd.Series(scores, index=day_data.index).reindex(reps.index).astype(float)
+        p_game = 1 - (
+            (1 - p_starter) ** reps["starter_pas"] *
+            (1 - p_reliever) ** reps["reliever_pas"]
+        )
+        game_scores[name] = p_game
+        if capture_per_model:
+            reps[f"m_{name}"] = p_game
+
+    reps["p_game_hit"] = pd.DataFrame(game_scores).mean(axis=1)
+    game_preds = reps.nlargest(top_n, "p_game_hit").reset_index(drop=True)
+    game_preds["rank"] = range(1, len(game_preds) + 1)
+    return game_preds
+
+
+def blend_walk_forward(
+    df: "pd.DataFrame",
+    test_season: int,
+    retrain_every: int = 7,
+    top_n: int = 10,
+    blend_configs: list | None = None,
+    lgb_params: dict | None = None,
+    capture_per_model: bool = False,
+    cache_dir: "Path | None" = None,
+    cache_seed: int | None = None,
+    cache_reuse_configs: list[str] | None = None,
+    pa_predictions_path: "Path | None" = None,
+    game_probability_mode: str = GAME_PROBABILITY_ACTUAL_PA,
+    predict_day_transform=None,
+    strict_predict: bool = False,
+) -> "pd.DataFrame":
+    """Run blend walk-forward evaluation and return daily profiles.
+
+    For each game day in the test season:
+    1. Train all N blend models on data before that day (retrained periodically)
+    2. Predict P(hit|PA) with each model, average for blend ranking
+    3. Aggregate to game-level P(>=1 hit) per batter
+    4. Save top-N batters with blend p_game_hit and actual_hit
+
+    Args:
+        df: Feature-enriched PA DataFrame.
+        test_season: Season to evaluate on.
+        retrain_every: Retrain models every N days.
+        top_n: Number of top-ranked batters to save per day.
+        blend_configs: List of (name, cols) or (name, cols, extra_params) tuples.
+            Defaults to BLEND_CONFIGS. 3-tuple allows per-model objective overrides.
+        lgb_params: LightGBM training parameters. Defaults to LGB_PARAMS.
+        capture_per_model: If True, also captures per-model PA-level predictions
+            for use by FWLS / Hedge experiments. Adds columns like 'm_<name>'.
+        cache_dir, cache_seed, cache_reuse_configs: Optional model cache. When
+            ALL three are provided, cached configs in ``cache_reuse_configs``
+            are loaded from ``cache_dir/seed_{cache_seed}/day_{day}/`` instead
+            of retrained, and freshly-trained configs are saved back to the
+            cache. When any are None, behavior is identical to a non-cached
+            run (default for all existing callers).
+        pa_predictions_path: Optional path at which to accumulate per-PA
+            predictions. When provided, calls ``_write_pa_predictions_chunk``
+            after each game day to append ``date``, ``game_pk``, ``batter_id``,
+            ``pa_index``, ``p_hit_blend``, and ``is_hit`` for every PA in the
+            test window. When None (the default), behavior is unchanged.
+        game_probability_mode: ``actual_pa`` preserves the historical
+            aggregation over realized PA rows. ``estimated_pa`` is an offline
+            Gate-B diagnostic mode that uses starter-matchup rows, lineup-slot
+            estimated PAs, and training-window reliever context to mirror the
+            production probability basis.
+        predict_day_transform: Optional ``f(day_data, day) -> DataFrame``
+            applied to the private copy of each predicted day's rows after any
+            retraining and before the first blend prediction, so its values
+            reach the blend scores and the estimated-PA starter and reliever
+            rows. It must return the same index and columns in the same order;
+            training frames never see it. Research plumbing for the 2026
+            framing test (``docs/sota_audit/2026-10-09-prereg-c2-framing-2026-test.md``
+            §4). None (the default) leaves behavior unchanged.
+        strict_predict: When True, a model's prediction failure, or scores
+            that are not finite and aligned with every required row (the day's
+            rows and the estimated-PA reliever rows), raise instead of being
+            printed and scored as missing. False (the default) leaves behavior
+            unchanged.
+
+    Returns DataFrame with PROFILE_COLUMNS (plus per-model columns if requested).
+    """
+    import numpy as np
+    import pandas as pd
+    from bts.features.compute import FEATURE_COLS, STATCAST_COLS, TRAIN_START_YEAR
+    from bts.model.predict import BLEND_CONFIGS, LGB_PARAMS
+
+    if blend_configs is None:
+        blend_configs = BLEND_CONFIGS
+    if lgb_params is None:
+        lgb_params = LGB_PARAMS
+    if game_probability_mode not in GAME_PROBABILITY_MODES:
+        raise ValueError(f"unknown game_probability_mode: {game_probability_mode!r}")
+
+    # Cache integration is off unless ALL three kwargs are provided. This
+    # preserves bit-exact behavior for every existing caller (74 tests in
+    # tests/simulate/, plus all run_single_screening callers).
+    cache_enabled = (
+        cache_dir is not None
+        and cache_seed is not None
+        and cache_reuse_configs is not None
+    )
+    if cache_enabled:
+        from bts.simulate.blend_model_cache import save_blend, load_blend
+        feature_cols_by_config = _feature_cols_by_config(blend_configs)
+    else:
+        feature_cols_by_config = None
+
+    df = df.copy()
+    df["date"] = pd.to_datetime(df["date"])
+
+    season_data = df[df["season"] == test_season]
+    test_start = season_data["date"].min()
+    train_pool = df[(df["date"] < test_start) & (df["season"] >= TRAIN_START_YEAR)].copy()
+    test_data = season_data.copy()
+    test_dates = sorted(test_data["date"].unique())
+
+    print(f"Blend walk-forward: {len(test_dates)} test days, "
+          f"train pool: {len(train_pool):,} PAs, "
+          f"{len(blend_configs)} models", file=sys.stderr)
+
+    all_profiles = []
+    blend = None  # {name: (model, cols, predict_fn)} — populated on first retrain (i=0)
+    model_train_window = None
+    per_model_capture = []  # daily per-model predictions for capture mode
+
+    for i, day in enumerate(test_dates):
+        day_data = test_data[test_data["date"] == day].copy()
+
+        # Retrain periodically
+        if blend is None or (i % retrain_every == 0):
+            available = pd.concat([train_pool, test_data[test_data["date"] < day]])
+            model_train_window = available.copy()
+
+            cached_models: dict | None = None
+            day_str: str | None = None
+            if cache_enabled:
+                day_str = pd.Timestamp(day).strftime("%Y-%m-%d")
+                cached_models = load_blend(
+                    cache_dir, cache_seed, day_str,
+                    cache_reuse_configs, feature_cols_by_config,
+                )
+
+            blend, side_channel_names = _train_blend_for_day(
+                available, blend_configs, lgb_params, cached_models=cached_models,
+            )
+
+            if cache_enabled:
+                # Save the freshly-trained subset back to cache. save_blend
+                # safely overwrites existing entries — re-saving an already-
+                # cached model is a no-op-equivalent (model is bit-identical
+                # because seed is held constant via cache_seed).
+                save_blend(
+                    blend, cache_dir, cache_seed, day_str,
+                    feature_cols_by_config,
+                )
+
+            if (i + 1) % 30 == 0 or i == 0:
+                hit_msg = ""
+                if cache_enabled and cached_models:
+                    hit_msg = f" — cache hit on {len(cached_models)}/{len(blend_configs)}"
+                print(f"  Day {i+1}/{len(test_dates)} ({pd.Timestamp(day).date()}) "
+                      f"— retrained on {len(available):,} PAs{hit_msg}",
+                      file=sys.stderr)
+
+        if predict_day_transform is not None:
+            transformed = predict_day_transform(day_data, day)
+            if not (isinstance(transformed, pd.DataFrame)
+                    and list(transformed.columns) == list(day_data.columns)
+                    and transformed.index.equals(day_data.index)):
+                raise ValueError("predict_day_transform must return the day's rows with the same index, order and "
+                                 "columns")
+            day_data = transformed
+
+        # Predict with all blend models
+        blend_pa_scores = {}
+        for name, (model, cols, predict_fn) in blend.items():
+            try:
+                blend_pa_scores[name] = predict_fn(model, day_data, cols)
+                if strict_predict:
+                    _strict_scores(blend_pa_scores[name], day_data.index, f"{name} on {day}")
+            except Exception as e:
+                if strict_predict:
+                    raise
+                print(f"  ! {name} predict failed on {day}: {e}", file=sys.stderr)
+                blend_pa_scores[name] = pd.Series(np.nan, index=day_data.index)
+
+        day_data = _attach_pa_blend_scores(day_data, blend_pa_scores, side_channel_names)
+
+        # Optional: persist per-PA predictions for falsification harness
+        if pa_predictions_path is not None:
+            _write_pa_predictions_chunk(day_data, pa_predictions_path)
+
+        # Optional: capture per-model scores
+        if capture_per_model:
+            for name, scores in blend_pa_scores.items():
+                day_data[f"m_{name}"] = scores
+
+        if game_probability_mode == GAME_PROBABILITY_ACTUAL_PA:
+            game_preds = _actual_pa_game_predictions(
+                day_data,
+                blend,
+                top_n=top_n,
+                capture_per_model=capture_per_model,
+            )
+        else:
+            game_preds = _estimated_pa_game_predictions(
+                day_data,
+                blend=blend,
+                blend_pa_scores=blend_pa_scores,
+                side_channel_names=side_channel_names,
+                model_train_window=model_train_window,
+                top_n=top_n,
+                capture_per_model=capture_per_model,
+                strict=strict_predict,
+            )
+        game_preds["date"] = pd.Timestamp(day).date()
+
+        cols_to_keep = list(PROFILE_COLUMNS)
+        if game_probability_mode == GAME_PROBABILITY_ESTIMATED_PA:
+            cols_to_keep += [
+                col for col in ESTIMATED_PA_EXTRA_COLUMNS
+                if col in game_preds.columns
+            ]
+        if capture_per_model:
+            cols_to_keep += [
+                f"m_{name}" for name in blend.keys()
+                if f"m_{name}" in game_preds.columns
+            ]
+        all_profiles.append(game_preds[cols_to_keep])
+
+    result = pd.concat(all_profiles, ignore_index=True)
+    print(f"  Done: {len(result)} profile rows ({len(test_dates)} days × top-{top_n})", file=sys.stderr)
+    return result
+
+
+def save_profiles(df: "pd.DataFrame", season: int, output_dir: "Path") -> "Path":
+    """Save daily profiles to parquet."""
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    path = output_dir / f"backtest_{season}.parquet"
+    df.to_parquet(path, index=False)
+    print(f"  Saved {path} ({len(df)} rows)", file=sys.stderr)
+    return path
+
+
+def run_backtest(
+    data_dir: str = "data/processed",
+    output_dir: str = "data/simulation",
+    seasons: list[int] | None = None,
+    retrain_every: int = 7,
+    log_pa_predictions: bool = False,
+    game_probability_mode: str = GAME_PROBABILITY_ACTUAL_PA,
+) -> None:
+    """Run blend backtest for specified seasons and save profiles.
+
+    Loads all PA parquets, computes features once, then runs blend
+    walk-forward for each test season.
+
+    When `log_pa_predictions=True`, also persists per-PA predicted probabilities
+    to `{output_dir}/pa_predictions_{season}.parquet` for use by the BTS
+    falsification harness's dependence-testing module.
+    """
+    import pandas as pd
+    from bts.features.compute import compute_all_features
+
+    if seasons is None:
+        seasons = [2021, 2022, 2023, 2024, 2025]
+
+    proc = Path(data_dir)
+    out = Path(output_dir)
+
+    # Load all data and compute features once
+    print("Loading PA data...", file=sys.stderr)
+    dfs = []
+    for parquet in sorted(proc.glob("pa_*.parquet")):
+        dfs.append(pd.read_parquet(parquet))
+    if not dfs:
+        raise RuntimeError("No parquet files found. Run 'bts data build' first.")
+
+    df = pd.concat(dfs, ignore_index=True)
+    print(f"Computing features on {len(df):,} PAs...", file=sys.stderr)
+    df = compute_all_features(df)
+
+    for season in seasons:
+        print(f"\n{'='*60}", file=sys.stderr)
+        print(f"Season {season}", file=sys.stderr)
+        print(f"{'='*60}", file=sys.stderr)
+        pa_path = (out / f"pa_predictions_{season}.parquet") if log_pa_predictions else None
+        profiles_df = blend_walk_forward(
+            df,
+            season,
+            retrain_every=retrain_every,
+            pa_predictions_path=pa_path,
+            game_probability_mode=game_probability_mode,
+        )
+        save_profiles(profiles_df, season, out)

@@ -1,0 +1,247 @@
+{
+ "id": "I-082",
+ "working_id": "E82",
+ "title": "8/11 MLB auth flap: one blank HTTP 200 failed the contest-streak fetch and the DM wrongly advised a cookie re-capture",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "A",
+  "secondary": [
+   "X"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "the alert misdiagnosed an external outage as dead cookies and advised an interactive re-capture on the real contest account (extra auth traffic on the account a ban would cost); the contest-streak refresh failed",
+ "plan_named": true,
+ "delivery_mode": "dm",
+ "policy_objective": "none",
+ "stream": "cron_job",
+ "authority": "contest",
+ "contract": {
+  "text": "An outage-shaped MLB auth failure (transport error, 5xx, empty 200) is retried and reported as transient; only credential-shaped failures advise re-capturing cookies.",
+  "source": "404358d; ARCHITECTURE.md 'Hardened 2026-08-11 (auth-flap incident)' (e5354bf); CLAUDE.md leaderboard/contest account-safety rules"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "fetch_login_session made a single attempt, so one zero-length HTTP 200 from auth/login during MLB's flap failed the fetch-contest-streak cron",
+   "code": [
+    {
+     "path": "src/bts/leaderboard/auth.py",
+     "ref": "0e4aaa8",
+     "symbol": "fetch_login_session",
+     "ref_basis": "log"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "the cron's failure handling treated every login failure as credential-shaped, so the DM advised re-capturing cookies that were valid all day",
+   "code": [
+    {
+     "path": "src/bts/cli.py",
+     "ref": "0e4aaa8",
+     "symbol": "fetch_contest_streak (auth failure handler / DM text)",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "404358d"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "404358d",
+    "live_by": "2026-08-11T20:30:12Z",
+    "not_live_before": "2026-08-11T20:30:10Z",
+    "run_id": 31532428453,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": {
+    "action": "operator session refreshed the contest ledger on the box by hand",
+    "at": {
+     "at": "2026-08-11T13:46:00-04:00",
+     "evidence": [
+      "ev4"
+     ]
+    }
+   },
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "404358d"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "404358d",
+    "live_by": "2026-08-11T20:30:12Z",
+    "not_live_before": "2026-08-11T20:30:10Z",
+    "run_id": 31532428453,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "During a transient auth outage check-pick-entered keeps its quiet skip (v3 design): no entry verification or DM until a later */15 run authenticates.",
+   "reaches_production": true,
+   "source": "ARCHITECTURE.md (e5354bf)"
+  },
+  {
+   "text": "Backoff jitter was rejected (single low-volume client).",
+   "reaches_production": false,
+   "source": "404358d body"
+  }
+ ],
+ "watchdog": {
+  "boundary": "private_vs_contest",
+  "trigger": "fetch-contest-streak or check-pick-entered fails: the alert must carry the failure category (transient outage / rate-limited / credential) derived from the response shape, and contest-state age past its expected refresh is itself alerted",
+  "recovery_assertion": "the next scheduled fetch succeeds and the contest state's source date advances; no credential advice was sent for an outage-shaped failure"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 404358d message body",
+   "written_at": "2026-08-11T16:20:09-04:00",
+   "what": "8/11: auth/login returned blank HTTP 200s (~1 in 3 for a stretch) and 503s; the single-shot login turned one blank 200 into a failed cron plus a DM advising cookie re-capture — cookies were valid all day"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "ARCHITECTURE.md at e5354bf ('Hardened 2026-08-11 (auth-flap incident)')",
+   "written_at": "2026-08-11T16:40:44-04:00",
+   "what": "bounded auth retry, elapsed-aware cutoff, quiet skip kept for transient outages"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 31532428453 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "pre-deploy 0e4aaa8 -> deployed 404358d at 2026-08-11T20:30:11Z, canary passed 20:30:44Z"
+  },
+  {
+   "id": "ev4",
+   "kind": "contemporaneous_operator_report",
+   "strength": "reported",
+   "locator": "operator memory note (claude-shared bts_index, '2026-08-11 MLB auth/login flap'; not in the repo)",
+   "written_at": "2026-08-11",
+   "what": "the 13:30 fetch-contest-streak cron failed once and DMed the wrong advice; an operator session refreshed the contest ledger at 13:46; auth/login answered 3/3 from the box around 15:25"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 31348388174 (deploy_runs.json)",
+   "what": "0e4aaa8 installed 2026-08-10T02:00:22Z and not replaced until run 31532428453: the single-shot login was live on 8/11"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-08-11",
+   "onset": {
+    "not_before": "2026-08-11",
+    "not_after": "2026-08-11T16:20:09-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": {
+    "detector": "fetch-contest-streak cron failure (its own DM)",
+    "at": {
+     "not_before": "2026-08-11",
+     "not_after": "2026-08-11T16:20:09-04:00",
+     "evidence": [
+      "ev1"
+     ]
+    }
+   },
+   "alert": {
+    "attempted": {
+     "not_after": "2026-08-11T16:20:09-04:00",
+     "evidence": [
+      "ev1"
+     ]
+    },
+    "confirmed": {
+     "not_after": "2026-08-11T16:20:09-04:00",
+     "evidence": [
+      "ev1"
+     ]
+    },
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-08-11T16:20:09-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-08-11T16:20:09-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": {
+    "at": "2026-08-11T13:46:00-04:00",
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "unknown",
+    "notification": "unknown",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "404358d",
+   "e5354bf"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "ARCHITECTURE.md 'Hardened 2026-08-11 (auth-flap incident)'"
+  ]
+ },
+ "related": [
+  "I-112"
+ ],
+ "notes": [
+  "the DM was the incident's harmful output, so it is both the detection and the misdiagnosis; its exact time (13:30 per the reported memory note) is not in the repo",
+  "the same commit closed a latent hole found in review (malformed auth bodies escaped as AttributeError past every handler, so NO DM would be sent); its firing is not evidenced",
+  "Route R (cron.log, box journals) can bound onset, DM time and the next successful fetch",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

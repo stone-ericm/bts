@@ -1,0 +1,37 @@
+{
+  "label": "R-I063-3",
+  "incident": "I-063",
+  "links": [
+    3
+  ],
+  "fix_set": [
+    "709e68b"
+  ],
+  "tests": [
+    "tests/test_contest_fetch.py::test_derive_source_date_counts_not_hit_rounds",
+    "-q"
+  ],
+  "symptom_nodes": [
+    {
+      "node": "tests/test_contest_fetch.py::test_derive_source_date_counts_not_hit_rounds",
+      "assertion": {
+        "path": "tests/test_contest_fetch.py",
+        "text": "assert derive_source_date(preds, rounds) == dt.date(2026, 6, 9)"
+      }
+    }
+  ],
+  "audit": {
+    "tests/test_contest_fetch.py": {
+      "decision": "neutral",
+      "reason": "709e68b adds test_derive_source_date_counts_not_hit_rounds, which calls derive_source_date (a module import present at the parent a9522a4) with plain dict inputs"
+    }
+  },
+  "deployed_ref": {
+    "sha": "83a5cad",
+    "basis": "log"
+  },
+  "env": {
+    "TZ": "America/New_York"
+  },
+  "notes": "Symptom: at the parent a9522a4, bts.contest_fetch.RESOLVED = {'hit', 'miss', 'void'} omits MLB's 'not_hit', so derive_source_date skips round 2 and returns 2026-06-08; line 161 fails (2026-06-08 != 2026-06-09). Static checks: the module imports ContestFetchError, build_observation, derive_source_date, fetch_profile and validate_fetch, all at a9522a4; the P..F src diff is only the RESOLVED line. Anchor unique at 709e68b (line 161)."
+}

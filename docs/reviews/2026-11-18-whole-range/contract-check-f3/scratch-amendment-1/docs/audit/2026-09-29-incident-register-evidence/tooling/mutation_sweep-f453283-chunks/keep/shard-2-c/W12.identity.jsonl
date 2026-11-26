@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_r6_counterexamples::test_a_cached_form_of_a_reviewed_hook_is_refused_until_purged", "kind": "did_not_raise"}
+{"node": "tests.scripts.incident_register.test_r6_counterexamples::test_a_pair_over_a_cached_hook_is_refused", "kind": "did_not_raise"}

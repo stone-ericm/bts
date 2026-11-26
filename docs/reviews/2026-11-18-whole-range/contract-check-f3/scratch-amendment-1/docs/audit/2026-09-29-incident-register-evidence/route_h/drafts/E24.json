@@ -1,0 +1,70 @@
+{
+ "id": "I-024",
+ "working_id": "E24",
+ "title": "4/12 no live scorecard for a cross-game double (Preview outranked Live in the merge); the scorecard header never rendered",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {"primary": "U", "secondary": []},
+ "tier": "B",
+ "tier_reason": "dashboard display only",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "dashboard",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "The live scorecard renders whenever any leg's game is live, with a header showing status and score.",
+  "source": "6168e1d body and merge_scorecards docstring (6168e1d); 1e4859d body"
+ },
+ "mechanism": [
+  {"n": 1, "text": "merge_scorecards (as changed by 0ba01e1 on 4/06) kept the higher value of {F:0, L:1, P:2}, so a Preview primary beat a Live double-down; render_scorecard_section returns '' unless the status is L or F, so /api/live-html stayed empty",
+   "code": [{"path": "src/bts/scorecard.py", "ref": "80fd31f", "symbol": "merge_scorecards", "ref_basis": "candidate"},
+            {"path": "src/bts/web.py", "ref": "80fd31f", "symbol": "render_scorecard_section", "ref_basis": "candidate"}]},
+  {"n": 2, "text": "render_scorecard_section built the live badge, score and inning strings but never inserted them into its HTML (dead code)",
+   "code": [{"path": "src/bts/web.py", "ref": "6168e1d", "symbol": "render_scorecard_section", "ref_basis": "candidate"}]}
+ ],
+ "fix": [
+  {"link": 1, "implemented": {"commits": ["6168e1d"], "complete_fix_set": true},
+   "deployed": {"basis": "candidate_ancestry", "sha": "6168e1d", "live_by": "2026-04-12T18:55:36Z", "run_id": 24313941874, "evidence": ["ev3"]},
+   "mitigated": "none", "verified_recovered": "unknown"},
+  {"link": 2, "implemented": {"commits": ["1e4859d"], "complete_fix_set": true},
+   "deployed": {"basis": "candidate_ancestry", "sha": "1e4859d", "live_by": "2026-04-12T19:04:36Z", "run_id": 24314112513, "evidence": ["ev4"]},
+   "mitigated": "none", "verified_recovered": "unknown"}
+ ],
+ "fixtures": {"historical_replay": [], "current_defence": [], "expected_failure": [], "characterization": []},
+ "residual": [],
+ "watchdog": {
+  "boundary": "none",
+  "trigger": "display-only: dashboard scorecard; no W4 boundary applies",
+  "recovery_assertion": "/api/live-html returns a scorecard with header whenever any leg's game is live"
+ },
+ "evidence": [
+  {"id": "ev1", "kind": "contemporaneous_operator_report", "strength": "primary", "locator": "commit 6168e1d message body", "written_at": "2026-04-12T14:55:33-04:00",
+   "what": "an inverted priority map made Preview beat Live when the primary (16:10, Preview) merged with the double-down (14:15, Live); render returned '' — 'no scorecard on the dashboard all afternoon even though [the double-down's] game had live PAs'"},
+  {"id": "ev2", "kind": "inference", "strength": "primary", "locator": "0ba01e1 diff to merge_scorecards (4/06) and commit 1e4859d message body (authored 2026-04-12T15:04:34-04:00)",
+   "what": "0ba01e1's 'least advanced status' change introduced the Preview-over-Live ordering; the header strings had been dead code 'since before today'"},
+  {"id": "ev3", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 24313941874 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "head 6168e1d, created 2026-04-12T18:55:36Z, concluded success; log expired"},
+  {"id": "ev4", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 24314112513 (deploy_runs.json)",
+   "what": "head 1e4859d, created 2026-04-12T19:04:36Z, concluded success; log expired"}
+ ],
+ "occurrences": [{
+  "label": "2026-04-12 afternoon",
+  "onset": {"not_before": "2026-04-12T14:15:00-04:00", "not_after": "2026-04-12T14:55:33-04:00", "evidence": ["ev1"]},
+  "first_detectable": "unknown",
+  "first_machine_detection": "none",
+  "alert": {"attempted": "none", "confirmed": "none", "failed": "none"},
+  "operator_awareness": {"not_after": "2026-04-12T14:55:33-04:00", "evidence": ["ev1"]},
+  "mitigation": "none",
+  "restored_verification": "unknown",
+  "latencies": {"detection": "not_applicable", "notification": "not_applicable", "recovery": "unknown"}
+ }],
+ "routes": {"H": ["6168e1d", "1e4859d", "0ba01e1"], "R": "pending_phase2", "X": []},
+ "related": ["I-014", "I-021"],
+ "notes": [
+  "link 1 was introduced by I-014's fix (0ba01e1, 4/06); 6168e1d's body attributes the first exposure to 6fd61f9, which let a later-game primary pair with an earlier-game double-down",
+  "onset not_before 14:15 is the double-down's first pitch per the body",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; 6168e1d added test_merge_live_beats_preview_when_primary_preview; 1e4859d added TestRenderScorecardHeader"
+ ]
+}

@@ -1,0 +1,41 @@
+{
+ "id": "E80",
+ "episode_row": [
+  "E80",
+  "8/09",
+  "decision records lacked state provenance, dropped second candidate",
+  "R",
+  "DL",
+  "B",
+  "5216ea1"
+ ],
+ "commits": [
+  {
+   "sha": "5216ea1",
+   "authored": "2026-08-09T21:38:04-04:00",
+   "subject": "feat(decision): bts_daily_decision_v2 \u2014 state provenance on every final record",
+   "body": "The 8/09 boundary-shadow census (Codex r4) found v1 records unusable as a\nstate source: 31/44 persisted no streak/saver (only MDP skips did), skip\nrecords lost the executable second candidate, and nothing recorded which\nstate stream fed the decision \u2014 while production selection is contest-\nanchored and the census had no way to know what decide_action consumed.\n\nv2 persists on EVERY final record: streak, saver_available, state_source,\nstate_status, allow_double, contest_source_date \u2014 stamped in\norchestrator.run_and_pick from the exact DecisionStreakState that fed\nselect_pick (not re-read at write time, which could differ mid-day) \u2014 and\nsecond_candidate on skips (SelectionResult already carried it; it was\ndropped at capture). SelectionResult gains four default-None provenance\nfields (positional constructors untouched); both skip-capture sites and\nthe commit chokepoint thread them through. load_decision accepts\n{v1, v2} \u2014 legacy records through 8/09 stay authoritative for the #144\nscoreable gate and the skip-policy shadow (regression-tested with a\nhand-written v1 fixture).\n\nProspective effect: from the first deploy onward, every decision day\naccumulates exact-state records \u2014 the untouched stream the amended\nboundary-shadow registration requires for any verdict-bearing evaluation.\n\nSuite 1901 -> 1908.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_012aRt7JMhNGc33Wy1RdjK7q",
+   "files": [
+    "src/bts/daily_decision.py",
+    "src/bts/orchestrator.py",
+    "src/bts/scheduler.py",
+    "src/bts/strategy.py",
+    "tests/test_daily_decision_v2.py",
+    "tests/test_scheduler_decision_record.py"
+   ],
+   "first_live_log": {
+    "sha": "0e4aaa8",
+    "live_by": "2026-08-10T02:00:22Z",
+    "not_live_before": "2026-08-10T02:00:22Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 31348388174,
+    "created_at": "2026-08-10T01:55:45Z",
+    "head_sha": "0e4aaa8",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

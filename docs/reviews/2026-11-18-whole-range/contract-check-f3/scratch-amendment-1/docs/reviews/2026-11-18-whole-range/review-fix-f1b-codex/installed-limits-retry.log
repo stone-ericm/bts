@@ -1,0 +1,33 @@
+nice: setpriority: Operation not permitted
+byte comparison, show and install {'research': 19, 'enter': 20} legacy active/comment retained; marked both replaced
+shell pid=92115 trace=events-000 {'pending': 'match', 'stage': 'fetch', 'signal_mode': 'term'}
+events-000 rc=124 elapsed=1.841s
+shell pid=92132 trace=events-001 {'pending': 'match', 'stage': 'fetch', 'signal_mode': 'term'}
+events-001 rc=124 elapsed=1.819s
+shell pid=92146 trace=events-002 {'pending': 'match'}
+events-002 rc=1 elapsed=0.773s
+shell pid=92150 trace=events-003 {'pending': 'match', 'at': '19:34', 'delay': 1.5}
+events-003 rc=124 elapsed=1.164s
+shell pid=92153 trace=events-004 {'pending': 'match', 'at': '19:45'}
+events-004 rc=0 elapsed=0.776s
+shell pid=92158 trace=events-005 {'pending': 'match', 'at': '19:34', 'delay': 1.5}
+events-005 rc=1 elapsed=1.966s
+shell pid=92164 trace=events-006 {'pending': 'match'}
+events-006 rc=73 elapsed=0.435s
+shell pid=92166 trace=events-007 {'pending': 'match'}
+events-007 rc=1 elapsed=0.778s
+shell pid=92170 trace=events-008 {'pending': 'match'}
+events-008 rc=1 elapsed=0.951s
+shell pid=92188 trace=events-009 {'day': '2027-12-31', 'at': '23:45', 'pending': 'match', 'stage': 'send'}
+events-009 rc=124 elapsed=1.816s
+shell pid=92265 trace=events-010 {'day': '2028-01-01', 'at': '10:15', 'pending': 'match'}
+events-010 rc=0 elapsed=0.814s
+shell pid=92275 trace=events-011 {'day': '2028-01-01', 'at': '10:30', 'stage': 'before-fetch', 'signal_mode': 'kill'}
+/bin/sh: line 1: 92276 Killed: 9               /Users/eric/projects/bts-work/wr-rev-f1c-cx/.venv/bin/python /Users/eric/projects/bts-work/wr-rev-f1c-cx/.codex-review/wr-f1b-r1/installed.py flock /Users/eric/projects/bts-work/wr-rev-f1c-cx/.codex-review/wr-f1b-r1/tmpwpn274qs/pick-entry.lock /usr/bin/timeout --verbose -k 0.25 1.4 /Users/eric/projects/bts-work/wr-rev-f1c-cx/.venv/bin/python /Users/eric/projects/bts-work/wr-rev-f1c-cx/.codex-review/wr-f1b-r1/installed.py broker check-pick-entered --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> /Users/eric/projects/bts-work/wr-rev-f1c-cx/.codex-review/wr-f1b-r1/tmpwpn274qs/home/logs/cron.log 2>&1
+events-011 rc=137 elapsed=2.047s
+shell pid=92280 trace=events-012 {'day': '2028-01-01', 'at': '10:30', 'stage': 'before-fetch', 'signal_mode': 'escape'}
+events-012 rc=124 elapsed=1.779s
+shell pid=92292 trace=events-013 {'day': '2028-01-01', 'at': '10:45'}
+events-013 rc=1 elapsed=0.426s
+shell pid=92298 trace=events-014 {'day': '2028-01-01', 'at': '11:00'}
+events-014 rc=1 elapsed=0.832s

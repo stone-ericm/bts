@@ -1,0 +1,95 @@
+{
+  "audit_problems": [],
+  "classes": {
+    "tests/test_cli_integration.py::TestFetchContestStreak::test_expected_settlement_lag_writes_snapshot_no_alert": "symptom_candidate",
+    "tests/test_cli_integration.py::TestFetchContestStreak::test_genuinely_stale_profile_still_writes_snapshot": "symptom_candidate",
+    "tests/test_contest_fetch.py::test_fetch_cli_persists_snapshot_when_no_settled_predictions": "symptom_candidate"
+  },
+  "closure": "src_swap",
+  "events_sha256": {
+    "green": "b2730fb20c0b6a7dfa46548d1c1c407ec817e916fd9fd2397c0138507f3fe4c2",
+    "red": "a93eb23e5d8bbd130131b2714f3e6582d5621c34b6dafb545f1265cec0922594"
+  },
+  "fix": "4bdfdb83468d5a6200fb1b113e33c51144679618",
+  "harness_changes": [
+    {
+      "path": "tests/test_cli_integration.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_contest_fetch.py",
+      "status": "M"
+    }
+  ],
+  "label": "R-I063-2",
+  "label_kind": "semantic_regression_replay",
+  "parent": "709e68b3dde92a40f21d84f8eb0f2df20111485c",
+  "reasons": [],
+  "spec": {
+    "audit": {
+      "tests/test_cli_integration.py": {
+        "decision": "neutral",
+        "reason": "4bdfdb8 rewrites the two TestFetchContestStreak tests that encoded the refuse-to-write gate (genuinely stale -> still writes; one-pick lag -> writes, no DM); they patch only names present at the parent 709e68b (bts.leaderboard.auth load_session_cookies/extract_uid/fetch_login_session, bts.contest_fetch.fetch_profile, bts.cli._fetch_rounds, bts.dm.send_dm) and invoke fetch-contest-streak, which exists at the parent"
+      },
+      "tests/test_contest_fetch.py": {
+        "decision": "neutral",
+        "reason": "9a3e8ed replaces test_build_observation_requires_source_date with test_build_observation_allows_none_source_date; 4bdfdb8 adds the _mock_fetch helper and two CLI regression tests; the module imports (ContestFetchError, build_observation, derive_source_date, fetch_profile, validate_fetch) and every patched name exist at the parent, and the mocks' call shapes match the parent's calls (fetch_login_session(uid=, cookies=), fetch_profile(user_id, cookies, xsid), _fetch_rounds())"
+      }
+    },
+    "deployed_ref": {
+      "basis": "log",
+      "sha": "83a5cad"
+    },
+    "env": {
+      "TZ": "America/New_York"
+    },
+    "fix_set": [
+      "9a3e8ed",
+      "4bdfdb8"
+    ],
+    "incident": "I-063",
+    "label": "R-I063-2",
+    "links": [
+      2
+    ],
+    "notes": "Symptoms: at the parent 709e68b, fetch_contest_streak refuses to write a current activeStreak: a None source_date hits _fail('profile proves no settled result date; refusing to claim freshness') and a source_date two or more settled picks behind the latest resolved pick hits _fail in the currentness gate; _fail raises SystemExit(2), which the profile try's exception tuple does not catch, so CliRunner reports exit code 2. (1) test_fetch_cli_persists_snapshot_when_no_settled_predictions (no settled predictions, derive_source_date None) fails at line 216; (2) TestFetchContestStreak::test_genuinely_stale_profile_still_writes_snapshot (source_date 2026-06-01, four newer resolved picks) fails at line 819. The exit-code assertion is the first one after the command runs; the refusal it catches is the defect, and the persistence assertion on the next line is not reached. Static checks: cli.py differs P..F only by 4bdfdb8's removal of the None _fail and the gate (contest_fetch.py by 9a3e8ed's build_observation change), so every patched name and call shape is the same at the parent. Anchors at 4bdfdb8: 'assert res.exit_code == 0, res.output' at lines 198 and 216 of tests/test_contest_fetch.py; 'assert r.exit_code == 0, r.output' at 777, 819, 842, 966, 980 of tests/test_cli_integration.py. Not declared: test_fetch_cli_persists_current_activestreak_despite_lag and test_expected_settlement_lag_writes_snapshot_no_alert (the observed one-step lag) fail at the parent with FileNotFoundError (the gate exits 0 without writing contest_streak.json); test_build_observation_allows_none_source_date fails with ContestFetchError('source_date is required'). Lead's review: dropped test_build_observation_allows_none_source_date, test_fetch_cli_persists_current_activestreak_despite_lag from the selection: each fails at the parent only because of a name, field or keyword the fix added (new API), never by assertion, and adds nothing to the replay.",
+    "symptom_nodes": [
+      {
+        "_line": 216,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I063-2/tests/test_contest_fetch.py",
+        "assertion": {
+          "line": 216,
+          "path": "tests/test_contest_fetch.py",
+          "text": "assert res.exit_code == 0, res.output"
+        },
+        "node": "tests/test_contest_fetch.py::test_fetch_cli_persists_snapshot_when_no_settled_predictions"
+      },
+      {
+        "_line": 819,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I063-2/tests/test_cli_integration.py",
+        "assertion": {
+          "line": 819,
+          "path": "tests/test_cli_integration.py",
+          "text": "assert r.exit_code == 0, r.output"
+        },
+        "node": "tests/test_cli_integration.py::TestFetchContestStreak::test_genuinely_stale_profile_still_writes_snapshot"
+      }
+    ],
+    "tests": [
+      "tests/test_contest_fetch.py::test_fetch_cli_persists_snapshot_when_no_settled_predictions",
+      "tests/test_cli_integration.py::TestFetchContestStreak::test_genuinely_stale_profile_still_writes_snapshot",
+      "tests/test_cli_integration.py::TestFetchContestStreak::test_expected_settlement_lag_writes_snapshot_no_alert",
+      "-q"
+    ]
+  },
+  "spec_sha256": "9ef8ffc1b14ac1852279fd9aa152b5105288f2ebd3599f541e2e830137cc4ad1",
+  "src_tree": {
+    "fix": "006102fe7572ece63bebd2f9aa9cfe7fc525d7d4",
+    "parent": "8f6aecb4b2617242279af201f935afbfefd15ca3"
+  },
+  "symptoms": {
+    "tests/test_cli_integration.py::TestFetchContestStreak::test_genuinely_stale_profile_still_writes_snapshot": [],
+    "tests/test_contest_fetch.py::test_fetch_cli_persists_snapshot_when_no_settled_predictions": []
+  },
+  "verdict": "accepted"
+}

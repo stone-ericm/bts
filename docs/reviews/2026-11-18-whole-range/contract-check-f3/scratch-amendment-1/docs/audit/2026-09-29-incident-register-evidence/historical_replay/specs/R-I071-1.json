@@ -1,0 +1,40 @@
+{
+  "label": "R-I071-1",
+  "incident": "I-071",
+  "links": [
+    1
+  ],
+  "fix_set": [
+    "af6329f"
+  ],
+  "tests": [
+    "tests/test_cli_integration.py::TestCheckPickEntered::test_missing_entry_in_window_dms_and_exits_nonzero",
+    "tests/test_cli_integration.py::TestCheckPickEntered::test_uncommitted_pick_in_window_no_dm",
+    "tests/test_cli_integration.py::TestCheckPickEntered::test_dm_countdown_uses_submission_cutoff",
+    "-q"
+  ],
+  "symptom_nodes": [
+    {
+      "node": "tests/test_cli_integration.py::TestCheckPickEntered::test_uncommitted_pick_in_window_no_dm",
+      "assertion": {
+        "path": "tests/test_cli_integration.py",
+        "text": "assert r.exit_code == 0, r.output",
+        "line": 1049
+      }
+    }
+  ],
+  "audit": {
+    "tests/test_cli_integration.py": {
+      "decision": "neutral",
+      "reason": "af6329f gives TestCheckPickEntered._save_pick a delivered flag (default True) that sets DailyPick.notification_sent/notification_channel/notification_id, fields present at the parent 65197fc, and adds the uncommitted-preview and countdown tests; every patched name (auth trio, contest_fetch.fetch_profile/fetch_pending_predictions, cli._fetch_rounds/_fetch_bts_to_mlb, dm.send_dm) and every module import exists at the parent"
+    }
+  },
+  "deployed_ref": {
+    "sha": "39b02bd",
+    "basis": "log"
+  },
+  "env": {
+    "TZ": "America/New_York"
+  },
+  "notes": "Symptom: at the parent 65197fc, check_pick_entered has no commit gate: an undelivered {date}.json (notification_sent False, no decision.json) 40 min before first pitch is inside the 0-75 min window, the mocked account has no entry, so the parent sends the not-entered DM and exits 1; test_uncommitted_pick_in_window_no_dm fails at line 1049. The exit code is the command's alert signal (sys.exit(1) after the not-entered DM); the dms == [] assertion on the next line is not reached. Static checks: every patched name and DailyPick field exists at 65197fc (see the audit); load_pick, _earliest_pick_game_et and pick_entry_status are the parent's own; module imports (Pick, DailyPick, save_pick, save_streak, save_shadow_pick, load_shadow_pick, load_streak; write_decision) exist at the parent. Anchor: the text occurs 11 times at af6329f; line 1049 is inside the symptom test (1037-1051). Other selected nodes at the parent: test_missing_entry_in_window_dms_and_exits_nonzero passes (control: a delivered pick still alerts); test_dm_countdown_uses_submission_cutoff fails by assertion at line 1065 (link 2's countdown, on the fix's new wording; not declared anywhere, see R-I071-2)."
+}

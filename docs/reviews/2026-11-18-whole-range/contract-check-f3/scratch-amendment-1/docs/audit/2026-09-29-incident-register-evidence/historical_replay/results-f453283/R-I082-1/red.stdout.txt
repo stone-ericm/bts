@@ -1,0 +1,142 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I082-1
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 6 items
+
+tests/leaderboard/test_auth.py FFF..                                     [ 83%]
+tests/test_contest_fetch.py .                                            [100%]
+
+=================================== FAILURES ===================================
+_ TestFetchLoginSessionTransientRetry.test_transient_exhaustion_raises_transient_auth_error _
+
+self = <tests.leaderboard.test_auth.TestFetchLoginSessionTransientRetry object at 0x109a5f620>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1097efe30>
+
+    def test_transient_exhaustion_raises_transient_auth_error(self, monkeypatch):
+        from bts.leaderboard.auth import fetch_login_session
+        self._install_sleep_recorder(monkeypatch)
+        with patch("bts.leaderboard.auth.httpx.post",
+                   side_effect=[_blank_200_response() for _ in range(3)]) as mock_post:
+            with pytest.raises(AuthError) as ei:
+                fetch_login_session(uid="00u123", cookies={"oktaid": "00u123"})
+>       assert ei.value.__class__.__name__ == "TransientAuthError"
+E       AssertionError: assert 'AuthError' == 'TransientAuthError'
+E         
+E         - TransientAuthError
+E         + AuthError
+
+tests/leaderboard/test_auth.py:244: AssertionError
+_______ TestFetchLoginSessionTransientRetry.test_retry_backoff_sequence ________
+
+self = <tests.leaderboard.test_auth.TestFetchLoginSessionTransientRetry object at 0x109a5fd70>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x109ee7470>
+
+    def test_retry_backoff_sequence(self, monkeypatch):
+        from bts.leaderboard.auth import fetch_login_session
+        sleeps = self._install_sleep_recorder(monkeypatch)
+        with patch("bts.leaderboard.auth.httpx.post",
+                   side_effect=[_blank_200_response() for _ in range(3)]):
+            with pytest.raises(AuthError):
+                fetch_login_session(uid="00u123", cookies={"oktaid": "00u123"})
+>       assert sleeps == [2.0, 4.0]
+E       assert [] == [2.0, 4.0]
+E         
+E         Right contains 2 more items, first extra item: 2.0
+E         Use -v to get more diff
+
+tests/leaderboard/test_auth.py:400: AssertionError
+___ TestFetchLoginSessionTransientRetry.test_retries_empty_200_then_succeeds ___
+
+uid = '00u123', cookies = {'oktaid': '00u123'}, timeout = 30.0
+
+    def fetch_login_session(
+        uid: str,
+        cookies: dict[str, str],
+        timeout: float = 30.0,
+    ) -> AuthSession:
+        """POST /api/auth/login -> mint a fresh xSid and return account identity."""
+        response = httpx.post(
+            AUTH_LOGIN_URL,
+            cookies=cookies,
+            json={"uid": uid, "platform": AUTH_LOGIN_PLATFORM},
+            headers={**browser_headers(), "Content-Type": "application/json"},
+            timeout=timeout,
+        )
+        if response.status_code != 200:
+            raise AuthError(f"auth/login returned {response.status_code}: {response.text[:200]}")
+        try:
+>           body = response.json()
+                   ^^^^^^^^^^^^^^^
+
+src/bts/leaderboard/auth.py:138: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/Users/eric/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/eric/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <MagicMock name='mock.json' id='4457538256'>, args = (), kwargs = {}
+effect = JSONDecodeError('Expecting value: line 1 column 1 (char 0)')
+
+    def _execute_mock_call(self, /, *args, **kwargs):
+        # separate from _increment_mock_call so that awaited functions are
+        # executed separately from their call, also AsyncMock overrides this method
+    
+        effect = self.side_effect
+        if effect is not None:
+            if _is_exception(effect):
+>               raise effect
+E               json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+/Users/eric/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: JSONDecodeError
+
+The above exception was the direct cause of the following exception:
+
+self = <tests.leaderboard.test_auth.TestFetchLoginSessionTransientRetry object at 0x109b0bd10>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x109ef27b0>
+
+    def test_retries_empty_200_then_succeeds(self, monkeypatch):
+        from bts.leaderboard.auth import fetch_login_session
+        sleeps = self._install_sleep_recorder(monkeypatch)
+        with patch("bts.leaderboard.auth.httpx.post",
+                   side_effect=[_blank_200_response(), _ok_login_response()]) as mock_post:
+>           session = fetch_login_session(uid="00u123", cookies={"oktaid": "00u123"})
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/leaderboard/test_auth.py:175: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+uid = '00u123', cookies = {'oktaid': '00u123'}, timeout = 30.0
+
+    def fetch_login_session(
+        uid: str,
+        cookies: dict[str, str],
+        timeout: float = 30.0,
+    ) -> AuthSession:
+        """POST /api/auth/login -> mint a fresh xSid and return account identity."""
+        response = httpx.post(
+            AUTH_LOGIN_URL,
+            cookies=cookies,
+            json={"uid": uid, "platform": AUTH_LOGIN_PLATFORM},
+            headers={**browser_headers(), "Content-Type": "application/json"},
+            timeout=timeout,
+        )
+        if response.status_code != 200:
+            raise AuthError(f"auth/login returned {response.status_code}: {response.text[:200]}")
+        try:
+            body = response.json()
+        except json.JSONDecodeError as e:
+>           raise AuthError(f"auth/login response not JSON: {e}") from e
+E           bts.leaderboard.auth.AuthError: auth/login response not JSON: Expecting value: line 1 column 1 (char 0)
+
+src/bts/leaderboard/auth.py:140: AuthError
+=========================== short test summary info ============================
+FAILED tests/leaderboard/test_auth.py::TestFetchLoginSessionTransientRetry::test_transient_exhaustion_raises_transient_auth_error
+FAILED tests/leaderboard/test_auth.py::TestFetchLoginSessionTransientRetry::test_retry_backoff_sequence
+FAILED tests/leaderboard/test_auth.py::TestFetchLoginSessionTransientRetry::test_retries_empty_200_then_succeeds
+========================= 3 failed, 3 passed in 1.12s ==========================

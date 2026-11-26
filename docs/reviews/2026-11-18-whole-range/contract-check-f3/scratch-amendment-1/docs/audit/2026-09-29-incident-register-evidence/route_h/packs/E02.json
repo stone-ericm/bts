@@ -1,0 +1,37 @@
+{
+ "id": "E02",
+ "episode_row": [
+  "E02",
+  "4/01",
+  "check_hit failed on wrong game_pk/batter_id (cron grading)",
+  "G",
+  "UC",
+  "P",
+  "50d4ee5"
+ ],
+ "commits": [
+  {
+   "sha": "50d4ee5",
+   "authored": "2026-04-01T01:09:11-04:00",
+   "subject": "fix: resilient check_hit with name + date fallback",
+   "body": "If batter_id isn't found in the expected game, search all Final games\non that date by name. Handles wrong game_pk and wrong batter_id\ngracefully. Passes batter_name, date, and team from check-results.",
+   "files": [
+    "src/bts/cli.py",
+    "src/bts/picks.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24253126060,
+    "created_at": "2026-04-10T16:29:24Z",
+    "head_sha": "4a82cf8",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

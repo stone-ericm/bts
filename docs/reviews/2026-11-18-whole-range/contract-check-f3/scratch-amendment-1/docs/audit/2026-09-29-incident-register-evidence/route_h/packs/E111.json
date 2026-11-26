@@ -1,0 +1,87 @@
+{
+ "id": "E111",
+ "episode_row": [
+  "E111",
+  "6/10\u20136/18",
+  "MDP saver input from an unsound model-saver proxy / ledger inference",
+  "P/G",
+  "DL",
+  "P",
+  "810d7e0 815cf50 bf6ccae"
+ ],
+ "commits": [
+  {
+   "sha": "810d7e0",
+   "authored": "2026-06-17T21:03:42-04:00",
+   "subject": "feat(saver): infer the 10-15 saver from best_streak + the per-round ledger; retire the model-saver proxy",
+   "body": "load_decision_streak_state now infers the one-time, SEASON-SCOPED 10-15 saver instead of the\nPhase-1 \"model-saver when contest & model streak agree\" proxy. When contest.saver_available is\nNone it calls infer_saver(parse_latest_ledger(...), contest.best_streak), which checks in order:\n- a STABLE settled not_hit at pre-streak 10-15 that did not reset to 0 -> 'consumed'. Checked\n  FIRST so ledger evidence of a consumption overrides the best_streak shortcut below.\n- best_streak < 10 -> 'available': the account never reached the 10-15 zone this season, so the\n  saver was never consumable. best_streak (seasonBestStreak) is a reliable counter immune to\n  ledger windowing -- the only sound positive signal in 2c.\n- otherwise (reached the zone, no confirmed consumption) -> 'unknown' -> conservatively\n  unavailable: confirming the season saver survived needs complete coverage (Phase 2b).\ncontest_saver = (inference == \"available\"); a known contest saver is still authoritative.\n\nThe ledger parser (Task 2) underpins the 'consumed' detection and is the foundation for 2b.\nCodex plan-review adjustments: #1 no ledger / no signal -> unknown -> unavailable (the proxy is\ngone, so model saver=True never makes the contest saver True without evidence); #2 a consuming\nround must be STABLE (two-read) and non-DD.\n\nThree Codex 2c review rounds drove this. (1) An earlier \"available from the latest snapshot\"\ninference was unsound under ledger windowing. (2) A coverage guard (require a visible reset) was\ninsufficient because the saver is SEASON-scoped (picks._apply_streak_day: a later reset does NOT\nrestore it) and the predictions array has no contiguity guarantee -- so the design moved to the\nwindowing-immune best_streak < 10 gate. (3) best_streak < 10 blindly trusted best_streak, an\nunsafe false-available if it under-reports a since-reset peak (wrong manual override, or a stale\nseasonBestStreak); fixed by checking a stable ledger consumption FIRST, so visible evidence wins\nand the error direction is conservative. Verified on the live box: best_streak=9 (max historical\nstreak 9) -> saver available, sound. Residual (surfaced, not fixed here): a manual override that\nunder-reports best_streak AND a windowed ledger with no consuming row could still false-available;\nmanual overrides should set saver_available explicitly or enter best_streak correctly.\n\nTests rewritten off best_streak + ledger fixtures; boundary (best_streak==10, pre-streak 10/15/16\nedges) and consumed-overrides-low-best_streak safety cases added; two contest_state saver tests\nrepointed. 127 passed across contest-state / ledger / saver / web / cli / orchestrator / health.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/contest_ledger.py",
+    "src/bts/contest_state.py",
+    "tests/test_contest_ledger.py",
+    "tests/test_contest_state.py",
+    "tests/test_decision_saver_fallback.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27778563477,
+    "created_at": "2026-06-18T17:48:16Z",
+    "head_sha": "889eeed",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "815cf50",
+   "authored": "2026-06-18T12:42:12-04:00",
+   "subject": "feat(saver): load_decision_streak_state reads saver_state.json as sole authority (both branches); retire infer_saver/contest.saver_available from the decision",
+   "body": "Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/contest_state.py",
+    "tests/test_contest_state.py",
+    "tests/test_decision_saver_fallback.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27778563477,
+    "created_at": "2026-06-18T17:48:16Z",
+    "head_sha": "889eeed",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "bf6ccae",
+   "authored": "2026-06-18T13:09:25-04:00",
+   "subject": "refactor(saver): retire infer_saver; parse_latest_ledger now backs the dashboard likely_save nudge only",
+   "body": "Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/contest_ledger.py",
+    "tests/test_contest_ledger.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27778563477,
+    "created_at": "2026-06-18T17:48:16Z",
+    "head_sha": "889eeed",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

@@ -1,0 +1,167 @@
+{
+ "id": "I-041",
+ "working_id": "E41",
+ "title": "4/28-30 blend_training and bluesky_post health checks paged before their natural deadlines (no time-of-day guard)",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "A",
+  "secondary": []
+ },
+ "tier": "B",
+ "tier_reason": "false-positive health alerts in the first days of the health subpackage; no delivery, state or liveness impact",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "blend_training alerts only when tomorrow's blend is missing after its 3 AM cron should have produced it, and bluesky_post alerts only when a locked pick is still unposted after posting should have happened.",
+  "source": "commit f0c3af9 message body; src/bts/health/post_failure.py module docstring ('Run at end-of-day, well after first-pitch lock')"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "both checks evaluated their condition whenever the health runner ran, with no time-of-day guard: blend_training flagged the next day's blend before the 3:06 AM cron creates it, and bluesky_post flagged a pick not yet posted before its lineup-confirmation or fallback posting time",
+   "code": [
+    {
+     "path": "src/bts/health/blend_training.py",
+     "ref": "77673e8",
+     "symbol": "check",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/health/post_failure.py",
+     "ref": "77673e8",
+     "symbol": "check",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "f0c3af9"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "ee4190f",
+    "live_by": "2026-04-30T16:27:37Z",
+    "run_id": 25176998666,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "a delivery check evaluated only at its natural deadline: at the earliest pick game's first pitch minus 5 min, a committed pick with no delivery record (not before)",
+  "recovery_assertion": "no post-failure page on days whose pick was delivered before its cutoff"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit f0c3af9 message body",
+   "written_at": "2026-04-30T00:42:52-04:00",
+   "what": "both alerts had no time-of-day guard, so they fired daily false positives in the natural pre-cron / pre-post window"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 25061375968 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "deploy of a5af424 created 2026-04-28T15:15:48Z, the first run that installed the health subpackage (e74c485) after the 11:06 no-op (I-037)"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 25176998666 (deploy_runs.json)",
+   "what": "first successful deploy whose head (ee4190f) contains f0c3af9, created 2026-04-30T16:27:37Z; no deploy ran between 4/30 00:42 and 12:27 ET; log unavailable_expired"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-04-28/29 (first health-check days)",
+   "onset": {
+    "not_before": "2026-04-28T11:15:48-04:00",
+    "not_after": "2026-04-30T00:42:52-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_detectable": {
+    "not_before": "2026-04-28T11:15:48-04:00",
+    "not_after": "2026-04-30T00:42:52-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "not_applicable",
+    "confirmed": "not_applicable",
+    "failed": "not_applicable"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-30T00:42:52-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-04-30T00:42:52-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   },
+   "continuing": true
+  }
+ ],
+ "routes": {
+  "H": [
+   "f0c3af9",
+   "e74c485"
+  ],
+  "R": "pending_phase2",
+  "X": []
+ },
+ "related": [
+  "I-037",
+  "I-038"
+ ],
+ "notes": [
+  "prelim OI?: the body states the alerts 'fired daily false positives' but cites no instance; the health checks had existed only since 4/28 11:15 ET, so any firing is within 37.5 h of the report; if the lead reads the sentence as code-review inference this is a deployed_latent_defect (B)",
+  "the 4e221c8 body (4/28 21:25) mentions only memory_growth for the first end-of-day cycle, so a 4/28 firing of these two is not corroborated; the runner ran only at end of day then, which makes the body's 'pages all morning' reading unclear",
+  "alert fields not_applicable: the false pages are the symptom",
+  "log bound: live by 2026-06-07T00:11:19Z (run 27077693688)",
+  "regression tests named in the fix: tests/health/test_blend_training.py TestBlendTrainingTimeGuard, tests/health/test_post_failure.py TestPostFailureTimeGuard (boundary hours)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

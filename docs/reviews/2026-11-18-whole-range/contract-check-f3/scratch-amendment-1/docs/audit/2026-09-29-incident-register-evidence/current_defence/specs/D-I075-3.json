@@ -1,0 +1,84 @@
+{
+ "label": "D-I075-3",
+ "link": "I-075 link 3",
+ "tests": [
+  "tests/health/test_alert.py",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/health/alert.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/health/alert.py",
+   "            if alert_key and set(alert_key) <= set(prior_sent_sources):\n                log.info(\n                    \"health DM suppressed: %s already covered by today's DM (day=%s)\",\n                    alert_key, now_day,\n                )\n                return False\n",
+   "            if alert_key and set(alert_key) <= set(prior_sent_sources):\n                pass  # W1.5 mutant: pre-ec242da \u2014 no per-day dedup: an identity already DMed today is sent again\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/health/alert.py",
+  "text": "W1.5 mutant: pre-ec242da \u2014 no per-day dedup: an identity already DMed today is sent again"
+ },
+ "entry": {
+  "path": "src/bts/health/alert.py",
+  "qualname": "dispatch_dm_for_health_alerts"
+ },
+ "boundaries": [
+  {
+   "name": "dm",
+   "binding": "bts.health.alert:send_dm",
+   "value": [
+    "args[1]",
+    "kw:text"
+   ],
+   "classify": [
+    [
+     "critical_dm",
+     "^BTS health CRITICAL"
+    ],
+    [
+     "health_dm",
+     "^BTS health "
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "event",
+  "boundary": "dm",
+  "category": "critical_dm"
+ },
+ "killing": [
+  {
+   "node": "tests/health/test_alert.py::TestHealthDmDedup::test_same_day_same_sources_suppressed",
+   "assertion": {
+    "path": "tests/health/test_alert.py",
+    "text": "assert first is True and second is False",
+    "line": 211
+   }
+  },
+  {
+   "node": "tests/health/test_alert.py::TestHealthDmDedup::test_new_source_same_day_sends_and_unions",
+   "assertion": {
+    "path": "tests/health/test_alert.py",
+    "text": "assert sent2 is True and sent3 is False",
+    "line": 229
+   }
+  }
+ ],
+ "contract": {
+  "text": "A health incident identity (level + incident key or source) already covered by a DM sent today is not DMed again the same day; a new identity still sends.",
+  "entry_mode": "direct call of dispatch_dm_for_health_alerts",
+  "trigger": "a second dispatch on the same processed day whose identities are all in today's sent set",
+  "symptom_kind": "extra event (duplicate CRITICAL health DM)"
+ },
+ "level": "production_path",
+ "level_justification": "only the Bluesky DM transport (bts.health.alert.send_dm) is replaced; the delivery-status file is real, in a temporary directory, and the processed day is passed explicitly",
+ "allowed_mocks": [
+  "bts.health.alert.send_dm"
+ ],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

@@ -1,0 +1,61 @@
+{
+ "id": "E64",
+ "episode_row": [
+  "E64",
+  "6/17",
+  "live-forward resolver stalled on a suspended/resumed game (CRITICAL)",
+  "R/X",
+  "OI",
+  "A",
+  "0dca845 02abfcc"
+ ],
+ "commits": [
+  {
+   "sha": "0dca845",
+   "authored": "2026-06-29T20:23:59-04:00",
+   "subject": "fix(experiment): void suspended-resumed games in the live-forward resolver",
+   "body": "A pick whose game was suspended and resumed the next day stalled the resolver\nforever: the resumed game keeps its original officialDate, so its PA rows stay\nfiled under the earlier date while the slate dates the pick on the resume day,\nand the (date, game_pk) join never matches -> permanent pending_outcomes. Per\nBTS rules the resumed portion is never evaluated, so the pick is a terminal void.\n\nClassify a still-missing row whose game_pk has PA but NONE on that row's own slate\ndate as a distinct void_suspended_resume status (a row-local check, so a multi-date\nresolve pass stays correct); the date then resolves (resolved_with_voids) instead of\nstalling, and future occurrences self-heal. A game with slate-date PA (the batter\njust didn't play, even alongside stray off-date rows) stays pending, as does a game\nabsent from PA entirely; a malformed/null game_pk is coerced defensively (left\npending) rather than crashing the resolve.\n\nFixes the 2026-06-17 live_forward_resolution CRITICAL stall (game 824912 resumed\nfrom 06-16). See docs/audit/2026-06-29-skip-threshold-and-discrimination.md.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_018G8K9AtnrzJzgUu4B41rQ5",
+   "files": [
+    "src/bts/experiment/artifacts.py",
+    "tests/experiment/test_artifacts.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 28416280226,
+    "created_at": "2026-06-30T02:31:47Z",
+    "head_sha": "02abfcc",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "02abfcc",
+   "authored": "2026-06-29T20:23:59-04:00",
+   "subject": "fix(model): stop offering resume-date suspended games as candidates",
+   "body": "A suspended game resumed on a later day still appears on that day's MLB schedule\nwith its original (earlier) officialDate. Per BTS rules the resumed portion is\nnever evaluated, so a pick on the resume day can never score -- the slate must not\noffer it. _fetch_game_slots now skips schedule games whose officialDate is earlier\nthan the queried date (logging a count). The predicate lives in bts.picks\n(lightgbm-free) so it is covered even without the model extra. The resolver void in\nthe sibling commit is the backstop; this stops them at the source.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_018G8K9AtnrzJzgUu4B41rQ5",
+   "files": [
+    "src/bts/model/predict.py",
+    "src/bts/picks.py",
+    "tests/test_is_resume_date_game.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 28416280226,
+    "created_at": "2026-06-30T02:31:47Z",
+    "head_sha": "02abfcc",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

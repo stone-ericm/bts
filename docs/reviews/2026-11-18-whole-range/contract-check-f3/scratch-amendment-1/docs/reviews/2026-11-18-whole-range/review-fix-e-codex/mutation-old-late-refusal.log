@@ -1,0 +1,42 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-e-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 291 items
+
+tests/test_wr_e_texts.py ...................F.......F.....               [ 11%]
+tests/test_scheduler_skip_visibility.py ................................ [ 22%]
+.......                                                                  [ 24%]
+tests/test_scheduler_tail_objective.py .........                         [ 27%]
+tests/test_stale_delivery_cs4c.py ...................................... [ 40%]
+........................                                                 [ 49%]
+tests/test_morning_state_cs6b1.py ...................................... [ 62%]
+.......................                                                  [ 70%]
+tests/test_late_delivery_guard.py ........                               [ 72%]
+tests/test_postponed_delivery_guard.py ........................          [ 81%]
+tests/test_wr_b_contract.py ........................                     [ 89%]
+tests/scripts/season_walk/test_season_walk.py ..................         [ 95%]
+tests/test_lightgbm_optional.py .                                        [ 95%]
+tests/test_web_saver.py ............                                     [100%]
+
+=================================== FAILURES ===================================
+____________________ test_refusal_message_and_record[late] _____________________
+tests/test_wr_e_texts.py:130: in test_refusal_message_and_record
+    assert [(item.source, item.message) for item in sent] == [(source, prefix + (
+E   AssertionError: assert [('late_deliv...nt one now.')] == [('late_deliv...ry in time.')]
+E     
+E     At index 0 diff: ('late_delivery', 'LATE DELIVERY REFUSED: Steven Kwan would have been sent 10 min after the 18:25 ET cutoff. This pick was withheld. A later check may produce another recommendation. Use a later official pick message only while the entry window is open. A manual entry can differ from a later recommendation. Enter a pick manually if you want one now.') != ('late_delivery', 'LATE DELIVERY REFUSED: Steven Kwan would have been sent 10 min after the 18:25 ET cutoff. This pick was withheld. A later check may produce another recommendation. Use a later officia...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY REFUSED (test) — Steven Kwan: submission cutoff 18:25 ET passed 10.0 min ago; not delivering an unenterable pick.
+___________________________ test_operator_text_scan ____________________________
+tests/test_wr_e_texts.py:280: in test_operator_text_scan
+    assert all("manually if you want" not in word for word in literals(inspect.getsource(refusal)))
+E   assert False
+E    +  where False = all(<generator object test_operator_text_scan.<locals>.<genexpr> at 0x10cf6a190>)
+=========================== short test summary info ============================
+FAILED tests/test_wr_e_texts.py::test_refusal_message_and_record[late] - Asse...
+FAILED tests/test_wr_e_texts.py::test_operator_text_scan - assert False
+======================== 2 failed, 289 passed in 42.89s ========================

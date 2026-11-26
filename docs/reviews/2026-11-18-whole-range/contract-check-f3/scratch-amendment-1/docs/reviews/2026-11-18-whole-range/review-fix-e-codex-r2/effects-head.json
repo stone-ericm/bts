@@ -1,0 +1,215 @@
+{
+  "interrupts": {
+    "KeyboardInterrupt/Alert": "KeyboardInterrupt",
+    "KeyboardInterrupt/dispatch_dm_for_health_alerts": "KeyboardInterrupt",
+    "OSError/Alert": "OSError",
+    "OSError/dispatch_dm_for_health_alerts": "OSError",
+    "SystemExit/Alert": "SystemExit",
+    "SystemExit/dispatch_dm_for_health_alerts": "SystemExit"
+  },
+  "refusals": {
+    "late": {
+      "archive": {
+        "automatic_reading": null,
+        "bluesky_posted": false,
+        "bluesky_uri": null,
+        "chosen_on": null,
+        "date": "2027-07-15",
+        "delivered_at": null,
+        "delivery_attempted": false,
+        "double_down": null,
+        "feature_env": null,
+        "feature_env_hash": null,
+        "feature_env_schema_version": null,
+        "model_git_sha": null,
+        "model_pickle_sha256": null,
+        "notification_channel": null,
+        "notification_id": null,
+        "notification_sent": false,
+        "pick": {
+          "batter_id": 680757,
+          "batter_name": "Steven Kwan",
+          "flags": [],
+          "game_pk": 101,
+          "game_time": "2027-07-15T23:10:00Z",
+          "lineup_position": 1,
+          "p_game_hit": 0.82,
+          "pitcher_id": 543037,
+          "pitcher_name": "Gerrit Cole",
+          "pitcher_team": null,
+          "projected_lineup": false,
+          "team": "CLE"
+        },
+        "policy_decision": null,
+        "policy_npz_sha256": null,
+        "refused_delivery": {
+          "cutoff_et": "2027-07-15T18:32:00-04:00",
+          "label": "late",
+          "late_min": 3.0,
+          "reason": "past_submission_cutoff",
+          "refused_at": "2027-07-15T18:35:00-04:00"
+        },
+        "result": null,
+        "run_time": "2027-07-15T18:35:00-04:00",
+        "runner_up": null,
+        "shadow_model_version": null,
+        "slot_results": null,
+        "tail_policy_sha256": null
+      },
+      "level_source": [
+        "CRITICAL",
+        "late_delivery"
+      ],
+      "metadata": {
+        "archive": "refused_delivery_20270715T183500-0400.json",
+        "at": "2027-07-15T18:35:00-04:00",
+        "batter": "Steven Kwan",
+        "cutoff_et": "2027-07-15T18:32:00-04:00",
+        "double_down": null,
+        "label": "late",
+        "late_min": 3.0,
+        "reason": "past_submission_cutoff"
+      },
+      "status_path": "picks/health_state/health_dm_delivery_status.json"
+    },
+    "void": {
+      "archive": {
+        "automatic_reading": null,
+        "bluesky_posted": false,
+        "bluesky_uri": null,
+        "chosen_on": null,
+        "date": "2027-07-15",
+        "delivered_at": null,
+        "delivery_attempted": false,
+        "double_down": null,
+        "feature_env": null,
+        "feature_env_hash": null,
+        "feature_env_schema_version": null,
+        "model_git_sha": null,
+        "model_pickle_sha256": null,
+        "notification_channel": null,
+        "notification_id": null,
+        "notification_sent": false,
+        "pick": {
+          "batter_id": 680757,
+          "batter_name": "Steven Kwan",
+          "flags": [],
+          "game_pk": 101,
+          "game_time": "2027-07-15T23:10:00Z",
+          "lineup_position": 1,
+          "p_game_hit": 0.82,
+          "pitcher_id": 543037,
+          "pitcher_name": "Gerrit Cole",
+          "pitcher_team": null,
+          "projected_lineup": false,
+          "team": "CLE"
+        },
+        "policy_decision": null,
+        "policy_npz_sha256": null,
+        "refused_delivery": {
+          "label": "void",
+          "reason": "game_not_playable",
+          "refused_at": "2027-07-15T18:35:00-04:00",
+          "void_games": {
+            "101": "Postponed"
+          }
+        },
+        "result": null,
+        "run_time": "2027-07-15T18:35:00-04:00",
+        "runner_up": null,
+        "shadow_model_version": null,
+        "slot_results": null,
+        "tail_policy_sha256": null
+      },
+      "level_source": [
+        "CRITICAL",
+        "postponed_pick"
+      ],
+      "metadata": {
+        "archive": "refused_delivery_20270715T183500-0400.json",
+        "at": "2027-07-15T18:35:00-04:00",
+        "batter": "Steven Kwan",
+        "double_down": null,
+        "label": "void",
+        "reason": "game_not_playable",
+        "void_games": {
+          "101": "Postponed"
+        }
+      },
+      "status_path": "picks/health_state/health_dm_delivery_status.json"
+    }
+  },
+  "warning_deliveries": [
+    [
+      "offline.test",
+      "BTS health WARN attention:"
+    ],
+    [
+      "offline.test",
+      "BTS health WARN attention:"
+    ],
+    [
+      "offline.test",
+      "BTS health WARN attention:"
+    ],
+    [
+      "offline.test",
+      "BTS health WARN attention:"
+    ]
+  ],
+  "warning_status": [
+    {
+      "body_first_line": "BTS health WARN attention:",
+      "critical_count": 0,
+      "error": "synthetic first-send failure",
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "status": "failed",
+      "updated_at": "2027-07-15T22:35:00+00:00",
+      "warn_attention_count": 1
+    },
+    {
+      "body_first_line": "BTS health WARN attention:",
+      "critical_count": 0,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-07-15",
+      "sent_sources": [
+        "WARN_ATTENTION:contest_state:stale_reading"
+      ],
+      "status": "sent",
+      "updated_at": "2027-07-15T22:35:00+00:00",
+      "warn_attention_count": 1
+    },
+    {
+      "body_first_line": "BTS health WARN attention:",
+      "critical_count": 0,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-12-31",
+      "sent_sources": [
+        "WARN_ATTENTION:contest_state:stale_reading"
+      ],
+      "status": "sent",
+      "updated_at": "2028-01-01T03:59:00+00:00",
+      "warn_attention_count": 1
+    },
+    {
+      "body_first_line": "BTS health WARN attention:",
+      "critical_count": 0,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2028-01-01",
+      "sent_sources": [
+        "WARN_ATTENTION:contest_state:stale_reading"
+      ],
+      "status": "sent",
+      "updated_at": "2028-01-01T04:01:00+00:00",
+      "warn_attention_count": 1
+    }
+  ]
+}

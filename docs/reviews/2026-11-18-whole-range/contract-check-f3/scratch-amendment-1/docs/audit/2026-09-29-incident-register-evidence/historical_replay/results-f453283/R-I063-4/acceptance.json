@@ -1,0 +1,77 @@
+{
+  "audit_problems": [],
+  "classes": {
+    "tests/health/test_contest_state.py::test_gap1_past_noon_is_info_not_warn": "symptom_candidate",
+    "tests/health/test_contest_state.py::test_gap2_coverage_lag_is_warn": "symptom_candidate",
+    "tests/health/test_contest_state.py::test_offday_gap_with_one_new_pick_is_not_critical": "symptom_candidate",
+    "tests/health/test_contest_state.py::test_two_day_gap_is_warn_not_critical": "symptom_candidate"
+  },
+  "closure": "src_swap",
+  "events_sha256": {
+    "green": "63bea52dce471a8751cb475d9a6a6f88459ddea70a00f7f2f548acd300e07adc",
+    "red": "50db6c76e5cda4e8ac45e6689f9b40d2bbf412061e97744ab2daa7380c59e897"
+  },
+  "fix": "56f97267e4e59239b11705aee32ab5f2ce26cc42",
+  "harness_changes": [
+    {
+      "path": "tests/health/test_contest_state.py",
+      "status": "M"
+    }
+  ],
+  "label": "R-I063-4",
+  "label_kind": "semantic_regression_replay",
+  "parent": "995887457e4e3ae0d4b9f7c4fea4322b54712376",
+  "reasons": [],
+  "spec": {
+    "audit": {
+      "tests/health/test_contest_state.py": {
+        "decision": "neutral",
+        "reason": "56f9726 rewrites the four gap tests to the coverage-split levels (gap 1 -> INFO at any hour, gap >= 2 -> WARN not CRITICAL); the module imports SOURCE and check, both at the parent 9958874, whose check(picks_dir, *, expected, now) has the same signature"
+      }
+    },
+    "deployed_ref": {
+      "basis": "log",
+      "sha": "83a5cad"
+    },
+    "env": {
+      "TZ": "America/New_York"
+    },
+    "fix_set": [
+      "56f9726"
+    ],
+    "incident": "I-063",
+    "label": "R-I063-4",
+    "links": [
+      4
+    ],
+    "notes": "Symptom: at the parent 9958874, check() turns a one-settled-pick gap into WARN 'contest state lag persisting past noon ET' when now is 12:00 ET or later (4f13eb3's escalation); test_gap1_past_noon_is_info_not_warn runs at 2026-06-08 19:00Z (15:00 ET) with source_date 06-06 and picks resolved 06-06 and 06-07 (gap 1), so line 119 fails. Static checks: the module imports SOURCE and check at 9958874; the test passes expected= and now=, both accepted by the parent's check; the P..F src diff is only health/contest_state.py. Anchor: the text occurs at lines 119 and 151 at 56f9726; line 119 is inside the symptom test. Other selected nodes at the parent: test_offday_gap_with_one_new_pick_is_not_critical (the same noon WARN at 19:00 ET; line 150), test_gap2_coverage_lag_is_warn (74) and test_two_day_gap_is_warn_not_critical (171) also fail by assertion; not declared (see the manifest).",
+    "symptom_nodes": [
+      {
+        "_line": 119,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I063-4/tests/health/test_contest_state.py",
+        "assertion": {
+          "line": 119,
+          "path": "tests/health/test_contest_state.py",
+          "text": "assert not any(a.level == \"WARN\" for a in alerts), alerts"
+        },
+        "node": "tests/health/test_contest_state.py::test_gap1_past_noon_is_info_not_warn"
+      }
+    ],
+    "tests": [
+      "tests/health/test_contest_state.py::test_gap2_coverage_lag_is_warn",
+      "tests/health/test_contest_state.py::test_gap1_past_noon_is_info_not_warn",
+      "tests/health/test_contest_state.py::test_offday_gap_with_one_new_pick_is_not_critical",
+      "tests/health/test_contest_state.py::test_two_day_gap_is_warn_not_critical",
+      "-q"
+    ]
+  },
+  "spec_sha256": "c2834a67b916a16c06cf85a80c330714ad5c8aea3a8a85a5ebdf393e394a80b7",
+  "src_tree": {
+    "fix": "ad21a09fa2c6d4ac0bd0b6f988b49cbfb08bb967",
+    "parent": "e7bb77f86236d7ea9afd56d3f6e6ca3f2577dbea"
+  },
+  "symptoms": {
+    "tests/health/test_contest_state.py::test_gap1_past_noon_is_info_not_warn": []
+  },
+  "verdict": "accepted"
+}

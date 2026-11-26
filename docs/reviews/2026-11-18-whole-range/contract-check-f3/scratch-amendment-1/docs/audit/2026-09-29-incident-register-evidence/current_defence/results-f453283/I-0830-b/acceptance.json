@@ -1,0 +1,94 @@
+{
+  "label": "I-0830-b",
+  "reasons": [
+    "refused: SpecError: absence (a missing event) is not certifiable by the Phase 1 recorder (plan ruling 10): report this link unavailable with this reason and keep its regression evidence"
+  ],
+  "spec": {
+    "allowed_mocks": [
+      "bts.scheduler.fetch_schedule",
+      "bts.scheduler._now_et",
+      "bts.scheduler.time.sleep",
+      "bts.scheduler.run_single_check",
+      "bts.scheduler._refresh_pick_at_fallback_decision",
+      "bts.scheduler.count_new_confirmations",
+      "bts.scheduler.run_result_polling",
+      "bts.scheduler._trigger_live_forward_capture_on_lock",
+      "bts.dm.send_dm",
+      "bts.contest_state.load_decision_streak_state"
+    ],
+    "allowed_paths": [
+      "src/bts/scheduler.py"
+    ],
+    "baseline": "f453283d0a0ec39a939b22c6500b5fb36f5452c0",
+    "boundaries": [
+      {
+        "binding": "bts.dm:send_dm",
+        "classify": [
+          [
+            "alert",
+            "^BTS health"
+          ],
+          [
+            "pick",
+            ".*"
+          ]
+        ],
+        "name": "dm",
+        "value": [
+          "args[1]",
+          "kw:text"
+        ]
+      }
+    ],
+    "branch": {
+      "path": "src/bts/scheduler.py",
+      "text": "W1.5 mutant: pre-2026-08-30 \u2014 any pending window defers, feasibility ignored"
+    },
+    "contract": {
+      "entry_mode": "run_day with an advancing controlled clock",
+      "symptom_kind": "missing pick DM",
+      "text": "After the fallback refresh, an enterable pick is delivered when the contender's confirmation window cannot finish before the cutoff.",
+      "trigger": "a gap block against a contender whose window cannot finish in time"
+    },
+    "entry": {
+      "path": "src/bts/scheduler.py",
+      "qualname": "run_day"
+    },
+    "env": {
+      "TZ": "America/New_York"
+    },
+    "killing": [
+      {
+        "assertion": {
+          "line": 110,
+          "path": "tests/test_incident_2026_08_30.py",
+          "text": "mock_dm.assert_called_once()"
+        },
+        "node": "tests/test_incident_2026_08_30.py::test_kwan_delivered_at_13_20"
+      }
+    ],
+    "label": "I-0830-b",
+    "level": "component",
+    "level_justification": "the incident test replaces run_single_check, the fallback refresh, polling, the live-forward trigger and the DM transport",
+    "link": "I-084 link 1",
+    "mutation_edits": [
+      [
+        "src/bts/scheduler.py",
+        "    if block_reason == \"gap\":\n        relevant_pks = set(contender_game_pks) or (\n",
+        "    if block_reason == \"gap\":\n        pass  # W1.5 mutant: pre-2026-08-30 \u2014 any pending window defers, feasibility ignored\n        if pending:\n            return FallbackPlan(\"defer\", \"gap_contender_window_feasible\", pending[0][\"time_et\"])\n        relevant_pks = set(contender_game_pks) or (\n"
+      ]
+    ],
+    "symptom": {
+      "boundary": "dm",
+      "category": "pick",
+      "kind": "absence"
+    },
+    "tests": [
+      "tests/test_incident_2026_08_30.py",
+      "-q"
+    ]
+  },
+  "spec_sha256": "91aad43d0398a135876648912e2da2618aac3669d23b6930931bbdb9256a3e1f",
+  "stages": {},
+  "verdict": "rejected"
+}

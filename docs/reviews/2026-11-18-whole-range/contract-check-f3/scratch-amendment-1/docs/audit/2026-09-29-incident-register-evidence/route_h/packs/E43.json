@@ -1,0 +1,166 @@
+{
+ "id": "E43",
+ "episode_row": [
+  "E43",
+  "5/05\u20135/26",
+  "postponed-game cluster: stale postponed pick stays locked; void grading; polling all-final gate; candidate filtering; lock-status fallback",
+  "D/G",
+  "OI",
+  "A",
+  "7b701c9 (+PR #24/#25) a142c14 68e4cdb (PR #74) 0799bf2 abbfdc5"
+ ],
+ "commits": [
+  {
+   "sha": "7b701c9",
+   "authored": "2026-05-06T14:42:24-04:00",
+   "subject": "fix(scheduler): regenerate stale postponed picks",
+   "body": "",
+   "files": [
+    "src/bts/picks.py",
+    "src/bts/scheduler.py",
+    "src/bts/strategy.py",
+    "tests/test_scheduler.py",
+    "tests/test_strategy.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 25590588217,
+    "created_at": "2026-05-09T03:34:05Z",
+    "head_sha": "293ce51",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "a142c14",
+   "authored": "2026-05-09T18:55:36-04:00",
+   "subject": "Handle postponed locked picks as void results",
+   "body": "Treat locked postponed/cancelled pick slots as terminal voids and score remaining active slots normally.",
+   "files": [
+    "docs/superpowers/runbooks/2026-05-09-live-forward-daily-ops.md",
+    "src/bts/cli.py",
+    "src/bts/experiment/artifacts.py",
+    "src/bts/health/predicted_vs_realized.py",
+    "src/bts/health/realized_calibration.py",
+    "src/bts/health/same_team_corr.py",
+    "src/bts/model/calibrate.py",
+    "src/bts/picks.py",
+    "src/bts/posting.py",
+    "src/bts/scheduler.py",
+    "src/bts/shadow_eval.py",
+    "src/bts/state/export.py",
+    "src/bts/web.py",
+    "tests/experiment/test_artifacts.py",
+    "tests/health/test_predicted_vs_realized.py",
+    "tests/health/test_same_team_corr.py",
+    "tests/test_cli_integration.py",
+    "tests/test_picks.py",
+    "tests/test_posting.py",
+    "tests/test_scheduler.py",
+    "tests/test_shadow_eval.py",
+    "tests/test_web_render.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 25614033235,
+    "created_at": "2026-05-09T23:02:03Z",
+    "head_sha": "a142c14",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "68e4cdb",
+   "authored": "2026-05-09T19:13:05-04:00",
+   "subject": "Treat schedule voids as final in polling",
+   "body": "Treat schedule voids as final in polling\n\nOverlay schedule-detailed terminal void states into scheduler result polling so postponed/cancelled locked-pick games stop blocking the all-final gate when the live feed still reports preview.\n\nAlso avoid overwriting already resolved hit/miss/void picks at the polling cap.",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_scheduler.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 25614364730,
+    "created_at": "2026-05-09T23:21:06Z",
+    "head_sha": "ac4a959",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "0799bf2",
+   "authored": "2026-05-24T07:36:29-04:00",
+   "subject": "Fix postponed game candidate filtering (#119)",
+   "body": "",
+   "files": [
+    "src/bts/cli.py",
+    "src/bts/orchestrator.py",
+    "src/bts/picks.py",
+    "src/bts/scheduler.py",
+    "src/bts/strategy.py",
+    "tests/test_cli_integration.py",
+    "tests/test_orchestrator.py",
+    "tests/test_picks.py",
+    "tests/test_scheduler.py",
+    "tests/test_shadow_scheduler.py",
+    "tests/test_strategy.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 26360221184,
+    "created_at": "2026-05-24T11:39:41Z",
+    "head_sha": "0799bf2",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "abbfdc5",
+   "authored": "2026-05-26T04:44:48+03:00",
+   "subject": "Fix postponed-game lock status fallback",
+   "body": "",
+   "files": [
+    "src/bts/cli.py",
+    "src/bts/orchestrator.py",
+    "src/bts/scheduler.py",
+    "src/bts/strategy.py",
+    "tests/test_orchestrator.py",
+    "tests/test_scheduler.py",
+    "tests/test_strategy.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 26429059386,
+    "created_at": "2026-05-26T02:37:06Z",
+    "head_sha": "d63f60b",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

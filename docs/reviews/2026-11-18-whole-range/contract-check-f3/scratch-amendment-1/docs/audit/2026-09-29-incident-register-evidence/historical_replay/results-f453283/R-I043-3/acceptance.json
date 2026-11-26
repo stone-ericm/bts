@@ -1,0 +1,71 @@
+{
+  "audit_problems": [],
+  "classes": {
+    "tests/test_scheduler.py::TestPollResults::test_run_result_polling_cap_does_not_overwrite_resolved_result": "symptom_candidate"
+  },
+  "closure": "src_swap",
+  "events_sha256": {
+    "green": "9430e7f241634315d39d802bc36d663726f2fc04e490b22368cc942d4758d9e7",
+    "red": "70ecbfb4dd8ef244fc9e933ac719fad837fcd8ff1f6a197f982e8136c58502cf"
+  },
+  "fix": "68e4cdb5cca18f055ad9deb58502310fd12d8525",
+  "harness_changes": [
+    {
+      "path": "tests/test_scheduler.py",
+      "status": "M"
+    }
+  ],
+  "label": "R-I043-3",
+  "label_kind": "semantic_regression_replay",
+  "parent": "a142c141b9f7a6d013257654c91db2eb808381cf",
+  "reasons": [],
+  "spec": {
+    "audit": {
+      "tests/test_scheduler.py": {
+        "decision": "neutral",
+        "reason": "adds two run_result_polling tests. The selected cap test patches bts.scheduler._now_et and calls run_result_polling(game_pk, date, picks_dir), both present at the parent (a142c14), and sets DailyPick.slot_results, a field the parent already has. The other added test (test_run_result_polling_uses_schedule_void_when_live_feed_preview) is not selected; see notes"
+      }
+    },
+    "deployed_ref": {
+      "basis": "candidate_ancestry",
+      "sha": "ac4a959"
+    },
+    "env": {
+      "TZ": "America/New_York"
+    },
+    "fix_set": [
+      "68e4cdb"
+    ],
+    "incident": "I-043",
+    "label": "R-I043-3",
+    "links": [
+      3
+    ],
+    "notes": "Symptom: at the parent (a142c14), run_result_polling's cap branch (patched _now_et 05:01 ET >= cap_hour_et 5, < 10) rewrites the loaded pick to result 'unresolved' and returns 'unresolved', even though the pick is already resolved 'hit'. So `assert status == \"final\"` fails (line 690 at 68e4cdb; the text also occurs at 576, 618, 639 and 666). _now_et is patched, so the node is deterministic, and the cap branch returns before any feed call. Static checks: bts.scheduler._now_et (line 248), run_result_polling (line 670) and the slot_results field exist at the parent; the _daily_pick helper is the module's own. This covers only the cap-overwrite half of mechanism 3. Not selected: test_run_result_polling_uses_schedule_void_when_live_feed_preview, the schedule-void overlay and the main part of mechanism 3. At the parent its game 100 stays 'preview', so the loop calls _check_hits_midgame, which uses the unpatched retry_urlopen against the live MLB feed, then _poll_interval_sleep(None, 900), and repeats until real time reaches 05:00 ET, so the red run would hang. At F it reads the real _now_et before anything else, so between 05:00 and 10:00 ET it would take the cap branch and fail at F as well. Replaying the overlay would need an adapter in that test (patch bts.scheduler._now_et and bts.scheduler._poll_interval_sleep).",
+    "symptom_nodes": [
+      {
+        "_line": 690,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I043-3/tests/test_scheduler.py",
+        "assertion": {
+          "line": 690,
+          "path": "tests/test_scheduler.py",
+          "text": "assert status == \"final\""
+        },
+        "node": "tests/test_scheduler.py::TestPollResults::test_run_result_polling_cap_does_not_overwrite_resolved_result"
+      }
+    ],
+    "tests": [
+      "tests/test_scheduler.py::TestPollResults::test_run_result_polling_cap_does_not_overwrite_resolved_result",
+      "-q"
+    ]
+  },
+  "spec_sha256": "f0a58c0b4ab3d349410b15b2f676353397aa5f2d73f8622bad9b9ad675278e74",
+  "src_tree": {
+    "fix": "b5acd442031fdcdd7568cf73f9c461b439257685",
+    "parent": "94f2d4e7d7f3c7e392b1dfbda5af11dab3e45728"
+  },
+  "symptoms": {
+    "tests/test_scheduler.py::TestPollResults::test_run_result_polling_cap_does_not_overwrite_resolved_result": []
+  },
+  "verdict": "accepted"
+}

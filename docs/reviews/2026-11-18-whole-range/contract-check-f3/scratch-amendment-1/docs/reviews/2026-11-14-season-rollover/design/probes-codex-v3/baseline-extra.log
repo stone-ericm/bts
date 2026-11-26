@@ -1,0 +1,18 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-speccheck
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 124 items
+
+tests/test_fallback_plan.py .............                                [ 10%]
+tests/test_scheduler_fallback_deadline.py .......                        [ 16%]
+tests/test_scheduler_decision_record.py .........                        [ 23%]
+tests/test_private_mode_transport.py ........                            [ 29%]
+tests/test_backup.py ...........................                         [ 51%]
+tests/test_backup_cli.py .....                                           [ 55%]
+tests/test_entry_intent.py ............................................. [ 91%]
+...                                                                      [ 94%]
+tests/test_streak_applied_dates.py .......                               [100%]
+
+============================= 124 passed in 10.41s =============================

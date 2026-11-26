@@ -1,0 +1,63 @@
+{
+ "id": "E69",
+ "episode_row": [
+  "E69",
+  "7/01\u20137/02",
+  "skip-day dashboard contradictions (first live flip)",
+  "U",
+  "OI",
+  "B",
+  "258aaa4 2c62d72"
+ ],
+ "commits": [
+  {
+   "sha": "258aaa4",
+   "authored": "2026-07-01T20:17:44-04:00",
+   "subject": "fix(dashboard): flip-day skip visibility \u2014 gate the banner on the committed-pick predicate + name the streak-dependent bar",
+   "body": "Two fixes from the 2026-07-01 audit (F1), triggered by the first live\nprojected-pick->real-skip flip:\n\n1. The SKIP banner was suppressed by pick-FILE existence (_has_today_pick),\n   but a provisional file (3am preview / projected-lineup save) is not a pick.\n   On a flip day the stale undelivered file hid the banner while the dashboard\n   hero showed a pick production had declined. Suppression now keys on\n   daily_decision.is_scoreable_commit \u2014 the #145 shared predicate.\n   pick_locked is deliberately not consulted (a classification-lock of an\n   undelivered file would re-hide the banner after first pitch).\n\n2. Skip messages said 'below the ~80% bar', but the bar is streak-dependent\n   (0.796 at streaks 8-15, 0.8115 at 16-25 under the deployed policy) \u2014 today's\n   skip of an 81.0% candidate at streak 17 read as a contradiction. New\n   strategy.effective_pick_bar (pure, display-only, never feeds the pick path)\n   surfaces the applicable bin edge through build_skip_summary into the log\n   line, skip DM, and banner at 0.1% precision. Legacy summaries without\n   'bar' keep the old wording.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01AfKioxXQo1kE7dgk6XUFE1",
+   "files": [
+    "src/bts/scheduler.py",
+    "src/bts/strategy.py",
+    "src/bts/web.py",
+    "tests/test_scheduler_skip_visibility.py",
+    "tests/test_strategy.py"
+   ],
+   "first_live_log": {
+    "sha": "48e8485",
+    "live_by": "2026-07-02T15:28:12Z",
+    "not_live_before": "2026-07-02T15:28:12Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 28601525167,
+    "created_at": "2026-07-02T15:23:32Z",
+    "head_sha": "48e8485",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "2c62d72",
+   "authored": "2026-07-02T12:01:29-04:00",
+   "subject": "fix(dashboard): skip-day rendering completeness \u2014 history SKIP marker, hero/placeholder/live-section yield to the banner",
+   "body": "Finishes the flip-day display class (2026-07-01 audit F1; Eric's two reports\n2026-07-02):\n\n1. History rows: a result-less pick file whose day finalized as an MDP skip\n   (decision.json action=skip) rendered as an eternally-pending pick \u2014 no\n   scorer will ever fill it (correctly). Now renders a muted SKIP marker.\n   Rows with no decision record keep the pending dash (mid-day provisional).\n2. A standing skip now owns the day's status: the 'Waiting for lineups'\n   placeholder no longer contradicts the SKIP TODAY banner, the hero card\n   does not render a stale provisional file as today's pick, and the live\n   scorecard section does not fetch a declined candidate's game. A late\n   genuine pick clears the banner and restores all three on next refresh.\n\nTDD: 7 new render_page-level tests (38 in file, suite 1534).\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01AfKioxXQo1kE7dgk6XUFE1",
+   "files": [
+    "src/bts/web.py",
+    "tests/test_scheduler_skip_visibility.py"
+   ],
+   "first_live_log": {
+    "sha": "2c62d72",
+    "live_by": "2026-07-02T16:06:38Z",
+    "not_live_before": "2026-07-02T16:06:38Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 28604004289,
+    "created_at": "2026-07-02T16:02:07Z",
+    "head_sha": "2c62d72",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

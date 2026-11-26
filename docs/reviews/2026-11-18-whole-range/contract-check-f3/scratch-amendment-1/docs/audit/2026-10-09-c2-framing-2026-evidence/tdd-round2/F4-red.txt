@@ -1,0 +1,53 @@
+UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run --offline pytest -q -p no:cacheprovider tests/scripts/c2_framing/test_f26_rules.py tests/scripts/c2_framing/test_f26_run.py -k 'before_2019 or pre_2019'
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-c2f26-code
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 146 items / 143 deselected / 3 selected
+
+tests/scripts/c2_framing/test_f26_rules.py FF                            [ 66%]
+tests/scripts/c2_framing/test_f26_run.py F                               [100%]
+
+=================================== FAILURES ===================================
+____________________ test_a_catcher_id_before_2019_refuses _____________________
+
+    def test_a_catcher_id_before_2019_refuses():
+        df = pd.DataFrame({"season": [2018] * 5 + [2019], "fielding_catcher_id": [50] * 6,
+                           "date": pd.to_datetime([f"2018-09-2{i}" for i in range(5)] + ["2019-04-01"]),
+                           "pa_borderline_csr": [1.0] * 5 + [0.5]})
+        with pytest.raises(F.InputRefused, match="2019"):
+>           F.history_start_problem(df)
+            ^^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'history_start_problem'
+
+tests/scripts/c2_framing/test_f26_rules.py:450: AttributeError
+_______________ test_pre_2019_rows_without_a_catcher_id_are_fine _______________
+
+    def test_pre_2019_rows_without_a_catcher_id_are_fine():
+        df = pd.DataFrame({"season": [2017, 2018, 2019], "fielding_catcher_id": [np.nan, np.nan, 50.0]})
+>       F.history_start_problem(df)
+        ^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'history_start_problem'
+
+tests/scripts/c2_framing/test_f26_rules.py:455: AttributeError
+____ test_the_run_refuses_pre_2019_catcher_history_before_any_walk_forward _____
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x117aae7e0>, 'df':       season        date  ... ...var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12250/test_the_run_refuses_pre_2019_0/out'), ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x110c5c350>
+
+    def test_the_run_refuses_pre_2019_catcher_history_before_any_walk_forward(world, monkeypatch):
+        sentinel = pd.DataFrame([{**world["df"].iloc[0].to_dict(), "season": 2018, "date": "2018-09-28",
+                                  "fielding_catcher_id": 1101}])
+        monkeypatch.setattr(F, "load_inputs", lambda data_dir, inputs_dir, pins: pd.concat([sentinel, world["df"]]))
+        calls = []
+>       with pytest.raises(F.InputRefused, match="2019"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.f26.InputRefused'>
+
+tests/scripts/c2_framing/test_f26_run.py:567: Failed
+=========================== short test summary info ============================
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_a_catcher_id_before_2019_refuses
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_pre_2019_rows_without_a_catcher_id_are_fine
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_the_run_refuses_pre_2019_catcher_history_before_any_walk_forward
+====================== 3 failed, 143 deselected in 0.98s =======================

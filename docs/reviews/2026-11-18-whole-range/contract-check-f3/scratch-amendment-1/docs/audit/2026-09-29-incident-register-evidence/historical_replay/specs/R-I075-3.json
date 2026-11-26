@@ -1,0 +1,56 @@
+{
+  "label": "R-I075-3",
+  "incident": "I-075",
+  "links": [
+    5
+  ],
+  "fix_set": [
+    "230f65c"
+  ],
+  "tests": [
+    "tests/health/test_predicted_vs_realized.py::TestComputeMetrics::test_void_primary_still_counts_graded_dd_slot",
+    "tests/health/test_predicted_vs_realized.py::TestComputeMetrics::test_all_slots_void_skips_day",
+    "tests/health/test_predicted_vs_realized.py::TestPerSlotBasis::test_dd_day_grades_each_slot_against_its_own_p",
+    "tests/health/test_predicted_vs_realized.py::TestPerSlotBasis::test_dd_day_without_slot_results_miss_is_ambiguous_and_skipped",
+    "tests/health/test_predicted_vs_realized.py::TestPerSlotBasis::test_dd_day_without_slot_results_excluded_even_on_hit",
+    "tests/health/test_predicted_vs_realized.py::TestPerSlotBasis::test_single_pick_day_unchanged",
+    "tests/health/test_predicted_vs_realized.py::TestEvaluate::test_moderate_drift_is_warn_not_critical",
+    "tests/health/test_predicted_vs_realized.py::TestEvaluate::test_critical_drift",
+    "-q"
+  ],
+  "symptom_nodes": [
+    {
+      "node": "tests/health/test_predicted_vs_realized.py::TestPerSlotBasis::test_dd_day_grades_each_slot_against_its_own_p",
+      "assertion": {
+        "path": "tests/health/test_predicted_vs_realized.py",
+        "text": "assert abs(m.rolling_14d_gap - expected) < 1e-9"
+      }
+    }
+  ],
+  "audit": {
+    "ARCHITECTURE.md": {
+      "decision": "irrelevant",
+      "reason": "docs (health-table row for predicted_vs_realized)"
+    },
+    "CLAUDE.md": {
+      "decision": "irrelevant",
+      "reason": "docs (suite count)"
+    },
+    "docs/audit/2026-07-12-eve-of-break-restart-loop.md": {
+      "decision": "irrelevant",
+      "reason": "incident audit doc"
+    },
+    "tests/health/test_predicted_vs_realized.py": {
+      "decision": "neutral",
+      "reason": "230f65c replaces the void-primary test, adds TestPerSlotBasis and the moderate-drift test, and moves test_critical_drift to drift 0.28; the module imports (check, compute_metrics, evaluate, SOURCE, DEFAULT_THRESHOLDS) exist at the parent ec242da and compute_metrics(picks_dir, today=) has the same signature"
+    }
+  },
+  "deployed_ref": {
+    "sha": "230f65c",
+    "basis": "log"
+  },
+  "env": {
+    "TZ": "America/New_York"
+  },
+  "notes": "Symptom: the parent ec242da's compute_metrics grades each day with the PRIMARY's p_game_hit against the DAY-level result; for a double-down day with slot_results pick=hit, double_down=miss and day result miss it records (0.78, 0), so rolling_14d_gap is 0.78 instead of the per-slot (0.78+0.74)/2-0.5=0.26 and line 104 fails (line 102, the date key, passes). Static checks: the module imports exist at ec242da; the P..F src diff is only health/predicted_vs_realized.py. Anchor unique at 230f65c (line 104). Other selected nodes at the parent: test_void_primary_still_counts_graded_dd_slot, the two legacy-DD exclusion tests and test_moderate_drift_is_warn_not_critical fail by assertion (void-primary per-slot grading, round-2 #7 censoring rule, round-2 #9 threshold recalibration: not declared); test_all_slots_void_skips_day, test_single_pick_day_unchanged and test_critical_drift pass."
+}

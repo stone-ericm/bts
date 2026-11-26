@@ -1,0 +1,472 @@
+{
+  "label": "R-I072-1",
+  "incident": "I-072",
+  "links": [
+    2
+  ],
+  "fix_set": [
+    "8bceda1",
+    "e5ef7ca"
+  ],
+  "tests": [
+    "tests/test_cli_integration.py::TestCheckPickEntered::test_marker_dedupes_second_alert",
+    "tests/test_cli_integration.py::TestCheckPickEnteredEscalation::test_alerted_reverifies_and_confirms_when_entry_appears",
+    "tests/test_cli_integration.py::TestCheckPickEnteredEscalation::test_alerted_before_thresholds_reverifies_without_dm",
+    "tests/test_cli_integration.py::TestCheckPickEnteredEscalation::test_t30_escalation_fires_once",
+    "tests/test_cli_integration.py::TestCheckPickEnteredEscalation::test_t15_escalation_after_t30",
+    "tests/test_cli_integration.py::TestCheckPickEnteredEscalation::test_escalation_dm_failure_retries_next_run",
+    "tests/test_cli_integration.py::TestCheckPickEnteredEscalation::test_legacy_marker_without_escalations_treated_as_initial",
+    "tests/test_cli_integration.py::TestCheckPickEnteredUnverified::test_unverified_presence_is_nonterminal",
+    "tests/test_cli_integration.py::TestCheckPickEnteredUnverified::test_unverified_then_match_confirms",
+    "tests/test_cli_integration.py::TestCheckPickEnteredUnverified::test_missing_slot_count_is_mismatch_despite_crosswalk_gap",
+    "tests/test_cli_integration.py::TestCheckPickEnteredCutoffBoundary::test_exactly_five_minutes_is_outside_window",
+    "-q"
+  ],
+  "symptom_nodes": [
+    {
+      "node": "tests/test_cli_integration.py::TestCheckPickEntered::test_marker_dedupes_second_alert",
+      "assertion": {
+        "path": "tests/test_cli_integration.py",
+        "text": "assert r2.exit_code != 0  # still unentered"
+      }
+    },
+    {
+      "node": "tests/test_cli_integration.py::TestCheckPickEnteredEscalation::test_alerted_reverifies_and_confirms_when_entry_appears",
+      "assertion": {
+        "path": "tests/test_cli_integration.py",
+        "text": "assert self._status(tmp_path)[\"status\"] == \"confirmed\"",
+        "line": 1375
+      }
+    }
+  ],
+  "audit": {
+    "docs/.DS_Store": {
+      "decision": "irrelevant",
+      "reason": "Finder metadata committed by e5ef7ca; never loaded"
+    },
+    "docs/audit/2026-07-09-gpt56-sol-audit.md": {
+      "decision": "irrelevant",
+      "reason": "audit doc (e5ef7ca review round)"
+    },
+    "scripts/check_heartbeat.py": {
+      "decision": "irrelevant",
+      "reason": "e5ef7ca multi-horizon heartbeat churn windows (a different finding of the batch); loaded only by tests/test_heartbeat_churn.py, which is not selected"
+    },
+    "tests/health/test_attention.py": {
+      "decision": "irrelevant",
+      "reason": "e5ef7ca asserts the new pick_entry and scheduler_state_integrity WARN sources are always-attention (pick_entry is the EOD source 8bceda1 adds, so this is new-API wiring); not selected, never loaded"
+    },
+    "tests/health/test_f4_exception_propagation.py": {
+      "decision": "irrelevant",
+      "reason": "e5ef7ca per-file OSError propagation (review #5, a different finding); not selected, never loaded"
+    },
+    "tests/health/test_pick_entry_source.py": {
+      "decision": "irrelevant",
+      "reason": "8bceda1's EOD pick_entry backstop tests; not selected because the module imports bts.health.pick_entry (added by 8bceda1) at import time, so it cannot be collected at the parent 40c0094 (new API only) and would make the red session unsound; never loaded by the selected nodes"
+    },
+    "tests/health/test_realized_calibration.py": {
+      "decision": "irrelevant",
+      "reason": "e5ef7ca realized-calibration fingerprint finding (F6); not selected, never loaded"
+    },
+    "tests/test_cli_integration.py": {
+      "decision": "neutral",
+      "reason": "8bceda1 rewrites test_marker_dedupes_second_alert ('alerted' is re-verified, not terminal) and adds TestCheckPickEnteredEscalation; e5ef7ca adds TestCheckPickEnteredUnverified and TestCheckPickEnteredCutoffBoundary; they patch only names present at the parent 40c0094 (auth trio, contest_fetch.fetch_profile/fetch_pending_predictions, cli._fetch_rounds/_fetch_bts_to_mlb, dm.send_dm), reuse TestCheckPickEntered's helpers and invoke check-pick-entered with options the parent has (--picks-dir, --dm-recipient, --now-et)"
+    },
+    "tests/test_heartbeat_churn.py": {
+      "decision": "irrelevant",
+      "reason": "e5ef7ca heartbeat churn windows (review #3); not selected, never loaded"
+    },
+    "tests/test_scheduler_state_integrity.py": {
+      "decision": "irrelevant",
+      "reason": "e5ef7ca --dry-run must not quarantine state (a different finding); not selected, never loaded"
+    },
+    "data/validation/park_drag_screen_2026/baseline_seed101.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/baseline_seed202.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/baseline_seed303.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/baseline_seed404.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/baseline_seed42.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_mask_only_seed101.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_mask_only_seed202.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_mask_only_seed303.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_mask_only_seed404.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_mask_only_seed42.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_permuted_seed101.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_permuted_seed202.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_permuted_seed303.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_permuted_seed404.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_permuted_seed42.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_sentinel_gross_seed101.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_sentinel_gross_seed202.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_sentinel_gross_seed303.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_sentinel_gross_seed404.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_sentinel_gross_seed42.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_sentinel_leaky_seed101.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_sentinel_leaky_seed202.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_sentinel_leaky_seed303.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_sentinel_leaky_seed404.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_sentinel_leaky_seed42.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_sentinel_soft_seed101.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_sentinel_soft_seed202.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_sentinel_soft_seed303.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_sentinel_soft_seed404.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/ctl_sentinel_soft_seed42.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/outcome_pf_seed101.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/outcome_pf_seed202.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/outcome_pf_seed303.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/outcome_pf_seed404.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/outcome_pf_seed42.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/pd_anchored_seed101.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/pd_anchored_seed202.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/pd_anchored_seed303.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/pd_anchored_seed404.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/pd_anchored_seed42.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/pd_expanding_seed101.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/pd_expanding_seed202.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/pd_expanding_seed303.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/pd_expanding_seed404.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/pd_expanding_seed42.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/pd_plus_outcome_seed101.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/pd_plus_outcome_seed202.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/pd_plus_outcome_seed303.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/pd_plus_outcome_seed404.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026/pd_plus_outcome_seed42.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/baseline_seed101.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/baseline_seed202.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/baseline_seed303.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/baseline_seed404.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/baseline_seed42.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/ctl_mask_only_seed101.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/ctl_mask_only_seed202.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/ctl_mask_only_seed303.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/ctl_mask_only_seed404.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/ctl_mask_only_seed42.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/ctl_permuted_seed101.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/ctl_permuted_seed202.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/ctl_permuted_seed303.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/ctl_permuted_seed404.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/ctl_permuted_seed42.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/ctl_sentinel_gross_seed101.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/ctl_sentinel_gross_seed202.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/ctl_sentinel_gross_seed303.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/ctl_sentinel_gross_seed404.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/ctl_sentinel_gross_seed42.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/ctl_sentinel_soft_seed101.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/ctl_sentinel_soft_seed202.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/ctl_sentinel_soft_seed303.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/ctl_sentinel_soft_seed404.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/ctl_sentinel_soft_seed42.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/outcome_pf_seed101.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/outcome_pf_seed202.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/outcome_pf_seed303.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/outcome_pf_seed404.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/outcome_pf_seed42.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/pd_anchored_seed101.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/pd_anchored_seed202.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/pd_anchored_seed303.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/pd_anchored_seed404.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/pd_anchored_seed42.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/pd_expanding_seed101.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/pd_expanding_seed202.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/pd_expanding_seed303.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/pd_expanding_seed404.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/pd_expanding_seed42.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/pd_plus_outcome_seed101.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/pd_plus_outcome_seed202.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/pd_plus_outcome_seed303.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/pd_plus_outcome_seed404.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    },
+    "data/validation/park_drag_screen_2026_foldB/pd_plus_outcome_seed42.json": {
+      "decision": "irrelevant",
+      "reason": "park-drag screen result file committed with e5ef7ca (unrelated research output under data/validation; contents not read); the selected check-pick-entered tests never load it"
+    }
+  },
+  "deployed_ref": {
+    "sha": "49f2538",
+    "basis": "log"
+  },
+  "env": {
+    "TZ": "America/New_York"
+  },
+  "notes": "Symptoms: at the parent 40c0094, check_pick_entered returns as soon as today's marker status is 'confirmed' or 'alerted' (exit 0, no account query). (1) TestCheckPickEntered::test_marker_dedupes_second_alert: the first run (18:30 ET, 40 min to the 19:10 pitch, no entry) DMs, writes 'alerted' and exits 1; the second run at 18:32 returns on the 'alerted' marker with exit 0, so line 1242 fails: the 7/08 shape (one alert, then no re-verification). (2) TestCheckPickEnteredEscalation::test_alerted_reverifies_and_confirms_when_entry_appears: the marker is 'alerted' and the entry is now present; the parent returns without querying (exit 0, line 1374 passes) and the marker stays 'alerted', so line 1375 fails. Static checks: the helpers patch only names present at 40c0094; _save_pick's DailyPick notification fields exist there and is_scoreable_commit's pick_was_delivered fallback admits the delivered pick; the parent's window is 5 <= m <= 75 (18:30 and 18:32 ET are 40 and 38 min to pitch); module imports exist at the parent. Anchors at e5ef7ca: 'assert r2.exit_code != 0  # still unentered' is unique (line 1242); the confirmed assertion occurs at 1375 and 1511, and 1375 is inside the symptom test. Other selected nodes at the parent: test_alerted_before_thresholds_reverifies_without_dm, test_t30_escalation_fires_once, test_t15_escalation_after_t30, test_escalation_dm_failure_retries_next_run, test_legacy_marker_without_escalations_treated_as_initial, test_unverified_presence_is_nonterminal, test_missing_slot_count_is_mismatch_despite_crosswalk_gap and test_exactly_five_minutes_is_outside_window fail by assertion (escalation tiers, the present_unverified escape (I-110) and the cutoff boundary: not declared); test_initial_near_cutoff_consumes_lower_tiers fails with KeyError ('escalations' is absent from the parent's marker); test_unverified_then_match_confirms passes. tests/health/test_pick_entry_source.py is deliberately not selected (module-level import of the new bts.health.pick_entry). Lead's review: dropped test_initial_near_cutoff_consumes_lower_tiers from the selection: each fails at the parent only because of a name, field or keyword the fix added (new API), never by assertion, and adds nothing to the replay."
+}

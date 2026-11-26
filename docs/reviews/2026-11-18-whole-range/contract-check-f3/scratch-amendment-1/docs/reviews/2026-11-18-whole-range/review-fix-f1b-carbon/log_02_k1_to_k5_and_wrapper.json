@@ -1,0 +1,34 @@
+{
+  "k1": {
+    "k1_combinations_passed": 24
+  },
+  "k2_k3": {
+    "k2_contender_exit": 1,
+    "k2_contender_ms": 46.5,
+    "k2_serialized_preserves_wrong_game": true,
+    "k3_arithmetic": {
+      "limit": 840,
+      "grace": 30,
+      "sum": 870,
+      "interval": 900
+    },
+    "k3_real_uv_term_exit": 124,
+    "k3_real_uv_term_log": "warning: `--no-sync` has no effect when used alongside `--no-project`\nprobe child term_sleep\ntimeout: time limit reached or received SIGALRM\ntimeout: sending signal term(15) to command '/opt/homebrew/bin/uv'\ntimeout: sending signal cont(19) to command '/opt/homebrew/bin/uv'\ntimeout: child terminated: pid=95046, exit=143",
+    "k3_kill_exit": 137,
+    "k3_kill_log": "probe child ignore_term\ntimeout: time limit reached or received SIGALRM\ntimeout: sending signal term(15) to command '/Users/eric/projects/bts-work/wr-rev-f1c-cb/.venv/bin/python'\ntimeout: sending signal cont(19) to command '/Users/eric/projects/bts-work/wr-rev-f1c-cb/.venv/bin/python'\ntimeout: time limit reached or received SIGALRM\ntimeout: sending signal kill(9) to command '/Users/eric/projects/bts-work/wr-rev-f1c-cb/.venv/bin/python'",
+    "k3_real_uv_with_term_ignoring_child": {
+      "exit_code": 137,
+      "lock_free_immediately": true,
+      "trace_labels": [
+        "child-start",
+        "child-ready",
+        "child-ignored-term",
+        "child-ignored-term"
+      ],
+      "log": "warning: `--no-sync` has no effect when used alongside `--no-project`\nprobe child ignore_term\ntimeout: time limit reached or received SIGALRM\ntimeout: sending signal term(15) to command '/opt/homebrew/bin/uv'\ntimeout: sending signal cont(19) to command '/opt/homebrew/bin/uv'\ntimeout: time limit reached or received SIGALRM\ntimeout: sending signal kill(9) to command '/opt/homebrew/bin/uv'"
+    }
+  },
+  "k4": {
+    "k4_unwrapped_reproduces_stale_overwrite": true
+  }
+}

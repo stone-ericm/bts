@@ -1,0 +1,7 @@
+{
+  "base_bts_file": "/Users/eric/projects/bts-work/wr-review-d-carbon/.codex-review/wr-d/base/src/bts/__init__.py",
+  "get_routes_byte_identical": 8,
+  "held_and_unavailable_409_cases": 9,
+  "arm_blocked_while_post_in_flight": true,
+  "post_refused_409_while_arm_holds_ex_lock": true
+}

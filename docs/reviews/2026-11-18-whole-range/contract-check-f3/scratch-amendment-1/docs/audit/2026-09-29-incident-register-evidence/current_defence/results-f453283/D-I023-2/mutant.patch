@@ -1,0 +1,19 @@
+diff --git a/src/bts/picks.py b/src/bts/picks.py
+index 547824d..e4f109e 100644
+--- a/src/bts/picks.py
++++ b/src/bts/picks.py
+@@ -431,11 +431,12 @@ def load_shadow_pick(date: str, picks_dir: Path) -> DailyPick | None:
+         data["double_down"].setdefault("pitcher_team", None)
+     pick = Pick(**data["pick"])
+     dd = Pick(**data["double_down"]) if data.get("double_down") else None
++    pass  # W1.5 mutant: pre-80fd31f — the shadow load forces bluesky_posted False and bluesky_uri None
+     return DailyPick(
+         date=data["date"], run_time=data["run_time"], pick=pick,
+         double_down=dd, runner_up=data.get("runner_up"),
+-        bluesky_posted=data.get("bluesky_posted", False),
+-        bluesky_uri=data.get("bluesky_uri"),
++        bluesky_posted=False,
++        bluesky_uri=None,
+         notification_sent=data.get("notification_sent", False),
+         notification_channel=data.get("notification_channel"),
+         notification_id=data.get("notification_id"),

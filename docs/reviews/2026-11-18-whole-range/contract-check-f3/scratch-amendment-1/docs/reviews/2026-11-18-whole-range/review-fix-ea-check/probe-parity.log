@@ -1,0 +1,64 @@
+nice: setpriority: Operation not permitted
+  MORNING STATE CHECK — stale contest reading: last accepted fetch 2027-07-14T14:00:00-04:00, about 20.00 hours ago
+send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: offline first dispatch failure
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-chk-ea3/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-chk-ea3/.codex-review/wr-ea3/probe_parity.py", line 104, in transport
+    raise RuntimeError("offline first dispatch failure")
+RuntimeError: offline first dispatch failure
+[health_dm_delivery CRITICAL] health alert DM delivery failed
+  LOCKED (parity) — Pick DM sent: captured-pick
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T14:00:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later slate date, see B8a. On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T14:00:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later slate date, see B8a. On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T14:00:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-16 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-16. For a later slate date, see B8a. On 2027-07-16 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T14:00:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-17 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-17. For a later slate date, see B8a. On 2027-07-17 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  Stale-reading warning failed: 'offline warning interrupt'
+  MORNING STATE CHECK — stale contest reading: last accepted fetch 2027-07-14T14:00:00-04:00, about 68.00 hours ago
+  MORNING STATE CHECK — stale contest reading: last accepted fetch 2027-07-14T14:00:00-04:00, about 20.00 hours ago
+send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: offline first dispatch failure
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-chk-ea3/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-chk-ea3/.codex-review/wr-ea3/probe_parity.py", line 104, in transport
+    raise RuntimeError("offline first dispatch failure")
+RuntimeError: offline first dispatch failure
+[health_dm_delivery CRITICAL] health alert DM delivery failed
+  LOCKED (parity) — Pick DM sent: captured-pick
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T14:00:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write for the 2027-07-15 slate only on that ET date, with prior entries settled or absent. For a later slate date, see B8a. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T14:00:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write for the 2027-07-15 slate only on that ET date, with prior entries settled or absent. For a later slate date, see B8a. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T14:00:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-16 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write for the 2027-07-16 slate only on that ET date, with prior entries settled or absent. For a later slate date, see B8a. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T14:00:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-17 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write for the 2027-07-17 slate only on that ET date, with prior entries settled or absent. For a later slate date, see B8a. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  Stale-reading warning failed: 'offline warning interrupt'
+  MORNING STATE CHECK — stale contest reading: last accepted fetch 2027-07-14T14:00:00-04:00, about 68.00 hours ago
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 0001-01-01T00:00:00.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000+00:00, about 17764238.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write for the 2027-07-15 slate only on that ET date, with prior entries settled or absent. For a later slate date, see B8a. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  MORNING STATE CHECK — stale contest reading: last accepted fetch 0001-01-01T00:00:00.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000+00:00, about 17764238.00 hours ago
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (its recorded_at 9999-12-31T00:00:00.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000+00:00 is in the future). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write for the 2027-07-15 slate only on that ET date, with prior entries settled or absent. For a later slate date, see B8a. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  MORNING STATE CHECK — stale contest reading: its recorded_at 9999-12-31T00:00:00.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000+00:00 is in the future
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (it has no usable recorded_at). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write for the 2027-07-15 slate only on that ET date, with prior entries settled or absent. For a later slate date, see B8a. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  MORNING STATE CHECK — stale contest reading: it has no usable recorded_at
+  Morning state check: automatic contest state accepted (streak 12).
+Source byte comparison: entire src delta is the six rendering-only replacements.
+Equal WARN level/source/key/date/receipt lifecycle, interrupts, pick send and pick/decision/state JSON.
+Body measurements (delivery, morning) old (892, 889)
+Body measurements (delivery, morning) future (876, 873)
+Body measurements (delivery, morning) unreadable (743, 740)
+Body measurements (delivery, morning) fresh ()

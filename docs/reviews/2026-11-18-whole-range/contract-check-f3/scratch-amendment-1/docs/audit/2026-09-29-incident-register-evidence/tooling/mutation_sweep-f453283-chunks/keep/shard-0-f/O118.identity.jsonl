@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_fresh_counterexamples::test_a_failure_named_like_assertion_error_is_not_a_kill", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_fresh_counterexamples::test_a_replay_symptom_named_like_assertion_error_is_not_a_symptom", "kind": "assertion"}

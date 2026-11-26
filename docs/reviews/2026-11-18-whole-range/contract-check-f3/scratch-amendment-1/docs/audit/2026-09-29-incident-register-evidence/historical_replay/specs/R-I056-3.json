@@ -1,0 +1,76 @@
+{
+  "label": "R-I056-3",
+  "incident": "I-056",
+  "links": [
+    3
+  ],
+  "fix_set": [
+    "365ea40",
+    "58c9adc"
+  ],
+  "tests": [
+    "tests/health/test_contest_state.py::test_valid_auto_state_is_clean_when_expected",
+    "tests/health/test_contest_state.py::test_stale_contest_state_is_critical",
+    "tests/health/test_contest_state.py::test_expected_overnight_lag_is_not_critical",
+    "tests/health/test_contest_state.py::test_two_day_gap_is_critical",
+    "tests/health/test_contest_state.py::test_missing_source_date_is_critical",
+    "tests/health/test_contest_state.py::test_legacy_manual_present_warns",
+    "-q"
+  ],
+  "symptom_nodes": [
+    {
+      "node": "tests/health/test_contest_state.py::test_stale_contest_state_is_critical",
+      "assertion": {
+        "path": "tests/health/test_contest_state.py",
+        "text": "assert any(a.level == \"CRITICAL\" and \"STALE\" in a.message for a in alerts), alerts",
+        "line": 68
+      }
+    }
+  ],
+  "audit": {
+    ".github/workflows/deploy.yml": {
+      "decision": "irrelevant",
+      "reason": "e2e40f2 (CI: Hetzner host from a secret); a deploy workflow the selected tests never load"
+    },
+    "ARCHITECTURE.md": {
+      "decision": "irrelevant",
+      "reason": "docs (9471d3b contest-state automation section; 58c9adc health-table row)"
+    },
+    "CLAUDE.md": {
+      "decision": "irrelevant",
+      "reason": "docs (295dd5c, 681eb8c)"
+    },
+    "INCIDENT.md": {
+      "decision": "irrelevant",
+      "reason": "new remote incident runbook (295dd5c); docs"
+    },
+    "scripts/cron-setup-hetzner.sh": {
+      "decision": "irrelevant",
+      "reason": "cron install script (68a35d3 fetch-contest-streak schedule, 681eb8c ping URL from env); never loaded by the selected tests"
+    },
+    "tests/health/test_contest_state.py": {
+      "decision": "neutral",
+      "reason": "365ea40 adds the stale-CRITICAL and legacy-WARN tests and moves the clean-state test to an auto file; 58c9adc adds the overnight-lag, two-day-gap, future and missing source_date tests; the module imports SOURCE and check, both at the parent fa30ecb; only test_future_source_date_is_critical passes now=, which the parent's check lacks (TypeError there, not a symptom)"
+    },
+    "tests/test_cli_integration.py": {
+      "decision": "irrelevant",
+      "reason": "46c83c3 adds fetch-contest-streak hardening tests (link 1's command); not selected, never loaded"
+    },
+    "tests/test_contest_state.py": {
+      "decision": "irrelevant",
+      "reason": "46c83c3 (bool streak rejected) and c808dc5 (missing source_date is conservative) tests of the decision-state loader; not selected, never loaded"
+    },
+    "tests/test_web_render.py": {
+      "decision": "irrelevant",
+      "reason": "2b752be (dashboard times in ET only); not selected, never loaded"
+    }
+  },
+  "deployed_ref": {
+    "sha": "eaccaf8",
+    "basis": "candidate_ancestry"
+  },
+  "env": {
+    "TZ": "America/New_York"
+  },
+  "notes": "Symptom: at the parent fa30ecb, bts.health.contest_state.check(picks_dir, *, expected) alerts only on missing or invalid state; an auto observation with source_date 2026-06-01 and a pick resolved 2026-06-05 parses fine, so check returns [] and line 68 of test_stale_contest_state_is_critical fails (no stale CRITICAL). The anchor also requires 'STALE' in the message (fix wording), but the parent returns no alert at all, so the failure is the missing CRITICAL, not only the wording. Static checks: the module imports SOURCE and check, both at fa30ecb; the symptom calls check(tmp_path, expected=True) without now=; the parent's load_contest_streak_state parses the auto file (int active_streak, ISO source_date). Anchor at 58c9adc: the text occurs twice (line 68 in the symptom test, line 103 in test_two_day_gap_is_critical), so line 68 is given. Other selected nodes at the parent: test_two_day_gap_is_critical (103), test_missing_source_date_is_critical (134), test_legacy_manual_present_warns and the INFO half of test_expected_overnight_lag_is_not_critical (88) fail by assertion for the same reason (the parent emits no staleness or legacy alert at all); test_future_source_date_is_critical fails with TypeError (now= is new); test_valid_auto_state_is_clean_when_expected passes. P..F also carries non-fix commits (46c83c3, merge eaccaf8, 68a35d3, 9471d3b, f2b0b47, f16300c, 295dd5c, e2e40f2, 681eb8c, 2b752be, c808dc5) whose src changes (cli.py, contest_state.py, web.py) are part of the green tree. deployed_ref is the draft's: see the manifest (eaccaf8 does not contain 58c9adc). Lead's review: dropped test_future_source_date_is_critical from the selection: each fails at the parent only because of a name, field or keyword the fix added (new API), never by assertion, and adds nothing to the replay."
+}

@@ -1,0 +1,68 @@
+{
+ "id": "I-025",
+ "working_id": "E25",
+ "title": "4/12 fallback posted the 13:19 cached pick although a lineup confirmed since then had produced a stronger candidate by 13:40",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {"primary": "D", "secondary": ["P"]},
+ "tier": "A",
+ "tier_reason": "the delivered pick was not the policy's selection on the lineups confirmed at delivery time (decision-contract impact on a delivered pick); caveat: the 4/03 scheduler design did not require re-prediction at the fallback",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "The fallback delivers the policy's selection on the lineups available at delivery time: re-predict at the fallback, and deliver the cached pick only if the refresh fails.",
+  "source": "dd25664 (re-predict at fallback) and its same-day audit; before it, docs/superpowers/specs/2026-04-03-dynamic-lineup-scheduler-design.md step 6 required only a 15-minute 'post on projected data' fallback"
+ },
+ "mechanism": [
+  {"n": 1, "text": "both fallback paths in run_day posted the last cached cascade result without re-running predictions, so a lineup confirmed after the last scheduled check never reached the lock",
+   "code": [{"path": "src/bts/scheduler.py", "ref": "1e4859d", "symbol": "run_day (in-loop fallback and final fallback)", "ref_basis": "candidate"}]}
+ ],
+ "fix": [
+  {"link": 1, "implemented": {"commits": ["dd25664"], "complete_fix_set": true},
+   "deployed": {"basis": "candidate_ancestry", "sha": "dd25664", "live_by": "2026-04-12T19:25:45Z", "run_id": 24314523130, "evidence": ["ev3"]},
+   "mitigated": "none", "verified_recovered": "not_applicable"}
+ ],
+ "fixtures": {"historical_replay": [], "current_defence": [], "expected_failure": [], "characterization": []},
+ "residual": [
+  {"text": "by design, a failed or empty fallback refresh still delivers the cached pick (dd25664 body; kept as the safety net in the later fallback-refresh decision path)", "reaches_production": true, "source": "dd25664 body; ARCHITECTURE.md (C1) '_refresh_pick_at_fallback_decision … a cascade error (selection None) still delivers cached (safety net)'"}
+ ],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "a fallback delivery whose prediction snapshot predates a lineup confirmation for a game still pickable at delivery time",
+  "recovery_assertion": "the delivered pick is re-derived from a prediction run after the last confirmation, or the delivery record says the refresh failed"
+ },
+ "evidence": [
+  {"id": "ev1", "kind": "contemporaneous_operator_report", "strength": "primary", "locator": "commit dd25664 message body", "written_at": "2026-04-12T15:25:42-04:00",
+   "what": "audit of 4/12 picks: the pick locked from the 13:19 ET cached cascade was posted by the 13:40 ET fallback, although PHI's lineup had confirmed meanwhile and a PHI batter then outranked the cached primary; 'The fallback never re-ran predictions'"},
+  {"id": "ev2", "kind": "inference", "strength": "primary", "locator": "docs/superpowers/specs/2026-04-03-dynamic-lineup-scheduler-design.md 'Daily lifecycle' steps 3 and 6",
+   "what": "predictions re-run only at scheduled checks; the fallback posts 'on projected data' 15 minutes before first pitch, with no refresh requirement"},
+  {"id": "ev3", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 24314523130 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "head dd25664, created 2026-04-12T19:25:45Z, concluded success; log expired"},
+  {"id": "ev4", "kind": "inference", "strength": "primary", "locator": "src/bts/scheduler.py run_day at 1e4859d",
+   "what": "the fallback sites load the saved pick and post it; nothing re-runs the cascade"}
+ ],
+ "occurrences": [{
+  "label": "2026-04-12 13:40 ET fallback",
+  "onset": {"at": "2026-04-12T13:40:00-04:00", "evidence": ["ev1"]},
+  "first_detectable": "unknown",
+  "first_machine_detection": "none",
+  "alert": {"attempted": "none", "confirmed": "none", "failed": "none"},
+  "operator_awareness": {"not_after": "2026-04-12T15:25:42-04:00", "evidence": ["ev1"]},
+  "operator_action": {"not_after": "2026-04-12T15:25:42-04:00", "evidence": ["ev1"]},
+  "mitigation": "none",
+  "restored_verification": "not_applicable",
+  "latencies": {"detection": "not_applicable", "notification": "not_applicable", "recovery": "not_applicable"}
+ }],
+ "routes": {"H": ["dd25664"], "R": "pending_phase2", "X": ["docs/superpowers/specs/2026-04-03-dynamic-lineup-scheduler-design.md step 6", "ARCHITECTURE.md fallback refresh (C1)"]},
+ "related": ["I-021", "I-022"],
+ "notes": [
+  "EX? — the gap between the cached and the fresh candidate is a model-probability comparison, and the 4/03 design did not require re-prediction at the fallback; the lead may treat this as decision quality (design §1) or a design gap rather than an operational incident",
+  "the body's names and probabilities are not repeated; the 4/12 result is not restated",
+  "the delivered pick is the one I-021's corrected deadline governed; delivery itself was before its cutoff",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; dd25664 added TestRefreshPickAtFallback (mocked run_and_pick); scratchpad defence input I-0412-b-fallback-no-refresh exists"
+ ]
+}

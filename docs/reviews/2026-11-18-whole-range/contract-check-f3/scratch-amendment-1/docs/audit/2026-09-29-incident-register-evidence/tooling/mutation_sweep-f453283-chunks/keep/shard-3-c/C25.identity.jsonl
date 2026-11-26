@@ -1,0 +1,5 @@
+{"node": "tests.scripts.incident_register.test_r8_counterexamples::test_an_incomplete_return_value_never_witnesses[truncated]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r8_counterexamples::test_an_incomplete_return_value_never_witnesses[nested-seq]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r8_counterexamples::test_an_incomplete_return_value_never_witnesses[nested-map]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r8_counterexamples::test_an_incomplete_return_value_never_witnesses[no-dict]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r8_counterexamples::test_a_full_run_with_an_incomplete_return_value_is_refused", "kind": "assertion"}

@@ -1,0 +1,137 @@
+{
+  "steps": [
+    {
+      "step": "1_opening_night_0_not_earned",
+      "date": "2027-03-25",
+      "p_game_hit": 0.84,
+      "streak": 0,
+      "best_streak": 0,
+      "best_status": "trusted",
+      "status": "fresh",
+      "saver_flag_state": "not_earned",
+      "saver_available": true,
+      "policy_action": "double",
+      "alerts": []
+    },
+    {
+      "step": "2_next_morning_before_obs",
+      "date": "2027-03-26",
+      "p_game_hit": 0.84,
+      "streak": 22,
+      "best_streak": 30,
+      "best_status": "untrusted",
+      "status": "fresh",
+      "saver_flag_state": "uninitialized",
+      "saver_available": false,
+      "policy_action": "single",
+      "alerts": [
+        {
+          "level": "WARN",
+          "source": "saver_state"
+        }
+      ]
+    },
+    {
+      "step": "3_corrected_twice_same_day",
+      "request_log_lines": 4,
+      "date": "2027-03-26",
+      "p_game_hit": 0.84,
+      "streak": 3,
+      "best_streak": 3,
+      "best_status": "trusted",
+      "status": "fresh",
+      "saver_flag_state": "not_earned",
+      "saver_available": true,
+      "policy_action": "double",
+      "alerts": []
+    },
+    {
+      "step": "4_replaced_by_legacy_setter",
+      "manual_schema": "bts_contest_streak_manual_v2",
+      "flag_state_on_disk": "not_earned",
+      "date": "2027-03-26",
+      "p_game_hit": 0.84,
+      "streak": 4,
+      "best_streak": 4,
+      "best_status": "trusted",
+      "status": "fresh",
+      "saver_flag_state": "not_earned",
+      "saver_available": true,
+      "policy_action": "double",
+      "alerts": []
+    },
+    {
+      "step": "5a_streak10_not_earned_warns",
+      "date": "2027-04-02",
+      "p_game_hit": 0.8,
+      "streak": 10,
+      "best_streak": 10,
+      "best_status": "trusted",
+      "status": "fresh",
+      "saver_flag_state": "not_earned",
+      "saver_available": false,
+      "policy_action": "double",
+      "alerts": [
+        {
+          "level": "WARN",
+          "source": "saver_state"
+        }
+      ]
+    },
+    {
+      "step": "5b_streak10_corrected_to_active",
+      "date": "2027-04-02",
+      "p_game_hit": 0.8,
+      "streak": 10,
+      "best_streak": 10,
+      "best_status": "trusted",
+      "status": "fresh",
+      "saver_flag_state": "active",
+      "saver_available": true,
+      "policy_action": "single",
+      "alerts": []
+    },
+    {
+      "step": "6_forgiven_miss_entered_as_used",
+      "date": "2027-04-05",
+      "p_game_hit": 0.84,
+      "streak": 12,
+      "best_streak": 12,
+      "best_status": "trusted",
+      "status": "fresh",
+      "saver_flag_state": "used",
+      "saver_available": false,
+      "policy_action": "single",
+      "alerts": []
+    },
+    {
+      "step": "7a_same_day_after_fetch_auto_earns_flag",
+      "flag_on_disk": "active",
+      "date": "2027-04-05",
+      "p_game_hit": 0.84,
+      "streak": 12,
+      "best_streak": 12,
+      "best_status": "trusted",
+      "status": "fresh",
+      "saver_flag_state": "used",
+      "saver_available": false,
+      "policy_action": "single",
+      "alerts": []
+    },
+    {
+      "step": "7b_next_day_without_obs_sees_auto_earned_flag",
+      "flag_on_disk": "active",
+      "date": "2027-04-06",
+      "p_game_hit": 0.84,
+      "streak": 12,
+      "best_streak": 12,
+      "best_status": "trusted",
+      "status": "fresh",
+      "saver_flag_state": "active",
+      "saver_available": true,
+      "policy_action": "single",
+      "alerts": []
+    }
+  ],
+  "failures": []
+}

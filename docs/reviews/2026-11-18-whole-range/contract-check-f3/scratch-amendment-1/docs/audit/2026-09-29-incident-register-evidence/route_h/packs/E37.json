@@ -1,0 +1,36 @@
+{
+ "id": "E37",
+ "episode_row": [
+  "E37",
+  "4/21?\u20134/28",
+  "silent no-op deploys (workflow pulled origin/main)",
+  "S",
+  "OI",
+  "A",
+  "a5af424"
+ ],
+ "commits": [
+  {
+   "sha": "a5af424",
+   "authored": "2026-04-28T11:15:44-04:00",
+   "subject": "fix(deploy): reset to origin/deploy instead of pull origin/main",
+   "body": "Previously: workflow ran git pull --ff-only on bts-mlb's main branch,\nwhich pulled origin/main. But `git push origin main:deploy` only\nadvances origin/deploy \u2014 leaving origin/main behind. Result was silent\nno-op deploys: workflow succeeded, scheduler restarted, canary passed,\nbut no new code applied.\n\nObserved today (2026-04-28 11:06 ET): pushed main:deploy with 6 new\ncommits, workflow reported success in 45s, but bts-mlb's HEAD remained\nat the pre-push SHA. Verified by inspecting git log on bts-mlb after\ndeploy \"succeeded\".\n\nNow: workflow does `git fetch origin && git reset --hard origin/deploy`,\nguaranteeing the working tree matches whatever was just pushed to deploy.\nSingle push (`git push origin main:deploy`) is now sufficient \u2014 no need\nto also push main.\n\nHard reset is safe on bts-mlb since no local commits are expected on a\nprod box. Rollback path (line ~85) already uses `git reset --hard`, so\nthis aligns the forward path with the rollback path.\n\nCo-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>",
+   "files": [
+    ".github/workflows/deploy.yml"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 25061375968,
+    "created_at": "2026-04-28T15:15:48Z",
+    "head_sha": "a5af424",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

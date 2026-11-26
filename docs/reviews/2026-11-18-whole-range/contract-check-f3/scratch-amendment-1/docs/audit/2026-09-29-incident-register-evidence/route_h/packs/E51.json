@@ -1,0 +1,37 @@
+{
+ "id": "E51",
+ "episode_row": [
+  "E51",
+  "5/15",
+  "int(NaN) crash when pitcher_id missing (preview)",
+  "L",
+  "OI?",
+  "P",
+  "285f3a5 (PR #98)"
+ ],
+ "commits": [
+  {
+   "sha": "285f3a5",
+   "authored": "2026-05-15T13:00:39-04:00",
+   "subject": "Fix preview pick NaN pitcher IDs",
+   "body": "",
+   "files": [
+    "src/bts/picks.py",
+    "tests/test_picks.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 25930613603,
+    "created_at": "2026-05-15T17:01:56Z",
+    "head_sha": "b8e5785",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

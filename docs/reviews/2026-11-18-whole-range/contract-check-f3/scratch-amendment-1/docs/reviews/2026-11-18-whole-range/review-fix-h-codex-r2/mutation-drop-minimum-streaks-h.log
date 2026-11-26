@@ -1,0 +1,63 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-h2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 71 items / 1 deselected / 70 selected
+
+tests/test_wr_h_longest.py ............................................. [ 64%]
+..........F
+
+=================================== FAILURES ===================================
+___________ test_r1_malformed_paired_base_forces_single[streak-axis] ___________
+
+artifact = {'base_error': None, 'base_sha256': '66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4', 'boundaries': ...     [0, 0, 0, 0, 0]],
+
+        [[0, 0, 0, 0, 0],
+         [0, 0, 0, 0, 0]]]], shape=(58, 181, 2, 5), dtype=int8), ...}
+rebound_policy = <function rebound_policy.<locals>.prepare at 0x1109dfd80>
+malformation = 'streak-axis'
+
+    @pytest.mark.parametrize("malformation", [
+        "scalar", "1d", "3d", "saver-axis", "bin-axis", "day-axis", "streak-axis",
+        "float", "action-3", "action-minus-1", "boundaries", "bool-horizon",
+    ])
+    def test_r1_malformed_paired_base_forces_single(artifact, rebound_policy, malformation):
+        table = artifact["policy_table"]
+        if malformation in {"action-3", "action-minus-1"}:
+            broken = table.copy()
+            broken[0, 0, 0, 0] = 3 if malformation == "action-3" else -1
+            policy = rebound_policy(policy_table=broken)
+        elif malformation == "boundaries":
+            policy = rebound_policy(boundaries=np.array(.5))
+        elif malformation == "bool-horizon":
+            policy = rebound_policy(season_length=np.array(True), policy_table=table[:, :2])
+            # The loader normalizes the horizon to int. Exercise the decoded-context
+            # contract by supplying the boolean to the resolver directly.
+            policy = policy | {"season_length": True}
+        else:
+            broken = {
+                "scalar": np.array(0, dtype=table.dtype),
+                "1d": table[0, 0, 0],
+                "3d": table[0],
+                "saver-axis": np.concatenate((table, table[:, :, :1]), axis=2),
+                "bin-axis": table[:, :, :, :-1],
+                "day-axis": table[:, :-1],
+                "streak-axis": table[:BOUNDARY - 1],
+                "float": table.astype(float),
+            }[malformation]
+            policy = rebound_policy(policy_table=broken)
+        ctx = strategy.DecisionContext(.84, .83, True, "2027-09-26", True, policy,
+                                       BOUNDARY, "trusted")
+        decision = strategy.resolve_policy_decision(ctx, BOUNDARY, False)
+>       assert (decision.action, decision.policy_action, decision.objective) == ("single", "single", OBJECTIVE)
+E       AssertionError: assert ('double', 'd...ngest_streak') == ('single', 's...ngest_streak')
+E         
+E         At index 0 diff: 'double' != 'single'
+E         Use -v to get more diff
+
+tests/test_wr_h_longest.py:334: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_wr_h_longest.py::test_r1_malformed_paired_base_forces_single[streak-axis]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+================== 1 failed, 55 passed, 1 deselected in 1.75s ==================

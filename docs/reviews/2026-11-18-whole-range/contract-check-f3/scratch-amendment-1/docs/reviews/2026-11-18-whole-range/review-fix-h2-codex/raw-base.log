@@ -1,0 +1,3 @@
+nice: setpriority: Operation not permitted
+/Users/eric/projects/bts-work/wr-rev-h2c-cx/.codex-review/wr-h2c/base/src/bts/__init__.py
+21 raw classifier inputs, target is 57, active alias reads at 57 explicit null active is refused even with alias present

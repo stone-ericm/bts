@@ -1,0 +1,115 @@
+{
+ "id": "E67",
+ "episode_row": [
+  "E67",
+  "6/29\u20136/30",
+  "suspended-game scoring used resumed-portion PA (scorer, resolver, shadow backfill)",
+  "G/R",
+  "DL",
+  "P",
+  "a364b11 5801002 6e3f626 83a5cad"
+ ],
+ "commits": [
+  {
+   "sha": "a364b11",
+   "authored": "2026-06-30T13:54:45-04:00",
+   "subject": "fix(picks): grade suspended-game picks from pre-suspension PA, not the boxscore",
+   "body": "The production scorer read the cumulative final boxscore hit total, which includes the\nresumed portion of a suspended game -- so a resumed-portion hit could falsely continue a\nstreak. Grade suspended-and-resumed games from pre-suspension plays only (startTime <\nresumeDateTime): a hit before suspension is a hit, a pre-suspension PA with no hit is a\nmiss, and a batter present only in the resumed portion is a void. _check_hit_in_game\nstays suspension-aware for the bool callers (shadow_eval, skip_policy_shadow); check_hit\ngains an opt-in return_status, used by the streak path, so void reaches the streak.\nNormal games are unchanged (the whole branch is gated on resumeDateTime).\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_018G8K9AtnrzJzgUu4B41rQ5",
+   "files": [
+    "src/bts/picks.py",
+    "tests/test_check_hit_suspension.py",
+    "tests/test_cli_integration.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 28466759515,
+    "created_at": "2026-06-30T18:24:09Z",
+    "head_sha": "63fd1d0",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "5801002",
+   "authored": "2026-06-30T13:54:45-04:00",
+   "subject": "fix(experiment): exclude resumed-portion PA from BTS scoring + calibration",
+   "body": "The live-forward resolver and the (batter_id, date) day-hit lookups in calibrate,\nrealized_calibration, and canonicalize_realized_picks all took max(is_hit) over a\nsuspended game's full PA -- so a resumed-portion hit could be credited to an\noriginal-gameday pick (a pre-suspension out flipped to a hit; a calibration label\ninflated). Route these through read_pa_for_bts_scoring / filter_out_resumed_portion so\nonly pre-suspension PA count. A batter with only resumed PA becomes a missing outcome,\nwhich the final-game void routing resolves as void_no_pa (pre-suspension PA with no hit\nis a miss). The skill-pool prior_pa/hit_rate lookup is intentionally left unfiltered --\nresumed PA are legitimate events for ability estimates. Also names void_suspended_resume\nin the resolved-manifest prose (the one gap from the prior deploy).\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_018G8K9AtnrzJzgUu4B41rQ5",
+   "files": [
+    "scripts/canonicalize_realized_picks.py",
+    "src/bts/experiment/artifacts.py",
+    "src/bts/health/realized_calibration.py",
+    "src/bts/model/calibrate.py",
+    "tests/experiment/test_artifacts.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 28466759515,
+    "created_at": "2026-06-30T18:24:09Z",
+    "head_sha": "63fd1d0",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "6e3f626",
+   "authored": "2026-06-30T14:07:26-04:00",
+   "subject": "fix: address review round 1 \u2014 broaden suspended-game scoring coverage",
+   "body": "Codex review (with repo access) found four real issues, all fixed:\n- BLOCKER: an all-resumed suspended game (zero pre-suspension PA) stalled the resolver\n  pending, because outcome_game_keys was derived from the resumed-excluded outcomes.\n  Derive it from UNFILTERED PA dates so the final-game routing void_no_pa's the\n  original-day candidate instead of re-triggering the resolution alert.\n- scheduler._check_hits_midgame read cumulative boxscore hits directly; route it through\n  the suspension-aware picks._check_hit_in_game so a live resumed-portion hit cannot\n  advance the streak mid-game.\n- health/slate_auc built realized BTS labels from raw max(is_hit); read via\n  read_pa_for_bts_scoring so the realized AUC monitor excludes the resumed portion.\n- build marked a missing-startTime PA as pre-suspension while the production scorer\n  treats it as resumed; align build to the conservative (resumed) direction.\n\nFeature computation (experiment/features.py) and the skill-pool prior keep resumed PA by\ndesign (real baseball events); research/audit scripts are left unfiltered (negligible\nimpact, not production scoring).\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_018G8K9AtnrzJzgUu4B41rQ5",
+   "files": [
+    "src/bts/data/build.py",
+    "src/bts/experiment/artifacts.py",
+    "src/bts/health/slate_auc.py",
+    "src/bts/scheduler.py",
+    "tests/data/test_build.py",
+    "tests/experiment/test_artifacts.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 28466759515,
+    "created_at": "2026-06-30T18:24:09Z",
+    "head_sha": "63fd1d0",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "83a5cad",
+   "authored": "2026-06-30T21:10:38-04:00",
+   "subject": "fix(shadow-eval): preserve suspended-game void in the cached-feed backfill path",
+   "body": "The final holistic review found an 8th consumer: `bts shadow-backfill-results`, on its\ncached-raw-feed path, graded picks with the bool _check_hit_in_game -- which collapses a\nsuspended-game \"void\" (resumed-only PA) to False -> \"miss\". So --apply could write a\nreviewed shadow result as a miss instead of a void. Extract check_hit's internal feed\ngrader as a module-level picks.grade_pick_in_feed (\"hit\"/\"miss\"/\"void\"/None) and use it on\nthe cached path (_hit_to_slot_result already handles \"void\"). The live-API path\n(resolve_pick_slot_result) was already correct; scheduler mid-game keeps the bool\n_check_hit_in_game since it only needs hit/no-hit.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_018G8K9AtnrzJzgUu4B41rQ5",
+   "files": [
+    "src/bts/picks.py",
+    "src/bts/shadow_eval.py",
+    "tests/test_shadow_eval.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 28520680537,
+    "created_at": "2026-07-01T13:21:23Z",
+    "head_sha": "83a5cad",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

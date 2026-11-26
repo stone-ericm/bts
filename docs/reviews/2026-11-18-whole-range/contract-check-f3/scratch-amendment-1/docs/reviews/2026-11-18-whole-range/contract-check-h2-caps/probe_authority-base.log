@@ -1,0 +1,95 @@
+nice: setpriority: Operation not permitted
+/Users/eric/projects/bts-work/wr-check-h2b/src/bts/contest_state.py
+K9 switch 1 ContestStateError: Live decision refused: corrupt season switch, check 4: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks/account_state/season_contract.json: status must be automatic or revoked.
+Alternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks`. Read N, B and S from MLB (active streak, best streak and saver state).
+Alternative automatic path: inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks`; deliberately repair or remove the corrupt file, or replace it with enable. None of these verifies the endpoints or installs an observation, and doing so can reveal another blocker. Stop the scheduler and wait for any fetch before a changing enable. For current-season evidence, first repair or remove the corrupt switch to a nonautomatic state, run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks` (ledger only while not switched), inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks`, then `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.
+One repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.
+K9 historical 1 [('CRITICAL', 'Prior slate 2027-07-15 ET. The season switch is corrupt because its status field failed validation.')]
+legacy CLI wrote (0, 'NoneType', 'Wrote /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks/account_state/contest_streak.manual.json: active_streak=401 source_date=2027-07-15 override_expires_at=2027-07-16T16:00:00Z')
+legacy optional 401 401 untrusted
+K9 switch 2 ContestStateError: Live decision refused: the selected legacy manual override is no longer accepted for a live pick.
+Alternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks`. Read N, B and S from MLB (active streak, best streak and saver state).
+This dated observation REPLACES the legacy override; enable and the fetch cannot repair this. Automatic use must wait until the winning legacy override is removed or expires.
+One repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.
+K9 historical 2 [('CRITICAL', 'Prior slate 2027-07-15 ET. The selected legacy manual override is ineligible for a live decision.')]
+K9 switch 3 absent ContestStateError: Live decision refused: season 2027 switch is absent.
+Alternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks`. Read N, B and S from MLB (active streak, best streak and saver state).
+Alternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks`; then run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.
+One repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.
+K9 historical 3 absent [('CRITICAL', 'Prior slate 2027-07-15 ET. The season switch is absent.')]
+K9 switch 3 revoked ContestStateError: Live decision refused: season 2027 switch is revoked.
+Alternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks`. Read N, B and S from MLB (active streak, best streak and saver state).
+Alternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks`; then run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.
+One repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.
+K9 historical 3 revoked [('CRITICAL', 'Prior slate 2027-07-15 ET. The season switch is revoked.')]
+K9 switch 3 other season ContestStateError: Live decision refused: season 2027 switch is other_season (file season 2026).
+Alternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks`. Read N, B and S from MLB (active streak, best streak and saver state).
+Alternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks`; then run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.
+One repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.
+K9 historical 3 other season [('CRITICAL', 'Prior slate 2027-07-15 ET. The season switch is for another season.')]
+K9 switch 4 ContestStateError: Live decision refused: there is no automatic observation for this activation.
+Alternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks`. Read N, B and S from MLB (active streak, best streak and saver state).
+Alternative automatic path: run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks`; the season is already switched, so a switched fetch writes an observation for this season and current activation.
+One repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.
+K9 historical 4 [('CRITICAL', 'Prior slate 2027-07-15 ET. Contest streak observation is missing from account_state.'), ('CRITICAL', 'Prior slate 2027-07-15 ET. There is no automatic observation for the switch activation.')]
+K9 switch 5 schema ContestStateError: Live decision refused: schema_version is 'old', not 'bts_contest_streak_auto_v2'.
+Alternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks`. Read N, B and S from MLB (active streak, best streak and saver state).
+Alternative automatic path: run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks`; the season is already switched, so a switched fetch writes an observation for this season and current activation.
+One repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.
+K9 historical 5 schema [('CRITICAL', 'Prior slate 2027-07-15 ET. The automatic observation uses an unsupported schema.')]
+K9 switch 5 season ContestStateError: Live decision refused: automatic observation season is 2026, not 2027.
+Alternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks`. Read N, B and S from MLB (active streak, best streak and saver state).
+Alternative automatic path: run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks`; the season is already switched, so a switched fetch writes an observation for this season and current activation.
+One repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.
+K9 historical 5 season [('CRITICAL', 'Prior slate 2027-07-15 ET. The automatic observation is for another season.')]
+K9 switch 5 ID ContestStateError: Live decision refused: automatic observation activation_id is 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', not the switch's '01fe659389114ac8ad6bd0e830424899'.
+Alternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks`. Read N, B and S from MLB (active streak, best streak and saver state).
+Alternative automatic path: run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks`; the season is already switched, so a switched fetch writes an observation for this season and current activation.
+One repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.
+K9 historical 5 ID [('CRITICAL', 'Prior slate 2027-07-15 ET. The automatic observation and season switch have different activation IDs.')]
+M3 automatic CLI (2, 'SystemExit', 'fetch-contest-streak: profile/rounds shape or fetch error: seasonBestStreak must be <= 57') selected ('reach57', 'single', 12, 12, 'trusted')
+M3 dated CLI 60 75 used (2, 'SystemExit', "Usage: cli set-contest-streak [OPTIONS]\nTry 'cli set-contest-streak --help' for help.\n\nError: Invalid value for --best-streak: best streak must be at most 57") selected ('reach57', 'single', 12, 12, 'trusted') saver False used chosen automatic
+M3 dated CLI 400 400 used (2, 'SystemExit', "Usage: cli set-contest-streak [OPTIONS]\nTry 'cli set-contest-streak --help' for help.\n\nError: Invalid value for --best-streak: best streak must be at most 57") selected ('reach57', 'single', 12, 12, 'trusted') saver False used chosen automatic
+M3 dated CLI 58 58 not_earned (2, 'SystemExit', "Usage: cli set-contest-streak [OPTIONS]\nTry 'cli set-contest-streak --help' for help.\n\nError: Invalid value for --best-streak: best streak must be at most 57") selected ('reach57', 'single', 12, 12, 'trusted') saver False used chosen automatic
+M3 dated CLI 58 58 active (2, 'SystemExit', "Usage: cli set-contest-streak [OPTIONS]\nTry 'cli set-contest-streak --help' for help.\n\nError: Invalid value for --best-streak: best streak must be at most 57") selected ('reach57', 'single', 12, 12, 'trusted') saver False used chosen automatic
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-check-h2b/src/bts/contest_state.py", line 329, in _read_state_file
+    data = json.loads(raw)
+           ^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py", line 338, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py", line 354, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-check-h2b/.codex-review/wr-h2-check/probe_authority.py", line 88, in <module>
+    other_inputs(directory)
+  File "/Users/eric/projects/bts-work/wr-check-h2b/.codex-review/wr-h2-check/probe_authority.py", line 74, in other_inputs
+    print('current dated bypasses broken automatic', state(directory).observation_kind)
+                                                     ^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-check-h2b/.codex-review/wr-h2-check/probe_live.py", line 44, in state
+    return cs.load_decision_streak_state(directory, require_contest_state=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-check-h2b/src/bts/contest_state.py", line 597, in load_decision_streak_state
+    contest = load_contest_streak_state(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-check-h2b/src/bts/contest_state.py", line 425, in load_contest_streak_state
+    return _select_contest_streak_state(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-check-h2b/src/bts/contest_state.py", line 460, in _select_contest_streak_state
+    return _parse_state_file(auto_path, require_dated=require_dated_auto)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-check-h2b/src/bts/contest_state.py", line 321, in _parse_state_file
+    return _read_state_file(path, require_dated=require_dated, historical=False)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-check-h2b/src/bts/contest_state.py", line 333, in _read_state_file
+    raise ContestStateError(f"contest streak state malformed at {path}: {exc}") from exc
+bts.contest_state.ContestStateError: contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpnzz1zaux/picks/account_state/contest_streak.json: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)

@@ -1,0 +1,22 @@
+import /Users/eric/projects/bts-work/wr-rev-h-cx/.codex-review/wr-h/early-action-k2uol9el/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-h-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 261 items / 1 deselected / 260 selected
+
+tests/test_wr_h_longest.py .F
+
+=================================== FAILURES ===================================
+_____________ test_h1_h2_h3_resolver_grid[days1-True-True-double] ______________
+tests/test_wr_h_longest.py:43: in test_h1_h2_h3_resolver_grid
+    assert (decision.action, decision.policy_action, decision.objective) == (
+E   AssertionError: assert ('single', 's...ngest_streak') == ('double', 'd...ngest_streak')
+E     
+E     At index 0 diff: 'single' != 'double'
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/test_wr_h_longest.py::test_h1_h2_h3_resolver_grid[days1-True-True-double]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+================== 1 failed, 1 passed, 1 deselected in 0.97s ===================

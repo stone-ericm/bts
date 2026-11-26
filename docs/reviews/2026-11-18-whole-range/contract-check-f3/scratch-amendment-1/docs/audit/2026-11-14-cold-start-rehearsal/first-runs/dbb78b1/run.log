@@ -1,0 +1,9 @@
+dbb78b16 fix: g2 fixes after two reviews — no merge of thin-slate checks, a stricter pre-season no-op, the Opening Night refresh, one day-outcome run
+=== 2026-03-25 start 2026-11-14 02:23:50
+=== 2026-03-25 rc=0 end 2026-11-14 02:26:24
+=== 2026-03-26 start 2026-11-14 02:26:24
+=== 2026-03-26 rc=0 end 2026-11-14 02:28:12
+=== swapped in the frozen pa_2026.parquet
+=== 2027-03-24 start 2026-11-14 02:28:12
+=== 2027-03-24 rc=0 end 2026-11-14 02:30:00
+ALL DONE 2026-11-14 02:30:00

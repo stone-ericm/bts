@@ -1,0 +1,4 @@
+scanner staged ['111', '100']
+other writer committed ['111', '777', '888']
+scanner committed ['111', '100']
+A clean read satisfies the v2 write gate, yet its replace erased the later cache-only game and bad member.

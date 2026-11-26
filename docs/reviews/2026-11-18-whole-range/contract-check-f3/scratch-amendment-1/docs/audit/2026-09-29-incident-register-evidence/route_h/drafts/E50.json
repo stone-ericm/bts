@@ -1,0 +1,439 @@
+{
+ "id": "I-050",
+ "working_id": "E50",
+ "title": "5/09-5/26 live-forward (#16) stream integrity defects: void/no-PA rows stuck pending, stale-snapshot drift checks, resolver unit failed on archives, false CRITICAL on null provenance",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "R",
+  "secondary": [
+   "A"
+  ]
+ },
+ "tier": "B",
+ "tier_reason": "research-stream integrity and alert-noise issues without data loss: canonical artifacts kept resolving (5/23 check) and the 9/22 inventory found every pre-outcome slate resolved and verified; one false CRITICAL",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "live_forward",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "Each live-forward slate is captured pre-outcome with a production-pick snapshot that matches the locked decision, resolves to a terminal status per row (resolved or a void class) without failing on archives, and the capture/resolution health surfaces alert only on real gaps.",
+  "source": "docs/superpowers/runbooks/2026-05-09-live-forward-daily-ops.md; docs/sota_audit/2026-05-11-void-aware-resolver-prereg.md; docs/superpowers/runbooks/2026-05-23-alert-disposition.md"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "the resolver treated a postponed/cancelled source-date game's missing PA rows as pending with no terminal void status, so the 2026-05-09 postponed slate could not leave pending_outcomes",
+   "code": [
+    {
+     "path": "src/bts/experiment/artifacts.py",
+     "ref": "f1aae9a",
+     "symbol": "resolve-live-candidate-artifacts outcome resolution",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "the capture did not check that an existing artifact's production-pick snapshot still matched the current production pick, so a stale snapshot could stand in the official root",
+   "code": [
+    {
+     "path": "scripts/live_forward_capture_once.py",
+     "ref": "68d5fe8",
+     "symbol": "capture (no snapshot currency check)",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "text": "the drift check compared whole-file hashes, so post-game result/slot_results writes made a valid at-lock snapshot look stale; capture was also not triggered at pick lock",
+   "code": [
+    {
+     "path": "scripts/live_forward_capture_once.py",
+     "ref": "b8e5785",
+     "symbol": "existing_snapshot_state (sha comparison)",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "b8e5785",
+     "symbol": "pick lock (no capture trigger)",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "text": "the resolver's default discovery also scanned *.stale_pick_snapshot.* archive directories; archives with failed_verify_existing left the one-shot bts-live-forward-resolve.service failed although canonical dates resolved",
+   "code": [
+    {
+     "path": "scripts/live_forward_resolve_once.py",
+     "ref": "f746aea",
+     "symbol": "artifact directory discovery",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "text": "rows for a final game with loaded PA data but no PA for the player had no terminal status (no void_no_pa) and stayed pending",
+   "code": [
+    {
+     "path": "src/bts/experiment/artifacts.py",
+     "ref": "3055644",
+     "symbol": "terminal outcome status",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "text": "verification of outcome_status_counts failed on older manifests lacking the newly added zero-count statuses",
+   "code": [
+    {
+     "path": "src/bts/experiment/artifacts.py",
+     "ref": "0799bf2",
+     "symbol": "outcome_status_counts verification",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "text": "after result reconciliation the pick file gained nullable feature_env* fields; the snapshot comparison treated absent vs null as drift, marked the valid canonical artifact failed_recapture_post_resolution and the end-of-day analytics_artifacts_missing check raised CRITICAL",
+   "code": [
+    {
+     "path": "scripts/live_forward_capture_once.py",
+     "ref": "d63f60b",
+     "symbol": "decision_snapshot",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "09ee616"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "11a379c",
+    "live_by": "2026-05-12T03:49:52Z",
+    "run_id": 25712181954,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "429a998"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "0b73154",
+    "live_by": "2026-05-13T15:08:58Z",
+    "run_id": 25807897233,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 3,
+   "implemented": {
+    "commits": [
+     "9340218"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "9340218",
+    "live_by": "2026-05-18T19:03:15Z",
+    "run_id": 26054315318,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 4,
+   "implemented": {
+    "commits": [
+     "2efd40a"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "67b21df",
+    "live_by": "2026-05-23T20:11:45Z",
+    "run_id": 26342410049,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": {
+    "how": "manual check after the deploy: Result=success, ExecMainStatus=0, is-failed=inactive",
+    "at": {
+     "not_before": "2026-05-23T16:11:45-04:00",
+     "not_after": "2026-05-23T16:24:09-04:00",
+     "evidence": [
+      "ev2",
+      "ev4"
+     ]
+    }
+   }
+  },
+  {
+   "link": 5,
+   "implemented": {
+    "commits": [
+     "c511a03"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "c511a03",
+    "live_by": "2026-05-24T01:49:13Z",
+    "run_id": 26348939570,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 6,
+   "implemented": {
+    "commits": [
+     "3710227"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "3710227",
+    "live_by": "2026-05-24T12:13:37Z",
+    "run_id": 26360931425,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 7,
+   "implemented": {
+    "commits": [
+     "f03a98b"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "fac6bdb",
+    "live_by": "2026-05-26T18:39:23Z",
+    "run_id": 26467825993,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "grading",
+  "trigger": "a canonical live-forward slate remains pending/failed past its grace window, or a resolver/capture unit is left failed, or a capture status reports drift/recapture failure for a date whose decision fields match the locked pick",
+  "recovery_assertion": "every canonical slate reaches a terminal verified status and the resolver/capture units end inactive/success"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "docs/superpowers/runbooks/2026-05-23-alert-disposition.md '2026-05-26 analytics_artifacts_missing Follow-up' (commit f03a98b)",
+   "written_at": "2026-05-26T21:33:32+03:00",
+   "what": "the 2026-05-25 end-of-day health run emitted a CRITICAL analytics_artifacts_missing for capture status failed_recapture_post_resolution; production evidence showed no capture outage - absent-vs-null feature_env* fields added after reconciliation made the valid artifact look stale"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "docs/superpowers/runbooks/2026-05-23-alert-disposition.md at 3b3e810 ('Current live evidence' + first table row)",
+   "written_at": "2026-05-23T23:24:09+03:00",
+   "what": "bts-live-forward-resolve.service had been left failed because default discovery scanned *.stale_pick_snapshot.* archives (some failed_verify_existing) while canonical dates resolved; cleared by PR #112 and verified Result=success after deploy"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/superpowers/runbooks/2026-05-09-live-forward-daily-ops.md at 09ee616; docs/sota_audit/2026-05-11-void-aware-resolver-prereg.md",
+   "what": "the resolver stays strict by default; the known 2026-05-09 postponed slate had to be converted from pending_outcomes to resolved_with_voids with the new opt-in"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy runs 25712181954, 25807897233, 26054315318, 26342410049, 26348939570, 26360931425, 26467825993 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploys containing 09ee616, 429a998, 9340218, 2efd40a, c511a03, 3710227 and f03a98b respectively; all logs unavailable_expired"
+  },
+  {
+   "id": "ev5",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-09-22-exposure-register.md row X-11 (inventory counts only)",
+   "what": "9/22 inventory: 114 pre-outcome directories 5/09-9/18, all resolved complete with verification ok; 255 stale_pick_snapshot.* recapture side-directories exist"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-05-25 false CRITICAL (link 7)",
+   "onset": {
+    "at": "2026-05-25",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": {
+    "at": "2026-05-25",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "not_applicable",
+    "confirmed": "not_applicable",
+    "failed": "not_applicable"
+   },
+   "operator_awareness": {
+    "not_after": "2026-05-26T21:33:32+03:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-05-26T21:33:32+03:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   },
+   "links": [
+    7
+   ]
+  },
+  {
+   "label": "resolver unit left failed (link 4), cleared 2026-05-23",
+   "onset": "unknown",
+   "first_detectable": "unknown",
+   "first_machine_detection": "unknown",
+   "alert": {
+    "attempted": "unknown",
+    "confirmed": "unknown",
+    "failed": "unknown"
+   },
+   "operator_awareness": {
+    "not_after": "2026-05-23T23:08:37+03:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-05-23T23:08:37+03:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": {
+    "not_before": "2026-05-23T16:11:45-04:00",
+    "not_after": "2026-05-23T16:24:09-04:00",
+    "evidence": [
+     "ev2",
+     "ev4"
+    ]
+   },
+   "latencies": {
+    "detection": "unknown",
+    "notification": "unknown",
+    "recovery": "unknown"
+   },
+   "continuing": true,
+   "links": [
+    4
+   ]
+  }
+ ],
+ "routes": {
+  "H": [
+   "09ee616",
+   "429a998",
+   "9340218",
+   "2efd40a",
+   "c511a03",
+   "3710227",
+   "f03a98b"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "PR #112",
+   "PR #116",
+   "docs/superpowers/runbooks/2026-05-09-live-forward-daily-ops.md",
+   "docs/superpowers/runbooks/2026-05-23-alert-disposition.md",
+   "docs/sota_audit/2026-05-11-void-aware-resolver-prereg.md"
+  ]
+ },
+ "related": [
+  "I-064",
+  "I-087",
+  "I-092",
+  "I-097",
+  "I-043"
+ ],
+ "notes": [
+  "split? seven distinct defects; observed: link 7 (5/25 false CRITICAL, ev1) and link 4 (resolver unit failed, ev2); link 1 is a capability gap in a strict-by-design resolver (the 5/09 slate stayed pending, ev3); links 2, 3, 5, 6 have empty or one-line bodies and no located observation (deployed_latent)",
+  "the resolver-failed occurrence has onset unknown: archives appeared after 429a998's auto-recapture (deployed 5/13), and when the unit first failed is not recorded; a dated onset would also break the validator's single-onset 48 h rule for ev1",
+  "most bodies are empty (Codex-authored PRs); mechanism texts come from the diffs",
+  "the #16 stream is a research stream; exposure row X-11 governs any outcome read - only inventory counts are cited",
+  "log bounds: all fixes live by 2026-06-07T00:11:19Z (run 27077693688)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

@@ -1,0 +1,70 @@
+{
+  "audit_problems": [],
+  "classes": {
+    "tests/test_contest_fetch.py::test_derive_source_date_counts_not_hit_rounds": "symptom_candidate"
+  },
+  "closure": "src_swap",
+  "events_sha256": {
+    "green": "2cfaa7b1aadabc97134764bec0a79d47e0594a27ade77b669e4de696413a04e5",
+    "red": "30f640d20096b7e878da3bef89d69090da4545c3cc1bfb0e19d17275717fe2ba"
+  },
+  "fix": "709e68b3dde92a40f21d84f8eb0f2df20111485c",
+  "harness_changes": [
+    {
+      "path": "tests/test_contest_fetch.py",
+      "status": "M"
+    }
+  ],
+  "label": "R-I063-3",
+  "label_kind": "semantic_regression_replay",
+  "parent": "a9522a40c029c2accea035a80a7b29dbea075798",
+  "reasons": [],
+  "spec": {
+    "audit": {
+      "tests/test_contest_fetch.py": {
+        "decision": "neutral",
+        "reason": "709e68b adds test_derive_source_date_counts_not_hit_rounds, which calls derive_source_date (a module import present at the parent a9522a4) with plain dict inputs"
+      }
+    },
+    "deployed_ref": {
+      "basis": "log",
+      "sha": "83a5cad"
+    },
+    "env": {
+      "TZ": "America/New_York"
+    },
+    "fix_set": [
+      "709e68b"
+    ],
+    "incident": "I-063",
+    "label": "R-I063-3",
+    "links": [
+      3
+    ],
+    "notes": "Symptom: at the parent a9522a4, bts.contest_fetch.RESOLVED = {'hit', 'miss', 'void'} omits MLB's 'not_hit', so derive_source_date skips round 2 and returns 2026-06-08; line 161 fails (2026-06-08 != 2026-06-09). Static checks: the module imports ContestFetchError, build_observation, derive_source_date, fetch_profile and validate_fetch, all at a9522a4; the P..F src diff is only the RESOLVED line. Anchor unique at 709e68b (line 161).",
+    "symptom_nodes": [
+      {
+        "_line": 161,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I063-3/tests/test_contest_fetch.py",
+        "assertion": {
+          "path": "tests/test_contest_fetch.py",
+          "text": "assert derive_source_date(preds, rounds) == dt.date(2026, 6, 9)"
+        },
+        "node": "tests/test_contest_fetch.py::test_derive_source_date_counts_not_hit_rounds"
+      }
+    ],
+    "tests": [
+      "tests/test_contest_fetch.py::test_derive_source_date_counts_not_hit_rounds",
+      "-q"
+    ]
+  },
+  "spec_sha256": "acd5157b749aa7542f5697826c1d8e090ec6e3556eed8b3f8ac41e3220805680",
+  "src_tree": {
+    "fix": "8f6aecb4b2617242279af201f935afbfefd15ca3",
+    "parent": "222e281c24b9d3ec4088a5677d7a93b59d820944"
+  },
+  "symptoms": {
+    "tests/test_contest_fetch.py::test_derive_source_date_counts_not_hit_rounds": []
+  },
+  "verdict": "accepted"
+}

@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_defence::test_a_test_that_writes_a_tracked_file_is_rejected", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_expected_failure::test_a_helper_changed_inside_the_pair_is_rejected", "kind": "assertion"}

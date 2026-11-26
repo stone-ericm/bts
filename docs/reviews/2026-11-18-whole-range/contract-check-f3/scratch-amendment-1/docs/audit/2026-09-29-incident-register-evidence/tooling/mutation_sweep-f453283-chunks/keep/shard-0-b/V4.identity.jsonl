@@ -1,0 +1,5 @@
+{"node": "tests.scripts.incident_register.test_records::test_operator_report_must_be_contemporaneous", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_records::test_a_report_may_describe_the_fix_step_that_cites_it", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_records::test_an_operator_report_can_date_an_install", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_records::test_a_continuing_condition_is_witnessed_only_at_its_observed_times", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_records::test_each_citation_of_a_report_is_qualified_on_its_own", "kind": "assertion"}

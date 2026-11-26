@@ -1,0 +1,15 @@
+# Confirmation round: whole-range fix set A after round 1
+
+You are a fresh reviewer. **Assume the author is wrong.** Round 1 ended in BLOCK on ONE finding: `scheduler.fetch_schedule` accepted a body such as `{"dates":[],"totalGames":NaN}` (Python's decoder accepts `NaN`, `Infinity` and `-Infinity`) and read it as a clean off-day. Everything else in round 1 held (its report is `round1-report.md` beside this brief: read it for what was already established; do not redo that work).
+
+This checkout is an isolated copy at `d67a25e7`. The round-1 commit was `9cb84536`; the fix is `git diff 9cb84536 HEAD`: a `parse_constant` callback in `fetch_schedule` and two tests in `tests/test_wr_a_schedule.py`. Change no tracked file; probes and your report go in `.codex-review/wr-a-r2/`. No network.
+
+Establish, by running the real code:
+1. The three constants, anywhere in the body (top level, inside a game, inside a string where they must NOT be rejected), now raise `ValueError: Invalid MLB schedule JSON: …` from `fetch_schedule`; through the real callers a body carrying one no longer idles the scheduler as an off-day and `bts day-outcome` reports `schedule_unverifiable`; `{"dates":[]}` and `{"dates":[],"totalGames":0}` are still clean off-days; a real-shaped slate with ordinary numbers (integers, floats, exponents, negative numbers, large integers) is unchanged.
+2. Is there any OTHER way a body that is not a real schedule still reads as a clean off-day through `fetch_schedule` (duplicate keys such as `{"dates":[{"games":[{}]}],"dates":[]}`: which wins, and does MLB's API ever do that; a byte-order mark; non-UTF-8 bytes; trailing data after the object; `{"dates":[]}` inside an HTML error page)? For each say what happens on the base `9e0ec28a` and here, and whether it is a realistic upstream failure or only a constructed one. Only a realistic one that reads as a clean off-day is a blocking finding.
+3. Round 1 noted two test gaps that are NOT fixed in this commit and are recorded for a follow-up: no test kills a restored same-cycle exemption on the scheduler's FINAL fallback call site, and none on the two CLI catch-up branches (where the reviewer found the exemption was already unreachable). Confirm the production behaviour on the final fallback is right at this commit (drive it), so the gap is a test gap only.
+4. `git diff 9cb84536 HEAD --stat` touches only `src/bts/scheduler.py` and `tests/test_wr_a_schedule.py`; rows A3 and A4 are still untouched.
+
+Run pytest through `~/bts-runs/yield_run.sh .codex-review/wr-a-r2/<name>.log <command…>`, one at a time (a `nice` warning is not an exit; other reviewers are running jobs: wait your turn); small probe scripts may run directly; create files with your edit tool, never a shell heredoc; do not edit a script after asking to run it; no pattern kills. Do not run the whole fast suite.
+
+Deliverable: `.codex-review/wr-a-r2/report.md`, under 60 lines: `Verdict` (SIGN, SIGN WITH EDITS, or BLOCK), `Blocking findings`, `Notes`, one short section per numbered item, `What I ran`. When complete, print `WRAR2-<first 8 hex characters of the sha256 of report.md>` on its own line and then `DONE`.

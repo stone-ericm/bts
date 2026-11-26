@@ -1,0 +1,28 @@
+nice: setpriority: Operation not permitted
+{
+  "CE3_deploy_legacy_vanishing_with_dangling_symlink": {
+    "dangling_symlink_present": true,
+    "stdout": [
+      "Pre-deploy SHA: aaaaaaa",
+      "DEPLOY FAILED at reset \u2014 requested target bbbbbbb, previous SHA aaaaaaa. No automatic rollback was attempted. Recovery has not been verified.",
+      "Check reset failed (17).",
+      "Scheduler stopped: unverified.",
+      "Failure heartbeat written: verified.",
+      "Failure ping received HTTP 2xx: verified.",
+      "Recovery procedure: INCIDENT.md \u00a74."
+    ],
+    "record": "bts_deploy_attempt_v1 123 1 bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa contained reset unverified verified verified"
+  },
+  "CE3_recovery_legacy_vanishing_with_dangling_symlink": {
+    "dangling_symlink_present": true,
+    "stdout": [
+      "DEPLOY FAILED at deploy-step-incomplete \u2014 requested target bbbbbbb, previous SHA aaaaaaa. No automatic rollback was attempted. Recovery has not been verified.",
+      "Check deploy-step-incomplete failed (1).",
+      "Scheduler stopped: unverified.",
+      "Failure heartbeat written: verified.",
+      "Failure ping received HTTP 2xx: verified.",
+      "Recovery procedure: INCIDENT.md \u00a74."
+    ],
+    "record": "bts_deploy_attempt_v1 123 1 bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa contained deploy-step-incomplete unverified verified verified"
+  }
+}

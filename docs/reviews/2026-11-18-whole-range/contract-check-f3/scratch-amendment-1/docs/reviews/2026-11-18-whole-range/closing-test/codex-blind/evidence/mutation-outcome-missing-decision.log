@@ -1,0 +1,19 @@
+outcome-missing-decision: day_outcome.py :: return out("no_decision", f"{games} -> return out("no_games", f"{games}
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-closing-blind
+configfile: pyproject.toml
+collected 1 item
+
+../../../tests/test_day_outcome.py F                                     [100%]
+
+=================================== FAILURES ===================================
+____________ test_games_were_played_and_there_is_no_decision_record ____________
+../../../tests/test_day_outcome.py:73: in test_games_were_played_and_there_is_no_decision_record
+    assert not out.ok and out.state == "no_decision"
+E   AssertionError: assert (not True)
+E    +  where True = DayOutcome(date='2027-04-02', state='no_games', detail='12 games were scheduled and the day has no decision record: no pick was committed and no skip was decided.', pick=None).ok
+=========================== short test summary info ============================
+FAILED ../../../tests/test_day_outcome.py::test_games_were_played_and_there_is_no_decision_record
+============================== 1 failed in 0.21s ===============================
+mutation-result outcome-missing-decision 1

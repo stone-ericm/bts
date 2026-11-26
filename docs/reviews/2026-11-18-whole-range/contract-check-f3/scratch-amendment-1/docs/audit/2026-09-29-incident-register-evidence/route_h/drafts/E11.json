@@ -1,0 +1,177 @@
+{
+ "id": "I-011",
+ "working_id": "E11",
+ "title": "4/05 1am check-results re-applied the scheduler's already-recorded 4/04 result: local streak 4 instead of 2",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "G",
+  "secondary": [
+   "P"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "local state corruption: streak.json double-counted the 4/04 result, and streak.json was the MDP's streak input for the next decisions until corrected",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "reach57",
+ "stream": "cron_job",
+ "authority": "local",
+ "contract": {
+  "text": "Each graded date changes the streak exactly once; the 1am check-results cron skips dates the scheduler has already resolved.",
+  "source": "ARCHITECTURE.md at 0e23c0f ('1am cron remains as a safety-net bts check-results fallback'); made explicit at bc520a7 ('Skips when scheduler has already set result (\"hit\"/\"miss\") to avoid double-counting streak')"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "the scheduler's result polling resolved 4/04 mid-game and applied it to streak.json; the 1am check_results then re-graded the same date without checking daily.result and called update_streak a second time",
+   "code": [
+    {
+     "path": "src/bts/cli.py",
+     "ref": "4cf7b1e",
+     "symbol": "check_results",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "4cf7b1e",
+     "symbol": "run_result_polling",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/picks.py",
+     "ref": "4cf7b1e",
+     "symbol": "update_streak",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "5e02676"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "unknown",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "check-results, reconcile and the daemon's result polling remained independent, unlocked writers of pick files and streak.json until the July scoring-lock work (49f2538, 7/10: 'every result writer now locked and clobber-safe')",
+   "reaches_production": false,
+   "source": "49f2538 subject; src/bts/picks.py reconcile_results comment 'review 2026-07-09 #4'"
+  }
+ ],
+ "watchdog": {
+  "boundary": "grading",
+  "trigger": "after the nightly grading jobs, streak.json differs from a forward replay of the season's graded pick files (or from the contest's active streak when available)",
+  "recovery_assertion": "streak.json equals the replayed (and contest) streak before the next decision"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 5e02676 message body",
+   "written_at": "2026-04-05T11:35:35-04:00",
+   "exposure_row": "X-01",
+   "what": "the 1am check-results cron was double-counting the streak when the scheduler had already updated it mid-game; 'Bug caused streak to show 4 instead of correct 2 after April 4'"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/cli.py check_results and src/bts/scheduler.py run_result_polling at 4cf7b1e",
+   "what": "both call update_streak on the same date; check_results had no already-resolved guard"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/orchestrator.py run_and_pick at 4cf7b1e",
+   "what": "each decision loads streak.json (load_streak) and passes it to select_pick, whose MDP action depends on the streak"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24253126060 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploy run whose head (4a82cf8) contains 5e02676; a Fly.io deploy, log expired"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-04-05 01:00 cron grading 4/04",
+   "onset": {
+    "not_before": "2026-04-05T01:00:00-04:00",
+    "not_after": "2026-04-05T11:35:35-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-05T11:35:35-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-04-05T11:35:35-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "unknown",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "5e02676",
+   "bc520a7",
+   "49f2538"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "ARCHITECTURE.md (bc520a7) 1am cron skip behaviour"
+  ]
+ },
+ "related": [
+  "I-007",
+  "I-010"
+ ],
+ "notes": [
+  "same root cause as I-007 (no already-resolved guard in check_results); 619d109 removed only the reply, leaving this double-application",
+  "onset not_before 01:00 is the 1am cron slot (scripts/cron-setup-pi5.sh); the body names the cron but not the minute",
+  "whether streak.json was corrected (hand edit or reconcile) and whether a 4/05 decision used the inflated value are not evidenced; at 4cf7b1e reconcile recomputed the streak only when it found a result correction",
+  "secondary P: the corrupted value was a live decision input (ev3), not a decision-logic defect",
+  "deployed: candidate run 24253126060 was a Fly.io deploy (workflow 'Deploy BTS to Fly', fcedf71), not a production install; the Pi5 install time is not evidenced",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; 5e02676 added tests/test_cli_integration.py test_check_results_skips_already_resolved",
+  "deployed unknown: candidate run 24253126060 executed the Fly deploy.yml (its head lacks 51ef987, the 4/11 Hetzner workflow); production (Pi5 orchestrator, manual pulls) has no install record before the cutover"
+ ]
+}

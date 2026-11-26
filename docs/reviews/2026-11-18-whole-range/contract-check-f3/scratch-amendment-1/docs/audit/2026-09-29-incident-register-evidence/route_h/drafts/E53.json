@@ -1,0 +1,231 @@
+{
+ "id": "I-053",
+ "working_id": "E53",
+ "title": "5/22 fallback deadline force-delivered an early-game pick while its lock check said wait and later lineup windows were pending",
+ "disposition": "unresolved_candidate",
+ "counted": true,
+ "missing_evidence": [
+  "bts-scheduler journal for 2026-05-22 13:20-14:20 ET (B1 journal_*_retained.txt): the 13:28 'should_lock=False' line, the 13:53 FALLBACK REFRESH / delivery lines and the restart that found the pick locked - the 5/28 memo quotes them (reported)",
+  "the 2026-05-22 root pick JSON and scheduler state (B1 data/picks): primary game 824679 at 14:20 ET with projected_lineup=false, double-down game 824922 at 19:15 ET with projected_lineup=true, post-restart confirmed sides"
+ ],
+ "classes": {
+  "primary": "D",
+  "secondary": [
+   "P"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "delivery/decision impact as reported: a pick (with a projected-lineup double-down) was delivered and locked for the day although the lock decision said wait, cutting off later confirmed-lineup windows",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "When the fallback refresh's lock decision is should_lock=False and later scheduled lineup checks still have pending confirmations, the scheduler waits instead of force-delivering; it force-delivers only when no future pending window remains (never missing the submission window).",
+  "source": "commit 324c4a2 (tests test_fallback_defers_when_should_lock_false_and_future_checks_remain, test_fallback_delivers_when_no_future_checks_remain); docs/sota_audit/2026-05-28-mdp-live-aggressiveness-audit.md 'Current Code and Test Surface'"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "at the fallback deadline run_day refreshed the pick (_refresh_pick_at_fallback) and delivered it unconditionally via _deliver_and_lock_pick; the refresh's should_lock result and whether later lineup windows were still pending were not consulted, and the deadline was driven by the early primary game",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "a1dea18",
+     "symbol": "run_day fallback branch -> _refresh_pick_at_fallback + _deliver_and_lock_pick",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "once delivered and locked, a scheduler restart short-circuited on the locked pick, so later lineup checks could not replace it",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "a1dea18",
+     "symbol": "run_single_check (locked short-circuit)",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "324c4a2"
+    ],
+    "complete_fix_set": false
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "57ec6be",
+    "live_by": "2026-05-23T14:47:22Z",
+    "run_id": 26335678167,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": {
+    "how": "5/28 production exercised the defer path: fallback deferred at 13:43 ET (should_lock=False, future windows pending) and a later check delivered at 15:10 ET (reported in the 5/28 memo)",
+    "at": {
+     "not_before": "2026-05-28T13:43:00-04:00",
+     "not_after": "2026-05-28T15:10:00-04:00",
+     "evidence": [
+      "ev2"
+     ]
+    }
+   }
+  },
+  {
+   "link": 2,
+   "implemented": "not_applicable",
+   "deployed": "not_applicable",
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "Accepted tradeoff of the defer path: waiting can lead to a later, weaker or no pick; on 8/27-8/30 deferral abandoned enterable picks and one DM went out after cutoff (E84/I-084), fixed with the deadline-aware fallback on 8/30.",
+   "reaches_production": false,
+   "source": "docs/sota_audit/2026-05-28-mdp-live-aggressiveness-audit.md 'Accepted Tradeoff'; docs/audit/2026-08-30-late-pick-delivery.md"
+  },
+  {
+   "text": "A projected double-down could still ride through on the primary's confirmation (gap rule alone) until the both-slots gate of 7/10 (audit F2: 11 production days, 4 locked 51-133 min early).",
+   "reaches_production": false,
+   "source": "ARCHITECTURE.md early_lock_gap 'Both-slots gate (audit F2, 2026-07-10)'"
+  }
+ ],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "a pick is delivered while its latest lock decision is should_lock=False and a later scheduled lineup check still has unconfirmed sides, outside the final no-future-window fallback",
+  "recovery_assertion": "the day's delivered pick either passed should_lock or was delivered by the final fallback with no pending future window, before cutoff"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "machine_observation",
+   "strength": "reported",
+   "locator": "docs/sota_audit/2026-05-28-mdp-live-aggressiveness-audit.md 'Historical Counterexample: 2026-05-22'",
+   "what": "quoted scheduler behaviour: 13:20 ET lineup check with 28 teams still projected; 13:28 candidate should_lock=False (gap vs best projected below threshold); no scheduled check before the fallback deadline of the 14:20 ET primary game; 13:53 fallback refresh kept the same candidate; the scheduler force-delivered before first pitch; a restart soon after found the pick locked; the root pick JSON shows the double-down on a projected lineup"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "reported",
+   "locator": "docs/sota_audit/2026-05-28-mdp-live-aggressiveness-audit.md 'Current Production Evidence: 2026-05-28'",
+   "what": "5/28: fallback deferred at 13:43 ET with should_lock=False and future windows pending; a 15:10 ET check locked with should_lock=True and delivered by DM"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 26335678167 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploy whose head (57ec6be) contains 324c4a2, created 2026-05-23T14:47:22Z; log unavailable_expired"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/scheduler.py run_day fallback branch at a1dea18",
+   "what": "'FALLBACK — delivering before game starts' calls _refresh_pick_at_fallback then _deliver_and_lock_pick with no should_lock or pending-window check"
+  },
+  {
+   "id": "ev5",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 324c4a2 'Defer unsafe fallback picks' (body empty; PR merged as 57ec6be)",
+   "written_at": "2026-05-23T17:32:40+03:00",
+   "what": "the fix commit, 20.6 h after the 5/22 delivery; it records no observation"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-05-22",
+   "onset": {
+    "not_before": "2026-05-22T13:53:00-04:00",
+    "not_after": "2026-05-22T14:20:00-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": {
+    "not_before": "2026-05-22T13:53:00-04:00",
+    "not_after": "2026-05-22T14:20:00-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-05-23T17:32:40+03:00",
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-05-23T10:47:22-04:00",
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": {
+    "not_before": "2026-05-28T13:43:00-04:00",
+    "not_after": "2026-05-28T15:10:00-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": {
+     "min_minutes": 8603.0,
+     "max_minutes": 8717.0
+    }
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "324c4a2"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/sota_audit/2026-05-28-mdp-live-aggressiveness-audit.md",
+   "docs/superpowers/runbooks/2026-05-23-alert-disposition.md 'E fallback/defer path'"
+  ]
+ },
+ "related": [
+  "I-084",
+  "I-073"
+ ],
+ "notes": [
+  "prelim OI?; UC only on the evidence rule: the detailed account is the 5/28 memo (6 days later) quoting journal lines and the pick JSON (reported); 324c4a2 (5/23, within 48 h) has an empty body. The B1 journal (retained from 5/11) and pick files should make this observed_incident",
+  "arguably a decision-contract change rather than a code defect: the pre-fix fallback deliberately bypassed should_lock to avoid missing the window; 324c4a2 changed the contract to defer when later windows remain (hence secondary P)",
+  "the pick's outcome (stated in the memo) and the batter names are not repeated",
+  "delivery_mode unknown per the date rule, though the memo shows DM delivery on 5/28",
+  "operator_awareness bound = 324c4a2 authored time (5/23 10:32 ET)",
+  "recovery latency: from the 5/22 13:53-14:20 delivery to the first observed natural defer on 5/28 (reported), i.e. first proof the fix works, not restoration of the 5/22 day",
+  "log bound: live by 2026-06-07T00:11:19Z (run 27077693688)",
+  "regression tests named in the fix: tests/test_scheduler.py test_fallback_defers_when_should_lock_false_and_future_checks_remain, test_fallback_delivers_when_no_future_checks_remain, TestPendingFutureConfirmationWindow",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

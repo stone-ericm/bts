@@ -1,0 +1,37 @@
+{
+ "id": "E46",
+ "episode_row": [
+  "E46",
+  "5/08",
+  "AppleDouble `._*` files crashed realized_calibration",
+  "A/L",
+  "OI?",
+  "B",
+  "52db4d7"
+ ],
+ "commits": [
+  {
+   "sha": "52db4d7",
+   "authored": "2026-05-08T23:45:20-04:00",
+   "subject": "Skip AppleDouble pick files in realized calibration",
+   "body": "Skip macOS AppleDouble sidecar files and invalid UTF-8 JSON files when scanning realized calibration pick data.",
+   "files": [
+    "src/bts/health/realized_calibration.py",
+    "tests/health/test_realized_calibration.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 25590839160,
+    "created_at": "2026-05-09T03:46:03Z",
+    "head_sha": "52db4d7",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

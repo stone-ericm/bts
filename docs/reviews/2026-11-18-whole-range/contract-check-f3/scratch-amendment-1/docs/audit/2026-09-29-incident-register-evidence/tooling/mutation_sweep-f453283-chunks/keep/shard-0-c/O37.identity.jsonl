@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_r6_counterexamples::test_a_failed_start_releases_its_watchers_and_monitoring_id", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r7_counterexamples::test_stop_never_raises_under_a_raising_audit_hook", "kind": "assertion"}

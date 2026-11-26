@@ -1,0 +1,32 @@
+diff --git a/src/bts/scheduler.py b/src/bts/scheduler.py
+index d23f650..e6bc052 100644
+--- a/src/bts/scheduler.py
++++ b/src/bts/scheduler.py
+@@ -3085,12 +3085,21 @@ def run_day(
+     # run_day returns → Restart=always thrash + one health DM per ~48s cycle
+     # (2026-07-12 incident, NRestarts 3→50). The no-games path already used
+     # the helper; this games-day lookahead was the remaining raw call.
+-    wakeup = _next_day_wakeup(date, sched_config)
+-    state.next_wakeup = wakeup.isoformat()
+-    save_state(state, picks_dir)
+-    # %a %m-%d: "10:00 ET" alone hid that the stored date was TODAY, not
+-    # tomorrow, all through the incident journal.
+-    print(f"  Tomorrow's wake-up: {wakeup.strftime('%a %m-%d %H:%M ET')}", file=sys.stderr)
++    pass  # W1.5 mutant: pre-9551818 — step 7 stores tomorrow's raw compute_wakeup_time, so an empty tomorrow gives today's past default hour
++    tomorrow = (datetime.strptime(date, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
++    try:
++        tomorrow_games = fetch_schedule(tomorrow)
++        wakeup = compute_wakeup_time(
++            tomorrow_games,
++            default_hour_et=sched_config.get("default_init_hour_et", 10),
++            early_buffer_min=sched_config.get("early_game_buffer_min", 60),
++            now_et=_now_et(),
++        )
++        state.next_wakeup = wakeup.isoformat()
++        save_state(state, picks_dir)
++        print(f"  Tomorrow's wake-up: {wakeup.strftime('%H:%M ET')}", file=sys.stderr)
++    except Exception as e:
++        print(f"  Failed to fetch tomorrow's schedule: {e}", file=sys.stderr)
+ 
+     # 8. Result polling (start 10 min after game start, check for hits mid-game).
+     # Gate on a GENUINE commit, not merely state.pick_locked (C2 / GH #144): a

@@ -1,0 +1,111 @@
+{
+  "audit_problems": [],
+  "classes": {
+    "tests/data/test_pull.py::test_pull_feeds_does_not_sleep_on_cache_hits": "symptom_candidate",
+    "tests/data/test_pull.py::test_pull_feeds_sleeps_only_after_real_downloads": "symptom_candidate",
+    "tests/test_refresh_memo.py::test_failed_build_does_not_write_marker": "passes_at_parent",
+    "tests/test_refresh_memo.py::test_force_env_refreshes": "passes_at_parent",
+    "tests/test_refresh_memo.py::test_marker_without_parquet_still_refreshes": "passes_at_parent",
+    "tests/test_refresh_memo.py::test_next_day_refreshes_again": "passes_at_parent",
+    "tests/test_refresh_memo.py::test_second_call_same_day_skips": "symptom_candidate"
+  },
+  "closure": "src_swap",
+  "events_sha256": {
+    "green": "574a9b045ed53eadd75b0b8239d9cc6efb4ba229ba30122dcbde00c2e8e36fe1",
+    "red": "3f996e14bc6d393e9a22f37810bbf3b97b09046fadf9feede1e6d85ecf736f9f"
+  },
+  "fix": "0c8ed3287d8ce7fa434d4b563938da87b8b8cbac",
+  "harness_changes": [
+    {
+      "path": "tests/data/test_pull.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_refresh_memo.py",
+      "status": "A"
+    }
+  ],
+  "label": "R-I084-3",
+  "label_kind": "semantic_regression_replay",
+  "parent": "fa977c32db153b0b0b194733e9520a8b7f3c4f0a",
+  "reasons": [],
+  "spec": {
+    "audit": {
+      "tests/data/test_pull.py": {
+        "decision": "neutral",
+        "reason": "appends the two cached-feed throttle tests; module-level imports (discover_games, download_game_feed, pull_feeds, enrich_weather) are unchanged and present at the parent fa977c3; the tests patch bts.data.pull.discover_games, bts.data.pull.urlopen and bts.data.pull.time.sleep (all present) and call pull_feeds(start, end, data_dir, delay=) with the parent's signature"
+      },
+      "tests/test_refresh_memo.py": {
+        "decision": "neutral",
+        "reason": "new file; imports _refresh_season_data from bts.model.predict inside a helper (present at the parent with the same signature (date, raw_dir, processed_dir)) and patches bts.data.pull.pull_feeds and bts.data.build.build_season, which _refresh_season_data imports at call time at the parent too"
+      }
+    },
+    "deployed_ref": {
+      "basis": "log",
+      "sha": "2ff2db9"
+    },
+    "env": {
+      "TZ": "America/New_York"
+    },
+    "fix_set": [
+      "c0c0a97",
+      "0c8ed32"
+    ],
+    "incident": "I-084",
+    "label": "R-I084-3",
+    "links": [
+      3
+    ],
+    "notes": "Symptoms (the ~11-minute cascade of mechanism 3): at the parent fa977c3, pull_feeds sleeps `delay` after every discovered game except the last, whether or not download_game_feed made a request (it returns an existing file without calling urlopen). Node 1: two cached feeds, so time.sleep is called once and mock_sleep.assert_not_called() fails (line 195), after the two earlier assertions (two paths, urlopen not called) pass at the parent. Node 2: three games, 222 cached: urlopen is called twice (that assertion passes) and the parent sleeps after 111 and after the cached 222, so mock_sleep.call_count is 2, not 1 (line 215). Node 3: at the parent _refresh_season_data has no per-day memo, so the second same-day call pulls and rebuilds again and pull.call_count is 2 (line 31). Controls passing at both: next-day refresh, BTS_REFRESH_ALWAYS=1, failed build leaves no marker, stale marker without a parquet still refreshes. Static checks at fa977c3: pull_feeds(start_date, end_date, data_dir, delay=0.5); download_game_feed skips existing files; _refresh_season_data imports pull_feeds/build_season at call time; tests/conftest.py has no autouse fixtures. Environment: bts.model.predict imports lightgbm at module level, so the replay venv needs the model extra (it is present in the bts-w15 and bts-w15-evidence/ev venvs); without it both runs fail with ImportError. Each anchor occurs once at 0c8ed32 (test_pull.py lines 195 and 215, test_refresh_memo.py line 31).",
+    "symptom_nodes": [
+      {
+        "_line": 195,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I084-3/tests/data/test_pull.py",
+        "assertion": {
+          "path": "tests/data/test_pull.py",
+          "text": "mock_sleep.assert_not_called()"
+        },
+        "node": "tests/data/test_pull.py::test_pull_feeds_does_not_sleep_on_cache_hits"
+      },
+      {
+        "_line": 215,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I084-3/tests/data/test_pull.py",
+        "assertion": {
+          "path": "tests/data/test_pull.py",
+          "text": "assert mock_sleep.call_count == 1"
+        },
+        "node": "tests/data/test_pull.py::test_pull_feeds_sleeps_only_after_real_downloads"
+      },
+      {
+        "_line": 31,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I084-3/tests/test_refresh_memo.py",
+        "assertion": {
+          "path": "tests/test_refresh_memo.py",
+          "text": "assert pull.call_count == 1 and build.call_count == 1"
+        },
+        "node": "tests/test_refresh_memo.py::test_second_call_same_day_skips"
+      }
+    ],
+    "tests": [
+      "tests/data/test_pull.py::test_pull_feeds_does_not_sleep_on_cache_hits",
+      "tests/data/test_pull.py::test_pull_feeds_sleeps_only_after_real_downloads",
+      "tests/test_refresh_memo.py::test_second_call_same_day_skips",
+      "tests/test_refresh_memo.py::test_next_day_refreshes_again",
+      "tests/test_refresh_memo.py::test_force_env_refreshes",
+      "tests/test_refresh_memo.py::test_failed_build_does_not_write_marker",
+      "tests/test_refresh_memo.py::test_marker_without_parquet_still_refreshes",
+      "-q"
+    ]
+  },
+  "spec_sha256": "8e3fad064be9c026f81c528f524bb12da70fcf0d80e203d9b56071e68aabc9bb",
+  "src_tree": {
+    "fix": "63888a8ccd85ccf781889c745b17ecdaf765f440",
+    "parent": "ec433e1d129fbbfc93d24976141ec2d3c7e30472"
+  },
+  "symptoms": {
+    "tests/data/test_pull.py::test_pull_feeds_does_not_sleep_on_cache_hits": [],
+    "tests/data/test_pull.py::test_pull_feeds_sleeps_only_after_real_downloads": [],
+    "tests/test_refresh_memo.py::test_second_call_same_day_skips": []
+  },
+  "verdict": "accepted"
+}

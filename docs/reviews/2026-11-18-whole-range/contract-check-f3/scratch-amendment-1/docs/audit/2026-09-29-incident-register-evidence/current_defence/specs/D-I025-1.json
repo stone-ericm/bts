@@ -1,0 +1,73 @@
+{
+  "label": "D-I025-1",
+  "link": "I-025 link 1",
+  "tests": [
+    "tests/test_scheduler.py::TestRefreshPickAtFallback",
+    "-q"
+  ],
+  "allowed_paths": [
+    "src/bts/scheduler.py"
+  ],
+  "mutation_edits": [
+    [
+      "src/bts/scheduler.py",
+      "    try:\n        with heartbeat_watchdog(heartbeat_path, interval_sec=60):\n            predictions, sel, _ = run_and_pick(\n",
+      "    pass  # W1.5 mutant: pre-dd25664 — the fallback keeps the cached pick without re-predicting\n    return FallbackRefreshResult(cached_daily, None)\n    try:\n        with heartbeat_watchdog(heartbeat_path, interval_sec=60):\n            predictions, sel, _ = run_and_pick(\n"
+    ]
+  ],
+  "branch": {
+    "path": "src/bts/scheduler.py",
+    "text": "W1.5 mutant: pre-dd25664 — the fallback keeps the cached pick without re-predicting"
+  },
+  "entry": {
+    "path": "src/bts/scheduler.py",
+    "qualname": "_refresh_pick_at_fallback"
+  },
+  "returns": [
+    {
+      "path": "src/bts/scheduler.py",
+      "qualname": "_refresh_pick_at_fallback",
+      "classify": [
+        [
+          "cached_pick",
+          "\"batter_id\": 1001, \"batter_name\": \"Old Batter\""
+        ],
+        [
+          "fresh_pick",
+          "\"batter_id\": 2002, \"batter_name\": \"Trea Turner\""
+        ]
+      ]
+    }
+  ],
+  "symptom": {
+    "kind": "return",
+    "path": "src/bts/scheduler.py",
+    "qualname": "_refresh_pick_at_fallback",
+    "category": "cached_pick"
+  },
+  "killing": [
+    {
+      "node": "tests/test_scheduler.py::TestRefreshPickAtFallback::test_swaps_to_fresh_pick_when_refresh_returns_different_batter",
+      "assertion": {
+        "path": "tests/test_scheduler.py",
+        "text": "assert result.pick.batter_name == \"Trea Turner\"",
+        "line": 1976
+      }
+    }
+  ],
+  "contract": {
+    "text": "The fallback re-predicts before delivery and delivers the refreshed selection; the cached pick is delivered only when the refresh fails or yields no pick.",
+    "entry_mode": "direct call of _refresh_pick_at_fallback (the compatibility wrapper over _refresh_pick_at_fallback_decision)",
+    "trigger": "the re-prediction (run_and_pick) selects a different batter from the cached pick",
+    "symptom_kind": "wrong value (the cached pick returned for delivery although the refresh selects another)"
+  },
+  "level": "component",
+  "level_justification": "the test replaces the prediction cascade run_and_pick (an internal collaborator: model tiers plus selection); the refresh helper, the heartbeat watchdog, provenance and save_pick run for real Lead's review: the entry _refresh_pick_at_fallback is a compatibility wrapper only tests call; run_day calls _refresh_pick_at_fallback_decision directly, whose FallbackRefreshResult is incomplete to the observer (Pick.flags at depth 3), so the wrapper's DailyPick return is the complete witness of the mutated decision's consequence.",
+  "allowed_mocks": [
+    "bts.scheduler.run_and_pick"
+  ],
+  "baseline": "BASELINE",
+  "env": {
+    "TZ": "America/New_York"
+  }
+}

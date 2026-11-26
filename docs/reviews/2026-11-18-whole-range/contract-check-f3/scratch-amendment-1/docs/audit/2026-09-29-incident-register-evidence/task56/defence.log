@@ -1,0 +1,33 @@
+{"label": "D-I009-1", "verdict": "accepted", "seconds": 21} 
+{"label": "D-I011-1", "verdict": "accepted", "seconds": 15} 
+{"label": "D-I023-1", "verdict": "accepted", "seconds": 14} 
+{"label": "D-I023-2", "verdict": "accepted", "seconds": 8} 
+{"label": "D-I025-1", "verdict": "accepted", "seconds": 13} 
+{"label": "D-I029-1", "verdict": "accepted", "seconds": 13} 
+{"label": "D-I042-1", "verdict": "accepted", "seconds": 13} 
+{"label": "D-I042-2", "verdict": "accepted", "seconds": 12} 
+{"label": "D-I043-1", "verdict": "accepted", "seconds": 13} 
+{"label": "D-I043-2", "verdict": "accepted", "seconds": 12} 
+{"label": "D-I043-3", "verdict": "accepted", "seconds": 13} 
+{"label": "D-I043-4", "verdict": "accepted", "seconds": 13} 
+{"label": "D-I056-2", "verdict": "accepted", "seconds": 13} 
+{"label": "D-I056-3", "verdict": "accepted", "seconds": 8} 
+{"label": "D-I063-1", "verdict": "accepted", "seconds": 13} 
+{"label": "D-I063-2", "verdict": "accepted", "seconds": 15} 
+{"label": "D-I063-4", "verdict": "accepted", "seconds": 8} 
+{"label": "D-I071-1", "verdict": "rejected", "seconds": 14} certificate tests/test_cli_integration.py::TestCheckPickEntered::test_skip_day_decision_no_dm: no 'not_entered_nag' event after the branch within a common live 
+{"label": "D-I071-2", "verdict": "accepted", "seconds": 15} 
+{"label": "D-I075-1", "verdict": "accepted", "seconds": 12} 
+{"label": "D-I075-3", "verdict": "accepted", "seconds": 8} 
+{"label": "D-I075-4", "verdict": "accepted", "seconds": 8} 
+{"label": "D-I075-5", "verdict": "accepted", "seconds": 8} 
+{"label": "I-0811-a", "verdict": "accepted", "seconds": 9} 
+{"label": "I-0811-b", "verdict": "accepted", "seconds": 15} 
+{"label": "I-0813-a", "verdict": "accepted", "seconds": 7} 
+{"label": "I-0813-b", "verdict": "rejected", "seconds": 0} refused: SpecError: absence (a missing event) is not certifiable by the Phase 1 recorder (plan ruling 10): report this link unavailable with this reason and kee
+{"label": "I-0830-b", "verdict": "rejected", "seconds": 0} refused: SpecError: absence (a missing event) is not certifiable by the Phase 1 recorder (plan ruling 10): report this link unavailable with this reason and kee
+{"label": "I-0830-a", "verdict": "accepted", "seconds": 13} 
+{"label": "I-0830-c", "verdict": "accepted", "seconds": 9} 
+{"label": "I-0830-d", "verdict": "accepted", "seconds": 12} 
+{"label": "I-0903-a", "verdict": "accepted", "seconds": 13} 
+exit=0

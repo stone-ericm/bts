@@ -1,0 +1,74 @@
+UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run --offline pytest -q -p no:cacheprovider tests/scripts/c2_framing/test_f26_run.py tests/scripts/c2_framing/test_f26_rules.py tests/scripts/c2_framing/test_f26_hook.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-c2f26-code
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 278 items
+
+tests/scripts/c2_framing/test_f26_run.py ............................... [ 11%]
+.................................F...................................... [ 37%]
+............................................................             [ 58%]
+tests/scripts/c2_framing/test_f26_rules.py ............................. [ 69%]
+.......................................................................  [ 94%]
+tests/scripts/c2_framing/test_f26_hook.py ...............                [100%]
+
+=================================== FAILURES ===================================
+_________ test_a_later_seed_waits_for_the_earlier_seeds_clean_receipt __________
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x11642fec0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12448/test_a_later_seed_waits_for_th0/inputs'), ...}
+
+    def test_a_later_seed_waits_for_the_earlier_seeds_clean_receipt(world):
+        assert _run(world, F.SEEDS[0], receipts=False) == 0
+        with pytest.raises(SystemExit, match="TERMINAL"):
+>           _run(world, F.SEEDS[1])
+
+tests/scripts/c2_framing/test_f26_run.py:684: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/scripts/c2_framing/test_f26_run.py:194: in _run
+    rc = F.run(seed, w["out"], w["inputs"], walk_forward=_stub_walk_forward([] if calls is None else calls),
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+seed = 260991262
+data_dir = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12448/test_a_later_seed_waits_for_th0/out')
+inputs_dir = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12448/test_a_later_seed_waits_for_th0/inputs')
+
+    def run(seed: int, data_dir: Path, inputs_dir: Path, *, walk_forward=None, now=None, _test_out_root=None) -> int:
+        import pandas as pd
+        from scripts.audit.c1 import admission as A
+        out_root = OUT_ROOT if _test_out_root is None else _test_out_root
+        if os.environ.get("BTS_LGBM_DETERMINISTIC") != "1":
+            raise SystemExit("refusing: BTS_LGBM_DETERMINISTIC=1 is pre-registered (set before bts is imported)")
+        if seed not in SEEDS:
+            raise SystemExit(f"refusing: {seed} is not a registered seed {SEEDS}")
+        head, adm, identity = admission_gate()
+        foreign = A.foreign_imports()
+        if foreign:
+            raise SystemExit(f"refusing: modules from outside this checkout: {foreign}")
+        pins = adm["input_pins"]
+        truth = load_trusted(inputs_dir, pins)
+        calendar = truth.calendar
+        register = (A.REPO / REGISTER_REL).read_text()
+        ok, why, allow = seed_allowed(seed, register, out_root, identity=identity, pins=pins, truth=truth)
+        if not ok:
+>           raise SystemExit(f"refusing: {why}")
+E           SystemExit: refusing: seeds run in order: earlier seed 2273360's run is not a complete admitted run: /private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12448/test_a_later_seed_waits_for_th0/out/seed_2273360/aaaaaaa-20261010T010604Z: no PENDING record for c1-c2-f26-seed1-20261010T120000Z-00000001 declaring Eric's budget 12 CPU-hours in full (43200 s) with the wrapper's wall time 16 h
+
+scripts/audit/c2_framing/f26.py:1251: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+world = {'adm': <tests.scripts.c2_framing.test_f26_run._Admission object at 0x11642fec0>, 'c1': PosixPath('/private/var/folder.../folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12448/test_a_later_seed_waits_for_th0/inputs'), ...}
+
+    def test_a_later_seed_waits_for_the_earlier_seeds_clean_receipt(world):
+        assert _run(world, F.SEEDS[0], receipts=False) == 0
+>       with pytest.raises(SystemExit, match="TERMINAL"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'TERMINAL'
+E         Actual message: "refusing: seeds run in order: earlier seed 2273360's run is not a complete admitted run: /private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-12448/test_a_later_seed_waits_for_th0/out/seed_2273360/aaaaaaa-20261010T010604Z: no PENDING record for c1-c2-f26-seed1-20261010T120000Z-00000001 declaring Eric's budget 12 CPU-hours in full (43200 s) with the wrapper's wall time 16 h"
+
+tests/scripts/c2_framing/test_f26_run.py:683: AssertionError
+=========================== short test summary info ============================
+FAILED tests/scripts/c2_framing/test_f26_run.py::test_a_later_seed_waits_for_the_earlier_seeds_clean_receipt
+================== 1 failed, 277 passed in 496.23s (0:08:16) ===================

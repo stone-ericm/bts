@@ -1,0 +1,19 @@
+nice: setpriority: Operation not permitted
+  2 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=double streak=57 best=57 (trusted) effective_best=None days=2 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 84.0%, gap=1.0% vs projected 83.0% → should_lock=False
+  FALLBACK REFRESH: no fresh pick available, using cached
+  LOCKED (final fallback) — Pick DM sent: dm-after-restart
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=double streak=57 best=57 (trusted) effective_best=None days=2 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 84.0% → should_lock=True
+  Pick DM failed: 502 Bad Gateway
+  LOCKED (lineup) — Pick DM sent: dm-retry-ok
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=double streak=57 best=57 (trusted) effective_best=None days=2 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 84.0% → should_lock=True
+  DELIVERY OUTCOME UNKNOWN (lineup) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+OK: Restart between selection and commit preserved longest_streak and tail_sha
+OK: Failed->retry send and unconfirmed send sequences verified
+OK: Finale/post-finale and Dec 31 / Jan 1 ET rollover verified
+OK: Rollback read/parse/scoreable and limit-9 write rejection verified on archived 0a2bec10

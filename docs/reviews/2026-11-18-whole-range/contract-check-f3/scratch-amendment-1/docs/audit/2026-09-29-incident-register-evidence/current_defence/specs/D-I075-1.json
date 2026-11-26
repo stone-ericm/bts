@@ -1,0 +1,85 @@
+{
+ "label": "D-I075-1",
+ "link": "I-075 link 1",
+ "tests": [
+  "tests/test_scheduler_eve_of_break.py",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/scheduler.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/scheduler.py",
+   "    wakeup = _next_day_wakeup(date, sched_config)\n    state.next_wakeup = wakeup.isoformat()\n    save_state(state, picks_dir)\n    # %a %m-%d: \"10:00 ET\" alone hid that the stored date was TODAY, not\n    # tomorrow, all through the incident journal.\n    print(f\"  Tomorrow's wake-up: {wakeup.strftime('%a %m-%d %H:%M ET')}\", file=sys.stderr)\n",
+   "    pass  # W1.5 mutant: pre-9551818 \u2014 step 7 stores tomorrow's raw compute_wakeup_time, so an empty tomorrow gives today's past default hour\n    tomorrow = (datetime.strptime(date, \"%Y-%m-%d\") + timedelta(days=1)).strftime(\"%Y-%m-%d\")\n    try:\n        tomorrow_games = fetch_schedule(tomorrow)\n        wakeup = compute_wakeup_time(\n            tomorrow_games,\n            default_hour_et=sched_config.get(\"default_init_hour_et\", 10),\n            early_buffer_min=sched_config.get(\"early_game_buffer_min\", 60),\n            now_et=_now_et(),\n        )\n        state.next_wakeup = wakeup.isoformat()\n        save_state(state, picks_dir)\n        print(f\"  Tomorrow's wake-up: {wakeup.strftime('%H:%M ET')}\", file=sys.stderr)\n    except Exception as e:\n        print(f\"  Failed to fetch tomorrow's schedule: {e}\", file=sys.stderr)\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/scheduler.py",
+  "text": "W1.5 mutant: pre-9551818 \u2014 step 7 stores tomorrow's raw compute_wakeup_time, so an empty tomorrow gives today's past default hour"
+ },
+ "entry": {
+  "path": "src/bts/scheduler.py",
+  "qualname": "run_day"
+ },
+ "boundaries": [
+  {
+   "name": "state_save",
+   "binding": "bts.scheduler:save_state",
+   "value": [
+    "args[0]",
+    "kw:state"
+   ],
+   "classify": [
+    [
+     "run_date_default_hour",
+     "\"date\": \"(\\d{4}-\\d{2}-\\d{2})\".*\"next_wakeup\": \"\\1T10:00:00"
+    ],
+    [
+     "other_wakeup",
+     "\"next_wakeup\": \""
+    ],
+    [
+     "no_wakeup",
+     "\"next_wakeup\": null"
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "event",
+  "boundary": "state_save",
+  "category": "run_date_default_hour"
+ },
+ "killing": [
+  {
+   "node": "tests/test_scheduler_eve_of_break.py::TestStep7NextWakeup::test_games_today_empty_tomorrow_stores_future_wakeup",
+   "assertion": {
+    "path": "tests/test_scheduler_eve_of_break.py",
+    "text": "assert wakeup > now, (",
+    "line": 62
+   }
+  }
+ ],
+ "contract": {
+  "text": "On a games day whose tomorrow has no games (eve of a break), the end-of-day lookahead stores a next_wakeup in the future (tomorrow's wake), never the run date's already-past default hour.",
+  "entry_mode": "real run_day (run_single_check mocked), called directly",
+  "trigger": "games today, an empty schedule tomorrow, clock 23:30 ET on the run date",
+  "symptom_kind": "wrong value persisted (scheduler state saved with next_wakeup = the run date's 10:00, already past)"
+ },
+ "level": "component",
+ "level_justification": "the test replaces the MLB schedule fetch (fetch_schedule), the clock (_now_et), sleep, and internal collaborators (run_single_check, run_result_polling, the live-forward trigger); health checks are off by config",
+ "allowed_mocks": [
+  "bts.scheduler.fetch_schedule",
+  "bts.scheduler._now_et",
+  "time.sleep (patched through bts.scheduler.time)",
+  "bts.scheduler.run_result_polling",
+  "bts.scheduler._trigger_live_forward_capture_on_lock",
+  "bts.scheduler.run_single_check"
+ ],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

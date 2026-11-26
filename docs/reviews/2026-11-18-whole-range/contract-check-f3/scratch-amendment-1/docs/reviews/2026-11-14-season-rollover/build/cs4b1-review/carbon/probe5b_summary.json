@@ -1,0 +1,15 @@
+{
+  "real_cli_b1_reproduced_depth": 9985,
+  "real_cli_b1_and_b2_output": "ET date: 2026-11-17; year: 2026; inspected season: 2026\nswitch: absent\nmanual: absent\nautomatic: absent\nsaver: unavailable (another season); season: True; reads uninitialized\nledger: readable; rows: 2; bad lines: 0\n  recorded_at=2027-07-15T12:00:00Z; active_streak=7; best_streak=\u2014; source_date=\u2014; season=\u2014; switched=\u2014; activation_id=\u2014; settled_by_year=\u2014; settled_unmapped=\u2014; unsettled=\u2014\nledger: unreadable; unavailable: maximum recursion depth exceeded while getting the repr of an object; counts unavailable\n",
+  "adopt_on_base": "============================== 7 failed in 0.27s ===============================",
+  "adopt_on_head_unpatched": "========================= 3 failed, 4 passed in 0.70s ==========================",
+  "adopt_plus_touched_on_scratch_fixed": {
+    "2027-07-15T12:00:00-04:00": "============================= 558 passed in 2.06s ==============================",
+    "2028-07-15T12:00:00-04:00": "============================= 558 passed in 2.05s =============================="
+  },
+  "previously_surviving_mutations_killed_by_adopt": {
+    "M1": true,
+    "M2": true,
+    "M6": true
+  }
+}

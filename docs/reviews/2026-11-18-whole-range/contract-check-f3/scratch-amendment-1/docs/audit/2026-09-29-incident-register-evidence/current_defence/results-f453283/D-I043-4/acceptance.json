@@ -1,0 +1,287 @@
+{
+  "baseline": "f453283d0a0ec39a939b22c6500b5fb36f5452c0",
+  "branch_line": 708,
+  "certificates": {
+    "tests/test_strategy.py::TestSelectPick::test_detailed_void_candidate_excluded_even_when_abstract_preview[Canceled]": {
+      "coverage": {
+        "boundary_call": "a call that started the code of a value the declared binding held in the interval (the binding is tracked at every store on its path from sys's own namespace, by CPython dict watchers; a held function's __code__ replaced in place is registered at the new code's first start while the thread is alone, never by a function watcher, whose Python callback replaces an exception pending in C (own review during r14)); a call's start is a PY_START at the code's first RESUME carrying the entry argument, and a start reported anywhere else is not read (Codex phase-1 r15 #1); for a mock, the arguments its standard __call__ received, which is what the mock itself records",
+        "claims": "a positive witness in this pinned synthetic execution: a recorded call of a declared boundary with the declared bad category, or a recorded return from the declared function's source with the declared value or category, linked to the mutated line through a common live invocation of the declared entry",
+        "missed_not_false": "a call through anything the recorder does not observe (an unsupported namespace, lookup that bypasses the raw namespace, a C-implemented callable, another process) is not recorded: it can only fail to witness an event",
+        "observation": "inside a certifiable call phase the observer hashes, compares or dispatches only on values it owns or has type-checked as exact builtins: a dict it reads is walked item by item and is unsupported when it holds a key that is not an exact str; heap class module metadata is read by raw namespace iteration, and instance dicts through the standard C getset found by raw MRO namespace iteration; a code object's name that is not an exact str reads as unnamed, and code objects themselves are never hashed or compared (the observer's maps key them by id: a code object's hash and equality reach its co_name and co_consts) (plan ruling 11: Codex phase-1 r9; code objects: self-review during r10). Arguments are read from the frame's own slots, never through frame.f_locals, whose refresh can release an application reference (Codex phase-1 r12 #1). Other application reads happen only after a sample shows the observed thread is the interpreter's only registered thread, since another thread could make a temporary reference it holds the last one and run a finalizer (plan ruling 12, Codex phase-1 r11 #1). (Codex phase-1 r13 #3, verbatim:) While another thread is alive, application arguments, cell contents and binding namespaces are not read. A mock boundary may retain only `self` from its verified non-cell frame slot and compare its identity with observer-held targets to select an unavailable record. The paused frame owns that reference. Code/frame identity and a live replacement-code operand are also admitted metadata. Calls and returns requiring other application reads are unavailable; stores cut the binding before key/value conversion. (Since the r14 answer there is no function watcher, so no replacement-code operand is read; a held function's swapped __code__ is compared by identity at its first start, only while alone.) The sample is a point predicate: a Python-accessing native thread of the reviewed venv that attaches after it is not excluded (open: Codex phase-1 r13 #4; kept open by Eric's decision, 2026-10-02)",
+        "outside_the_model": [
+          "deliberate tampering with the observer, its evidence or the interpreter",
+          "native code other than the reviewed venv",
+          "audit hooks installed before the trusted bootstrap (only site initialisation and the reviewed .pth hooks run before it)",
+          "garbage collection or signal handlers switched on and off again inside the call phase",
+          "a test or helper that replaces a standard-library function the observer itself calls",
+          "a held mock's class changed and restored between the moments the recorder reads it",
+          "application behaviour that can see the observer: a boundary event or returned-value decision that changes with observable finalization, weak-reference liveness, callbacks or counts, reference counts, or garbage-collector introspection (Codex phase-1 r18's wording); with the sys.monitoring tool registry or event sets, instrumented or adaptive bytecode, or another thread's frames; with elapsed time or resource use; or with object addresses. An in-process observer holds every value a binding held, and its code, until the observation ends; it occupies a monitoring tool and instruments the code it watches; and it takes time and memory (ruling 13, adopted by Eric 2026-10-02; Codex phase-1 r17 #1, r18 #1-#3). Fixed fixture clock values, prewritten files and ordinary object identity relations are inputs; they are not elapsed observation cost or numeric address-dependent choices (Codex phase-1 r19, verbatim). The defence refuses a divergence when the twins' recorded failure-message digests differ after normalization, or either digest is missing. Normalization replaces text shaped like a default repr's address, the id in a mock's repr and the number of pytest's /pytest-of-<user>/pytest-N/ directory without identifying its meaning; it can therefore erase meaningful application data. Equal normalized messages do not prove equal boundary events, equal returned values or observer invisibility. The exclusion requires the independent source review of each prepared closure (Codex phase-1 r19's wording, with the patterns as narrowed after it). The closure screen flags selected literal spellings in src/bts and tests; it does not resolve aliases, imports or generated code, so each prepared closure requires independent source review for this exclusion (Codex phase-1 r18 #3, verbatim)"
+        ],
+        "return_identity": "Entry and return identity are source-file and qualname identities, not Python function-object, globals or receiver identities. The fixture review must establish that the observed code invocation belongs to the declared contract and selection. A claim requiring exact callable or receiver identity needs an additional witness or reads unavailable.",
+        "unattributed_when": [
+          "a callable bound to several boundaries",
+          "a callable the binding held earlier in the interval",
+          "a boundary code object shared by several live functions",
+          "a call on another receiver",
+          "a mock whose effective __call__ is not the standard one, or whose class changed",
+          "a value incomplete at any depth",
+          "a binding whose path passes through a namespace holding a key that is not an exact str, or was changed by a store through such a key (until a per-key store re-resolves it)",
+          "a call observed while another thread was alive (only the reads `observation` admits then happen; plan ruling 12, Codex phase-1 r13 #3)",
+          "an argument the observer could not read: never read as a null or as an empty call (Codex phase-1 r13 #1)",
+          "a call the binding does not resolve to AT THE CALL, through watched namespaces that are all supported, read under the lock every watched store takes before its change (Codex phase-1 r10 part 2 #1)",
+          "an identity read from a keyword dict holding a key that is not an exact str"
+        ],
+        "unavailable_when": [
+          "an absence claim (ABSENCE_REFUSAL)",
+          "an audit hook added after the trusted bootstrap",
+          "no audit-hook census",
+          "automatic garbage collection on at either end of the call phase",
+          "an application signal handler at either end of the call phase",
+          "an application trace, profile or monitoring function active at either end of the call phase, or installed in any thread at any time since the trusted bootstrap (it runs inside the observer's callbacks and can set f_lineno to re-run a frame's entry; Codex phase-1 r16)",
+          "observer errors",
+          "an incomplete observation window",
+          "a coroutine or async-generator frame, the boundary callee's own included (Codex phase-1 r13 #2)",
+          "a return observed while another thread was alive (its value is not read; plan ruling 12)",
+          "a run whose bts import provenance is unreadable without application dispatch (refused at every stage's gate)"
+        ]
+      },
+      "linked": {
+        "branch": 21,
+        "entry": 20,
+        "return": 22
+      },
+      "ok": true,
+      "reasons": []
+    },
+    "tests/test_strategy.py::TestSelectPick::test_detailed_void_candidate_excluded_even_when_abstract_preview[Cancelled]": {
+      "coverage": {
+        "boundary_call": "a call that started the code of a value the declared binding held in the interval (the binding is tracked at every store on its path from sys's own namespace, by CPython dict watchers; a held function's __code__ replaced in place is registered at the new code's first start while the thread is alone, never by a function watcher, whose Python callback replaces an exception pending in C (own review during r14)); a call's start is a PY_START at the code's first RESUME carrying the entry argument, and a start reported anywhere else is not read (Codex phase-1 r15 #1); for a mock, the arguments its standard __call__ received, which is what the mock itself records",
+        "claims": "a positive witness in this pinned synthetic execution: a recorded call of a declared boundary with the declared bad category, or a recorded return from the declared function's source with the declared value or category, linked to the mutated line through a common live invocation of the declared entry",
+        "missed_not_false": "a call through anything the recorder does not observe (an unsupported namespace, lookup that bypasses the raw namespace, a C-implemented callable, another process) is not recorded: it can only fail to witness an event",
+        "observation": "inside a certifiable call phase the observer hashes, compares or dispatches only on values it owns or has type-checked as exact builtins: a dict it reads is walked item by item and is unsupported when it holds a key that is not an exact str; heap class module metadata is read by raw namespace iteration, and instance dicts through the standard C getset found by raw MRO namespace iteration; a code object's name that is not an exact str reads as unnamed, and code objects themselves are never hashed or compared (the observer's maps key them by id: a code object's hash and equality reach its co_name and co_consts) (plan ruling 11: Codex phase-1 r9; code objects: self-review during r10). Arguments are read from the frame's own slots, never through frame.f_locals, whose refresh can release an application reference (Codex phase-1 r12 #1). Other application reads happen only after a sample shows the observed thread is the interpreter's only registered thread, since another thread could make a temporary reference it holds the last one and run a finalizer (plan ruling 12, Codex phase-1 r11 #1). (Codex phase-1 r13 #3, verbatim:) While another thread is alive, application arguments, cell contents and binding namespaces are not read. A mock boundary may retain only `self` from its verified non-cell frame slot and compare its identity with observer-held targets to select an unavailable record. The paused frame owns that reference. Code/frame identity and a live replacement-code operand are also admitted metadata. Calls and returns requiring other application reads are unavailable; stores cut the binding before key/value conversion. (Since the r14 answer there is no function watcher, so no replacement-code operand is read; a held function's swapped __code__ is compared by identity at its first start, only while alone.) The sample is a point predicate: a Python-accessing native thread of the reviewed venv that attaches after it is not excluded (open: Codex phase-1 r13 #4; kept open by Eric's decision, 2026-10-02)",
+        "outside_the_model": [
+          "deliberate tampering with the observer, its evidence or the interpreter",
+          "native code other than the reviewed venv",
+          "audit hooks installed before the trusted bootstrap (only site initialisation and the reviewed .pth hooks run before it)",
+          "garbage collection or signal handlers switched on and off again inside the call phase",
+          "a test or helper that replaces a standard-library function the observer itself calls",
+          "a held mock's class changed and restored between the moments the recorder reads it",
+          "application behaviour that can see the observer: a boundary event or returned-value decision that changes with observable finalization, weak-reference liveness, callbacks or counts, reference counts, or garbage-collector introspection (Codex phase-1 r18's wording); with the sys.monitoring tool registry or event sets, instrumented or adaptive bytecode, or another thread's frames; with elapsed time or resource use; or with object addresses. An in-process observer holds every value a binding held, and its code, until the observation ends; it occupies a monitoring tool and instruments the code it watches; and it takes time and memory (ruling 13, adopted by Eric 2026-10-02; Codex phase-1 r17 #1, r18 #1-#3). Fixed fixture clock values, prewritten files and ordinary object identity relations are inputs; they are not elapsed observation cost or numeric address-dependent choices (Codex phase-1 r19, verbatim). The defence refuses a divergence when the twins' recorded failure-message digests differ after normalization, or either digest is missing. Normalization replaces text shaped like a default repr's address, the id in a mock's repr and the number of pytest's /pytest-of-<user>/pytest-N/ directory without identifying its meaning; it can therefore erase meaningful application data. Equal normalized messages do not prove equal boundary events, equal returned values or observer invisibility. The exclusion requires the independent source review of each prepared closure (Codex phase-1 r19's wording, with the patterns as narrowed after it). The closure screen flags selected literal spellings in src/bts and tests; it does not resolve aliases, imports or generated code, so each prepared closure requires independent source review for this exclusion (Codex phase-1 r18 #3, verbatim)"
+        ],
+        "return_identity": "Entry and return identity are source-file and qualname identities, not Python function-object, globals or receiver identities. The fixture review must establish that the observed code invocation belongs to the declared contract and selection. A claim requiring exact callable or receiver identity needs an additional witness or reads unavailable.",
+        "unattributed_when": [
+          "a callable bound to several boundaries",
+          "a callable the binding held earlier in the interval",
+          "a boundary code object shared by several live functions",
+          "a call on another receiver",
+          "a mock whose effective __call__ is not the standard one, or whose class changed",
+          "a value incomplete at any depth",
+          "a binding whose path passes through a namespace holding a key that is not an exact str, or was changed by a store through such a key (until a per-key store re-resolves it)",
+          "a call observed while another thread was alive (only the reads `observation` admits then happen; plan ruling 12, Codex phase-1 r13 #3)",
+          "an argument the observer could not read: never read as a null or as an empty call (Codex phase-1 r13 #1)",
+          "a call the binding does not resolve to AT THE CALL, through watched namespaces that are all supported, read under the lock every watched store takes before its change (Codex phase-1 r10 part 2 #1)",
+          "an identity read from a keyword dict holding a key that is not an exact str"
+        ],
+        "unavailable_when": [
+          "an absence claim (ABSENCE_REFUSAL)",
+          "an audit hook added after the trusted bootstrap",
+          "no audit-hook census",
+          "automatic garbage collection on at either end of the call phase",
+          "an application signal handler at either end of the call phase",
+          "an application trace, profile or monitoring function active at either end of the call phase, or installed in any thread at any time since the trusted bootstrap (it runs inside the observer's callbacks and can set f_lineno to re-run a frame's entry; Codex phase-1 r16)",
+          "observer errors",
+          "an incomplete observation window",
+          "a coroutine or async-generator frame, the boundary callee's own included (Codex phase-1 r13 #2)",
+          "a return observed while another thread was alive (its value is not read; plan ruling 12)",
+          "a run whose bts import provenance is unreadable without application dispatch (refused at every stage's gate)"
+        ]
+      },
+      "linked": {
+        "branch": 12,
+        "entry": 11,
+        "return": 13
+      },
+      "ok": true,
+      "reasons": []
+    },
+    "tests/test_strategy.py::TestSelectPick::test_detailed_void_candidate_excluded_even_when_abstract_preview[Postponed]": {
+      "coverage": {
+        "boundary_call": "a call that started the code of a value the declared binding held in the interval (the binding is tracked at every store on its path from sys's own namespace, by CPython dict watchers; a held function's __code__ replaced in place is registered at the new code's first start while the thread is alone, never by a function watcher, whose Python callback replaces an exception pending in C (own review during r14)); a call's start is a PY_START at the code's first RESUME carrying the entry argument, and a start reported anywhere else is not read (Codex phase-1 r15 #1); for a mock, the arguments its standard __call__ received, which is what the mock itself records",
+        "claims": "a positive witness in this pinned synthetic execution: a recorded call of a declared boundary with the declared bad category, or a recorded return from the declared function's source with the declared value or category, linked to the mutated line through a common live invocation of the declared entry",
+        "missed_not_false": "a call through anything the recorder does not observe (an unsupported namespace, lookup that bypasses the raw namespace, a C-implemented callable, another process) is not recorded: it can only fail to witness an event",
+        "observation": "inside a certifiable call phase the observer hashes, compares or dispatches only on values it owns or has type-checked as exact builtins: a dict it reads is walked item by item and is unsupported when it holds a key that is not an exact str; heap class module metadata is read by raw namespace iteration, and instance dicts through the standard C getset found by raw MRO namespace iteration; a code object's name that is not an exact str reads as unnamed, and code objects themselves are never hashed or compared (the observer's maps key them by id: a code object's hash and equality reach its co_name and co_consts) (plan ruling 11: Codex phase-1 r9; code objects: self-review during r10). Arguments are read from the frame's own slots, never through frame.f_locals, whose refresh can release an application reference (Codex phase-1 r12 #1). Other application reads happen only after a sample shows the observed thread is the interpreter's only registered thread, since another thread could make a temporary reference it holds the last one and run a finalizer (plan ruling 12, Codex phase-1 r11 #1). (Codex phase-1 r13 #3, verbatim:) While another thread is alive, application arguments, cell contents and binding namespaces are not read. A mock boundary may retain only `self` from its verified non-cell frame slot and compare its identity with observer-held targets to select an unavailable record. The paused frame owns that reference. Code/frame identity and a live replacement-code operand are also admitted metadata. Calls and returns requiring other application reads are unavailable; stores cut the binding before key/value conversion. (Since the r14 answer there is no function watcher, so no replacement-code operand is read; a held function's swapped __code__ is compared by identity at its first start, only while alone.) The sample is a point predicate: a Python-accessing native thread of the reviewed venv that attaches after it is not excluded (open: Codex phase-1 r13 #4; kept open by Eric's decision, 2026-10-02)",
+        "outside_the_model": [
+          "deliberate tampering with the observer, its evidence or the interpreter",
+          "native code other than the reviewed venv",
+          "audit hooks installed before the trusted bootstrap (only site initialisation and the reviewed .pth hooks run before it)",
+          "garbage collection or signal handlers switched on and off again inside the call phase",
+          "a test or helper that replaces a standard-library function the observer itself calls",
+          "a held mock's class changed and restored between the moments the recorder reads it",
+          "application behaviour that can see the observer: a boundary event or returned-value decision that changes with observable finalization, weak-reference liveness, callbacks or counts, reference counts, or garbage-collector introspection (Codex phase-1 r18's wording); with the sys.monitoring tool registry or event sets, instrumented or adaptive bytecode, or another thread's frames; with elapsed time or resource use; or with object addresses. An in-process observer holds every value a binding held, and its code, until the observation ends; it occupies a monitoring tool and instruments the code it watches; and it takes time and memory (ruling 13, adopted by Eric 2026-10-02; Codex phase-1 r17 #1, r18 #1-#3). Fixed fixture clock values, prewritten files and ordinary object identity relations are inputs; they are not elapsed observation cost or numeric address-dependent choices (Codex phase-1 r19, verbatim). The defence refuses a divergence when the twins' recorded failure-message digests differ after normalization, or either digest is missing. Normalization replaces text shaped like a default repr's address, the id in a mock's repr and the number of pytest's /pytest-of-<user>/pytest-N/ directory without identifying its meaning; it can therefore erase meaningful application data. Equal normalized messages do not prove equal boundary events, equal returned values or observer invisibility. The exclusion requires the independent source review of each prepared closure (Codex phase-1 r19's wording, with the patterns as narrowed after it). The closure screen flags selected literal spellings in src/bts and tests; it does not resolve aliases, imports or generated code, so each prepared closure requires independent source review for this exclusion (Codex phase-1 r18 #3, verbatim)"
+        ],
+        "return_identity": "Entry and return identity are source-file and qualname identities, not Python function-object, globals or receiver identities. The fixture review must establish that the observed code invocation belongs to the declared contract and selection. A claim requiring exact callable or receiver identity needs an additional witness or reads unavailable.",
+        "unattributed_when": [
+          "a callable bound to several boundaries",
+          "a callable the binding held earlier in the interval",
+          "a boundary code object shared by several live functions",
+          "a call on another receiver",
+          "a mock whose effective __call__ is not the standard one, or whose class changed",
+          "a value incomplete at any depth",
+          "a binding whose path passes through a namespace holding a key that is not an exact str, or was changed by a store through such a key (until a per-key store re-resolves it)",
+          "a call observed while another thread was alive (only the reads `observation` admits then happen; plan ruling 12, Codex phase-1 r13 #3)",
+          "an argument the observer could not read: never read as a null or as an empty call (Codex phase-1 r13 #1)",
+          "a call the binding does not resolve to AT THE CALL, through watched namespaces that are all supported, read under the lock every watched store takes before its change (Codex phase-1 r10 part 2 #1)",
+          "an identity read from a keyword dict holding a key that is not an exact str"
+        ],
+        "unavailable_when": [
+          "an absence claim (ABSENCE_REFUSAL)",
+          "an audit hook added after the trusted bootstrap",
+          "no audit-hook census",
+          "automatic garbage collection on at either end of the call phase",
+          "an application signal handler at either end of the call phase",
+          "an application trace, profile or monitoring function active at either end of the call phase, or installed in any thread at any time since the trusted bootstrap (it runs inside the observer's callbacks and can set f_lineno to re-run a frame's entry; Codex phase-1 r16)",
+          "observer errors",
+          "an incomplete observation window",
+          "a coroutine or async-generator frame, the boundary callee's own included (Codex phase-1 r13 #2)",
+          "a return observed while another thread was alive (its value is not read; plan ruling 12)",
+          "a run whose bts import provenance is unreadable without application dispatch (refused at every stage's gate)"
+        ]
+      },
+      "linked": {
+        "branch": 3,
+        "entry": 2,
+        "return": 4
+      },
+      "ok": true,
+      "reasons": []
+    }
+  },
+  "events_sha256": {
+    "green": "0ed69e7a1cebbff9831769f4c24cf2d2e3ea05923d279a47d93471253370c720",
+    "green_unobserved": "3515b5b086da1b099e21fcdfb3749401acd25f6edc03c9ec31673730ffeca04d",
+    "mutant": "9114210991dba663557da02e268dfe6d418934209e01572987402fcf9c018eb5",
+    "mutant_unobserved": "54fc9c22cbd402c8345f3f742d40725a99c70d80c06965a6abb4906822a2e566",
+    "restored": "3f1e4bcdeac2c0ffa167b34622a2c0b24e730d4581aaf5618e1276a144259fa6"
+  },
+  "label": "D-I043-4",
+  "manifest_sha256": "c3d98ff30425ecdcf51f9bdaf9c010e0314e1fa606f755318385d6138646f40d",
+  "patch_sha256": "cff6e3df22c346ce5700ccfcc55c4d4982df7b06cbd6cf3171ed706fe54d05c4",
+  "reasons": [],
+  "spec": {
+    "allowed_mocks": [
+      "bts.strategy._load_mdp"
+    ],
+    "allowed_paths": [
+      "src/bts/picks.py"
+    ],
+    "baseline": "f453283d0a0ec39a939b22c6500b5fb36f5452c0",
+    "branch": {
+      "path": "src/bts/picks.py",
+      "text": "W1.5 mutant: pre-0799bf2 \u2014 a postponed/cancelled candidate is judged by its abstract status alone (abstract Preview stays eligible)"
+    },
+    "contract": {
+      "entry_mode": "direct call of strategy.select_pick with injected detailed statuses",
+      "symptom_kind": "wrong return (the void-status game reads as an eligible candidate)",
+      "text": "A prediction row whose game is detailed Postponed/Cancelled is not an eligible candidate even when the game's abstract status is still Preview.",
+      "trigger": "top candidate's game: abstract P, detailed Postponed / Cancelled / Canceled"
+    },
+    "entry": {
+      "path": "src/bts/picks.py",
+      "qualname": "pick_candidate_status_is_available"
+    },
+    "env": {
+      "TZ": "America/New_York"
+    },
+    "killing": [
+      {
+        "_line": 529,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence/tests/test_strategy.py",
+        "assertion": {
+          "line": 529,
+          "path": "tests/test_strategy.py",
+          "text": "assert result.pick_result.daily.pick.batter_name == \"Fresh Pick\""
+        },
+        "node": "tests/test_strategy.py::TestSelectPick::test_detailed_void_candidate_excluded_even_when_abstract_preview[Postponed]"
+      },
+      {
+        "_line": 529,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence/tests/test_strategy.py",
+        "assertion": {
+          "line": 529,
+          "path": "tests/test_strategy.py",
+          "text": "assert result.pick_result.daily.pick.batter_name == \"Fresh Pick\""
+        },
+        "node": "tests/test_strategy.py::TestSelectPick::test_detailed_void_candidate_excluded_even_when_abstract_preview[Cancelled]"
+      },
+      {
+        "_line": 529,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence/tests/test_strategy.py",
+        "assertion": {
+          "line": 529,
+          "path": "tests/test_strategy.py",
+          "text": "assert result.pick_result.daily.pick.batter_name == \"Fresh Pick\""
+        },
+        "node": "tests/test_strategy.py::TestSelectPick::test_detailed_void_candidate_excluded_even_when_abstract_preview[Canceled]"
+      }
+    ],
+    "label": "D-I043-4",
+    "level": "component",
+    "level_justification": "the detailed statuses are passed in as an argument (no lookup); the file's autouse fixture replaces the internal policy loader bts.strategy._load_mdp",
+    "link": "I-043 link 4",
+    "mutation_edits": [
+      [
+        "src/bts/picks.py",
+        "    if _is_void_detailed_state(detailed):\n        return PickLockState(\n            stale=True,\n            locked=False,\n            reason=\"stale_game_status\",\n            game_pk=game_pk,\n            abstract=abstract,\n            detailed=detailed,\n        )\n",
+        "    if _is_void_detailed_state(detailed):\n        pass  # W1.5 mutant: pre-0799bf2 \u2014 a postponed/cancelled candidate is judged by its abstract status alone (abstract Preview stays eligible)\n"
+      ]
+    ],
+    "returns": [
+      {
+        "classify": [
+          [
+            "eligible",
+            "^true$"
+          ]
+        ],
+        "path": "src/bts/picks.py",
+        "qualname": "pick_candidate_status_is_available"
+      }
+    ],
+    "symptom": {
+      "category": "eligible",
+      "kind": "return",
+      "path": "src/bts/picks.py",
+      "qualname": "pick_candidate_status_is_available"
+    },
+    "tests": [
+      "tests/test_strategy.py",
+      "-q"
+    ]
+  },
+  "spec_sha256": "4937acedcdd4acd829261336b71daf6609d48ced2bc5e367116854ce42e34105",
+  "stages": {
+    "green": {
+      "gate": [],
+      "nodes": 48,
+      "returncode": 0
+    },
+    "mutant": {
+      "gate": [],
+      "kills": [
+        "tests/test_strategy.py::TestSelectPick::test_existing_postponed_unposted_reselects_fresh_candidate",
+        "tests/test_strategy.py::TestSelectPick::test_detailed_void_candidate_excluded_even_when_abstract_preview[Postponed]",
+        "tests/test_strategy.py::TestSelectPick::test_detailed_void_candidate_excluded_even_when_abstract_preview[Cancelled]",
+        "tests/test_strategy.py::TestSelectPick::test_detailed_void_candidate_excluded_even_when_abstract_preview[Canceled]"
+      ],
+      "returncode": 1
+    },
+    "restored": {
+      "gate": [],
+      "returncode": 0
+    }
+  },
+  "touched": [
+    "src/bts/picks.py"
+  ],
+  "verdict": "accepted"
+}

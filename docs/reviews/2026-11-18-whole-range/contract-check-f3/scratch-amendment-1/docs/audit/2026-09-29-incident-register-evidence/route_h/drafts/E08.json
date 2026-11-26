@@ -1,0 +1,164 @@
+{
+ "id": "I-008",
+ "working_id": "E08",
+ "title": "Reconcile aborted with HTTP 400 on the 3/29\u20133/30 pick files, whose game_pk is null",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "G",
+  "secondary": []
+ },
+ "tier": "B",
+ "tier_reason": "the aborted run wrote nothing wrong: dates re-checked before the abort kept their per-date results, and what did not run (re-checking 3/29\u20133/30 and, only if a correction was found, the streak recompute) is a safety net for rare late scoring changes; no state change is evidenced and the trigger is fixed",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "cron_job",
+ "authority": "local",
+ "contract": {
+  "text": "bts reconcile re-checks every graded pick in its 8-day lookback against the MLB feed and recomputes the streak when a result changes.",
+  "source": "src/bts/cli.py reconcile docstring (ac7bc40); ARCHITECTURE.md at 0e23c0f ('bts reconcile: 8-day lookback for scoring changes \u2026 Cron at 2am ET')"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "the pre-scheduler pick files for 3/29\u20133/30 carry game_pk null; check_hit always requested /game/{game_pk}/feed/live first, i.e. /game/None/feed/live (HTTP 400); retry_urlopen re-raises 4xx and reconcile_results had no per-date exception handling, so the error aborted the whole run",
+   "code": [
+    {
+     "path": "src/bts/picks.py",
+     "ref": "ac7bc40",
+     "symbol": "check_hit",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/picks.py",
+     "ref": "ac7bc40",
+     "symbol": "reconcile_results",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/util.py",
+     "ref": "ac7bc40",
+     "symbol": "retry_urlopen",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "a6cae41"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "unknown",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "grading",
+  "trigger": "the 2am reconcile run exits with an error or without its completion line in the cron log, or a graded date inside the lookback was not re-checked",
+  "recovery_assertion": "the next reconcile run completes over the full lookback and streak.json equals the forward replay of graded pick files"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit a6cae41 message body",
+   "written_at": "2026-04-04T17:33:11-04:00",
+   "what": "pre-scheduler picks (Mar 29\u201330) have game_pk null, 'which caused check_hit to request .../game/None/feed/live \u2014 an HTTP 400'; now falls through to the date-based search"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/picks.py reconcile_results and check_hit, src/bts/util.py retry_urlopen at ac7bc40",
+   "what": "400 is re-raised without retry and nothing in the lookback loop catches it, so one null-game_pk date ends the run"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "git history: 3724bcb (4/03 11:32 ET) added bts reconcile; ARCHITECTURE.md at 0e23c0f schedules it at 2am ET",
+   "what": "the first scheduled reconcile run was 4/04 02:00 ET; the failing run could also have been a manual run after 3724bcb"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24253126060 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploy run whose head (4a82cf8) contains a6cae41; a Fly.io deploy, log expired"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "reconcile run between 2026-04-03 11:32 and 2026-04-04 17:33 ET",
+   "onset": {
+    "not_before": "2026-04-03T11:32:13-04:00",
+    "not_after": "2026-04-04T17:33:11-04:00",
+    "evidence": [
+     "ev1",
+     "ev3"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-04T17:33:11-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-04-04T17:33:11-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "unknown",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "a6cae41",
+   "3724bcb"
+  ],
+  "R": "pending_phase2",
+  "X": []
+ },
+ "related": [
+  "I-002"
+ ],
+ "notes": [
+  "disposition changed from the lead row (UC) to observed_incident: the body reports the observed error (HTTP 400 on game/None) within 48 h; it does not say whether the failing run was the 4/04 02:00 cron or a manual run",
+  "ledger note from the row: 3/29\u20133/30 pick files have null game_pk",
+  "not checked here: whether today's reconcile isolates a failing date (resolve_daily_slot_results guards only its status lookup); no residual is claimed",
+  "deployed: candidate run 24253126060 was a Fly.io deploy (workflow 'Deploy BTS to Fly', fcedf71), not a production install; the Pi5 install time is not evidenced",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; a6cae41 added tests/test_picks.py test_none_game_pk_falls_back_to_date_search (reproduces the null-game_pk trigger at check_hit level, not the aborted reconcile run)",
+  "deployed unknown: candidate run 24253126060 executed the Fly deploy.yml (its head lacks 51ef987, the 4/11 Hetzner workflow); production (Pi5 orchestrator, manual pulls) has no install record before the cutover"
+ ]
+}

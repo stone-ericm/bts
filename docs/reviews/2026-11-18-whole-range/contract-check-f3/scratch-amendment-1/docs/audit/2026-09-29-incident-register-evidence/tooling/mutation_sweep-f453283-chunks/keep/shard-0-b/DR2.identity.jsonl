@@ -1,0 +1,3 @@
+{"node": "tests.scripts.incident_register.test_deploy_runs::test_disagreeing_observations_at_the_same_instant_are_refused", "kind": "did_not_raise"}
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_disagreeing_observations_that_precision_cannot_order_are_refused", "kind": "did_not_raise"}
+{"node": "tests.scripts.incident_register.test_r6_counterexamples::test_a_non_adjacent_overlapping_disagreement_is_refused", "kind": "did_not_raise"}

@@ -1,0 +1,3 @@
+{"node": "tests.scripts.incident_register.test_r9_counterexamples::test_a_class_namespace_with_a_non_string_key_runs_no_application_code[__dict__]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r9_counterexamples::test_a_class_namespace_with_a_non_string_key_runs_no_application_code[__module__]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r9_counterexamples::test_a_full_run_never_compares_class_namespace_keys[__module__]", "kind": "assertion"}

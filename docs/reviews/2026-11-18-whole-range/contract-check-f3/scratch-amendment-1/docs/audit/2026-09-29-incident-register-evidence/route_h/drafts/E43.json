@@ -1,0 +1,102 @@
+{
+ "id": "I-043",
+ "working_id": "E43",
+ "title": "5/05 unposted pick stayed committed to a postponed game (abstract-status lock); follow-on void grading, polling-gate and detailed-status fixes through 5/26",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {"primary": "D", "secondary": ["G"]},
+ "tier": "A",
+ "tier_reason": "delivery impact: on 5/05 an unposted stale pick committed to a postponed game was treated as locked instead of regenerated (a 'production failure'); the deferred cached-fallback residual can still deliver a postponed-game pick",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "An unposted pick whose committed game is postponed, cancelled or missing from the schedule is regenerated from live games; a locked slot whose game is postponed/cancelled is void (neither hit nor miss) and does not block result polling.",
+  "source": "commit 7b701c9 (classify_pick_lock_state docstring); commit a142c14 body; docs/superpowers/runbooks/2026-05-09-live-forward-daily-ops.md 'Postponement handling'; BTS rules section 6 Pass (design §10.1)"
+ },
+ "mechanism": [
+  {"n": 1, "text": "run_single_check short-circuited as 'Pick already locked' whenever the existing pick's primary game had abstract status other than 'P'; a postponed game is not 'P', so the stale unposted pick was kept and the cascade never ran to replace it",
+   "code": [{"path": "src/bts/scheduler.py", "ref": "38fc0e0", "symbol": "run_single_check (short-circuit: statuses.get(game_pk) != 'P')", "ref_basis": "candidate"}]},
+  {"n": 2, "text": "grading had no void result: a locked slot whose game was postponed/cancelled could not be scored as a Pass, so a double-down day could not be scored from the played slot",
+   "code": [{"path": "src/bts/cli.py", "ref": "9424db7", "symbol": "check_results (per-slot check_hit, hit/miss only)", "ref_basis": "candidate"},
+            {"path": "src/bts/scheduler.py", "ref": "9424db7", "symbol": "run_result_polling (result write)", "ref_basis": "candidate"}]},
+  {"n": 3, "text": "run_result_polling's all-final gate waited on every locked game's live feed; a postponed game's feed still reported Preview, so polling could not complete (and could overwrite resolved results at the cap)",
+   "code": [{"path": "src/bts/scheduler.py", "ref": "a142c14", "symbol": "run_result_polling (all-final gate)", "ref_basis": "candidate"}]},
+  {"n": 4, "text": "candidate filtering and lock-gap decisions used abstract statuses only, so candidates from games that were abstract-Preview but detailed-Postponed stayed eligible",
+   "code": [{"path": "src/bts/strategy.py", "ref": "2eff8f9", "symbol": "select_pick / should_lock candidate filter", "ref_basis": "candidate"}]},
+  {"n": 5, "text": "when the detailed status lookup failed, live pick generation silently fell back to abstract statuses, degrading the postponed/cancelled protection",
+   "code": [{"path": "src/bts/strategy.py", "ref": "1eb29c5", "symbol": "select_pick (detailed-status fallback)", "ref_basis": "candidate"},
+            {"path": "src/bts/scheduler.py", "ref": "1eb29c5", "symbol": "lock decision (detailed-status fallback)", "ref_basis": "candidate"}]}
+ ],
+ "fix": [
+  {"link": 1, "implemented": {"commits": ["7b701c9"], "complete_fix_set": true},
+   "deployed": {"basis": "candidate_ancestry", "sha": "293ce51", "live_by": "2026-05-09T03:34:05Z", "run_id": 25590588217, "evidence": ["ev4"]},
+   "mitigated": "none", "verified_recovered": "unknown"},
+  {"link": 2, "implemented": {"commits": ["a142c14"], "complete_fix_set": true},
+   "deployed": {"basis": "candidate_ancestry", "sha": "a142c14", "live_by": "2026-05-09T23:02:03Z", "run_id": 25614033235, "evidence": ["ev6"]},
+   "mitigated": "none", "verified_recovered": "unknown"},
+  {"link": 3, "implemented": {"commits": ["68e4cdb"], "complete_fix_set": true},
+   "deployed": {"basis": "candidate_ancestry", "sha": "ac4a959", "live_by": "2026-05-09T23:21:06Z", "run_id": 25614364730, "evidence": ["ev7"]},
+   "mitigated": "none", "verified_recovered": "unknown"},
+  {"link": 4, "implemented": {"commits": ["0799bf2"], "complete_fix_set": true},
+   "deployed": {"basis": "candidate_ancestry", "sha": "0799bf2", "live_by": "2026-05-24T11:39:41Z", "run_id": 26360221184, "evidence": ["ev8"]},
+   "mitigated": "none", "verified_recovered": "unknown"},
+  {"link": 5, "implemented": {"commits": ["abbfdc5"], "complete_fix_set": true},
+   "deployed": {"basis": "candidate_ancestry", "sha": "d63f60b", "live_by": "2026-05-26T02:37:06Z", "run_id": 26429059386, "evidence": ["ev9"]},
+   "mitigated": "none", "verified_recovered": "unknown"}
+ ],
+ "fixtures": {"historical_replay": [], "current_defence": [], "expected_failure": [], "characterization": []},
+ "residual": [
+  {"text": "Deferred: the cached-fallback safety net can deliver a pick whose game went postponed when the refresh finds no eligible replacement, and postponed_pick health ignores delivered picks (L03).", "reaches_production": true, "source": "docs/audit/2026-07-09-gpt56-sol-audit.md 'F1 DEFERRED (pre-existing)'; design §10.3 postponed cached fallback"},
+  {"text": "check-pick-entered has no postponed-game awareness: a pre-pitch postponement keeps nagging for a selection that will Pass (product call pending).", "reaches_production": true, "source": "ARCHITECTURE.md check-pick-entered 'Known deferral'"}
+ ],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "before the earliest pick game's cutoff, the day's committed or candidate pick names a game whose detailed status is Postponed/Cancelled or which is missing from the schedule, and no regenerated pick exists",
+  "recovery_assertion": "the day ends with a pick on a played game or a recorded deliberate skip; any locked postponed slot is graded void and polling completes"
+ },
+ "evidence": [
+  {"id": "ev1", "kind": "contemporaneous_operator_report", "strength": "primary", "locator": "commit 27c0b4d, src/bts/health/postponed_pick.py module docstring", "written_at": "2026-05-06T15:47:00-04:00",
+   "what": "names 'the 2026-05-05 postponed-game production failure' - an unposted stale pick committed to a postponed/missing game that silently survived toward the posting window"},
+  {"id": "ev2", "kind": "contemporaneous_operator_report", "strength": "primary", "locator": "commit 7b701c9 (PR #24, branch hotfix/p0-postponed-lock, merge d763784)", "written_at": "2026-05-06T14:42:24-04:00",
+   "what": "priority hotfix 'regenerate stale postponed picks' with tests test_primary_postponed_regenerates, test_existing_postponed_unposted_reselects_fresh_candidate"},
+  {"id": "ev3", "kind": "inference", "strength": "primary", "locator": "docs/sota_audit/2026-05-09-shadow-context-backfill-quality.md §Inputs",
+   "what": "the production host was still at a3bc4d3 when checked on 5/08 23:04 ET, so the 5/06 hotfix was not yet deployed"},
+  {"id": "ev4", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 25590588217 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploy after run 25354057182 (5/05 02:07Z): head 293ce51 containing 7b701c9, created 2026-05-09T03:34:05Z (5/08 23:34 ET)"},
+  {"id": "ev5", "kind": "inference", "strength": "primary", "locator": "docs/superpowers/runbooks/2026-05-23-alert-disposition.md at 3b3e810 (disposition table + next work item 5) and '2026-05-27 Postponed-Game Root Refresh'",
+   "what": "5/23 walkthrough: postponed_pick health catches the symptom, but the scheduler lock path still used abstract statuses; 5/27: root fix deployed (prod HEAD fac6bdb with PR #131 d63f60b), strict detailed-status mode on the live path"},
+  {"id": "ev6", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 25614033235 (deploy_runs.json)",
+   "what": "deploy of head a142c14 created 2026-05-09T23:02:03Z, conclusion success"},
+  {"id": "ev7", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy runs 25614229839 and 25614364730 (deploy_runs.json)",
+   "what": "the 68e4cdb deploy (23:13:29Z) failed (I-048); the same code went out with head ac4a959 at 2026-05-09T23:21:06Z, success"},
+  {"id": "ev8", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 26360221184 (deploy_runs.json)",
+   "what": "deploy of head 0799bf2 created 2026-05-24T11:39:41Z, conclusion success"},
+  {"id": "ev9", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 26429059386 (deploy_runs.json)",
+   "what": "deploy of head d63f60b (PR #131, contains abbfdc5) created 2026-05-26T02:37:06Z, conclusion success"}
+ ],
+ "occurrences": [{
+  "label": "2026-05-05",
+  "onset": {"at": "2026-05-05", "evidence": ["ev1"]},
+  "first_detectable": "unknown",
+  "first_machine_detection": "unknown",
+  "alert": {"attempted": "unknown", "confirmed": "unknown", "failed": "unknown"},
+  "operator_awareness": {"not_after": "2026-05-06T14:42:24-04:00", "evidence": ["ev2"]},
+  "operator_action": {"not_after": "2026-05-06T14:42:24-04:00", "evidence": ["ev2"]},
+  "mitigation": "unknown",
+  "restored_verification": "unknown",
+  "latencies": {"detection": "unknown", "notification": "unknown", "recovery": "unknown"}
+ }],
+ "routes": {"H": ["7b701c9", "27c0b4d", "a142c14", "68e4cdb", "0799bf2", "abbfdc5", "d763784"], "R": "pending_phase2",
+            "X": ["PR #24", "PR #25", "PR #74", "PR #119", "PR #131", "docs/superpowers/runbooks/2026-05-23-alert-disposition.md", "docs/superpowers/runbooks/2026-05-09-live-forward-daily-ops.md"]},
+ "related": ["I-203", "I-048", "I-050"],
+ "notes": [
+  "split? proposed parts: (a) 5/05 stale postponed pick kept as locked - observed (links 1; 27c0b4d added the postponed_pick symptom check); (b) void grading + polling all-final gate for locked postponed games (links 2-3, 5/09) - no live production occurrence evidenced (the '2026-05-09 postponed slate' in the live-forward runbook is the research stream, I-050); (c) detailed-status candidate filtering and lookup-failure fallback (links 4-5) - a code-review follow-up from the 5/23 alert walkthrough, deployed_latent",
+  "what exactly happened on 5/05 (which game, whether the stale pick was posted, whether a replacement was entered) is not described in any located artifact; the 5/05 pick file (B1) is Route R material",
+  "the 'p0' hotfix merged 5/06 14:49 but no deploy ran from 5/05 02:07Z to 5/09 03:34Z and the box was still at a3bc4d3 on 5/08 23:04 ET (ev3), so the hazard stayed live for ~3.5 more days - unless deployed by hand (not recorded)",
+  "log bounds: every fix live by 2026-06-07T00:11:19Z (run 27077693688)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

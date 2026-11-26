@@ -1,0 +1,13 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I083-1
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 11 items
+
+tests/test_warmup_lock_classification.py .                               [  9%]
+tests/test_strategy.py ..                                                [ 27%]
+tests/test_warmup_lock_classification.py ...                             [ 54%]
+tests/test_strategy.py .....                                             [100%]
+
+============================== 11 passed in 2.48s ==============================

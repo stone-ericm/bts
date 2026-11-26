@@ -1,0 +1,50 @@
+nice: setpriority: Operation not permitted
+Verified bts source: /Users/eric/projects/bts-work/wr-c3v-r2-codex/src/bts
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-c3v-r2-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 978 items
+
+tests/test_wr_c3v_corpus.py ............................................ [  4%]
+........................................................................ [ 11%]
+........................................................................ [ 19%]
+........................................................................ [ 26%]
+........................................................................ [ 33%]
+........................................................................ [ 41%]
+........................................................................ [ 48%]
+........................................................................ [ 56%]
+........................................................................ [ 63%]
+..........                                                               [ 64%]
+tests/test_wr_c3v_delivery.py .........                                  [ 65%]
+tests/test_wr_c3v_reconcile.py ..............                            [ 66%]
+tests/test_wr_c3_r2_entered_pick_blockers.py .........                   [ 67%]
+tests/test_wr_c3v_review_gaps.py .......                                 [ 68%]
+tests/test_streak_replay.py .........                                    [ 69%]
+tests/test_streak_season_cs2.py ........................................ [ 73%]
+........................................................................ [ 80%]
+........................................................................ [ 88%]
+.................................................................        [ 94%]
+tests/test_reconcile_receipt.py ......................................   [ 98%]
+tests/test_lightgbm_optional.py .                                        [ 98%]
+tests/test_web_saver.py .........F..                                     [100%]
+
+=================================== FAILURES ===================================
+_________________ test_do_post_saver_transition_socket_wiring __________________
+tests/test_web_saver.py:139: in test_do_post_saver_transition_socket_wiring
+    srv = _serve(tmp_path, monkeypatch)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_web_saver.py:107: in _serve
+    srv = HTTPServer(("127.0.0.1", 0), web.Handler)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/socketserver.py:457: in __init__
+    self.server_bind()
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/http/server.py:140: in server_bind
+    socketserver.TCPServer.server_bind(self)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/socketserver.py:478: in server_bind
+    self.socket.bind(self.server_address)
+E   PermissionError: [Errno 1] Operation not permitted
+=========================== short test summary info ============================
+FAILED tests/test_web_saver.py::test_do_post_saver_transition_socket_wiring
+======================== 1 failed, 977 passed in 17.84s ========================

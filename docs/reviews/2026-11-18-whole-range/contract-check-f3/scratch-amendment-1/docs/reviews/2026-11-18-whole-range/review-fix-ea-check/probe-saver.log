@@ -1,0 +1,183 @@
+nice: setpriority: Operation not permitted
+  LOCKED (review) — Pick DM sent: sent-pick
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T01:25:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-14 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write for the 2027-07-14 slate only on that ET date, with prior entries settled or absent. For a later slate date, see B8a. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  MORNING STATE CHECK — stale contest reading: last accepted fetch 2027-07-13T14:00:00-04:00, about 20.00 hours ago
+  MORNING STATE CHECK — stale contest reading: last accepted fetch 2027-12-30T14:00:00-05:00, about 20.00 hours ago
+  MORNING STATE CHECK — stale contest reading: last accepted fetch 2027-12-31T14:00:00-05:00, about 20.00 hours ago
+  LOCKED (review) — Pick DM sent: sent-pick
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-12-31T03:59:55-05:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2028-01-01 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write for the 2028-01-01 slate only on that ET date, with prior entries settled or absent. For a later slate date, see B8a. In 2028 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+CAPTURED
+BTS health WARN attention:
+- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T01:25:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-14 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write for the 2027-07-14 slate only on that ET date, with prior entries settled or absent. For a later slate date, see B8a. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+CLI
+0
+('fetch-contest-streak', '--expected-username', 'walk_account')
+wrote /Users/eric/projects/bts-work/wr-chk-ea3/.codex-review/wr-ea3/tmpgotsor31/delivery/picks/account_state/contest_streak.json for season 2027: active_streak=13 best_streak=13 source_date=2027-07-14
+delivery warning read 2027-07-15 at 08:30. MLB confirmed its 2027 saver used July 13.
+CLI
+0
+('season-contract', 'status')
+ET date: 2027-07-15; year: 2027; inspected season: 2027
+switch: automatic
+  season: 2027
+  status: automatic
+  activation_id: 4d38078976a1402a977de36abe79506c
+  switched_at: 2027-07-14T13:00:00Z
+  revoked_at: None
+  note: None
+manual: absent
+automatic: parsed schema='bts_contest_streak_auto_v2' streak=13 best=13 source date=2027-07-14 recorded time=2027-07-15T05:10:00Z
+  season: 2027; activation_id: 4d38078976a1402a977de36abe79506c
+  identifier matches switch: True (comparison only)
+saver: active; season: 2027
+live decision now: accepted; source=contest; streak=13; status=fresh; saver=active
+automatic path alone: accepted (streak 13, recorded 2027-07-15T05:10:00Z)
+ledger: readable; rows: 2; bad lines: 0
+  recorded_at=2027-07-14T13:00:00Z; active_streak=12; best_streak=13; source_date=2027-07-13; season=2027; switched=True; activation_id=4d38078976a1402a977de36abe79506c; settled_by_year={'2027': 1}; settled_unmapped=0; unsettled=0
+  recorded_at=2027-07-15T05:10:00Z; active_streak=13; best_streak=13; source_date=2027-07-14; season=2027; switched=True; activation_id=4d38078976a1402a977de36abe79506c; settled_by_year={'2027': 1}; settled_unmapped=0; unsettled=0
+CLI
+0
+('set-contest-streak', '--date', '2027-07-15', '--streak', 13, '--best-streak', 13, '--saver', 'used')
+Observation written at /Users/eric/projects/bts-work/wr-chk-ea3/.codex-review/wr-ea3/tmpgotsor31/delivery/picks/account_state/contest_streak.manual.json: date=2027-07-15 streak=13 best=13 saver=used reason=None
+contest_streak: 13 (best 13, saver used) for 2027-07-15, in effect today
+saver_state: active (season 2027)
+CLI
+0
+('saver-state', '--use')
+Marked saver used.
+saver_state: used (season 2027)
+CLI
+0
+('fetch-contest-streak', '--expected-username', 'walk_account')
+wrote /Users/eric/projects/bts-work/wr-chk-ea3/.codex-review/wr-ea3/tmpgotsor31/delivery/picks/account_state/contest_streak.json for season 2027: active_streak=14 best_streak=14 source_date=2027-07-15
+CLI
+0
+('saver-state', '--undo')
+Undid mark-used (saver active again).
+saver_state: active (season 2027)
+July 16 automatic: used -> skip; uncorrected active -> single
+CAPTURED
+BTS health WARN attention:
+- [contest_state] Morning check for 2027-07-14: the automatic contest reading was stale at startup (last accepted fetch 2027-07-13T14:00:00-04:00, about 20.00 hours ago). This reading is eligible if it remains in use. Before the first check, if prior entries are settled or absent and MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-14 --streak N --best-streak B --saver S --picks-dir DIR on 2027-07-14 ET only. DIR is the absolute scheduler picks path. This leaves the saver flag unchanged. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+CLI
+0
+('fetch-contest-streak', '--expected-username', 'walk_account')
+wrote /Users/eric/projects/bts-work/wr-chk-ea3/.codex-review/wr-ea3/tmpgotsor31/morning/picks/account_state/contest_streak.json for season 2027: active_streak=13 best_streak=13 source_date=2027-07-14
+CLI
+0
+('fetch-contest-streak', '--expected-username', 'walk_account')
+wrote /Users/eric/projects/bts-work/wr-chk-ea3/.codex-review/wr-ea3/tmpgotsor31/morning/picks/account_state/contest_streak.json for season 2027: active_streak=14 best_streak=14 source_date=2027-07-15
+morning warning read 2027-07-16 at 08:30. MLB confirmed its 2027 saver used July 13.
+CLI
+0
+('season-contract', 'status')
+ET date: 2027-07-16; year: 2027; inspected season: 2027
+switch: automatic
+  season: 2027
+  status: automatic
+  activation_id: 1788917e2e78401d998b31928de9c2ce
+  switched_at: 2027-07-14T13:00:00Z
+  revoked_at: None
+  note: None
+manual: absent
+automatic: parsed schema='bts_contest_streak_auto_v2' streak=14 best=14 source date=2027-07-15 recorded time=2027-07-16T05:10:00Z
+  season: 2027; activation_id: 1788917e2e78401d998b31928de9c2ce
+  identifier matches switch: True (comparison only)
+saver: active; season: 2027
+live decision now: accepted; source=contest; streak=14; status=fresh; saver=active
+automatic path alone: accepted (streak 14, recorded 2027-07-16T05:10:00Z)
+ledger: readable; rows: 3; bad lines: 0
+  recorded_at=2027-07-14T13:00:00Z; active_streak=12; best_streak=13; source_date=2027-07-13; season=2027; switched=True; activation_id=1788917e2e78401d998b31928de9c2ce; settled_by_year={'2027': 1}; settled_unmapped=0; unsettled=0
+  recorded_at=2027-07-15T05:10:00Z; active_streak=13; best_streak=13; source_date=2027-07-14; season=2027; switched=True; activation_id=1788917e2e78401d998b31928de9c2ce; settled_by_year={'2027': 1}; settled_unmapped=0; unsettled=0
+  recorded_at=2027-07-16T05:10:00Z; active_streak=14; best_streak=14; source_date=2027-07-15; season=2027; switched=True; activation_id=1788917e2e78401d998b31928de9c2ce; settled_by_year={'2027': 1}; settled_unmapped=0; unsettled=0
+saver_state: active (season 2027)
+CLI
+0
+('saver-state', '--use')
+Marked saver used.
+saver_state: used (season 2027)
+CLI
+0
+('saver-state', '--undo')
+Undid mark-used (saver active again).
+saver_state: active (season 2027)
+July 16 automatic: used -> skip; uncorrected active -> single
+CAPTURED
+BTS health WARN attention:
+- [contest_state] Morning check for 2027-12-31: the automatic contest reading was stale at startup (last accepted fetch 2027-12-30T14:00:00-05:00, about 20.00 hours ago). This reading is eligible if it remains in use. Before the first check, if prior entries are settled or absent and MLB differs from status (B8a), use bts set-contest-streak --date 2027-12-31 --streak N --best-streak B --saver S --picks-dir DIR on 2027-12-31 ET only. DIR is the absolute scheduler picks path. This leaves the saver flag unchanged. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+CLI
+0
+('saver-state',)
+saver_state: uninitialized (season 2028)
+saver_state: uninitialized (season 2028)
+CAPTURED
+BTS health WARN attention:
+- [contest_state] Morning check for 2028-01-01: the automatic contest reading was stale at startup (last accepted fetch 2027-12-31T14:00:00-05:00, about 20.00 hours ago). This reading is eligible if it remains in use. Before the first check, if prior entries are settled or absent and MLB differs from status (B8a), use bts set-contest-streak --date 2028-01-01 --streak N --best-streak B --saver S --picks-dir DIR on 2028-01-01 ET only. DIR is the absolute scheduler picks path. This leaves the saver flag unchanged. In 2028 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+CAPTURED
+BTS health WARN attention:
+- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-12-31T03:59:55-05:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2028-01-01 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write for the 2028-01-01 slate only on that ET date, with prior entries settled or absent. For a later slate date, see B8a. In 2028 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+CLI
+0
+('saver-state',)
+saver_state: uninitialized (season 2028)
+saver_state: uninitialized (season 2028)
+Year-crossing synthetic send uses 2028. A 2027 MLB saver usage does not authorize a 2028 flag write.
+CLI
+0
+('saver-state', '--init', 'active', '--season', 2027)
+Initialized saver flag: active (season 2027)
+saver_state: active (season 2027)
+saver_state: active (season 2027)
+CLI
+0
+('saver-state', '--use')
+Marked saver used.
+saver_state: used (season 2027)
+Flag active -> used
+CLI
+0
+('saver-state', '--init', 'not_earned', '--season', 2027)
+Initialized saver flag: not_earned (season 2027)
+saver_state: not_earned (season 2027)
+saver_state: not_earned (season 2027)
+CLI
+0
+('saver-state', '--use')
+Marked saver used (it was not_earned). To take this back run `bts saver-state --init not_earned --force --season 2027`.
+saver_state: used (season 2027)
+Flag not_earned -> used
+saver_state: uninitialized (season 2027)
+CLI
+0
+('saver-state', '--init', 'used', '--season', 2027)
+Initialized saver flag: used (season 2027)
+saver_state: used (season 2027)
+Flag uninitialized -> used
+CLI
+0
+('saver-state', '--init', 'used', '--season', 2027)
+Initialized saver flag: used (season 2027)
+saver_state: used (season 2027)
+saver_state: used (season 2027)
+Flag used -> used
+CLI
+0
+('saver-state',)
+saver_state: uninitialized (season 2027)
+CLI
+0
+('saver-state', '--init', 'active', '--season', 2027)
+Initialized saver flag: active (season 2027)
+saver_state: active (season 2027)
+CLI
+1
+('saver-state', '--init', 'used', '--season', 2027)
+Error: saver flag already initialized as 'active'; use --force to override
+saver_state: active (season 2027)
+saver_state: active (season 2027)
+CLI
+0
+('saver-state', '--use')
+Marked saver used.
+saver_state: used (season 2027)
+Reread after init race -> used

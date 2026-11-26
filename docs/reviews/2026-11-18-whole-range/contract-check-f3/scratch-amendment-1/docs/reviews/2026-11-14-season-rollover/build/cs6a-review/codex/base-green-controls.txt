@@ -1,0 +1,12 @@
+tests/test_live_gate_cs6a.py::test_entry_intent_diagnostics_are_ordered[[scheduler]\nentry_intent = 1\npick_delivery = "bad"\n-existing1-None]
+tests/test_live_gate_cs6a.py::test_entry_intent_diagnostics_are_ordered[scheduler = 1\nhealth_checks = 2\n-existing5-None]
+tests/test_live_gate_cs6a.py::test_schedule_passes_one_snapshot
+tests/test_live_gate_cs6a.py::test_orchestrate_malformed_toml_preserves_loader_error
+tests/test_live_gate_cs6a.py::test_orchestrate_direct_call_loads_private_research_path_and_posts
+tests/test_live_gate_cs6a.py::test_orchestrate_accepted_cli_loads_once_through_real_core
+tests/test_live_gate_cs6a.py::test_run_accepts_dated_and_covered_observations[dated]
+tests/test_live_gate_cs6a.py::test_run_accepts_dated_and_covered_observations[covered]
+tests/test_live_gate_cs6a.py::test_run_early_returns_without_state_access[False]
+tests/test_live_gate_cs6a.py::test_run_early_returns_without_state_access[True]
+tests/test_entry_intent.py::test_removing_cron_still_works_with_live_gate_problem
+tests/test_entry_intent.py::test_live_cron_with_required_state_preserves_show_and_install

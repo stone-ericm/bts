@@ -1,0 +1,140 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/cs1-rev-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 2 items
+
+.codex-review/cs1-review/test_row4_contract.py FF                        [100%]
+
+=================================== FAILURES ===================================
+__________________ test_row4_preserves_recorded_at_strings[] ___________________
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1227/test_row4_preserves_recorded_a0')
+recorded_at = ''
+
+    @pytest.mark.parametrize("recorded_at", ["", "not-a-time"])
+    def test_row4_preserves_recorded_at_strings(tmp_path, recorded_at):
+        account = tmp_path / "account_state"
+        account.mkdir()
+        (account / "contest_streak.json").write_text(json.dumps({
+            "active_streak": 7, "best_streak": 20, "recorded_at": recorded_at,
+        }))
+        now = datetime(2026, 6, 17, 16, tzinfo=timezone.utc)
+        optional = load_decision_streak_state(tmp_path, now=now)
+>       required = load_decision_streak_state(tmp_path, require_contest_state=True, now=now)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.codex-review/cs1-review/test_row4_contract.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/bts/contest_state.py:340: in load_decision_streak_state
+    contest = load_contest_streak_state(
+src/bts/contest_state.py:211: in load_contest_streak_state
+    auto = (_parse_state_file(auto_path, require_dated=require_dated_auto)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1227/test_row4_preserves_recorded_a0/account_state/contest_streak.json')
+
+    def _parse_state_file(path: Path, *, require_dated: bool = False) -> ContestStreakState:
+        """Parse one contest-streak observation file. Raises ContestStateError if malformed."""
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError) as exc:
+            raise ContestStateError(f"contest streak state malformed at {path}: {exc}") from exc
+        if not isinstance(data, dict):
+            raise ContestStateError(f"contest streak state malformed at {path}: expected object")
+        streak = data.get("active_streak", data.get("streak"))
+        if type(streak) is not int or streak < 0:        # type() not isinstance: reject bool
+            raise ContestStateError(f"contest streak invalid in {path}: {streak!r}")
+    
+        saver = data.get("saver_available")
+        if saver is not None and not isinstance(saver, bool):
+            raise ContestStateError(f"contest saver_available invalid in {path}: {saver!r}")
+    
+        best = data.get("best_streak")
+        if best is not None and type(best) is not int:
+            best = None
+    
+        if path.name == "contest_streak.json" and (
+            streak > TARGET_STREAK
+            or (best is not None and (best < streak or best > TARGET_STREAK))
+        ):
+            raise ContestStateError(
+                f"automatic contest streak invalid in {path}: active_streak={streak}, best_streak={best}"
+            )
+    
+        source_date = _parse_date(data.get("source_date") or data.get("as_of"))
+        if (require_dated and source_date is None and _parse_date(data.get("as_of")) is None
+                and _parse_dt(data.get("recorded_at")) is None):
+>           raise ContestStateError(f"automatic contest observation is undated at {path}")
+E           bts.contest_state.ContestStateError: automatic contest observation is undated at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1227/test_row4_preserves_recorded_a0/account_state/contest_streak.json
+
+src/bts/contest_state.py:166: ContestStateError
+_____________ test_row4_preserves_recorded_at_strings[not-a-time] ______________
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1227/test_row4_preserves_recorded_a1')
+recorded_at = 'not-a-time'
+
+    @pytest.mark.parametrize("recorded_at", ["", "not-a-time"])
+    def test_row4_preserves_recorded_at_strings(tmp_path, recorded_at):
+        account = tmp_path / "account_state"
+        account.mkdir()
+        (account / "contest_streak.json").write_text(json.dumps({
+            "active_streak": 7, "best_streak": 20, "recorded_at": recorded_at,
+        }))
+        now = datetime(2026, 6, 17, 16, tzinfo=timezone.utc)
+        optional = load_decision_streak_state(tmp_path, now=now)
+>       required = load_decision_streak_state(tmp_path, require_contest_state=True, now=now)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.codex-review/cs1-review/test_row4_contract.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/bts/contest_state.py:340: in load_decision_streak_state
+    contest = load_contest_streak_state(
+src/bts/contest_state.py:211: in load_contest_streak_state
+    auto = (_parse_state_file(auto_path, require_dated=require_dated_auto)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1227/test_row4_preserves_recorded_a1/account_state/contest_streak.json')
+
+    def _parse_state_file(path: Path, *, require_dated: bool = False) -> ContestStreakState:
+        """Parse one contest-streak observation file. Raises ContestStateError if malformed."""
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError) as exc:
+            raise ContestStateError(f"contest streak state malformed at {path}: {exc}") from exc
+        if not isinstance(data, dict):
+            raise ContestStateError(f"contest streak state malformed at {path}: expected object")
+        streak = data.get("active_streak", data.get("streak"))
+        if type(streak) is not int or streak < 0:        # type() not isinstance: reject bool
+            raise ContestStateError(f"contest streak invalid in {path}: {streak!r}")
+    
+        saver = data.get("saver_available")
+        if saver is not None and not isinstance(saver, bool):
+            raise ContestStateError(f"contest saver_available invalid in {path}: {saver!r}")
+    
+        best = data.get("best_streak")
+        if best is not None and type(best) is not int:
+            best = None
+    
+        if path.name == "contest_streak.json" and (
+            streak > TARGET_STREAK
+            or (best is not None and (best < streak or best > TARGET_STREAK))
+        ):
+            raise ContestStateError(
+                f"automatic contest streak invalid in {path}: active_streak={streak}, best_streak={best}"
+            )
+    
+        source_date = _parse_date(data.get("source_date") or data.get("as_of"))
+        if (require_dated and source_date is None and _parse_date(data.get("as_of")) is None
+                and _parse_dt(data.get("recorded_at")) is None):
+>           raise ContestStateError(f"automatic contest observation is undated at {path}")
+E           bts.contest_state.ContestStateError: automatic contest observation is undated at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1227/test_row4_preserves_recorded_a1/account_state/contest_streak.json
+
+src/bts/contest_state.py:166: ContestStateError
+=========================== short test summary info ============================
+FAILED .codex-review/cs1-review/test_row4_contract.py::test_row4_preserves_recorded_at_strings[]
+FAILED .codex-review/cs1-review/test_row4_contract.py::test_row4_preserves_recorded_at_strings[not-a-time]
+============================== 2 failed in 0.03s ===============================

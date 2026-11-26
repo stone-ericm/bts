@@ -1,0 +1,20 @@
+{
+  "decisions": 29232,
+  "policy_calls": 628488,
+  "actions": {
+    "double": 81816,
+    "single": 161616,
+    "skip": 370440
+  },
+  "health": 2088,
+  "artifact_sha": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
+  "tail_sha": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+  "warning": [
+    {
+      "level": "WARN",
+      "source": "saver_state",
+      "message": "Streak Saver not_earned in dated observation /Users/eric/projects/bts-work/cs4a-rev-codex/.codex-review/cs4a-review/edge_files/account_state/contest_streak.manual.json, season 2027, contradicts streak 10; counting the saver as spent. Check MLB and run ONE correction to the observation. Earned and unused: `bts set-contest-streak --date 2027-07-15 --streak 10 --best-streak 10 --saver active --picks-dir /Users/eric/projects/bts-work/cs4a-rev-codex/.codex-review/cs4a-review/edge_files`. Already used: `bts set-contest-streak --date 2027-07-15 --streak 10 --best-streak 10 --saver used --picks-dir /Users/eric/projects/bts-work/cs4a-rev-codex/.codex-review/cs4a-review/edge_files`. Not earned: `bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver not_earned --picks-dir /Users/eric/projects/bts-work/cs4a-rev-codex/.codex-review/cs4a-review/edge_files`, replacing N and B with the active and best streaks MLB shows. Changing the saver flag does not correct this observation.",
+      "incident_key": null
+    }
+  ]
+}

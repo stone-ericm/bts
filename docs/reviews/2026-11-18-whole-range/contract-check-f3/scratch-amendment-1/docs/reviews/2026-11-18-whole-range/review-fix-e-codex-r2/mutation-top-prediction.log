@@ -1,0 +1,24 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev2-e-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 55 items
+
+tests/test_wr_e_texts.py ................................F
+
+=================================== FAILURES ===================================
+____________________ test_run_single_check_skip_journal[K1] ____________________
+tests/test_wr_e_texts.py:108: in test_run_single_check_skip_journal
+    assert [line for line in capsys.readouterr().err.splitlines() if line.startswith("  SKIP —")] == [
+E   AssertionError: assert ['  SKIP — Ca...is check: 0.'] == ['  SKIP — Ca...is check: 0.']
+E     
+E     At index 0 diff: '  SKIP — Candidate used in the decision: Batter 0 (T0) 75.0%. Reason: Stopped! Streak used at this check: 0.' != '  SKIP — Candidate used in the decision: Kept (T) 75.0%. Reason: Stopped! Streak used at this check: 0.'
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/test_wr_e_texts.py::test_run_single_check_skip_journal[K1] - Ass...
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+========================= 1 failed, 32 passed in 1.06s =========================
+ 
+top-prediction DETECTED

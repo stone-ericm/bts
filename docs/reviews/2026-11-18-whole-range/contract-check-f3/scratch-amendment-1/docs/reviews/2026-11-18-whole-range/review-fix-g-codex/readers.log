@@ -1,0 +1,11 @@
+nice: setpriority: Operation not permitted
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-g-codex/.codex-review/wr-g/readers.py", line 120, in <module>
+    head(Path(tmp))
+  File "/Users/eric/projects/bts-work/wr-rev-g-codex/.codex-review/wr-g/readers.py", line 68, in head
+    day_times = {day: fixture(root, day, streak, p) for day, streak, p, _ in FIXTURES}
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-g-codex/.codex-review/wr-g/readers.py", line 42, in fixture
+    picks.save_pick(picks.DailyPick(date=day, run_time=now.isoformat(),
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: DailyPick.__init__() missing 2 required positional arguments: 'double_down' and 'runner_up'

@@ -1,0 +1,2 @@
+2026-11-25 17:48:17 started pid 69867: env TZ=America/New_York PYTHONDONTWRITEBYTECODE=1 .venv/bin/python scripts/audit/bullpen_r52_compare.py --streak --json /Users/eric/bts-runs/r59-result.json
+2026-11-25 17:52:17 exited rc=0

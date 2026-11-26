@@ -1,0 +1,183 @@
+{
+ "id": "I-093",
+ "working_id": "E93",
+ "title": "4/12 Hetzner cron script: the 03:00 chain's log redirect bound only to its last command, dropping pull/build/sync-to-r2 output (and sync ran before preview)",
+ "disposition": "unresolved_candidate",
+ "counted": true,
+ "missing_evidence": [
+  "which crontab the box ran at 2026-04-13 03:00 ET: the d5c466c layout (committed 11:46, replaced in the script at 12:31 on 4/12) or the 715c932 subshell layout; no April crontab history is in the repo (B1 holds only the final crontab and the 9/14 snapshot)",
+  "~/logs/cron.log for the 2026-04-13 and 2026-04-14 03:00 runs, if retained (Phase 2, B1/B2): whether pull/build lines appear"
+ ],
+ "classes": {
+  "primary": "A",
+  "secondary": [
+   "S"
+  ]
+ },
+ "tier": "B",
+ "tier_reason": "observability of the 03:00 data chain only (a failed step would be invisible in cron.log); no delivery or state effect of its own; the script was corrected 45 min after it was written",
+ "residual_reaches_production": false,
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "cron_job",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "Every step of the 03:00 chain (data pull, build, preview, sync-to-r2) writes its output to ~/logs/cron.log, and an R2 sync failure cannot block the morning preview.",
+  "source": "scripts/cron-setup-hetzner.sh 3am-chain comment and 715c932 body; design §6.2 V7 (each cron log's own markers)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "in `pull && build && sync-to-r2 && preview >> cron.log 2>&1` sh binds the redirect to the last command only, so pull/build/sync output went to cron's own stdout/mail instead of cron.log",
+   "code": [
+    {
+     "path": "scripts/cron-setup-hetzner.sh",
+     "ref": "b7d2135",
+     "symbol": "CRON_LINES (0 3 * * * chain)",
+     "ref_basis": "unknown"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "the same line ran sync-to-r2 before preview joined by &&, so an R2/credential failure would have skipped the preview pick",
+   "code": [
+    {
+     "path": "scripts/cron-setup-hetzner.sh",
+     "ref": "b7d2135",
+     "symbol": "CRON_LINES (0 3 * * * chain)",
+     "ref_basis": "unknown"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "715c932"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "715c932"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "preservation",
+  "trigger": "by 04:00 ET, cron.log lacks a completion (or error) marker for any step of that night's 03:00 chain (pull, build, preview, sync-to-r2)",
+  "recovery_assertion": "each step's success marker (or an explicit error) is in cron.log for the night and the R2 manifest time advances"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 715c932 message body + diff (scripts/cron-setup-hetzner.sh)",
+   "written_at": "2026-04-12T12:31:14-04:00",
+   "what": "the prior layout 'was silently dropping pull/build/sync output' because the redirect binds to the last command; the chain is reordered to preview before sync and wrapped in a subshell"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit d5c466c diff (scripts/cron-setup-hetzner.sh CRON_LINES)",
+   "written_at": "2026-04-12T11:46:14-04:00",
+   "what": "the first reproducible Hetzner crontab (4/12 11:46) carried the unwrapped pull && build && sync-to-r2 && preview >> cron.log line"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit d5c466c message body",
+   "written_at": "2026-04-12T11:46:14-04:00",
+   "what": "context (I-019's contemporaneous report): the manually installed crontab used `source .env` under dash and every job died on its first line since the 4/11 cutover, so no 03:00 chain ran before 4/12"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 28732c2 message body",
+   "written_at": "2026-04-14T11:47:16-04:00",
+   "what": "through 4/14 every 03:00 run stopped at `bts data pull` with a missing-option error and nobody noticed until a manual probe; where the error was read is not stated"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "candidate: 03:00 chain runs under the d5c466c layout, if it stayed installed (first possible 2026-04-13 03:00 ET)",
+   "onset": "unknown",
+   "first_detectable": "unknown",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-12T12:31:14-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "at": "2026-04-12T12:31:14-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "unknown",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "d5c466c",
+   "715c932",
+   "28732c2"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "scripts/cron-setup-hetzner.sh",
+   "design §6.2 V7"
+  ]
+ },
+ "related": [
+  "I-019",
+  "I-027",
+  "I-068"
+ ],
+ "notes": [
+  "disposition changed from the row's DL: before d5c466c the manual crontab died at `source` (nothing ran), and the defective script layout lived 45 min (11:46-12:31 on 4/12) with no 03:00 run inside that window; it fired only if the operator installed d5c466c and did not reinstall 715c932 before 4/13 03:00. If it never ran, this is a pre_ship_exclusion",
+  "deployed unknown: cron changes take effect only via `cron-setup-hetzner.sh install` on the box (the deploy workflow never touches crontab); the workflow candidate run 24311227107 (e997155, 2026-04-12T16:31:28Z) shipped the script file only; log bound: live by 2026-06-07T00:11:19Z",
+  "link 2 (sync before preview) is a second defect in the same line, fixed by the same commit; kept as a link rather than a split",
+  "watchdog boundary 'preservation' follows I-068 (same 03:00 chain; sync-to-r2 is the R2 preservation step)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

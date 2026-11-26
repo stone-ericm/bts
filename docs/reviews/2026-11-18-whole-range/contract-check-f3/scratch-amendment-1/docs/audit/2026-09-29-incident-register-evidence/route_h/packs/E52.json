@@ -1,0 +1,151 @@
+{
+ "id": "E52",
+ "episode_row": [
+  "E52",
+  "5/21\u20135/27",
+  "scheduler OOM-killed during inline shadow; escalation + memory alerts + restart_spike wrong advice",
+  "L/A",
+  "OI",
+  "A",
+  "43ddf0c a3df746 3a8d1bd 279f190 ac09137"
+ ],
+ "commits": [
+  {
+   "sha": "43ddf0c",
+   "authored": "2026-05-22T02:59:54-04:00",
+   "subject": "Dispatch shadow predictions out of process",
+   "body": "",
+   "files": [
+    "config/orchestrator.example.toml",
+    "scripts/shadow_predict_once.py",
+    "scripts/systemd/README.md",
+    "scripts/systemd/bts-shadow-prediction.service",
+    "src/bts/scheduler.py",
+    "tests/health/test_runner.py",
+    "tests/test_scheduler.py",
+    "tests/test_shadow_predict_once.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 26299067685,
+    "created_at": "2026-05-22T16:16:48Z",
+    "head_sha": "67543ca",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "a3df746",
+   "authored": "2026-05-23T16:56:54+03:00",
+   "subject": "fix(health): escalate inline shadow OOM visibility",
+   "body": "",
+   "files": [
+    "src/bts/health/analytics_artifacts_missing.py",
+    "src/bts/health/runner.py",
+    "src/bts/scheduler.py",
+    "tests/health/test_analytics_artifacts_missing.py",
+    "tests/health/test_runner.py",
+    "tests/test_scheduler.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 26334797353,
+    "created_at": "2026-05-23T14:06:53Z",
+    "head_sha": "a1dea18",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "3a8d1bd",
+   "authored": "2026-05-22T00:58:38-04:00",
+   "subject": "Add BTS health alert policy",
+   "body": "",
+   "files": [
+    "config/orchestrator.example.toml",
+    "src/bts/health/alert.py",
+    "src/bts/health/analytics_artifacts_missing.py",
+    "src/bts/health/attention.py",
+    "src/bts/health/disk_fill.py",
+    "src/bts/health/memory_growth.py",
+    "src/bts/health/runner.py",
+    "src/bts/scheduler.py",
+    "tests/health/test_alert.py",
+    "tests/health/test_analytics_artifacts_missing.py",
+    "tests/health/test_attention.py",
+    "tests/health/test_runner.py",
+    "tests/test_scheduler.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 26299067685,
+    "created_at": "2026-05-22T16:16:48Z",
+    "head_sha": "67543ca",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "279f190",
+   "authored": "2026-05-23T23:50:14+03:00",
+   "subject": "Recalibrate scheduler memory growth alerts",
+   "body": "",
+   "files": [
+    "src/bts/health/memory_growth.py",
+    "tests/health/test_memory_growth.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 26343307743,
+    "created_at": "2026-05-23T20:54:06Z",
+    "head_sha": "d550bed",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "ac09137",
+   "authored": "2026-05-27T16:09:09+03:00",
+   "subject": "fix: broaden restart spike alert wording",
+   "body": "",
+   "files": [
+    "docs/superpowers/runbooks/2026-05-23-alert-disposition.md",
+    "src/bts/health/restart_spike.py",
+    "tests/health/test_restart_spike.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 26514183945,
+    "created_at": "2026-05-27T13:29:34Z",
+    "head_sha": "8872109",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

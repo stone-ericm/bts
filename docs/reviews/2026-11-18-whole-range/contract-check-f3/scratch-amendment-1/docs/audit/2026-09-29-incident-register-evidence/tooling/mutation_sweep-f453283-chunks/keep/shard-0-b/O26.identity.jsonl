@@ -1,0 +1,7 @@
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_a_namespace_replaced_wholesale_leaves_nothing_current[cleared-alone]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_a_namespace_replaced_wholesale_leaves_nothing_current[cloned-alone]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_a_watched_namespace_cleared_wholesale_is_a_coverage_gap", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r9_counterexamples::test_a_store_through_a_non_string_key_leaves_nothing_current", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r9_counterexamples::test_wholesale_invalidation_at_every_chain_level[module-clone]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r9_counterexamples::test_wholesale_invalidation_at_every_chain_level[root-clone]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r9_counterexamples::test_wholesale_invalidation_at_every_chain_level[class-clone]", "kind": "assertion"}

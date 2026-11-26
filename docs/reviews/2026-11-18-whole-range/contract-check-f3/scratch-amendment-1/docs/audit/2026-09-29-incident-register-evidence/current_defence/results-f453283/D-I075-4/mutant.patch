@@ -1,0 +1,15 @@
+diff --git a/src/bts/health/restart_spike.py b/src/bts/health/restart_spike.py
+index 498c920..b340118 100644
+--- a/src/bts/health/restart_spike.py
++++ b/src/bts/health/restart_spike.py
+@@ -101,7 +101,9 @@ def check(
+     # Advance the checkpoint only across a day boundary (or on first run):
+     # same-day runs must diff against the day's first observation, not
+     # each other (the aliasing that hid the 2026-07-12 loop).
+-    if prior is None or prior_day != today.isoformat():
++    if not (prior is None or prior_day != today.isoformat()):
++        pass  # W1.5 mutant: pre-ec242da — a same-day re-run advances the checkpoint (pre-fix: every run did)
++    if True:
+         checkpoint_path.write_text(json.dumps({
+             "nrestarts": int(current_nrestarts),
+             "day": today.isoformat(),

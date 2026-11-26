@@ -1,0 +1,13 @@
+[Unit]
+Description=BTS live-forward candidate artifact resolver (one-shot)
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/bts/projects/bts
+Environment="PYTHONUNBUFFERED=1"
+Environment="UV_CACHE_DIR=/tmp/uv-cache"
+ExecStart=/home/bts/projects/bts/.venv/bin/python /home/bts/projects/bts/scripts/live_forward_resolve_once.py
+Nice=19
+StandardOutput=journal
+StandardError=journal

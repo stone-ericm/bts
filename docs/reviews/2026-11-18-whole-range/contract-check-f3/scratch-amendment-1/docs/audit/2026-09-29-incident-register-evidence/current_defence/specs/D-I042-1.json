@@ -1,0 +1,67 @@
+{
+ "label": "D-I042-1",
+ "link": "I-042 link 1",
+ "tests": [
+  "tests/health/test_realized_calibration.py",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/health/realized_calibration.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/health/realized_calibration.py",
+   "                day_hit = 1 if outcome == \"hit\" else 0\n",
+   "                pass  # W1.5 mutant: pre-b08769d \u2014 a slot's outcome is read from the day's streak result\n                day_hit = 1 if result == \"hit\" else 0\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/health/realized_calibration.py",
+  "text": "W1.5 mutant: pre-b08769d \u2014 a slot's outcome is read from the day's streak result"
+ },
+ "entry": {
+  "path": "src/bts/health/realized_calibration.py",
+  "qualname": "check"
+ },
+ "returns": [
+  {
+   "path": "src/bts/health/realized_calibration.py",
+   "qualname": "check",
+   "classify": [
+    [
+     "primary_band_critical",
+     "\"incident_key\": \"realized_calibration:75-80%\", \"level\": \"CRITICAL\""
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "return",
+  "path": "src/bts/health/realized_calibration.py",
+  "qualname": "check",
+  "category": "primary_band_critical"
+ },
+ "killing": [
+  {
+   "node": "tests/health/test_realized_calibration.py::TestDDLegBucket::test_both_buckets_alert_with_distinct_incident_keys",
+   "assertion": {
+    "path": "tests/health/test_realized_calibration.py",
+    "text": "assert levels == {\"WARN\", \"CRITICAL\"}",
+    "line": 206
+   }
+  }
+ ],
+ "contract": {
+  "text": "realized_calibration grades each pick slot by that slot's own outcome, never by the day's streak result, so on a double-down day a primary that hit is not counted as a miss because the other leg missed (and the 75-80% primary bucket does not escalate to CRITICAL on that bias).",
+  "entry_mode": "direct call of realized_calibration.check",
+  "trigger": "20 double-down days whose primary hit 12/20 while the day result is a hit only 2/20 (slot_results present; no PA frame, no regime stamps, no deploy filter)",
+  "symptom_kind": "wrong return (the 75-80% primary bucket alert is CRITICAL, read from day results, instead of WARN)"
+ },
+ "level": "production_path",
+ "level_justification": "the check reads pick files the test writes to a temporary picks directory; nothing is replaced",
+ "allowed_mocks": [],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

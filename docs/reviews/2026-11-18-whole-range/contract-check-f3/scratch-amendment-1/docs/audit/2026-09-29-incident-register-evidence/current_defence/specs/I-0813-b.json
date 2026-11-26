@@ -1,0 +1,78 @@
+{
+ "label": "I-0813-b",
+ "link": "I-083 link 2",
+ "tests": [
+  "tests/test_scheduler_decision_record_integration.py",
+  "tests/test_e3_missed_pick_alert.py",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/scheduler.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/scheduler.py",
+   "    if not state.committed_pick_written:\n        _maybe_alert_missed_pick(config, date, picks_dir, missed_pick_alert_min, heartbeat_path, state)\n",
+   "    if not state.pick_locked:  # W1.5 mutant: pre-224ddce gate on pick_locked\n        _maybe_alert_missed_pick(config, date, picks_dir, missed_pick_alert_min, heartbeat_path, state)\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/scheduler.py",
+  "text": "W1.5 mutant: pre-224ddce gate on pick_locked"
+ },
+ "entry": {
+  "path": "src/bts/scheduler.py",
+  "qualname": "run_day"
+ },
+ "boundaries": [
+  {
+   "name": "missed_pick_alert",
+   "binding": "bts.scheduler:_alert_missed_pick",
+   "value": [
+    "args[0]"
+   ],
+   "classify": [
+    [
+     "alert",
+     ""
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "absence",
+  "boundary": "missed_pick_alert",
+  "category": "alert"
+ },
+ "killing": [
+  {
+   "node": "tests/test_scheduler_decision_record_integration.py::test_nondelivered_classified_lock_on_pick_day_fires_missed_pick_alert",
+   "assertion": {
+    "path": "tests/test_scheduler_decision_record_integration.py",
+    "text": "alert.assert_called_once()",
+    "line": 281
+   }
+  }
+ ],
+ "contract": {
+  "text": "A day ending with an undelivered candidate, no scoreable commit and no deliberate skip alerts the operator (E3).",
+  "entry_mode": "run_day driven through _drive_run_day",
+  "trigger": "a non-delivered classification lock sets pick_locked",
+  "symptom_kind": "missing alert"
+ },
+ "level": "component",
+ "level_justification": "_drive_run_day replaces run_single_check, the schedule fetch, the clock, sleep, polling and the live-forward trigger",
+ "allowed_mocks": [
+  "bts.scheduler.run_single_check",
+  "bts.scheduler.fetch_schedule",
+  "bts.scheduler._now_et",
+  "bts.scheduler.time.sleep",
+  "bts.scheduler.run_result_polling",
+  "bts.scheduler._trigger_live_forward_capture_on_lock",
+  "bts.scheduler._alert_missed_pick (recorder)"
+ ],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

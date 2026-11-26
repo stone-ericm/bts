@@ -1,0 +1,37 @@
+{
+ "id": "E58",
+ "episode_row": [
+  "E58",
+  "6/06\u20136/10",
+  "fetch-contest-streak daily false \"failed\" DM",
+  "A",
+  "OI",
+  "B",
+  "8cd7207"
+ ],
+ "commits": [
+  {
+   "sha": "8cd7207",
+   "authored": "2026-06-10T10:54:26-04:00",
+   "subject": "fix(cli): fetch-contest-streak doesn't DM on the expected settlement lag",
+   "body": "The currentness gate DM'd on every fetch where the profile lagged our latest\npick \u2014 which is the NORMAL morning state (the contest settles day D the next\nday), so it fired a 'failed' DM daily. Now level-aware (reuses\nresolved_pick_settlement_gap): a 1-settled-pick lag refuses to overwrite but\nexits 0 with no DM; >=2 picks behind is genuine staleness and still alerts.\nSame false-alarm class as the H2 health-check fix.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/cli.py",
+    "tests/test_cli_integration.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27286303593,
+    "created_at": "2026-06-10T15:15:17Z",
+    "head_sha": "3a6e48b",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

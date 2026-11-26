@@ -1,0 +1,95 @@
+{
+ "id": "E74",
+ "episode_row": [
+  "E74",
+  "7/10\u20138/09",
+  "shadow result stranded a month; no alert",
+  "R/A",
+  "OI",
+  "A",
+  "4f0257a 41b2bb1 9ebad52"
+ ],
+ "commits": [
+  {
+   "sha": "4f0257a",
+   "authored": "2026-08-09T20:29:06-04:00",
+   "subject": "fix(cli): check-results \u2014 shadow reconcile on every exit, wait loop, stale-scoring guard",
+   "body": "The 2026-07-10 shadow pick sat ungraded for a month: SF@COL (10:15pm ET\nfirst pitch) was not final at the 01:00 cron, the production-pending path\nreturned before attempting shadow reconciliation, and nightly runs grade\n--date yesterday only \u2014 old dates are never revisited (the 02:00 reconcile\njob rechecks terminal picks only).\n\nWait-not-sweep design (Eric), hardened by a Codex adversarial round:\n\n- Every exit path (no-pick, already-resolved, unscoreable, resolver error,\n  production-pending, stale-refused) attempts shadow reconciliation +\n  status write first. Shadow grading is production-independent by design.\n- --wait-deadline-et HH:MM (cron passes 06:00): retry the grading pass\n  in-process every --wait-interval-min (15, IntRange 1-120) minutes until\n  the grader itself reports everything settled. The grader's resolvability\n  is the \"day over\" signal \u2014 suspended/postponed/batter-not-found\n  semantics stay defined in resolve_daily_slot_results, where a schedule\n  scan would deadlock on multi-day suspensions. Hard deadline: the final\n  sleep is capped so no attempt STARTS after it. The fail-closed\n  vanished-file branch stays pending (the file may be restored tonight).\n- Stale-scoring guard (review blocker): update_streak applies results\n  against CURRENT streak state, so grading an old date's unresolved\n  production out of chronological order corrupts the streak \u2014 and nothing\n  previously prevented it. Dates older than 2 days now refuse\n  streak-bearing scoring (shadow still reconciles \u2014 what makes manual\n  old-date remediation safe); --allow-stale-scoring overrides, only for a\n  chronologically-ordered backfill. Existing scoring-mechanics tests opt\n  in explicitly via the flag.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_012aRt7JMhNGc33Wy1RdjK7q",
+   "files": [
+    "CLAUDE.md",
+    "scripts/cron-setup-hetzner.sh",
+    "src/bts/cli.py",
+    "src/bts/health/runner.py",
+    "src/bts/health/shadow_resolution.py",
+    "tests/health/test_shadow_resolution.py",
+    "tests/test_check_results_wait.py",
+    "tests/test_cli_integration.py",
+    "tests/test_scoring_lock.py"
+   ],
+   "first_live_log": {
+    "sha": "64f0ffb",
+    "live_by": "2026-08-10T00:41:08Z",
+    "not_live_before": "2026-08-10T00:41:08Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 31344916217,
+    "created_at": "2026-08-10T00:36:31Z",
+    "head_sha": "64f0ffb",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "41b2bb1",
+   "authored": "2026-08-09T20:29:06-04:00",
+   "subject": "feat(health): result_resolution \u2014 stranded shadow AND production results alert instead of rotting",
+   "body": "Backstop for what the check-results wait loop cannot cover: box down\novernight, multi-day suspensions, deadline exhausted on transient API\nfailures. Nothing else revisits a stranded date \u2014 nightly crons grade\nyesterday only and reconcile skips nonterminal picks.\n\nReview-driven shape: version-blind shadow scan (a v3 stack bump must not\nhide stranded v2 results) inside a 30-day horizon (ancient\npre-discipline files never produce a standing alert); the production\nside flags scoreable picks left unresolved (GH #144 unscoreable\npreviews stay silent); WARN at age >=2d reaches the attention DM\nimmediately (always-attention source), CRITICAL at >=7d; one\nincident_key per date+side; runs unconditionally in the runner (gating\non shadow_model_enabled would stop monitoring already-written files the\nmoment generation is disabled); unresolved state derives in-memory from\nthe pick files, not the status JSON another process writes.\n\nAlso: write_manifest_json now writes via tmp+atomic-replace \u2014 the wait\nloop rewrites the status artifact repeatedly and a signal mid-write must\nnever leave a torn file.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_012aRt7JMhNGc33Wy1RdjK7q",
+   "files": [
+    "src/bts/health/attention.py",
+    "src/bts/health/result_resolution.py",
+    "src/bts/health/runner.py",
+    "src/bts/shadow_eval.py",
+    "tests/health/test_attention.py",
+    "tests/health/test_result_resolution.py",
+    "tests/health/test_runner.py"
+   ],
+   "first_live_log": {
+    "sha": "64f0ffb",
+    "live_by": "2026-08-10T00:41:08Z",
+    "not_live_before": "2026-08-10T00:41:08Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 31344916217,
+    "created_at": "2026-08-10T00:36:31Z",
+    "head_sha": "64f0ffb",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "9ebad52",
+   "authored": "2026-08-09T20:29:06-04:00",
+   "subject": "chore(cron)+docs: wait-deadline + flock singleton on the 01:00 grading cron",
+   "body": "flock -n makes the possibly-hours-long grader a singleton (an\noverlapping manual run no-ops instead of double-grading). ACTIVATION IS\nMANUAL: deploys never touch crontab \u2014 run\n`bash scripts/cron-setup-hetzner.sh install` on the box once (deploy\nchecklist). CLAUDE.md documents the protections, the safe remediation\npath, and the deploy-window caveat (a deploy between 01:00-06:00 leaves\nthe old-code grader running; its status artifact stamps the new SHA).\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_012aRt7JMhNGc33Wy1RdjK7q",
+   "files": [
+    "CLAUDE.md",
+    "scripts/cron-setup-hetzner.sh"
+   ],
+   "first_live_log": {
+    "sha": "64f0ffb",
+    "live_by": "2026-08-10T00:41:08Z",
+    "not_live_before": "2026-08-10T00:41:08Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 31344916217,
+    "created_at": "2026-08-10T00:36:31Z",
+    "head_sha": "64f0ffb",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

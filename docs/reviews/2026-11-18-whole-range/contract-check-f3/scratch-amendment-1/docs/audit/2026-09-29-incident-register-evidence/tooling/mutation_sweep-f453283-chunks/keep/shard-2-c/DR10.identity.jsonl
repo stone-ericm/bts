@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_deploy_runs::test_timeline_separates_observations_transitions_and_assumptions", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r6_counterexamples::test_live_at_inside_an_observations_precision_is_not_observed", "kind": "assertion"}

@@ -1,0 +1,177 @@
+nice: setpriority: Operation not permitted
+  3 new confirmed lineup(s). Running predictions...
+  Pick: Batter 0 (T0) 99.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: captured-pick
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only on the pick's ET slate date once prior entries settle or their windows close empty. For a later slate date, see B8a. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  3 new confirmed lineup(s). Running predictions...
+  3 new confirmed lineup(s). Running predictions...
+  Pick: Batter 0 (T0) 80.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: captured-pick
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 66.50 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-17 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only on the pick's ET slate date once prior entries settle or their windows close empty. For a later slate date, see B8a. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  3 new confirmed lineup(s). Running predictions...
+  Pick: Batter 0 (T0) 99.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: captured-pick
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only on the pick's ET slate date once prior entries settle or their windows close empty. For a later slate date, see B8a. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  3 new confirmed lineup(s). Running predictions...
+  3 new confirmed lineup(s). Running predictions...
+  SKIP — Candidate used in the decision: Batter 0 (T0) 80.0%, below the streak-15 bar (81.1%) using unrounded values. Streak used at this check: 15.
+  3 new confirmed lineup(s). Running predictions...
+  Pick: Batter 0 (T0) 99.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: captured-pick
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only on the pick's ET slate date once prior entries settle or their windows close empty. For a later slate date, see B8a. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+C28: 07-15 warning, 07-16 suspended; Pass at 16:08 on 07-17
+PICK TRANSPORT ('2027-07-15T18:35:00-04:00', "Today's picks (double down):\nBatter 0 (T0) vs Pitcher 0 — 99.0%\nBatter 1 (T1) vs Pitcher 1 — 99.0%\nP(both): 98.0%\n\nStreak: 0")
+HEALTH TRANSPORT BTS health WARN attention:
+- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only on the pick's ET slate date once prior entries settle or their windows close empty. For a later slate date, see B8a. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+CHECK 2027-07-15T18:35:00-04:00 double 1
+CLI 0 season-contract status
+ET date: 2027-07-17; year: 2027; inspected season: 2027
+switch: automatic
+  season: 2027
+  status: automatic
+  activation_id: d6ec860b50dd4cdab745f37129426806
+  switched_at: 2027-07-15T13:00:00Z
+  revoked_at: None
+  note: None
+manual: absent
+automatic: parsed schema='bts_contest_streak_auto_v2' streak=0 best=15 source date=2027-07-14 recorded time=2027-07-14T22:35:00-04:00
+  season: 2027; activation_id: d6ec860b50dd4cdab745f37129426806
+  identifier matches switch: True (comparison only)
+saver: used; season: 2027
+live decision now: accepted; source=contest; streak=0; status=fresh; saver=used
+automatic path alone: accepted (streak 0, recorded 2027-07-14T22:35:00-04:00)
+ledger: readable; rows: 1; bad lines: 0
+  recorded_at=2027-07-15T13:00:00Z; active_streak=0; best_streak=15; source_date=2027-07-14; season=2027; switched=True; activation_id=d6ec860b50dd4cdab745f37129426806; settled_by_year={'2027': 1}; settled_unmapped=0; unsettled=0
+CHECK 2027-07-17T16:05:00-04:00 None 0
+PICK TRANSPORT ('2027-07-17T17:05:00-04:00', "Today's picks (double down):\nBatter 0 (T0) vs Pitcher 0 — 80.0%\nBatter 1 (T1) vs Pitcher 1 — 80.0%\nP(both): 64.0%\n\nStreak: 0")
+HEALTH TRANSPORT BTS health WARN attention:
+- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 66.50 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-17 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only on the pick's ET slate date once prior entries settle or their windows close empty. For a later slate date, see B8a. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+CHECK 2027-07-17T17:05:00-04:00 double 1
+PICK TRANSPORT ('2027-07-15T18:35:00-04:00', "Today's picks (double down):\nBatter 0 (T0) vs Pitcher 0 — 99.0%\nBatter 1 (T1) vs Pitcher 1 — 99.0%\nP(both): 98.0%\n\nStreak: 0")
+HEALTH TRANSPORT BTS health WARN attention:
+- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only on the pick's ET slate date once prior entries settle or their windows close empty. For a later slate date, see B8a. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+CHECK 2027-07-15T18:35:00-04:00 double 1
+CLI 0 season-contract status
+ET date: 2027-07-17; year: 2027; inspected season: 2027
+switch: automatic
+  season: 2027
+  status: automatic
+  activation_id: 6a7f9fbad8e74bc192497cd480f8f31c
+  switched_at: 2027-07-15T13:00:00Z
+  revoked_at: None
+  note: None
+manual: absent
+automatic: parsed schema='bts_contest_streak_auto_v2' streak=0 best=15 source date=2027-07-14 recorded time=2027-07-14T22:35:00-04:00
+  season: 2027; activation_id: 6a7f9fbad8e74bc192497cd480f8f31c
+  identifier matches switch: True (comparison only)
+saver: used; season: 2027
+live decision now: accepted; source=contest; streak=0; status=fresh; saver=used
+automatic path alone: accepted (streak 0, recorded 2027-07-14T22:35:00-04:00)
+ledger: readable; rows: 1; bad lines: 0
+  recorded_at=2027-07-15T13:00:00Z; active_streak=0; best_streak=15; source_date=2027-07-14; season=2027; switched=True; activation_id=6a7f9fbad8e74bc192497cd480f8f31c; settled_by_year={'2027': 1}; settled_unmapped=0; unsettled=0
+CHECK 2027-07-17T16:05:00-04:00 None 0
+CLI 0 season-contract status
+ET date: 2027-07-17; year: 2027; inspected season: 2027
+switch: automatic
+  season: 2027
+  status: automatic
+  activation_id: 6a7f9fbad8e74bc192497cd480f8f31c
+  switched_at: 2027-07-15T13:00:00Z
+  revoked_at: None
+  note: None
+manual: absent
+automatic: parsed schema='bts_contest_streak_auto_v2' streak=0 best=15 source date=2027-07-14 recorded time=2027-07-14T22:35:00-04:00
+  season: 2027; activation_id: 6a7f9fbad8e74bc192497cd480f8f31c
+  identifier matches switch: True (comparison only)
+saver: used; season: 2027
+live decision now: accepted; source=contest; streak=0; status=fresh; saver=used
+automatic path alone: accepted (streak 0, recorded 2027-07-14T22:35:00-04:00)
+ledger: readable; rows: 1; bad lines: 0
+  recorded_at=2027-07-15T13:00:00Z; active_streak=0; best_streak=15; source_date=2027-07-14; season=2027; switched=True; activation_id=6a7f9fbad8e74bc192497cd480f8f31c; settled_by_year={'2027': 1}; settled_unmapped=0; unsettled=0
+CLI 0 set-contest-streak --date 2027-07-17 --streak 15 --best-streak 15 --saver used
+Observation written at /Users/eric/projects/bts-work/wr-chk-ea4/.codex-review/wr-ea4/tmp9f3hqj71/new/picks/account_state/contest_streak.manual.json: date=2027-07-17 streak=15 best=15 saver=used reason=None
+contest_streak: 15 (best 15, saver used) for 2027-07-17, in effect today
+CHECK 2027-07-17T17:05:00-04:00 skip 0
+PICK TRANSPORT ('2027-07-15T18:35:00-04:00', "Today's picks (double down):\nBatter 0 (T0) vs Pitcher 0 — 99.0%\nBatter 1 (T1) vs Pitcher 1 — 99.0%\nP(both): 98.0%\n\nStreak: 0")
+HEALTH TRANSPORT BTS health WARN attention:
+- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only on the pick's ET slate date once prior entries settle or their windows close empty. For a later slate date, see B8a. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+CHECK 2027-07-15T18:35:00-04:00 double 1
+CLI 0 season-contract status
+ET date: 2027-07-17; year: 2027; inspected season: 2027
+switch: automatic
+  season: 2027
+  status: automatic
+  activation_id: 5f4d5afd0172431a93573f793d226e93
+  switched_at: 2027-07-15T13:00:00Z
+  revoked_at: None
+  note: None
+manual: absent
+automatic: parsed schema='bts_contest_streak_auto_v2' streak=0 best=15 source date=2027-07-14 recorded time=2027-07-14T22:35:00-04:00
+  season: 2027; activation_id: 5f4d5afd0172431a93573f793d226e93
+  identifier matches switch: True (comparison only)
+saver: used; season: 2027
+live decision now: accepted; source=contest; streak=0; status=fresh; saver=used
+automatic path alone: accepted (streak 0, recorded 2027-07-14T22:35:00-04:00)
+ledger: readable; rows: 1; bad lines: 0
+  recorded_at=2027-07-15T13:00:00Z; active_streak=0; best_streak=15; source_date=2027-07-14; season=2027; switched=True; activation_id=5f4d5afd0172431a93573f793d226e93; settled_by_year={'2027': 1}; settled_unmapped=0; unsettled=0  3 new confirmed lineup(s). Running predictions...
+  3 new confirmed lineup(s). Running predictions...
+  SKIP — Candidate used in the decision: Batter 0 (T0) 80.0%, below the streak-15 bar (81.1%) using unrounded values. Streak used at this check: 15.
+  3 new confirmed lineup(s). Running predictions...
+  Pick: Batter 0 (T0) 99.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: captured-pick
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only on the pick's ET slate date once prior entries settle or their windows close empty. For a later slate date, see B8a. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  3 new confirmed lineup(s). Running predictions...
+
+CLI 0 set-contest-streak --date 2027-07-17 --streak 15 --best-streak 15 --saver used
+Observation written at /Users/eric/projects/bts-work/wr-chk-ea4/.codex-review/wr-ea4/tmp9f3hqj71/before_first/picks/account_state/contest_streak.manual.json: date=2027-07-17 streak=15 best=15 saver=used reason=None
+contest_streak: 15 (best 15, saver used) for 2027-07-17, in effect today
+CHECK 2027-07-17T16:05:00-04:00 None 0
+CHECK 2027-07-17T17:05:00-04:00 skip 0
+PICK TRANSPORT ('2027-07-15T18:35:00-04:00', "Today's pick: Batter 0 (T0)\nvs Pitcher 0 | 99.0%\n\nStreak: 15")
+HEALTH TRANSPORT BTS health WARN attention:
+- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only on the pick's ET slate date once prior entries settle or their windows close empty. For a later slate date, see B8a. In 2027 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+CHECK 2027-07-15T18:35:00-04:00 single 1
+CLI 0 season-contract status
+ET date: 2027-07-17; year: 2027; inspected season: 2027
+switch: automatic
+  season: 2027
+  status: automatic
+  activation_id: b3fccbb3c9494275881145b1b6149fca
+  switched_at: 2027-07-15T13:00:00Z
+  revoked_at: None
+  note: None
+manual: absent
+automatic: parsed schema='bts_contest_streak_auto_v2' streak=15 best=15 source date=2027-07-14 recorded time=2027-07-14T22:35:00-04:00
+  season: 2027; activation_id: b3fccbb3c9494275881145b1b6149fca
+  identifier matches switch: True (comparison only)
+saver: used; season: 2027
+live decision now: accepted; source=contest; streak=15; status=fresh; saver=used
+automatic path alone: accepted (streak 15, recorded 2027-07-14T22:35:00-04:00)
+ledger: readable; rows: 1; bad lines: 0
+  recorded_at=2027-07-15T13:00:00Z; active_streak=15; best_streak=15; source_date=2027-07-14; season=2027; switched=True; activation_id=b3fccbb3c9494275881145b1b6149fca; settled_by_year={'2027': 1}; settled_unmapped=0; unsettled=0
+CHECK 2027-07-17T16:05:00-04:00 None 0
+CLI 0 season-contract status
+ET date: 2027-07-17; year: 2027; inspected season: 2027
+switch: automatic
+  season: 2027
+  status: automatic
+  activation_id: b3fccbb3c9494275881145b1b6149fca
+  switched_at: 2027-07-15T13:00:00Z
+  revoked_at: None
+  note: None
+manual: absent
+automatic: parsed schema='bts_contest_streak_auto_v2' streak=15 best=15 source date=2027-07-14 recorded time=2027-07-14T22:35:00-04:00
+  season: 2027; activation_id: b3fccbb3c9494275881145b1b6149fca
+  identifier matches switch: True (comparison only)
+saver: used; season: 2027
+live decision now: accepted; source=contest; streak=15; status=fresh; saver=used
+automatic path alone: accepted (streak 15, recorded 2027-07-14T22:35:00-04:00)
+ledger: readable; rows: 1; bad lines: 0
+  recorded_at=2027-07-15T13:00:00Z; active_streak=15; best_streak=15; source_date=2027-07-14; season=2027; switched=True; activation_id=b3fccbb3c9494275881145b1b6149fca; settled_by_year={'2027': 1}; settled_unmapped=0; unsettled=0
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-chk-ea4/.codex-review/wr-ea4/probe_later_slate.py", line 264, in <module>
+    c28(root)
+  File "/Users/eric/projects/bts-work/wr-chk-ea4/.codex-review/wr-ea4/probe_later_slate.py", line 151, in c28
+    assert live(path).best_streak == 15 and live(path).saver_state == "used"
+                                            ^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DecisionStreakState' object has no attribute 'saver_state'. Did you mean: 'saver_flag_state'?

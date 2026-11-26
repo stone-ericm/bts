@@ -1,0 +1,37 @@
+nice: setpriority: Operation not permitted
+Verified bts source: /Users/eric/projects/bts-work/wr-c3v-r2-codex/.codex-review/wr-c3v-r2/mutation-archives/M5d/src/bts
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-c3v-r2-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 669 items
+
+tests/test_wr_c3v_corpus.py ............................................ [  6%]
+........................................................................ [ 17%]
+........................................................................ [ 28%]
+........................................................................ [ 38%]
+........................................................................ [ 49%]
+........................................................................ [ 60%]
+........................................................................ [ 71%]
+........................................................................ [ 81%]
+........................................................................ [ 92%]
+..........                                                               [ 94%]
+tests/test_wr_c3v_delivery.py .........                                  [ 95%]
+tests/test_wr_c3v_reconcile.py ..............                            [ 97%]
+tests/test_wr_c3_r2_entered_pick_blockers.py .........                   [ 98%]
+tests/test_wr_c3v_review_gaps.py .F.....                                 [100%]
+
+=================================== FAILURES ===================================
+_________________ test_same_file_blocker_condition_precedence __________________
+tests/test_wr_c3v_review_gaps.py:102: in test_same_file_blocker_condition_precedence
+    assert res_b.stderr == warning(PAST, "no final result on the pick")
+E   AssertionError: assert 'Season repla...calculated.\n' == 'Season repla...calculated.\n'
+E     
+E     - Season replay unavailable for 2027-04-16 (no final result on the pick); streak retained, not recalculated.
+E     ?                                           ^^^^ --------- -------
+E     + Season replay unavailable for 2027-04-16 (hit pick could not be loaded); streak retained, not recalculated.
+E     ?                                           ^       ++++++++++++++++++++
+=========================== short test summary info ============================
+FAILED tests/test_wr_c3v_review_gaps.py::test_same_file_blocker_condition_precedence
+======================== 1 failed, 668 passed in 8.35s =========================

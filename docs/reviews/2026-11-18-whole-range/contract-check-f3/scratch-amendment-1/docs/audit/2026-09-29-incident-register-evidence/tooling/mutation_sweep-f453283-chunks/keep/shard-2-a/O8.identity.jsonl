@@ -1,0 +1,1 @@
+{"node": "tests.scripts.incident_register.test_runner::test_an_exceptional_exit_is_a_classified_return_event", "kind": "assertion"}

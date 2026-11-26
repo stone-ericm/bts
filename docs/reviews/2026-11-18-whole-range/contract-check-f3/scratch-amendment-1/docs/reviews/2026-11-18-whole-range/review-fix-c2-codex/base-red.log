@@ -1,0 +1,1367 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-c2-rev-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 100 items
+
+tests/test_wr_c2_recovery.py FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF [ 43%]
+FFFFFFFFFF.FFFFFFFFFFFFFF..........                                      [ 78%]
+tests/test_alert_status_callers_cs6b2.py ................FFFF..          [100%]
+
+=================================== FAILURES ===================================
+_ test_restart_pages_unknown_delivery_without_resending[before_remote_accept] __
+tests/test_wr_c2_recovery.py:90: in test_restart_pages_unknown_delivery_without_resending
+    assert [msg["body"] for msg in season.messages if "DELIVERY OUTCOME UNKNOWN" in msg["body"]] == [copy(day)]
+E   assert [] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+ERROR    bts.strategy:strategy.py:96 MDP base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz')
+ERROR    bts.strategy:strategy.py:103 MDP tail policy not usable (base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz'): tail pairing unverifiable)
+WARNING  bts.health.alert:alert.py:47 [pick_entry WARN] 2027-03-24: committed pick entry never confirmed by the submission cutoff (last status=alerted, reason=no_pick) — check the contest account and the settled result
+WARNING  bts.health.alert:alert.py:47 [tail_policy WARN] base policy missing at data/models/mdp_policy.npz (187 days left: tail window opens at 28)
+WARNING  bts.health.alert:alert.py:47 [tail_policy WARN] tail policy unverifiable: base policy unavailable, so the pairing cannot be checked — the pick path is on the forced fallback (187 days left: tail window opens at 28)
+ERROR    bts.health.alert:alert.py:45 [disk_fill CRITICAL] disk usage 95.1% (880.9/926.3GB) on data/picks
+WARNING  bts.health.alert:alert.py:47 [pick_entry WARN] 2027-03-24: committed pick entry never confirmed by the submission cutoff (last status=alerted, reason=no_pick) — check the contest account and the settled result
+WARNING  bts.health.alert:alert.py:47 [tail_policy WARN] base policy missing at data/models/mdp_policy.npz (187 days left: tail window opens at 28)
+WARNING  bts.health.alert:alert.py:47 [tail_policy WARN] tail policy unverifiable: base policy unavailable, so the pairing cannot be checked — the pick path is on the forced fallback (187 days left: tail window opens at 28)
+ERROR    bts.health.alert:alert.py:45 [disk_fill CRITICAL] disk usage 95.1% (880.9/926.3GB) on data/picks
+__ test_restart_pages_unknown_delivery_without_resending[after_remote_accept] __
+tests/test_wr_c2_recovery.py:90: in test_restart_pages_unknown_delivery_without_resending
+    assert [msg["body"] for msg in season.messages if "DELIVERY OUTCOME UNKNOWN" in msg["body"]] == [copy(day)]
+E   assert [] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-24 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+ERROR    bts.strategy:strategy.py:96 MDP base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz')
+ERROR    bts.strategy:strategy.py:103 MDP tail policy not usable (base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz'): tail pairing unverifiable)
+WARNING  bts.health.alert:alert.py:47 [pick_entry WARN] 2027-03-24: committed pick entry never confirmed by the submission cutoff (last status=alerted, reason=no_pick) — check the contest account and the settled result
+WARNING  bts.health.alert:alert.py:47 [tail_policy WARN] base policy missing at data/models/mdp_policy.npz (187 days left: tail window opens at 28)
+WARNING  bts.health.alert:alert.py:47 [tail_policy WARN] tail policy unverifiable: base policy unavailable, so the pairing cannot be checked — the pick path is on the forced fallback (187 days left: tail window opens at 28)
+ERROR    bts.health.alert:alert.py:45 [disk_fill CRITICAL] disk usage 95.1% (880.9/926.3GB) on data/picks
+WARNING  bts.health.alert:alert.py:47 [pick_entry WARN] 2027-03-24: committed pick entry never confirmed by the submission cutoff (last status=alerted, reason=no_pick) — check the contest account and the settled result
+WARNING  bts.health.alert:alert.py:47 [tail_policy WARN] base policy missing at data/models/mdp_policy.npz (187 days left: tail window opens at 28)
+WARNING  bts.health.alert:alert.py:47 [tail_policy WARN] tail policy unverifiable: base policy unavailable, so the pairing cannot be checked — the pick path is on the forced fallback (187 days left: tail window opens at 28)
+ERROR    bts.health.alert:alert.py:45 [disk_fill CRITICAL] disk usage 95.1% (880.9/926.3GB) on data/picks
+_ test_restart_pages_unknown_delivery_without_resending[corrected_after_marker] _
+tests/test_wr_c2_recovery.py:90: in test_restart_pages_unknown_delivery_without_resending
+    assert [msg["body"] for msg in season.messages if "DELIVERY OUTCOME UNKNOWN" in msg["body"]] == [copy(day)]
+E   assert [] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-03-25 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+ERROR    bts.strategy:strategy.py:96 MDP base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz')
+ERROR    bts.strategy:strategy.py:103 MDP tail policy not usable (base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz'): tail pairing unverifiable)
+WARNING  bts.health.alert:alert.py:47 [pick_entry WARN] 2027-03-25: committed pick entry never confirmed by the submission cutoff (last status=alerted, reason=no_pick) — check the contest account and the settled result
+WARNING  bts.health.alert:alert.py:47 [tail_policy WARN] base policy missing at data/models/mdp_policy.npz (186 days left: tail window opens at 28)
+WARNING  bts.health.alert:alert.py:47 [tail_policy WARN] tail policy unverifiable: base policy unavailable, so the pairing cannot be checked — the pick path is on the forced fallback (186 days left: tail window opens at 28)
+ERROR    bts.health.alert:alert.py:45 [disk_fill CRITICAL] disk usage 95.1% (880.9/926.3GB) on data/picks
+WARNING  bts.health.alert:alert.py:47 [pick_entry WARN] 2027-03-25: committed pick entry never confirmed by the submission cutoff (last status=alerted, reason=no_pick) — check the contest account and the settled result
+WARNING  bts.health.alert:alert.py:47 [tail_policy WARN] base policy missing at data/models/mdp_policy.npz (186 days left: tail window opens at 28)
+WARNING  bts.health.alert:alert.py:47 [tail_policy WARN] tail policy unverifiable: base policy unavailable, so the pairing cannot be checked — the pick path is on the forced fallback (186 days left: tail window opens at 28)
+ERROR    bts.health.alert:alert.py:45 [disk_fill CRITICAL] disk usage 95.1% (880.9/926.3GB) on data/picks
+____________ test_direct_unconfirmed_uses_own_receipt_after_commit _____________
+tests/test_wr_c2_recovery.py:107: in test_direct_unconfirmed_uses_own_receipt_after_commit
+    assert json.loads(own(directory).read_bytes())["message_id"] == "ack"
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:1019: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3148/test_direct_unconfirmed_uses_o0/health_state/delivery_outcome_unknown/2027-07-15.json'
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:319 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: assert 'BTS health C... immediately.' == 'BTS health C...r that slate.'
+  
+  Skipping 77 identical leading characters in diff, use -v to show
+  - 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate.
+  + 2027-07-15: a prior send attempt for Steven Kwan was never confirme...
+  
+  ...Full output truncated (1 line hidden), use '-vv' to show
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/.codex-review/wr-c2-review/base/src/bts/health/alert.py", line 291, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/tests/test_wr_c2_recovery.py", line 101, in send
+    assert body == copy(DAY)
+AssertionError: assert 'BTS health C... immediately.' == 'BTS health C...r that slate.'
+  
+  Skipping 77 identical leading characters in diff, use -v to show
+  - 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on this alert. If 2027-07-15 is still today in ET and its submission window is open, run bts season-contract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate.
+  + 2027-07-15: a prior send attempt for Steven Kwan was never confirme...
+  
+  ...Full output truncated (1 line hidden), use '-vv' to show
+ERROR    bts.health.alert:alert.py:323 [health_dm_delivery CRITICAL] health alert DM delivery failed
+_ test_classified_restart_preserves_existing_commit_and_terminal_result[None] __
+tests/test_wr_c2_recovery.py:145: in test_classified_restart_preserves_existing_commit_and_terminal_result
+    assert [body for body in bodies if "DELIVERY OUTCOME UNKNOWN" in body] == [copy(DAY)]
+E   assert [] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+_ test_classified_restart_preserves_existing_commit_and_terminal_result[locked_unconfirmed] _
+tests/test_wr_c2_recovery.py:145: in test_classified_restart_preserves_existing_commit_and_terminal_result
+    assert [body for body in bodies if "DELIVERY OUTCOME UNKNOWN" in body] == [copy(DAY)]
+E   assert [] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+_ test_classified_restart_preserves_existing_commit_and_terminal_result[delivered] _
+tests/test_wr_c2_recovery.py:145: in test_classified_restart_preserves_existing_commit_and_terminal_result
+    assert [body for body in bodies if "DELIVERY OUTCOME UNKNOWN" in body] == [copy(DAY)]
+E   assert [] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+_ test_classified_restart_preserves_existing_commit_and_terminal_result[terminal] _
+tests/test_wr_c2_recovery.py:145: in test_classified_restart_preserves_existing_commit_and_terminal_result
+    assert [body for body in bodies if "DELIVERY OUTCOME UNKNOWN" in body] == [copy(DAY)]
+E   assert [] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+_ test_classified_restart_preserves_existing_commit_and_terminal_result[write_none] _
+tests/test_wr_c2_recovery.py:145: in test_classified_restart_preserves_existing_commit_and_terminal_result
+    assert [body for body in bodies if "DELIVERY OUTCOME UNKNOWN" in body] == [copy(DAY)]
+E   assert [] == ['BTS health ... that slate.']
+E     
+E     Right contains one more item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  MISSED-PICK ALERT — no delivery with ~35min to first pitch.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+______________ test_only_unknown_alert_requires_message_id[None] _______________
+tests/test_wr_c2_recovery.py:157: in test_only_unknown_alert_requires_message_id
+    checkpoint = json.loads(own(directory).read_bytes())
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:1019: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3148/test_only_unknown_alert_requir0/health_state/delivery_outcome_unknown/2027-07-15.json'
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+________________ test_only_unknown_alert_requires_message_id[] _________________
+tests/test_wr_c2_recovery.py:157: in test_only_unknown_alert_requires_message_id
+    checkpoint = json.loads(own(directory).read_bytes())
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:1019: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3148/test_only_unknown_alert_requir1/health_state/delivery_outcome_unknown/2027-07-15.json'
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+______________ test_only_unknown_alert_requires_message_id[ \t ] _______________
+tests/test_wr_c2_recovery.py:157: in test_only_unknown_alert_requires_message_id
+    checkpoint = json.loads(own(directory).read_bytes())
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:1019: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3148/test_only_unknown_alert_requir2/health_state/delivery_outcome_unknown/2027-07-15.json'
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+_______________ test_only_unknown_alert_requires_message_id[17] ________________
+tests/test_wr_c2_recovery.py:157: in test_only_unknown_alert_requires_message_id
+    checkpoint = json.loads(own(directory).read_bytes())
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:1019: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3148/test_only_unknown_alert_requir3/health_state/delivery_outcome_unknown/2027-07-15.json'
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+_____________ test_only_unknown_alert_requires_message_id[reply4] ______________
+tests/test_wr_c2_recovery.py:157: in test_only_unknown_alert_requires_message_id
+    checkpoint = json.loads(own(directory).read_bytes())
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:1019: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3148/test_only_unknown_alert_requir4/health_state/delivery_outcome_unknown/2027-07-15.json'
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:319 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: offline
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/.codex-review/wr-c2-review/base/src/bts/health/alert.py", line 291, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1202, in _execute_mock_call
+    raise result
+RuntimeError: offline
+ERROR    bts.health.alert:alert.py:323 [health_dm_delivery CRITICAL] health alert DM delivery failed
+______________ test_only_unknown_alert_requires_message_id[ ack ] ______________
+tests/test_wr_c2_recovery.py:157: in test_only_unknown_alert_requires_message_id
+    checkpoint = json.loads(own(directory).read_bytes())
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:1019: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3148/test_only_unknown_alert_requir5/health_state/delivery_outcome_unknown/2027-07-15.json'
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+_________ test_legacy_health_dispatch_matches_base[eod-pick_delivery] __________
+tests/test_wr_c2_recovery.py:217: in test_legacy_health_dispatch_matches_base
+    attempted = alert.dispatch_dm_for_health_alerts(
+E   TypeError: dispatch_dm_for_health_alerts() got an unexpected keyword argument 'require_message_id'
+------------------------------ Captured log call -------------------------------
+INFO     bts.health.alert:alert.py:302 sent health DM to offline.test (1 CRITICAL, 0 WARN attention)
+__________ test_legacy_health_dispatch_matches_base[4c-contest_state] __________
+tests/test_wr_c2_recovery.py:217: in test_legacy_health_dispatch_matches_base
+    attempted = alert.dispatch_dm_for_health_alerts(
+E   TypeError: dispatch_dm_for_health_alerts() got an unexpected keyword argument 'require_message_id'
+------------------------------ Captured log call -------------------------------
+INFO     bts.health.alert:alert.py:302 sent health DM to offline.test (0 CRITICAL, 1 WARN attention)
+_________ test_legacy_health_dispatch_matches_base[6b-1-contest_state] _________
+tests/test_wr_c2_recovery.py:217: in test_legacy_health_dispatch_matches_base
+    attempted = alert.dispatch_dm_for_health_alerts(
+E   TypeError: dispatch_dm_for_health_alerts() got an unexpected keyword argument 'require_message_id'
+------------------------------ Captured log call -------------------------------
+INFO     bts.health.alert:alert.py:302 sent health DM to offline.test (1 CRITICAL, 0 WARN attention)
+________ test_legacy_health_dispatch_matches_base[cutoff-late_delivery] ________
+tests/test_wr_c2_recovery.py:217: in test_legacy_health_dispatch_matches_base
+    attempted = alert.dispatch_dm_for_health_alerts(
+E   TypeError: dispatch_dm_for_health_alerts() got an unexpected keyword argument 'require_message_id'
+------------------------------ Captured log call -------------------------------
+INFO     bts.health.alert:alert.py:302 sent health DM to offline.test (1 CRITICAL, 0 WARN attention)
+________ test_legacy_health_dispatch_matches_base[void-postponed_pick] _________
+tests/test_wr_c2_recovery.py:217: in test_legacy_health_dispatch_matches_base
+    attempted = alert.dispatch_dm_for_health_alerts(
+E   TypeError: dispatch_dm_for_health_alerts() got an unexpected keyword argument 'require_message_id'
+------------------------------ Captured log call -------------------------------
+INFO     bts.health.alert:alert.py:302 sent health DM to offline.test (1 CRITICAL, 0 WARN attention)
+_____ test_legacy_health_dispatch_matches_base[no_recipient-contest_state] _____
+tests/test_wr_c2_recovery.py:217: in test_legacy_health_dispatch_matches_base
+    attempted = alert.dispatch_dm_for_health_alerts(
+E   TypeError: dispatch_dm_for_health_alerts() got an unexpected keyword argument 'require_message_id'
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:288 [health_dm_delivery CRITICAL] health alert DM skipped: no recipient
+______ test_legacy_health_dispatch_matches_base[duplicate-contest_state] _______
+tests/test_wr_c2_recovery.py:217: in test_legacy_health_dispatch_matches_base
+    attempted = alert.dispatch_dm_for_health_alerts(
+E   TypeError: dispatch_dm_for_health_alerts() got an unexpected keyword argument 'require_message_id'
+------------------------------ Captured log call -------------------------------
+INFO     bts.health.alert:alert.py:272 health DM suppressed: ['CRITICAL:contest_state'] already covered by today's DM (day=2027-07-15)
+______ test_legacy_health_dispatch_matches_base[exception-contest_state] _______
+tests/test_wr_c2_recovery.py:217: in test_legacy_health_dispatch_matches_base
+    attempted = alert.dispatch_dm_for_health_alerts(
+E   TypeError: dispatch_dm_for_health_alerts() got an unexpected keyword argument 'require_message_id'
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:319 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: offline
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/.codex-review/wr-c2-review/base/src/bts/health/alert.py", line 291, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+OSError: offline
+ERROR    bts.health.alert:alert.py:323 [health_dm_delivery CRITICAL] health alert DM delivery failed
+______ test_legacy_health_dispatch_matches_base[missing_id-contest_state] ______
+tests/test_wr_c2_recovery.py:217: in test_legacy_health_dispatch_matches_base
+    attempted = alert.dispatch_dm_for_health_alerts(
+E   TypeError: dispatch_dm_for_health_alerts() got an unexpected keyword argument 'require_message_id'
+------------------------------ Captured log call -------------------------------
+INFO     bts.health.alert:alert.py:302 sent health DM to offline.test (1 CRITICAL, 0 WARN attention)
+____________ test_unknown_receipt_ignores_unusable_path[truncated] _____________
+tests/test_wr_c2_recovery.py:270: in test_unknown_receipt_ignores_unusable_path
+    alert.send_dm.assert_called_once_with("offline.test", copy(DAY))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:960: in assert_called_once_with
+    raise AssertionError(msg)
+E   AssertionError: Expected 'mock' to be called once. Called 0 times.
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+______________ test_unknown_receipt_ignores_unusable_path[array] _______________
+tests/test_wr_c2_recovery.py:270: in test_unknown_receipt_ignores_unusable_path
+    alert.send_dm.assert_called_once_with("offline.test", copy(DAY))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:960: in assert_called_once_with
+    raise AssertionError(msg)
+E   AssertionError: Expected 'mock' to be called once. Called 0 times.
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+_______________ test_unknown_receipt_ignores_unusable_path[null] _______________
+tests/test_wr_c2_recovery.py:270: in test_unknown_receipt_ignores_unusable_path
+    alert.send_dm.assert_called_once_with("offline.test", copy(DAY))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:960: in assert_called_once_with
+    raise AssertionError(msg)
+E   AssertionError: Expected 'mock' to be called once. Called 0 times.
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+_____________ test_unknown_receipt_ignores_unusable_path[bad_sent] _____________
+tests/test_wr_c2_recovery.py:270: in test_unknown_receipt_ignores_unusable_path
+    alert.send_dm.assert_called_once_with("offline.test", copy(DAY))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:960: in assert_called_once_with
+    raise AssertionError(msg)
+E   AssertionError: Expected 'mock' to be called once. Called 0 times.
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+____________ test_unknown_receipt_ignores_unusable_path[directory] _____________
+tests/test_wr_c2_recovery.py:270: in test_unknown_receipt_ignores_unusable_path
+    alert.send_dm.assert_called_once_with("offline.test", copy(DAY))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:960: in assert_called_once_with
+    raise AssertionError(msg)
+E   AssertionError: Expected 'mock' to be called once. Called 0 times.
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+_______________ test_unknown_receipt_ignores_unusable_path[fifo] _______________
+tests/test_wr_c2_recovery.py:270: in test_unknown_receipt_ignores_unusable_path
+    alert.send_dm.assert_called_once_with("offline.test", copy(DAY))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:960: in assert_called_once_with
+    raise AssertionError(msg)
+E   AssertionError: Expected 'mock' to be called once. Called 0 times.
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+____________ test_unknown_receipt_ignores_unusable_path[unreadable] ____________
+tests/test_wr_c2_recovery.py:270: in test_unknown_receipt_ignores_unusable_path
+    alert.send_dm.assert_called_once_with("offline.test", copy(DAY))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:960: in assert_called_once_with
+    raise AssertionError(msg)
+E   AssertionError: Expected 'mock' to be called once. Called 0 times.
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+_____________ test_unknown_receipt_ignores_unusable_path[symlink] ______________
+tests/test_wr_c2_recovery.py:270: in test_unknown_receipt_ignores_unusable_path
+    alert.send_dm.assert_called_once_with("offline.test", copy(DAY))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:960: in assert_called_once_with
+    raise AssertionError(msg)
+E   AssertionError: Expected 'mock' to be called once. Called 0 times.
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+_____________ test_unknown_receipt_ignores_unusable_path[hardlink] _____________
+tests/test_wr_c2_recovery.py:270: in test_unknown_receipt_ignores_unusable_path
+    alert.send_dm.assert_called_once_with("offline.test", copy(DAY))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:960: in assert_called_once_with
+    raise AssertionError(msg)
+E   AssertionError: Expected 'mock' to be called once. Called 0 times.
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+_____________ test_unknown_receipt_ignores_unusable_path[dir_link] _____________
+tests/test_wr_c2_recovery.py:270: in test_unknown_receipt_ignores_unusable_path
+    alert.send_dm.assert_called_once_with("offline.test", copy(DAY))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:960: in assert_called_once_with
+    raise AssertionError(msg)
+E   AssertionError: Expected 'mock' to be called once. Called 0 times.
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+__________ test_unknown_receipt_ignores_unusable_path[blocked_parent] __________
+tests/test_wr_c2_recovery.py:270: in test_unknown_receipt_ignores_unusable_path
+    alert.send_dm.assert_called_once_with("offline.test", copy(DAY))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:960: in assert_called_once_with
+    raise AssertionError(msg)
+E   AssertionError: Expected 'mock' to be called once. Called 0 times.
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+__________________ test_no_recipient_retries_when_configured ___________________
+tests/test_wr_c2_recovery.py:282: in test_no_recipient_retries_when_configured
+    assert json.loads(own(directory).read_bytes())["status"] == "skipped_no_recipient"
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:1019: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3148/test_no_recipient_retries_when0/health_state/delivery_outcome_unknown/2027-07-15.json'
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:288 [health_dm_delivery CRITICAL] health alert DM skipped: no recipient
+__________ test_unknown_receipt_isolated_from_cutoff_and_eod[order0] ___________
+tests/test_wr_c2_recovery.py:299: in test_unknown_receipt_isolated_from_cutoff_and_eod
+    assert len(bodies) == 2 and sum(body == copy(DAY) for body in bodies) == 1
+E   AssertionError: assert (1 == 2)
+E    +  where 1 = len(['BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15: a prior send attempt for S... never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'])
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+  DELIVERY REFUSED (C2) — Steven Kwan: submission cutoff 19:05 ET passed 30.0 min ago; not delivering an unenterable pick.
+__________ test_unknown_receipt_isolated_from_cutoff_and_eod[order1] ___________
+tests/test_wr_c2_recovery.py:299: in test_unknown_receipt_isolated_from_cutoff_and_eod
+    assert len(bodies) == 2 and sum(body == copy(DAY) for body in bodies) == 1
+E   AssertionError: assert (1 == 2)
+E    +  where 1 = len(['BTS health CRITICAL alert(s):\n- [late_delivery] LATE DELIVERY REFUSED: Steven Kwan would have been sent 30 min afte...hing delivered; the scheduler will re-pick from later games if any remain. Enter a pick manually if you want one now.'])
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY REFUSED (C2) — Steven Kwan: submission cutoff 19:05 ET passed 30.0 min ago; not delivering an unenterable pick.
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+____ test_unknown_receipt_uses_slate_across_midnight[2027-03-25-2027-03-26] ____
+tests/test_wr_c2_recovery.py:342: in test_unknown_receipt_uses_slate_across_midnight
+    alert.send_dm.assert_called_once_with("offline.test", copy(day))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:960: in assert_called_once_with
+    raise AssertionError(msg)
+E   AssertionError: Expected 'mock' to be called once. Called 0 times.
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:30 ET] Fetching schedule for 2027-03-25...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:30 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 03-26 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 50 min)...
+  Day complete. Result: final
+____ test_unknown_receipt_uses_slate_across_midnight[2027-12-31-2028-01-01] ____
+tests/test_wr_c2_recovery.py:342: in test_unknown_receipt_uses_slate_across_midnight
+    alert.send_dm.assert_called_once_with("offline.test", copy(day))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:960: in assert_called_once_with
+    raise AssertionError(msg)
+E   AssertionError: Expected 'mock' to be called once. Called 0 times.
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:30 ET] Fetching schedule for 2027-12-31...
+  1 games, 1 scheduled checks:
+    17:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:30 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Sat 01-01 10:00 ET
+  Day complete. Result: final
+_ test_restart_retries_unknown_alert_after_interrupt[False-KeyboardInterrupt] __
+tests/test_wr_c2_recovery.py:378: in test_restart_retries_unknown_alert_after_interrupt
+    assert alert.send_dm.call_count == (1 if durable else 2)
+E   AssertionError: assert 1 == 2
+E    +  where 1 = <Mock id='4643125872'>.call_count
+E    +    where <Mock id='4643125872'> = alert.send_dm
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+_____ test_restart_retries_unknown_alert_after_interrupt[False-SystemExit] _____
+tests/test_wr_c2_recovery.py:378: in test_restart_retries_unknown_alert_after_interrupt
+    assert alert.send_dm.call_count == (1 if durable else 2)
+E   AssertionError: assert 1 == 2
+E    +  where 1 = <Mock id='4643125248'>.call_count
+E    +    where <Mock id='4643125248'> = alert.send_dm
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+__ test_restart_retries_unknown_alert_after_interrupt[True-KeyboardInterrupt] __
+tests/test_wr_c2_recovery.py:374: in test_restart_retries_unknown_alert_after_interrupt
+    assert own(directory).exists() is durable
+E   AssertionError: assert False is True
+E    +  where False = exists()
+E    +    where exists = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3148/test_restart_retries_unknown_a2/health_state/delivery_outcome_unknown/2027-07-15.json').exists
+E    +      where PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3148/test_restart_retries_unknown_a2/health_state/delivery_outcome_unknown/2027-07-15.json') = own(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3148/test_restart_retries_unknown_a2/picks'))
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+_____ test_restart_retries_unknown_alert_after_interrupt[True-SystemExit] ______
+tests/test_wr_c2_recovery.py:374: in test_restart_retries_unknown_alert_after_interrupt
+    assert own(directory).exists() is durable
+E   AssertionError: assert False is True
+E    +  where False = exists()
+E    +    where exists = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3148/test_restart_retries_unknown_a3/health_state/delivery_outcome_unknown/2027-07-15.json').exists
+E    +      where PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3148/test_restart_retries_unknown_a3/health_state/delivery_outcome_unknown/2027-07-15.json') = own(PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3148/test_restart_retries_unknown_a3/picks'))
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+____ test_unknown_alert_failure_is_contained_after_commit[dispatch-direct] _____
+tests/test_wr_c2_recovery.py:425: in test_unknown_alert_failure_is_contained_after_commit
+    assert direct(config, directory, daily) is False
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_wr_c2_recovery.py:41: in direct
+    return scheduler._deliver_and_lock_pick(daily, config, directory, scheduler_state(), DAY, "C2")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/wr-c2-review/base/src/bts/scheduler.py:1225: in _deliver_and_lock_pick
+    dispatch_dm_for_health_alerts(
+tests/test_wr_c2_recovery.py:407: in fail
+    raise error
+E   OSError: first line
+E   second linexxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+_ test_unknown_alert_failure_is_contained_after_commit[dispatch-classification] _
+tests/test_wr_c2_recovery.py:432: in test_unknown_alert_failure_is_contained_after_commit
+    assert len(lines) == (0 if stage == "stderr" else 1)
+E   assert 0 == 1
+E    +  where 0 = len([])
+____ test_unknown_alert_failure_is_contained_after_commit[formatter-direct] ____
+tests/test_wr_c2_recovery.py:425: in test_unknown_alert_failure_is_contained_after_commit
+    assert direct(config, directory, daily) is False
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_wr_c2_recovery.py:41: in direct
+    return scheduler._deliver_and_lock_pick(daily, config, directory, scheduler_state(), DAY, "C2")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/wr-c2-review/base/src/bts/scheduler.py:1225: in _deliver_and_lock_pick
+    dispatch_dm_for_health_alerts(
+.codex-review/wr-c2-review/base/src/bts/health/alert.py:253: in dispatch_dm_for_health_alerts
+    body = format_health_dm_body(critical, warn_attention)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   OSError: first line
+E   second linexxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+_ test_unknown_alert_failure_is_contained_after_commit[formatter-classification] _
+tests/test_wr_c2_recovery.py:432: in test_unknown_alert_failure_is_contained_after_commit
+    assert len(lines) == (0 if stage == "stderr" else 1)
+E   assert 0 == 1
+E    +  where 0 = len([])
+____ test_unknown_alert_failure_is_contained_after_commit[directory-direct] ____
+tests/test_wr_c2_recovery.py:432: in test_unknown_alert_failure_is_contained_after_commit
+    assert len(lines) == (0 if stage == "stderr" else 1)
+E   assert 0 == 1
+E    +  where 0 = len([])
+_ test_unknown_alert_failure_is_contained_after_commit[directory-classification] _
+tests/test_wr_c2_recovery.py:432: in test_unknown_alert_failure_is_contained_after_commit
+    assert len(lines) == (0 if stage == "stderr" else 1)
+E   assert 0 == 1
+E    +  where 0 = len([])
+______ test_unknown_alert_failure_is_contained_after_commit[write-direct] ______
+tests/test_wr_c2_recovery.py:432: in test_unknown_alert_failure_is_contained_after_commit
+    assert len(lines) == (0 if stage == "stderr" else 1)
+E   assert 0 == 1
+E    +  where 0 = len([])
+__ test_unknown_alert_failure_is_contained_after_commit[write-classification] __
+tests/test_wr_c2_recovery.py:432: in test_unknown_alert_failure_is_contained_after_commit
+    assert len(lines) == (0 if stage == "stderr" else 1)
+E   assert 0 == 1
+E    +  where 0 = len([])
+_____ test_unknown_alert_failure_is_contained_after_commit[stderr-direct] ______
+tests/test_wr_c2_recovery.py:425: in test_unknown_alert_failure_is_contained_after_commit
+    assert direct(config, directory, daily) is False
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_wr_c2_recovery.py:41: in direct
+    return scheduler._deliver_and_lock_pick(daily, config, directory, scheduler_state(), DAY, "C2")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/wr-c2-review/base/src/bts/scheduler.py:1225: in _deliver_and_lock_pick
+    dispatch_dm_for_health_alerts(
+tests/test_wr_c2_recovery.py:407: in fail
+    raise error
+E   OSError: first line
+E   second linexxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+___ test_unknown_alert_failure_is_contained_after_commit[unprintable-direct] ___
+tests/test_wr_c2_recovery.py:425: in test_unknown_alert_failure_is_contained_after_commit
+    assert direct(config, directory, daily) is False
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_wr_c2_recovery.py:41: in direct
+    return scheduler._deliver_and_lock_pick(daily, config, directory, scheduler_state(), DAY, "C2")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.codex-review/wr-c2-review/base/src/bts/scheduler.py:1225: in _deliver_and_lock_pick
+    dispatch_dm_for_health_alerts(
+tests/test_wr_c2_recovery.py:398: in fail
+    raise UnprintableError()
+E   tests.test_wr_c2_recovery.test_unknown_alert_failure_is_contained_after_commit.<locals>.fail.<locals>.UnprintableError: <exception str() failed>
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+_ test_unknown_alert_failure_is_contained_after_commit[unprintable-classification] _
+tests/test_wr_c2_recovery.py:432: in test_unknown_alert_failure_is_contained_after_commit
+    assert len(lines) == (0 if stage == "stderr" else 1)
+E   assert 0 == 1
+E    +  where 0 = len([])
+______ test_unknown_alert_operator_copy[never_left-18-35-0-False-direct] _______
+tests/test_wr_c2_recovery.py:480: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ...immediately.'] == ['BTS health ... that slate.']
+E     
+E     At index 0 diff: 'BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15: a prior send attempt for Steven Kwan was never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.' != "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on thi...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:319 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: assert 'the MLB entry for 2027-07-15 ET' in 'BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15: a prior send attempt for St...s never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/.codex-review/wr-c2-review/base/src/bts/health/alert.py", line 291, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/tests/test_wr_c2_recovery.py", line 466, in send
+    assert f"the MLB entry for {DAY} ET" in body
+AssertionError: assert 'the MLB entry for 2027-07-15 ET' in 'BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15: a prior send attempt for St...s never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'
+ERROR    bts.health.alert:alert.py:323 [health_dm_delivery CRITICAL] health alert DM delivery failed
+ERROR    bts.health.alert:alert.py:319 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: assert 'the MLB entry for 2027-07-15 ET' in '⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n...s never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/.codex-review/wr-c2-review/base/src/bts/health/alert.py", line 291, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/tests/test_wr_c2_recovery.py", line 466, in send
+    assert f"the MLB entry for {DAY} ET" in body
+AssertionError: assert 'the MLB entry for 2027-07-15 ET' in '⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n...s never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'
+ERROR    bts.health.alert:alert.py:323 [health_dm_delivery CRITICAL] health alert DM delivery failed
+__ test_unknown_alert_operator_copy[never_left-18-35-0-False-classification] ___
+tests/test_wr_c2_recovery.py:480: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert [] == ['BTS health ... that slate.']
+E     
+E     Right contains 2 more items, first extra item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+________ test_unknown_alert_operator_copy[accepted-18-35-0-True-direct] ________
+tests/test_wr_c2_recovery.py:480: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ...immediately.'] == ['BTS health ... that slate.']
+E     
+E     At index 0 diff: 'BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15: a prior send attempt for Steven Kwan was never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.' != "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on thi...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:319 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: assert 'the MLB entry for 2027-07-15 ET' in 'BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15: a prior send attempt for St...s never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/.codex-review/wr-c2-review/base/src/bts/health/alert.py", line 291, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/tests/test_wr_c2_recovery.py", line 466, in send
+    assert f"the MLB entry for {DAY} ET" in body
+AssertionError: assert 'the MLB entry for 2027-07-15 ET' in 'BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15: a prior send attempt for St...s never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'
+ERROR    bts.health.alert:alert.py:323 [health_dm_delivery CRITICAL] health alert DM delivery failed
+ERROR    bts.health.alert:alert.py:319 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: assert 'the MLB entry for 2027-07-15 ET' in '⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n...s never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/.codex-review/wr-c2-review/base/src/bts/health/alert.py", line 291, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/tests/test_wr_c2_recovery.py", line 466, in send
+    assert f"the MLB entry for {DAY} ET" in body
+AssertionError: assert 'the MLB entry for 2027-07-15 ET' in '⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n...s never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'
+ERROR    bts.health.alert:alert.py:323 [health_dm_delivery CRITICAL] health alert DM delivery failed
+____ test_unknown_alert_operator_copy[accepted-18-35-0-True-classification] ____
+tests/test_wr_c2_recovery.py:480: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert [] == ['BTS health ... that slate.']
+E     
+E     Right contains 2 more items, first extra item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+_________ test_unknown_alert_operator_copy[cutoff-19-6-0-False-direct] _________
+tests/test_wr_c2_recovery.py:480: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ...immediately.'] == ['BTS health ... that slate.']
+E     
+E     At index 0 diff: 'BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15: a prior send attempt for Steven Kwan was never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.' != "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on thi...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:319 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: assert 'the MLB entry for 2027-07-15 ET' in 'BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15: a prior send attempt for St...s never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/.codex-review/wr-c2-review/base/src/bts/health/alert.py", line 291, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/tests/test_wr_c2_recovery.py", line 466, in send
+    assert f"the MLB entry for {DAY} ET" in body
+AssertionError: assert 'the MLB entry for 2027-07-15 ET' in 'BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15: a prior send attempt for St...s never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'
+ERROR    bts.health.alert:alert.py:323 [health_dm_delivery CRITICAL] health alert DM delivery failed
+ERROR    bts.health.alert:alert.py:319 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: assert 'the MLB entry for 2027-07-15 ET' in '⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n...s never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/.codex-review/wr-c2-review/base/src/bts/health/alert.py", line 291, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/tests/test_wr_c2_recovery.py", line 466, in send
+    assert f"the MLB entry for {DAY} ET" in body
+AssertionError: assert 'the MLB entry for 2027-07-15 ET' in '⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n...s never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'
+ERROR    bts.health.alert:alert.py:323 [health_dm_delivery CRITICAL] health alert DM delivery failed
+_____ test_unknown_alert_operator_copy[cutoff-19-6-0-False-classification] _____
+tests/test_wr_c2_recovery.py:480: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert [] == ['BTS health ... that slate.']
+E     
+E     Right contains 2 more items, first extra item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[19:06 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[19:06 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 14 min)...
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[19:06 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[19:06 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 14 min)...
+  Day complete. Result: final
+______ test_unknown_alert_operator_copy[first_pitch-19-14-0-False-direct] ______
+tests/test_wr_c2_recovery.py:480: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ...immediately.'] == ['BTS health ... that slate.']
+E     
+E     At index 0 diff: 'BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15: a prior send attempt for Steven Kwan was never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.' != "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on thi...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:319 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: assert 'the MLB entry for 2027-07-15 ET' in 'BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15: a prior send attempt for St...s never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/.codex-review/wr-c2-review/base/src/bts/health/alert.py", line 291, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/tests/test_wr_c2_recovery.py", line 466, in send
+    assert f"the MLB entry for {DAY} ET" in body
+AssertionError: assert 'the MLB entry for 2027-07-15 ET' in 'BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15: a prior send attempt for St...s never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'
+ERROR    bts.health.alert:alert.py:323 [health_dm_delivery CRITICAL] health alert DM delivery failed
+ERROR    bts.health.alert:alert.py:319 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: assert 'the MLB entry for 2027-07-15 ET' in '⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n...s never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/.codex-review/wr-c2-review/base/src/bts/health/alert.py", line 291, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/tests/test_wr_c2_recovery.py", line 466, in send
+    assert f"the MLB entry for {DAY} ET" in body
+AssertionError: assert 'the MLB entry for 2027-07-15 ET' in '⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n...s never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'
+ERROR    bts.health.alert:alert.py:323 [health_dm_delivery CRITICAL] health alert DM delivery failed
+__ test_unknown_alert_operator_copy[first_pitch-19-14-0-False-classification] __
+tests/test_wr_c2_recovery.py:480: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert [] == ['BTS health ... that slate.']
+E     
+E     Right contains 2 more items, first extra item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[19:14 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[19:14 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 6 min)...
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[19:14 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[19:14 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 6 min)...
+  Day complete. Result: final
+________ test_unknown_alert_operator_copy[overnight-0-1-1-False-direct] ________
+tests/test_wr_c2_recovery.py:480: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ...immediately.'] == ['BTS health ... that slate.']
+E     
+E     At index 0 diff: 'BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15: a prior send attempt for Steven Kwan was never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.' != "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on thi...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:319 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: assert 'the MLB entry for 2027-07-15 ET' in 'BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15: a prior send attempt for St...s never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/.codex-review/wr-c2-review/base/src/bts/health/alert.py", line 291, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/tests/test_wr_c2_recovery.py", line 466, in send
+    assert f"the MLB entry for {DAY} ET" in body
+AssertionError: assert 'the MLB entry for 2027-07-15 ET' in 'BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15: a prior send attempt for St...s never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'
+ERROR    bts.health.alert:alert.py:323 [health_dm_delivery CRITICAL] health alert DM delivery failed
+ERROR    bts.health.alert:alert.py:319 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: assert 'the MLB entry for 2027-07-15 ET' in '⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n...s never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/.codex-review/wr-c2-review/base/src/bts/health/alert.py", line 291, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/tests/test_wr_c2_recovery.py", line 466, in send
+    assert f"the MLB entry for {DAY} ET" in body
+AssertionError: assert 'the MLB entry for 2027-07-15 ET' in '⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n...s never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'
+ERROR    bts.health.alert:alert.py:323 [health_dm_delivery CRITICAL] health alert DM delivery failed
+____ test_unknown_alert_operator_copy[overnight-0-1-1-False-classification] ____
+tests/test_wr_c2_recovery.py:480: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert [] == ['BTS health ... that slate.']
+E     
+E     Right contains 2 more items, first extra item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[00:01 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[00:01 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[00:01 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[00:01 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Day complete. Result: final
+___ test_unknown_alert_operator_copy[switched_private-18-35-0-False-direct] ____
+tests/test_wr_c2_recovery.py:480: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert ['BTS health ...immediately.'] == ['BTS health ... that slate.']
+E     
+E     At index 0 diff: 'BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15: a prior send attempt for Steven Kwan was never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.' != "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that slate was never confirmed, and the scheduler locked the slate without resending. Check the DM or public feed and the MLB entry for 2027-07-15 ET. Do not enter or change a pick based on thi...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+  DELIVERY OUTCOME UNKNOWN (C2) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:319 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: assert 'the MLB entry for 2027-07-15 ET' in 'BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15: a prior send attempt for St...s never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/.codex-review/wr-c2-review/base/src/bts/health/alert.py", line 291, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/tests/test_wr_c2_recovery.py", line 466, in send
+    assert f"the MLB entry for {DAY} ET" in body
+AssertionError: assert 'the MLB entry for 2027-07-15 ET' in 'BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15: a prior send attempt for St...s never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'
+ERROR    bts.health.alert:alert.py:323 [health_dm_delivery CRITICAL] health alert DM delivery failed
+ERROR    bts.health.alert:alert.py:319 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: assert 'the MLB entry for 2027-07-15 ET' in '⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n...s never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/.codex-review/wr-c2-review/base/src/bts/health/alert.py", line 291, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-c2-rev-codex/tests/test_wr_c2_recovery.py", line 466, in send
+    assert f"the MLB entry for {DAY} ET" in body
+AssertionError: assert 'the MLB entry for 2027-07-15 ET' in '⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n...s never confirmed (crash mid-send?). Locked without re-sending — verify the DM/feed and the MLB app entry immediately.'
+ERROR    bts.health.alert:alert.py:323 [health_dm_delivery CRITICAL] health alert DM delivery failed
+_ test_unknown_alert_operator_copy[switched_private-18-35-0-False-classification] _
+tests/test_wr_c2_recovery.py:480: in test_unknown_alert_operator_copy
+    assert [call.args[1] for call in alert.send_dm.call_args_list] == [copy(DAY)] * 2
+E   assert [] == ['BTS health ... that slate.']
+E     
+E     Right contains 2 more items, first extra item: "BTS health CRITICAL alert(s):\n- [late_delivery] DELIVERY OUTCOME UNKNOWN for 2027-07-15 ET. A send attempt for that ...ntract status with --picks-dir set to the scheduler's picks directory before making any entry decision for that slate."
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[18:35 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+
+[18:35 ET] Running lineup check...
+  Pick already committed (scoreable decision on disk) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+______ test_shared_alert_callers[unconfirmed-late_delivery-green_missing] ______
+/Users/eric/projects/bts-work/wr-c2-rev-codex/tests/test_alert_status_callers_cs6b2.py:154: in test_shared_alert_callers
+    assert not path.exists()
+E   AssertionError: assert not True
+E    +  where True = exists()
+E    +    where exists = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3148/test_shared_alert_callers_unco0/health_state/health_dm_delivery_status.json').exists
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (unconfirmed) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+_________ test_shared_alert_callers[unconfirmed-late_delivery-corrupt] _________
+/Users/eric/projects/bts-work/wr-c2-rev-codex/tests/test_alert_status_callers_cs6b2.py:152: in test_shared_alert_callers
+    assert path.read_text() == "[]"
+E   assert '{\n  "body_f...ount": 0\n}\n' == '[]'
+E     
+E     - []
+E     + {
+E     +   "body_first_line": "BTS health CRITICAL alert(s):",
+E     +   "body_sha256": "7d27d5a9e86b84c28f200841ad2f6db994248f9fe6a77a31355c83d18ff91c6d",
+E     +   "critical_count": 1,
+E     +   "recipient": "offline.test",...
+E     
+E     ...Full output truncated (10 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  DELIVERY OUTCOME UNKNOWN (unconfirmed) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+_ test_shared_alert_callers[classified_unconfirmed-late_delivery-green_missing] _
+/Users/eric/projects/bts-work/wr-c2-rev-codex/tests/test_alert_status_callers_cs6b2.py:147: in test_shared_alert_callers
+    assert any(a.source == source and a.level == "CRITICAL" for _, _, alerts in observed for a in alerts)
+E   assert False
+E    +  where False = any(<generator object test_shared_alert_callers.<locals>.<genexpr> at 0x1150b62f0>)
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+___ test_shared_alert_callers[classified_unconfirmed-late_delivery-corrupt] ____
+/Users/eric/projects/bts-work/wr-c2-rev-codex/tests/test_alert_status_callers_cs6b2.py:147: in test_shared_alert_callers
+    assert any(a.source == source and a.level == "CRITICAL" for _, _, alerts in observed for a in alerts)
+E   assert False
+E    +  where False = any(<generator object test_shared_alert_callers.<locals>.<genexpr> at 0x1150b7d30>)
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+=========================== short test summary info ============================
+FAILED tests/test_wr_c2_recovery.py::test_restart_pages_unknown_delivery_without_resending[before_remote_accept]
+FAILED tests/test_wr_c2_recovery.py::test_restart_pages_unknown_delivery_without_resending[after_remote_accept]
+FAILED tests/test_wr_c2_recovery.py::test_restart_pages_unknown_delivery_without_resending[corrected_after_marker]
+FAILED tests/test_wr_c2_recovery.py::test_direct_unconfirmed_uses_own_receipt_after_commit
+FAILED tests/test_wr_c2_recovery.py::test_classified_restart_preserves_existing_commit_and_terminal_result[None]
+FAILED tests/test_wr_c2_recovery.py::test_classified_restart_preserves_existing_commit_and_terminal_result[locked_unconfirmed]
+FAILED tests/test_wr_c2_recovery.py::test_classified_restart_preserves_existing_commit_and_terminal_result[delivered]
+FAILED tests/test_wr_c2_recovery.py::test_classified_restart_preserves_existing_commit_and_terminal_result[terminal]
+FAILED tests/test_wr_c2_recovery.py::test_classified_restart_preserves_existing_commit_and_terminal_result[write_none]
+FAILED tests/test_wr_c2_recovery.py::test_only_unknown_alert_requires_message_id[None]
+FAILED tests/test_wr_c2_recovery.py::test_only_unknown_alert_requires_message_id[]
+FAILED tests/test_wr_c2_recovery.py::test_only_unknown_alert_requires_message_id[ \t ]
+FAILED tests/test_wr_c2_recovery.py::test_only_unknown_alert_requires_message_id[17]
+FAILED tests/test_wr_c2_recovery.py::test_only_unknown_alert_requires_message_id[reply4]
+FAILED tests/test_wr_c2_recovery.py::test_only_unknown_alert_requires_message_id[ ack ]
+FAILED tests/test_wr_c2_recovery.py::test_legacy_health_dispatch_matches_base[eod-pick_delivery]
+FAILED tests/test_wr_c2_recovery.py::test_legacy_health_dispatch_matches_base[4c-contest_state]
+FAILED tests/test_wr_c2_recovery.py::test_legacy_health_dispatch_matches_base[6b-1-contest_state]
+FAILED tests/test_wr_c2_recovery.py::test_legacy_health_dispatch_matches_base[cutoff-late_delivery]
+FAILED tests/test_wr_c2_recovery.py::test_legacy_health_dispatch_matches_base[void-postponed_pick]
+FAILED tests/test_wr_c2_recovery.py::test_legacy_health_dispatch_matches_base[no_recipient-contest_state]
+FAILED tests/test_wr_c2_recovery.py::test_legacy_health_dispatch_matches_base[duplicate-contest_state]
+FAILED tests/test_wr_c2_recovery.py::test_legacy_health_dispatch_matches_base[exception-contest_state]
+FAILED tests/test_wr_c2_recovery.py::test_legacy_health_dispatch_matches_base[missing_id-contest_state]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_receipt_ignores_unusable_path[truncated]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_receipt_ignores_unusable_path[array]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_receipt_ignores_unusable_path[null]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_receipt_ignores_unusable_path[bad_sent]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_receipt_ignores_unusable_path[directory]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_receipt_ignores_unusable_path[fifo]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_receipt_ignores_unusable_path[unreadable]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_receipt_ignores_unusable_path[symlink]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_receipt_ignores_unusable_path[hardlink]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_receipt_ignores_unusable_path[dir_link]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_receipt_ignores_unusable_path[blocked_parent]
+FAILED tests/test_wr_c2_recovery.py::test_no_recipient_retries_when_configured
+FAILED tests/test_wr_c2_recovery.py::test_unknown_receipt_isolated_from_cutoff_and_eod[order0]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_receipt_isolated_from_cutoff_and_eod[order1]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_receipt_uses_slate_across_midnight[2027-03-25-2027-03-26]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_receipt_uses_slate_across_midnight[2027-12-31-2028-01-01]
+FAILED tests/test_wr_c2_recovery.py::test_restart_retries_unknown_alert_after_interrupt[False-KeyboardInterrupt]
+FAILED tests/test_wr_c2_recovery.py::test_restart_retries_unknown_alert_after_interrupt[False-SystemExit]
+FAILED tests/test_wr_c2_recovery.py::test_restart_retries_unknown_alert_after_interrupt[True-KeyboardInterrupt]
+FAILED tests/test_wr_c2_recovery.py::test_restart_retries_unknown_alert_after_interrupt[True-SystemExit]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_failure_is_contained_after_commit[dispatch-direct]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_failure_is_contained_after_commit[dispatch-classification]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_failure_is_contained_after_commit[formatter-direct]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_failure_is_contained_after_commit[formatter-classification]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_failure_is_contained_after_commit[directory-direct]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_failure_is_contained_after_commit[directory-classification]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_failure_is_contained_after_commit[write-direct]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_failure_is_contained_after_commit[write-classification]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_failure_is_contained_after_commit[stderr-direct]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_failure_is_contained_after_commit[unprintable-direct]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_failure_is_contained_after_commit[unprintable-classification]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[never_left-18-35-0-False-direct]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[never_left-18-35-0-False-classification]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[accepted-18-35-0-True-direct]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[accepted-18-35-0-True-classification]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[cutoff-19-6-0-False-direct]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[cutoff-19-6-0-False-classification]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[first_pitch-19-14-0-False-direct]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[first_pitch-19-14-0-False-classification]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[overnight-0-1-1-False-direct]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[overnight-0-1-1-False-classification]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[switched_private-18-35-0-False-direct]
+FAILED tests/test_wr_c2_recovery.py::test_unknown_alert_operator_copy[switched_private-18-35-0-False-classification]
+FAILED tests/test_alert_status_callers_cs6b2.py::test_shared_alert_callers[unconfirmed-late_delivery-green_missing]
+FAILED tests/test_alert_status_callers_cs6b2.py::test_shared_alert_callers[unconfirmed-late_delivery-corrupt]
+FAILED tests/test_alert_status_callers_cs6b2.py::test_shared_alert_callers[classified_unconfirmed-late_delivery-green_missing]
+FAILED tests/test_alert_status_callers_cs6b2.py::test_shared_alert_callers[classified_unconfirmed-late_delivery-corrupt]
+======================== 71 failed, 29 passed in 3.90s =========================

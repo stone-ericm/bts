@@ -1,0 +1,1 @@
+{"node": "tests.scripts.incident_register.test_fresh_counterexamples::test_the_oracle_record_never_equates_distinct_json_types[bad_json]", "kind": "assertion"}

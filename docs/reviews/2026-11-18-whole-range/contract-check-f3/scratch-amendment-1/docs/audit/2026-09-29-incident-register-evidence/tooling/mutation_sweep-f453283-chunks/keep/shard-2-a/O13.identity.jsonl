@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_r4_counterexamples::test_serializing_a_dict_runs_no_key_equality", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r4_counterexamples::test_a_truncated_value_never_compares_equal[value2]", "kind": "assertion"}

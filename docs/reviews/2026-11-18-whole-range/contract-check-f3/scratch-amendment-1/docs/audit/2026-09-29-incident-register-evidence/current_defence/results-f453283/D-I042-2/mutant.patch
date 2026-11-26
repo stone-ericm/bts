@@ -1,0 +1,15 @@
+diff --git a/src/bts/health/realized_calibration.py b/src/bts/health/realized_calibration.py
+index fe2ef40..c980991 100644
+--- a/src/bts/health/realized_calibration.py
++++ b/src/bts/health/realized_calibration.py
+@@ -294,9 +294,7 @@ def check(
+                 continue
+         elif since_deploy_iso is not None:
+             run_time = body.get("run_time", "")
+-            if not run_time or _iso_before(run_time, since_deploy_iso):
+-                skipped_pre_deploy += 1
+-                continue
++            pass  # W1.5 mutant: pre-c5256e6 — no deploy filter: picks from earlier model iterations are pooled
+         result = body.get("result")
+         if result not in ("hit", "miss"):
+             continue

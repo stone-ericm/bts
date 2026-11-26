@@ -1,0 +1,3 @@
+{"node": "tests.scripts.incident_register.test_r4_counterexamples::test_an_initially_unsupported_c_boundary_makes_absence_unavailable", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r6_counterexamples::test_a_spoofed_function_type_name_runs_no_application_code", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_runner::test_a_c_implemented_boundary_is_a_coverage_gap", "kind": "assertion"}

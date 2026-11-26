@@ -1,0 +1,38 @@
+{
+ "id": "E55",
+ "episode_row": [
+  "E55",
+  "5/27",
+  "dashboard /health timed out; restart needed",
+  "U/L",
+  "OI?",
+  "B",
+  "c127673"
+ ],
+ "commits": [
+  {
+   "sha": "c127673",
+   "authored": "2026-05-27T16:24:05+03:00",
+   "subject": "fix: keep dashboard health responsive",
+   "body": "",
+   "files": [
+    "docs/superpowers/runbooks/2026-05-23-alert-disposition.md",
+    "src/bts/web.py",
+    "tests/test_health_endpoint.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 26514183945,
+    "created_at": "2026-05-27T13:29:34Z",
+    "head_sha": "8872109",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

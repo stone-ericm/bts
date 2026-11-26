@@ -1,0 +1,77 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-g-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 259 items
+
+tests/test_wr_g_guard.py .........................                       [  9%]
+tests/test_boundary_shadow_census_g.py .                                 [ 10%]
+tests/test_wr_a_calendar_replay_carbon.py ..............                 [ 15%]
+tests/test_tail_policy_r3_fixes.py ...................                   [ 22%]
+tests/test_scheduler_tail_objective.py .........                         [ 26%]
+tests/test_daily_decision.py ........                                    [ 29%]
+tests/test_strategy.py ................................................  [ 47%]
+tests/test_decide_action.py .............                                [ 52%]
+tests/test_orchestrator.py .............                                 [ 57%]
+tests/test_cli_integration.py .......................................... [ 74%]
+............................                                             [ 84%]
+tests/scripts/season_walk/test_season_walk.py ................           [ 91%]
+tests/test_lightgbm_optional.py .                                        [ 91%]
+tests/test_web_saver.py .........F..                                     [ 96%]
+tests/test_boundary_shadow_census.py ..........                          [100%]
+
+=================================== FAILURES ===================================
+_________________ test_do_post_saver_transition_socket_wiring __________________
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-974/test_do_post_saver_transition_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10cd2c0b0>
+
+    def test_do_post_saver_transition_socket_wiring(tmp_path, monkeypatch):
+        _setup(tmp_path, "active")
+        # The HTTP handler takes the wall clock; keep it in the fixture's season.
+        import bts.web as web
+        class Clock(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return NOW.astimezone(tz) if tz else NOW.replace(tzinfo=None)
+        monkeypatch.setattr(web, "datetime", Clock)
+>       srv = _serve(tmp_path, monkeypatch)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_web_saver.py:139: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_web_saver.py:107: in _serve
+    srv = HTTPServer(("127.0.0.1", 0), web.Handler)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/socketserver.py:457: in __init__
+    self.server_bind()
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/http/server.py:140: in server_bind
+    socketserver.TCPServer.server_bind(self)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <http.server.HTTPServer object at 0x10cd2fef0>
+
+    def server_bind(self):
+        """Called by constructor to bind the socket.
+    
+        May be overridden.
+    
+        """
+        if self.allow_reuse_address and hasattr(socket, "SO_REUSEADDR"):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # Since Linux 6.12.9, SO_REUSEPORT is not allowed
+        # on other address families than AF_INET/AF_INET6.
+        if (
+            self.allow_reuse_port and hasattr(socket, "SO_REUSEPORT")
+            and self.address_family in (socket.AF_INET, socket.AF_INET6)
+        ):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+>       self.socket.bind(self.server_address)
+E       PermissionError: [Errno 1] Operation not permitted
+
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/socketserver.py:478: PermissionError
+=========================== short test summary info ============================
+FAILED tests/test_web_saver.py::test_do_post_saver_transition_socket_wiring
+======================== 1 failed, 258 passed in 15.53s ========================

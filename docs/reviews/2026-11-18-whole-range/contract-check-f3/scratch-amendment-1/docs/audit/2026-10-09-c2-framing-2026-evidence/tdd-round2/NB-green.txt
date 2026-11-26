@@ -1,0 +1,12 @@
+UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run --offline pytest -q -p no:cacheprovider tests/scripts/c2_framing/test_f26_rules.py tests/scripts/c2_framing/test_f26_run.py -k 'both_directions or exactly_the_practical or moved_to_another_date or expect_step or two_away_records or indicators_streaks'
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-c2f26-code
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 221 items / 215 deselected / 6 selected
+
+tests/scripts/c2_framing/test_f26_rules.py ...                           [ 50%]
+tests/scripts/c2_framing/test_f26_run.py ...                             [100%]
+
+====================== 6 passed, 215 deselected in 30.53s ======================

@@ -1,0 +1,128 @@
+{
+  "write_commit_decision_diff": "exact_passthrough_verified",
+  "base_bts_file": "/Users/eric/projects/bts-work/wr-rev-g2-carbon/.codex-review/wr-g2/base_f83e0d0b/src/bts/__init__.py",
+  "head_bts_file": "/Users/eric/projects/bts-work/wr-rev-g2-carbon/src/bts/__init__.py",
+  "unguarded_transitions_6": {
+    "confirmed_after_recovery": {
+      "action": "single",
+      "primary_bid": 100,
+      "double_bid": 101,
+      "delivery_status": "delivered",
+      "scoreable": true,
+      "committed_flag": true,
+      "has_guard_key": true,
+      "policy_guard": null
+    },
+    "private_to_dm": {
+      "action": "single",
+      "primary_bid": 100,
+      "double_bid": null,
+      "delivery_status": "delivered",
+      "scoreable": true,
+      "committed_flag": true,
+      "has_guard_key": true,
+      "policy_guard": null
+    },
+    "refused_then_repicked": {
+      "action": "single",
+      "primary_bid": 200,
+      "double_bid": 201,
+      "delivery_status": "delivered",
+      "scoreable": true,
+      "committed_flag": true,
+      "has_guard_key": true,
+      "policy_guard": null
+    },
+    "prior_process_missing_pick": {
+      "action": "single",
+      "primary_bid": 200,
+      "double_bid": 201,
+      "delivery_status": "delivered",
+      "scoreable": true,
+      "committed_flag": true,
+      "has_guard_key": true,
+      "policy_guard": null
+    },
+    "earlier_same_date_run": {
+      "action": "single",
+      "primary_bid": 200,
+      "double_bid": 201,
+      "delivery_status": "delivered",
+      "scoreable": true,
+      "committed_flag": true,
+      "has_guard_key": true,
+      "policy_guard": null
+    },
+    "undecodable": {
+      "action": "single",
+      "primary_bid": 100,
+      "double_bid": 101,
+      "delivery_status": "delivered",
+      "scoreable": true,
+      "committed_flag": true,
+      "has_guard_key": true,
+      "policy_guard": null
+    }
+  },
+  "guarded_transitions_12": {
+    "guarded_single": {
+      "confirmed_after_recovery": "ok",
+      "private_to_dm": "ok",
+      "refused_then_repicked": "ok",
+      "prior_process_missing_pick": "ok",
+      "earlier_same_date_run": "ok",
+      "undecodable": "ok"
+    },
+    "guarded_double": {
+      "confirmed_after_recovery": "ok",
+      "private_to_dm": "ok",
+      "refused_then_repicked": "ok",
+      "prior_process_missing_pick": "ok",
+      "earlier_same_date_run": "ok",
+      "undecodable": "ok"
+    }
+  },
+  "warmup_base_vs_head": {
+    "base": {
+      "single": {
+        "action": "single",
+        "primary_bid": null,
+        "double_bid": null,
+        "streak": 0,
+        "delivery_status": "delivered"
+      },
+      "double": {
+        "action": "double",
+        "primary_bid": null,
+        "double_bid": null,
+        "streak": 0,
+        "delivery_status": "delivered"
+      }
+    },
+    "head": {
+      "single": {
+        "action": "single",
+        "primary_bid": 100,
+        "double_bid": null,
+        "streak": 0,
+        "delivery_status": "delivered"
+      },
+      "double": {
+        "action": "double",
+        "primary_bid": 100,
+        "double_bid": 101,
+        "streak": 0,
+        "delivery_status": "delivered"
+      }
+    }
+  },
+  "adversarial_hunt": {
+    "matrix_24_commits": "ok",
+    "mismatch_hunt": "ok",
+    "double_leg_mutations": "ok",
+    "malformed_and_skip_null": "ok"
+  },
+  "consumers": {
+    "cross_version_and_consumers": "ok"
+  }
+}

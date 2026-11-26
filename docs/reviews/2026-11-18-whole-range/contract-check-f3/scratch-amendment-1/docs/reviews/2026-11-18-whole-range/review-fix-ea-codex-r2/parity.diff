@@ -1,0 +1,38 @@
+--- .codex-review/wr-ea2/parity-base.json	2026-11-24 21:53:43
++++ .codex-review/wr-ea2/parity-head.json	2026-11-24 21:53:59
+@@ -569,7 +569,7 @@
+    {
+     "health_state/contest_stale_reading_dm_delivery_status.json": {
+      "body_first_line": "BTS health WARN attention:",
+-     "body_sha256": "530960cc4a44c56d8174e74252c31233035bf84c30b9fdd006a2b2e44bb0bf85",
++     "body_sha256": "1ae91a3686da40d3ce9c0c349af15bf6dc11451bd809e7a0efaf9420a4b2d092",
+      "critical_count": 0,
+      "error": "capture fault",
+      "recipient": "capture.invalid",
+@@ -733,7 +733,7 @@
+    {
+     "health_state/health_dm_delivery_status.json": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+-     "body_sha256": "bc9d42d2c63bf3c906f92031170b6007c6fad2f88b339d32ed02b98463f61730",
++     "body_sha256": "21d4db6810df054b5b5faa6d3301ffa9d7db623e79ba872aa55d0bdf8d359433",
+      "critical_count": 1,
+      "recipient": "capture.invalid",
+      "recipient_configured": true,
+@@ -887,7 +887,7 @@
+    {
+     "health_state/contest_stale_reading_dm_delivery_status.json": {
+      "body_first_line": "BTS health WARN attention:",
+-     "body_sha256": "ea2cbf772d4d6d8044ce376659beee339508058240eb70ddfec1bbaef7367d98",
++     "body_sha256": "af5e37e5bff7d0736ec3df439bbfab55dd9c74ec3e0711b71e6c642f80f0ff31",
+      "critical_count": 0,
+      "recipient": "capture.invalid",
+      "recipient_configured": true,
+@@ -924,7 +924,7 @@
+    {
+     "health_state/health_dm_delivery_status.json": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+-     "body_sha256": "62a0e2c4e85cdfad0fe29ae2272cddb343766d410b36102db15b5c942f14ee42",
++     "body_sha256": "dbde4aee32e49ca8f8d938050f0c3425dfadc88edb5ed3afa754d9e2e6602bbf",
+      "critical_count": 1,
+      "recipient": "capture.invalid",
+      "recipient_configured": true,

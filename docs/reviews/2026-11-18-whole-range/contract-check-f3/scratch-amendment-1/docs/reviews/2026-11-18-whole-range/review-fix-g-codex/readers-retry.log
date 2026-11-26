@@ -1,0 +1,7 @@
+nice: setpriority: Operation not permitted
+base /Users/eric/projects/bts-work/wr-rev-g-codex/.codex-review/wr-g/base/src/bts/__init__.py
+rollback /Users/eric/projects/bts-work/wr-rev-g-codex/.codex-review/wr-g/rollback/src/bts/__init__.py
+2026-03-25 day-outcome research_commit check-results grading: 1 shadow member: False
+2026-03-26 day-outcome research_commit check-results grading: 1 shadow member: False
+2026-03-27 day-outcome deliberate_skip check-results grading: 0 shadow member: True
+archived readers, legacy writer, current CLI readers and census verified

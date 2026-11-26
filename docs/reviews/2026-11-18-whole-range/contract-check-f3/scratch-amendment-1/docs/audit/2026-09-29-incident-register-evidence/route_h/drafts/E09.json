@@ -1,0 +1,184 @@
+{
+ "id": "I-009",
+ "working_id": "E09",
+ "title": "4/04 confirmed pick never locked: a projected batter from a postponed game held the early-lock gap open",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "D",
+  "secondary": []
+ },
+ "tier": "A",
+ "tier_reason": "the day's confirmed pick never locked (posted) through the scheduler's lock path (delivery impact); whether and when it was delivered by another path (post-loop fallback or by hand) is not evidenced",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "A confirmed-lineup pick locks (is posted) once its gap over the best projected-lineup alternative from a still-pickable game reaches early_lock_gap.",
+  "source": "docs/superpowers/specs/2026-04-03-dynamic-lineup-scheduler-design.md 'Posting decision' step 4; ARCHITECTURE.md key learning #12 (4d12beb)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "run_single_check built the should_lock comparison set from every prediction row regardless of game status, so a projected batter in the postponed CHC@CLE game stayed within 3% of the confirmed pick and should_lock returned False at every check",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "739839b",
+     "symbol": "run_single_check",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/strategy.py",
+     "ref": "739839b",
+     "symbol": "should_lock",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "7638af7"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "unknown",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "an unlocked pick's only backstop was the post-loop fallback (run_day step 5), which ran after the last scheduled check, possibly after the pick's first pitch; the in-loop fallback arrived on 4/06 (0632976, I-013)",
+   "reaches_production": false,
+   "source": "src/bts/scheduler.py run_day at 739839b; 0632976 body"
+  },
+  {
+   "text": "no alert fired for a pick still unlocked near first pitch; detection was the operator's. All in-process protections still share the scheduler's fate: there is no independent day-outcome watchdog",
+   "reaches_production": true,
+   "source": "docs/optimization-ideas.md 'Independent day-outcome watchdog' (I-206)"
+  }
+ ],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "at the earliest pick game's first pitch minus 5 minutes, a candidate pick exists with no delivery record and no recorded deliberate skip",
+  "recovery_assertion": "an alert is delivered and the date ends with a delivered, scoreable pick or an explicit operator pass"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 7638af7 message body",
+   "written_at": "2026-04-04T19:17:57-04:00",
+   "what": "should_lock considered projected batters from all games (postponed, started, finished); this 'caused today's pick (D\u00edaz) to never lock' because a projected batter (Kwan) from the postponed CHC@CLE game was within 3% of the confirmed pick"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 6d36adb message body",
+   "written_at": "2026-04-04T19:35:02-04:00",
+   "what": "four scheduler changes 'from today's debugging session': short-circuit when the pick is locked, logging of each should_lock decision, and a pick audit trail in runs_completed"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/scheduler.py run_day at 739839b",
+   "what": "the lock path posts only when should_lock is True; the only other delivery path was the step-5 fallback after the last scheduled check"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "ARCHITECTURE.md at 4d12beb, key learning #12",
+   "what": "any function comparing against projected picks must exclude non-Preview games"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24253126060 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploy run whose head (4a82cf8) contains 7638af7; a Fly.io deploy, log expired"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-04-04",
+   "onset": {
+    "not_before": "2026-04-04",
+    "not_after": "2026-04-04T19:17:57-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-04T19:17:57-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-04-04T19:17:57-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "unknown",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "7638af7",
+   "6d36adb",
+   "4d12beb"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "ARCHITECTURE.md key learning #12 (4d12beb)",
+   "docs/optimization-ideas.md 'Independent day-outcome watchdog'"
+  ]
+ },
+ "related": [
+  "I-010",
+  "I-013",
+  "I-006",
+  "I-206"
+ ],
+ "notes": [
+  "names in ev1 are pick identities from the body, not outcomes; the 4/04 result is not restated",
+  "how the 4/04 pick was finally delivered is not evidenced: 823ccb3 (I-010, same evening) mentions a pick 'posted by a previous scheduler instance (or manually)'; Route R and the B1 pick file (bluesky_uri, post time) can settle it",
+  "6d36adb is observability (decision logging, audit trail), not the fix",
+  "deployed: candidate run 24253126060 was a Fly.io deploy (workflow 'Deploy BTS to Fly', fcedf71), not a production install; the Pi5 install time is not evidenced",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; 7638af7 added tests/test_scheduler.py test_should_lock_excludes_postponed_games (reproduces the defect at run_single_check level); scratchpad defence input I-0404-a-gap-check-unfiltered exists",
+  "deployed unknown: candidate run 24253126060 executed the Fly deploy.yml (its head lacks 51ef987, the 4/11 Hetzner workflow); production (Pi5 orchestrator, manual pulls) has no install record before the cutover"
+ ]
+}

@@ -1,0 +1,60 @@
+{
+ "id": "E09",
+ "episode_row": [
+  "E09",
+  "4/04",
+  "D\u00edaz pick never locked/posted: postponed game's projected batter held the gap check open",
+  "D",
+  "OI",
+  "A",
+  "7638af7 6d36adb"
+ ],
+ "commits": [
+  {
+   "sha": "7638af7",
+   "authored": "2026-04-04T19:17:57-04:00",
+   "subject": "fix: exclude non-Preview games from should_lock gap check",
+   "body": "The should_lock function in the scheduler was considering projected\nbatters from ALL games (including postponed/started/finished) when\ndeciding whether the gap threshold was met. This caused today's pick\n(D\u00edaz) to never lock because a projected batter (Kwan) from the\npostponed CHC@CLE game was within 3% of the confirmed pick.\n\nFilter all_pick_data by game status \u2014 only include batters from\ngames still in Preview (P) status.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_scheduler.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24253126060,
+    "created_at": "2026-04-10T16:29:24Z",
+    "head_sha": "4a82cf8",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "6d36adb",
+   "authored": "2026-04-04T19:35:02-04:00",
+   "subject": "improve scheduler: short-circuit, logging, pick audit trail",
+   "body": "Four improvements from today's debugging session:\n\n1. Short-circuit before cascade: check if existing pick is locked\n   (game started or posted) BEFORE running the expensive SSH\n   prediction cascade. Saves ~3 min on every restart.\n\n2. Log pick selection and should_lock decisions: each check now\n   prints \"Pick: Name (TEAM) XX.X%, gap=X.X% \u2192 should_lock=T/F\"\n   so future debugging doesn't require code archaeology.\n\n3. Pick audit trail: runs_completed in scheduler_state.json now\n   records pick_name and pick_p for each check, so we can\n   reconstruct what picks were at each time.\n\n4. Remove duplicate API call: short-circuit uses its own\n   get_game_statuses call which replaces both the select_pick\n   and should_lock calls when the pick is already locked.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_scheduler.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24253126060,
+    "created_at": "2026-04-10T16:29:24Z",
+    "head_sha": "4a82cf8",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

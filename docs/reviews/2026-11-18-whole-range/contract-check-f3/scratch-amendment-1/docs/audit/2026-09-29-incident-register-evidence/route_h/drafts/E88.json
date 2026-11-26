@@ -1,0 +1,213 @@
+{
+ "id": "I-088",
+ "working_id": "E88",
+ "title": "C-01: leaderboard parser stored the active streak in all_season/all_time snapshot rows (daily snapshots 5/01–7/04)",
+ "disposition": "unresolved_candidate",
+ "counted": true,
+ "missing_evidence": [
+  "a primary read of the stored rows: data/leaderboard/leaderboard_snapshots/<date>.parquet for any 2026-05-01..2026-07-04 date, all_season/all_time `streak` vs season_stats `best_streak` (C-01 reports the 2026-07-04 comparison; the file is not in the repo) — Phase 2 Route R; leaderboard snapshots are not among the §5 projections, so this needs an X-20 amendment or a count-only comparison"
+ ],
+ "classes": {
+  "primary": "R",
+  "secondary": []
+ },
+ "tier": "A",
+ "tier_reason": "research-integrity failure if confirmed: for two months two of the four daily leaderboard tabs silently stored the active streak instead of the tab's ranking quantity and the files are not rewritten; the per-date all_time value was discarded and is stored nowhere, while the all_season value survives only through same-date season_stats profiles; no delivery/entry/state impact and no residual reaches production (B is arguable — see notes)",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "leaderboard",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "Each leaderboard snapshot row's `streak` carries the tab's own ranking quantity from the MLB rank row: season best on all_season, all-time best on all_time, active streak on active_streak / yesterday.",
+  "source": "docs/audit/2026-09-corrections-index.md C-01; src/bts/leaderboard/scraper.py _tab_streak_fields docstring and the LeaderboardRow field comment (44df03f)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "parse_leaderboard_response set `streak` from `activeStreak` whenever present, for every tab, and stored no other streak field, so all_season and all_time rows recorded the active streak and dropped the tab's own `streak` (season / all-time best); run() wrote only the parsed rows to leaderboard_snapshots/<date>.parquet",
+   "code": [
+    {
+     "path": "src/bts/leaderboard/scraper.py",
+     "ref": "332414f",
+     "symbol": "parse_leaderboard_response",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/leaderboard/scraper.py",
+     "ref": "2b752be",
+     "symbol": "parse_leaderboard_response / run",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "44df03f"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "d15d382",
+    "live_by": "2026-09-22T15:53:57Z",
+    "not_live_before": "2026-09-22T15:53:55Z",
+    "run_id": 35749963841,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": {
+    "action": "C-01 reading rule: pre-fix files are not rewritten; readers ignore `streak` on all_season/all_time in them and use season_stats best_streak or the 9/28 full-depth walk",
+    "at": {
+     "at": "2026-09-22T10:52:36-04:00",
+     "evidence": [
+      "ev2"
+     ]
+    }
+   },
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "Daily snapshots 2026-05-01..07-04 keep the wrong `streak` for all_season/all_time (files not rewritten; no season_best_streak/active_streak columns); the season best of listed users is recoverable from same-date season_stats where the profile fetch succeeded, the per-date all-time best is not stored anywhere",
+   "reaches_production": false,
+   "source": "docs/audit/2026-09-corrections-index.md C-01; 44df03f body; src/bts/leaderboard/scraper.py run() and models.SeasonStats at 2b752be"
+  }
+ ],
+ "watchdog": {
+  "boundary": "preservation",
+  "trigger": "at each leaderboard snapshot write, an all_season or all_time tab whose stored ranking quantity is not non-increasing in rank, or whose stored value differs from the same response's raw `streak` field",
+  "recovery_assertion": "captures after the fix pass the invariant (the 44df03f test asserts a non-increasing season best by rank) and every pre-fix file is covered by the C-01 reading rule"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "machine_observation",
+   "strength": "reported",
+   "locator": "docs/audit/2026-09-corrections-index.md C-01 'What is wrong' (artifacts: data/leaderboard/leaderboard_snapshots/*.parquet on the box — not read)",
+   "what": "C-01 (found 2026-09-22 in the Codex review of the final-grab wrapper, confirmed on box data) reports that the 2026-07-04 snapshot's all_season `streak` column disagrees with the profile-derived best_streak for most rows, and that every daily snapshot 2026-05-01 → 2026-07-04 is affected"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 44df03f message body and diff (src/bts/leaderboard/scraper.py, models.py, storage.py; docs/audit/2026-09-corrections-index.md C-01 row added)",
+   "what": "the parser preferred activeStreak over streak for every tab; fixed to tab-specific semantics with new season_best_streak / active_streak columns and envelope validation; historical parquet files are not rewritten and C-01 records the reading rule"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/leaderboard/scraper.py at e6931e1 (2026-05-01) and 2b752be (parse_leaderboard_response, run); deploy/systemd/bts-leaderboard.timer at 07a0f60",
+   "what": "the activeStreak-first assignment exists from the scraper's first commit; run() writes only parsed rows (no raw bodies); the timer scheduled the scrape twice daily (05:00 and 14:00 UTC)"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27077693688 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "2b752be (carries the activeStreak-first parser, lacks 44df03f) deployed 2026-06-07T00:11:21Z, canary passed: the defective parser was installed inside the 5/01–7/04 window"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 35749963841 (deploy_runs.json)",
+   "what": "pre-deploy f1b07e9 -> deployed d15d382 at 2026-09-22T15:53:56Z, canary passed: the fix was first installed"
+  },
+  {
+   "id": "ev6",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 49a8446 message body and ARCHITECTURE.md diff (written 2026-07-04T14:51:02-04:00)",
+   "what": "bts-leaderboard.timer (the authenticated deep scrape) was disabled on the box on 7/04 after running twice daily at 01:00/10:00 ET, which ends the daily snapshot series"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-05-01 → 2026-07-04 (every daily snapshot)",
+   "onset": {
+    "at": "2026-05-01",
+    "evidence": [
+     "ev1",
+     "ev3"
+    ]
+   },
+   "first_detectable": {
+    "at": "2026-05-01",
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "at": "2026-09-22",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "operator_action": {
+    "at": "2026-09-22T10:52:36-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigation": {
+    "at": "2026-09-22T10:52:36-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "44df03f",
+   "e6931e1",
+   "07a0f60",
+   "49a8446"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-09-corrections-index.md C-01",
+   "docs/audit/2026-09-28-w07-final-snapshot.md 'Unavailable history'"
+  ]
+ },
+ "related": [],
+ "notes": [
+  "disposition: the firing is established only by the 9/22 box-data confirmation (C-01 and the 44df03f body, written 4+ months later; artifact not read), which is reported evidence; code + deploy evidence (ev3, ev4) alone would support deployed_latent_defect if Route R cannot read the stored rows",
+  "window end 7/04 = the deep-scrape timer was disabled for ToS reasons (49a8446; that decision is E70, out of scope); the final-grab captures used the fixed parser (signed revision 1fdd460 descends from 44df03f)",
+  "ev6 is typed inference: written 7/04 about the timer, not about this defect, and the validator anchors the 48 h rule on the 5/01 onset",
+  "code cite 2b752be (log) is an ancestor of the fix parent 332414f with the identical parser line, installed per a retained log inside the window; 332414f itself was never installed during the window (candidate)",
+  "split?: 44df03f also added envelope validation (an error-only body parsed as an empty board) — a separate latent defect with no evidenced firing",
+  "no repo consumer read the wrong columns before the fix (bts.leaderboard.analysis.percentile_rank reads the active_streak tab only); C-01 requires any W2 memo on season-best distributions to cite it",
+  "tier A vs B: A because a research corpus was silently corrupted and the per-date all_time values are lost; B is arguable because C-01 caught it before any read and run() also profiled every listed user into season_stats (best_streak = seasonBestStreak), so season bests are recoverable",
+  "C-01's counts and user values deliberately not restated (no exposure row covers the 7/04 leaderboard comparison)",
+  "reproducing test: tests/leaderboard/test_scraper.py::test_all_season_tab_streak_is_the_season_best_not_active (first assertion is on the stored `streak`), also ::test_all_time_tab_uses_the_streak_field",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

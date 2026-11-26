@@ -1,0 +1,15 @@
+nice: setpriority: Operation not permitted
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=single streak=57 best=57 (trusted) effective_best=None days=74 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+  [park_drag] WARNING: table not found at data/external/park_drag/park_drag_export.csv; park_drag_delta will be NaN
+  [SHADOW MODEL] Batter 0 (T0) 96.0% — DISAGREES (prod: Synthetic)
+  6 new confirmed lineup(s). Running predictions...
+  SKIP — best Batter 0 (T0) 96.0% below the streak-57 bar (0.0%); streak holds at 57.
+shadow model 57: longest_streak
+scheduler False single None None 
+precommit alignment includes: 1
+saved action/runner and record: single None {'schema_version': 'bts_daily_decision_v3', 'date': '2027-07-15', 'action': 'single', 'source': 'mdp', 'primary': {'batter_id': 100, 'batter_name': 'Batter 0', 'team': 'T0', 'game_pk': 70000, 'p_game_hit': 0.96}, 'double_down': {'batter_id': 101, 'batter_name': 'Batter 1', 'team': 'T1', 'game_pk': 70001, 'p_game_hit': 0.95}, 'second_candidate': None, 'streak': 57, 'saver_available': False, 'state_source': 'contest', 'state_status': 'fresh', 'allow_double': True, 'contest_source_date': '2027-07-15', 'delivery_status': 'delivered', 'scoreable': True, 'objective': 'longest_streak', 'best_streak': 57, 'best_status': 'trusted', 'effective_best': None, 'tail_policy_sha256': 'dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4', 'degraded_reason': None, 'finalized_at': '2027-07-15T16:00:00Z'}
+census [{'date': '2027-07-15', 'action_recorded': 'single', 'source': 'mdp', 'p': 0.96, 'policy_identity': 'verified', 'state_source': 'excluded_tail_objective', 'diffs': {}}] sample sizes {'deployed': None, 'primary': 0, 's1_flat_same_dates': 0, 's2_flat_season': 1}
+census invalid provenance before objective filter: 2027-07-15: pick-file policy stamp 111111111111 conflicts with loaded policy 66d154717ae5
+scheduler True None no_eligible {'best_batter': 'Batter 0', 'best_team': 'T0', 'best_p': 0.96, 'streak': 57, 'bar': 0.0} <div class="skip-banner"><strong>SKIP TODAY</strong><span>No pick — model's best is Batter 0 (T0) 96.0%, below the streak-57 bar (0.0%). Streak holds at 57.</span></div>

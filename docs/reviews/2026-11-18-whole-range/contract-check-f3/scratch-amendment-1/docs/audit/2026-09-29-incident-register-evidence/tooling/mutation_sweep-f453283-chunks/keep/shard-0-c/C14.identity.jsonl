@@ -1,0 +1,4 @@
+{"node": "tests.scripts.incident_register.test_certify::test_absence_is_refused_whatever_its_events[zero-calls]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_certify::test_absence_is_refused_whatever_its_events[incomplete]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_certify::test_absence_is_refused_whatever_its_events[gap]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_certify::test_absence_is_refused_whatever_its_events[qualifying-call]", "kind": "assertion"}

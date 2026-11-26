@@ -1,0 +1,63 @@
+nice: setpriority: Operation not permitted
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/audit-ready-rev/.codex-review/audit-ready/focused.py", line 40, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/Users/eric/projects/bts-work/audit-ready-rev/.codex-review/audit-ready/focused.py", line 16, in main
+    sitecustomize.verify()
+  File "/Users/eric/projects/bts-work/audit-ready-rev/.codex-review/audit-ready/sitecustomize.py", line 49, in verify
+    listener.bind(('127.0.0.1', 0))
+PermissionError: [Errno 1] Operation not permitted
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/audit-ready-rev/.codex-review/audit-ready/focused.py", line 40, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/Users/eric/projects/bts-work/audit-ready-rev/.codex-review/audit-ready/focused.py", line 16, in main
+    sitecustomize.verify()
+  File "/Users/eric/projects/bts-work/audit-ready-rev/.codex-review/audit-ready/sitecustomize.py", line 49, in verify
+    listener.bind(('127.0.0.1', 0))
+PermissionError: [Errno 1] Operation not permitted
+Exit codes for 2027 and 2028: [1, 1]
+Process date 2027-11-18T14:19:27.452451
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/audit-ready-rev
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 188 items
+
+tests/test_audit_f6_f8_review_probes.py ...........                      [  5%]
+tests/test_contest_fetch.py ............................................ [ 29%]
+..........                                                               [ 34%]
+tests/test_entry_intent.py ............................................. [ 58%]
+.......                                                                  [ 62%]
+tests/test_p03_context_shadow_closeout.py .                              [ 62%]
+tests/test_shadow_eval.py ..................                             [ 72%]
+tests/test_skip_policy_shadow.py ....................................... [ 93%]
+                                                                         [ 93%]
+tests/test_lightgbm_optional.py .                                        [ 93%]
+tests/test_web_saver.py ............                                     [100%]
+
+============================= 188 passed in 22.37s =============================
+Process date 2028-11-18T14:19:55.367628
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/audit-ready-rev
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 188 items
+
+tests/test_audit_f6_f8_review_probes.py ...........                      [  5%]
+tests/test_contest_fetch.py ............................................ [ 29%]
+..........                                                               [ 34%]
+tests/test_entry_intent.py ............................................. [ 58%]
+.......                                                                  [ 62%]
+tests/test_p03_context_shadow_closeout.py .                              [ 62%]
+tests/test_shadow_eval.py ..................                             [ 72%]
+tests/test_skip_policy_shadow.py ....................................... [ 93%]
+                                                                         [ 93%]
+tests/test_lightgbm_optional.py .                                        [ 93%]
+tests/test_web_saver.py ............                                     [100%]
+
+============================= 188 passed in 16.28s =============================
+Exit codes for 2027 and 2028: [0, 0]

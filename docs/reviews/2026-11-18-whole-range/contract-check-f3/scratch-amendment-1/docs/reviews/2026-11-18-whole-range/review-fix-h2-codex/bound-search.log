@@ -1,0 +1,225 @@
+src/bts/data/swing_pull.py:77:        "date_min": str(df["game_date"].min()) if len(df) else None,
+src/bts/data/swing_pull.py:91:        chunk_end = min(month_end, final)
+src/bts/data/lineup_analyze.py:58:        c = min(f + 1, n - 1)
+src/bts/data/lineup_analyze.py:132:        earliest_game_et = min(game_times)
+src/bts/scheduler.py:472:    earliest = min(game_time_et(g) for g in games)
+src/bts/scheduler.py:529:def resolve_fallback_deadline_min(
+src/bts/scheduler.py:677:def effective_cascade_budget_min(config_min: float, recent_durations_sec: list) -> float:
+src/bts/scheduler.py:867:    """One line naming the objective whenever it is not the plain reach-57 table
+src/bts/scheduler.py:3053:            first_check_et = min((run["time_et"] for run in runs), default=None)
+src/bts/scheduler.py:3211:            fallback_min = resolve_fallback_deadline_min(
+src/bts/scheduler.py:3217:            budget_eff = effective_cascade_budget_min(
+src/bts/scheduler.py:3352:                    budget_eff = effective_cascade_budget_min(cascade_budget_min_cfg, measured)
+src/bts/scheduler.py:3409:            fallback_min = resolve_fallback_deadline_min(
+src/bts/scheduler.py:3417:                effective_cascade_budget_min(
+src/bts/experiment/reporting.py:14:        f"(P@1={baseline_p1:.1%}, P(57)={baseline_p57:.2%})\n"
+src/bts/experiment/reporting.py:17:    col_header = f"{'Experiment':<24} {'P@1 2024':>10} {'P@1 2025':>10} {'P(57) MDP':>11} {'Pass':>6}\n"
+src/bts/experiment/reporting.py:54:            f"  +{step['name']:<20} P(57): {step['p57_before']:.4f} → "
+src/bts/experiment/reporting.py:65:            f"  -{step['name']:<20} P(57) without: {step['p57_without']:.4f} "
+src/bts/experiment/reporting.py:73:    lines.append(f"Final P(57): {final_p57}")
+src/bts/experiment/cli.py:578:    "When provided, decisions use mean ΔP(57) across paired seed comparisons "
+src/bts/experiment/cli.py:579:    "instead of single-seed P(57). Mutually exclusive with --seed-set. "
+src/bts/experiment/cli.py:581:    "percentile of the n=100 baseline distribution, creating a P(57) ceiling "
+src/bts/experiment/cli.py:603:    "|mean ΔP(57)| >= min-effect-size. Useful when n is small enough that "
+src/bts/experiment/diagnostics.py:67:            all_features_stability[feat] = float(min(scores)) if scores else 0.0
+src/bts/experiment/runner.py:158:    Uses a composite metric instead of MDP P(57), which has been shown
+src/bts/experiment/runner.py:161:    stable: mean_max_streak (3% CoV), P99 streak (4% CoV), exact P(57)
+src/bts/experiment/runner.py:168:       - exact P(57) > 0 (strictly improved)
+src/bts/experiment/runner.py:196:            f"exact P(57) {exact_p57_delta:+.4f}"
+src/bts/experiment/runner.py:202:        f"exact P(57): {exact_p57_delta:+.4f}"
+src/bts/experiment/runner.py:428:    metric) rather than MDP P(57) (which is unreliable, ~80% CoV under noise).
+src/bts/experiment/runner.py:463:            use the mean ΔP(57) across paired seed comparisons. This was
+src/bts/experiment/runner.py:465:            seed=42 hits a P(57) ceiling effect — seed=42's baseline P(57)
+src/bts/experiment/runner.py:467:            winners with positive pooled ΔP(57) get rejected. If seeds is
+src/bts/experiment/runner.py:585:    # Forward selection — pooled mean ΔP(57) across seeds drives keep/drop.
+src/bts/experiment/runner.py:621:                f"  ✓ Kept {name}: pooled mean ΔP(57) {mean_delta:+.5f}"
+src/bts/experiment/runner.py:632:                f"  ✗ Dropped {name}: pooled mean ΔP(57) {mean_delta:+.5f}{t_str}"
+src/bts/experiment/runner.py:639:    # Backward elimination — remove each in turn, see if pooled P(57) holds.
+src/bts/experiment/runner.py:675:                f"  ✓ Kept {name}: pooled removing hurts P(57) by {mean_loss:+.5f}{t_str}",
+src/bts/experiment/runner.py:691:    # The full per-seed P(57) array is logged in forward/backward logs already.
+src/bts/experiment/runner.py:758:    print(f"  Final P(57): {final_scorecard.get('p_57_mdp', 'N/A')}", file=sys.stderr)
+src/bts/model/calibrate.py:15:+1.14pp P(57) but MC bootstrap showed −1.12pp (t=−3.43). That rejection was
+src/bts/model/predict.py:58:# Default OFF preserves shipped P(57)=8.17% pooled until a deliberate re-baseline
+src/bts/model/conformal.py:196:        target = min(target, 1.0)
+src/bts/model/conformal.py:289:    Returns max(0, min(predicted_p, predicted_p - q)) where q is the
+src/bts/model/conformal.py:300:    return max(0.0, min(predicted_p, L))
+src/bts/day_outcome.py:86:        at = min(str((r.get("observation") or {}).get("response_completed_at")) for r in confirmed)
+src/bts/scorecard.py:111:    bounded = min(max(value, lower), upper)
+src/bts/scorecard.py:239:    return min(max(smoothed, 0.0), 1.0)
+src/bts/features/compute.py:31:# (Prior "shipped" claim of +3.65pp P(57) MDP was measured on the buggy pre-
+src/bts/features/compute.py:40:# +1.08pp 2024, +0.54pp 2025, +0.46pp MDP P(57), -3 miss days. MC P(57)
+src/bts/features/compute.py:63:    bonus = (min(ev, 116) - 98) * 2
+src/bts/features/compute.py:65:    la_max = min(50, 30 + bonus)
+src/bts/features/compute.py:652:# Bullpen feature improved MDP P(57) from 4.85% to 5.73% by polarizing quality bins.
+src/bts/cli.py:205:    # --- Display: P(57) ---
+src/bts/cli.py:210:    console.print("[bold]P(57) estimates:[/bold]")
+src/bts/cli.py:663:@click.option("--streak-threshold", default=57, type=int,
+src/bts/cli.py:664:              help="Threshold for the rare event (default 57 to match exact_p57's "
+src/bts/cli.py:786:              help="In-sample headline P(57) to defend (default: 8.17%)")
+src/bts/cli.py:2916:        _sleep(min(wait_interval_min * 60, remaining))
+src/bts/web.py:739:            for _ in range(min(rbi, 4))
+src/bts/web.py:1337:                fallback_min = resolve_fallback_deadline_min(
+src/bts/daily_decision.py:44:    excluded from every reach-57 consumer (skip shadow, census, alignment)."""
+src/bts/daily_decision.py:55:    the reach-57 objective. Tail-objective skips (season best unbeatable) come from
+src/bts/strategy.py:65:    """Load the reach-57 policy AND the tail policy, caching on first call.
+src/bts/strategy.py:68:    (Codex r2): a tail error must not discard a valid reach-57 table, and a base
+src/bts/strategy.py:72:    Returns None only when NEITHER artifact loaded (legacy: heuristic while 57 is
+src/bts/strategy.py:116:        _mdp_cache = {}  # nothing on disk at all (legacy: heuristic while 57 is reachable)
+src/bts/strategy.py:153:    plays). Heuristic path (no base policy while 57 is reachable) -> SKIP_THRESHOLD.
+src/bts/strategy.py:260:        return OBJECTIVE_LONGEST, min(days, LONGEST_STREAK_HORIZON)
+src/bts/strategy.py:303:    Regime first: while 57 is reachable this is the shipped reach-57 table (or the
+src/bts/strategy.py:330:                      f"(max reachable {min(57, streak + 2 * d_eff)}); no pick")
+src/bts/strategy.py:362:    """Require a decoded table that covers every reach-57 lookup."""
+src/bts/strategy.py:382:    # Reach-57 lookups index streaks 0 through 56.
+src/bts/strategy.py:383:    if table.shape[0] < 57 or table.shape[1:] != (horizon + 1, 2, len(boundaries) + 1):
+src/bts/strategy.py:385:    if table.min() < 0 or table.max() > 2:
+src/bts/evaluate/backtest.py:35:    test_start = df[df["season"] == test_season]["date"].min()
+src/bts/evaluate/backtest.py:94:            top_k = day_preds.nlargest(min(k, len(day_preds)), "p_game_hit")
+src/bts/skip_policy_shadow.py:69:    return p, max(0.0, centre - half), min(1.0, centre + half)
+src/bts/picks.py:244:    # action once 57 is unreachable; policy_npz_sha256 alone can't identify it).
+src/bts/picks.py:458:    return min(times)
+src/bts/contest_state.py:90:TARGET_STREAK = 57
+src/bts/features/park_drag_producer.py:247:        d0, d1 = gs.game_date.min(), gs.game_date.max()
+src/bts/validate/scorecard.py:155:    profiles, returning summary streak statistics and P(57).
+src/bts/validate/scorecard.py:210:    Calls all 4 scoring functions and adds metadata, exact P(57) via
+src/bts/validate/scorecard.py:211:    absorbing Markov chain, and MDP-optimal P(57).
+src/bts/validate/scorecard.py:256:    # Exact P(57) via absorbing Markov chain
+src/bts/shadow_eval.py:297:    return [max(0.0, center - half), min(1.0, center + half)]
+src/bts/shadow_eval.py:304:    k = min(prod_only, shadow_only)
+src/bts/shadow_eval.py:306:    return min(1.0, 2 * tail)
+src/bts/shadow_eval.py:338:    seed: int = 57,
+src/bts/shadow_eval.py:672:    seed: int = 57,
+src/bts/validate/dependence.py:40:    p = max(min(p, 1 - 1e-9), 1e-9)
+src/bts/validate/dependence.py:120:    p_value = float(2 * min(np.mean(bs_estimates >= 0), np.mean(bs_estimates <= 0)))
+src/bts/validate/dependence.py:206:    mean_p = max(min(mean_p, 1 - 1e-9), 1e-9)
+src/bts/validate/dependence.py:260:                1.0 - 1.0 / (1.0 + np.exp(-(np.log(max(min(p, 1-1e-9), 1e-9) / (1 - max(min(p, 1-1e-9), 1e-9))) + u)))
+src/bts/validate/dependence.py:626:        Clipped to Frechet-Hoeffding bounds [max(0, p1+p2-1), min(p1, p2)].
+src/bts/validate/dependence.py:679:            p_pa_indep = max(min(p_pa_indep, 1.0 - 1e-9), 1e-9)
+src/bts/validate/dependence.py:716:        upper = min(p1, p2)
+src/bts/validate/dependence.py:717:        new_p_both = float(min(max(new_p_both, lower), upper))
+src/bts/validate/splits.py:7:  strict max(train) < min(holdout) and a configurable purge gap
+src/bts/validate/splits.py:86:    max(train_dates) < min(holdout_dates).
+src/bts/validate/rare_event_mc_eval.py:39:DEFAULT_STREAK_THRESHOLD = 57
+src/bts/validate/ope.py:237:            p_range=(float(p[mask].min()), float(p[mask].max())),
+src/bts/validate/ope.py:295:    R = 1 if streak reaches 57 during the trajectory, else 0.
+src/bts/validate/ope.py:332:            if streak >= 57:
+src/bts/validate/ope.py:346:                    next_streak = streak + 1 if streak + 1 < 57 else 57
+src/bts/validate/ope.py:348:                    r = 1 if (next_streak == 57 and streak < 57) else 0
+src/bts/validate/ope.py:359:                    next_streak = streak + 2 if streak + 2 < 57 else 57
+src/bts/validate/ope.py:361:                    r = 1 if (next_streak == 57 and streak < 57) else 0
+src/bts/validate/ope.py:392:    BTS rewards are purely terminal (R = 1 if streak reaches 57, else 0). So
+src/bts/validate/ope.py:550:    policy_table of shape (57, season_length+1, 2, n_bins) OR an object with
+src/bts/validate/ope.py:589:        stability dict, per-fold P(57), and mode flags.
+src/bts/validate/proper_scoring.py:88:    hi = min(1.0, center + half)
+src/bts/validate/proper_scoring.py:122:            "p_lo": float(p_in_bin.min()),
+src/bts/simulate/tail_policy.py:1:"""Tail policy: exact E[season-best] once streak 57 is unreachable.
+src/bts/simulate/tail_policy.py:3:Why this exists (2026-09-03): the reach-57 solver (``bts.simulate.mdp.solve_mdp``)
+src/bts/simulate/tail_policy.py:4:values EVERY action at exactly 0.0 in any state with ``streak + 2*days < 57``, so
+src/bts/simulate/tail_policy.py:20:* Stop rule, explicit: skip iff ``min(target, s + 2d) <= m`` (no outcome can raise
+src/bts/simulate/tail_policy.py:24:  an exhaustive loader contract, hard-bound to the sha256 of the reach-57 policy it
+src/bts/simulate/tail_policy.py:48:TARGET = 57
+src/bts/simulate/tail_policy.py:53:LONGEST_STREAK_FROM = 57
+src/bts/simulate/tail_policy.py:96:    reach-57 lookup applies — so the regime predicate and the table index agree."""
+src/bts/simulate/tail_policy.py:97:    return max(0, min(int(days_remaining), int(season_length)))
+src/bts/simulate/tail_policy.py:104:    57 is reachable iff ``streak + 2*d >= target`` (equality is NOT degenerate: the
+src/bts/simulate/tail_policy.py:128:    """m = min(target, max(streak, best)). A stale-low best can never sit below the
+src/bts/simulate/tail_policy.py:130:    return min(int(target), max(int(streak), int(best if best is not None else 0)))
+src/bts/simulate/tail_policy.py:137:    return min(int(target), int(streak) + 2 * int(days)) > int(best)
+src/bts/simulate/tail_policy.py:184:    what idled the reach-57 table.
+src/bts/simulate/tail_policy.py:301:    over the table (195,112 action cells at target 57 — cheap), not sampled, AND
+src/bts/simulate/tail_policy.py:331:    if table.min() < 0 or table.max() > 2:
+src/bts/simulate/tail_policy.py:350:            f"skip iff min(target, s + 2d) <= m")
+src/bts/simulate/tail_policy.py:426:    sha256 of the reach-57 policy it must pair with. Raises TailPolicyError on ANY
+src/bts/simulate/tail_policy.py:479:    return min(q, len(boundaries))
+src/bts/simulate/tail_policy.py:486:    for target 57, so exceeding the table horizon is a contract error, not a clamp."""
+src/bts/health/pick_entry.py:52:    return min(times) - timedelta(minutes=SUBMIT_CUTOFF_MIN)
+src/bts/leaderboard/auth.py:153:        return min(val, cap)
+src/bts/validate/ope_eval.py:174:            if streak >= 57:
+src/bts/validate/ope_eval.py:195:                qb = max(0, min(qb, policy_table.shape[3] - 1))
+src/bts/validate/ope_eval.py:196:                d = min(days_remaining, policy_table.shape[1] - 1)
+src/bts/validate/ope_eval.py:205:                    streak = min(streak + 1, 57)
+src/bts/validate/ope_eval.py:216:                        streak = min(streak + 1, 57)
+src/bts/validate/ope_eval.py:227:                        streak = min(streak + 2, 57)
+src/bts/validate/ope_eval.py:233:            if streak >= 57:
+src/bts/validate/ope_eval.py:380:        early_min = min(per_bin_n_early) if per_bin_n_early else 0
+src/bts/validate/ope_eval.py:383:            late_min = min(per_bin_n_late) if per_bin_n_late else 0
+src/bts/validate/ope_eval.py:386:            holdout_bin_min_n = min(early_min, late_min)
+src/bts/validate/ope_eval.py:422:            "description": "P(streak reaches 57) under target policy",
+src/bts/leaderboard/scraper.py:489:        if page_streaks and min(page_streaks) < deep_min_streak:
+src/bts/simulate/mdp.py:5:via backward induction. State space: 57 × 181 × 2 × N_bins ≈ 103K.
+src/bts/simulate/mdp.py:38:    target: int = 57,
+src/bts/simulate/mdp.py:57:    capped_streak = min(streak, target)
+src/bts/simulate/mdp.py:67:        success_streak = min(streak + 1, target)
+src/bts/simulate/mdp.py:70:        success_streak = min(streak + 2, target)
+src/bts/simulate/mdp.py:74:        TransitionOutcome(min(miss_streak, target), miss_saver, 1.0 - success_probability),
+src/bts/simulate/mdp.py:83:    policy_table: np.ndarray   # shape: (57, season_length+1, 2, n_bins), dtype=int
+src/bts/simulate/mdp.py:89:        if streak >= 57 or days_remaining <= 0:
+src/bts/simulate/mdp.py:91:        d = min(days_remaining, self.season_length)
+src/bts/simulate/mdp.py:108:                if s >= 57:
+src/bts/simulate/mdp.py:182:    if streak >= 57 or days_remaining <= 0:
+src/bts/simulate/mdp.py:191:    q = min(q, n_bins - 1)
+src/bts/simulate/mdp.py:193:    d = min(days_remaining, season_length)
+src/bts/simulate/mdp.py:194:    s = min(streak, 56)
+src/bts/simulate/mdp.py:222:    """Apply the reach-57 skip guard and return provenance for any override."""
+src/bts/simulate/mdp.py:250:    Objective: maximize P(reaching streak 57)
+src/bts/simulate/mdp.py:258:    n_streaks = 58   # 0-57
+src/bts/simulate/mdp.py:281:    # Terminal condition: V(57, *, *, *) = 1
+src/bts/simulate/mdp.py:282:    V[57, :, :, :] = 1.0
+src/bts/simulate/mdp.py:292:        for s in range(57):
+src/bts/simulate/mdp.py:327:    # Optimal P(57) = E_q[V(0, season_length, saver=1, q)]
+src/bts/health/pitcher_sparsity.py:37:    "critical_count": 8,  # 8/14 days = 57%
+src/bts/health/mdp_policy_alignment.py:85:        p_min=min(values),
+src/bts/health/mdp_policy_alignment.py:133:            # Tail regime (2026-09-03): picks are chosen regardless of the reach-57
+src/bts/health/mdp_policy_alignment.py:184:        f"to {q_label} over last {min(t['recent_days'], p.n)} picks "
+src/bts/health/tail_policy.py:3:2026-09-03: once streak 57 is unreachable the pick path switches to
+src/bts/health/tail_policy.py:59:    window = (f"{days} days left: the tail regime is LIVE for streaks below {57 - 2 * days}"
+src/bts/simulate/exact.py:1:"""Exact P(57) computation via absorbing Markov chain.
+src/bts/simulate/exact.py:4:builds the transition matrix and computes exact P(reaching state 57)
+src/bts/simulate/exact.py:38:    States 0-56 are transient (streak values), state 57 is absorbing (win).
+src/bts/simulate/exact.py:45:    n_states = 58  # 0-57
+src/bts/simulate/exact.py:48:    # State 57 is absorbing
+src/bts/simulate/exact.py:49:    T[57, 57] = 1.0
+src/bts/simulate/exact.py:51:    for s in range(57):
+src/bts/simulate/exact.py:66:                next_s = min(s + 1, 57)
+src/bts/simulate/exact.py:74:                next_s = min(s + 2, 57)
+src/bts/simulate/exact.py:85:    """Compute exact P(reaching streak 57) within a season.
+src/bts/simulate/exact.py:88:    T^season_length[0, 57] via matrix exponentiation.
+src/bts/simulate/exact.py:92:    return float(result[0, 57])
+src/bts/simulate/exact.py:100:    """Compute exact P(57) for a saved MDP policy table.
+src/bts/simulate/exact.py:111:    season_length = min(int(season_length), policy_table.shape[1] - 1)
+src/bts/simulate/exact.py:122:    V[57, :, :, :] = 1.0
+src/bts/simulate/exact.py:130:        for s in range(57):
+src/bts/simulate/exact.py:137:                        next_hit = min(s + 1, 57)
+src/bts/simulate/exact.py:144:                        next_dbl = min(s + 2, 57)
+src/bts/simulate/exact.py:159:    if policy_table.shape[0] < 57:
+src/bts/validate/fdr.py:82:    BY = min(1, BH * c(m)), c(m) = sum_{i=1..m} 1/i. More conservative than
+src/bts/validate/fdr.py:159:      p_two_sided (float): min(1, 2 * min(p_lower, p_upper)). Standard
+src/bts/validate/fdr.py:193:    p_two_sided = min(1.0, 2.0 * min(p_lower, p_upper))
+src/bts/simulate/backtest_blend.py:129:        s_min = raw_scores.min()
+src/bts/simulate/backtest_blend.py:167:        "depth": min(merged_params.get("max_depth", 6), 8),
+src/bts/simulate/backtest_blend.py:839:    test_start = season_data["date"].min()
+src/bts/simulate/rare_event_mc.py:1:"""Cross-entropy importance-sampling rare-event Monte Carlo for P(57).
+src/bts/simulate/rare_event_mc.py:154:    streak_threshold: int = 57,
+src/bts/simulate/rare_event_mc.py:186:        streak_threshold: streak length to count as the rare event (default 57).
+src/bts/simulate/rare_event_mc.py:250:        end = min(start + chunk, n_bs)
+src/bts/simulate/monte_carlo.py:155:    p_57 = float(np.mean(streaks >= 57))
+src/bts/simulate/monte_carlo.py:157:    # 95% CI for P(57) using normal approximation
+src/bts/simulate/monte_carlo.py:161:    ci_upper = min(1.0, p_57 + 1.96 * se)
+src/bts/simulate/cli.py:120:    table.add_column("P(57)", justify="right")
+src/bts/simulate/cli.py:165:    """Solve MDP for optimal strategy — exact P(57) and policy extraction."""
+src/bts/simulate/cli.py:193:    console.print(f"  [green]Optimal P(57) = {sol.optimal_p57:.4%}[/green]")
+src/bts/simulate/cli.py:198:    console.print(f"  Heuristic P(57) = {p_heuristic:.4%}")
+src/bts/simulate/cli.py:225:    """Compute exact P(57) for a named strategy via absorbing chain."""
+src/bts/simulate/cli.py:254:            f"{policy_file}: P(57) = {p:.4%}  "
+src/bts/simulate/cli.py:268:    console.print(f"{strategy_name}: P(57) = {p:.4%}  (exact, {season_length}-day season)")
+src/bts/simulate/quality_bins.py:64:            p_range=(float(group["p_game_hit"].min()), float(group["p_game_hit"].max())),
+src/bts/simulate/quality_bins.py:102:            p_range=(float(group["p_game_hit"].min()), float(group["p_game_hit"].max())),
+src/bts/simulate/pooled_policy.py:7:through backward induction and produces MDP P(57) estimates with ±2.1pp
+src/bts/simulate/pooled_policy.py:192:            p_range=(float(group["p_game_hit"].min()), float(group["p_game_hit"].max())),
+src/bts/simulate/pooled_policy.py:243:    holdout bin distribution. It's the honest A/B primitive: "what P(57)
+src/bts/simulate/pooled_policy.py:253:    Returns E[P(reach 57) | start at streak=0, days=season_length, saver=1],
+src/bts/simulate/pooled_policy.py:286:    V[57, :, :, :] = 1.0
+src/bts/simulate/pooled_policy.py:289:        d_policy = min(d, policy_table.shape[1] - 1)
+src/bts/simulate/pooled_policy.py:297:        for s in range(57):
+src/bts/simulate/pooled_policy.py:302:                next_hit_s = min(s + 1, 57)
+src/bts/simulate/pooled_policy.py:303:                next_dbl_s = min(s + 2, 57)

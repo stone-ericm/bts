@@ -1,0 +1,20 @@
+{
+  "name": "canonical-n10",
+  "description": "Stratified n=10 sample of seeds drawn from positions 0, 10, 20, ..., 90 of the n=100 deterministic baseline P(57) MDP distribution. This is the seed set used for Phase 1 multi-seed screening on 2026-04-28 (post-determinism cutover). Designed so each pair-comparison covers the full baseline-variance range, making pooled mean ΔP(57) an unbiased estimator of the underlying effect.",
+  "source": "data/validation/baseline_n100_deterministic_2026-04-27.json",
+  "stratum": "positions 0-90 every 10th (i.e. seeds 1, 11, 21, ..., 91 of the rank-ordered baseline distribution)",
+  "generated_at": "2026-04-27",
+  "seeds": [
+    2273360,
+    260991262,
+    1746737973,
+    2048,
+    3629294338,
+    1277948386,
+    3219332220,
+    2207587974,
+    3170105529,
+    2675988121
+  ],
+  "n": 10
+}

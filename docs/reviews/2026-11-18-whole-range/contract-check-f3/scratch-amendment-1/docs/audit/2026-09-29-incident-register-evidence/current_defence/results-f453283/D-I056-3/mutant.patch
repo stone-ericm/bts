@@ -1,0 +1,13 @@
+diff --git a/src/bts/health/contest_state.py b/src/bts/health/contest_state.py
+index 5edcb53..4784b80 100644
+--- a/src/bts/health/contest_state.py
++++ b/src/bts/health/contest_state.py
+@@ -88,6 +88,8 @@ def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = Non
+             # it is WARN (logged, not DM'd), not CRITICAL.
+             gap_steps = resolved_pick_settlement_gap(picks_dir, state.source_date)
+             if gap_steps > EXPECTED_OVERNIGHT_LAG_STEPS:
++                pass  # W1.5 mutant: pre-365ea40 — a stale contest observation raises no alert
++            elif False:
+                 alerts.append(Alert(
+                     level="WARN",
+                     source=SOURCE,

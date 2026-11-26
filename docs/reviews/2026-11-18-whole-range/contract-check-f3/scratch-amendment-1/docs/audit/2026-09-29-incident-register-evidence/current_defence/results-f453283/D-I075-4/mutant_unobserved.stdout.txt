@@ -1,0 +1,51 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 13 items
+
+tests/health/test_restart_spike.py ......FF.....                         [100%]
+
+=================================== FAILURES ===================================
+____________ TestRestartSpike.test_checkpoint_anchored_within_a_day ____________
+
+self = <tests.health.test_restart_spike.TestRestartSpike object at 0x10b650c20>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8095/test_checkpoint_anchored_withi0')
+
+    def test_checkpoint_anchored_within_a_day(self, tmp_path):
+        # 2026-07-12 incident: the checkpoint advanced on EVERY run, so a
+        # Restart=always loop re-running EOD every ~48s moved the baseline
+        # +1 at a time — a 47-restart storm never tripped the +3 threshold.
+        # Same-day runs must keep the first observation as the anchor.
+        d = date(2026, 7, 12)
+        check(tmp_path, current_nrestarts=52, today=d)
+        check(tmp_path, current_nrestarts=53, today=d)
+        cp = json.loads((tmp_path / ".nrestarts_checkpoint").read_text())
+>       assert cp["nrestarts"] == 52, "same-day runs must not advance the anchor"
+E       AssertionError: same-day runs must not advance the anchor
+E       assert 53 == 52
+
+tests/health/test_restart_spike.py:61: AssertionError
+_________ TestRestartSpike.test_same_day_creep_accumulates_to_critical _________
+
+self = <tests.health.test_restart_spike.TestRestartSpike object at 0x10b650e60>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8095/test_same_day_creep_accumulate0')
+
+    def test_same_day_creep_accumulates_to_critical(self, tmp_path):
+        # +1 per run, three runs: the deltas alias to +1 each under the old
+        # behavior; day-anchored they accumulate to +3 → CRITICAL.
+        d = date(2026, 7, 12)
+        assert check(tmp_path, current_nrestarts=52, today=d) == []
+        assert check(tmp_path, current_nrestarts=53, today=d) == []
+        assert check(tmp_path, current_nrestarts=54, today=d) == []
+        alerts = check(tmp_path, current_nrestarts=55, today=d)
+>       assert len(alerts) == 1 and alerts[0].level == "CRITICAL"
+E       assert (0 == 1)
+E        +  where 0 = len([])
+
+tests/health/test_restart_spike.py:71: AssertionError
+=========================== short test summary info ============================
+FAILED tests/health/test_restart_spike.py::TestRestartSpike::test_checkpoint_anchored_within_a_day
+FAILED tests/health/test_restart_spike.py::TestRestartSpike::test_same_day_creep_accumulates_to_critical
+========================= 2 failed, 11 passed in 0.06s =========================

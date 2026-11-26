@@ -1,0 +1,177 @@
+{
+  "full_11_targets": {
+    "returncode": 1,
+    "counts": {
+      "passed": 312,
+      "failed": 1,
+      "errors": 0,
+      "deselected": 0
+    },
+    "failed_lines": [
+      "E               PermissionError: [Errno 1] Operation not permitted",
+      "../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/socket.py:850: PermissionError",
+      "FAILED tests/test_web_saver.py::test_do_post_saver_transition_socket_wiring"
+    ]
+  },
+  "clean_without_loopback_bind": {
+    "returncode": 0,
+    "counts": {
+      "passed": 312,
+      "failed": 0,
+      "errors": 0,
+      "deselected": 1
+    },
+    "failed_lines": []
+  },
+  "test_diffs": {
+    "all_changed_test_files": [
+      "tests/scripts/season_walk/test_season_walk.py",
+      "tests/test_morning_state_cs6b1.py",
+      "tests/test_scheduler_skip_visibility.py",
+      "tests/test_scheduler_tail_objective.py",
+      "tests/test_stale_delivery_cs4c.py",
+      "tests/test_wr_e_texts.py"
+    ],
+    "existing_diffs": {
+      "tests/test_scheduler_skip_visibility.py": {
+        "removed_count": 16,
+        "added_count": 16,
+        "removed": [
+          "    assert \"SKIP TODAY\" in html",
+          "    assert \"75%\" in html",
+          "    assert \"will pick\" in low or \"yet\" in low   # tentative, not a finality claim",
+          "    assert \"SKIP TODAY\" in html",
+          "    assert \"SKIP TODAY\" not in html",
+          "    assert \"SKIP TODAY\" in html",
+          "    assert \"SKIP TODAY\" not in html",
+          "def test_render_skip_banner_legacy_summary_keeps_old_wording():",
+          "    assert \"below the\" in html and \"pick bar\" in html",
+          "    assert \"75%\" in html",
+          "def test_format_skip_dm_legacy_summary_keeps_old_wording():",
+          "    assert \"~80% bar\" in msg",
+          "    assert \"SKIP TODAY\" in html",
+          "    assert \"SKIP TODAY\" not in html",
+          "    assert \"SKIP TODAY\" in html",
+          "    assert \"SKIP TODAY\" not in html"
+        ],
+        "added": [
+          "    assert \"NO PICK AT LAST CHECK\" in html",
+          "    assert \"75.0%\" in html",
+          "    assert \"no pick at this check\" in low",
+          "    assert \"NO PICK AT LAST CHECK\" in html",
+          "    assert \"NO PICK AT LAST CHECK\" not in html",
+          "    assert \"NO PICK AT LAST CHECK\" in html",
+          "    assert \"NO PICK AT LAST CHECK\" not in html",
+          "def test_render_skip_banner_legacy_summary_has_no_probability_comparison():",
+          "    assert \"No probability comparison is available for this check.\" in html",
+          "    assert \"75.0%\" in html",
+          "def test_format_skip_dm_legacy_summary_has_no_probability_comparison():",
+          "    assert \"No probability comparison is available for this check.\" in msg",
+          "    assert \"NO PICK AT LAST CHECK\" in html",
+          "    assert \"NO PICK AT LAST CHECK\" not in html",
+          "    assert \"NO PICK AT LAST CHECK\" in html",
+          "    assert \"NO PICK AT LAST CHECK\" not in html"
+        ]
+      },
+      "tests/test_scheduler_tail_objective.py": {
+        "removed_count": 2,
+        "added_count": 2,
+        "removed": [
+          "    assert \"streak-8 bar\" in format_skip_dm(\"2026-08-01\", s)",
+          "    assert s[\"best_batter\"] == \"Steven Kwan\" and s[\"streak\"] == 0"
+        ],
+        "added": [
+          "    assert \"No candidate was chosen.\" in format_skip_dm(\"2026-08-01\", s)",
+          "    assert s[\"best_batter\"] == \"B1\" and s[\"streak\"] == 0"
+        ]
+      },
+      "tests/test_stale_delivery_cs4c.py": {
+        "removed_count": 5,
+        "added_count": 8,
+        "removed": [
+          "        f\"The pick was delivered using an automatic contest reading flagged stale ({detail}). \"",
+          "        \"Check MLB. If the streak or saver differs, use bts set-contest-streak \"",
+          "        f\"--date {day} --streak N --best-streak B --saver S with the scheduler's picks directory \"",
+          "        \"and the values shown in MLB. Use the current ET date when you run it. \"",
+          "        \"Check the latest fetch status.\""
+        ],
+        "added": [
+          "        f\"The pick was delivered using an automatic contest reading flagged stale ({detail}). Check \"",
+          "        f\"MLB. If MLB differs from status (B8a), use bts set-contest-streak --date {day} --streak N \"",
+          "        \"--best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent \"",
+          "        \"pick and saver flag stay as they were. Write only if the pick's slate and today's ET date \"",
+          "        f\"both equal {day}. For a later date, follow B8b(1). On {day} ET away from midnight, if MLB \"",
+          "        \"shows this season's saver used, check bts saver-state --picks-dir DIR. For active or \"",
+          "        \"not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the \"",
+          "        \"latest fetch status.\""
+        ]
+      },
+      "tests/test_morning_state_cs6b1.py": {
+        "removed_count": 4,
+        "added_count": 8,
+        "removed": [
+          "        f\"Morning check for {DAY}: the automatic contest reading was stale at startup ({detail}). \"",
+          "        \"This reading is eligible if it remains in use. Check MLB. If state still differs, \"",
+          "        f\"use bts set-contest-streak --date {DAY} --streak N --best-streak B --saver S with \"",
+          "        \"the scheduler's picks directory and the values shown in MLB. Check the latest fetch status.\""
+        ],
+        "added": [
+          "        f\"Morning check for {DAY}: the automatic contest reading was stale at startup ({detail}). This \"",
+          "        \"reading is eligible if it remains in use. Check MLB. If prior entries are settled or absent \"",
+          "        \"and MLB differs from status (B8a), use \"",
+          "        f\"bts set-contest-streak --date {DAY} --streak N --best-streak B --saver S --picks-dir DIR on \"",
+          "        f\"{DAY} ET only. DIR is the absolute scheduler picks path. This leaves the saver flag \"",
+          "        f\"unchanged. On {DAY} ET away from midnight, if MLB shows this season's saver used, check bts \"",
+          "        \"saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir \"",
+          "        \"DIR. For uninitialized, see B8a. Check the latest fetch status.\""
+        ]
+      },
+      "tests/scripts/season_walk/test_season_walk.py": {
+        "removed_count": 0,
+        "added_count": 39,
+        "removed": [],
+        "added": [
+          "import gzip",
+          "import json",
+          "from collections import Counter",
+          "from pathlib import Path",
+          "",
+          "",
+          "def test_real_k2_dm_uses_the_below_bar_comparison():",
+          "    rec = walk.walk_one(date(2027, 7, 15), walk.State(\"dated\", 12, 12, \"used\", 0.72))",
+          "    assert rec[\"action\"] == \"skip\" and rec[\"best_p\"] < rec[\"skip_bar\"]",
+          "    assert \"below the\" in rec[\"skip_dm\"] and \"using unrounded values.\" in rec[\"skip_dm\"]",
+          "    assert walk.check([rec]) == []",
+          "",
+          "",
+          "def test_saved_e_walk_agrees_with_baseline():",
+          "    results = Path(walk.__file__).with_name(\"results\")",
+          "    with gzip.open(results / \"walk-bc143131.json.gz\", \"rt\") as file:",
+          "        baseline = json.load(file)",
+          "    with gzip.open(results / \"walk-e.json.gz\", \"rt\") as file:",
+          "        updated = json.load(file)",
+          "    assert baseline[\"runs\"] == updated[\"runs\"] == 4599",
+          "    assert baseline[\"by_day\"] == updated[\"by_day\"]",
+          "    assert baseline[\"boundary\"] == updated[\"boundary\"]",
+          "    assert updated[\"problems\"] == [] and walk.check(updated[\"records\"]) == []",
+          "    flags = {",
+          "        entry.split(\": skip message\", 1)[0] for entry in baseline[\"problems\"]",
+          "        if \": skip message\" in entry",
+          "    }",
+          "    assert len(flags) == 841",
+          "    counts = Counter()",
+          "    fields = (\"day\", \"state\", \"action\", \"pick_bar\", \"expected_days_left\", \"days_left\", \"days_effective\")",
+          "    for before, after in zip(baseline[\"records\"], updated[\"records\"], strict=True):",
+          "        assert [before[key] for key in fields] == [after[key] for key in fields]",
+          "        if f\"{before['day']} {before['state']}\" in flags:",
+          "            case = \"K4\" if before[\"skip_bar\"] is None else \"K3\"",
+          "            phrase = {\"K4\": \"No probability comparison is available for this check.\",",
+          "                      \"K3\": \"at or above the\"}[case]",
+          "            assert phrase in after[\"skip_dm\"] and \"below the\" not in after[\"skip_dm\"]",
+          "            counts[case] += 1",
+          "    assert counts == {\"K3\": 229, \"K4\": 612}"
+        ]
+      }
+    }
+  }
+}

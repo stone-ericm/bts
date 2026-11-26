@@ -1,0 +1,12 @@
+[Unit]
+Description=BTS lineup time collection (every 5 min)
+Requires=bts-lineup-collect.service
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=30s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

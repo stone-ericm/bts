@@ -1,0 +1,3 @@
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_a_relabelled_cell_name_never_unwraps_a_cell_argument[relabelled-import]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_a_relabelled_cell_name_never_unwraps_a_cell_argument[relabelled-swap]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_slot_kinds_come_from_the_prologue", "kind": "assertion"}

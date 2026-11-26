@@ -1,0 +1,37 @@
+{
+ "id": "E38",
+ "episode_row": [
+  "E38",
+  "4/28",
+  "memory_growth false CRITICAL; one unexplained restart",
+  "A",
+  "OI",
+  "B",
+  "4e221c8"
+ ],
+ "commits": [
+  {
+   "sha": "4e221c8",
+   "authored": "2026-04-28T21:25:06-04:00",
+   "subject": "fix(health): tune memory_growth thresholds based on real prod RSS",
+   "body": "First end-of-day health-check cycle on 2026-04-28 fired a spurious\nCRITICAL alert for the scheduler at 2.9 GB RSS. Original thresholds\n(INFO 200MB / WARN 500MB / CRITICAL 1024MB) were calibrated against\nthe SLEEPING-state baseline (~90 MB) \u2014 but the scheduler's bts-run\npath loads 1.5M PA \u00d7 dozens of features into pandas + trains 12 LightGBM\nblend models in process. That legitimately allocates 2-3 GB which\nCPython doesn't return to the OS.\n\nPost-prediction baseline is fundamentally different from sleeping\nbaseline. New thresholds:\n  INFO 1024 MB:    notable growth, worth observing\n  WARN 3072 MB:    significant \u2014 beyond expected post-prediction RSS\n  CRITICAL 6144 MB: ~40% of bts-mlb 16 GB, likely real leak\n\nTest added for the 2.9 GB regression case (INFO not CRITICAL).\nAfter deploy, tonight's 21:21 ET CRITICAL would have been INFO instead.\n\nThe misfire ALSO triggered an unintended bts-scheduler restart\n(NRestarts: 0 \u2192 1) \u2014 root cause unclear from journal, possibly\nsystemd watchdog timeout under high RSS. Worth follow-up but\nunblocked by the threshold tune.\n\nCo-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/health/memory_growth.py",
+    "tests/health/test_memory_growth.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 25086313693,
+    "created_at": "2026-04-29T01:25:10Z",
+    "head_sha": "4e221c8",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

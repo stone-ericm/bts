@@ -1,0 +1,86 @@
+{
+ "id": "E62",
+ "episode_row": [
+  "E62",
+  "6/12",
+  "entry check v1 false-flagged the entered pick (settled-only endpoint) \u2192 cron disabled",
+  "E/A",
+  "OI",
+  "B",
+  "2d68102 a6ec548 720651a"
+ ],
+ "commits": [
+  {
+   "sha": "2d68102",
+   "authored": "2026-06-12T20:51:46-04:00",
+   "subject": "DISABLE check-pick-entered cron: profile endpoint shows settled-only",
+   "body": "Eric caught it the same night: he HAD entered the 06-12 pick, but the\nuser-profile predictions list contains only hit/not_hit/void rows \u2014\npending entries are invisible there, so the check would false-alarm\ndaily. Cron line removed (box + setup script); command retained but\nmarked disabled pending an endpoint that exposes pending predictions.\nThe noon-ET WARN escalation stands (it reads settled-gap persistence,\nwhich was correct for the 06-11 incident).",
+   "files": [
+    "scripts/cron-setup-hetzner.sh",
+    "src/bts/cli.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27451527205,
+    "created_at": "2026-06-13T00:51:50Z",
+    "head_sha": "2d68102",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "a6ec548",
+   "authored": "2026-07-03T22:59:28-04:00",
+   "subject": "feat(cli): check-pick-entered v2 \u2014 pending entries via GET api/predictions",
+   "body": "v1 (2026-06-12) was disabled the night it shipped: its only source, the\nuser-profile predictions array, is SETTLED-only, so the pre-pitch check\nfalse-alarmed every day. The app JS bundle revealed Api.Prediction.get ->\nGET api/predictions, which exposes the OWN pending same-day row (verified\nlive tonight: the in-flight pick with result null). v2 detects entry from\nthe UNION of the profile and pending sources; any fetch failure skips\nquietly WITHOUT consuming the once-per-day marker, so a transient error\ncannot reproduce the v1 false-alarm class \u2014 the next 15-min cron run\nretries. Closes the 2026-06-11 missed-entry incident class.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_017ZFmfr3ec31457x8k6qxFg",
+   "files": [
+    "src/bts/cli.py",
+    "src/bts/contest_fetch.py",
+    "src/bts/leaderboard/endpoints.py",
+    "tests/test_cli_integration.py",
+    "tests/test_contest_fetch.py"
+   ],
+   "first_live_log": {
+    "sha": "720651a",
+    "live_by": "2026-07-04T03:07:46Z",
+    "not_live_before": "2026-07-04T03:07:46Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 28692943534,
+    "created_at": "2026-07-04T03:03:16Z",
+    "head_sha": "720651a",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "720651a",
+   "authored": "2026-07-03T22:59:28-04:00",
+   "subject": "chore(ops): wire capture-static + check-pick-entered v2 into cron; ARCHITECTURE sync",
+   "body": "Cron: capture-static every 30 min (public files, no auth, content-deduped);\ncheck-pick-entered */15 10-23 ET (the command self-gates to the pre-pitch\nwindow and exits quietly otherwise). Both ride the existing marker install \u2014\nre-run `bash scripts/cron-setup-hetzner.sh install` on the box post-deploy.\n\nARCHITECTURE: leaderboard-watcher section rewritten (static feeds, deep\nboard storage + censoring rationale, other-user redaction model, and a\ncorrection: the old \"10:00 ET captures morning intentions\" claim was wrong \u2014\nprofiles are settled-only); check-pick-entered bullet updated to v2.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_017ZFmfr3ec31457x8k6qxFg",
+   "files": [
+    "ARCHITECTURE.md",
+    "scripts/cron-setup-hetzner.sh"
+   ],
+   "first_live_log": {
+    "sha": "720651a",
+    "live_by": "2026-07-04T03:07:46Z",
+    "not_live_before": "2026-07-04T03:07:46Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 28692943534,
+    "created_at": "2026-07-04T03:03:16Z",
+    "head_sha": "720651a",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

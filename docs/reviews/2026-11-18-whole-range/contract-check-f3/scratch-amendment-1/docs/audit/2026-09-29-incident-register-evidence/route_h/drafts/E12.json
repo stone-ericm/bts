@@ -1,0 +1,161 @@
+{
+ "id": "I-012",
+ "working_id": "E12",
+ "title": "Live scorecard labelled assisted groundouts (and some fly outs) 'G?' (4/04\u20134/05)",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "U",
+  "secondary": []
+ },
+ "tier": "B",
+ "tier_reason": "dashboard scorecard label only; no state, delivery or alert effect",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "dashboard",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "The live scorecard labels each out with the fielder who made the play (a 6-3 groundout reads G6).",
+  "source": "docs/superpowers/specs/2026-04-04-live-scorecard-design.md; 27be68e and d99c5ef bodies"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "_extract_fielder_position read only f_fielded_ball credits; assisted groundouts carry f_assist + f_putout, so they rendered as 'G?'",
+   "code": [
+    {
+     "path": "src/bts/scorecard.py",
+     "ref": "2e0dfb7",
+     "symbol": "_extract_fielder_position",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "some routine fly outs carry only an f_putout credit, which the credit chain also ignored",
+   "code": [
+    {
+     "path": "src/bts/scorecard.py",
+     "ref": "27be68e",
+     "symbol": "_extract_fielder_position",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "27be68e"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "d99c5ef"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "none",
+  "trigger": "display-only: a scorecard label; no W4 boundary applies",
+  "recovery_assertion": "every recorded out resolves a fielder position on the scorecard"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 27be68e message body",
+   "written_at": "2026-04-05T14:12:50-04:00",
+   "what": "_extract_fielder_position only checked f_fielded_ball; assisted groundouts use f_assist + f_putout, 'so groundouts showed \"G?\" on the dashboard'"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit d99c5ef message body (authored 2026-04-05T15:53:00-04:00)",
+   "what": "the MLB API uses f_putout rather than f_fielded_ball for some routine fly outs; the priority chain becomes f_fielded_ball > f_assist > f_putout"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24253126060 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploy run whose head (4a82cf8) contains both fixes; a Fly.io deploy, log expired"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-04-04/05 (first live scorecard days)",
+   "onset": {
+    "not_before": "2026-04-04T21:35:33-04:00",
+    "not_after": "2026-04-05T14:12:50-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-05T14:12:50-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "27be68e",
+   "d99c5ef"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/superpowers/specs/2026-04-04-live-scorecard-design.md"
+  ]
+ },
+ "related": [],
+ "notes": [
+  "disposition changed from the lead row (UC) to observed_incident: 27be68e reports the label as seen on the dashboard, within 48 h of the live scorecard's launch (5020576, 4/04 21:35)",
+  "the dashboard was LAN-only on the Pi5 at the time (ARCHITECTURE.md 4cf7b1e Dashboard section)",
+  "deployed: candidate run 24253126060 was a Fly.io deploy (workflow 'Deploy BTS to Fly', fcedf71), not a production install; the Pi5 dashboard install time is not evidenced",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; 27be68e added TestExtractFielderPosition (test_assist_credit_groundout), d99c5ef test_putout_only_flyout",
+  "deployed unknown: candidate run 24253126060 executed the Fly deploy.yml (its head lacks 51ef987, the 4/11 Hetzner workflow); production (Pi5 orchestrator, manual pulls) has no install record before the cutover"
+ ]
+}

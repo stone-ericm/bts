@@ -1,0 +1,6 @@
+{"node": "tests.scripts.incident_register.test_records::test_codex_r3_invalid_records_are_rejected", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_records::test_a_date_only_report_covers_its_whole_day", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_records::test_a_continuing_condition_is_witnessed_only_at_its_observed_times", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_records::test_each_citation_of_a_report_is_qualified_on_its_own", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_records::test_an_open_ended_claim_anchors_no_report", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_records::test_a_report_written_at_the_claims_own_instant_qualifies", "kind": "assertion"}

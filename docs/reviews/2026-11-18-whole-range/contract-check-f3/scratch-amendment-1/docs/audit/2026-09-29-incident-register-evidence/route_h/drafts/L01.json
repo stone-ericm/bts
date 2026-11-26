@@ -1,0 +1,227 @@
+{
+ "id": "I-201",
+ "working_id": "L01",
+ "title": "BTS Pass graded as a miss: no official AB and no SF, did not play, or suspended before a hit (rules \u00a76 A/B/C); DD Pass legs scored as no-hit",
+ "disposition": "deployed_latent_defect",
+ "counted": true,
+ "classes": {
+  "primary": "G",
+  "secondary": []
+ },
+ "tier": "A",
+ "tier_reason": "a Pass graded as a miss resets the local streak (or consumes the saver) and mis-scores double downs; unfixed, so it reaches production next season",
+ "residual_reaches_production": true,
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "Official rules \u00a76: a pick with no official at-bat and no sacrifice fly, that did not play, or whose game was suspended before it recorded a hit is a Pass (void), not a miss; Double Down: Hit+Pass = +1, Pass+Pass = streak preserved; a Pass never consumes the saver.",
+  "source": "design \u00a710.1; docs/audit/2026-09-29-incident-register-evidence/rules/section6.txt (sha256 b7986f69\u2026, page fetched 2026-09-29T03:29:29Z)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "grade_pick_in_feed returns miss when the batter had no official AB and no SF (walks / HBP / sac bunt only) or appears with explicit zero stats and did not play",
+   "code": [
+    {
+     "path": "src/bts/picks.py",
+     "ref": "4490aee",
+     "symbol": "grade_pick_in_feed",
+     "ref_basis": "log"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "for a suspended game, a pre-suspension AB without a hit (clause C) and pre-suspension walks only are graded miss instead of void",
+   "code": [
+    {
+     "path": "src/bts/picks.py",
+     "ref": "4490aee",
+     "symbol": "grade_pick_in_feed (suspended branch)",
+     "ref_basis": "log"
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "text": "check-results feeds that miss into slot resolution and update_streak: a Pass leg makes Hit+Pass reset, Pass+Pass reset, and a Pass at streak 10-15 consumes the saver",
+   "code": [
+    {
+     "path": "src/bts/cli.py",
+     "ref": "4490aee",
+     "symbol": "check_results",
+     "ref_basis": "log"
+    },
+    {
+     "path": "src/bts/picks.py",
+     "ref": "4490aee",
+     "symbol": "update_streak",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": "unfixed",
+   "deployed": "not_applicable",
+   "mitigated": "none",
+   "verified_recovered": "not_applicable"
+  },
+  {
+   "link": 2,
+   "implemented": "unfixed",
+   "deployed": "not_applicable",
+   "mitigated": "none",
+   "verified_recovered": "not_applicable"
+  },
+  {
+   "link": 3,
+   "implemented": "unfixed",
+   "deployed": "not_applicable",
+   "mitigated": "none",
+   "verified_recovered": "not_applicable"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [
+   {
+    "nodes": [
+     "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[walks_only]",
+     "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[did_not_play]",
+     "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[sac_bunt_only]",
+     "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[suspended_walks_only]",
+     "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[suspended_ab_no_hit]"
+    ],
+    "exception": "tests.test_incident_register_2026.PassGradedAsMiss",
+    "controls": [
+     "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[sac_fly_no_hit]",
+     "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[official_ab_no_hit]",
+     "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[resumed_only]",
+     "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[pre_suspension_hit]",
+     "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[absent_from_rosters]"
+    ],
+    "acceptance": "docs/audit/2026-09-29-incident-register-evidence/expected_failures_runs/acceptance-c5cf6bc.json"
+   },
+   {
+    "nodes": [
+     "tests/test_incident_register_2026.py::test_l01_check_results_single_pick[walks_only]",
+     "tests/test_incident_register_2026.py::test_l01_check_results_single_pick[did_not_play]",
+     "tests/test_incident_register_2026.py::test_l01_check_results_single_pick[sac_bunt_only]",
+     "tests/test_incident_register_2026.py::test_l01_check_results_single_pick[suspended_walks_only]",
+     "tests/test_incident_register_2026.py::test_l01_check_results_single_pick[suspended_ab_no_hit]",
+     "tests/test_incident_register_2026.py::test_l01_check_results_hit_plus_pass[walks_only]",
+     "tests/test_incident_register_2026.py::test_l01_check_results_hit_plus_pass[did_not_play]",
+     "tests/test_incident_register_2026.py::test_l01_check_results_hit_plus_pass[suspended_ab_no_hit]",
+     "tests/test_incident_register_2026.py::test_l01_check_results_pass_plus_pass_preserves",
+     "tests/test_incident_register_2026.py::test_l01_pass_at_saver_streak_keeps_the_saver"
+    ],
+    "exception": "tests.test_incident_register_2026.PassScoredAsNoHit",
+    "controls": [
+     "tests/test_incident_register_2026.py::test_l01_check_results_single_pick[sac_fly_no_hit]",
+     "tests/test_incident_register_2026.py::test_l01_check_results_single_pick[official_ab_no_hit]",
+     "tests/test_incident_register_2026.py::test_l01_check_results_single_pick[resumed_only]",
+     "tests/test_incident_register_2026.py::test_l01_check_results_single_pick[pre_suspension_hit]",
+     "tests/test_incident_register_2026.py::test_l01_absent_player_stays_pending"
+    ],
+    "acceptance": "docs/audit/2026-09-29-incident-register-evidence/expected_failures_runs/acceptance-c5cf6bc.json"
+   }
+  ],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "Unfixed: every Pass case above still grades as a miss locally; no production repair is authorized in the wrap.",
+   "reaches_production": true,
+   "source": "expected-failure fixtures (accepted 18/18 at c5cf6bc)"
+  },
+  {
+   "text": "tests/test_check_hit_suspension.py::test_grade_resumed_hit_does_not_count asserts miss for a pre-suspension AB without a hit: conflicting coverage kept unchanged until an authorized repair.",
+   "reaches_production": true,
+   "source": "plan rev 3 Task 1"
+  }
+ ],
+ "watchdog": {
+  "boundary": "grading",
+  "trigger": "a slot graded miss while the batter's boxscore shows AB = 0 and SF = 0, no appearance, or a suspended game with no pre-suspension hit; or a local slot result that differs from the contest's label for the same round",
+  "recovery_assertion": "the slot is re-graded void and the local streak and saver are replayed to the contest-consistent state"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-09-29-incident-register-evidence/rules/section6.txt (official rules \u00a76, pinned)",
+   "what": "Pass cases A/B/C and the Double Down table"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "tests/test_incident_register_2026.py L01 section + docs/audit/2026-09-29-incident-register-evidence/expected_failures_runs/acceptance-c5cf6bc.json",
+   "what": "the real grader and real check-results return miss/reset for all 15 Pass cases (strict XFAIL, 15/15 accepted: dedicated exception raised in _oracle with the declared bad value, production entry observed); 11 controls pass"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/superpowers/specs/2026-09-29-incident-register-design.md \u00a710.1",
+   "what": "per-case required values fixed before the fixtures, clause C encoded literally (ruling 5)"
+  },
+  {
+   "id": "ev9",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy runs 28601525167 ... 35753849145 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "every install in the continuous logged chain 7/02 -> 9/22 (last: 4490aee) carries the unchanged grading/reconcile code; no fix exists"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "latent (no evidenced firing in Phase 1)",
+   "onset": "not_applicable",
+   "first_detectable": "not_applicable",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "at": "2026-09-28",
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "not_applicable",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "not_applicable"
+   }
+  }
+ ],
+ "routes": {
+  "H": [],
+  "R": "pending_phase2",
+  "X": [
+   "design \u00a710.1",
+   "rules/section6.txt"
+  ]
+ },
+ "related": [
+  "I-202",
+  "I-089"
+ ],
+ "notes": [
+  "firing is not evidenced in Phase 1: whether any 2026 local miss was a contest Pass needs the W1.1 ledger's per-slot local vs contest labels (Phase 2 / new exposure row)",
+  "operator_awareness = the 2026-09-28 ledger-spec discussion that surfaced the Pass rules (design \u00a710.1 history)"
+ ]
+}

@@ -1,0 +1,26 @@
+{
+  "m16_census_accept_oob_bin": {
+    "killed": true,
+    "detail": "========================= 1 failed, 12 passed in 1.09s ========================="
+  },
+  "m17_census_accept_raw_not_skip": {
+    "killed": true,
+    "detail": "========================= 1 failed, 12 passed in 1.09s ========================="
+  },
+  "m18_census_unguarded_play_excluded": {
+    "killed": false,
+    "detail": "============================== 13 passed in 0.76s =============================="
+  },
+  "m22_custom_census_weak_schema_check": {
+    "killed": false,
+    "detail": "============================== 13 passed in 0.76s =============================="
+  },
+  "m25_custom_census_drop_from_bin_lt_bin": {
+    "killed": false,
+    "detail": "============================== 13 passed in 0.78s =============================="
+  },
+  "m26_custom_census_isinstance_int_allows_bool": {
+    "killed": false,
+    "detail": "============================== 13 passed in 0.76s =============================="
+  }
+}

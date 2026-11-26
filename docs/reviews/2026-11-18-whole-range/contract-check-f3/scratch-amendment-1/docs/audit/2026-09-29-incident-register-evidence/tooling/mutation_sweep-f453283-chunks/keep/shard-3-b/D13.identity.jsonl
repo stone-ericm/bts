@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_r4_counterexamples::test_the_manifest_hashes_untracked_file_contents", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_a_pair_whose_symlinked_helper_changes_is_rejected", "kind": "assertion"}

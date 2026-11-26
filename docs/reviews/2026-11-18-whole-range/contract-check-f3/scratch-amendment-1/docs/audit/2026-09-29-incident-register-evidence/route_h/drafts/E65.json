@@ -1,0 +1,183 @@
+{
+ "id": "I-065",
+ "working_id": "E65",
+ "title": "6/18 a correct MDP skip day produced no signal (no log line, DM or dashboard state) — indistinguishable from a hang",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "A",
+  "secondary": [
+   "U"
+  ]
+ },
+ "tier": "B",
+ "tier_reason": "the skip itself was correct (no delivery or state impact); the defect was a missing outcome signal that left the operator unable to tell a skip from a hang",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "A game day on which the MDP declines to pick surfaces that outcome explicitly (log line, one-time skip DM in dm mode, dashboard banner) rather than returning silently.",
+  "source": "ARCHITECTURE.md scheduler.py 'Skip-day visibility (shipped 2026-06-18)' (9dc8ee4, 8f0c322)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "when every candidate was below the MDP pick bar, run_single_check computed predictions and returned with pick_result None; run_day had no skip branch and web.py no skip state, so the day produced no log line, DM or dashboard signal",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "e9870fa",
+     "symbol": "run_single_check (silent pick_result None return) / run_day",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/web.py",
+     "ref": "e9870fa",
+     "symbol": "page rendering (no skip-day state)",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "9dc8ee4"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:11Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "The skip notice is tentative: an early cycle can still flip to a pick; the first live flip (7/01–7/02) left contradictory skip/pick dashboard states until 258aaa4/2c62d72.",
+   "reaches_production": false,
+   "source": "9dc8ee4 body (Codex hardening); I-069"
+  }
+ ],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "on a game day, by the earliest remaining game's cutoff (first pitch − 5 min) neither a scoreable commit nor a recorded deliberate skip (decision action=skip, source=mdp) with its skip notice exists",
+  "recovery_assertion": "the date carries either a scoreable commit or a final skip record whose notice was delivered (dm mode) or logged (private mode), and the dashboard shows the same outcome"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 9dc8ee4 message body",
+   "written_at": "2026-06-18T20:24:36-04:00",
+   "what": "the 2026-06-18 'why no suggestion?' incident: the best candidate was below the pick bar and correctly skipped, but the daemon returned silently — no DM, no log line, no dashboard signal; a legitimate skip was indistinguishable from a hang"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 9dc8ee4 diff (src/bts/scheduler.py, src/bts/web.py) and tests/test_scheduler_skip_visibility.py",
+   "what": "adds build_skip_summary, the 'SKIP —' log line, the idempotent tentative skip DM (dm mode only, retried on send failure, carried across same-day restart) and the dashboard SKIP TODAY banner"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 28601525167 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "retained log records pre-deploy SHA 83a5cad at 2026-07-02T15:28:10Z, the first retained log after 6/07; 9dc8ee4 is an ancestor of 83a5cad"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27799639516 (deploy_runs.json)",
+   "what": "first successful deploy run whose head (9dc8ee4) contains the fix, created 2026-06-19T01:23:43Z; log expired"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-06-18",
+   "onset": {
+    "at": "2026-06-18",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": {
+    "at": "2026-06-18",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_before": "2026-06-18",
+    "not_after": "2026-06-18T20:24:36-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-06-18T20:24:36-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "9dc8ee4",
+   "8f0c322"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "ARCHITECTURE.md scheduler.py 'Skip-day visibility'"
+  ]
+ },
+ "related": [
+  "I-066",
+  "I-069",
+  "I-206"
+ ],
+ "notes": [
+  "the body names the day's best candidate and its probability; not repeated here (a model output, not needed)",
+  "earlier silent skip days (before 6/18) are likely but not evidenced in the repo; Route R (journal: lineup checks with no pick and no skip line, 5/11–6/18) can enumerate them as recurrences",
+  "the missing skip-vs-hang distinction for a genuinely hung scheduler is the independent day-outcome watchdog gap (I-206 / L06), kept there rather than as this record's residual",
+  "deployed: log bound only (6/07 00:11Z → 7/02 15:28Z); candidate ancestry: first successful deploy containing 9dc8ee4 = run 27799639516 at 2026-06-19T01:23:43Z (head 9dc8ee4, log expired)",
+  "run_id 28601525167 is the run whose retained log first observed 83a5cad (as pre-deploy SHA); the run that deployed head 83a5cad (28520680537) has an expired log",
+  "delivery_mode unknown (5/20–7/05 window); authority local (the MDP skip decision)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; 9dc8ee4 adds tests/test_scheduler_skip_visibility.py::test_run_single_check_surfaces_skip_instead_of_silent_none, which reproduces the silent return"
+ ]
+}

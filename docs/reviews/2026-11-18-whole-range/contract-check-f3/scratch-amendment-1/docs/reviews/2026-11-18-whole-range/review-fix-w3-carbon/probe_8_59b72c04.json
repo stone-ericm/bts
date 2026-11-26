@@ -1,0 +1,99 @@
+{
+  "slice3_cached_fallbacks_in_loop": {
+    "contest_alerts": 1,
+    "dm_count": 0,
+    "ok": true,
+    "predict_times": [
+      "18:25",
+      "18:35",
+      "18:35"
+    ]
+  },
+  "void_defer_crossing_cutoff": {
+    "late_alerts": 1,
+    "names_batter": true,
+    "ok": true,
+    "postponed_alerts": 0,
+    "refusal_reasons": [
+      "past_submission_cutoff"
+    ]
+  },
+  "void_deliver_past_cutoff": {
+    "late_alerts": 1,
+    "names_batter": true,
+    "ok": true,
+    "postponed_alerts": 0,
+    "refusal_reasons": [
+      "past_submission_cutoff"
+    ]
+  },
+  "wr_a_carbon_midnight": {
+    "contest_alerts": 1,
+    "delivered": false,
+    "ok": true,
+    "rolled": true
+  },
+  "wr_a_pick_dm": {
+    "contest_alerts": 1,
+    "final_single": true,
+    "final_streak": 30,
+    "ok": true,
+    "refusals": [
+      "lineup"
+    ],
+    "sent": 1
+  },
+  "wr_a_pick_public": {
+    "contest_alerts": 1,
+    "final_single": true,
+    "final_streak": 30,
+    "ok": true,
+    "refusals": [
+      "lineup"
+    ],
+    "sent": 1
+  },
+  "wrapper_audit_replace": {
+    "committed_id": 999,
+    "dm_count": 1,
+    "dm_matches_commit": true,
+    "ok": true,
+    "reused": false,
+    "starts": [
+      "18:25",
+      "19:00"
+    ]
+  },
+  "wrapper_deepcopy": {
+    "committed_id": 601,
+    "dm_count": 1,
+    "dm_matches_commit": true,
+    "ok": true,
+    "reused": false,
+    "starts": [
+      "18:25",
+      "19:00"
+    ]
+  },
+  "wrapper_inplace_second_save": {
+    "committed_id": 999,
+    "dm_count": 1,
+    "dm_matches_commit": true,
+    "ok": true,
+    "reused": false,
+    "starts": [
+      "18:25",
+      "19:00"
+    ]
+  },
+  "wrapper_noop_mock": {
+    "committed_id": null,
+    "dm_count": 0,
+    "dm_matches_commit": false,
+    "ok": true,
+    "reused": null,
+    "starts": [
+      "18:25"
+    ]
+  }
+}

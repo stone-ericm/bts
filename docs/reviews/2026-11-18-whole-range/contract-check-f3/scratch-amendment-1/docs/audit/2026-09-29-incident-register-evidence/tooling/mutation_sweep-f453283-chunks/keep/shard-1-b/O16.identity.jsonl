@@ -1,0 +1,6 @@
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_a_return_while_another_thread_is_alive_is_not_read", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r8_counterexamples::test_a_full_run_with_an_incomplete_return_value_is_refused", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r8_counterexamples::test_a_full_run_never_formats_application_metadata", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r9_counterexamples::test_a_full_run_never_compares_class_namespace_keys[__dict__]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r9_counterexamples::test_a_full_run_never_compares_class_namespace_keys[__module__]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_runner::test_an_incompletely_observed_value_is_never_classified", "kind": "assertion"}

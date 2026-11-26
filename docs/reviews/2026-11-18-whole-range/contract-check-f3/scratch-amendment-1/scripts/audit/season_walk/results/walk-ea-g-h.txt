@@ -1,0 +1,12 @@
+2027-03-01
+2027-04-01
+2027-05-01
+2027-06-01
+2027-07-01
+2027-08-01
+2027-09-01
+2027-10-01
+runs=4818 problems=0
+
+Run on the merge candidate of change sets Ea and H on main with G (2026-11-25): 4,818 runs, 0 problems, exit 0.
+Against walk-h.json.gz (H before Ea): no record differs in action, bar, day counts, objective or selected slots; the 612 skip-notice warnings are gone because Ea corrects the notice text.

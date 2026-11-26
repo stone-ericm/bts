@@ -1,0 +1,192 @@
+{
+ "id": "I-048",
+ "working_id": "E48",
+ "title": "5/09 deploy of 68e4cdb failed its canary while the scheduler sat in a clean-exit auto-restart; canary relaxed to accept that state",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "S",
+  "secondary": []
+ },
+ "tier": "B",
+ "tier_reason": "one deploy failed and (per the workflow) rolled back; the same source went out 8 minutes later; no delivery or state impact evidenced",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "deploy",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "The deploy canary passes a deploy whose services are healthy and rolls back only deploys that leave a service failed.",
+  "source": "CLAUDE.md Deployment 'Canary + auto-rollback'; .github/workflows/deploy.yml canary (fa1a070)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "canary check 1 required `systemctl is-active bts-scheduler` == active; at the deploy the scheduler was activating/auto-restart after a clean exit (Result=success, status 0), so the check failed, the workflow's failure branch ran and the run concluded failure",
+   "code": [
+    {
+     "path": ".github/workflows/deploy.yml",
+     "ref": "68e4cdb",
+     "symbol": "canary Check 1 (is-active)",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "ac4a959"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "ac4a959",
+    "live_by": "2026-05-09T23:21:06Z",
+    "run_id": 25614364730,
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": {
+    "how": "run 25614364730 (same src plus the relaxed canary) concluded success",
+    "at": {
+     "not_before": "2026-05-09T19:21:06-04:00",
+     "evidence": [
+      "ev2"
+     ]
+    }
+   }
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "preservation",
+  "trigger": "a deploy run concludes failure or rolls back: record the canary's failing check and the scheduler's ActiveState/SubState/Result, and compare the box HEAD with the pushed SHA",
+  "recovery_assertion": "the next deploy of the same source concludes success and the box HEAD equals it"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 25614229839 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "deploy-branch push of head 68e4cdb created 2026-05-09T23:13:29Z (19:13:29 ET), conclusion failure; log unavailable_expired"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 25614364730 (deploy_runs.json)",
+   "what": "deploy of head ac4a959 (68e4cdb plus the canary change; no src difference) created 2026-05-09T23:21:06Z, conclusion success"
+  },
+  {
+   "id": "ev3",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit ac4a959 message body",
+   "written_at": "2026-05-09T19:20:48-04:00",
+   "what": "treat the scheduler as healthy when active or when systemd reports a clean Restart=always auto-restart cycle after day completion; keep rollback for failed states and nonzero exits; include state details in the failure reason"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 864d3aa message body (19:28 ET)",
+   "what": "the same evening the scheduler was 'exiting immediately after day completion and being relaunched repeatedly by Restart=always' (next-wake computed in the past) - the state the canary saw"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-05-09 19:13 ET",
+   "onset": {
+    "at": "2026-05-09T19:13:29-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": {
+    "at": "2026-05-09T19:13:29-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_machine_detection": {
+    "detector": "deploy workflow canary (run 25614229839)",
+    "at": {
+     "not_before": "2026-05-09T19:13:29-04:00",
+     "not_after": "2026-05-09T19:20:48-04:00",
+     "evidence": [
+      "ev1",
+      "ev3"
+     ]
+    }
+   },
+   "alert": {
+    "attempted": "unknown",
+    "confirmed": "unknown",
+    "failed": "unknown"
+   },
+   "operator_awareness": {
+    "not_after": "2026-05-09T19:20:48-04:00",
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-05-09T19:21:06-04:00",
+    "evidence": [
+     "ev3",
+     "ev2"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": {
+    "not_before": "2026-05-09T19:21:06-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "latencies": {
+    "detection": {
+     "min_minutes": 0.0,
+     "max_minutes": 7.32
+    },
+    "notification": "unknown",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "ac4a959",
+   "68e4cdb"
+  ],
+  "R": "pending_phase2",
+  "X": []
+ },
+ "related": [
+  "I-049",
+  "I-043",
+  "I-037"
+ ],
+ "notes": [
+  "the cause (clean auto-restart state) is inferred from ac4a959's change and 864d3aa's body 8-15 min later; the run log with the canary's failure reason has expired; whether the rollback executed is inferred from the failure branch (deploy_history.txt reflog in B1 can confirm)",
+  "alternative reading: the canary may have been a TRUE detection of the I-049 restart loop, and ac4a959's relaxation means a deploy landing during any clean-exit restart loop now passes check 1 (still present in deploy.yml at HEAD) - my analysis, not a documented residual; if the lead accepts it, list it as a residual (reaches production) and apply B-to-A",
+  "merge with I-049? same evening, causally linked",
+  "the reverted deploy carried the 68e4cdb polling-gate fix (I-043 link 3), delayed by 8 min",
+  "detection latency 0-7.3 min: the canary ran within the run (19:13:29) and the operator had reacted by 19:20:48",
+  "log bound: live by 2026-06-07T00:11:19Z (run 27077693688)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time (workflow defect: its own closure per design §9.2)"
+ ]
+}

@@ -1,0 +1,22 @@
+early-clusters: scheduler.py :: if clusters and (c["time_et"] - clusters[-1]["time_et"]) <= timedelta(minutes=cluster_min): -> if False:
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-closing-blind
+configfile: pyproject.toml
+collected 1 item
+
+../../../tests/test_thin_slate_checks.py F                               [100%]
+
+=================================== FAILURES ===================================
+_______ test_early_checks_of_two_close_games_cluster_like_regular_checks _______
+../../../tests/test_thin_slate_checks.py:73: in test_early_checks_of_two_close_games_cluster_like_regular_checks
+    assert _times(runs) == ["16:05", "17:05", "18:05"]
+E   AssertionError: assert ['16:05', '16...:10', '18:05'] == ['16:05', '17:05', '18:05']
+E     
+E     At index 1 diff: '16:10' != '17:05'
+E     Left contains 2 more items, first extra item: '17:10'
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED ../../../tests/test_thin_slate_checks.py::test_early_checks_of_two_close_games_cluster_like_regular_checks
+============================== 1 failed in 0.23s ===============================
+mutation-result early-clusters 1

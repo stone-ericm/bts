@@ -1,0 +1,14 @@
+no-byte-match            DETECTED      2.37s  ======================= 3 failed, 62 deselected in 1.96s =======================
+sleep-reuse              DETECTED      2.31s  ======================= 1 failed, 64 deselected in 1.91s =======================
+no-post-marker-cutoff    DETECTED      2.42s  ======================= 2 failed, 63 deselected in 1.95s =======================
+no-et-day-check          DETECTED      2.39s  ======================= 4 failed, 61 deselected in 2.00s =======================
+no-scoreable-check       DETECTED      2.32s  ======================= 2 failed, 63 deselected in 1.94s =======================
+apply-late-results       SURVIVED      4.34s  ======================= 1 passed, 64 deselected in 3.93s =======================
+unchecked-selection      DETECTED      2.31s  ======================= 1 failed, 64 deselected in 1.91s =======================
+coalesce-reuse-defer     DETECTED      2.28s  ======================= 1 failed, 64 deselected in 1.90s =======================
+no-final-decision-read   DETECTED      2.30s  ======================= 1 failed, 64 deselected in 1.92s =======================
+separate-status-budget   SURVIVED      6.39s  ======================= 2 passed, 63 deselected in 5.99s =======================
+poll-mismatched-commit   DETECTED      2.31s  ================== 1 failed, 1 passed, 63 deselected in 1.92s ==================
+no-final-pick-read       DETECTED      2.35s  ======================= 3 failed, 62 deselected in 1.97s =======================
+game-not-side            DETECTED      4.35s  ======================= 1 failed, 64 deselected in 3.96s =======================
+capture-from-readback    DETECTED      2.29s  ======================= 1 failed, 64 deselected in 1.90s =======================

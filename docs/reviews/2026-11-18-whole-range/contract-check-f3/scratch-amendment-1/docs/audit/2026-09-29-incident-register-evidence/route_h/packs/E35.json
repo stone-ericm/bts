@@ -1,0 +1,37 @@
+{
+ "id": "E35",
+ "episode_row": [
+  "E35",
+  "4/23",
+  "EOD clean exit \u2192 Restart=always relaunch loop (NRestarts 0\u21927 in 25 min)",
+  "L",
+  "OI",
+  "A",
+  "ddee3db"
+ ],
+ "commits": [
+  {
+   "sha": "ddee3db",
+   "authored": "2026-04-23T18:59:11-04:00",
+   "subject": "fix(scheduler): sleep until next-day wakeup after IDLE_END_OF_DAY",
+   "body": "Bug: run_day writes IDLE_END_OF_DAY heartbeat then returns. Process exits.\nsystemd Restart=always re-launches within 30s. New run_day runs through\nits full logic, but all post-lock branches short-circuit (pick locked,\ngames final, result already polled), reaching IDLE_END_OF_DAY again in\n~3 min. Observed live 2026-04-23 post-games: NRestarts grew from 0 \u2192 7\nin 25 min after both picks' games ended.\n\nNot caught by watchdog kill this time \u2014 these are clean process exits,\nnot SIGABRT. Yesterday's WatchdogSec hardening prevents the silent\nSIGABRT cycle but doesn't address the legitimate-clean-exit-into-\nrestart cycle.\n\nFix: new _idle_until_next_wakeup(next_wakeup_iso, heartbeat_path) helper\nkeeps the process alive past IDLE_END_OF_DAY by sleeping (via already-\ntested _watchdog_ping_sleep) until state.next_wakeup. Writes SLEEPING\nstate + sleeping_until metadata so check_heartbeat.py recognizes the\nintentional sleep.\n\n3 defensive tests: None wake-time, past wake-time, malformed ISO all\nshort-circuit to no-op. Future wake-time would require real sleep \u2014\ntrusts _watchdog_ping_sleep's existing tests.\n\nFull suite: 566 passed (was 563).\n\nCo-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_scheduler.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24863085537,
+    "created_at": "2026-04-23T22:59:15Z",
+    "head_sha": "ddee3db",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

@@ -1,0 +1,199 @@
+{
+  "total_mutations": 26,
+  "c14_count": 19,
+  "own_count": 7,
+  "detected_count": 25,
+  "survivors": [
+    {
+      "mutation": "own_25_bool_streak_accepted",
+      "file": "scheduler.py",
+      "returncode": 0,
+      "detected": false,
+      "failed_test": ""
+    }
+  ],
+  "outcomes": [
+    {
+      "mutation": "r2_01_top_prediction",
+      "file": "scheduler.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_run_single_check_skip_journal[K1] - Ass..."
+    },
+    {
+      "mutation": "r2_02_below_equality",
+      "file": "scheduler.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields2-Candidate used in the decision: A (T) 75.0%, at or above the streak-8 bar (75.0%).]"
+    },
+    {
+      "mutation": "r2_03_drop_label_k2",
+      "file": "scheduler.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields7-Top model prediction (eligibility unverified): A (T) 75.0%, below the streak-8 bar (80.0%) using unrounded values.]"
+    },
+    {
+      "mutation": "r2_04_swap_k1_k5",
+      "file": "scheduler.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields5-Candidate used in the decision: A (<T&>) 75.0%. Reason: <stop & check>.]"
+    },
+    {
+      "mutation": "r2_05_swap_k1_k2",
+      "file": "scheduler.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields6-Candidate used in the decision: A (T) 75.0%. Reason: Stopped!]"
+    },
+    {
+      "mutation": "r2_06_old_journal_k1",
+      "file": "scheduler.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_run_single_check_skip_journal[K1] - Ass..."
+    },
+    {
+      "mutation": "r2_07_old_journal_k3",
+      "file": "scheduler.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_run_single_check_skip_journal[K3] - Ass..."
+    },
+    {
+      "mutation": "r2_08_old_journal_k4",
+      "file": "scheduler.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_run_single_check_skip_journal[K4] - Ass..."
+    },
+    {
+      "mutation": "r2_09_unescaped_name",
+      "file": "web.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[None] - asse..."
+    },
+    {
+      "mutation": "r2_10_unescaped_team",
+      "file": "web.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields5-Candidate used in the decision: A (<T&>) 75.0%. Reason: <stop & check>.]"
+    },
+    {
+      "mutation": "r2_11_unescaped_reason",
+      "file": "web.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields5-Candidate used in the decision: A (<T&>) 75.0%. Reason: <stop & check>.]"
+    },
+    {
+      "mutation": "r2_12_drop_delivery_saver",
+      "file": "scheduler.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_stale_warning_maximum_detail[delivery]"
+    },
+    {
+      "mutation": "r2_13_drop_morning_saver",
+      "file": "scheduler.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_stale_warning_maximum_detail[morning]"
+    },
+    {
+      "mutation": "r2_14_old_refusal_late",
+      "file": "scheduler.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_refusal_message_and_record[late] - Asse..."
+    },
+    {
+      "mutation": "r2_15_old_refusal_void",
+      "file": "scheduler.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_refusal_message_and_record[postponed]"
+    },
+    {
+      "mutation": "r2_16_string_probability",
+      "file": "scheduler.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[0.99] - Type..."
+    },
+    {
+      "mutation": "ea_17_restore_no_pick_at_last_check",
+      "file": "web.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields0-Candidate used in the decision: A (T) 75.0%. Reason: Stopped!]"
+    },
+    {
+      "mutation": "ea_18_restore_follow_b8b1",
+      "file": "scheduler.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_stale_warning_maximum_detail[delivery]"
+    },
+    {
+      "mutation": "ea_19_drop_before_first_check",
+      "file": "scheduler.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_stale_warning_maximum_detail[morning]"
+    },
+    {
+      "mutation": "own_20_isinstance_outside_try",
+      "file": "scheduler.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_candidate_with_raising_class_lookup_preserves_base_summary"
+    },
+    {
+      "mutation": "own_21_allow_out_of_range_numbers",
+      "file": "scheduler.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_out_of_range_skip_numbers_are_missing[best_p-1e+308]"
+    },
+    {
+      "mutation": "own_22_reject_zero_and_one_edges",
+      "file": "scheduler.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_skip_number_edges_are_valid[0] - Assert..."
+    },
+    {
+      "mutation": "own_23_no_strip_blank_reason",
+      "file": "scheduler.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields8-Candidate used in the decision: A (T) 75.0%. No probability comparison is available for this check.]"
+    },
+    {
+      "mutation": "own_24_truthy_candidate_verified",
+      "file": "scheduler.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_malformed_persisted_fields[None] - Asse..."
+    },
+    {
+      "mutation": "own_25_bool_streak_accepted",
+      "file": "scheduler.py",
+      "returncode": 0,
+      "detected": false,
+      "failed_test": ""
+    },
+    {
+      "mutation": "own_26_drop_settled_condition",
+      "file": "scheduler.py",
+      "returncode": 1,
+      "detected": true,
+      "failed_test": "FAILED tests/test_wr_e_texts.py::test_stale_warning_maximum_detail[morning]"
+    }
+  ]
+}

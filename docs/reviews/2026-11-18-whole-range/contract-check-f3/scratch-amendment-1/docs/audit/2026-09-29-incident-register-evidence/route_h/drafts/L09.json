@@ -1,0 +1,202 @@
+{
+ "id": "I-209",
+ "working_id": "L09",
+ "title": "7/06-8/14: a private_locked or locked_unconfirmed commit whose best-effort decision.json write failed got neither an entry alert nor the missed-pick alert",
+ "disposition": "deployed_latent_defect",
+ "counted": true,
+ "classes": {
+  "primary": "E",
+  "secondary": [
+   "A",
+   "G"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "multi-fault path with no evidenced firing; the missed-pick half was closed 8/14 (224ddce), but the entry check still skips such a commit and local grading/polling skip it too (same is_scoreable_commit gate); B -> A",
+ "residual_reaches_production": true,
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "cron_job",
+ "authority": "local",
+ "contract": {
+  "text": "A committed pick that needs manual entry (private_locked or locked_unconfirmed) always yields an operator alert while its entry is unconfirmed, even if the best-effort decision.json write failed.",
+  "source": "docs/audit/2026-07-06-deferred-dd-and-premature-entry-alert.md 'Codex pre-merge review ... Deferred' (finding 1); ARCHITECTURE.md 'bts check-pick-entered' ('Former residual limitation ... closed 2026-08-14')"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "check_pick_entered gates on daily_decision.is_scoreable_commit: with no decision record it falls back to pick_was_delivered, which is False for private_locked and locked_unconfirmed commits, so a failed decision write silences the entry check (by design: the pick_locked union was rejected)",
+   "code": [
+    {
+     "path": "src/bts/cli.py",
+     "ref": "4490aee",
+     "symbol": "check_pick_entered",
+     "ref_basis": "log"
+    },
+    {
+     "path": "src/bts/daily_decision.py",
+     "ref": "4490aee",
+     "symbol": "is_scoreable_commit",
+     "ref_basis": "log"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "_write_commit_decision set state.committed_pick_written = True even when write_decision failed, which suppressed the E3 missed-pick alert (step 5b gate) for the same day",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "404358d",
+     "symbol": "_write_commit_decision",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "implemented": "unfixed",
+   "deployed": "not_applicable",
+   "mitigated": "none",
+   "verified_recovered": "not_applicable",
+   "link": 1
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "224ddce"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "3e1791c",
+    "live_by": "2026-08-14T19:04:36Z",
+    "not_live_before": "2026-08-14T19:04:33Z",
+    "run_id": 31831299733,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "not_applicable"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "The entry check still skips a commit whose decision record is missing; the alert now comes only from the in-process E3 check, which shares the scheduler's fate (I-206)",
+   "reaches_production": true,
+   "source": "ARCHITECTURE.md 'bts check-pick-entered'; 224ddce body"
+  },
+  {
+   "text": "check-results and the daemon's result polling use the same is_scoreable_commit gate, so such a commit is never graded locally (code reading; no source discusses it)",
+   "reaches_production": true,
+   "source": "src/bts/cli.py check_results and src/bts/scheduler.py run_day polling gate at 4490aee"
+  }
+ ],
+ "watchdog": {
+  "boundary": "entry",
+  "trigger": "for a date whose pick carries delivery_attempted, or was privately locked, but has no decision.json: no entry confirmation or operator alert by the cutoff",
+  "recovery_assertion": "an alert is delivered and the date gains a scoreable decision record or an explicit operator note"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-07-06-deferred-dd-and-premature-entry-alert.md 'Codex pre-merge review of the fix (round 2)' Deferred (540b1ab)",
+   "written_at": "2026-07-06T15:37:18-04:00",
+   "what": "private_locked/locked_unconfirmed with a missing/failed decision.json (HIGH): the fallback pick_was_delivered is False for those states, so the alert would be suppressed; narrow (multi-fault; private mode unused in dm config); the union with state.pick_locked rejected"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "ARCHITECTURE.md 'bts check-pick-entered' (f0f859e)",
+   "written_at": "2026-08-14T15:22:59-04:00",
+   "what": "'Former residual limitation ... closed 2026-08-14: committed_pick_written is no longer set on a failed write, so the E3 missed-pick alert fires'"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 224ddce message body",
+   "written_at": "2026-08-14T12:57:21-04:00",
+   "what": "_write_commit_decision sets committed_pick_written only when write_decision returned a record; 'a flag with no record behind it suppressed E3 while leaving nothing for polling'"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "deploy run 31831299733 (deploy_runs.json, log retained)",
+   "what": "pre-deploy 404358d -> deployed 3e1791c (contains 224ddce) at 2026-08-14T19:04:35Z"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "deploy run 28821478951 (deploy_runs.json, log retained)",
+   "what": "pre-deploy 86e3026 -> deployed 39b02bd (contains af6329f, the is_scoreable_commit gate on check-pick-entered) at 2026-07-06T20:39:41Z: the window opens here"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "latent (no evidenced firing in Phase 1)",
+   "onset": "not_applicable",
+   "first_detectable": "not_applicable",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-07-06T15:37:18-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "not_applicable",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "not_applicable"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "af6329f",
+   "540b1ab",
+   "224ddce",
+   "f0f859e"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-07-06-deferred-dd-and-premature-entry-alert.md",
+   "ARCHITECTURE.md 'bts check-pick-entered'"
+  ]
+ },
+ "related": [
+  "I-071",
+  "I-083",
+  "I-086",
+  "I-206"
+ ],
+ "notes": [
+  "from 9/14 every commit was private_locked, but the entry cron was disabled the same day (I-086), so link 1 had no live consumer after 9/14",
+  "a firing needs a failed decision write on a committed day (7/06-8/14); Route R: journal write failures, decision.json gaps on commit days",
+  "the grading-gate residual is my code reading, flagged for review",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

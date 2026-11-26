@@ -1,0 +1,37 @@
+{
+ "id": "E107",
+ "episode_row": [
+  "E107",
+  "\u21926/06",
+  "Healthchecks ping URL hardcoded in the public repo's cron script; check rotated",
+  "S/A",
+  "OI?",
+  "B",
+  "681eb8c"
+ ],
+ "commits": [
+  {
+   "sha": "681eb8c",
+   "authored": "2026-06-06T18:26:15-04:00",
+   "subject": "harden: cron-setup requires HEALTHCHECKS_PING_URL from env (no hardcoded ping URL)",
+   "body": "The hardcoded hc-ping.com fallback was leaked in this public repo. Make the var\nrequired (errors loudly if unset) so a real ping URL is never baked into the\nscript again; document that .env must be sourced before running it. Leaked\ncheck has been rotated to a new UUID and the box cut over.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "CLAUDE.md",
+    "scripts/cron-setup-hetzner.sh"
+   ],
+   "first_live_log": {
+    "sha": "2b752be",
+    "live_by": "2026-06-07T00:11:21Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27077693688,
+    "created_at": "2026-06-07T00:11:11Z",
+    "head_sha": "2b752be",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

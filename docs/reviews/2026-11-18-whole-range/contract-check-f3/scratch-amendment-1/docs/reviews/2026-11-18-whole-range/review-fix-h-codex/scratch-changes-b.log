@@ -1,0 +1,6 @@
+nice: setpriority: Operation not permitted
+use-base-horizon exit 0 ====================== 260 passed, 1 deselected in 5.62s =======================
+skip-when-degraded exit 1 ================== 1 failed, 27 passed, 1 deselected in 1.77s ==================
+drop-objective exit 1 ================== 1 failed, 7 passed, 1 deselected in 0.98s ===================
+read-before-regime exit 0 ====================== 260 passed, 1 deselected in 5.59s =======================
+no-longest-bar exit 1 ================== 1 failed, 4 passed, 1 deselected in 0.98s ===================

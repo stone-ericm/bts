@@ -1,0 +1,70 @@
+{
+  "total_mutants": 8,
+  "survivors": [
+    "1_check_clear_accepts_pending"
+  ],
+  "mutants": {
+    "1_check_clear_accepts_pending": {
+      "killed": false,
+      "returncode": 0,
+      "detail": [
+        "======================= 341 passed, 1 skipped in 27.80s ========================"
+      ]
+    },
+    "2_drop_writer_lock_around_arm": {
+      "killed": true,
+      "returncode": 1,
+      "detail": [
+        "FAILED tests/test_deploy_hold_tool.py::test_transaction_refuses_lock_contention_at_correct_boundary[writer-before-arm]",
+        "============= 1 failed, 151 passed, 1 skipped in 127.48s (0:02:07) ============="
+      ]
+    },
+    "3_release_before_activation_verified": {
+      "killed": true,
+      "returncode": 1,
+      "detail": [
+        "FAILED tests/test_deploy_hold_tool.py::test_owner_transaction_uses_real_hold_and_terminal_evidence[None]",
+        "==================== 1 failed, 7 passed, 1 skipped in 0.83s ===================="
+      ]
+    },
+    "4_skip_guard_stale": {
+      "killed": true,
+      "returncode": 1,
+      "detail": [
+        "FAILED tests/test_deploy_hold_tool.py::test_preflight_checks_installed_guard_against_exact_target_blob[mismatch]",
+        "=================== 1 failed, 12 passed, 1 skipped in 0.84s ===================="
+      ]
+    },
+    "5_monitor_pings_success_with_hold_present": {
+      "killed": true,
+      "returncode": 1,
+      "detail": [
+        "FAILED tests/test_deploy_hold_monitor.py::test_held_monitor_overrides_fresh_sleeping_heartbeat"
+      ]
+    },
+    "6_deploy_canary_skips_contest_read_for_dm": {
+      "killed": true,
+      "returncode": 1,
+      "detail": [
+        "FAILED tests/test_deploy_canary.py::test_deploy_canary_classifies_without_scheduler_start[entry_intent = \"enter\"\\npick_delivery = \"dm\"\\ncontest_state_required = true\\n-1-contest state refused]",
+        "========================= 1 failed, 2 passed in 0.91s =========================="
+      ]
+    },
+    "7_hook_ignores_incomplete_failed_record": {
+      "killed": true,
+      "returncode": 1,
+      "detail": [
+        "FAILED tests/test_deploy_hold_tool.py::test_reconcile_finishes_failed_evidence_once_and_ignores_other_run",
+        "=================== 1 failed, 10 passed, 1 skipped in 0.83s ===================="
+      ]
+    },
+    "8_accept_saver_post_when_guard_unavailable": {
+      "killed": true,
+      "returncode": 1,
+      "detail": [
+        "FAILED tests/test_web_saver.py::test_do_post_saver_refuses_held_or_unavailable_guard",
+        "========================= 1 failed, 10 passed in 0.78s ========================="
+      ]
+    }
+  }
+}

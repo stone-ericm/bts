@@ -1,0 +1,244 @@
+{
+ "id": "I-060",
+ "working_id": "E60",
+ "title": "6/10 new CI test gate failed two deploys on a lockfile/TZ mismatch (uv --locked on a UTC runner), not on tests",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "S",
+  "secondary": [
+   "X"
+  ]
+ },
+ "tier": "B",
+ "tier_reason": "two deploy runs failed closed before the SSH step (production untouched); the queued deploy was delayed by about ten minutes, with no delivery, entry, state or recoverability impact",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "deploy",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "A push to the deploy branch whose fast test suite is green deploys; the test gate blocks a deploy only when the suite fails.",
+  "source": ".github/workflows/deploy.yml 'Test gate' step (1ac0b0c, audit T1: 'a red suite blocks the deploy')"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "the test gate added the night before (1ac0b0c) ran `uv sync --locked` on a UTC GitHub runner; the date-only exclude-newer in uv.lock resolves in local time and uv.lock is generated on America/New_York machines, so the runner shifted it 04:00Z -> 00:00Z and --locked rejected the lockfile before pytest ran, failing the job before the deploy step",
+   "code": [
+    {
+     "path": ".github/workflows/deploy.yml",
+     "ref": "cb7d00b",
+     "symbol": "deploy job 'Install uv' + 'Test gate' steps (no TZ, unpinned setup-uv)",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "8c93799",
+     "279d423"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:11Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev6"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": {
+    "how": "the next deploy run (head 279d423, the TZ fix) concluded success",
+    "at": {
+     "not_before": "2026-06-10T14:35:51Z",
+     "evidence": [
+      "ev5"
+     ]
+    }
+   }
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "CI's uv is pinned to the box's 0.11.6 and must be bumped alongside the box and uv.lock; a mismatch fails the gate closed again (production untouched, deploy delayed).",
+   "reaches_production": false,
+   "source": "8c93799 (deploy.yml comment 'Bump alongside the box + uv.lock')"
+  }
+ ],
+ "watchdog": {
+  "boundary": "preservation",
+  "trigger": "a push to the deploy branch whose run fails before the SSH step (no pytest summary and no 'Pre-deploy SHA' line in the log) leaves the box's installed SHA behind the deploy-branch head for more than one run interval",
+  "recovery_assertion": "a later run on the same or a descendant head records a pytest summary, 'Deployed <sha>' and 'CANARY PASSED', and the box SHA equals the deploy-branch head"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27283276093 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first deploy run after the gate (head cb7d00b), created 2026-06-10T14:26:24Z, concluded failure; retained log has no pytest summary, pre-deploy or deploy line"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27283568101 (deploy_runs.json)",
+   "what": "run on head 8c93799 (uv pinned), created 2026-06-10T14:31:04Z, also concluded failure with no pytest summary or deploy line: the pin alone did not fix it"
+  },
+  {
+   "id": "ev3",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 8c93799 message body",
+   "written_at": "2026-06-10T10:30:58-04:00",
+   "what": "`uv sync --locked` rejected uv.lock and the test gate failed before deploying (production untouched)"
+  },
+  {
+   "id": "ev4",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 279d423 message body",
+   "written_at": "2026-06-10T10:35:45-04:00",
+   "what": "the date-only exclude-newer resolves in local time; a UTC runner shifted it and --locked rejected it (verified: uv lock --check passes under TZ=America/New_York, fails under TZ=UTC)"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27283866776 (deploy_runs.json)",
+   "what": "run on head 279d423, created 2026-06-10T14:35:51Z, concluded success (log expired)"
+  },
+  {
+   "id": "ev6",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 28601525167 (deploy_runs.json)",
+   "what": "retained log records pre-deploy SHA 83a5cad at 2026-07-02T15:28:10Z, the first retained log after 6/07; 8c93799 and 279d423 are ancestors of 83a5cad"
+  },
+  {
+   "id": "ev7",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 1ac0b0c message body and diff (.github/workflows/deploy.yml)",
+   "what": "the test gate (uv sync --locked --extra model + pytest -m 'not slow' before the SSH deploy, skip_tests bypass on workflow_dispatch) was added 2026-06-09 23:22 ET (audit T1)"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-06-10 (deploy runs 27283276093, 27283568101)",
+   "onset": {
+    "not_before": "2026-06-10T14:26:24Z",
+    "not_after": "2026-06-10T10:30:58-04:00",
+    "evidence": [
+     "ev1",
+     "ev3"
+    ]
+   },
+   "first_detectable": {
+    "not_before": "2026-06-10T14:26:24Z",
+    "not_after": "2026-06-10T10:30:58-04:00",
+    "evidence": [
+     "ev1",
+     "ev3"
+    ]
+   },
+   "first_machine_detection": {
+    "detector": "GitHub Actions run status (deploy run 27283276093 concluded failure)",
+    "at": {
+     "not_before": "2026-06-10T14:26:24Z",
+     "not_after": "2026-06-10T10:30:58-04:00",
+     "evidence": [
+      "ev1",
+      "ev3"
+     ]
+    }
+   },
+   "alert": {
+    "attempted": "unknown",
+    "confirmed": "unknown",
+    "failed": "unknown"
+   },
+   "operator_awareness": {
+    "not_after": "2026-06-10T10:30:58-04:00",
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "operator_action": {
+    "at": "2026-06-10T10:30:58-04:00",
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": {
+    "not_before": "2026-06-10T14:35:51Z",
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "recurrence": {
+    "before_fix": [
+     {
+      "not_before": "2026-06-10T14:31:04Z",
+      "not_after": "2026-06-10T10:35:45-04:00",
+      "evidence": [
+       "ev2",
+       "ev4"
+      ]
+     }
+    ]
+   },
+   "latencies": {
+    "detection": {
+     "min_minutes": 0,
+     "max_minutes": 4.6
+    },
+    "notification": "unknown",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "8c93799",
+   "279d423",
+   "1ac0b0c",
+   "cb7d00b"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-06-09-fable5-full-audit.md 'Act on these first' #7 (No CI runs the tests)",
+   "GitHub Actions runs 27283276093, 27283568101, 27283866776"
+  ]
+ },
+ "related": [
+  "I-059",
+  "I-100"
+ ],
+ "notes": [
+  "ref_basis log: deploy.yml is executed by GitHub from the pushed head, and run 27283276093's retained log is of head cb7d00b itself (not a box install)",
+  "the typed log extraction finds no template lines in the two failed runs; the failure point (uv sync --locked) comes from the operator reports ev3/ev4, not from the log",
+  "8c93799 (pin uv) was a first, insufficient hypothesis — run 27283568101 on it still failed; 279d423 (TZ=America/New_York) is the effective fix; both remain in the workflow",
+  "deployed follows the batch rule (box log bound 6/07 00:11Z → 7/02 15:28Z, candidate ancestry run 27283866776 at 2026-06-10T14:35:51Z, head 279d423, log expired), but a workflow change takes effect in the first run on its head: run 27283866776 concluded success",
+  "run_id 28601525167 is the run whose retained log first observed 83a5cad (as pre-deploy SHA); the run that deployed head 83a5cad (28520680537) has an expired log",
+  "alert: a GitHub failure notification to the pusher is plausible but not evidenced — unknown",
+  "distinct from I-100 (the gate correctly blocking real test failures on 6/11 and 7/10)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; no test reproduces this (CI configuration)"
+ ]
+}

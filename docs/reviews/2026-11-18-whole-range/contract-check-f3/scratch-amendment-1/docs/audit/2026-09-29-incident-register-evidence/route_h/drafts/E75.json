@@ -1,0 +1,397 @@
+{
+ "id": "I-075",
+ "working_id": "E75",
+ "title": "7/12 eve-of-break restart loop: ~47 duplicate CRITICAL health DMs, blind restart_spike, confounded predicted_vs_realized CRITICAL",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "L",
+  "secondary": [
+   "A"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "liveness failure (Restart=always crash-loop for ~39 min) with an alert storm (~47 identical CRITICAL DMs)",
+ "plan_named": false,
+ "delivery_mode": "dm",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "After the last game of a slate the scheduler idles until the next day's wake; a completed day is not re-walked, a health incident produces at most one DM per identity per day, and the restart detector sees restart storms.",
+  "source": "docs/audit/2026-07-12-eve-of-break-restart-loop.md; scheduler step 7 / _next_day_wakeup (audit E1); health DM dispatcher design (once per day)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "run_day step 7 called compute_wakeup_time(fetch_schedule(tomorrow)) directly; for an empty tomorrow (All-Star break) it returned TODAY 10:00, already 8.6 h past",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "6d74d39",
+     "symbol": "run_day step 7 / compute_wakeup_time",
+     "ref_basis": "log"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "_idle_until_next_wakeup silently returned on a past wakeup, so run_day exited cleanly and Restart=always relaunched it every ~48 s; each relaunch re-walked the completed day",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "6d74d39",
+     "symbol": "_idle_until_next_wakeup",
+     "ref_basis": "log"
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "text": "dispatch_dm_for_health_alerts, designed to run once per day, sent unconditionally on every re-walk: ~47 identical CRITICAL DMs",
+   "code": [
+    {
+     "path": "src/bts/health/alert.py",
+     "ref": "6d74d39",
+     "symbol": "dispatch_dm_for_health_alerts",
+     "ref_basis": "log"
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "text": "restart_spike advanced its checkpoint every run, so 48 s re-walks moved the baseline +1 at a time and the storm never summed past its +3 threshold",
+   "code": [
+    {
+     "path": "src/bts/health/restart_spike.py",
+     "ref": "6d74d39",
+     "symbol": "check",
+     "ref_basis": "log"
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "text": "predicted_vs_realized compared the primary's p against the DAY-level result (a DD day needs both legs), which mechanically inflated the gap into a CRITICAL",
+   "code": [
+    {
+     "path": "src/bts/health/predicted_vs_realized.py",
+     "ref": "6d74d39",
+     "symbol": "compute_metrics",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "9551818"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "230f65c",
+    "live_by": "2026-07-13T01:12:48Z",
+    "not_live_before": "2026-07-13T01:12:45Z",
+    "run_id": 29216777239,
+    "evidence": [
+     "ev6"
+    ]
+   },
+   "mitigated": {
+    "action": "operator session stopped bts-scheduler (left down pending the fix)",
+    "at": {
+     "at": "2026-07-12T19:15:00-04:00",
+     "evidence": [
+      "ev1"
+     ]
+    }
+   },
+   "verified_recovered": {
+    "how": "deploy canary: scheduler + dashboard active, dashboard HTTP 2xx",
+    "at": {
+     "at": "2026-07-13T01:13:19Z",
+     "evidence": [
+      "ev6"
+     ]
+    }
+   }
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "9551818"
+    ],
+    "complete_fix_set": false
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "230f65c",
+    "live_by": "2026-07-13T01:12:48Z",
+    "not_live_before": "2026-07-13T01:12:45Z",
+    "run_id": 29216777239,
+    "evidence": [
+     "ev6"
+    ]
+   },
+   "mitigated": "not_applicable",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 3,
+   "implemented": {
+    "commits": [
+     "ec242da"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "230f65c",
+    "live_by": "2026-07-13T01:12:48Z",
+    "not_live_before": "2026-07-13T01:12:45Z",
+    "run_id": 29216777239,
+    "evidence": [
+     "ev6"
+    ]
+   },
+   "mitigated": "not_applicable",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 4,
+   "implemented": {
+    "commits": [
+     "ec242da"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "230f65c",
+    "live_by": "2026-07-13T01:12:48Z",
+    "not_live_before": "2026-07-13T01:12:45Z",
+    "run_id": 29216777239,
+    "evidence": [
+     "ev6"
+    ]
+   },
+   "mitigated": "not_applicable",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 5,
+   "implemented": {
+    "commits": [
+     "230f65c"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "230f65c",
+    "live_by": "2026-07-13T01:12:48Z",
+    "not_live_before": "2026-07-13T01:12:45Z",
+    "run_id": 29216777239,
+    "evidence": [
+     "ev6"
+    ]
+   },
+   "mitigated": "not_applicable",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "_idle_until_next_wakeup still returns on a past wakeup (now logged loudly) rather than substituting a guessed wake, so any other past-wakeup path would again end run_day into Restart=always.",
+   "reaches_production": true,
+   "source": "9551818 body; memo F-B"
+  },
+  {
+   "text": "dd_pair_realized_shortfall stayed quiet during the DD-leg slump (its drift-vs-baseline design dilutes a slump spanning two windows); not changed in this batch.",
+   "reaches_production": true,
+   "source": "memo 'Why the CRITICAL fired' (I-076)"
+  },
+  {
+   "text": "drift_critical was raised 0.12 -> 0.25 pending a day-block bootstrap recalibration (queued).",
+   "reaches_production": false,
+   "source": "230f65c body"
+  }
+ ],
+ "watchdog": {
+  "boundary": "restart",
+  "trigger": "bts-scheduler NRestarts rises by 3 or more within 20 minutes, or the same health incident identity is DMed more than once in a day",
+  "recovery_assertion": "after the fix, NRestarts is stable for 30+ minutes, the scheduler logs a next wake dated tomorrow or later, and the dashboard answers"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "docs/audit/2026-07-12-eve-of-break-restart-loop.md §Incident (committed in 230f65c)",
+   "written_at": "2026-07-12T20:28:33-04:00",
+   "exposure_row": "X-01",
+   "what": "clean EOD exit at 18:36:16 ET; Restart=always relaunched every ~48 s, each relaunch re-walked the completed day and sent a new CRITICAL DM; NRestarts 3 -> 50 (~47 DMs) until the operator stopped the unit at 19:15 ET"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "same memo §Monitoring verdicts during the loop",
+   "written_at": "2026-07-12T20:28:33-04:00",
+   "what": "the external check_heartbeat cron caught the churn in 4 minutes (NRestarts +5 within 20 min) and cut the healthchecks.io ping; restart_spike was blinded by its own checkpoint"
+  },
+  {
+   "id": "ev3",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 9551818 message body",
+   "written_at": "2026-07-12T20:28:06-04:00",
+   "what": "step 7's raw compute_wakeup_time returned today 10:00 for the empty tomorrow; the idle no-op returned; the time-only wake log hid the wrong day"
+  },
+  {
+   "id": "ev4",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit ec242da message body",
+   "written_at": "2026-07-12T20:28:33-04:00",
+   "what": "47 identical CRITICAL DMs from the unconditional dispatcher; restart_spike aliasing"
+  },
+  {
+   "id": "ev5",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 230f65c message body; memo §Why the CRITICAL fired at all",
+   "written_at": "2026-07-12T20:28:33-04:00",
+   "what": "the CRITICAL compared the primary's p with the day-level result on DD days; per-slot grading re-scores it as a WARN"
+  },
+  {
+   "id": "ev6",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 29216777239 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "pre-deploy 6d74d39 -> deployed 230f65c at 2026-07-13T01:12:47Z, canary passed 01:13:19Z"
+  },
+  {
+   "id": "ev7",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 29119047694 (deploy_runs.json)",
+   "what": "6d74d39 installed 2026-07-10T19:49:38Z and not replaced until run 29216777239: the defective code was live on 7/12"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-07-12",
+   "onset": {
+    "at": "2026-07-12T18:36:16-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": {
+    "at": "2026-07-12T18:36:16-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_machine_detection": {
+    "detector": "check_heartbeat cron (external): restart churn, NRestarts +5 within 20 min",
+    "at": {
+     "not_before": "2026-07-12T18:39:00-04:00",
+     "not_after": "2026-07-12T18:41:00-04:00",
+     "evidence": [
+      "ev2"
+     ]
+    }
+   },
+   "alert": {
+    "attempted": {
+     "not_before": "2026-07-12T18:39:00-04:00",
+     "evidence": [
+      "ev2"
+     ],
+     "not_after": "2026-07-12T20:28:33-04:00"
+    },
+    "confirmed": "unknown",
+    "failed": "unknown"
+   },
+   "operator_awareness": {
+    "not_after": "2026-07-12T19:15:00-04:00",
+    "evidence": [
+     "ev1",
+     "ev3",
+     "ev4",
+     "ev5"
+    ]
+   },
+   "operator_action": {
+    "at": "2026-07-12T19:15:00-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": {
+    "at": "2026-07-12T19:15:00-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "restored_verification": {
+    "at": "2026-07-13T01:13:19Z",
+    "evidence": [
+     "ev6"
+    ]
+   },
+   "recurrence": {
+    "before_fix": [],
+    "after_fix": []
+   },
+   "latencies": {
+    "detection": {
+     "min_minutes": 2,
+     "max_minutes": 5
+    },
+    "notification": "unknown",
+    "recovery": {
+     "min_minutes": 156,
+     "max_minutes": 158
+    }
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "9551818",
+   "ec242da",
+   "230f65c"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-07-12-eve-of-break-restart-loop.md"
+  ]
+ },
+ "related": [
+  "I-034",
+  "I-035",
+  "I-049"
+ ],
+ "notes": [
+  "alert.attempted = the heartbeat check cutting the healthchecks.io ping (an hc.io 'down' notification follows); its delivery time is not in the repo",
+  "the ~47 duplicate DMs are part of the incident (alert storm), not its detection",
+  "same restart class as 4/22-4/23 (I-034, I-035) and 5/09 (I-049) with different mechanisms; the memo cites the 4/23 NRestarts=21 precedent",
+  "recurrence arrays are empty = none evidenced in the repo; Route R can confirm",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

@@ -1,0 +1,27 @@
+/Users/eric/projects/bts-work/wr-rev-g2-codex/.codex-review/wr-g2/scratch/selection_primary/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-g2-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_wr_g_guard.py F
+
+=================================== FAILURES ===================================
+____________ test_guarded_delivery_records_selected_batter[warmup] _____________
+tests/test_wr_g_guard.py:515: in test_guarded_delivery_records_selected_batter
+    assert record["primary"] == scheduler._row_from_daily(daily.pick)
+E   AssertionError: assert None == {'batter_id': 100, 'batter_name': 'Batter 0', 'game_pk': 70000, 'p_game_hit': 0.96, ...}
+E    +  where {'batter_id': 100, 'batter_name': 'Batter 0', 'game_pk': 70000, 'p_game_hit': 0.96, ...} = <function _row_from_daily at 0x10ee3bf60>(Pick(batter_name='Batter 0', batter_id=100, team='T0', lineup_position=1, pitcher_name='Pitcher 0', pitcher_id=900, p_game_hit=0.96, flags=[], projected_lineup=False, game_pk=70000, game_time='2027-03-24T23:05:00Z', pitcher_team='U0'))
+E    +    where <function _row_from_daily at 0x10ee3bf60> = scheduler._row_from_daily
+E    +    and   Pick(batter_name='Batter 0', batter_id=100, team='T0', lineup_position=1, pitcher_name='Pitcher 0', pitcher_id=900, p_game_hit=0.96, flags=[], projected_lineup=False, game_pk=70000, game_time='2027-03-24T23:05:00Z', pitcher_team='U0') = DailyPick(date='2027-03-24', run_time='2027-03-24T16:00:00+00:00', pick=Pick(batter_name='Batter 0', batter_id=100, te...effective_date': '2027-03-24', 'active_streak': 50, 'best_streak': 50, 'saver_state': 'used'}}, automatic_reading=None).pick
+----------------------------- Captured stderr call -----------------------------
+  FALLBACK REFRESH: pick unchanged (Batter 0 96.0%)
+  Selected slot's game 70000 is no longer available (postponed/started/missing); should_lock=False.
+  FALLBACK REFRESH: should_lock=False, block=slot_unavailable
+  LOCKED (probe) — Pick DM sent: confirmed-dm
+=========================== short test summary info ============================
+FAILED tests/test_wr_g_guard.py::test_guarded_delivery_records_selected_batter[warmup]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+============================== 1 failed in 0.97s ===============================

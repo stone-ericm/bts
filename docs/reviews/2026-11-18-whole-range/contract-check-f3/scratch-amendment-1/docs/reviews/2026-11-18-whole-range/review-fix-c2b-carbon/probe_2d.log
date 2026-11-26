@@ -1,0 +1,35 @@
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:20 ET] Fetching schedule for 2027-03-26...
+  1 games, 1 scheduled checks:
+    18:15 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:20 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Sat 03-27 10:00 ET
+  Waiting until 19:10 ET (game start + 10min, 50 min)...
+  Day complete. Result: final
+  DELIVERY REFUSED (receipt probe) — Example Batter: submission cutoff 18:19 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY OUTCOME UNKNOWN (review) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+  DELIVERY REFUSED (receipt probe) — Example Batter: submission cutoff 18:19 ET passed 1.0 min ago; not delivering an unenterable pick.
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:20 ET] Fetching schedule for 2027-03-26...
+  1 games, 1 scheduled checks:
+    18:15 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:20 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Sat 03-27 10:00 ET
+  Waiting until 19:10 ET (game start + 10min, 50 min)...
+  Day complete. Result: final
+  DELIVERY REFUSED (receipt probe) — Example Batter: submission cutoff 18:19 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY OUTCOME UNKNOWN (review) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+  DELIVERY REFUSED (receipt probe) — Example Batter: submission cutoff 18:19 ET passed 1.0 min ago; not delivering an unenterable pick.
+PROBE 2D OK: e897c766 reproduced 12/126 mismatches; probe_receipt_correction.py exited 0 on HEAD (10/10 B1+B2 cases fixed); full 6-key matrix ran 128 route cases with 0 mismatches; reverse dedup verified across 4 midnight/New Year/route chains.

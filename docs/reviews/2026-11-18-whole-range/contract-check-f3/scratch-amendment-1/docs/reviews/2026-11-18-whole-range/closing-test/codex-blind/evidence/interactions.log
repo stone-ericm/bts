@@ -1,0 +1,433 @@
+nice: setpriority: Operation not permitted
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:00 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check: dated contest state accepted (streak 0).
+  Sleeping until 18:25 ET (25 min)...
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Batter 1 (AWY) 99.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: offline-4
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 55 min)...
+  [19:20 ET] Games: 101: live
+  [19:35 ET] Games: 101: live
+  [19:50 ET] Games: 101: live
+  [20:05 ET] Games: 101: live
+  [20:20 ET] Games: 101: live
+  [20:35 ET] Games: 101: live
+  [20:50 ET] Games: 101: live
+  [21:05 ET] Games: 101: live
+  [21:20 ET] Games: 101: live
+  [21:35 ET] Games: 101: live
+  [21:50 ET] Games: 101: live
+  [22:05 ET] Games: 101: final
+  Result: hit. Streak: 1.
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:00 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  MORNING STATE CHECK — stale contest reading: last accepted fetch 2027-03-24T04:10:00Z, about 17.83 hours ago
+  Sleeping until 18:25 ET (25 min)...
+
+[18:25 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Batter 1 (AWY) 99.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: offline-7
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-03-24T04:10:00Z, about 18.25 hours ago). Check MLB. If the streak or saver differs, use bts set-contest-streak --date 2027-03-24 --streak N --best-streak B --saver S with the scheduler's picks directory and the values shown in MLB. Use the current ET date when you run it. Check the latest fetch status.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 55 min)...
+  [19:20 ET] Games: 101: live
+  [19:35 ET] Games: 101: live
+  [19:50 ET] Games: 101: live
+  [20:05 ET] Games: 101: live
+  [20:20 ET] Games: 101: live
+  [20:35 ET] Games: 101: live
+  [20:50 ET] Games: 101: live
+  [21:05 ET] Games: 101: live
+  [21:20 ET] Games: 101: live
+  [21:35 ET] Games: 101: live
+  [21:50 ET] Games: 101: live
+  [22:05 ET] Games: 101: final
+  Result: hit. Streak: 13.
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-03-24...
+  1 games, 3 scheduled checks:
+    16:10 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    18:25 ET — 1 game(s)
+  Morning state check: dated contest state accepted (streak 0).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Batter 1 (AWY) 99.0% → should_lock=True
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[19:09 ET] Fetching schedule for 2027-03-24...
+  1 games, 1 scheduled checks:
+    18:25 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[19:09 ET] Running lineup check...
+  Pick already locked (bluesky_posted) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 11 min)...
+  [19:20 ET] Games: 101: live
+  [19:35 ET] Games: 101: live
+  [19:50 ET] Games: 101: live
+  [20:05 ET] Games: 101: live
+  [20:20 ET] Games: 101: live
+  [20:35 ET] Games: 101: live
+  [20:50 ET] Games: 101: live
+  [21:05 ET] Games: 101: live
+  [21:20 ET] Games: 101: live
+  [21:35 ET] Games: 101: live
+  [21:50 ET] Games: 101: live
+  [22:05 ET] Games: 101: final
+  Result: hit. Streak: 1.
+  Result reply posted: offline-11
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-03-24...
+  1 games, 3 scheduled checks:
+    16:10 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    18:25 ET — 1 game(s)
+  Morning state check: dated contest state accepted (streak 0).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Batter 1 (AWY) 99.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: offline-4
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 190 min)...
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-03-24...
+  1 games, 3 scheduled checks:
+    16:10 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    18:25 ET — 1 game(s)
+  Morning state check: automatic contest state accepted (streak 12).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Batter 1 (AWY) 99.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: offline-6
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 190 min)...
+  [19:20 ET] Games: 101: live
+  [19:35 ET] Games: 101: live
+  [19:50 ET] Games: 101: live
+  [20:05 ET] Games: 101: live
+  [20:20 ET] Games: 101: live
+  [20:35 ET] Games: 101: live
+  [20:50 ET] Games: 101: live
+  [21:05 ET] Games: 101: live
+  [21:20 ET] Games: 101: live
+  [21:35 ET] Games: 101: live
+  [21:50 ET] Games: 101: live
+  [22:05 ET] Games: 101: final
+  Result: hit. Streak: 13.
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-03-24...
+  1 games, 3 scheduled checks:
+    16:10 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    18:25 ET — 1 game(s)
+  Morning state check: dated contest state accepted (streak 0).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Batter 1 (AWY) 99.0% → should_lock=True
+  Pick DM failed: DM auth failed — check bluesky-bts-app-password-dm
+  Sleeping until 17:10 ET (60 min)...
+
+[17:10 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Pick: Batter 1 (AWY) 99.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: offline-1
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 130 min)...
+  [19:20 ET] Games: 101: live
+  [19:35 ET] Games: 101: live
+  [19:50 ET] Games: 101: live
+  [20:05 ET] Games: 101: live
+  [20:20 ET] Games: 101: live
+  [20:35 ET] Games: 101: live
+  [20:50 ET] Games: 101: live
+  [21:05 ET] Games: 101: live
+  [21:20 ET] Games: 101: live
+  [21:35 ET] Games: 101: live
+  [21:50 ET] Games: 101: live
+  [22:05 ET] Games: 101: final
+  Result: hit. Streak: 1.
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-03-24...
+  1 games, 3 scheduled checks:
+    16:10 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    18:25 ET — 1 game(s)
+  Morning state check: dated contest state accepted (streak 0).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Batter 1 (AWY) 99.0% → should_lock=True
+  Pick DM failed: fixture: accepted DM, response body timed out
+  Sleeping until 17:10 ET (60 min)...
+
+[17:10 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Pick: Batter 1 (AWY) 99.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: offline-2
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 130 min)...
+  [19:20 ET] Games: 101: live
+  [19:35 ET] Games: 101: live
+  [19:50 ET] Games: 101: live
+  [20:05 ET] Games: 101: live
+  [20:20 ET] Games: 101: live
+  [20:35 ET] Games: 101: live
+  [20:50 ET] Games: 101: live
+  [21:05 ET] Games: 101: live
+  [21:20 ET] Games: 101: live
+  [21:35 ET] Games: 101: live
+  [21:50 ET] Games: 101: live
+  [22:05 ET] Games: 101: final
+  Result: hit. Streak: 1.
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-03-24...
+  1 games, 3 scheduled checks:
+    19:10 ET — 1 game(s)
+    20:10 ET — 1 game(s)
+    21:25 ET — 1 game(s)
+  Morning state check: dated contest state accepted (streak 0).
+  Sleeping until 19:10 ET (550 min)...
+
+[19:10 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Batter 1 (AWY) 99.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: offline-4
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 22:20 ET (game start + 10min, 190 min)...
+  [22:20 ET] Games: 101: live
+  [22:35 ET] Games: 101: live
+  [22:50 ET] Games: 101: live
+  [23:05 ET] Games: 101: live
+  [23:20 ET] Games: 101: live
+  [23:35 ET] Games: 101: live
+  [23:50 ET] Games: 101: live
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-03-24...
+  1 games, 3 scheduled checks:
+    19:10 ET — 1 game(s)
+    20:10 ET — 1 game(s)
+    21:25 ET — 1 game(s)
+  Morning state check: dated contest state accepted (streak 0).
+  Sleeping until 19:10 ET (550 min)...
+
+[19:10 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  Pick: Batter 1 (AWY) 99.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: offline-4
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 22:20 ET (game start + 10min, 190 min)...
+  [22:20 ET] Games: 101: live
+  [22:35 ET] Games: 101: live
+  [22:50 ET] Games: 101: live
+  [23:05 ET] Games: 101: live
+  [23:20 ET] Games: 101: live
+  [23:35 ET] Games: 101: live
+  [23:50 ET] Games: 101: live
+  [00:05 ET] Games: 101: live
+  [00:20 ET] Games: 101: final
+  Result: hit. Streak: 1.
+  Day complete. Result: final
+[contest_state CRITICAL] Prior slate 2027-03-24 ET. Contest streak observation is missing from account_state. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+[contest_state CRITICAL] Prior slate 2027-03-24 ET. The season switch is absent. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+[blend_training CRITICAL] missing tomorrow's blend pkl: blend_2027-03-25.pkl not found in /Users/eric/projects/bts-work/wr-closing-blind/.codex-review/whole-range/tmpnpcn606d/data/models. 3 AM cron on 2027-03-24 likely failed; predictions on 2027-03-25 will fall back to stale blend.
+[disk_fill CRITICAL] disk usage 98.5% (912.5/926.3GB) on /Users/eric/projects/bts-work/wr-closing-blind/.codex-review/whole-range/tmpnpcn606d/data/picks
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-09-20...
+  2 games, 3 scheduled checks:
+    16:10 ET — 2 game(s)
+    17:10 ET — 2 game(s)
+    18:25 ET — 2 game(s)
+  Morning state check: automatic contest state accepted (streak 45).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Pick: Batter 1 (AWY) 99.0%, gap=14.0% vs projected 85.0% → should_lock=False
+  Sleeping until 17:10 ET (60 min)...
+
+[17:10 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Sleeping until 18:25 ET (75 min)...
+
+[18:25 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Checks done, pick undelivered — sleeping until the fallback deadline 18:35 ET (10 min)...
+  FALLBACK REFRESH: no fresh pick available, using cached
+  FALLBACK — 35min to first pitch, delivering on projected data.
+  LOCKED (final fallback) — Pick DM sent: offline-12
+  Tomorrow's wake-up: Tue 09-21 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  [19:20 ET] Games: 101: live, 102: live
+  [19:35 ET] Games: 101: live, 102: live
+  [19:50 ET] Games: 101: live, 102: live
+  [20:05 ET] Games: 101: live, 102: live
+  [20:20 ET] Games: 101: live, 102: live
+  [20:35 ET] Games: 101: live, 102: live
+  [20:50 ET] Games: 101: live, 102: live
+  [21:05 ET] Games: 101: live, 102: live
+  [21:20 ET] Games: 101: live, 102: live
+  [21:35 ET] Games: 101: live, 102: live
+  [21:50 ET] Games: 101: live, 102: live
+  [22:05 ET] Games: 101: final, 102: final
+  Result: hit. Streak: 47.
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-09-20...
+  2 games, 3 scheduled checks:
+    16:10 ET — 2 game(s)
+    17:10 ET — 2 game(s)
+    18:25 ET — 2 game(s)
+  Morning state check: automatic contest state accepted (streak 45).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Pick: Batter 1 (AWY) 99.0%, gap=14.0% vs projected 85.0% → should_lock=False
+  Sleeping until 17:10 ET (60 min)...
+
+[17:10 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Policy: objective=emax_season_best action=skip streak=0 best=45 (trusted) effective_best=45 days=7 tail=dc5d0c992443
+  SKIP — best Batter 1 (AWY) 99.0% season-best 45 can't be beaten with 7 days left (max reachable 14); no pick; streak holds at 0.
+  Sleeping until 18:25 ET (75 min)...
+
+[18:25 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Policy: objective=emax_season_best action=skip streak=0 best=45 (trusted) effective_best=45 days=7 tail=dc5d0c992443
+  SKIP — best Batter 1 (AWY) 99.0% season-best 45 can't be beaten with 7 days left (max reachable 14); no pick; streak holds at 0.
+  Tomorrow's wake-up: Tue 09-21 10:00 ET
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-03-24...
+  2 games, 5 scheduled checks:
+    16:10 ET — 1 game(s)
+    17:10 ET — 2 game(s)
+    18:10 ET — 1 game(s)
+    18:25 ET — 1 game(s)
+    19:25 ET — 1 game(s)
+  Doubleheader game 2s (fluid time): {102}
+  Morning state check: dated contest state accepted (streak 30).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Pick: Batter 1 (AWY) 99.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: offline-4
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 190 min)...
+  [19:20 ET] Games: 101: live
+  [19:35 ET] Games: 101: live
+  [19:50 ET] Games: 101: live
+  [20:05 ET] Games: 101: live
+  [20:20 ET] Games: 101: live
+  [20:35 ET] Games: 101: live
+  [20:50 ET] Games: 101: live
+  [21:05 ET] Games: 101: live
+  [21:20 ET] Games: 101: live
+  [21:35 ET] Games: 101: live
+  [21:50 ET] Games: 101: live
+  [22:05 ET] Games: 101: final
+  Result: hit. Streak: 1.
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-03-24...
+  2 games, 5 scheduled checks:
+    16:10 ET — 1 game(s)
+    17:10 ET — 2 game(s)
+    18:10 ET — 1 game(s)
+    18:25 ET — 1 game(s)
+    19:25 ET — 1 game(s)
+  Doubleheader game 2s (fluid time): {102}
+  Morning state check: dated contest state accepted (streak 30).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Pick: Batter 1 (AWY) 99.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: offline-4
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 190 min)...
+  [19:20 ET] Games: 101: live
+  [19:35 ET] Games: 101: live
+  [19:50 ET] Games: 101: live
+  [20:05 ET] Games: 101: live
+  [20:20 ET] Games: 101: live
+  [20:35 ET] Games: 101: live
+  [20:50 ET] Games: 101: live
+  [21:05 ET] Games: 101: live
+  [21:20 ET] Games: 101: live
+  [21:35 ET] Games: 101: live
+  [21:50 ET] Games: 101: live
+  [22:05 ET] Games: 101: final
+  Result: hit. Streak: 1.
+  Day complete. Result: final
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-03-24...
+  2 games, 5 scheduled checks:
+    16:10 ET — 1 game(s)
+    17:10 ET — 2 game(s)
+    18:10 ET — 1 game(s)
+    18:25 ET — 1 game(s)
+    19:25 ET — 1 game(s)
+  Doubleheader game 2s (fluid time): {102}
+  Morning state check: dated contest state accepted (streak 30).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  4 new confirmed lineup(s). Running predictions...
+  Pick: Batter 1 (AWY) 99.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: offline-4
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 190 min)...
+  [19:20 ET] Games: 101: live
+  [19:35 ET] Games: 101: live
+  [19:50 ET] Games: 101: live
+  [20:05 ET] Games: 101: live
+  [20:20 ET] Games: 101: live
+  [20:35 ET] Games: 101: live
+  [20:50 ET] Games: 101: live
+  [21:05 ET] Games: 101: live
+  [21:20 ET] Games: 101: live
+  [21:35 ET] Games: 101: live
+  [21:50 ET] Games: 101: live
+  [22:05 ET] Games: 101: final
+  Result: hit. Streak: 1.
+  Day complete. Result: final

@@ -1,0 +1,74 @@
+{
+ "id": "I-028",
+ "working_id": "E28",
+ "title": "4/14 deploy run green while git pull failed on box-local uv.lock drift; services restarted on stale code",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {"primary": "S", "secondary": []},
+ "tier": "A",
+ "tier_reason": "the deploy path reported success while the box kept stale code, so a shipped change silently did not take effect (deploy recoverability); the evidenced stale window (about 14 min, 4/14 19:33–19:47 ET) carried the catboost dependency and experiment code, not a production-path change",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "deploy",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "A deploy run fails loudly unless the pushed commit is installed (pull and locked dependency sync) and the services restart on it.",
+  "source": ".github/workflows/deploy.yml at 51ef987 ('Deployed <sha>') and at 6bffd63 (set -e; sudo -Hu bts git pull --ff-only; uv sync --locked --extra model); 6bffd63 body"
+ },
+ "mechanism": [
+  {"n": 1, "text": "the box's uv had no exclude-newer setting while the Mac's user config had a relative 'exclude-newer = 3 days', so every `uv run` on the box rewrote uv.lock (dropping its [options] section), leaving a local modification",
+   "code": [{"path": "pyproject.toml", "ref": "7fa90b4", "ref_basis": "candidate"}]},
+  {"n": 2, "text": "the catboost commit (6e1256e) changed uv.lock, so git pull --ff-only refused to overwrite the locally modified file; the workflow had no set -e, so it restarted the services on the old code and the run concluded success",
+   "code": [{"path": ".github/workflows/deploy.yml", "ref": "7fa90b4", "ref_basis": "candidate"}]}
+ ],
+ "fix": [
+  {"link": 1, "implemented": {"commits": ["6bffd63"], "complete_fix_set": true},
+   "deployed": {"basis": "candidate_ancestry", "sha": "6bffd63", "live_by": "2026-04-14T23:47:55Z", "run_id": 24428702189, "evidence": ["ev3"]},
+   "mitigated": "unknown", "verified_recovered": "unknown"},
+  {"link": 2, "implemented": {"commits": ["6bffd63"], "complete_fix_set": true},
+   "deployed": {"basis": "candidate_ancestry", "sha": "6bffd63", "live_by": "2026-04-14T23:47:55Z", "run_id": 24428702189, "evidence": ["ev3"]},
+   "mitigated": "unknown",
+   "verified_recovered": {"how": "deploy run 24428702189 (head 6bffd63) concluded success under the new set -e workflow, so its git pull and uv sync --locked exited 0", "at": {"not_before": "2026-04-14T23:47:55Z", "evidence": ["ev3"]}}}
+ ],
+ "fixtures": {"historical_replay": [], "current_defence": [], "expected_failure": [], "characterization": []},
+ "residual": [
+  {"text": "exclude-newer is now an absolute date that must be advanced by hand; drift now fails the deploy loudly (uv sync --locked under set -e) instead of silently", "reaches_production": false, "source": "6bffd63 body"}
+ ],
+ "watchdog": {
+  "boundary": "restart",
+  "trigger": "after a deploy run concludes success, the box's HEAD differs from the run's head SHA, the working tree is dirty, or the running scheduler started before the run",
+  "recovery_assertion": "box HEAD equals the pushed SHA, the tree is clean, `uv sync --locked` passes, and one scheduler started after the run"
+ },
+ "evidence": [
+  {"id": "ev1", "kind": "contemporaneous_operator_report", "strength": "primary", "locator": "commit 6bffd63 message body", "written_at": "2026-04-14T19:47:44-04:00",
+   "what": "the box's uv dropped uv.lock's [options] section on every `uv run`; every commit touching uv.lock silently failed `git pull --ff-only`; with no set -e the services restarted on stale code while the run showed green; 'This session's catboost commit was the first uv.lock change in 3 days and tripped it'"},
+  {"id": "ev2", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 24428258485 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "head 7fa90b4 (contains the catboost commit 6e1256e), created 2026-04-14T23:33:57Z, concluded success; log expired"},
+  {"id": "ev3", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 24428702189 (deploy_runs.json)",
+   "what": "head 6bffd63, created 2026-04-14T23:47:55Z, concluded success under the set -e workflow; log expired"},
+  {"id": "ev4", "kind": "inference", "strength": "primary", "locator": "commit 6e1256e 'chore(deps): add catboost to model extra' (2026-04-14T19:32:04-04:00)",
+   "what": "the first uv.lock change pushed after the box started rewriting uv.lock"}
+ ],
+ "occurrences": [{
+  "label": "2026-04-14 19:33–19:47 ET",
+  "onset": {"not_before": "2026-04-14T23:33:57Z", "not_after": "2026-04-14T19:47:44-04:00", "evidence": ["ev1", "ev2"]},
+  "first_detectable": "unknown",
+  "first_machine_detection": "none",
+  "alert": {"attempted": "none", "confirmed": "none", "failed": "none"},
+  "operator_awareness": {"not_after": "2026-04-14T19:47:44-04:00", "evidence": ["ev1"]},
+  "operator_action": {"not_after": "2026-04-14T19:47:44-04:00", "evidence": ["ev1"]},
+  "mitigation": "unknown",
+  "restored_verification": {"not_before": "2026-04-14T23:47:55Z", "evidence": ["ev3"]},
+  "latencies": {"detection": "not_applicable", "notification": "not_applicable", "recovery": "unknown"}
+ }],
+ "routes": {"H": ["6bffd63", "6e1256e"], "R": "pending_phase2", "X": []},
+ "related": ["I-018", "I-037"],
+ "notes": [
+  "the 6bffd63 pull could succeed only if the box's modified uv.lock was reset first; that operator step is not recorded (mitigation unknown)",
+  "tier A reads 'loss of recoverability' as 'the deploy path silently did not take effect' (consistent with I-018); the lead may prefer B because nothing production-relevant was stranded",
+  "the next silent-deploy defect (deploy-branch era, the workflow pulled origin/main, 4/21–4/28) is I-037",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; workflow/config fix, no test"
+ ]
+}

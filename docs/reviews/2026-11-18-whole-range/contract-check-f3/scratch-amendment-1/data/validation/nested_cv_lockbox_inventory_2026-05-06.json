@@ -1,0 +1,303 @@
+{
+  "generated_at": "2026-05-07T02:38:45Z",
+  "generator": "scripts/inventory_validation_splits.py",
+  "notes": [
+    "Out-of-fold or leave-one-out evidence is not equivalent to a lockbox.",
+    "Seed-axis LOO is recorded separately from temporal CV.",
+    "This inventory does not implement fixes; it scopes follow-up work."
+  ],
+  "paths": [
+    {
+      "axis": "time",
+      "concerns": [
+        "rolling_origin only; symmetric blocked CV is explicitly deferred",
+        "embargo_game_days is recorded but inactive in rolling_origin mode"
+      ],
+      "entrypoint": "src/bts/cli.py:split_manifest_cmd",
+      "evidence": [
+        {
+          "exists": true,
+          "path": "src/bts/validate/splits.py"
+        },
+        {
+          "exists": true,
+          "path": "tests/validate/test_splits.py"
+        },
+        {
+          "exists": true,
+          "path": "data/validation/split_manifest_conformal_2026-05-06.json"
+        }
+      ],
+      "gating_decision": "writes_manifest_no_model_gate",
+      "id": "validate_split_manifest",
+      "inner_split_type": "none_contract_artifact_only",
+      "lockbox_state": "manifest_enforced",
+      "next_action": "compliant",
+      "outer_split_type": "rolling_origin_forward_chaining",
+      "surface": "bts validate split-manifest"
+    },
+    {
+      "axis": "time",
+      "concerns": [
+        "aggregate fold uncertainty is deferred",
+        "lockbox certification run has not been produced as a durable artifact"
+      ],
+      "entrypoint": "src/bts/validate/scorecard.py:compute_scorecard_over_manifest",
+      "evidence": [
+        {
+          "exists": true,
+          "path": "src/bts/validate/scorecard.py"
+        },
+        {
+          "exists": true,
+          "path": "tests/validate/test_scorecard_cli.py"
+        }
+      ],
+      "gating_decision": "per_fold_scorecards_aggregate_deferred",
+      "id": "validate_scorecard_manifest",
+      "inner_split_type": "none",
+      "lockbox_state": "manifest_enforced",
+      "next_action": "compliant",
+      "outer_split_type": "manifest_fold_holdout_scorecards",
+      "surface": "bts validate scorecard --manifest"
+    },
+    {
+      "axis": "descriptive_all_profiles",
+      "concerns": [
+        "loads every backtest_*.parquet in profiles-dir",
+        "proper_scoring block is descriptive and not lockbox-bound in this mode"
+      ],
+      "entrypoint": "src/bts/cli.py:scorecard",
+      "evidence": [
+        {
+          "exists": true,
+          "path": "src/bts/cli.py"
+        },
+        {
+          "exists": true,
+          "path": "src/bts/validate/scorecard.py"
+        },
+        {
+          "exists": true,
+          "path": "src/bts/validate/proper_scoring.py"
+        }
+      ],
+      "gating_decision": "descriptive_scorecard_and_optional_diff",
+      "id": "validate_scorecard_non_manifest",
+      "inner_split_type": "none",
+      "lockbox_state": "not_manifest_bound",
+      "next_action": "needs-lockbox-application",
+      "outer_split_type": "single_shot_all_loaded_backtests",
+      "surface": "bts validate scorecard"
+    },
+    {
+      "axis": "time",
+      "concerns": [
+        "current durable run has ship_set=[] and NO_PRODUCTION_DEPLOY",
+        "binary-y deployment also needs #12 calibration evidence on selectable rows"
+      ],
+      "entrypoint": "src/bts/validate/conformal_gate.py:run_gate_matrix",
+      "evidence": [
+        {
+          "exists": true,
+          "path": "src/bts/validate/conformal_gate.py"
+        },
+        {
+          "exists": true,
+          "path": "tests/validate/test_conformal_gate.py"
+        },
+        {
+          "exists": true,
+          "path": "data/validation/conformal_gate_v2_2026-05-06.json"
+        }
+      ],
+      "gating_decision": "method_alpha_ship_set",
+      "id": "validate_conformal_gate",
+      "inner_split_type": "fit_calibrator_on_fold_train",
+      "lockbox_state": "manifest_enforced",
+      "next_action": "compliant",
+      "outer_split_type": "manifest_rolling_origin",
+      "surface": "bts validate conformal-gate"
+    },
+    {
+      "axis": "time",
+      "concerns": [
+        "aggregate fold uncertainty is deferred",
+        "prior real-data smoke had universal sparse holdout support"
+      ],
+      "entrypoint": "src/bts/validate/ope_eval.py:evaluate_target_policy_on_manifest",
+      "evidence": [
+        {
+          "exists": true,
+          "path": "src/bts/validate/ope_eval.py"
+        },
+        {
+          "exists": true,
+          "path": "tests/validate/test_ope_eval.py"
+        }
+      ],
+      "gating_decision": "per_fold_policy_value_with_sparse_support_flag",
+      "id": "validate_policy_value_eval",
+      "inner_split_type": "solve_target_policy_on_fold_train",
+      "lockbox_state": "manifest_enforced",
+      "next_action": "compliant",
+      "outer_split_type": "manifest_rolling_origin",
+      "surface": "bts validate policy-value-eval"
+    },
+    {
+      "axis": "time",
+      "concerns": [
+        "fixed-window estimand is not season P57",
+        "aggregate fold uncertainty is deferred"
+      ],
+      "entrypoint": "src/bts/validate/rare_event_mc_eval.py:evaluate_ceis_on_manifest",
+      "evidence": [
+        {
+          "exists": true,
+          "path": "src/bts/validate/rare_event_mc_eval.py"
+        },
+        {
+          "exists": true,
+          "path": "tests/validate/test_rare_event_mc_eval.py"
+        }
+      ],
+      "gating_decision": "per_fold_diagnostic_flags_aggregate_deferred",
+      "id": "validate_rare_event_ce_is",
+      "inner_split_type": "learn_theta_on_fold_train",
+      "lockbox_state": "manifest_enforced",
+      "next_action": "compliant",
+      "outer_split_type": "manifest_rolling_origin",
+      "surface": "bts validate rare-event-ce-is"
+    },
+    {
+      "axis": "time",
+      "concerns": [
+        "does not consume the #5 split manifest",
+        "latest season holdout is not the same as an untouched lockbox",
+        "threshold and dependence choices are harness-specific"
+      ],
+      "entrypoint": "scripts/run_falsification_harness.py:run_harness",
+      "evidence": [
+        {
+          "exists": true,
+          "path": "src/bts/cli.py"
+        },
+        {
+          "exists": true,
+          "path": "scripts/run_falsification_harness.py"
+        },
+        {
+          "exists": true,
+          "path": "src/bts/validate/ope.py"
+        }
+      ],
+      "gating_decision": "HEADLINE_DEFENDED_REDUCED_BROKEN_INCONCLUSIVE",
+      "id": "validate_falsification_harness",
+      "inner_split_type": "fold_local_dependence_and_policy_modes",
+      "lockbox_state": "implicit_latest_season_holdout_not_manifest_lockbox",
+      "next_action": "needs-lockbox-application",
+      "outer_split_type": "latest_season_holdout_plus_loso_pipeline",
+      "surface": "bts validate falsification-harness"
+    },
+    {
+      "axis": "time",
+      "concerns": [
+        "fixed model parameters are reused across evaluation seasons",
+        "does not reserve a final lockbox segment by itself"
+      ],
+      "entrypoint": "src/bts/simulate/backtest_blend.py:blend_walk_forward",
+      "evidence": [
+        {
+          "exists": true,
+          "path": "src/bts/simulate/backtest_blend.py"
+        },
+        {
+          "exists": true,
+          "path": "src/bts/simulate/cli.py"
+        }
+      ],
+      "gating_decision": "writes_backtest_profiles_no_gate",
+      "id": "simulate_backtest_blend",
+      "inner_split_type": "none_for_hyperparameter_or_feature_selection",
+      "lockbox_state": "not_manifest_bound",
+      "next_action": "needs-time-respecting-inner-split",
+      "outer_split_type": "daily_walk_forward_within_test_season",
+      "surface": "bts simulate backtest"
+    },
+    {
+      "axis": "time",
+      "concerns": [
+        "feature selection can be decided on the same test seasons used for scoring",
+        "no time-respecting inner split separates tuning from outer evaluation",
+        "no #5 lockbox enforcement in the runner path"
+      ],
+      "entrypoint": "src/bts/experiment/runner.py",
+      "evidence": [
+        {
+          "exists": true,
+          "path": "src/bts/experiment/runner.py"
+        },
+        {
+          "exists": true,
+          "path": "src/bts/experiment/cli.py"
+        },
+        {
+          "exists": true,
+          "path": "scripts/audit_driver.py"
+        }
+      ],
+      "gating_decision": "phase1_phase2_pass_fail_on_test_seasons",
+      "id": "experiment_runner",
+      "inner_split_type": "none_for_feature_selection",
+      "lockbox_state": "not_manifest_bound",
+      "next_action": "needs-time-respecting-inner-split",
+      "outer_split_type": "walk_forward_over_configured_test_seasons",
+      "surface": "bts experiment screen/select"
+    },
+    {
+      "axis": "seed",
+      "concerns": [
+        "leave-one-out is across seeds, not calendar time",
+        "does not answer temporal leakage or lockbox questions"
+      ],
+      "entrypoint": "scripts/pooled_policy_ab.py",
+      "evidence": [
+        {
+          "exists": true,
+          "path": "scripts/pooled_policy_ab.py"
+        },
+        {
+          "exists": true,
+          "path": "scripts/pooled_policy_gap_ci.py"
+        }
+      ],
+      "gating_decision": "pooled_vs_production_policy_gap_screen",
+      "id": "pooled_policy_ab",
+      "inner_split_type": "none_temporal",
+      "lockbox_state": "not_temporal_lockbox_applicable",
+      "next_action": "unclear-needs-investigation",
+      "outer_split_type": "leave_one_seed_out",
+      "surface": "scripts/pooled_policy_ab.py"
+    }
+  ],
+  "required_path_fields": [
+    "id",
+    "surface",
+    "entrypoint",
+    "axis",
+    "outer_split_type",
+    "inner_split_type",
+    "lockbox_state",
+    "gating_decision",
+    "concerns",
+    "next_action"
+  ],
+  "schema_version": "nested_cv_lockbox_inventory_v1",
+  "summary": {
+    "manifest_lockbox_enforced": 5,
+    "n_paths": 10,
+    "needs_lockbox_application": 2,
+    "needs_time_respecting_inner_split": 2,
+    "non_temporal_seed_axis": 1
+  }
+}

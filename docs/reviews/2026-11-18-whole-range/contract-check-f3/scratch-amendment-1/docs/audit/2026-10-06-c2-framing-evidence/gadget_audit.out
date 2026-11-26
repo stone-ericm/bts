@@ -1,0 +1,9 @@
+# gadget_audit.py at 487f54c
+objects visited: 158
+callable pytest.fixture _pytest.fixtures.fixture
+callable pytest.raises _pytest.raises.raises
+module numpy.random numpy.random
+module numpy.testing numpy.testing
+module pandas.testing pandas.testing
+module shutil.stat stat
+callable subprocess.run subprocess.run

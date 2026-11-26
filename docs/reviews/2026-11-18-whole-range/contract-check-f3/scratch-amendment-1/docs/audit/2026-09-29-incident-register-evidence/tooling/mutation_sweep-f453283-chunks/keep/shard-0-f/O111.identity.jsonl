@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_a_real_alert_whose_message_shows_run_variant_values_is_still_certified", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_the_message_digest_blanks_run_metadata_shapes_not_application_text", "kind": "assertion"}

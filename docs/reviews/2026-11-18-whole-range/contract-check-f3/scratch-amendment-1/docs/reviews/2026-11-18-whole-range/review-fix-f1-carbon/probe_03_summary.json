@@ -1,0 +1,64 @@
+{
+  "item4_tiers": {
+    "sequences_verified": 11,
+    "names": [
+      "all_base_spent_then_wg",
+      "wg_first_at_t30_then_t15_then_removed",
+      "wg_first_at_t15",
+      "wg_removed_t30_wg_t15_fixed_then_change",
+      "dm_failures_every_step",
+      "dm_failed_then_cutoff",
+      "wg_then_pu_then_right",
+      "wg_then_pu_then_unbound",
+      "np_then_pu_then_failed_wg_then_right",
+      "wg_then_pu_then_failed_np",
+      "no_recipient"
+    ]
+  },
+  "item5_texts": {
+    "text_families_verified": 5,
+    "names": [
+      "double_one_and_both_legs_and_timezones",
+      "missing_names_null_and_empty",
+      "unreadable_game_time_both_paths",
+      "locked_unconfirmed_quoted_path_and_double",
+      "case_b_no_wrong_game_leg_all_three_templates"
+    ]
+  },
+  "item6_standing": {
+    "malformed_captures_verified": 19,
+    "fifo_checks": {
+      "fifo_no_pick": {
+        "timed_out": true,
+        "dm_fired": true,
+        "marker": "alerted"
+      },
+      "fifo_match": {
+        "timed_out": true,
+        "dm_fired": false,
+        "marker": null
+      },
+      "sym_fifo_no_pick": {
+        "timed_out": true,
+        "dm_fired": true,
+        "marker": "alerted"
+      },
+      "sym_fifo_match": {
+        "timed_out": true,
+        "dm_fired": false,
+        "marker": null
+      }
+    },
+    "interrupt_checks": "pass",
+    "midnight_and_year_boundary": "pass",
+    "bad_markers_verified": [
+      "json_null",
+      "json_list",
+      "invalid_utf8",
+      "int_escalations",
+      "invalid_json_brace",
+      "marker_is_nonempty_dir_no_pick",
+      "chmod_000_marker"
+    ]
+  }
+}

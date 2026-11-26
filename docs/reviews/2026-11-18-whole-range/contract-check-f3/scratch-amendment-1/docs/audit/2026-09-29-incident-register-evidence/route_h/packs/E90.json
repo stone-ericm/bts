@@ -1,0 +1,13 @@
+{
+ "id": "E90",
+ "episode_row": [
+  "E90",
+  "6/05",
+  "MacBook loss: `pooled_bins_run` profiles lost; shipped policy cannot be re-solved",
+  "S",
+  "OI",
+  "A",
+  "memory/CLAUDE.md; plan W0.1"
+ ],
+ "commits": []
+}

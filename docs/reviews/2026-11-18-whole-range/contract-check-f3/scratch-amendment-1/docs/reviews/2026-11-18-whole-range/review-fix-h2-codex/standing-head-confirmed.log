@@ -1,0 +1,74 @@
+nice: setpriority: Operation not permitted
+/Users/eric/projects/bts-work/wr-rev-h2c-cx/src/bts/contest_state.py
+interrupt before obs changed [] active 5
+interrupt before status changed ['obs'] active 58
+interrupt before ledger changed ['obs', 'status'] active 58
+interrupt before saver changed ['ledger', 'obs', 'status'] active 58
+malformed contest_streak.manual.json json ('ContestStateError', 'contest streak state malformed at <temp>/picks/account_state/contest_streak.manual.json: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)') [('CRITICAL', 'contest_state')] (0, 'NoneType')
+malformed contest_streak.manual.json array ('ContestStateError', 'contest streak state malformed at <temp>/picks/account_state/contest_streak.manual.json: expected object') [('CRITICAL', 'contest_state')] (0, 'NoneType')
+malformed contest_streak.manual.json utf8 ('ContestStateError', "contest streak state malformed at <temp>/picks/account_state/contest_streak.manual.json: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte") [('CRITICAL', 'contest_state')] (0, 'NoneType')
+malformed contest_streak.manual.json directory ('ContestStateError', "contest streak state malformed at <temp>/picks/account_state/contest_streak.manual.json: [Errno 21] Is a directory: '<temp>/picks/account_state/contest_streak.manual.json'") [('CRITICAL', 'contest_state')] (0, 'NoneType')
+malformed contest_streak.manual.json fifo ('ReadDeadline', 'bounded file read') [('CRITICAL', 'contest_state')] (0, 'NoneType')
+malformed contest_streak.json json ('ContestStateError', 'contest streak state malformed at <temp>/picks/account_state/contest_streak.json: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)') [('CRITICAL', 'contest_state')] (0, 'NoneType')
+malformed contest_streak.json array ('ContestStateError', 'contest streak state malformed at <temp>/picks/account_state/contest_streak.json: expected object') [('CRITICAL', 'contest_state')] (1, 'AttributeError')
+malformed contest_streak.json utf8 ('ContestStateError', "contest streak state malformed at <temp>/picks/account_state/contest_streak.json: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte") [('CRITICAL', 'contest_state')] (1, 'UnicodeDecodeError')
+malformed contest_streak.json directory ('ContestStateError', "contest streak state malformed at <temp>/picks/account_state/contest_streak.json: [Errno 21] Is a directory: '<temp>/picks/account_state/contest_streak.json'") [('CRITICAL', 'contest_state')] (1, 'IsADirectoryError')
+malformed contest_streak.json fifo ('ReadDeadline', 'bounded file read') [('CRITICAL', 'contest_state')] (1, 'ReadDeadline')
+malformed season_contract.json json ('ContestStateError', 'Live decision refused: corrupt season switch, check 1: <temp>/picks/account_state/season_contract.json: Expecting property name enclosed in double quotes: line 1 column 2 (char 1).') [('CRITICAL', 'contest_state')] (2, 'SystemExit')
+malformed season_contract.json array ('ContestStateError', 'Live decision refused: corrupt season switch, check 1: <temp>/picks/account_state/season_contract.json: file must be a readable UTF-8 JSON object.') [('CRITICAL', 'contest_state')] (2, 'SystemExit')
+malformed season_contract.json utf8 ('ContestStateError', "Live decision refused: corrupt season switch, check 1: <temp>/picks/account_state/season_contract.json: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte.") [('CRITICAL', 'contest_state')] (2, 'SystemExit')
+malformed season_contract.json directory ('ContestStateError', "Live decision refused: corrupt season switch, check 1: <temp>/picks/account_state/season_contract.json: [Errno 21] Is a directory: '<temp>/picks/account_state/season_contract.json'.") [('CRITICAL', 'contest_state')] (2, 'SystemExit')
+malformed season_contract.json fifo ('ReadDeadline', 'bounded file read') [('CRITICAL', 'contest_state')] (1, 'ReadDeadline')
+malformed saver_state.json json ('uninitialized', None) [('WARN', 'saver_state')] (0, 'NoneType')
+malformed saver_state.json array ('uninitialized', None) [('WARN', 'saver_state')] (0, 'NoneType')
+malformed saver_state.json utf8 ('uninitialized', None) [('WARN', 'saver_state')] (0, 'NoneType')
+malformed saver_state.json directory ('uninitialized', None) [('WARN', 'saver_state')] (0, 'NoneType')
+malformed saver_state.json fifo ('ReadDeadline', 'bounded file read') [('WARN', 'saver_state')] (1, 'ReadDeadline')
+model_state_corrupt: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp67u5gee8/malformed/.._streak.json/json/picks/streak.json: JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+model_state_corrupt: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp67u5gee8/malformed/.._streak.json/json/picks/streak.json: JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+malformed ../streak.json json ('used', '<temp>/picks/streak.json: JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)') [] (0, 'NoneType')
+model_state_corrupt: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp67u5gee8/malformed/.._streak.json/array/picks/streak.json: TypeError: expected object
+model_state_corrupt: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp67u5gee8/malformed/.._streak.json/array/picks/streak.json: TypeError: expected object
+malformed ../streak.json array ('used', '<temp>/picks/streak.json: TypeError: expected object') [] (0, 'NoneType')
+model_state_corrupt: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp67u5gee8/malformed/.._streak.json/utf8/picks/streak.json: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+model_state_corrupt: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp67u5gee8/malformed/.._streak.json/utf8/picks/streak.json: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+malformed ../streak.json utf8 ('used', "<temp>/picks/streak.json: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte") [] (0, 'NoneType')
+model_state_corrupt: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp67u5gee8/malformed/.._streak.json/directory/picks/streak.json: IsADirectoryError: [Errno 21] Is a directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp67u5gee8/malformed/.._streak.json/directory/picks/streak.json'
+model_state_corrupt: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp67u5gee8/malformed/.._streak.json/directory/picks/streak.json: IsADirectoryError: [Errno 21] Is a directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp67u5gee8/malformed/.._streak.json/directory/picks/streak.json'
+malformed ../streak.json directory ('used', "<temp>/picks/streak.json: IsADirectoryError: [Errno 21] Is a directory: '<temp>/picks/streak.json'") [] (0, 'NoneType')
+malformed ../streak.json fifo ('ReadDeadline', 'bounded file read') [] (0, 'NoneType')
+malformed ../2027-09-26.json json ('used', None) [] ('JSONDecodeError', 'Expecting property name enclosed in double quotes: line 1 column 2 (char 1)')
+malformed ../2027-09-26.json array ('used', None) [] ('TypeError', 'list indices must be integers or slices, not str')
+malformed ../2027-09-26.json utf8 ('used', None) [] ('UnicodeDecodeError', "'utf-8' codec can't decode byte 0xff in position 0: invalid start byte")
+malformed ../2027-09-26.json directory ('used', None) [] ('IsADirectoryError', "[Errno 21] Is a directory: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp67u5gee8/malformed/.._2027-09-26.json/directory/picks/2027-09-26.json'")
+malformed ../2027-09-26.json fifo ('ReadDeadline', 'bounded file read') [] ('ReadDeadline', 'bounded file read')
+malformed contest_ledger.jsonl json ('used', None) [] (0, 'NoneType')
+malformed contest_ledger.jsonl array ('used', None) [] (0, 'NoneType')
+malformed contest_ledger.jsonl utf8 ('used', None) [] (0, 'NoneType')
+malformed contest_ledger.jsonl directory ('used', None) [] (1, 'IsADirectoryError')
+malformed contest_ledger.jsonl fifo ('used', None) [] (1, 'ReadDeadline')
+malformed ../../health_state/contest_streak_fetch_status.json json ('used', None) [] (0, 'NoneType')
+malformed ../../health_state/contest_streak_fetch_status.json array ('used', None) [] (0, 'NoneType')
+malformed ../../health_state/contest_streak_fetch_status.json utf8 ('used', None) [] (0, 'NoneType')
+malformed ../../health_state/contest_streak_fetch_status.json directory ('used', None) [] (2, 'SystemExit')
+malformed ../../health_state/contest_streak_fetch_status.json fifo ('used', None) [] (0, 'NoneType')
+year rollover automatic 58 accepted 23:59, refused 00:00, new activation + fetch restored eligibility
+year rollover dated 58 accepted 23:59, refused 00:00, new activation + fetch restored eligibility
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=double streak=58 best=58 (trusted) effective_best=None days=1 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+  Pick DM failed: definite transport failure
+  LOCKED (review probe) — Pick DM sent: captured-id
+delivery failed captured DMs 1 status delivered
+  6 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=double streak=58 best=58 (trusted) effective_best=None days=1 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 96.0% → should_lock=True
+  DELIVERY OUTCOME UNKNOWN (review probe) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+Unknown-outcome alert failed: transport: Bluesky app password not found. Set BTS_BLUESKY_APP_PASSWORD or add to macOS keychain.
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-h2c-cx/.codex-review/wr-h2c/run_standing.py", line 45, in <module>
+    standing.delivery(root / 'delivery')
+  File "/Users/eric/projects/bts-work/wr-rev-h2c-cx/.codex-review/wr-h2c/probe_standing.py", line 164, in delivery
+    assert dm.call_count == 1 and 'DELIVERY OUTCOME UNKNOWN' in dm.call_args.args[1]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

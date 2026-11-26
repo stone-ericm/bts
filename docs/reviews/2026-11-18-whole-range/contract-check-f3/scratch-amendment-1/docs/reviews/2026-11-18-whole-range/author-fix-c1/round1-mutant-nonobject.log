@@ -1,0 +1,136 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-fix-c1
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 4 items
+
+tests/test_wr_c1_history.py FFFF                                         [100%]
+
+=================================== FAILURES ===================================
+_________ test_historical_state_rejects_non_object_json[array-manual] __________
+tests/test_wr_c1_history.py:314: in test_historical_state_rejects_non_object_json
+    assert [(item.level, item.source, item.message) for item in alerts] == [
+E   assert [('CRITICAL',...rent files.')] == [('CRITICAL',...rent files.')]
+E     
+E     At index 0 diff: ('CRITICAL', 'health_runner', "Prior slate 2027-03-24 ET. The contest state health check failed before it could finish. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.") != ('CRITICAL', 'contest_state', "Prior slate 2027-03-24 ET. The ...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.runner:runner.py:66 health check 'contest_state' raised: contest streak state malformed at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3295/test_historical_state_rejects_0/account_state/contest_streak.manual.json: expected object
+Traceback (most recent call last):
+  File "/tmp/wr-c1-round1.LWS1IQTZ/nonobject/bts/health/runner.py", line 64, in _safe_run
+    return fn()
+           ^^^^
+  File "/tmp/wr-c1-round1.LWS1IQTZ/nonobject/bts/health/runner.py", line 138, in <lambda>
+    contest_alerts = _safe_run("contest_state", lambda: contest_state.check(
+                                                        ^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/wr-c1-round1.LWS1IQTZ/nonobject/bts/health/contest_state.py", line 69, in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/wr-c1-round1.LWS1IQTZ/nonobject/bts/health/contest_state.py", line 78, in _check
+    state = _select_contest_streak_state(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/wr-c1-round1.LWS1IQTZ/nonobject/bts/contest_state.py", line 440, in _select_contest_streak_state
+    manual = (_read_state_file(manual_path, require_dated=False, historical=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/wr-c1-round1.LWS1IQTZ/nonobject/bts/contest_state.py", line 335, in _read_state_file
+    raise ContestStateError(f"contest streak state malformed at {path}: expected object")
+bts.contest_state.ContestStateError: contest streak state malformed at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3295/test_historical_state_rejects_0/account_state/contest_streak.manual.json: expected object
+ERROR    bts.health.alert:alert.py:47 [health_runner CRITICAL] Prior slate 2027-03-24 ET. The contest state health check failed before it could finish. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+________ test_historical_state_rejects_non_object_json[array-automatic] ________
+tests/test_wr_c1_history.py:314: in test_historical_state_rejects_non_object_json
+    assert [(item.level, item.source, item.message) for item in alerts] == [
+E   assert [('CRITICAL',...rent files.')] == [('CRITICAL',...rent files.')]
+E     
+E     At index 0 diff: ('CRITICAL', 'health_runner', "Prior slate 2027-03-24 ET. The contest state health check failed before it could finish. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.") != ('CRITICAL', 'contest_state', "Prior slate 2027-03-24 ET. The ...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.runner:runner.py:66 health check 'contest_state' raised: contest streak state malformed at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3295/test_historical_state_rejects_1/account_state/contest_streak.json: expected object
+Traceback (most recent call last):
+  File "/tmp/wr-c1-round1.LWS1IQTZ/nonobject/bts/health/runner.py", line 64, in _safe_run
+    return fn()
+           ^^^^
+  File "/tmp/wr-c1-round1.LWS1IQTZ/nonobject/bts/health/runner.py", line 138, in <lambda>
+    contest_alerts = _safe_run("contest_state", lambda: contest_state.check(
+                                                        ^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/wr-c1-round1.LWS1IQTZ/nonobject/bts/health/contest_state.py", line 69, in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/wr-c1-round1.LWS1IQTZ/nonobject/bts/health/contest_state.py", line 78, in _check
+    state = _select_contest_streak_state(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/wr-c1-round1.LWS1IQTZ/nonobject/bts/contest_state.py", line 457, in _select_contest_streak_state
+    return _read_state_file(auto_path, require_dated=require_dated_auto, historical=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/wr-c1-round1.LWS1IQTZ/nonobject/bts/contest_state.py", line 335, in _read_state_file
+    raise ContestStateError(f"contest streak state malformed at {path}: expected object")
+bts.contest_state.ContestStateError: contest streak state malformed at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3295/test_historical_state_rejects_1/account_state/contest_streak.json: expected object
+ERROR    bts.health.alert:alert.py:47 [health_runner CRITICAL] Prior slate 2027-03-24 ET. The contest state health check failed before it could finish. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+_________ test_historical_state_rejects_non_object_json[string-manual] _________
+tests/test_wr_c1_history.py:314: in test_historical_state_rejects_non_object_json
+    assert [(item.level, item.source, item.message) for item in alerts] == [
+E   assert [('CRITICAL',...rent files.')] == [('CRITICAL',...rent files.')]
+E     
+E     At index 0 diff: ('CRITICAL', 'health_runner', "Prior slate 2027-03-24 ET. The contest state health check failed before it could finish. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.") != ('CRITICAL', 'contest_state', "Prior slate 2027-03-24 ET. The ...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.runner:runner.py:66 health check 'contest_state' raised: contest streak state malformed at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3295/test_historical_state_rejects_2/account_state/contest_streak.manual.json: expected object
+Traceback (most recent call last):
+  File "/tmp/wr-c1-round1.LWS1IQTZ/nonobject/bts/health/runner.py", line 64, in _safe_run
+    return fn()
+           ^^^^
+  File "/tmp/wr-c1-round1.LWS1IQTZ/nonobject/bts/health/runner.py", line 138, in <lambda>
+    contest_alerts = _safe_run("contest_state", lambda: contest_state.check(
+                                                        ^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/wr-c1-round1.LWS1IQTZ/nonobject/bts/health/contest_state.py", line 69, in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/wr-c1-round1.LWS1IQTZ/nonobject/bts/health/contest_state.py", line 78, in _check
+    state = _select_contest_streak_state(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/wr-c1-round1.LWS1IQTZ/nonobject/bts/contest_state.py", line 440, in _select_contest_streak_state
+    manual = (_read_state_file(manual_path, require_dated=False, historical=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/wr-c1-round1.LWS1IQTZ/nonobject/bts/contest_state.py", line 335, in _read_state_file
+    raise ContestStateError(f"contest streak state malformed at {path}: expected object")
+bts.contest_state.ContestStateError: contest streak state malformed at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3295/test_historical_state_rejects_2/account_state/contest_streak.manual.json: expected object
+ERROR    bts.health.alert:alert.py:47 [health_runner CRITICAL] Prior slate 2027-03-24 ET. The contest state health check failed before it could finish. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+_______ test_historical_state_rejects_non_object_json[string-automatic] ________
+tests/test_wr_c1_history.py:314: in test_historical_state_rejects_non_object_json
+    assert [(item.level, item.source, item.message) for item in alerts] == [
+E   assert [('CRITICAL',...rent files.')] == [('CRITICAL',...rent files.')]
+E     
+E     At index 0 diff: ('CRITICAL', 'health_runner', "Prior slate 2027-03-24 ET. The contest state health check failed before it could finish. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.") != ('CRITICAL', 'contest_state', "Prior slate 2027-03-24 ET. The ...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.runner:runner.py:66 health check 'contest_state' raised: contest streak state malformed at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3295/test_historical_state_rejects_3/account_state/contest_streak.json: expected object
+Traceback (most recent call last):
+  File "/tmp/wr-c1-round1.LWS1IQTZ/nonobject/bts/health/runner.py", line 64, in _safe_run
+    return fn()
+           ^^^^
+  File "/tmp/wr-c1-round1.LWS1IQTZ/nonobject/bts/health/runner.py", line 138, in <lambda>
+    contest_alerts = _safe_run("contest_state", lambda: contest_state.check(
+                                                        ^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/wr-c1-round1.LWS1IQTZ/nonobject/bts/health/contest_state.py", line 69, in check
+    alerts = _check(picks_dir, expected=expected, now=now, historical=historical_day is not None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/wr-c1-round1.LWS1IQTZ/nonobject/bts/health/contest_state.py", line 78, in _check
+    state = _select_contest_streak_state(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/wr-c1-round1.LWS1IQTZ/nonobject/bts/contest_state.py", line 457, in _select_contest_streak_state
+    return _read_state_file(auto_path, require_dated=require_dated_auto, historical=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/wr-c1-round1.LWS1IQTZ/nonobject/bts/contest_state.py", line 335, in _read_state_file
+    raise ContestStateError(f"contest streak state malformed at {path}: expected object")
+bts.contest_state.ContestStateError: contest streak state malformed at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3295/test_historical_state_rejects_3/account_state/contest_streak.json: expected object
+ERROR    bts.health.alert:alert.py:47 [health_runner CRITICAL] Prior slate 2027-03-24 ET. The contest state health check failed before it could finish. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+=========================== short test summary info ============================
+FAILED tests/test_wr_c1_history.py::test_historical_state_rejects_non_object_json[array-manual]
+FAILED tests/test_wr_c1_history.py::test_historical_state_rejects_non_object_json[array-automatic]
+FAILED tests/test_wr_c1_history.py::test_historical_state_rejects_non_object_json[string-manual]
+FAILED tests/test_wr_c1_history.py::test_historical_state_rejects_non_object_json[string-automatic]
+============================== 4 failed in 0.32s ===============================

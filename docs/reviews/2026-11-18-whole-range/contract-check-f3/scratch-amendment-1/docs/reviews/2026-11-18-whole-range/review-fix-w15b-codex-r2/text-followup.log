@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-w15b/.codex-review/wr-w15b/r2/text_followup.py", line 6, in <module>
+    probe_text.main()
+  File "/Users/eric/projects/bts-work/wr-review-w15b/.codex-review/wr-w15b/r2/probe_text.py", line 197, in main
+    matchers(health_messages() + producer_messages())
+             ^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-w15b/.codex-review/wr-w15b/r2/probe_text.py", line 108, in health_messages
+    assert sum("whose name is not a status record name" in text for text in logs) == len(HOSTILE) + 2
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

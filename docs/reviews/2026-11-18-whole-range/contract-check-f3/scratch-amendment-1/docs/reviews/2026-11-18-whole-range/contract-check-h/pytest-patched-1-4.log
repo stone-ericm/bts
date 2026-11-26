@@ -1,0 +1,15 @@
+bts=/Users/eric/projects/bts-work/wr-check-h/.codex-review/wr-h-check/scratch/src/bts/__init__.py
+files=['tests/health/test_analytics_artifacts_missing.py', 'tests/health/test_mdp_policy_alignment.py', 'tests/health/test_post_failure.py', 'tests/health/test_tail_policy_health.py']
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-check-h/.codex-review/wr-h-check/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 42 items
+
+tests/health/test_analytics_artifacts_missing.py .............           [ 30%]
+tests/health/test_mdp_policy_alignment.py ........                       [ 50%]
+tests/health/test_post_failure.py ................                       [ 88%]
+tests/health/test_tail_policy_health.py .....                            [100%]
+
+============================== 42 passed in 0.75s ==============================

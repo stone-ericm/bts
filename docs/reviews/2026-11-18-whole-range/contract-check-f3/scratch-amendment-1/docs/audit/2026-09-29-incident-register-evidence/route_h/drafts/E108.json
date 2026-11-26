@@ -1,0 +1,220 @@
+{
+ "id": "I-108",
+ "working_id": "E108",
+ "title": "4/22-6/12: heartbeat_watchdog wrote RUNNING every 60 s regardless of progress, so a wedged prediction cascade would have looked healthy with no alert (audit H5)",
+ "disposition": "deployed_latent_defect",
+ "counted": true,
+ "classes": {
+  "primary": "L",
+  "secondary": [
+   "A"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "a wedge would silently lose the day's delivery with no page (liveness + alerting); no firing evidenced; B -> A: the fix is alert-only, so a detected wedge still loses the delivery unless the operator acts",
+ "residual_reaches_production": true,
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "A RUNNING heartbeat certifies progress: a cascade stalled past the stall threshold is reported (stalled -> check_heartbeat -> Healthchecks /fail) while systemd watchdog pings continue.",
+  "source": "docs/superpowers/specs/2026-06-11-h5b-truthful-heartbeat-design.md 'Problem', 'Constraints', 'Consumers'; docs/audit/2026-06-09-fable5-full-audit.md 'Wedged-but-pinging scheduler fools the external monitor'"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "heartbeat_watchdog's pulse thread wrote state=RUNNING and sent sd_notify every 60 s based only on its own thread being alive, around the whole prediction cascade (incl. network)",
+   "code": [
+    {
+     "path": "src/bts/heartbeat.py",
+     "ref": "5dc4a32",
+     "symbol": "heartbeat_watchdog",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "the consumers had no stalled state: scripts/check_heartbeat.py and heartbeat.is_heartbeat_fresh scored any fresh RUNNING heartbeat healthy, and the */5 Healthchecks ping is unconditional, so nothing paged",
+   "code": [
+    {
+     "path": "scripts/check_heartbeat.py",
+     "ref": "5dc4a32",
+     "symbol": "is_stale",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/heartbeat.py",
+     "ref": "5dc4a32",
+     "symbol": "is_heartbeat_fresh",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "2598538",
+     "18efce1",
+     "883f0eb"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:11Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "not_applicable"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "4070126"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:11Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "not_applicable"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "Phase 1 is alert-only: a detected stall pages (~20 min worst case) but nothing recovers the cascade; auto-restart and per-stage thresholds were deferred to a Phase 2 gated on the durations dataset",
+   "reaches_production": true,
+   "source": "docs/superpowers/specs/2026-06-11-h5b-truthful-heartbeat-design.md 'Out of scope (Phase 2, gated on the jsonl dataset)'"
+  }
+ ],
+ "watchdog": {
+  "boundary": "restart",
+  "trigger": "the heartbeat is stalled (or RUNNING with a stage age past the stall threshold) for > 15 min, or a game day reaches the earliest candidate's first pitch - 5 with no completed lineup-check cascade",
+  "recovery_assertion": "a completed cascade (durations row ok/ok_after_stall) and a delivered pick or recorded skip before the cutoff"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-06-09-fable5-full-audit.md 'Health & alerting' [P1] 'Wedged-but-pinging scheduler fools the external monitor' (f5de8ee)",
+   "written_at": "2026-06-09T21:57:05-04:00",
+   "what": "a hang inside the cascade leaves check_heartbeat seeing a fresh RUNNING heartbeat forever, systemd fed, no pick, EOD never runs, the */5 hc-ping unconditional: total silence"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/superpowers/specs/2026-06-11-h5b-truthful-heartbeat-design.md 'Problem' (c86b163)",
+   "written_at": "2026-06-11T22:49:02-04:00",
+   "what": "the pulse 'certifies alive and running based on nothing but its own thread being alive' (wedged-but-pinging); network hangs are bounded, the in-process local tier is not"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 0830ef4",
+   "written_at": "2026-04-22T13:24:00-04:00",
+   "what": "introduced heartbeat_watchdog (keep the heartbeat fresh during long predictions)"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "deploy run 28601525167 (deploy_runs.json, log retained)",
+   "what": "its log first shows 83a5cad (contains the H5b commits) installed, as the pre-deploy SHA at 2026-07-02T15:28:10Z; runs from 6/07 17:55Z to 7/02 have expired logs"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "deploy run 27393844103 (deploy_runs.json)",
+   "what": "success for head 0a9e2d7 (contains 2598538..883f0eb) created 2026-06-12T04:08:15Z (log expired)"
+  },
+  {
+   "id": "ev6",
+   "kind": "machine_observation",
+   "strength": "reported",
+   "locator": "docs/audit/2026-07-01-production-state-audit.md 'Production ops' Heartbeat row (data/health_state/cascade_stage_durations.jsonl on the box, not read)",
+   "what": "'0 stalls ever' in the post-fix durations dataset as of 7/01"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "latent (no evidenced firing in Phase 1)",
+   "onset": "not_applicable",
+   "first_detectable": "not_applicable",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-06-09T21:57:05-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "not_applicable",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "not_applicable"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "0830ef4",
+   "2598538",
+   "4070126",
+   "18efce1",
+   "883f0eb",
+   "0591ee5"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-06-09-fable5-full-audit.md",
+   "docs/superpowers/specs/2026-06-11-h5b-truthful-heartbeat-design.md"
+  ]
+ },
+ "related": [
+  "I-059",
+  "I-206"
+ ],
+ "notes": [
+  "firing would look like a game day with no pick, no EOD health and RUNNING heartbeats for hours; Route R can check 5/11-6/12 (journals start 5/11); 4/22-5/10 is unobservable",
+  "deployed: log bound only (6/07 00:11Z -> 7/02 15:28Z); run_id 28601525167 is the run whose retained log first observed 83a5cad (the run that deployed 83a5cad, 28520680537, has an expired log); candidate ancestry: run 27393844103 at 2026-06-12T04:08:15Z (head 0a9e2d7); the spec header says 'IMPLEMENTED + DEPLOYED 2026-06-12'",
+  "refs at 5dc4a32 = parent of the first fix commit (2598538); ref_basis candidate (no retained log in the defect window)",
+  "tests added by the fix: tests/test_heartbeat_staleness.py::test_stalled_state_is_stale_with_stage_in_reason and tests/test_heartbeat.py::test_stalled_state_is_never_fresh (link 2, 4070126); tests/test_heartbeat.py::test_watchdog_flips_to_stalled_and_keeps_sd_notify and siblings (link 1, 18efce1)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

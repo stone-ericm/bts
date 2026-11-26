@@ -1,0 +1,1304 @@
+{
+  "replay_trajectories": [
+    {
+      "seed": 1,
+      "season": 2021,
+      "prod_max_streak": 49,
+      "pool_max_streak": 50,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 156,
+      "pool_play_days": 143
+    },
+    {
+      "seed": 1,
+      "season": 2022,
+      "prod_max_streak": 44,
+      "pool_max_streak": 50,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 119,
+      "pool_play_days": 113
+    },
+    {
+      "seed": 1,
+      "season": 2023,
+      "prod_max_streak": 19,
+      "pool_max_streak": 29,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 144,
+      "pool_play_days": 123
+    },
+    {
+      "seed": 1,
+      "season": 2024,
+      "prod_max_streak": 35,
+      "pool_max_streak": 34,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 111,
+      "pool_play_days": 117
+    },
+    {
+      "seed": 1,
+      "season": 2025,
+      "prod_max_streak": 43,
+      "pool_max_streak": 46,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 93,
+      "pool_play_days": 43
+    },
+    {
+      "seed": 1024,
+      "season": 2021,
+      "prod_max_streak": 39,
+      "pool_max_streak": 32,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 144,
+      "pool_play_days": 137
+    },
+    {
+      "seed": 1024,
+      "season": 2022,
+      "prod_max_streak": 53,
+      "pool_max_streak": 55,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 114,
+      "pool_play_days": 118
+    },
+    {
+      "seed": 1024,
+      "season": 2023,
+      "prod_max_streak": 30,
+      "pool_max_streak": 34,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 129,
+      "pool_play_days": 123
+    },
+    {
+      "seed": 1024,
+      "season": 2024,
+      "prod_max_streak": 38,
+      "pool_max_streak": 34,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 96,
+      "pool_play_days": 111
+    },
+    {
+      "seed": 1024,
+      "season": 2025,
+      "prod_max_streak": 31,
+      "pool_max_streak": 38,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 108,
+      "pool_play_days": 119
+    },
+    {
+      "seed": 3911096,
+      "season": 2021,
+      "prod_max_streak": 48,
+      "pool_max_streak": 47,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 154,
+      "pool_play_days": 145
+    },
+    {
+      "seed": 3911096,
+      "season": 2022,
+      "prod_max_streak": 41,
+      "pool_max_streak": 37,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 127,
+      "pool_play_days": 119
+    },
+    {
+      "seed": 3911096,
+      "season": 2023,
+      "prod_max_streak": 23,
+      "pool_max_streak": 28,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 142,
+      "pool_play_days": 122
+    },
+    {
+      "seed": 3911096,
+      "season": 2024,
+      "prod_max_streak": 38,
+      "pool_max_streak": 34,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 100,
+      "pool_play_days": 117
+    },
+    {
+      "seed": 3911096,
+      "season": 2025,
+      "prod_max_streak": 35,
+      "pool_max_streak": 46,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 122,
+      "pool_play_days": 45
+    },
+    {
+      "seed": 999983,
+      "season": 2021,
+      "prod_max_streak": 40,
+      "pool_max_streak": 40,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 144,
+      "pool_play_days": 135
+    },
+    {
+      "seed": 999983,
+      "season": 2022,
+      "prod_max_streak": 49,
+      "pool_max_streak": 51,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 109,
+      "pool_play_days": 110
+    },
+    {
+      "seed": 999983,
+      "season": 2023,
+      "prod_max_streak": 31,
+      "pool_max_streak": 27,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 127,
+      "pool_play_days": 130
+    },
+    {
+      "seed": 999983,
+      "season": 2024,
+      "prod_max_streak": 38,
+      "pool_max_streak": 37,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 98,
+      "pool_play_days": 110
+    },
+    {
+      "seed": 999983,
+      "season": 2025,
+      "prod_max_streak": 39,
+      "pool_max_streak": 47,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 100,
+      "pool_play_days": 45
+    },
+    {
+      "seed": 2041769,
+      "season": 2021,
+      "prod_max_streak": 27,
+      "pool_max_streak": 43,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 124,
+      "pool_play_days": 129
+    },
+    {
+      "seed": 2041769,
+      "season": 2022,
+      "prod_max_streak": 30,
+      "pool_max_streak": 28,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 137,
+      "pool_play_days": 133
+    },
+    {
+      "seed": 2041769,
+      "season": 2023,
+      "prod_max_streak": 23,
+      "pool_max_streak": 30,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 144,
+      "pool_play_days": 114
+    },
+    {
+      "seed": 2041769,
+      "season": 2024,
+      "prod_max_streak": 35,
+      "pool_max_streak": 34,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 107,
+      "pool_play_days": 110
+    },
+    {
+      "seed": 2041769,
+      "season": 2025,
+      "prod_max_streak": 39,
+      "pool_max_streak": 47,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 98,
+      "pool_play_days": 45
+    },
+    {
+      "seed": 6426836,
+      "season": 2021,
+      "prod_max_streak": 47,
+      "pool_max_streak": 44,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 146,
+      "pool_play_days": 146
+    },
+    {
+      "seed": 6426836,
+      "season": 2022,
+      "prod_max_streak": 43,
+      "pool_max_streak": 51,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 118,
+      "pool_play_days": 99
+    },
+    {
+      "seed": 6426836,
+      "season": 2023,
+      "prod_max_streak": 24,
+      "pool_max_streak": 30,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 141,
+      "pool_play_days": 126
+    },
+    {
+      "seed": 6426836,
+      "season": 2024,
+      "prod_max_streak": 38,
+      "pool_max_streak": 34,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 101,
+      "pool_play_days": 118
+    },
+    {
+      "seed": 6426836,
+      "season": 2025,
+      "prod_max_streak": 28,
+      "pool_max_streak": 39,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 128,
+      "pool_play_days": 117
+    },
+    {
+      "seed": 7,
+      "season": 2021,
+      "prod_max_streak": 51,
+      "pool_max_streak": 32,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 135,
+      "pool_play_days": 132
+    },
+    {
+      "seed": 7,
+      "season": 2022,
+      "prod_max_streak": 45,
+      "pool_max_streak": 51,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 117,
+      "pool_play_days": 115
+    },
+    {
+      "seed": 7,
+      "season": 2023,
+      "prod_max_streak": 23,
+      "pool_max_streak": 29,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 143,
+      "pool_play_days": 115
+    },
+    {
+      "seed": 7,
+      "season": 2024,
+      "prod_max_streak": 38,
+      "pool_max_streak": 35,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 100,
+      "pool_play_days": 113
+    },
+    {
+      "seed": 7,
+      "season": 2025,
+      "prod_max_streak": 39,
+      "pool_max_streak": 45,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 97,
+      "pool_play_days": 44
+    },
+    {
+      "seed": 8192,
+      "season": 2021,
+      "prod_max_streak": 47,
+      "pool_max_streak": 32,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 149,
+      "pool_play_days": 140
+    },
+    {
+      "seed": 8192,
+      "season": 2022,
+      "prod_max_streak": 42,
+      "pool_max_streak": 50,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 129,
+      "pool_play_days": 109
+    },
+    {
+      "seed": 8192,
+      "season": 2023,
+      "prod_max_streak": 29,
+      "pool_max_streak": 30,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 125,
+      "pool_play_days": 126
+    },
+    {
+      "seed": 8192,
+      "season": 2024,
+      "prod_max_streak": 38,
+      "pool_max_streak": 34,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 101,
+      "pool_play_days": 118
+    },
+    {
+      "seed": 8192,
+      "season": 2025,
+      "prod_max_streak": 41,
+      "pool_max_streak": 46,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 89,
+      "pool_play_days": 43
+    },
+    {
+      "seed": 2273360,
+      "season": 2021,
+      "prod_max_streak": 53,
+      "pool_max_streak": 51,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 153,
+      "pool_play_days": 146
+    },
+    {
+      "seed": 2273360,
+      "season": 2022,
+      "prod_max_streak": 53,
+      "pool_max_streak": 56,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 115,
+      "pool_play_days": 109
+    },
+    {
+      "seed": 2273360,
+      "season": 2023,
+      "prod_max_streak": 23,
+      "pool_max_streak": 30,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 154,
+      "pool_play_days": 137
+    },
+    {
+      "seed": 2273360,
+      "season": 2024,
+      "prod_max_streak": 35,
+      "pool_max_streak": 34,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 110,
+      "pool_play_days": 117
+    },
+    {
+      "seed": 2273360,
+      "season": 2025,
+      "prod_max_streak": 41,
+      "pool_max_streak": 46,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 104,
+      "pool_play_days": 43
+    },
+    {
+      "seed": 42,
+      "season": 2021,
+      "prod_max_streak": 55,
+      "pool_max_streak": 55,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 143,
+      "pool_play_days": 151
+    },
+    {
+      "seed": 42,
+      "season": 2022,
+      "prod_max_streak": 23,
+      "pool_max_streak": 24,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 143,
+      "pool_play_days": 141
+    },
+    {
+      "seed": 42,
+      "season": 2023,
+      "prod_max_streak": 24,
+      "pool_max_streak": 29,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 147,
+      "pool_play_days": 127
+    },
+    {
+      "seed": 42,
+      "season": 2024,
+      "prod_max_streak": 38,
+      "pool_max_streak": 35,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 92,
+      "pool_play_days": 111
+    },
+    {
+      "seed": 42,
+      "season": 2025,
+      "prod_max_streak": 32,
+      "pool_max_streak": 47,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 124,
+      "pool_play_days": 45
+    },
+    {
+      "seed": 65536,
+      "season": 2021,
+      "prod_max_streak": 35,
+      "pool_max_streak": 34,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 149,
+      "pool_play_days": 145
+    },
+    {
+      "seed": 65536,
+      "season": 2022,
+      "prod_max_streak": 57,
+      "pool_max_streak": 55,
+      "prod_reached_57": 1,
+      "pool_reached_57": 0,
+      "prod_play_days": 109,
+      "pool_play_days": 103
+    },
+    {
+      "seed": 65536,
+      "season": 2023,
+      "prod_max_streak": 31,
+      "pool_max_streak": 31,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 132,
+      "pool_play_days": 126
+    },
+    {
+      "seed": 65536,
+      "season": 2024,
+      "prod_max_streak": 38,
+      "pool_max_streak": 34,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 95,
+      "pool_play_days": 117
+    },
+    {
+      "seed": 65536,
+      "season": 2025,
+      "prod_max_streak": 41,
+      "pool_max_streak": 46,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 90,
+      "pool_play_days": 43
+    },
+    {
+      "seed": 6762547,
+      "season": 2021,
+      "prod_max_streak": 22,
+      "pool_max_streak": 33,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 142,
+      "pool_play_days": 129
+    },
+    {
+      "seed": 6762547,
+      "season": 2022,
+      "prod_max_streak": 26,
+      "pool_max_streak": 33,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 133,
+      "pool_play_days": 117
+    },
+    {
+      "seed": 6762547,
+      "season": 2023,
+      "prod_max_streak": 24,
+      "pool_max_streak": 32,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 142,
+      "pool_play_days": 106
+    },
+    {
+      "seed": 6762547,
+      "season": 2024,
+      "prod_max_streak": 38,
+      "pool_max_streak": 34,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 98,
+      "pool_play_days": 113
+    },
+    {
+      "seed": 6762547,
+      "season": 2025,
+      "prod_max_streak": 27,
+      "pool_max_streak": 34,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 134,
+      "pool_play_days": 128
+    },
+    {
+      "seed": 137,
+      "season": 2021,
+      "prod_max_streak": 33,
+      "pool_max_streak": 30,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 148,
+      "pool_play_days": 145
+    },
+    {
+      "seed": 137,
+      "season": 2022,
+      "prod_max_streak": 41,
+      "pool_max_streak": 42,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 121,
+      "pool_play_days": 112
+    },
+    {
+      "seed": 137,
+      "season": 2023,
+      "prod_max_streak": 23,
+      "pool_max_streak": 24,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 147,
+      "pool_play_days": 131
+    },
+    {
+      "seed": 137,
+      "season": 2024,
+      "prod_max_streak": 38,
+      "pool_max_streak": 34,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 98,
+      "pool_play_days": 116
+    },
+    {
+      "seed": 137,
+      "season": 2025,
+      "prod_max_streak": 40,
+      "pool_max_streak": 46,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 89,
+      "pool_play_days": 43
+    },
+    {
+      "seed": 3167584,
+      "season": 2021,
+      "prod_max_streak": 55,
+      "pool_max_streak": 53,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 150,
+      "pool_play_days": 136
+    },
+    {
+      "seed": 3167584,
+      "season": 2022,
+      "prod_max_streak": 40,
+      "pool_max_streak": 55,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 131,
+      "pool_play_days": 110
+    },
+    {
+      "seed": 3167584,
+      "season": 2023,
+      "prod_max_streak": 25,
+      "pool_max_streak": 30,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 142,
+      "pool_play_days": 123
+    },
+    {
+      "seed": 3167584,
+      "season": 2024,
+      "prod_max_streak": 38,
+      "pool_max_streak": 35,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 103,
+      "pool_play_days": 117
+    },
+    {
+      "seed": 3167584,
+      "season": 2025,
+      "prod_max_streak": 40,
+      "pool_max_streak": 46,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 91,
+      "pool_play_days": 43
+    },
+    {
+      "seed": 524288,
+      "season": 2021,
+      "prod_max_streak": 45,
+      "pool_max_streak": 44,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 140,
+      "pool_play_days": 141
+    },
+    {
+      "seed": 524288,
+      "season": 2022,
+      "prod_max_streak": 26,
+      "pool_max_streak": 27,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 136,
+      "pool_play_days": 136
+    },
+    {
+      "seed": 524288,
+      "season": 2023,
+      "prod_max_streak": 24,
+      "pool_max_streak": 33,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 142,
+      "pool_play_days": 109
+    },
+    {
+      "seed": 524288,
+      "season": 2024,
+      "prod_max_streak": 35,
+      "pool_max_streak": 32,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 117,
+      "pool_play_days": 124
+    },
+    {
+      "seed": 524288,
+      "season": 2025,
+      "prod_max_streak": 39,
+      "pool_max_streak": 47,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 99,
+      "pool_play_days": 45
+    },
+    {
+      "seed": 6992150,
+      "season": 2021,
+      "prod_max_streak": 39,
+      "pool_max_streak": 41,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 146,
+      "pool_play_days": 143
+    },
+    {
+      "seed": 6992150,
+      "season": 2022,
+      "prod_max_streak": 43,
+      "pool_max_streak": 56,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 111,
+      "pool_play_days": 101
+    },
+    {
+      "seed": 6992150,
+      "season": 2023,
+      "prod_max_streak": 24,
+      "pool_max_streak": 23,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 150,
+      "pool_play_days": 147
+    },
+    {
+      "seed": 6992150,
+      "season": 2024,
+      "prod_max_streak": 35,
+      "pool_max_streak": 34,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 108,
+      "pool_play_days": 115
+    },
+    {
+      "seed": 6992150,
+      "season": 2025,
+      "prod_max_streak": 39,
+      "pool_max_streak": 48,
+      "prod_reached_57": 0,
+      "pool_reached_57": 0,
+      "prod_play_days": 97,
+      "pool_play_days": 44
+    }
+  ],
+  "mc_results": [
+    {
+      "seed": 1,
+      "season": 2021,
+      "mc_prod_p57": 0.042,
+      "mc_pool_p57": 0.0365
+    },
+    {
+      "seed": 1,
+      "season": 2022,
+      "mc_prod_p57": 0.051,
+      "mc_pool_p57": 0.1565
+    },
+    {
+      "seed": 1,
+      "season": 2023,
+      "mc_prod_p57": 0.114,
+      "mc_pool_p57": 0.21
+    },
+    {
+      "seed": 1,
+      "season": 2024,
+      "mc_prod_p57": 0.0035,
+      "mc_pool_p57": 0.004
+    },
+    {
+      "seed": 1,
+      "season": 2025,
+      "mc_prod_p57": 0.014,
+      "mc_pool_p57": 0.031
+    },
+    {
+      "seed": 1024,
+      "season": 2021,
+      "mc_prod_p57": 0.0495,
+      "mc_pool_p57": 0.057
+    },
+    {
+      "seed": 1024,
+      "season": 2022,
+      "mc_prod_p57": 0.101,
+      "mc_pool_p57": 0.209
+    },
+    {
+      "seed": 1024,
+      "season": 2023,
+      "mc_prod_p57": 0.129,
+      "mc_pool_p57": 0.114
+    },
+    {
+      "seed": 1024,
+      "season": 2024,
+      "mc_prod_p57": 0.011,
+      "mc_pool_p57": 0.0065
+    },
+    {
+      "seed": 1024,
+      "season": 2025,
+      "mc_prod_p57": 0.011,
+      "mc_pool_p57": 0.0145
+    },
+    {
+      "seed": 3911096,
+      "season": 2021,
+      "mc_prod_p57": 0.031,
+      "mc_pool_p57": 0.0365
+    },
+    {
+      "seed": 3911096,
+      "season": 2022,
+      "mc_prod_p57": 0.0455,
+      "mc_pool_p57": 0.0735
+    },
+    {
+      "seed": 3911096,
+      "season": 2023,
+      "mc_prod_p57": 0.144,
+      "mc_pool_p57": 0.198
+    },
+    {
+      "seed": 3911096,
+      "season": 2024,
+      "mc_prod_p57": 0.001,
+      "mc_pool_p57": 0.0045
+    },
+    {
+      "seed": 3911096,
+      "season": 2025,
+      "mc_prod_p57": 0.015,
+      "mc_pool_p57": 0.0365
+    },
+    {
+      "seed": 999983,
+      "season": 2021,
+      "mc_prod_p57": 0.0395,
+      "mc_pool_p57": 0.0455
+    },
+    {
+      "seed": 999983,
+      "season": 2022,
+      "mc_prod_p57": 0.0615,
+      "mc_pool_p57": 0.143
+    },
+    {
+      "seed": 999983,
+      "season": 2023,
+      "mc_prod_p57": 0.088,
+      "mc_pool_p57": 0.1505
+    },
+    {
+      "seed": 999983,
+      "season": 2024,
+      "mc_prod_p57": 0.0085,
+      "mc_pool_p57": 0.0065
+    },
+    {
+      "seed": 999983,
+      "season": 2025,
+      "mc_prod_p57": 0.0205,
+      "mc_pool_p57": 0.041
+    },
+    {
+      "seed": 2041769,
+      "season": 2021,
+      "mc_prod_p57": 0.0435,
+      "mc_pool_p57": 0.0235
+    },
+    {
+      "seed": 2041769,
+      "season": 2022,
+      "mc_prod_p57": 0.079,
+      "mc_pool_p57": 0.124
+    },
+    {
+      "seed": 2041769,
+      "season": 2023,
+      "mc_prod_p57": 0.165,
+      "mc_pool_p57": 0.282
+    },
+    {
+      "seed": 2041769,
+      "season": 2024,
+      "mc_prod_p57": 0.007,
+      "mc_pool_p57": 0.0065
+    },
+    {
+      "seed": 2041769,
+      "season": 2025,
+      "mc_prod_p57": 0.0225,
+      "mc_pool_p57": 0.0345
+    },
+    {
+      "seed": 6426836,
+      "season": 2021,
+      "mc_prod_p57": 0.105,
+      "mc_pool_p57": 0.0675
+    },
+    {
+      "seed": 6426836,
+      "season": 2022,
+      "mc_prod_p57": 0.064,
+      "mc_pool_p57": 0.1185
+    },
+    {
+      "seed": 6426836,
+      "season": 2023,
+      "mc_prod_p57": 0.14,
+      "mc_pool_p57": 0.374
+    },
+    {
+      "seed": 6426836,
+      "season": 2024,
+      "mc_prod_p57": 0.0115,
+      "mc_pool_p57": 0.007
+    },
+    {
+      "seed": 6426836,
+      "season": 2025,
+      "mc_prod_p57": 0.017,
+      "mc_pool_p57": 0.0415
+    },
+    {
+      "seed": 7,
+      "season": 2021,
+      "mc_prod_p57": 0.018,
+      "mc_pool_p57": 0.016
+    },
+    {
+      "seed": 7,
+      "season": 2022,
+      "mc_prod_p57": 0.0695,
+      "mc_pool_p57": 0.124
+    },
+    {
+      "seed": 7,
+      "season": 2023,
+      "mc_prod_p57": 0.144,
+      "mc_pool_p57": 0.1575
+    },
+    {
+      "seed": 7,
+      "season": 2024,
+      "mc_prod_p57": 0.0035,
+      "mc_pool_p57": 0.006
+    },
+    {
+      "seed": 7,
+      "season": 2025,
+      "mc_prod_p57": 0.0165,
+      "mc_pool_p57": 0.0195
+    },
+    {
+      "seed": 8192,
+      "season": 2021,
+      "mc_prod_p57": 0.0295,
+      "mc_pool_p57": 0.0455
+    },
+    {
+      "seed": 8192,
+      "season": 2022,
+      "mc_prod_p57": 0.0865,
+      "mc_pool_p57": 0.1505
+    },
+    {
+      "seed": 8192,
+      "season": 2023,
+      "mc_prod_p57": 0.127,
+      "mc_pool_p57": 0.117
+    },
+    {
+      "seed": 8192,
+      "season": 2024,
+      "mc_prod_p57": 0.006,
+      "mc_pool_p57": 0.004
+    },
+    {
+      "seed": 8192,
+      "season": 2025,
+      "mc_prod_p57": 0.0255,
+      "mc_pool_p57": 0.036
+    },
+    {
+      "seed": 2273360,
+      "season": 2021,
+      "mc_prod_p57": 0.046,
+      "mc_pool_p57": 0.0365
+    },
+    {
+      "seed": 2273360,
+      "season": 2022,
+      "mc_prod_p57": 0.1005,
+      "mc_pool_p57": 0.1775
+    },
+    {
+      "seed": 2273360,
+      "season": 2023,
+      "mc_prod_p57": 0.0905,
+      "mc_pool_p57": 0.097
+    },
+    {
+      "seed": 2273360,
+      "season": 2024,
+      "mc_prod_p57": 0.002,
+      "mc_pool_p57": 0.0025
+    },
+    {
+      "seed": 2273360,
+      "season": 2025,
+      "mc_prod_p57": 0.006,
+      "mc_pool_p57": 0.0115
+    },
+    {
+      "seed": 42,
+      "season": 2021,
+      "mc_prod_p57": 0.0685,
+      "mc_pool_p57": 0.0345
+    },
+    {
+      "seed": 42,
+      "season": 2022,
+      "mc_prod_p57": 0.1105,
+      "mc_pool_p57": 0.2565
+    },
+    {
+      "seed": 42,
+      "season": 2023,
+      "mc_prod_p57": 0.1005,
+      "mc_pool_p57": 0.1295
+    },
+    {
+      "seed": 42,
+      "season": 2024,
+      "mc_prod_p57": 0.0115,
+      "mc_pool_p57": 0.016
+    },
+    {
+      "seed": 42,
+      "season": 2025,
+      "mc_prod_p57": 0.01,
+      "mc_pool_p57": 0.027
+    },
+    {
+      "seed": 65536,
+      "season": 2021,
+      "mc_prod_p57": 0.026,
+      "mc_pool_p57": 0.0295
+    },
+    {
+      "seed": 65536,
+      "season": 2022,
+      "mc_prod_p57": 0.117,
+      "mc_pool_p57": 0.2395
+    },
+    {
+      "seed": 65536,
+      "season": 2023,
+      "mc_prod_p57": 0.1105,
+      "mc_pool_p57": 0.0695
+    },
+    {
+      "seed": 65536,
+      "season": 2024,
+      "mc_prod_p57": 0.005,
+      "mc_pool_p57": 0.003
+    },
+    {
+      "seed": 65536,
+      "season": 2025,
+      "mc_prod_p57": 0.024,
+      "mc_pool_p57": 0.042
+    },
+    {
+      "seed": 6762547,
+      "season": 2021,
+      "mc_prod_p57": 0.0495,
+      "mc_pool_p57": 0.0715
+    },
+    {
+      "seed": 6762547,
+      "season": 2022,
+      "mc_prod_p57": 0.044,
+      "mc_pool_p57": 0.06
+    },
+    {
+      "seed": 6762547,
+      "season": 2023,
+      "mc_prod_p57": 0.165,
+      "mc_pool_p57": 0.1905
+    },
+    {
+      "seed": 6762547,
+      "season": 2024,
+      "mc_prod_p57": 0.004,
+      "mc_pool_p57": 0.004
+    },
+    {
+      "seed": 6762547,
+      "season": 2025,
+      "mc_prod_p57": 0.009,
+      "mc_pool_p57": 0.014
+    },
+    {
+      "seed": 137,
+      "season": 2021,
+      "mc_prod_p57": 0.089,
+      "mc_pool_p57": 0.08
+    },
+    {
+      "seed": 137,
+      "season": 2022,
+      "mc_prod_p57": 0.062,
+      "mc_pool_p57": 0.156
+    },
+    {
+      "seed": 137,
+      "season": 2023,
+      "mc_prod_p57": 0.082,
+      "mc_pool_p57": 0.103
+    },
+    {
+      "seed": 137,
+      "season": 2024,
+      "mc_prod_p57": 0.005,
+      "mc_pool_p57": 0.009
+    },
+    {
+      "seed": 137,
+      "season": 2025,
+      "mc_prod_p57": 0.0115,
+      "mc_pool_p57": 0.0265
+    },
+    {
+      "seed": 3167584,
+      "season": 2021,
+      "mc_prod_p57": 0.066,
+      "mc_pool_p57": 0.0365
+    },
+    {
+      "seed": 3167584,
+      "season": 2022,
+      "mc_prod_p57": 0.0905,
+      "mc_pool_p57": 0.1495
+    },
+    {
+      "seed": 3167584,
+      "season": 2023,
+      "mc_prod_p57": 0.1085,
+      "mc_pool_p57": 0.141
+    },
+    {
+      "seed": 3167584,
+      "season": 2024,
+      "mc_prod_p57": 0.008,
+      "mc_pool_p57": 0.005
+    },
+    {
+      "seed": 3167584,
+      "season": 2025,
+      "mc_prod_p57": 0.014,
+      "mc_pool_p57": 0.036
+    },
+    {
+      "seed": 524288,
+      "season": 2021,
+      "mc_prod_p57": 0.031,
+      "mc_pool_p57": 0.0315
+    },
+    {
+      "seed": 524288,
+      "season": 2022,
+      "mc_prod_p57": 0.0655,
+      "mc_pool_p57": 0.1355
+    },
+    {
+      "seed": 524288,
+      "season": 2023,
+      "mc_prod_p57": 0.128,
+      "mc_pool_p57": 0.158
+    },
+    {
+      "seed": 524288,
+      "season": 2024,
+      "mc_prod_p57": 0.0045,
+      "mc_pool_p57": 0.004
+    },
+    {
+      "seed": 524288,
+      "season": 2025,
+      "mc_prod_p57": 0.0335,
+      "mc_pool_p57": 0.0785
+    },
+    {
+      "seed": 6992150,
+      "season": 2021,
+      "mc_prod_p57": 0.054,
+      "mc_pool_p57": 0.062
+    },
+    {
+      "seed": 6992150,
+      "season": 2022,
+      "mc_prod_p57": 0.0535,
+      "mc_pool_p57": 0.0805
+    },
+    {
+      "seed": 6992150,
+      "season": 2023,
+      "mc_prod_p57": 0.0855,
+      "mc_pool_p57": 0.1735
+    },
+    {
+      "seed": 6992150,
+      "season": 2024,
+      "mc_prod_p57": 0.0035,
+      "mc_pool_p57": 0.004
+    },
+    {
+      "seed": 6992150,
+      "season": 2025,
+      "mc_prod_p57": 0.0175,
+      "mc_pool_p57": 0.0305
+    }
+  ],
+  "replay_summary": {
+    "n_trajectories": 80,
+    "prod_mean_max_streak": 36.6,
+    "pool_mean_max_streak": 38.9125,
+    "mean_max_streak_gap": 2.3125,
+    "prod_reached_57": 1,
+    "pool_reached_57": 0,
+    "pool_wins": 46,
+    "ties": 3
+  },
+  "mc_summary": {
+    "mean_prod_p57": 0.053425,
+    "mean_pool_p57": 0.07927500000000001,
+    "mean_gap": 0.02585,
+    "std_gap": 0.04476898508249272,
+    "pool_wins": 60,
+    "n_seed_seasons": 80
+  }
+}

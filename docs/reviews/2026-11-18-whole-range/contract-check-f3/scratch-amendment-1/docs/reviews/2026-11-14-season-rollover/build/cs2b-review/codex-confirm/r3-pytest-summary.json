@@ -1,0 +1,10 @@
+{
+  "outcomes": {
+    "current": 0,
+    "old": 1
+  },
+  "race_resolver_entries": 2,
+  "race_scoring_updates": 1,
+  "polling_observed_peer_streak": 3,
+  "assertions_unchanged": true
+}

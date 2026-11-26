@@ -1,0 +1,61 @@
+Using CPython 3.12.13
+Creating virtual environment at: .venv
+Resolving despite existing lockfile due to removal of global exclude newer
+Resolved 55 packages in 423ms
+   Building bts @ file:///Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I023-1
+      Built bts @ file:///Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I023-1
+Prepared 1 package in 2.14s
+Installed 53 packages in 387ms
+ + annotated-types==0.7.0
+ + anyio==4.13.0
+ + atproto==0.0.65
+ + boto3==1.42.84
+ + botocore==1.42.84
+ + bts==0.1.0 (from file:///Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I023-1)
+ + certifi==2026.2.25
+ + cffi==2.0.0
+ + charset-normalizer==3.4.7
+ + click==8.3.1
+ + cryptography==46.0.6
+ + dnspython==2.8.0
+ + h11==0.16.0
+ + httpcore==1.0.9
+ + httpx==0.28.1
+ + idna==3.11
+ + iniconfig==2.3.0
+ + jinja2==3.1.6
+ + jmespath==1.1.0
+ + joblib==1.5.3
+ + libipld==3.3.2
+ + lightgbm==4.6.0
+ + markdown-it-py==4.0.0
+ + markupsafe==3.0.3
+ + mdurl==0.1.2
+ + moto==5.1.22
+ + numpy==2.4.3
+ + packaging==26.0
+ + pandas==3.0.1
+ + pluggy==1.6.0
+ + py-partiql-parser==0.6.3
+ + pyarrow==23.0.1
+ + pycparser==3.0
+ + pydantic==2.12.5
+ + pydantic-core==2.41.5
+ + pygments==2.19.2
+ + pytest==9.0.2
+ + python-dateutil==2.9.0.post0
+ + pyyaml==6.0.3
+ + requests==2.33.1
+ + responses==0.26.0
+ + rich==14.3.3
+ + s3transfer==0.16.0
+ + scikit-learn==1.8.0
+ + scipy==1.17.1
+ + six==1.17.0
+ + threadpoolctl==3.6.0
+ + typing-extensions==4.15.0
+ + typing-inspection==0.4.2
+ + urllib3==2.6.3
+ + websockets==15.0.1
+ + werkzeug==3.1.8
+ + xmltodict==1.0.4

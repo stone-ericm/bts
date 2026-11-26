@@ -1,0 +1,141 @@
+{
+ "id": "I-202",
+ "working_id": "L02",
+ "title": "Same-day replay rollback: a late reconcile drops today's already-applied hit and restores a saver today's miss consumed",
+ "disposition": "deployed_latent_defect",
+ "counted": true,
+ "classes": {
+  "primary": "G",
+  "secondary": []
+ },
+ "tier": "A",
+ "tier_reason": "local streak/saver state rolls back; callers that fall back to the model streak (no contest observation) can pass the wrong streak to selection",
+ "residual_reaches_production": true,
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "With consistent local history and no admissible outcome or slot changes, reconciliation preserves every terminal result already applied through the locked replay instant, including today's streak increment and saver consumption; it excludes unplayed previews and future dates.",
+  "source": "design \u00a710.2 (r1 #7 invariant, verbatim); docs/audit/2026-09-28-reconcile-cutoff-codex-r1.md #3"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "reconcile_results replays streak state from history but excludes today's file, so a 23:00 run after today's terminal hit saves the pre-today streak and can restore saver_available=True after today's saver-consuming miss",
+   "code": [
+    {
+     "path": "src/bts/picks.py",
+     "ref": "4490aee",
+     "symbol": "reconcile_results / _replay_season_streak",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": "unfixed",
+   "deployed": "not_applicable",
+   "mitigated": "none",
+   "verified_recovered": "not_applicable"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [
+   {
+    "nodes": [
+     "tests/test_incident_register_2026.py::test_l02_same_day_hit_survives_two_late_reconciles",
+     "tests/test_incident_register_2026.py::test_l02_same_day_saver_consumption_survives_two_late_reconciles"
+    ],
+    "exception": "tests.test_incident_register_2026.SameDayReplayRollback",
+    "controls": [
+     "tests/test_incident_register_2026.py::test_l02_unplayed_undelivered_preview_is_excluded"
+    ],
+    "acceptance": "docs/audit/2026-09-29-incident-register-evidence/expected_failures_runs/acceptance-c5cf6bc.json"
+   }
+  ],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "Unfixed; contest-backed decisions do not use the local replay streak, but callers allowing model-state fallback (e.g. preview without a contest observation) can be affected.",
+   "reaches_production": true,
+   "source": "docs/audit/2026-09-28-reconcile-cutoff-codex-r3.md #1"
+  }
+ ],
+ "watchdog": {
+  "boundary": "grading",
+  "trigger": "after any reconcile run, the local streak/saver differs from the value implied by applying every terminal slot result through now (including today's)",
+  "recovery_assertion": "two consecutive late reconciles leave streak, saver and pick files unchanged"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-09-28-reconcile-cutoff-codex-r1.md finding 3 (+ r3 finding 1)",
+   "written_at": "2026-09-28",
+   "what": "a daytime or late-night reconcile rolls local streak state back before today's already-scored result; pre-existing in HEAD"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "tests/test_incident_register_2026.py L02 section + docs/audit/2026-09-29-incident-register-evidence/expected_failures_runs/acceptance-c5cf6bc.json",
+   "what": "two 23:00 reconciles leave (1, True) instead of (2, True) and (10, True) instead of (10, False) (strict XFAIL, 2/2 accepted); the undelivered-preview control passes"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy runs 28601525167 ... 35753849145 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "every install in the continuous logged chain 7/02 -> 9/22 (last: 4490aee) carries the unchanged grading/reconcile code; no fix exists"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "latent (no evidenced firing in Phase 1)",
+   "onset": "not_applicable",
+   "first_detectable": "not_applicable",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "at": "2026-09-28",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "not_applicable",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "not_applicable"
+   }
+  }
+ ],
+ "routes": {
+  "H": [],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-09-28-reconcile-cutoff-codex-r1.md",
+   "design \u00a710.2"
+  ]
+ },
+ "related": [
+  "I-201",
+  "I-089"
+ ],
+ "notes": [
+  "a firing would show as a local streak drop after a late reconcile; Route R can compare streak.json history with reconcile runs"
+ ]
+}

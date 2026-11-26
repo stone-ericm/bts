@@ -1,0 +1,305 @@
+{
+ "read": "P-03 context-stack shadow v2 closeout (plan W1.4b)",
+ "snapshot": "data/hetzner_results/season_2026_snapshot/final-20260928",
+ "snapshot_manifest_sha256": "e3dce02475d4f17dbb46619da44139732c8a42882cf8d6336c72627c4f6af2f3",
+ "eligibility": {
+  "shadow_model": "context_stack_shadow_v2",
+  "rule": "v2 *.shadow.json files paired with <date>.json; evaluable = both results in {hit, miss}",
+  "min_days_for_review": 30
+ },
+ "coverage": {
+  "cycle_state": "ready_for_manual_review",
+  "first_shadow_date": "2026-07-08",
+  "latest_shadow_date": "2026-09-18",
+  "counts": {
+   "shadow_files": 60,
+   "paired_production_files": 60,
+   "resolved_shadow_results": 60,
+   "unresolved_shadow_results": 0,
+   "void_shadow_results": 0,
+   "void_production_results": 0,
+   "resolved_paired_days": 59,
+   "resolved_or_void_paired_days": 59,
+   "days_to_review_threshold": 0,
+   "primary_agreements": 43,
+   "pair_agreements": 30
+  },
+  "unresolved_shadow_dates": [],
+  "missing_production_dates": [],
+  "days_on_or_after_2026_09_14_private_production": 5
+ },
+ "recorded": {
+  "n_days": 60,
+  "n_evaluable_days": 59,
+  "n_unevaluable_days": 1,
+  "production_day_hit_rate": {
+   "hits": 32,
+   "total": 59,
+   "rate": 0.5423728813559322,
+   "wilson_95": [
+    0.41657836610103466,
+    0.6629869414814409
+   ]
+  },
+  "shadow_day_hit_rate": {
+   "hits": 32,
+   "total": 59,
+   "rate": 0.5423728813559322,
+   "wilson_95": [
+    0.41657836610103466,
+    0.6629869414814409
+   ]
+  },
+  "shadow_minus_production_hit_rate": {
+   "value": 0.0,
+   "paired_bootstrap_95": [
+    -0.10169491525423724,
+    0.10169491525423724
+   ],
+   "n_bootstrap": 10000,
+   "seed": 57
+  },
+  "paired_outcomes": {
+   "both_hit": 28,
+   "both_miss": 23,
+   "production_only_hit": 4,
+   "shadow_only_hit": 4,
+   "sign_test_p_two_sided": 1.0
+  },
+  "outcome_counts": {
+   "production": {
+    "hit": 32,
+    "miss": 27,
+    "void": 0,
+    "unresolved": 1
+   },
+   "shadow": {
+    "hit": 33,
+    "miss": 27,
+    "void": 0,
+    "unresolved": 0
+   }
+  },
+  "decision_agreement": {
+   "primary": {
+    "count": 43,
+    "total": 60,
+    "rate": 0.7166666666666667
+   },
+   "pair_unordered": {
+    "count": 30,
+    "total": 60,
+    "rate": 0.5
+   }
+  },
+  "production_recorded_mismatches": [],
+  "sample_size_warning": "Live shadow sample is small; treat this as an operational diagnostic, not promotion-grade evidence."
+ },
+ "discordant_days": [
+  {
+   "date": "2026-07-08",
+   "production_result": "hit",
+   "shadow_result": "miss",
+   "production_primary": {
+    "batter": "Michael Harris II",
+    "team": "ATL",
+    "p_game_hit": 0.7461287523737553
+   },
+   "shadow_primary": {
+    "batter": "Yordan Alvarez",
+    "team": "HOU",
+    "p_game_hit": 0.762119728284265
+   },
+   "primary_agree": false
+  },
+  {
+   "date": "2026-07-09",
+   "production_result": "miss",
+   "shadow_result": "hit",
+   "production_primary": {
+    "batter": "Luis Arraez",
+    "team": "SF",
+    "p_game_hit": 0.7828965690646005
+   },
+   "shadow_primary": {
+    "batter": "Luis Arraez",
+    "team": "SF",
+    "p_game_hit": 0.7780585312010667
+   },
+   "primary_agree": true
+  },
+  {
+   "date": "2026-07-11",
+   "production_result": "miss",
+   "shadow_result": "hit",
+   "production_primary": {
+    "batter": "Luis Arraez",
+    "team": "SF",
+    "p_game_hit": 0.7669706010106284
+   },
+   "shadow_primary": {
+    "batter": "Luis Arraez",
+    "team": "SF",
+    "p_game_hit": 0.7791833798598574
+   },
+   "primary_agree": true
+  },
+  {
+   "date": "2026-07-24",
+   "production_result": "hit",
+   "shadow_result": "miss",
+   "production_primary": {
+    "batter": "Luis Arraez",
+    "team": "SF",
+    "p_game_hit": 0.7828064819713964
+   },
+   "shadow_primary": {
+    "batter": "Ketel Marte",
+    "team": "AZ",
+    "p_game_hit": 0.7787912907393176
+   },
+   "primary_agree": false
+  },
+  {
+   "date": "2026-08-08",
+   "production_result": "hit",
+   "shadow_result": "miss",
+   "production_primary": {
+    "batter": "Luis Arraez",
+    "team": "PHI",
+    "p_game_hit": 0.7792357688884124
+   },
+   "shadow_primary": {
+    "batter": "Luis Arraez",
+    "team": "PHI",
+    "p_game_hit": 0.7848359625338385
+   },
+   "primary_agree": true
+  },
+  {
+   "date": "2026-08-16",
+   "production_result": "miss",
+   "shadow_result": "hit",
+   "production_primary": {
+    "batter": "Luis Arraez",
+    "team": "PHI",
+    "p_game_hit": 0.7690780622601584
+   },
+   "shadow_primary": {
+    "batter": "Luis Arraez",
+    "team": "PHI",
+    "p_game_hit": 0.7602405905719691
+   },
+   "primary_agree": true
+  },
+  {
+   "date": "2026-08-19",
+   "production_result": "hit",
+   "shadow_result": "miss",
+   "production_primary": {
+    "batter": "Andy Pages",
+    "team": "LAD",
+    "p_game_hit": 0.8098633682699182
+   },
+   "shadow_primary": {
+    "batter": "Chandler Simpson",
+    "team": "TB",
+    "p_game_hit": 0.829097373859589
+   },
+   "primary_agree": false
+  },
+  {
+   "date": "2026-08-20",
+   "production_result": "miss",
+   "shadow_result": "hit",
+   "production_primary": {
+    "batter": "Chandler Simpson",
+    "team": "TB",
+    "p_game_hit": 0.7864247253320361
+   },
+   "shadow_primary": {
+    "batter": "Chandler Simpson",
+    "team": "TB",
+    "p_game_hit": 0.7940277460006354
+   },
+   "primary_agree": true
+  }
+ ],
+ "recompute_crosscheck": {
+  "raw_dir": "data/raw",
+  "counts": {
+   "shadow_files": 60,
+   "resolved": 60,
+   "unresolved": 0,
+   "errors": 0,
+   "void": 0,
+   "would_change": 0,
+   "apply_eligible": 60,
+   "change_class": {
+    "new": 0,
+    "unchanged": 60,
+    "changed": 0,
+    "skipped": 0,
+    "error": 0
+   }
+  },
+  "api_calls": 0,
+  "shadow_recorded_vs_recomputed_changes": [],
+  "production_recorded_vs_recomputed_mismatches": [
+   {
+    "date": "2026-08-20",
+    "recorded_result": "miss",
+    "evaluated_result": "hit"
+   }
+  ],
+  "quality_if_recomputed": {
+   "n_evaluable_days": 60,
+   "production_day_hit_rate": {
+    "hits": 34,
+    "total": 60,
+    "rate": 0.5666666666666667,
+    "wilson_95": [
+     0.44103438776125564,
+     0.6842760319531324
+    ]
+   },
+   "shadow_day_hit_rate": {
+    "hits": 33,
+    "total": 60,
+    "rate": 0.55,
+    "wilson_95": [
+     0.4249193588533434,
+     0.6690634559324476
+    ]
+   },
+   "shadow_minus_production_hit_rate": {
+    "value": -0.016666666666666607,
+    "paired_bootstrap_95": [
+     -0.10000000000000003,
+     0.06666666666666665
+    ],
+    "n_bootstrap": 10000,
+    "seed": 57
+   },
+   "paired_outcomes": {
+    "both_hit": 30,
+    "both_miss": 23,
+    "production_only_hit": 4,
+    "shadow_only_hit": 3,
+    "sign_test_p_two_sided": 1.0
+   },
+   "decision_agreement": {
+    "primary": {
+     "count": 43,
+     "total": 60,
+     "rate": 0.7166666666666667
+    },
+    "pair_unordered": {
+     "count": 30,
+     "total": 60,
+     "rate": 0.5
+    }
+   }
+  }
+ }
+}

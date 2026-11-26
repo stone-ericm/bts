@@ -1,0 +1,141 @@
+diff --git a/src/bts/cli.py b/src/bts/cli.py
+index af9c5b3b..4c4639d3 100644
+--- a/src/bts/cli.py
++++ b/src/bts/cli.py
+@@ -1526,8 +1526,11 @@ def set_contest_streak(
+         if best_streak < streak:
+             raise click.BadParameter("best streak must be at least the active streak",
+                                      param_hint="--best-streak")
+-        if best_streak > 57:
+-            raise click.BadParameter("best streak must be at most 57", param_hint="--best-streak")
++        from bts.contest_state import MAX_SEASON_STREAK
++
++        if best_streak > MAX_SEASON_STREAK:
++            raise click.BadParameter(f"best streak must be at most {MAX_SEASON_STREAK}",
++                                     param_hint="--best-streak")
+         _write_dated_contest_observation(
+             picks_dir, effective_date=observed_date, streak=streak, best_streak=best_streak,
+             saver=saver, reason=reason, now=now)
+diff --git a/src/bts/contest_fetch.py b/src/bts/contest_fetch.py
+index f3040661..578bbc95 100644
+--- a/src/bts/contest_fetch.py
++++ b/src/bts/contest_fetch.py
+@@ -5,6 +5,7 @@ from typing import Any
+ 
+ import httpx
+ 
++from bts.contest_state import MAX_SEASON_STREAK
+ from bts.leaderboard.endpoints import (
+     PREDICTIONS_URL_TEMPLATE,
+     USER_PROFILE_URL_TEMPLATE,
+@@ -194,8 +195,8 @@ def validate_fetch(success: dict) -> None:
+     best_streak = _require_streak_int(success, "seasonBestStreak")
+     if best_streak < active_streak:
+         raise ContestFetchError("seasonBestStreak must be >= activeStreak")
+-    if best_streak > 57:
+-        raise ContestFetchError("seasonBestStreak must be <= 57")
++    if best_streak > MAX_SEASON_STREAK:
++        raise ContestFetchError(f"seasonBestStreak must be <= {MAX_SEASON_STREAK}")
+ 
+ 
+ def _format_recorded_at(recorded_at: datetime) -> str:
+diff --git a/src/bts/contest_state.py b/src/bts/contest_state.py
+index aa444bed..0524dc64 100644
+--- a/src/bts/contest_state.py
++++ b/src/bts/contest_state.py
+@@ -88,6 +88,7 @@ class DecisionStreakState:
+ 
+ 
+ TARGET_STREAK = 57
++MAX_SEASON_STREAK = 400
+ AUTOMATIC_READING_STALE_HOURS = 14
+ _AUTOMATIC_READING_SCHEMA = "bts_pick_automatic_reading_v1"
+ _AUTOMATIC_READING_KEYS = ("schema", "recorded_at", "age_hours", "stale", "reason")
+@@ -235,11 +236,11 @@ def _validate_dated_observation(data: object, path: Path, *, historical: bool) -
+     if expires_at != end_of_day:
+         invalid(4, "expires_at", "must equal the last microsecond of effective_date in America/New_York")
+     active = data.get("active_streak")
+-    if type(active) is not int or not 0 <= active <= TARGET_STREAK:
+-        invalid(5, "active_streak", "must be an integer from 0 to 57")
++    if type(active) is not int or not 0 <= active <= MAX_SEASON_STREAK:
++        invalid(5, "active_streak", f"must be an integer from 0 to {MAX_SEASON_STREAK}")
+     best = data.get("best_streak")
+-    if type(best) is not int or not active <= best <= TARGET_STREAK:
+-        invalid(6, "best_streak", "must be an integer from active_streak to 57")
++    if type(best) is not int or not active <= best <= MAX_SEASON_STREAK:
++        invalid(6, "best_streak", f"must be an integer from active_streak to {MAX_SEASON_STREAK}")
+     saver = data.get("saver_state")
+     if not isinstance(saver, str) or saver not in {"not_earned", "active", "used"}:
+         invalid(7, "saver_state", "must be not_earned, active or used")
+@@ -260,22 +261,17 @@ def classify_best_streak(contest: "ContestStreakState | None", *, now: datetime,
+                          now_year: int) -> tuple[int | None, str]:
+     """(best_streak as supplied, trust status) for the selected observation.
+ 
+-    Trusted iff: an integer; ``streak <= best <= 57`` (the auto fetch enforces
+-    best >= active, a hand-written manual file may not; >57 is impossible without
+-    having won, so it is a typo); the observation carries a source_date in the
+-    CURRENT season and not in the future (ET); and its CONTENTS prove provenance —
+-    the auto schema + the profile source, a dated manual observation in effect,
+-    or a legacy manual schema whose override is unexpired (an explicit operator
+-    statement). Provenance is never inferred from
+-    the filename (Codex r3: copied/symlinked files are trust-elevating boundaries
+-    otherwise). (Codex r2 P0: ``max(streak, best)`` is an algebraic clamp, not a
+-    trust boundary — an inflated best would otherwise stop the account for the
+-    rest of the season.)
++    A parsed best is trusted when it is nonnegative and within
++    ``streak <= best <= MAX_SEASON_STREAK`` (400), with current provenance
++    established by the observation's contents. An in-effect dated observation
++    qualifies. Other observations require a source date in the current season
++    through today ET and either the automatic schema and profile source or a
++    legacy manual schema with an unexpired override.
+     """
+     if contest is None or contest.best_streak is None:
+         return None, "missing"
+     best = int(contest.best_streak)
+-    if best < 0 or best < contest.streak or best > TARGET_STREAK:
++    if best < 0 or best < contest.streak or best > MAX_SEASON_STREAK:
+         return best, "untrusted"
+     if dated_observation_in_effect(contest, now):
+         return best, "trusted"
+@@ -356,8 +352,8 @@ def _read_state_file(path: Path, *, require_dated: bool, historical: bool) -> Co
+         best = None
+ 
+     if path.name == "contest_streak.json" and (
+-        streak > TARGET_STREAK
+-        or (best is not None and (best < streak or best > TARGET_STREAK))
++        streak > MAX_SEASON_STREAK
++        or (best is not None and (best < streak or best > MAX_SEASON_STREAK))
+     ):
+         if historical:
+             raise _HistoricalContestStateError("The automatic contest streak file has an invalid streak or best streak.")
+diff --git a/src/bts/picks.py b/src/bts/picks.py
+index 1832d3f1..de806e82 100644
+--- a/src/bts/picks.py
++++ b/src/bts/picks.py
+@@ -20,7 +20,7 @@ _ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+ 
+ from bts.util import atomic_write_text, retry_urlopen
+ from bts.data.schema import HIT_EVENTS, PA_ENDING_EVENTS  # pandas-free constants
+-from bts.contest_state import DecisionStreakState, TARGET_STREAK, valid_automatic_reading
++from bts.contest_state import DecisionStreakState, MAX_SEASON_STREAK, valid_automatic_reading
+ from bts.saver_state import SaverState, policy_saver_available
+ 
+ API_BASE = "https://statsapi.mlb.com"
+@@ -269,7 +269,7 @@ def _valid_chosen_on(value: object) -> dict | None:
+         or type(value["saver_available"]) is not bool
+     ):
+         return None
+-    if kind in {"dated", "automatic"} and streak > TARGET_STREAK:
++    if kind in {"dated", "automatic"} and streak > MAX_SEASON_STREAK:
+         return None
+     dated = value["dated"]
+     if kind != "dated":
+@@ -282,7 +282,7 @@ def _valid_chosen_on(value: object) -> dict | None:
+     if (
+         type(effective) is not str
+         or type(active) is not int or type(best) is not int
+-        or active != streak or not 0 <= active <= best <= TARGET_STREAK
++        or active != streak or not 0 <= active <= best <= MAX_SEASON_STREAK
+         or type(saver) is not str or saver not in {"not_earned", "active", "used"}
+     ):
+         return None

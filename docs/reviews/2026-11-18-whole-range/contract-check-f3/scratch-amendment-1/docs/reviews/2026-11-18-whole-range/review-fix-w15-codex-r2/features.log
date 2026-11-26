@@ -1,0 +1,10 @@
+Composer imports checked in every child.
+fd /Users/eric/projects/bts-work/wr-review-w15/.codex-review/wr-w15/base/src rc 0 result {'value': 0.5, 'before': 4, 'after': 4} diagnostic ''
+fd /Users/eric/projects/bts-work/wr-review-w15/.codex-review/wr-w15/r2/r1/src rc 0 result {'value': None, 'before': 4, 'after': 'Too many open files'} diagnostic ''
+fd /Users/eric/projects/bts-work/wr-review-w15/src rc 0 result {'value': 0.5, 'before': 4, 'after': 4} diagnostic ''
+pipe /Users/eric/projects/bts-work/wr-review-w15/.codex-review/wr-w15/r2/r1/src rc 120 result {'value': 0.5, 'before': 4, 'after': 4} diagnostic None
+pipe /Users/eric/projects/bts-work/wr-review-w15/src rc 0 result {'value': 0.5, 'before': 4, 'after': 4} diagnostic None
+missing-key /Users/eric/projects/bts-work/wr-review-w15/.codex-review/wr-w15/base/src rc 0 result {'value': 0.5, 'before': 4, 'after': 4} diagnostic ''
+missing-key /Users/eric/projects/bts-work/wr-review-w15/src rc 0 result {'value': None, 'before': 4, 'after': 4} diagnostic 'WARNING: probable-pitcher cache data/models/probable_pitcher_lookup.json: dropped 1 invalid entry (0 recovered from valid cache entries, 0 rescanned from raw feeds, 0 with unusable feeds, 1 without feeds); first game ids: 100\n'
+encoding /Users/eric/projects/bts-work/wr-review-w15/.codex-review/wr-w15/r2/r1/src rc 0 result {'value': None, 'before': 4, 'after': 4} diagnostic 'WARNING: unreadable probable-pitcher cache data/models/caf\\xe9.json (JSONDecodeError); rebuilding it from raw feeds\n'
+encoding /Users/eric/projects/bts-work/wr-review-w15/src rc 0 result {'value': None, 'before': 4, 'after': 4} diagnostic 'WARNING: unreadable probable-pitcher cache data/models/caf?.json (JSONDecodeError); rebuilding it from raw feeds\n'

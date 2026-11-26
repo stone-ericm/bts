@@ -1,0 +1,18 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-closing-blind
+configfile: pyproject.toml
+collected 72 items
+
+../../../tests/test_season_end_date.py ....                              [  5%]
+../../../tests/test_thin_slate_checks.py .......                         [ 15%]
+../../../tests/test_day_outcome.py ..................                    [ 40%]
+../../../tests/test_streak_applied_dates.py ..                           [ 43%]
+../../../tests/test_automatic_reading_cs4c.py .............              [ 61%]
+../../../tests/test_live_gate_cs6a.py ..                                 [ 63%]
+../../../tests/test_saved_pick_paths_cs5a.py ............                [ 80%]
+../../../tests/test_morning_state_cs6b1.py ............                  [ 97%]
+../../../tests/test_morning_state_cs6b1_review.py ..                     [100%]
+
+============================== 72 passed in 1.27s ==============================
+mutation-result baseline 0

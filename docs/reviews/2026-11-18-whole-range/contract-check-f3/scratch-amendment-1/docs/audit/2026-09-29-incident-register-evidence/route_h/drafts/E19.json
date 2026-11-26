@@ -1,0 +1,72 @@
+{
+ "id": "I-019",
+ "working_id": "E19",
+ "title": "4/11–4/12 every Hetzner cron job died on its first line: `source .env` under /bin/sh (dash)",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {"primary": "L", "secondary": ["G"]},
+ "tier": "A",
+ "tier_reason": "liveness failure of every cron job since the 4/11 cutover: the 1am grading, 2am reconcile, 3am data/preview chain and the 5-minute lineup collector did not run, and nothing alerted",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "reach57",
+ "stream": "cron_job",
+ "authority": "local",
+ "contract": {
+  "text": "Each installed cron job reaches the bts CLI and runs at its scheduled time (1am check-results, 2am reconcile, 3am data pull/build/preview, 5-minute lineup-time collector).",
+  "source": "scripts/cron-setup-hetzner.sh schedule header (d5c466c); d5c466c body"
+ },
+ "mechanism": [
+  {"n": 1, "text": "the hand-installed Hetzner crontab began each job with `source .env`; cron runs jobs under /bin/sh (dash on Debian), which has no source builtin, so every job exited with 'source: not found' before reaching the bts CLI",
+   "code": []}
+ ],
+ "fix": [
+  {"link": 1, "implemented": {"commits": ["d5c466c"], "complete_fix_set": false},
+   "deployed": {"basis": "candidate_ancestry", "sha": "d5c466c", "live_by": "2026-04-12T15:52:42Z", "run_id": 24310493193, "evidence": ["ev3"]},
+   "mitigated": {"action": "crontab reinstalled on the box from scripts/cron-setup-hetzner.sh (an operator step; deploys do not install crontabs)", "at": "unknown"},
+   "verified_recovered": "unknown"}
+ ],
+ "fixtures": {"historical_replay": [], "current_defence": [], "expected_failure": [], "characterization": []},
+ "residual": [
+  {"text": "the reinstalled 3am chain still failed: its `bts data pull` had no --start/--end (required since d991a79) until 28732c2 plus a reinstall on 4/14 (I-027)", "reaches_production": false, "source": "28732c2 body; d991a79"},
+  {"text": "deploys do not install crontab changes: a cron fix stays inert until `bash scripts/cron-setup-hetzner.sh install` is run on the box", "reaches_production": true, "source": "docs/superpowers/specs/2026-07-07-park-drag-delta-context-feature.md 'Post-deploy steps'"},
+  {"text": "no automated check covered the nightly chain until the blend_training health check (e74c485, 4/27: CRITICAL when tomorrow's blend pickle is missing at end of day)", "reaches_production": false, "source": "src/bts/health/blend_training.py docstring (e74c485)"}
+ ],
+ "watchdog": {
+  "boundary": "grading",
+  "trigger": "a scheduled cron job leaves no run marker in its log by its slot + grace (e.g. no check-results line by 01:30 ET, no 3am-chain completion by 04:30 ET), or logs a shell error before the bts CLI",
+  "recovery_assertion": "every installed job logs a completed run at its next scheduled time"
+ },
+ "evidence": [
+  {"id": "ev1", "kind": "contemporaneous_operator_report", "strength": "primary", "locator": "commit d5c466c message body", "written_at": "2026-04-12T11:46:14-04:00",
+   "what": "the manually installed crontab used `source .env`; cron's /bin/sh (dash) has no source builtin; every job died with 'source: not found'; result-checking, the 2am reconcile, the 3am preview generation and the 5-minute lineup collector were silently broken since the 4/11 cutover"},
+  {"id": "ev2", "kind": "inference", "strength": "primary", "locator": "scripts/cron-setup-hetzner.sh at d5c466c",
+   "what": "POSIX `. ./.env`, BTS-HETZNER markers, install/show/remove; documents the dash gotcha"},
+  {"id": "ev3", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 24310493193 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "head d5c466c, 2026-04-12T15:52:42Z, concluded success — the script reached the box; the crontab install itself is not a workflow step"},
+  {"id": "ev4", "kind": "inference", "strength": "primary", "locator": "commit 8193909 message body; src/bts/health/blend_training.py docstring (e74c485)",
+   "what": "the Hetzner setup ran at 01:08 on 4/11; the 3am cron on day N produces blend_<N+1>.pkl, and a missing pickle makes the next day's prediction fall back to a stale blend"}
+ ],
+ "occurrences": [{
+  "label": "2026-04-11 cutover → 2026-04-12",
+  "onset": {"not_before": "2026-04-11", "not_after": "2026-04-12T11:46:14-04:00", "evidence": ["ev1", "ev4"]},
+  "first_detectable": "unknown",
+  "first_machine_detection": "none",
+  "alert": {"attempted": "none", "confirmed": "none", "failed": "none"},
+  "operator_awareness": {"not_after": "2026-04-12T11:46:14-04:00", "evidence": ["ev1"]},
+  "operator_action": {"not_after": "2026-04-12T11:46:14-04:00", "evidence": ["ev1"]},
+  "mitigation": "unknown",
+  "restored_verification": "unknown",
+  "latencies": {"detection": "not_applicable", "notification": "not_applicable", "recovery": "unknown"}
+ }],
+ "routes": {"H": ["d5c466c", "715c932"], "R": "pending_phase2", "X": ["scripts/cron-setup-hetzner.sh header", "docs/superpowers/specs/2026-07-07-park-drag-delta-context-feature.md 'Post-deploy steps'"]},
+ "related": ["I-027", "I-018"],
+ "notes": [
+  "mechanism code is empty: the failing crontab was installed by hand on the box and never versioned",
+  "policy_objective reach57: the dead 3am chain produced no next-day blend or preview pick (ev4)",
+  "onset: the 5-minute collector would have failed from the crontab's install at cutover; the body gives no install time",
+  "the crontab reinstall time is not recorded (715c932 at 12:31 ET reworked the 3am chain the same day)",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; script-only fix, no test"
+ ]
+}

@@ -1,0 +1,799 @@
+UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run --offline pytest -q -p no:cacheprovider tests/scripts/c2_framing/test_f26_rules.py -k 'malformed_non_starting or bench_and_pitcher or well_formed_table or inconsistent_table or exact_positive or distinct_ids'
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-c2f26-code
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 92 items / 60 deselected / 32 selected
+
+tests/scripts/c2_framing/test_f26_rules.py FFFFF..FFFFFFFFFFFFFFFFFF.FFF [ 90%]
+FFF                                                                      [100%]
+
+=================================== FAILURES ===================================
+_ test_a_malformed_non_starting_record_makes_the_side_unidentified[sub0-malformed_player] _
+
+sub = {'allPositions': [], 'battingOrder': '201', 'person': {'id': '1999'}}
+reason = 'malformed_player'
+
+    @pytest.mark.parametrize("sub, reason", [
+        (_player("1999", "201", ()), "malformed_player"),           # a substitute with a string id
+        (_player(1999, "201", ()), "malformed_positions"),          # a substitute who batted, with no positions
+        (_player(1999, "201", None), "malformed_positions"),
+        ({"person": {"id": "x"}}, "malformed_player"),              # a bench record with a bad id
+        ({"person": {"id": 1999}, "allPositions": "1"}, "malformed_positions"),
+    ])
+    def test_a_malformed_non_starting_record_makes_the_side_unidentified(sub, reason):
+        away = _nine(100) + [sub]
+        recs = {r["fielding_side"]: r for r in F.starter_proxy(_feed(away, _nine(200)), 777, 2026)}
+>       assert recs["away"]["catcher_id"] is None and recs["away"]["reason"] == reason
+E       assert (102 is None)
+
+tests/scripts/c2_framing/test_f26_rules.py:386: AssertionError
+_ test_a_malformed_non_starting_record_makes_the_side_unidentified[sub1-malformed_positions] _
+
+sub = {'allPositions': [], 'battingOrder': '201', 'person': {'id': 1999}}
+reason = 'malformed_positions'
+
+    @pytest.mark.parametrize("sub, reason", [
+        (_player("1999", "201", ()), "malformed_player"),           # a substitute with a string id
+        (_player(1999, "201", ()), "malformed_positions"),          # a substitute who batted, with no positions
+        (_player(1999, "201", None), "malformed_positions"),
+        ({"person": {"id": "x"}}, "malformed_player"),              # a bench record with a bad id
+        ({"person": {"id": 1999}, "allPositions": "1"}, "malformed_positions"),
+    ])
+    def test_a_malformed_non_starting_record_makes_the_side_unidentified(sub, reason):
+        away = _nine(100) + [sub]
+        recs = {r["fielding_side"]: r for r in F.starter_proxy(_feed(away, _nine(200)), 777, 2026)}
+>       assert recs["away"]["catcher_id"] is None and recs["away"]["reason"] == reason
+E       assert (102 is None)
+
+tests/scripts/c2_framing/test_f26_rules.py:386: AssertionError
+_ test_a_malformed_non_starting_record_makes_the_side_unidentified[sub2-malformed_positions] _
+
+sub = {'battingOrder': '201', 'person': {'id': 1999}}
+reason = 'malformed_positions'
+
+    @pytest.mark.parametrize("sub, reason", [
+        (_player("1999", "201", ()), "malformed_player"),           # a substitute with a string id
+        (_player(1999, "201", ()), "malformed_positions"),          # a substitute who batted, with no positions
+        (_player(1999, "201", None), "malformed_positions"),
+        ({"person": {"id": "x"}}, "malformed_player"),              # a bench record with a bad id
+        ({"person": {"id": 1999}, "allPositions": "1"}, "malformed_positions"),
+    ])
+    def test_a_malformed_non_starting_record_makes_the_side_unidentified(sub, reason):
+        away = _nine(100) + [sub]
+        recs = {r["fielding_side"]: r for r in F.starter_proxy(_feed(away, _nine(200)), 777, 2026)}
+>       assert recs["away"]["catcher_id"] is None and recs["away"]["reason"] == reason
+E       assert (102 is None)
+
+tests/scripts/c2_framing/test_f26_rules.py:386: AssertionError
+_ test_a_malformed_non_starting_record_makes_the_side_unidentified[sub3-malformed_player] _
+
+sub = {'person': {'id': 'x'}}, reason = 'malformed_player'
+
+    @pytest.mark.parametrize("sub, reason", [
+        (_player("1999", "201", ()), "malformed_player"),           # a substitute with a string id
+        (_player(1999, "201", ()), "malformed_positions"),          # a substitute who batted, with no positions
+        (_player(1999, "201", None), "malformed_positions"),
+        ({"person": {"id": "x"}}, "malformed_player"),              # a bench record with a bad id
+        ({"person": {"id": 1999}, "allPositions": "1"}, "malformed_positions"),
+    ])
+    def test_a_malformed_non_starting_record_makes_the_side_unidentified(sub, reason):
+        away = _nine(100) + [sub]
+        recs = {r["fielding_side"]: r for r in F.starter_proxy(_feed(away, _nine(200)), 777, 2026)}
+>       assert recs["away"]["catcher_id"] is None and recs["away"]["reason"] == reason
+E       assert (102 is None)
+
+tests/scripts/c2_framing/test_f26_rules.py:386: AssertionError
+_ test_a_malformed_non_starting_record_makes_the_side_unidentified[sub4-malformed_positions] _
+
+sub = {'allPositions': '1', 'person': {'id': 1999}}
+reason = 'malformed_positions'
+
+    @pytest.mark.parametrize("sub, reason", [
+        (_player("1999", "201", ()), "malformed_player"),           # a substitute with a string id
+        (_player(1999, "201", ()), "malformed_positions"),          # a substitute who batted, with no positions
+        (_player(1999, "201", None), "malformed_positions"),
+        ({"person": {"id": "x"}}, "malformed_player"),              # a bench record with a bad id
+        ({"person": {"id": 1999}, "allPositions": "1"}, "malformed_positions"),
+    ])
+    def test_a_malformed_non_starting_record_makes_the_side_unidentified(sub, reason):
+        away = _nine(100) + [sub]
+        recs = {r["fielding_side"]: r for r in F.starter_proxy(_feed(away, _nine(200)), 777, 2026)}
+>       assert recs["away"]["catcher_id"] is None and recs["away"]["reason"] == reason
+E       assert (102 is None)
+
+tests/scripts/c2_framing/test_f26_rules.py:386: AssertionError
+__________ test_a_malformed_or_inconsistent_table_refuses[<lambda>0] ___________
+
+damage = <function <lambda> at 0x1106d1e40>
+
+    @pytest.mark.parametrize("damage", [
+        lambda t: t[0].pop("reason"),
+        lambda t: t[0].update(extra=1),
+        lambda t: t[0].update(game_pk=1.0),
+        lambda t: t[0].update(game_pk=True),
+        lambda t: t[0].update(season=2024),
+        lambda t: t[0].update(game_type="S"),
+        lambda t: t[0].update(official_date="2026-4-1"),
+        lambda t: t[0].update(official_date="2025-04-01"),
+        lambda t: t[0].update(game_number=0),
+        lambda t: t[0].update(game_number_fallback="no"),
+        lambda t: t[0].update(fielding_side="left"),
+        lambda t: t[0].update(team_id="7"),
+        lambda t: t[0].update(catcher_id=50.0),
+        lambda t: t[0].update(reason="no_candidate"),                    # a catcher with a non-identified reason
+        lambda t: t[1].update(reason="identified"),                      # identified without a catcher
+        lambda t: t[1].update(reason="made_up"),
+        lambda t: t[1].update(official_date="2026-04-02"),               # the two sides disagree on the game
+        lambda t: t.pop(),                                               # one side only
+        lambda t: t.append(dict(t[0])),                                  # a duplicate side
+    ])
+    def test_a_malformed_or_inconsistent_table_refuses(damage):
+        t = _good_table()
+        damage(t)
+>       with pytest.raises(F.InputRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.f26.InputRefused'>
+
+tests/scripts/c2_framing/test_f26_rules.py:429: Failed
+__________ test_a_malformed_or_inconsistent_table_refuses[<lambda>1] ___________
+
+damage = <function <lambda> at 0x1106d1ee0>
+
+    @pytest.mark.parametrize("damage", [
+        lambda t: t[0].pop("reason"),
+        lambda t: t[0].update(extra=1),
+        lambda t: t[0].update(game_pk=1.0),
+        lambda t: t[0].update(game_pk=True),
+        lambda t: t[0].update(season=2024),
+        lambda t: t[0].update(game_type="S"),
+        lambda t: t[0].update(official_date="2026-4-1"),
+        lambda t: t[0].update(official_date="2025-04-01"),
+        lambda t: t[0].update(game_number=0),
+        lambda t: t[0].update(game_number_fallback="no"),
+        lambda t: t[0].update(fielding_side="left"),
+        lambda t: t[0].update(team_id="7"),
+        lambda t: t[0].update(catcher_id=50.0),
+        lambda t: t[0].update(reason="no_candidate"),                    # a catcher with a non-identified reason
+        lambda t: t[1].update(reason="identified"),                      # identified without a catcher
+        lambda t: t[1].update(reason="made_up"),
+        lambda t: t[1].update(official_date="2026-04-02"),               # the two sides disagree on the game
+        lambda t: t.pop(),                                               # one side only
+        lambda t: t.append(dict(t[0])),                                  # a duplicate side
+    ])
+    def test_a_malformed_or_inconsistent_table_refuses(damage):
+        t = _good_table()
+        damage(t)
+>       with pytest.raises(F.InputRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.f26.InputRefused'>
+
+tests/scripts/c2_framing/test_f26_rules.py:429: Failed
+__________ test_a_malformed_or_inconsistent_table_refuses[<lambda>2] ___________
+
+damage = <function <lambda> at 0x1106d1f80>
+
+    @pytest.mark.parametrize("damage", [
+        lambda t: t[0].pop("reason"),
+        lambda t: t[0].update(extra=1),
+        lambda t: t[0].update(game_pk=1.0),
+        lambda t: t[0].update(game_pk=True),
+        lambda t: t[0].update(season=2024),
+        lambda t: t[0].update(game_type="S"),
+        lambda t: t[0].update(official_date="2026-4-1"),
+        lambda t: t[0].update(official_date="2025-04-01"),
+        lambda t: t[0].update(game_number=0),
+        lambda t: t[0].update(game_number_fallback="no"),
+        lambda t: t[0].update(fielding_side="left"),
+        lambda t: t[0].update(team_id="7"),
+        lambda t: t[0].update(catcher_id=50.0),
+        lambda t: t[0].update(reason="no_candidate"),                    # a catcher with a non-identified reason
+        lambda t: t[1].update(reason="identified"),                      # identified without a catcher
+        lambda t: t[1].update(reason="made_up"),
+        lambda t: t[1].update(official_date="2026-04-02"),               # the two sides disagree on the game
+        lambda t: t.pop(),                                               # one side only
+        lambda t: t.append(dict(t[0])),                                  # a duplicate side
+    ])
+    def test_a_malformed_or_inconsistent_table_refuses(damage):
+        t = _good_table()
+        damage(t)
+>       with pytest.raises(F.InputRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.f26.InputRefused'>
+
+tests/scripts/c2_framing/test_f26_rules.py:429: Failed
+__________ test_a_malformed_or_inconsistent_table_refuses[<lambda>3] ___________
+
+damage = <function <lambda> at 0x1106d2020>
+
+    @pytest.mark.parametrize("damage", [
+        lambda t: t[0].pop("reason"),
+        lambda t: t[0].update(extra=1),
+        lambda t: t[0].update(game_pk=1.0),
+        lambda t: t[0].update(game_pk=True),
+        lambda t: t[0].update(season=2024),
+        lambda t: t[0].update(game_type="S"),
+        lambda t: t[0].update(official_date="2026-4-1"),
+        lambda t: t[0].update(official_date="2025-04-01"),
+        lambda t: t[0].update(game_number=0),
+        lambda t: t[0].update(game_number_fallback="no"),
+        lambda t: t[0].update(fielding_side="left"),
+        lambda t: t[0].update(team_id="7"),
+        lambda t: t[0].update(catcher_id=50.0),
+        lambda t: t[0].update(reason="no_candidate"),                    # a catcher with a non-identified reason
+        lambda t: t[1].update(reason="identified"),                      # identified without a catcher
+        lambda t: t[1].update(reason="made_up"),
+        lambda t: t[1].update(official_date="2026-04-02"),               # the two sides disagree on the game
+        lambda t: t.pop(),                                               # one side only
+        lambda t: t.append(dict(t[0])),                                  # a duplicate side
+    ])
+    def test_a_malformed_or_inconsistent_table_refuses(damage):
+        t = _good_table()
+        damage(t)
+>       with pytest.raises(F.InputRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.f26.InputRefused'>
+
+tests/scripts/c2_framing/test_f26_rules.py:429: Failed
+__________ test_a_malformed_or_inconsistent_table_refuses[<lambda>4] ___________
+
+damage = <function <lambda> at 0x1106d20c0>
+
+    @pytest.mark.parametrize("damage", [
+        lambda t: t[0].pop("reason"),
+        lambda t: t[0].update(extra=1),
+        lambda t: t[0].update(game_pk=1.0),
+        lambda t: t[0].update(game_pk=True),
+        lambda t: t[0].update(season=2024),
+        lambda t: t[0].update(game_type="S"),
+        lambda t: t[0].update(official_date="2026-4-1"),
+        lambda t: t[0].update(official_date="2025-04-01"),
+        lambda t: t[0].update(game_number=0),
+        lambda t: t[0].update(game_number_fallback="no"),
+        lambda t: t[0].update(fielding_side="left"),
+        lambda t: t[0].update(team_id="7"),
+        lambda t: t[0].update(catcher_id=50.0),
+        lambda t: t[0].update(reason="no_candidate"),                    # a catcher with a non-identified reason
+        lambda t: t[1].update(reason="identified"),                      # identified without a catcher
+        lambda t: t[1].update(reason="made_up"),
+        lambda t: t[1].update(official_date="2026-04-02"),               # the two sides disagree on the game
+        lambda t: t.pop(),                                               # one side only
+        lambda t: t.append(dict(t[0])),                                  # a duplicate side
+    ])
+    def test_a_malformed_or_inconsistent_table_refuses(damage):
+        t = _good_table()
+        damage(t)
+>       with pytest.raises(F.InputRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.f26.InputRefused'>
+
+tests/scripts/c2_framing/test_f26_rules.py:429: Failed
+__________ test_a_malformed_or_inconsistent_table_refuses[<lambda>5] ___________
+
+damage = <function <lambda> at 0x1106d2160>
+
+    @pytest.mark.parametrize("damage", [
+        lambda t: t[0].pop("reason"),
+        lambda t: t[0].update(extra=1),
+        lambda t: t[0].update(game_pk=1.0),
+        lambda t: t[0].update(game_pk=True),
+        lambda t: t[0].update(season=2024),
+        lambda t: t[0].update(game_type="S"),
+        lambda t: t[0].update(official_date="2026-4-1"),
+        lambda t: t[0].update(official_date="2025-04-01"),
+        lambda t: t[0].update(game_number=0),
+        lambda t: t[0].update(game_number_fallback="no"),
+        lambda t: t[0].update(fielding_side="left"),
+        lambda t: t[0].update(team_id="7"),
+        lambda t: t[0].update(catcher_id=50.0),
+        lambda t: t[0].update(reason="no_candidate"),                    # a catcher with a non-identified reason
+        lambda t: t[1].update(reason="identified"),                      # identified without a catcher
+        lambda t: t[1].update(reason="made_up"),
+        lambda t: t[1].update(official_date="2026-04-02"),               # the two sides disagree on the game
+        lambda t: t.pop(),                                               # one side only
+        lambda t: t.append(dict(t[0])),                                  # a duplicate side
+    ])
+    def test_a_malformed_or_inconsistent_table_refuses(damage):
+        t = _good_table()
+        damage(t)
+>       with pytest.raises(F.InputRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.f26.InputRefused'>
+
+tests/scripts/c2_framing/test_f26_rules.py:429: Failed
+__________ test_a_malformed_or_inconsistent_table_refuses[<lambda>6] ___________
+
+damage = <function <lambda> at 0x1106d2200>
+
+    @pytest.mark.parametrize("damage", [
+        lambda t: t[0].pop("reason"),
+        lambda t: t[0].update(extra=1),
+        lambda t: t[0].update(game_pk=1.0),
+        lambda t: t[0].update(game_pk=True),
+        lambda t: t[0].update(season=2024),
+        lambda t: t[0].update(game_type="S"),
+        lambda t: t[0].update(official_date="2026-4-1"),
+        lambda t: t[0].update(official_date="2025-04-01"),
+        lambda t: t[0].update(game_number=0),
+        lambda t: t[0].update(game_number_fallback="no"),
+        lambda t: t[0].update(fielding_side="left"),
+        lambda t: t[0].update(team_id="7"),
+        lambda t: t[0].update(catcher_id=50.0),
+        lambda t: t[0].update(reason="no_candidate"),                    # a catcher with a non-identified reason
+        lambda t: t[1].update(reason="identified"),                      # identified without a catcher
+        lambda t: t[1].update(reason="made_up"),
+        lambda t: t[1].update(official_date="2026-04-02"),               # the two sides disagree on the game
+        lambda t: t.pop(),                                               # one side only
+        lambda t: t.append(dict(t[0])),                                  # a duplicate side
+    ])
+    def test_a_malformed_or_inconsistent_table_refuses(damage):
+        t = _good_table()
+        damage(t)
+>       with pytest.raises(F.InputRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.f26.InputRefused'>
+
+tests/scripts/c2_framing/test_f26_rules.py:429: Failed
+__________ test_a_malformed_or_inconsistent_table_refuses[<lambda>7] ___________
+
+damage = <function <lambda> at 0x1106d22a0>
+
+    @pytest.mark.parametrize("damage", [
+        lambda t: t[0].pop("reason"),
+        lambda t: t[0].update(extra=1),
+        lambda t: t[0].update(game_pk=1.0),
+        lambda t: t[0].update(game_pk=True),
+        lambda t: t[0].update(season=2024),
+        lambda t: t[0].update(game_type="S"),
+        lambda t: t[0].update(official_date="2026-4-1"),
+        lambda t: t[0].update(official_date="2025-04-01"),
+        lambda t: t[0].update(game_number=0),
+        lambda t: t[0].update(game_number_fallback="no"),
+        lambda t: t[0].update(fielding_side="left"),
+        lambda t: t[0].update(team_id="7"),
+        lambda t: t[0].update(catcher_id=50.0),
+        lambda t: t[0].update(reason="no_candidate"),                    # a catcher with a non-identified reason
+        lambda t: t[1].update(reason="identified"),                      # identified without a catcher
+        lambda t: t[1].update(reason="made_up"),
+        lambda t: t[1].update(official_date="2026-04-02"),               # the two sides disagree on the game
+        lambda t: t.pop(),                                               # one side only
+        lambda t: t.append(dict(t[0])),                                  # a duplicate side
+    ])
+    def test_a_malformed_or_inconsistent_table_refuses(damage):
+        t = _good_table()
+        damage(t)
+>       with pytest.raises(F.InputRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.f26.InputRefused'>
+
+tests/scripts/c2_framing/test_f26_rules.py:429: Failed
+__________ test_a_malformed_or_inconsistent_table_refuses[<lambda>8] ___________
+
+damage = <function <lambda> at 0x1106d2340>
+
+    @pytest.mark.parametrize("damage", [
+        lambda t: t[0].pop("reason"),
+        lambda t: t[0].update(extra=1),
+        lambda t: t[0].update(game_pk=1.0),
+        lambda t: t[0].update(game_pk=True),
+        lambda t: t[0].update(season=2024),
+        lambda t: t[0].update(game_type="S"),
+        lambda t: t[0].update(official_date="2026-4-1"),
+        lambda t: t[0].update(official_date="2025-04-01"),
+        lambda t: t[0].update(game_number=0),
+        lambda t: t[0].update(game_number_fallback="no"),
+        lambda t: t[0].update(fielding_side="left"),
+        lambda t: t[0].update(team_id="7"),
+        lambda t: t[0].update(catcher_id=50.0),
+        lambda t: t[0].update(reason="no_candidate"),                    # a catcher with a non-identified reason
+        lambda t: t[1].update(reason="identified"),                      # identified without a catcher
+        lambda t: t[1].update(reason="made_up"),
+        lambda t: t[1].update(official_date="2026-04-02"),               # the two sides disagree on the game
+        lambda t: t.pop(),                                               # one side only
+        lambda t: t.append(dict(t[0])),                                  # a duplicate side
+    ])
+    def test_a_malformed_or_inconsistent_table_refuses(damage):
+        t = _good_table()
+        damage(t)
+>       with pytest.raises(F.InputRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.f26.InputRefused'>
+
+tests/scripts/c2_framing/test_f26_rules.py:429: Failed
+__________ test_a_malformed_or_inconsistent_table_refuses[<lambda>9] ___________
+
+damage = <function <lambda> at 0x1106d23e0>
+
+    @pytest.mark.parametrize("damage", [
+        lambda t: t[0].pop("reason"),
+        lambda t: t[0].update(extra=1),
+        lambda t: t[0].update(game_pk=1.0),
+        lambda t: t[0].update(game_pk=True),
+        lambda t: t[0].update(season=2024),
+        lambda t: t[0].update(game_type="S"),
+        lambda t: t[0].update(official_date="2026-4-1"),
+        lambda t: t[0].update(official_date="2025-04-01"),
+        lambda t: t[0].update(game_number=0),
+        lambda t: t[0].update(game_number_fallback="no"),
+        lambda t: t[0].update(fielding_side="left"),
+        lambda t: t[0].update(team_id="7"),
+        lambda t: t[0].update(catcher_id=50.0),
+        lambda t: t[0].update(reason="no_candidate"),                    # a catcher with a non-identified reason
+        lambda t: t[1].update(reason="identified"),                      # identified without a catcher
+        lambda t: t[1].update(reason="made_up"),
+        lambda t: t[1].update(official_date="2026-04-02"),               # the two sides disagree on the game
+        lambda t: t.pop(),                                               # one side only
+        lambda t: t.append(dict(t[0])),                                  # a duplicate side
+    ])
+    def test_a_malformed_or_inconsistent_table_refuses(damage):
+        t = _good_table()
+        damage(t)
+>       with pytest.raises(F.InputRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.f26.InputRefused'>
+
+tests/scripts/c2_framing/test_f26_rules.py:429: Failed
+__________ test_a_malformed_or_inconsistent_table_refuses[<lambda>10] __________
+
+damage = <function <lambda> at 0x1106d2480>
+
+    @pytest.mark.parametrize("damage", [
+        lambda t: t[0].pop("reason"),
+        lambda t: t[0].update(extra=1),
+        lambda t: t[0].update(game_pk=1.0),
+        lambda t: t[0].update(game_pk=True),
+        lambda t: t[0].update(season=2024),
+        lambda t: t[0].update(game_type="S"),
+        lambda t: t[0].update(official_date="2026-4-1"),
+        lambda t: t[0].update(official_date="2025-04-01"),
+        lambda t: t[0].update(game_number=0),
+        lambda t: t[0].update(game_number_fallback="no"),
+        lambda t: t[0].update(fielding_side="left"),
+        lambda t: t[0].update(team_id="7"),
+        lambda t: t[0].update(catcher_id=50.0),
+        lambda t: t[0].update(reason="no_candidate"),                    # a catcher with a non-identified reason
+        lambda t: t[1].update(reason="identified"),                      # identified without a catcher
+        lambda t: t[1].update(reason="made_up"),
+        lambda t: t[1].update(official_date="2026-04-02"),               # the two sides disagree on the game
+        lambda t: t.pop(),                                               # one side only
+        lambda t: t.append(dict(t[0])),                                  # a duplicate side
+    ])
+    def test_a_malformed_or_inconsistent_table_refuses(damage):
+        t = _good_table()
+        damage(t)
+>       with pytest.raises(F.InputRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.f26.InputRefused'>
+
+tests/scripts/c2_framing/test_f26_rules.py:429: Failed
+__________ test_a_malformed_or_inconsistent_table_refuses[<lambda>11] __________
+
+damage = <function <lambda> at 0x1106d2520>
+
+    @pytest.mark.parametrize("damage", [
+        lambda t: t[0].pop("reason"),
+        lambda t: t[0].update(extra=1),
+        lambda t: t[0].update(game_pk=1.0),
+        lambda t: t[0].update(game_pk=True),
+        lambda t: t[0].update(season=2024),
+        lambda t: t[0].update(game_type="S"),
+        lambda t: t[0].update(official_date="2026-4-1"),
+        lambda t: t[0].update(official_date="2025-04-01"),
+        lambda t: t[0].update(game_number=0),
+        lambda t: t[0].update(game_number_fallback="no"),
+        lambda t: t[0].update(fielding_side="left"),
+        lambda t: t[0].update(team_id="7"),
+        lambda t: t[0].update(catcher_id=50.0),
+        lambda t: t[0].update(reason="no_candidate"),                    # a catcher with a non-identified reason
+        lambda t: t[1].update(reason="identified"),                      # identified without a catcher
+        lambda t: t[1].update(reason="made_up"),
+        lambda t: t[1].update(official_date="2026-04-02"),               # the two sides disagree on the game
+        lambda t: t.pop(),                                               # one side only
+        lambda t: t.append(dict(t[0])),                                  # a duplicate side
+    ])
+    def test_a_malformed_or_inconsistent_table_refuses(damage):
+        t = _good_table()
+        damage(t)
+>       with pytest.raises(F.InputRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.f26.InputRefused'>
+
+tests/scripts/c2_framing/test_f26_rules.py:429: Failed
+__________ test_a_malformed_or_inconsistent_table_refuses[<lambda>12] __________
+
+damage = <function <lambda> at 0x1106d25c0>
+
+    @pytest.mark.parametrize("damage", [
+        lambda t: t[0].pop("reason"),
+        lambda t: t[0].update(extra=1),
+        lambda t: t[0].update(game_pk=1.0),
+        lambda t: t[0].update(game_pk=True),
+        lambda t: t[0].update(season=2024),
+        lambda t: t[0].update(game_type="S"),
+        lambda t: t[0].update(official_date="2026-4-1"),
+        lambda t: t[0].update(official_date="2025-04-01"),
+        lambda t: t[0].update(game_number=0),
+        lambda t: t[0].update(game_number_fallback="no"),
+        lambda t: t[0].update(fielding_side="left"),
+        lambda t: t[0].update(team_id="7"),
+        lambda t: t[0].update(catcher_id=50.0),
+        lambda t: t[0].update(reason="no_candidate"),                    # a catcher with a non-identified reason
+        lambda t: t[1].update(reason="identified"),                      # identified without a catcher
+        lambda t: t[1].update(reason="made_up"),
+        lambda t: t[1].update(official_date="2026-04-02"),               # the two sides disagree on the game
+        lambda t: t.pop(),                                               # one side only
+        lambda t: t.append(dict(t[0])),                                  # a duplicate side
+    ])
+    def test_a_malformed_or_inconsistent_table_refuses(damage):
+        t = _good_table()
+        damage(t)
+>       with pytest.raises(F.InputRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.f26.InputRefused'>
+
+tests/scripts/c2_framing/test_f26_rules.py:429: Failed
+__________ test_a_malformed_or_inconsistent_table_refuses[<lambda>13] __________
+
+damage = <function <lambda> at 0x1106d2660>
+
+    @pytest.mark.parametrize("damage", [
+        lambda t: t[0].pop("reason"),
+        lambda t: t[0].update(extra=1),
+        lambda t: t[0].update(game_pk=1.0),
+        lambda t: t[0].update(game_pk=True),
+        lambda t: t[0].update(season=2024),
+        lambda t: t[0].update(game_type="S"),
+        lambda t: t[0].update(official_date="2026-4-1"),
+        lambda t: t[0].update(official_date="2025-04-01"),
+        lambda t: t[0].update(game_number=0),
+        lambda t: t[0].update(game_number_fallback="no"),
+        lambda t: t[0].update(fielding_side="left"),
+        lambda t: t[0].update(team_id="7"),
+        lambda t: t[0].update(catcher_id=50.0),
+        lambda t: t[0].update(reason="no_candidate"),                    # a catcher with a non-identified reason
+        lambda t: t[1].update(reason="identified"),                      # identified without a catcher
+        lambda t: t[1].update(reason="made_up"),
+        lambda t: t[1].update(official_date="2026-04-02"),               # the two sides disagree on the game
+        lambda t: t.pop(),                                               # one side only
+        lambda t: t.append(dict(t[0])),                                  # a duplicate side
+    ])
+    def test_a_malformed_or_inconsistent_table_refuses(damage):
+        t = _good_table()
+        damage(t)
+>       with pytest.raises(F.InputRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.f26.InputRefused'>
+
+tests/scripts/c2_framing/test_f26_rules.py:429: Failed
+__________ test_a_malformed_or_inconsistent_table_refuses[<lambda>14] __________
+
+damage = <function <lambda> at 0x1106d2700>
+
+    @pytest.mark.parametrize("damage", [
+        lambda t: t[0].pop("reason"),
+        lambda t: t[0].update(extra=1),
+        lambda t: t[0].update(game_pk=1.0),
+        lambda t: t[0].update(game_pk=True),
+        lambda t: t[0].update(season=2024),
+        lambda t: t[0].update(game_type="S"),
+        lambda t: t[0].update(official_date="2026-4-1"),
+        lambda t: t[0].update(official_date="2025-04-01"),
+        lambda t: t[0].update(game_number=0),
+        lambda t: t[0].update(game_number_fallback="no"),
+        lambda t: t[0].update(fielding_side="left"),
+        lambda t: t[0].update(team_id="7"),
+        lambda t: t[0].update(catcher_id=50.0),
+        lambda t: t[0].update(reason="no_candidate"),                    # a catcher with a non-identified reason
+        lambda t: t[1].update(reason="identified"),                      # identified without a catcher
+        lambda t: t[1].update(reason="made_up"),
+        lambda t: t[1].update(official_date="2026-04-02"),               # the two sides disagree on the game
+        lambda t: t.pop(),                                               # one side only
+        lambda t: t.append(dict(t[0])),                                  # a duplicate side
+    ])
+    def test_a_malformed_or_inconsistent_table_refuses(damage):
+        t = _good_table()
+        damage(t)
+>       with pytest.raises(F.InputRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.f26.InputRefused'>
+
+tests/scripts/c2_framing/test_f26_rules.py:429: Failed
+__________ test_a_malformed_or_inconsistent_table_refuses[<lambda>15] __________
+
+damage = <function <lambda> at 0x1106d27a0>
+
+    @pytest.mark.parametrize("damage", [
+        lambda t: t[0].pop("reason"),
+        lambda t: t[0].update(extra=1),
+        lambda t: t[0].update(game_pk=1.0),
+        lambda t: t[0].update(game_pk=True),
+        lambda t: t[0].update(season=2024),
+        lambda t: t[0].update(game_type="S"),
+        lambda t: t[0].update(official_date="2026-4-1"),
+        lambda t: t[0].update(official_date="2025-04-01"),
+        lambda t: t[0].update(game_number=0),
+        lambda t: t[0].update(game_number_fallback="no"),
+        lambda t: t[0].update(fielding_side="left"),
+        lambda t: t[0].update(team_id="7"),
+        lambda t: t[0].update(catcher_id=50.0),
+        lambda t: t[0].update(reason="no_candidate"),                    # a catcher with a non-identified reason
+        lambda t: t[1].update(reason="identified"),                      # identified without a catcher
+        lambda t: t[1].update(reason="made_up"),
+        lambda t: t[1].update(official_date="2026-04-02"),               # the two sides disagree on the game
+        lambda t: t.pop(),                                               # one side only
+        lambda t: t.append(dict(t[0])),                                  # a duplicate side
+    ])
+    def test_a_malformed_or_inconsistent_table_refuses(damage):
+        t = _good_table()
+        damage(t)
+>       with pytest.raises(F.InputRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.f26.InputRefused'>
+
+tests/scripts/c2_framing/test_f26_rules.py:429: Failed
+__________ test_a_malformed_or_inconsistent_table_refuses[<lambda>16] __________
+
+damage = <function <lambda> at 0x1106d2840>
+
+    @pytest.mark.parametrize("damage", [
+        lambda t: t[0].pop("reason"),
+        lambda t: t[0].update(extra=1),
+        lambda t: t[0].update(game_pk=1.0),
+        lambda t: t[0].update(game_pk=True),
+        lambda t: t[0].update(season=2024),
+        lambda t: t[0].update(game_type="S"),
+        lambda t: t[0].update(official_date="2026-4-1"),
+        lambda t: t[0].update(official_date="2025-04-01"),
+        lambda t: t[0].update(game_number=0),
+        lambda t: t[0].update(game_number_fallback="no"),
+        lambda t: t[0].update(fielding_side="left"),
+        lambda t: t[0].update(team_id="7"),
+        lambda t: t[0].update(catcher_id=50.0),
+        lambda t: t[0].update(reason="no_candidate"),                    # a catcher with a non-identified reason
+        lambda t: t[1].update(reason="identified"),                      # identified without a catcher
+        lambda t: t[1].update(reason="made_up"),
+        lambda t: t[1].update(official_date="2026-04-02"),               # the two sides disagree on the game
+        lambda t: t.pop(),                                               # one side only
+        lambda t: t.append(dict(t[0])),                                  # a duplicate side
+    ])
+    def test_a_malformed_or_inconsistent_table_refuses(damage):
+        t = _good_table()
+        damage(t)
+>       with pytest.raises(F.InputRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.f26.InputRefused'>
+
+tests/scripts/c2_framing/test_f26_rules.py:429: Failed
+__________ test_a_malformed_or_inconsistent_table_refuses[<lambda>17] __________
+
+damage = <function <lambda> at 0x1106d28e0>
+
+    @pytest.mark.parametrize("damage", [
+        lambda t: t[0].pop("reason"),
+        lambda t: t[0].update(extra=1),
+        lambda t: t[0].update(game_pk=1.0),
+        lambda t: t[0].update(game_pk=True),
+        lambda t: t[0].update(season=2024),
+        lambda t: t[0].update(game_type="S"),
+        lambda t: t[0].update(official_date="2026-4-1"),
+        lambda t: t[0].update(official_date="2025-04-01"),
+        lambda t: t[0].update(game_number=0),
+        lambda t: t[0].update(game_number_fallback="no"),
+        lambda t: t[0].update(fielding_side="left"),
+        lambda t: t[0].update(team_id="7"),
+        lambda t: t[0].update(catcher_id=50.0),
+        lambda t: t[0].update(reason="no_candidate"),                    # a catcher with a non-identified reason
+        lambda t: t[1].update(reason="identified"),                      # identified without a catcher
+        lambda t: t[1].update(reason="made_up"),
+        lambda t: t[1].update(official_date="2026-04-02"),               # the two sides disagree on the game
+        lambda t: t.pop(),                                               # one side only
+        lambda t: t.append(dict(t[0])),                                  # a duplicate side
+    ])
+    def test_a_malformed_or_inconsistent_table_refuses(damage):
+        t = _good_table()
+        damage(t)
+>       with pytest.raises(F.InputRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'scripts.audit.c2_framing.f26.InputRefused'>
+
+tests/scripts/c2_framing/test_f26_rules.py:429: Failed
+____________ test_pa_game_ids_must_be_exact_positive_integers[ids0] ____________
+
+ids = [1.0, 2.0]
+
+    @pytest.mark.parametrize("ids", [[1.0, 2.0], [1.5, 2.0], [1, None], [0, 2], [-1, 2]])
+    def test_pa_game_ids_must_be_exact_positive_integers(ids):
+        with pytest.raises(F.InputRefused, match="game_pk"):
+>           F.pa_game_ids(pd.DataFrame({"game_pk": pd.Series(ids, dtype="object" if None in ids else None)}))
+            ^^^^^^^^^^^^^
+E           AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'pa_game_ids'
+
+tests/scripts/c2_framing/test_f26_rules.py:436: AttributeError
+____________ test_pa_game_ids_must_be_exact_positive_integers[ids1] ____________
+
+ids = [1.5, 2.0]
+
+    @pytest.mark.parametrize("ids", [[1.0, 2.0], [1.5, 2.0], [1, None], [0, 2], [-1, 2]])
+    def test_pa_game_ids_must_be_exact_positive_integers(ids):
+        with pytest.raises(F.InputRefused, match="game_pk"):
+>           F.pa_game_ids(pd.DataFrame({"game_pk": pd.Series(ids, dtype="object" if None in ids else None)}))
+            ^^^^^^^^^^^^^
+E           AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'pa_game_ids'
+
+tests/scripts/c2_framing/test_f26_rules.py:436: AttributeError
+____________ test_pa_game_ids_must_be_exact_positive_integers[ids2] ____________
+
+ids = [1, None]
+
+    @pytest.mark.parametrize("ids", [[1.0, 2.0], [1.5, 2.0], [1, None], [0, 2], [-1, 2]])
+    def test_pa_game_ids_must_be_exact_positive_integers(ids):
+        with pytest.raises(F.InputRefused, match="game_pk"):
+>           F.pa_game_ids(pd.DataFrame({"game_pk": pd.Series(ids, dtype="object" if None in ids else None)}))
+            ^^^^^^^^^^^^^
+E           AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'pa_game_ids'
+
+tests/scripts/c2_framing/test_f26_rules.py:436: AttributeError
+____________ test_pa_game_ids_must_be_exact_positive_integers[ids3] ____________
+
+ids = [0, 2]
+
+    @pytest.mark.parametrize("ids", [[1.0, 2.0], [1.5, 2.0], [1, None], [0, 2], [-1, 2]])
+    def test_pa_game_ids_must_be_exact_positive_integers(ids):
+        with pytest.raises(F.InputRefused, match="game_pk"):
+>           F.pa_game_ids(pd.DataFrame({"game_pk": pd.Series(ids, dtype="object" if None in ids else None)}))
+            ^^^^^^^^^^^^^
+E           AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'pa_game_ids'
+
+tests/scripts/c2_framing/test_f26_rules.py:436: AttributeError
+____________ test_pa_game_ids_must_be_exact_positive_integers[ids4] ____________
+
+ids = [-1, 2]
+
+    @pytest.mark.parametrize("ids", [[1.0, 2.0], [1.5, 2.0], [1, None], [0, 2], [-1, 2]])
+    def test_pa_game_ids_must_be_exact_positive_integers(ids):
+        with pytest.raises(F.InputRefused, match="game_pk"):
+>           F.pa_game_ids(pd.DataFrame({"game_pk": pd.Series(ids, dtype="object" if None in ids else None)}))
+            ^^^^^^^^^^^^^
+E           AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'pa_game_ids'
+
+tests/scripts/c2_framing/test_f26_rules.py:436: AttributeError
+_______________ test_pa_game_ids_returns_the_sorted_distinct_ids _______________
+
+    def test_pa_game_ids_returns_the_sorted_distinct_ids():
+>       assert F.pa_game_ids(pd.DataFrame({"game_pk": [3, 1, 3, 2]})) == [1, 2, 3]
+               ^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.audit.c2_framing.f26' has no attribute 'pa_game_ids'
+
+tests/scripts/c2_framing/test_f26_rules.py:440: AttributeError
+=========================== short test summary info ============================
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_a_malformed_non_starting_record_makes_the_side_unidentified[sub0-malformed_player]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_a_malformed_non_starting_record_makes_the_side_unidentified[sub1-malformed_positions]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_a_malformed_non_starting_record_makes_the_side_unidentified[sub2-malformed_positions]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_a_malformed_non_starting_record_makes_the_side_unidentified[sub3-malformed_player]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_a_malformed_non_starting_record_makes_the_side_unidentified[sub4-malformed_positions]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_a_malformed_or_inconsistent_table_refuses[<lambda>0]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_a_malformed_or_inconsistent_table_refuses[<lambda>1]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_a_malformed_or_inconsistent_table_refuses[<lambda>2]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_a_malformed_or_inconsistent_table_refuses[<lambda>3]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_a_malformed_or_inconsistent_table_refuses[<lambda>4]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_a_malformed_or_inconsistent_table_refuses[<lambda>5]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_a_malformed_or_inconsistent_table_refuses[<lambda>6]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_a_malformed_or_inconsistent_table_refuses[<lambda>7]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_a_malformed_or_inconsistent_table_refuses[<lambda>8]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_a_malformed_or_inconsistent_table_refuses[<lambda>9]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_a_malformed_or_inconsistent_table_refuses[<lambda>10]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_a_malformed_or_inconsistent_table_refuses[<lambda>11]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_a_malformed_or_inconsistent_table_refuses[<lambda>12]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_a_malformed_or_inconsistent_table_refuses[<lambda>13]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_a_malformed_or_inconsistent_table_refuses[<lambda>14]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_a_malformed_or_inconsistent_table_refuses[<lambda>15]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_a_malformed_or_inconsistent_table_refuses[<lambda>16]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_a_malformed_or_inconsistent_table_refuses[<lambda>17]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_pa_game_ids_must_be_exact_positive_integers[ids0]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_pa_game_ids_must_be_exact_positive_integers[ids1]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_pa_game_ids_must_be_exact_positive_integers[ids2]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_pa_game_ids_must_be_exact_positive_integers[ids3]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_pa_game_ids_must_be_exact_positive_integers[ids4]
+FAILED tests/scripts/c2_framing/test_f26_rules.py::test_pa_game_ids_returns_the_sorted_distinct_ids
+================= 29 failed, 3 passed, 60 deselected in 0.41s ==================

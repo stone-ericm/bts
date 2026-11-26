@@ -1,0 +1,9 @@
+nice: setpriority: Operation not permitted
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-chk-ea4/.codex-review/wr-ea4/probe_delivery_warning.py", line 197, in <module>
+    old_warning, new_warning, expression = copy_audit()
+                                           ^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-chk-ea4/.codex-review/wr-ea4/probe_delivery_warning.py", line 52, in copy_audit
+    assert previous.count(old) == 1 and current.count(new) == 1
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

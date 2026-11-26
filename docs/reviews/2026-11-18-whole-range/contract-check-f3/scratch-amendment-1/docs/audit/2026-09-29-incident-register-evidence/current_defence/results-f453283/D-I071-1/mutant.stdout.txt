@@ -1,0 +1,38 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_cli_integration.py F                                          [100%]
+
+=================================== FAILURES ===================================
+__________ TestCheckPickEntered.test_uncommitted_pick_in_window_no_dm __________
+
+self = <tests.test_cli_integration.TestCheckPickEntered object at 0x110c6e330>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10af6e990>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8173/test_uncommitted_pick_in_windo0')
+
+    def test_uncommitted_pick_in_window_no_dm(self, monkeypatch, tmp_path):
+        # A {date}.json exists (preview/deferred) but the pick was never
+        # committed/locked (no decision.json, not delivered). The scheduler
+        # rewrites {date}.json all day with projections, so its mere existence
+        # must NOT trigger a "you didn't enter your pick" nag. Regression for the
+        # 2026-07-06 premature DM on a deferred double-down.
+        dms = self._setup(monkeypatch, pending=[], crosswalk={100: 1})
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00",
+                        batter_id=1, delivered=False)
+    
+        r = self._run(picks, "2026-06-12T18:30:00")  # 40 min before pitch, in window
+>       assert r.exit_code == 0, r.output
+E       AssertionError: check-pick-entered: DM sent to x.bsky.social
+E         
+E       assert 1 == 0
+E        +  where 1 = <Result SystemExit(1)>.exit_code
+
+tests/test_cli_integration.py:1124: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_cli_integration.py::TestCheckPickEntered::test_uncommitted_pick_in_window_no_dm
+============================== 1 failed in 1.13s ===============================

@@ -1,0 +1,36 @@
+{
+ "id": "E93",
+ "episode_row": [
+  "E93",
+  "4/11\u20134/12",
+  "3am cron chain's log redirect captured only the last command (pull/build/sync output dropped)",
+  "A/S",
+  "DL",
+  "B",
+  "715c932 (body)"
+ ],
+ "commits": [
+  {
+   "sha": "715c932",
+   "authored": "2026-04-12T12:31:14-04:00",
+   "subject": "fix(cron): reorder 3am chain so preview survives sync-to-r2 failure",
+   "body": "Previously: data pull -> build -> sync-to-r2 -> preview.\nNow:        data pull -> build -> preview ; sync-to-r2\n\nThe preview pick is the user-facing morning deliverable; R2 sync is\nnice-to-have backup. Putting preview ahead of sync (and decoupling\nthem with `;` instead of `&&`) means a Cloudflare/credential issue\nin R2 cannot block tomorrow's preliminary pick from generating.\n\nAlso wraps the bts commands in a subshell so the log redirect\ncaptures output from ALL of them, not just the final one \u2014 sh's\nredirect operator binds to the last command in a chain, so the\nprior layout was silently dropping pull/build/sync output.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "scripts/cron-setup-hetzner.sh"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24311227107,
+    "created_at": "2026-04-12T16:31:28Z",
+    "head_sha": "e997155",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

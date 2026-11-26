@@ -1,0 +1,87 @@
+{
+  "label": "I-0813-b",
+  "reasons": [
+    "refused: SpecError: absence (a missing event) is not certifiable by the Phase 1 recorder (plan ruling 10): report this link unavailable with this reason and keep its regression evidence"
+  ],
+  "spec": {
+    "allowed_mocks": [
+      "bts.scheduler.run_single_check",
+      "bts.scheduler.fetch_schedule",
+      "bts.scheduler._now_et",
+      "bts.scheduler.time.sleep",
+      "bts.scheduler.run_result_polling",
+      "bts.scheduler._trigger_live_forward_capture_on_lock",
+      "bts.scheduler._alert_missed_pick (recorder)"
+    ],
+    "allowed_paths": [
+      "src/bts/scheduler.py"
+    ],
+    "baseline": "f453283d0a0ec39a939b22c6500b5fb36f5452c0",
+    "boundaries": [
+      {
+        "binding": "bts.scheduler:_alert_missed_pick",
+        "classify": [
+          [
+            "alert",
+            ""
+          ]
+        ],
+        "name": "missed_pick_alert",
+        "value": [
+          "args[0]"
+        ]
+      }
+    ],
+    "branch": {
+      "path": "src/bts/scheduler.py",
+      "text": "W1.5 mutant: pre-224ddce gate on pick_locked"
+    },
+    "contract": {
+      "entry_mode": "run_day driven through _drive_run_day",
+      "symptom_kind": "missing alert",
+      "text": "A day ending with an undelivered candidate, no scoreable commit and no deliberate skip alerts the operator (E3).",
+      "trigger": "a non-delivered classification lock sets pick_locked"
+    },
+    "entry": {
+      "path": "src/bts/scheduler.py",
+      "qualname": "run_day"
+    },
+    "env": {
+      "TZ": "America/New_York"
+    },
+    "killing": [
+      {
+        "assertion": {
+          "line": 281,
+          "path": "tests/test_scheduler_decision_record_integration.py",
+          "text": "alert.assert_called_once()"
+        },
+        "node": "tests/test_scheduler_decision_record_integration.py::test_nondelivered_classified_lock_on_pick_day_fires_missed_pick_alert"
+      }
+    ],
+    "label": "I-0813-b",
+    "level": "component",
+    "level_justification": "_drive_run_day replaces run_single_check, the schedule fetch, the clock, sleep, polling and the live-forward trigger",
+    "link": "I-083 link 2",
+    "mutation_edits": [
+      [
+        "src/bts/scheduler.py",
+        "    if not state.committed_pick_written:\n        _maybe_alert_missed_pick(config, date, picks_dir, missed_pick_alert_min, heartbeat_path, state)\n",
+        "    if not state.pick_locked:  # W1.5 mutant: pre-224ddce gate on pick_locked\n        _maybe_alert_missed_pick(config, date, picks_dir, missed_pick_alert_min, heartbeat_path, state)\n"
+      ]
+    ],
+    "symptom": {
+      "boundary": "missed_pick_alert",
+      "category": "alert",
+      "kind": "absence"
+    },
+    "tests": [
+      "tests/test_scheduler_decision_record_integration.py",
+      "tests/test_e3_missed_pick_alert.py",
+      "-q"
+    ]
+  },
+  "spec_sha256": "57bfb89e4154d4b147eb240f9afd35d216c4697775c1dca454d6382a4aec9164",
+  "stages": {},
+  "verdict": "rejected"
+}

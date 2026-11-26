@@ -1,0 +1,135 @@
+/Users/runner/work/crossbow/crossbow/arrow/cpp/src/arrow/util/cpu_info.cc:239: IOError: sysctlbyname failed for 'hw.l1dcachesize'. Detail: [errno 1] Operation not permitted
+/Users/runner/work/crossbow/crossbow/arrow/cpp/src/arrow/util/cpu_info.cc:239: IOError: sysctlbyname failed for 'hw.l2cachesize'. Detail: [errno 1] Operation not permitted
+/Users/runner/work/crossbow/crossbow/arrow/cpp/src/arrow/util/cpu_info.cc:239: IOError: sysctlbyname failed for 'hw.l3cachesize'. Detail: [errno 1] Operation not permitted
+/Users/runner/work/crossbow/crossbow/arrow/cpp/src/arrow/util/cpu_info.cc:239: IOError: sysctlbyname failed for 'hw.optional.neon'. Detail: [errno 1] Operation not permitted
+{
+  "plain_full_rewrite_matches_receipt": false,
+  "restored_thin_after_full_overwrite_matches_receipt": true,
+  "restored_thin_base_failures": [
+    "production_2027-03-24_top_n_rows_per_date",
+    "candidate_2027-03-24_top_n_rows_per_date"
+  ],
+  "copied_thin_in_another_root_matches_shared_receipt": true,
+  "shortened_full_resolution_matches_replacement_source_receipt": true,
+  "shortened_full_resolution_base_failures": [
+    "production_2027-03-24_top_n_rows_per_date",
+    "candidate_2027-03-24_top_n_rows_per_date"
+  ],
+  "existing_receipt_bytes_unchanged": true,
+  "transports": [
+    [
+      "cli",
+      "export-live-candidate-artifacts",
+      [
+        "experiment",
+        "export-live-candidate-artifacts",
+        "--date",
+        "2027-03-24",
+        "--candidate",
+        "decision_weighted_lgbm_v0",
+        "--output-dir",
+        "/Users/eric/projects/bts-work/audit-f7-check/.codex-review/audit-f7-check/receipt-in7k179t/capture/live/2027-03-24",
+        "--data-dir",
+        "/Users/eric/projects/bts-work/audit-f7-check/.codex-review/audit-f7-check/receipt-in7k179t/capture/processed",
+        "--top-n",
+        "10",
+        "--no-refresh-data",
+        "--production-pick-file",
+        "/Users/eric/projects/bts-work/audit-f7-check/.codex-review/audit-f7-check/receipt-in7k179t/capture/picks/2027-03-24.json"
+      ]
+    ],
+    [
+      "predictions",
+      "production",
+      9,
+      0
+    ],
+    [
+      "predictions",
+      "candidate",
+      9,
+      0
+    ],
+    [
+      "cli",
+      "verify-candidate-artifacts",
+      [
+        "experiment",
+        "verify-candidate-artifacts",
+        "--artifact-dir",
+        "/Users/eric/projects/bts-work/audit-f7-check/.codex-review/audit-f7-check/receipt-in7k179t/capture/live/2027-03-24",
+        "--expected-run-kind",
+        "live_forward_preoutcome",
+        "--expected-candidate",
+        "decision_weighted_lgbm_v0",
+        "--expected-date",
+        "2027-03-24",
+        "--expected-git-commit",
+        "offline-capture-sha",
+        "--expected-top-n",
+        "10",
+        "--require-live-preoutcome",
+        "--require-production-pick-snapshot",
+        "--save",
+        "/Users/eric/projects/bts-work/audit-f7-check/.codex-review/audit-f7-check/receipt-in7k179t/capture/live/2027-03-24/verification.json"
+      ]
+    ],
+    [
+      "cli",
+      "export-live-candidate-artifacts",
+      [
+        "experiment",
+        "export-live-candidate-artifacts",
+        "--date",
+        "2027-03-24",
+        "--candidate",
+        "decision_weighted_lgbm_v0",
+        "--output-dir",
+        "/Users/eric/projects/bts-work/audit-f7-check/.codex-review/audit-f7-check/receipt-in7k179t/capture/live/2027-03-24",
+        "--data-dir",
+        "/Users/eric/projects/bts-work/audit-f7-check/.codex-review/audit-f7-check/receipt-in7k179t/capture/processed",
+        "--top-n",
+        "10",
+        "--no-refresh-data",
+        "--production-pick-file",
+        "/Users/eric/projects/bts-work/audit-f7-check/.codex-review/audit-f7-check/receipt-in7k179t/capture/picks/2027-03-24.json"
+      ]
+    ],
+    [
+      "predictions",
+      "production",
+      10,
+      0
+    ],
+    [
+      "predictions",
+      "candidate",
+      10,
+      0
+    ],
+    [
+      "cli",
+      "verify-candidate-artifacts",
+      [
+        "experiment",
+        "verify-candidate-artifacts",
+        "--artifact-dir",
+        "/Users/eric/projects/bts-work/audit-f7-check/.codex-review/audit-f7-check/receipt-in7k179t/capture/live/2027-03-24",
+        "--expected-run-kind",
+        "live_forward_preoutcome",
+        "--expected-candidate",
+        "decision_weighted_lgbm_v0",
+        "--expected-date",
+        "2027-03-24",
+        "--expected-git-commit",
+        "offline-capture-sha",
+        "--expected-top-n",
+        "10",
+        "--require-live-preoutcome",
+        "--require-production-pick-snapshot",
+        "--save",
+        "/Users/eric/projects/bts-work/audit-f7-check/.codex-review/audit-f7-check/receipt-in7k179t/capture/live/2027-03-24/verification.json"
+      ]
+    ]
+  ]
+}

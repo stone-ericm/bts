@@ -1,0 +1,23 @@
+diff --git a/src/bts/health/contest_state.py b/src/bts/health/contest_state.py
+index 5edcb53..f78308d 100644
+--- a/src/bts/health/contest_state.py
++++ b/src/bts/health/contest_state.py
+@@ -97,6 +97,18 @@ def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = Non
+                              "counter by >=2 -- usually a transient settlement lag (a broken "
+                              "fetch DMs separately)"),
+                 ))
++            elif (gap_steps == EXPECTED_OVERNIGHT_LAG_STEPS
++                  and now.astimezone(ZoneInfo("America/New_York")).hour >= 12):
++                pass  # W1.5 mutant: pre-56f9726 — a one-pick gap persisting past noon ET escalates to WARN
++                alerts.append(Alert(
++                    level="WARN",
++                    source=SOURCE,
++                    message=(f"contest state lag persisting past noon ET: "
++                             f"source_date={state.source_date}, latest resolved {latest}. "
++                             "Fetches are succeeding but the contest never advanced — "
++                             "check the pick was actually entered in the MLB app "
++                             "(check-pick-entered) or MLB settlement is delayed"),
++                ))
+             elif gap_steps == EXPECTED_OVERNIGHT_LAG_STEPS:
+                 alerts.append(Alert(
+                     level="INFO",

@@ -1,0 +1,42 @@
+{
+ "id": "E61",
+ "episode_row": [
+  "E61",
+  "6/11",
+  "delivered pick never entered; nothing alerted until 6/12",
+  "E",
+  "OI",
+  "A",
+  "4f13eb3"
+ ],
+ "commits": [
+  {
+   "sha": "4f13eb3",
+   "authored": "2026-06-12T19:22:20-04:00",
+   "subject": "check-pick-entered DM + noon-ET lag escalation (2026-06-12 incident)",
+   "body": "A delivered pick was never entered in the MLB app; nothing alerted\nuntil Eric noticed the frozen streak a day later. The fetch path\nbehaved correctly (refused stale writes, froze doubles) \u2014 the gap was\nthat no check existed for 'pick in the app at all'.\n\n- bts contest_fetch.has_prediction_for: pending rows prove entry.\n- bts check-pick-entered (cron */15 11-23 ET): inside the 75-min\n  pre-first-pitch window, fetch the profile and DM if today's pick has\n  no prediction row. One DM per date; auth failures exit quietly (the\n  fetch cron owns auth alerting; a false alarm minutes before pitch is\n  worse than silence).\n- contest_state health: gap==1 persisting past noon ET escalates\n  INFO->WARN pointing at the entered-in-app question (fetch-failure DM\n  never fires in this scenario because nothing fails).\n\n10 new tests; suite 1925 green.",
+   "files": [
+    "scripts/cron-setup-hetzner.sh",
+    "src/bts/cli.py",
+    "src/bts/contest_fetch.py",
+    "src/bts/health/contest_state.py",
+    "tests/health/test_contest_state.py",
+    "tests/test_cli_integration.py",
+    "tests/test_contest_fetch.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27448741736,
+    "created_at": "2026-06-12T23:22:24Z",
+    "head_sha": "4f13eb3",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

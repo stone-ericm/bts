@@ -1,0 +1,424 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/cs1-rev-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 8 items
+
+.codex-review/cs1-review/test_decoder_limits_r2.py FFFFFFFF              [100%]
+
+=================================== FAILURES ===================================
+______ test_row5_large_json_scalar_cannot_block_observation[False-manual] ______
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1237/test_row5_large_json_scalar_ca0')
+observation = 'manual', required = False
+caplog = <_pytest.logging.LogCaptureFixture object at 0x10b2bb050>
+
+    @pytest.mark.parametrize("observation", ["manual", "auto"])
+    @pytest.mark.parametrize("required", [False, True])
+    def test_row5_large_json_scalar_cannot_block_observation(tmp_path, observation, required, caplog):
+        account = tmp_path / "account_state"
+        account.mkdir()
+        payload = {"active_streak": 7, "best_streak": 20, "source_date": "2026-06-18"}
+        if observation == "manual":
+            payload["override_expires_at"] = "2026-06-18T23:59:59Z"
+        filename = "contest_streak.manual.json" if observation == "manual" else "contest_streak.json"
+        (account / filename).write_text(json.dumps(payload))
+        write_large_scalar(tmp_path / "streak.json")
+>       state = load_decision_streak_state(tmp_path, require_contest_state=required, now=NOW)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.codex-review/cs1-review/test_decoder_limits_r2.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/bts/contest_state.py:338: in load_decision_streak_state
+    model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir)
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/contest_state.py:314: in _load_model_diagnostics
+    data = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <json.decoder.JSONDecoder object at 0x10ad8c980>
+s = '999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999...9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999'
+idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+    
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+    
+        """
+        try:
+>           obj, end = self.scan_once(s, idx)
+                       ^^^^^^^^^^^^^^^^^^^^^^
+E           ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: ValueError
+_______ test_row5_large_json_scalar_cannot_block_observation[False-auto] _______
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1237/test_row5_large_json_scalar_ca1')
+observation = 'auto', required = False
+caplog = <_pytest.logging.LogCaptureFixture object at 0x10b48f0b0>
+
+    @pytest.mark.parametrize("observation", ["manual", "auto"])
+    @pytest.mark.parametrize("required", [False, True])
+    def test_row5_large_json_scalar_cannot_block_observation(tmp_path, observation, required, caplog):
+        account = tmp_path / "account_state"
+        account.mkdir()
+        payload = {"active_streak": 7, "best_streak": 20, "source_date": "2026-06-18"}
+        if observation == "manual":
+            payload["override_expires_at"] = "2026-06-18T23:59:59Z"
+        filename = "contest_streak.manual.json" if observation == "manual" else "contest_streak.json"
+        (account / filename).write_text(json.dumps(payload))
+        write_large_scalar(tmp_path / "streak.json")
+>       state = load_decision_streak_state(tmp_path, require_contest_state=required, now=NOW)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.codex-review/cs1-review/test_decoder_limits_r2.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/bts/contest_state.py:338: in load_decision_streak_state
+    model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir)
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/contest_state.py:314: in _load_model_diagnostics
+    data = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <json.decoder.JSONDecoder object at 0x10ad8c980>
+s = '999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999...9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999'
+idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+    
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+    
+        """
+        try:
+>           obj, end = self.scan_once(s, idx)
+                       ^^^^^^^^^^^^^^^^^^^^^^
+E           ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: ValueError
+______ test_row5_large_json_scalar_cannot_block_observation[True-manual] _______
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1237/test_row5_large_json_scalar_ca2')
+observation = 'manual', required = True
+caplog = <_pytest.logging.LogCaptureFixture object at 0x10b48e180>
+
+    @pytest.mark.parametrize("observation", ["manual", "auto"])
+    @pytest.mark.parametrize("required", [False, True])
+    def test_row5_large_json_scalar_cannot_block_observation(tmp_path, observation, required, caplog):
+        account = tmp_path / "account_state"
+        account.mkdir()
+        payload = {"active_streak": 7, "best_streak": 20, "source_date": "2026-06-18"}
+        if observation == "manual":
+            payload["override_expires_at"] = "2026-06-18T23:59:59Z"
+        filename = "contest_streak.manual.json" if observation == "manual" else "contest_streak.json"
+        (account / filename).write_text(json.dumps(payload))
+        write_large_scalar(tmp_path / "streak.json")
+>       state = load_decision_streak_state(tmp_path, require_contest_state=required, now=NOW)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.codex-review/cs1-review/test_decoder_limits_r2.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/bts/contest_state.py:338: in load_decision_streak_state
+    model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir)
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/contest_state.py:314: in _load_model_diagnostics
+    data = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <json.decoder.JSONDecoder object at 0x10ad8c980>
+s = '999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999...9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999'
+idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+    
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+    
+        """
+        try:
+>           obj, end = self.scan_once(s, idx)
+                       ^^^^^^^^^^^^^^^^^^^^^^
+E           ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: ValueError
+_______ test_row5_large_json_scalar_cannot_block_observation[True-auto] ________
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1237/test_row5_large_json_scalar_ca3')
+observation = 'auto', required = True
+caplog = <_pytest.logging.LogCaptureFixture object at 0x10b48ed50>
+
+    @pytest.mark.parametrize("observation", ["manual", "auto"])
+    @pytest.mark.parametrize("required", [False, True])
+    def test_row5_large_json_scalar_cannot_block_observation(tmp_path, observation, required, caplog):
+        account = tmp_path / "account_state"
+        account.mkdir()
+        payload = {"active_streak": 7, "best_streak": 20, "source_date": "2026-06-18"}
+        if observation == "manual":
+            payload["override_expires_at"] = "2026-06-18T23:59:59Z"
+        filename = "contest_streak.manual.json" if observation == "manual" else "contest_streak.json"
+        (account / filename).write_text(json.dumps(payload))
+        write_large_scalar(tmp_path / "streak.json")
+>       state = load_decision_streak_state(tmp_path, require_contest_state=required, now=NOW)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.codex-review/cs1-review/test_decoder_limits_r2.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/bts/contest_state.py:338: in load_decision_streak_state
+    model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir)
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/contest_state.py:314: in _load_model_diagnostics
+    data = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <json.decoder.JSONDecoder object at 0x10ad8c980>
+s = '999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999...9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999'
+idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+    
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+    
+        """
+        try:
+>           obj, end = self.scan_once(s, idx)
+                       ^^^^^^^^^^^^^^^^^^^^^^
+E           ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: ValueError
+____________ test_rows6_7_large_json_scalar_has_domain_error[False] ____________
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1237/test_rows6_7_large_json_scalar0')
+required = False
+
+    @pytest.mark.parametrize("required", [False, True])
+    def test_rows6_7_large_json_scalar_has_domain_error(tmp_path, required):
+        write_large_scalar(tmp_path / "streak.json")
+        message = "required but missing" if required else "model state is corrupt"
+        with pytest.raises(ContestStateError, match=message):
+>           load_decision_streak_state(tmp_path, require_contest_state=required, now=NOW)
+
+.codex-review/cs1-review/test_decoder_limits_r2.py:48: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/bts/contest_state.py:338: in load_decision_streak_state
+    model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir)
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/contest_state.py:314: in _load_model_diagnostics
+    data = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <json.decoder.JSONDecoder object at 0x10ad8c980>
+s = '999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999...9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999'
+idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+    
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+    
+        """
+        try:
+>           obj, end = self.scan_once(s, idx)
+                       ^^^^^^^^^^^^^^^^^^^^^^
+E           ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: ValueError
+____________ test_rows6_7_large_json_scalar_has_domain_error[True] _____________
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1237/test_rows6_7_large_json_scalar1')
+required = True
+
+    @pytest.mark.parametrize("required", [False, True])
+    def test_rows6_7_large_json_scalar_has_domain_error(tmp_path, required):
+        write_large_scalar(tmp_path / "streak.json")
+        message = "required but missing" if required else "model state is corrupt"
+        with pytest.raises(ContestStateError, match=message):
+>           load_decision_streak_state(tmp_path, require_contest_state=required, now=NOW)
+
+.codex-review/cs1-review/test_decoder_limits_r2.py:48: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/bts/contest_state.py:338: in load_decision_streak_state
+    model_streak, model_saver, model_error = _load_model_diagnostics(picks_dir)
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/bts/contest_state.py:314: in _load_model_diagnostics
+    data = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <json.decoder.JSONDecoder object at 0x10ad8c980>
+s = '999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999...9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999'
+idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+    
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+    
+        """
+        try:
+>           obj, end = self.scan_once(s, idx)
+                       ^^^^^^^^^^^^^^^^^^^^^^
+E           ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: ValueError
+_______________ test_row1_large_json_scalar_is_skipped[resolved] _______________
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1237/test_row1_large_json_scalar_is0')
+scan = 'resolved'
+
+    @pytest.mark.parametrize("scan", ["resolved", "miss"])
+    def test_row1_large_json_scalar_is_skipped(tmp_path, scan):
+        write_large_scalar(tmp_path / "2026-06-18.json")
+        if scan == "resolved":
+>           assert _resolved_pick_dates(tmp_path) == []
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.codex-review/cs1-review/test_decoder_limits_r2.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/bts/contest_state.py:229: in _resolved_pick_dates
+    body = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <json.decoder.JSONDecoder object at 0x10ad8c980>
+s = '999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999...9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999'
+idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+    
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+    
+        """
+        try:
+>           obj, end = self.scan_once(s, idx)
+                       ^^^^^^^^^^^^^^^^^^^^^^
+E           ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: ValueError
+_________________ test_row1_large_json_scalar_is_skipped[miss] _________________
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-1237/test_row1_large_json_scalar_is1')
+scan = 'miss'
+
+    @pytest.mark.parametrize("scan", ["resolved", "miss"])
+    def test_row1_large_json_scalar_is_skipped(tmp_path, scan):
+        write_large_scalar(tmp_path / "2026-06-18.json")
+        if scan == "resolved":
+            assert _resolved_pick_dates(tmp_path) == []
+        else:
+>           assert not _has_unconfirmed_miss(tmp_path, date(2026, 6, 16))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.codex-review/cs1-review/test_decoder_limits_r2.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/bts/contest_state.py:275: in _has_unconfirmed_miss
+    body = json.loads(path.read_text(encoding="utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <json.decoder.JSONDecoder object at 0x10ad8c980>
+s = '999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999...9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999'
+idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+    
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+    
+        """
+        try:
+>           obj, end = self.scan_once(s, idx)
+                       ^^^^^^^^^^^^^^^^^^^^^^
+E           ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit
+
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py:354: ValueError
+=========================== short test summary info ============================
+FAILED .codex-review/cs1-review/test_decoder_limits_r2.py::test_row5_large_json_scalar_cannot_block_observation[False-manual]
+FAILED .codex-review/cs1-review/test_decoder_limits_r2.py::test_row5_large_json_scalar_cannot_block_observation[False-auto]
+FAILED .codex-review/cs1-review/test_decoder_limits_r2.py::test_row5_large_json_scalar_cannot_block_observation[True-manual]
+FAILED .codex-review/cs1-review/test_decoder_limits_r2.py::test_row5_large_json_scalar_cannot_block_observation[True-auto]
+FAILED .codex-review/cs1-review/test_decoder_limits_r2.py::test_rows6_7_large_json_scalar_has_domain_error[False]
+FAILED .codex-review/cs1-review/test_decoder_limits_r2.py::test_rows6_7_large_json_scalar_has_domain_error[True]
+FAILED .codex-review/cs1-review/test_decoder_limits_r2.py::test_row1_large_json_scalar_is_skipped[resolved]
+FAILED .codex-review/cs1-review/test_decoder_limits_r2.py::test_row1_large_json_scalar_is_skipped[miss]
+============================== 8 failed in 0.08s ===============================

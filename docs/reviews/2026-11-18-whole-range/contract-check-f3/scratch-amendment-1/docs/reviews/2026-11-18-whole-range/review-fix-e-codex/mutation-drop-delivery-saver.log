@@ -1,0 +1,501 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-e-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 291 items
+
+tests/test_wr_e_texts.py .................F...............               [ 11%]
+tests/test_scheduler_skip_visibility.py ................................ [ 22%]
+.......                                                                  [ 24%]
+tests/test_scheduler_tail_objective.py .........                         [ 27%]
+tests/test_stale_delivery_cs4c.py ....FFFF...F....FF....FFFFFF..F.....FF [ 40%]
+FFFF..F.................                                                 [ 49%]
+tests/test_morning_state_cs6b1.py ...FFF................................ [ 62%]
+.......................                                                  [ 70%]
+tests/test_late_delivery_guard.py ........                               [ 72%]
+tests/test_postponed_delivery_guard.py ........................          [ 81%]
+tests/test_wr_b_contract.py ........................                     [ 89%]
+tests/scripts/season_walk/test_season_walk.py ..................         [ 95%]
+tests/test_lightgbm_optional.py .                                        [ 95%]
+tests/test_web_saver.py ............                                     [100%]
+
+=================================== FAILURES ===================================
+_________________ test_stale_warning_maximum_detail[delivery] __________________
+tests/test_wr_e_texts.py:104: in test_stale_warning_maximum_detail
+    assert "  STALE CONTEST READING — " + expected.split("- [contest_state] ")[1] in capsys.readouterr().err
+E   assert ('  STALE CONTEST READING — ' + 'The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 0001-01-01T00:00:00.0000...e or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.') in "  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetc...ason's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.\n"
+E    +  where "  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetc...ason's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.\n" = CaptureResult(out='', err="  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged...son's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.\n").err
+E    +    where CaptureResult(out='', err="  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged...son's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.\n") = readouterr()
+E    +      where readouterr = <_pytest.capture.CaptureFixture object at 0x10f589340>.readouterr
+_________ test_attempt_snapshot_and_confirmed_warning[20-old-False-dm] _________
+tests/test_stale_delivery_cs4c.py:134: in test_attempt_snapshot_and_confirmed_warning
+    alert.send_dm.assert_called_once_with("offline.test", envelope())
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+E     Actual: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+_______ test_attempt_snapshot_and_confirmed_warning[20-old-False-public] _______
+tests/test_stale_delivery_cs4c.py:134: in test_attempt_snapshot_and_confirmed_warning
+    alert.send_dm.assert_called_once_with("offline.test", envelope())
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+E     Actual: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+_________ test_attempt_snapshot_and_confirmed_warning[20-old-True-dm] __________
+tests/test_stale_delivery_cs4c.py:134: in test_attempt_snapshot_and_confirmed_warning
+    alert.send_dm.assert_called_once_with("offline.test", envelope())
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+E     Actual: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+_______ test_attempt_snapshot_and_confirmed_warning[20-old-True-public] ________
+tests/test_stale_delivery_cs4c.py:134: in test_attempt_snapshot_and_confirmed_warning
+    alert.send_dm.assert_called_once_with("offline.test", envelope())
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+E     Actual: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+___________________ test_missing_recipient_amendment[public] ___________________
+tests/test_stale_delivery_cs4c.py:190: in test_missing_recipient_amendment
+    assert PREFIX + message() in capsys.readouterr().err
+E   assert ('  STALE CONTEST READING — ' + 'The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:0...e or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.') in "  LOCKED (fixture) — Posted to Bluesky: at://post\n  STALE CONTEST READING — The pick was delivered using an automati...ason's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.\n"
+E    +  where 'The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:0...e or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.' = message()
+E    +  and   "  LOCKED (fixture) — Posted to Bluesky: at://post\n  STALE CONTEST READING — The pick was delivered using an automati...ason's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.\n" = CaptureResult(out='', err="  LOCKED (fixture) — Posted to Bluesky: at://post\n  STALE CONTEST READING — The pick was d...son's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.\n").err
+E    +    where CaptureResult(out='', err="  LOCKED (fixture) — Posted to Bluesky: at://post\n  STALE CONTEST READING — The pick was d...son's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.\n") = readouterr()
+E    +      where readouterr = <_pytest.capture.CaptureFixture object at 0x1173a3560>.readouterr
+_________ test_restart_preserves_existing_recovery[before_attempt-dm] __________
+tests/test_stale_delivery_cs4c.py:275: in test_restart_preserves_existing_recovery
+    alert.send_dm.assert_called_once_with("offline.test", envelope())
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+E     Actual: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (fixture) — Pick DM sent: pick-dm
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+_______ test_restart_preserves_existing_recovery[before_attempt-public] ________
+tests/test_stale_delivery_cs4c.py:275: in test_restart_preserves_existing_recovery
+    alert.send_dm.assert_called_once_with("offline.test", envelope())
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+E     Actual: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (fixture) — Posted to Bluesky: at://post
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+______________ test_warning_date_is_emission_date[before_send-dm] ______________
+tests/test_stale_delivery_cs4c.py:316: in test_warning_date_is_emission_date
+    alert.send_dm.assert_called_once_with("offline.test", envelope(day="2027-07-16", detail=detail))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-15T04:00:55-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-16 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-16. For a later date, follow B8b(1). On 2027-07-16 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+E     Actual: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-15T04:00:55-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-16 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-16. For a later date, follow B8b(1). On 2027-07-16 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (fixture) — Pick DM sent: midnight
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-15T04:00:55-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-16 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-16. For a later date, follow B8b(1). On 2027-07-16 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+____________ test_warning_date_is_emission_date[before_send-public] ____________
+tests/test_stale_delivery_cs4c.py:316: in test_warning_date_is_emission_date
+    alert.send_dm.assert_called_once_with("offline.test", envelope(day="2027-07-16", detail=detail))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-15T04:00:55-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-16 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-16. For a later date, follow B8b(1). On 2027-07-16 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+E     Actual: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-15T04:00:55-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-16 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-16. For a later date, follow B8b(1). On 2027-07-16 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (fixture) — Posted to Bluesky: midnight
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-15T04:00:55-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-16 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-16. For a later date, follow B8b(1). On 2027-07-16 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+______________ test_warning_date_is_emission_date[during_send-dm] ______________
+tests/test_stale_delivery_cs4c.py:316: in test_warning_date_is_emission_date
+    alert.send_dm.assert_called_once_with("offline.test", envelope(day="2027-07-16", detail=detail))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-15T03:59:55-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-16 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-16. For a later date, follow B8b(1). On 2027-07-16 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+E     Actual: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-15T03:59:55-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-16 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-16. For a later date, follow B8b(1). On 2027-07-16 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (fixture) — Pick DM sent: midnight
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-15T03:59:55-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-16 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-16. For a later date, follow B8b(1). On 2027-07-16 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+____________ test_warning_date_is_emission_date[during_send-public] ____________
+tests/test_stale_delivery_cs4c.py:316: in test_warning_date_is_emission_date
+    alert.send_dm.assert_called_once_with("offline.test", envelope(day="2027-07-16", detail=detail))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-15T03:59:55-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-16 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-16. For a later date, follow B8b(1). On 2027-07-16 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+E     Actual: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-15T03:59:55-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-16 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-16. For a later date, follow B8b(1). On 2027-07-16 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (fixture) — Posted to Bluesky: midnight
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-15T03:59:55-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-16 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-16. For a later date, follow B8b(1). On 2027-07-16 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+_ test_other_stale_warning_copy[not an ISO time-it has no usable recorded_at] __
+tests/test_stale_delivery_cs4c.py:331: in test_other_stale_warning_copy
+    alert.send_dm.assert_called_once_with("offline.test", envelope(detail=detail))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (it has no usable recorded_at). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+E     Actual: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (it has no usable recorded_at). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (fixture) — Pick DM sent: pick-dm
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (it has no usable recorded_at). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+_ test_other_stale_warning_copy[2027-07-15T23:00:00Z-its recorded_at 2027-07-15T23:00:00Z is in the future] _
+tests/test_stale_delivery_cs4c.py:331: in test_other_stale_warning_copy
+    alert.send_dm.assert_called_once_with("offline.test", envelope(detail=detail))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (its recorded_at 2027-07-15T23:00:00Z is in the future). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+E     Actual: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (its recorded_at 2027-07-15T23:00:00Z is in the future). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (fixture) — Pick DM sent: pick-dm
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (its recorded_at 2027-07-15T23:00:00Z is in the future). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+_______________ test_warning_failures_cannot_affect_pick[stderr] _______________
+tests/test_stale_delivery_cs4c.py:372: in test_warning_failures_cannot_affect_pick
+    alert.send_dm.assert_called_once_with("offline.test", envelope())
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+E     Actual: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+_________ test_run_day_chooses_delivers_and_warns_on_covered_old_file __________
+tests/test_stale_delivery_cs4c.py:414: in test_run_day_chooses_delivers_and_warns_on_covered_old_file
+    alert.send_dm.assert_called_once_with("offline.test", envelope())
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+E     Actual: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:35 ET] Fetching schedule for 2027-07-15...
+  2 games, 2 scheduled checks:
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:35 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Pick: Steven Kwan (CLE) 99.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: pick-dm
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 45 min)...
+  Day complete. Result: final
+_________ test_warning_dedup_with_two_independent_same_day_deliveries __________
+tests/test_stale_delivery_cs4c.py:439: in test_warning_dedup_with_two_independent_same_day_deliveries
+    alert.send_dm.assert_called_once_with("offline.test", first)
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+E     Actual: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (fixture) — Posted to Bluesky: at://post
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  LOCKED (fixture) — Posted to Bluesky: at://post
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+_______ test_warning_status_is_independent_of_critical_status[sent-sent] _______
+tests/test_stale_delivery_cs4c.py:473: in test_warning_status_is_independent_of_critical_status
+    alert.send_dm.assert_called_once_with("offline.test", envelope(detail=detail))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+E     Actual: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (fixture) — Posted to Bluesky: at://post
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+______ test_warning_status_is_independent_of_critical_status[sent-failed] ______
+tests/test_stale_delivery_cs4c.py:473: in test_warning_status_is_independent_of_critical_status
+    alert.send_dm.assert_called_once_with("offline.test", envelope(detail=detail))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+E     Actual: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (fixture) — Posted to Bluesky: at://post
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: critical transport failed
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-e-codex/.codex-review/wr-e/mutation-0e2dbp2n/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: critical transport failed
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+______ test_warning_status_is_independent_of_critical_status[failed-sent] ______
+tests/test_stale_delivery_cs4c.py:473: in test_warning_status_is_independent_of_critical_status
+    alert.send_dm.assert_called_once_with("offline.test", envelope(detail=detail))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+E     Actual: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (fixture) — Posted to Bluesky: at://post
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: WARN transport failed
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-e-codex/.codex-review/wr-e/mutation-0e2dbp2n/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: WARN transport failed
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+_____ test_warning_status_is_independent_of_critical_status[failed-failed] _____
+tests/test_stale_delivery_cs4c.py:473: in test_warning_status_is_independent_of_critical_status
+    alert.send_dm.assert_called_once_with("offline.test", envelope(detail=detail))
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:949: in assert_called_with
+    raise AssertionError(_error_message()) from cause
+E   AssertionError: expected call not found.
+E   Expected: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For active or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+E     Actual: mock('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.")
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (fixture) — Posted to Bluesky: at://post
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: critical transport failed
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-e-codex/.codex-review/wr-e/mutation-0e2dbp2n/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: critical transport failed
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: WARN transport failed
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-e-codex/.codex-review/wr-e/mutation-0e2dbp2n/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: WARN transport failed
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+_____________ test_failed_warning_retries_without_resurface_banner _____________
+tests/test_stale_delivery_cs4c.py:490: in test_failed_warning_retries_without_resurface_banner
+    assert [call.args for call in alert.send_dm.call_args_list] == [
+E   assert [('offline.te...tch status.')] == [('offline.te...tch status.')]
+E     
+E     At index 0 diff: ('offline.test', "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (fixture) — Posted to Bluesky: at://post
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  LOCKED (fixture) — Posted to Bluesky: at://post
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:35:00-04:00, about 20.00 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: WARN transport failed
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-e-codex/.codex-review/wr-e/mutation-0e2dbp2n/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1202, in _execute_mock_call
+    raise result
+RuntimeError: WARN transport failed
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+_________________ test_stale_warning_uses_each_snapshot[sent] __________________
+tests/test_morning_state_cs6b1.py:175: in test_stale_warning_uses_each_snapshot
+    assert f"  STALE CONTEST READING — {envelope(detail=delivery_detail).split('- [contest_state] ')[1]}" in err
+E   assert '  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetc...e or not_earned, run bts saver-state --use --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.' in "  [DM MODE] Public Bluesky posting disabled — picks sent by DM.\n[10:00 ET] Fetching schedule for 2027-07-15...\n  2 ...ake-up: Fri 07-16 10:00 ET\n  Waiting until 19:20 ET (game start + 10min, 190 min)...\n  Day complete. Result: final\n"
+________________ test_stale_warning_uses_each_snapshot[failed] _________________
+tests/test_morning_state_cs6b1.py:163: in test_stale_warning_uses_each_snapshot
+    assert events[:len(expected)] == expected
+E   assert [(datetime.da...tch status.')] == [(datetime.da...tch status.')]
+E     
+E     At index 3 diff: (datetime.datetime(2027, 7, 15, 16, 10, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=72000))), "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T14:00:00-04:00, about 26.17 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick'...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-07-15...
+  2 games, 6 scheduled checks:
+    16:10 ET — 1 game(s)
+    16:40 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    17:40 ET — 1 game(s)
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  MORNING STATE CHECK — stale contest reading: last accepted fetch 2027-07-14T14:00:00-04:00, about 20.00 hours ago
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Pick: Steven Kwan (CLE) 99.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: sent
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T14:00:00-04:00, about 26.17 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 190 min)...
+  Day complete. Result: final
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: offline morning WARN
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-e-codex/.codex-review/wr-e/mutation-0e2dbp2n/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-rev-e-codex/tests/test_morning_state_cs6b1.py", line 143, in health_send
+    raise RuntimeError("offline morning WARN")
+RuntimeError: offline morning WARN
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+____________ test_stale_warning_uses_each_snapshot[ages_into_stale] ____________
+tests/test_morning_state_cs6b1.py:163: in test_stale_warning_uses_each_snapshot
+    assert events[:len(expected)] == expected
+E   assert [(datetime.da...tch status.')] == [(datetime.da...tch status.')]
+E     
+E     At index 2 diff: (datetime.datetime(2027, 7, 15, 16, 10, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=72000))), "BTS health WARN attention:\n- [contest_state] The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:00:00-04:00, about 18.17 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick'...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-07-15...
+  2 games, 6 scheduled checks:
+    16:10 ET — 1 game(s)
+    16:40 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    17:40 ET — 1 game(s)
+    18:25 ET — 1 game(s)
+    18:55 ET — 1 game(s)
+  Morning state check: automatic contest state accepted (streak 30).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Pick: Steven Kwan (CLE) 99.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: sent
+  STALE CONTEST READING — The pick was delivered using an automatic contest reading flagged stale (last accepted fetch 2027-07-14T22:00:00-04:00, about 18.17 hours ago). Check MLB. If MLB differs from status (B8a), use bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir DIR. DIR is the absolute scheduler picks path. The sent pick and saver flag stay as they were. Write only if the pick's slate and today's ET date both equal 2027-07-15. For a later date, follow B8b(1). On 2027-07-15 ET away from midnight, if MLB shows this season's saver used, check bts saver-state --picks-dir DIR. For uninitialized, see B8a. Check the latest fetch status.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Fri 07-16 10:00 ET
+  Waiting until 19:20 ET (game start + 10min, 190 min)...
+  Day complete. Result: final
+=========================== short test summary info ============================
+FAILED tests/test_wr_e_texts.py::test_stale_warning_maximum_detail[delivery]
+FAILED tests/test_stale_delivery_cs4c.py::test_attempt_snapshot_and_confirmed_warning[20-old-False-dm]
+FAILED tests/test_stale_delivery_cs4c.py::test_attempt_snapshot_and_confirmed_warning[20-old-False-public]
+FAILED tests/test_stale_delivery_cs4c.py::test_attempt_snapshot_and_confirmed_warning[20-old-True-dm]
+FAILED tests/test_stale_delivery_cs4c.py::test_attempt_snapshot_and_confirmed_warning[20-old-True-public]
+FAILED tests/test_stale_delivery_cs4c.py::test_missing_recipient_amendment[public]
+FAILED tests/test_stale_delivery_cs4c.py::test_restart_preserves_existing_recovery[before_attempt-dm]
+FAILED tests/test_stale_delivery_cs4c.py::test_restart_preserves_existing_recovery[before_attempt-public]
+FAILED tests/test_stale_delivery_cs4c.py::test_warning_date_is_emission_date[before_send-dm]
+FAILED tests/test_stale_delivery_cs4c.py::test_warning_date_is_emission_date[before_send-public]
+FAILED tests/test_stale_delivery_cs4c.py::test_warning_date_is_emission_date[during_send-dm]
+FAILED tests/test_stale_delivery_cs4c.py::test_warning_date_is_emission_date[during_send-public]
+FAILED tests/test_stale_delivery_cs4c.py::test_other_stale_warning_copy[not an ISO time-it has no usable recorded_at]
+FAILED tests/test_stale_delivery_cs4c.py::test_other_stale_warning_copy[2027-07-15T23:00:00Z-its recorded_at 2027-07-15T23:00:00Z is in the future]
+FAILED tests/test_stale_delivery_cs4c.py::test_warning_failures_cannot_affect_pick[stderr]
+FAILED tests/test_stale_delivery_cs4c.py::test_run_day_chooses_delivers_and_warns_on_covered_old_file
+FAILED tests/test_stale_delivery_cs4c.py::test_warning_dedup_with_two_independent_same_day_deliveries
+FAILED tests/test_stale_delivery_cs4c.py::test_warning_status_is_independent_of_critical_status[sent-sent]
+FAILED tests/test_stale_delivery_cs4c.py::test_warning_status_is_independent_of_critical_status[sent-failed]
+FAILED tests/test_stale_delivery_cs4c.py::test_warning_status_is_independent_of_critical_status[failed-sent]
+FAILED tests/test_stale_delivery_cs4c.py::test_warning_status_is_independent_of_critical_status[failed-failed]
+FAILED tests/test_stale_delivery_cs4c.py::test_failed_warning_retries_without_resurface_banner
+FAILED tests/test_morning_state_cs6b1.py::test_stale_warning_uses_each_snapshot[sent]
+FAILED tests/test_morning_state_cs6b1.py::test_stale_warning_uses_each_snapshot[failed]
+FAILED tests/test_morning_state_cs6b1.py::test_stale_warning_uses_each_snapshot[ages_into_stale]
+======================= 25 failed, 266 passed in 43.12s ========================

@@ -1,0 +1,36 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 21 items
+
+tests/test_cli_integration.py ......F..............                      [100%]
+
+=================================== FAILURES ===================================
+________ TestCheckPickEntered.test_dm_countdown_uses_submission_cutoff _________
+
+self = <tests.test_cli_integration.TestCheckPickEntered object at 0x1106fab10>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x110720da0>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8077/test_dm_countdown_uses_submiss0')
+
+    def test_dm_countdown_uses_submission_cutoff(self, monkeypatch, tmp_path):
+        # BTS rejects submissions within 5 min of first pitch, so the true
+        # deadline is first pitch - 5. The DM countdown must report minutes to
+        # that cutoff, not minutes to first pitch.
+        dms = self._setup(monkeypatch, pending=[], crosswalk={100: 1})
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00", batter_id=1)
+    
+        r = self._run(picks, "2026-06-12T18:30:00")  # 40 min to first pitch -> 35 to cutoff
+        assert r.exit_code != 0
+        assert len(dms) == 1
+        msg = dms[0][1]
+>       assert "35 min to submit" in msg, msg
+E       AssertionError: ⚠️ BTS pick NOT entered in MLB app: Test Batter — first pitch 7:10 PM ET (40 min). Fix it now!
+E       assert '35 min to submit' in '⚠️ BTS pick NOT entered in MLB app: Test Batter — first pitch 7:10 PM ET (40 min). Fix it now!'
+
+tests/test_cli_integration.py:1152: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_cli_integration.py::TestCheckPickEntered::test_dm_countdown_uses_submission_cutoff
+========================= 1 failed, 20 passed in 1.43s =========================

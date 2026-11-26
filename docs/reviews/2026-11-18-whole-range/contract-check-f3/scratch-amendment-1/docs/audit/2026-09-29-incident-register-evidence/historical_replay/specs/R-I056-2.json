@@ -1,0 +1,53 @@
+{
+  "label": "R-I056-2",
+  "incident": "I-056",
+  "links": [
+    2
+  ],
+  "fix_set": [
+    "2b4ff1d"
+  ],
+  "tests": [
+    "tests/test_contest_state.py::test_lagged_contest_uses_contest_value_keeps_doubles",
+    "tests/test_contest_state.py::test_lagged_contest_model_does_not_inflate",
+    "tests/test_contest_state.py::test_missing_source_date_is_conservative_not_fail_open",
+    "tests/test_contest_state.py::test_missing_source_date_is_stale_but_keeps_doubles",
+    "tests/test_contest_state.py::test_model_never_inflates_decision_streak",
+    "tests/test_contest_state.py::test_two_pick_gap_is_stale",
+    "tests/test_contest_state.py::test_unconfirmed_local_miss_marks_stale",
+    "tests/test_contest_state.py::test_unexpired_override_drives_decision_with_status",
+    "-q"
+  ],
+  "symptom_nodes": [
+    {
+      "node": "tests/test_contest_state.py::test_lagged_contest_uses_contest_value_keeps_doubles",
+      "assertion": {
+        "path": "tests/test_contest_state.py",
+        "text": "assert state.allow_double is True",
+        "line": 84
+      }
+    },
+    {
+      "node": "tests/test_contest_state.py::test_lagged_contest_model_does_not_inflate",
+      "assertion": {
+        "path": "tests/test_contest_state.py",
+        "text": "assert state.streak == 7",
+        "line": 98
+      }
+    }
+  ],
+  "audit": {
+    "tests/test_contest_state.py": {
+      "decision": "neutral",
+      "reason": "2b4ff1d rewrites the three tests that encoded the stale-branch freeze (now lagged/keeps-doubles/stale-but-keeps-doubles) and adds the keystone, two-pick-gap, unconfirmed-miss and override tests; they call only bts.contest_state functions present at the parent aba6f41 with the same signatures (load_decision_streak_state accepts now=), and _write_pick is test-local, so the parent's src runs them unchanged"
+    }
+  },
+  "deployed_ref": {
+    "sha": "9958874",
+    "basis": "candidate_ancestry"
+  },
+  "env": {
+    "TZ": "America/New_York"
+  },
+  "notes": "Symptoms: the parent aba6f41's stale branch of load_decision_streak_state returns streak=max(model_streak, contest.streak), saver False, allow_double False. (1) test_lagged_contest_uses_contest_value_keeps_doubles is the I-056 shape (manual_screenshot contest 7 at source_date 2026-05-28, a pick resolved 2026-05-29, model 5, no auto file, so the legacy manual file is the selected observation and it is stale): the parent returns max(5,7)=7, so line 83 passes and line 84 fails because doubles are frozen. (2) test_lagged_contest_model_does_not_inflate (model 12, contest 7) gets max(12,7)=12 and fails at line 98. Static checks: the tests import only load_decision_streak_state, contest_state_is_fresh and load_contest_streak_state, all at aba6f41; bts.picks.load_streak/load_saver_available read streak.json the same way. Anchors at 2b4ff1d: 'assert state.allow_double is True' occurs 6 times (line 84 is inside the symptom test), 'assert state.streak == 7' 3 times (line 98 is inside the symptom test). Other selected nodes at the parent: test_model_never_inflates_decision_streak (line 214), test_two_pick_gap_is_stale (line 230) and test_missing_source_date_is_stale_but_keeps_doubles (line 196) also fail by assertion on the same branch (not declared; the keystone is I-063's and is declared in R-I063-1); the other three pass. 2b4ff1d is also the first commit of I-063 link 1's fix set (R-I063-1)."
+}

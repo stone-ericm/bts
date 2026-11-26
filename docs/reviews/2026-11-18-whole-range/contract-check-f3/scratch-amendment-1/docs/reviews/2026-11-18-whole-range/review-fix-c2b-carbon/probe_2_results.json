@@ -1,0 +1,14 @@
+{
+  "e897c766_mismatches_line": "12 mismatches across 126 route cases.",
+  "e897c766_probe_receipt_identity_exit": 0,
+  "head_full_matrix_mismatches": 0,
+  "head_full_matrix_route_cases": 128,
+  "head_probe_receipt_correction_exit": 0,
+  "head_probe_receipt_identity_unmodified_5key_shape_note": "Exits 1 at line 142 (assert json.loads(after) == SHAPE | {'message_id': 'fresh-id'}) because HEAD writes 6-key receipt with body_sha256",
+  "reverse_dedup": {
+    "new_year_rollover:classification": "deduped_across_5_encounters_and_midnight",
+    "new_year_rollover:direct": "deduped_across_5_encounters_and_midnight",
+    "ordinary_midnight:classification": "deduped_across_5_encounters_and_midnight",
+    "ordinary_midnight:direct": "deduped_across_5_encounters_and_midnight"
+  }
+}

@@ -1,0 +1,37 @@
+# Adversarial review, round 1: probable-pitcher cache fix (`b0c11135`)
+
+## Verdict
+**SIGN** (for the retained cache-write half in `src/bts/features/compute.py`; when reverting the withdrawn `src/bts/state/regenerate.py` half to `df454725`, also remove the void tests and imports in `tests/test_leads_small_fixes.py:14-15,98-130`).
+
+## Blocking findings
+None on the cache-write change.
+
+## Notes
+- **N1 — Same-PID temp-file collision (`src/bts/features/compute.py:107-114`):** `.probable_pitcher_lookup.json.<pid>.tmp` keys only on `os.getpid()`. Separate OS processes never collide, and no production path calls `_build_probable_pitcher_lookup` across threads (`src/bts/web.py` never imports `compute` or `predict`), so live runs are unaffected; however, two concurrent calls in one PID share `tmp` and fail with `FileNotFoundError` at `os.replace` (`probe_cache_edges.py`). Including `threading.get_ident()` (or `tempfile.NamedTemporaryFile(dir=..., delete=False)` + mode) avoids intra-process collision if threading is ever introduced.
+- **N2 — Warning when `raw_dir` yields nothing to write (`src/bts/features/compute.py:66-75,105`):** When the cache is unreadable and `raw_dir` is missing or `new_count == 0`, stderr prints `; rebuilding it from raw feeds` before returning `{}` with the unreadable file left on disk (`new_count == 0` skips replacement), repeating once per `run_pipeline` until a feed is scanned or `bts data sync-from-r2` replaces the cache.
+- **N3 — Non-dict values under numeric keys (`src/bts/features/compute.py:60-61,476`):** Unchanged from `df454725`: `{"776135": null}` loads into `lookup` without warning, skips `776135.json`, and raises `AttributeError` in `compute_all_features` (`probable_pitchers.get(pk, {}).get("away")`) when `df` contains `game_pk == 776135`.
+- **N4 — `BaseException` cleanup and `os.replace` failure gaps (`tests/test_leads_small_fixes.py:34-85`):** Replacing `finally:` with `except Exception:` (`m8_cleanup_exception_only`) passed all 14 tests while leaking `.tmp` on `KeyboardInterrupt`/`SystemExit`; `os.replace` failure and `captured.out == ""` are also unasserted. Cache-only regressions ready to adopt after reverting `regenerate.py` are in `.codex-review/leads-review/adopt/test_probable_cache_review.py`.
+
+## The cache
+- **Equivalence (`df454725` vs `b0c11135`):** Identical returned `lookup` dicts and byte-for-byte identical JSON caches across synthetic raw trees (first build, incremental cached-ID skip, nothing-new mtime preservation, missing `raw_dir` with/without cache) and copies of the real cache (`5,095` entries, `397,371` bytes, sha256 `451f5257…`) plus `10` real 2025 feeds (`776135`–`776144`: full cache no-op, 5-ID evicted incremental rebuild matching original entries, fresh build, missing `raw_dir`).
+- **Interruptions:** Verified across pre-write `ENOSPC`, mid-write torn bytes (`OSError`, `KeyboardInterrupt`, `SystemExit`), pre-`os.replace` failure (`OSError`, `KeyboardInterrupt`, `SystemExit`), and post-`os.replace` `KeyboardInterrupt`. Published cache was always complete old bytes (preserving cache-only historical IDs that `df454725` silently lost on rebuild) or complete new bytes, with no `.tmp` file left behind (`SIGKILL` can leave an inert `.probable_pitcher_lookup.json.<pid>.tmp` dotfile ignored by all `data/models` readers and truncated if the PID wraps).
+- **Concurrent processes:** Two spawned worker processes (`15` incremental writes each) under a continuous reader loop produced `0` torn reads and distinct temp names (`.race_mp.json.78754.tmp` vs `.race_mp.json.78756.tmp`). Simultaneous read-modify-write remains last-writer-wins as in `df454725`; any local `data/raw` feed missed by the winning snapshot is added on the next scan.
+- **Permissions, symlinks, malformed JSON, stderr, and mode:**
+  - Read-only `models/` (`0o555`): reads succeed when `new_count == 0`; writes raise `PermissionError` with existing cache bytes intact and no `.tmp` left.
+  - Symlinks: `df454725` wrote through a symlink and mutated its target; `b0c11135`'s `os.replace` replaces a valid or dangling symlink with a regular file while leaving any target untouched. Safe for `bts data sync` (`sync_to_r2` hashes/uploads the file; `sync_from_r2` at `src/bts/data/sync.py:365-374` already uses `.part` + `os.replace`).
+  - Malformed caches: truncated JSON (`JSONDecodeError`), `[]`/`null`/`42` (`AttributeError`), and `{"50": …, "bad": …}` (`ValueError`) reset `lookup = {}`, rebuild from `raw_dir`, emit one `WARNING:` line to `sys.stderr`, and write nothing to `stdout`.
+  - Callers & volume: `_build_probable_pitcher_lookup` runs once per `compute_all_features` / `run_pipeline` (`1` call in `bts run`, `bts preview`, `bts predict-json`; `1` per scheduler lineup check + `1` daily shadow run), repairing the file on the first run when `new_count > 0`. `ssh_predict` (`src/bts/orchestrator.py:65`) parses `stdout` only; `web.py` never calls `compute`.
+  - File mode: `tmp.write_text` creates `0o666 & ~umask` (`0o644`), matching `df454725` creation and `sync_from_r2` (overwriting a `0o600` file resets to `0o644`; scheduler and cron run as the same `bts` user on Hetzner).
+
+## The void reply
+The void-reply half (`src/bts/state/regenerate.py`) was withdrawn by the lead while this review was running; further work on it was stopped.
+
+## Tests and false greens
+- **Base (`df454725`):** `7 failed, 7 passed` on `tests/test_leads_small_fixes.py` (`3` cache failures: interrupted write, atomic `os.replace` spy, unreadable-cache stderr warning; `4` void failures; `7` controls passed).
+- **Mutants:** `m1_write_in_place` (`2 failed`), `m2_no_tmp_cleanup` (`1 failed`), `m3_drop_warning` (`1 failed`), and `m4_swallow_write_error` (`1 failed`) were caught by `tests/test_leads_small_fixes.py`. `m8_cleanup_exception_only` (`except Exception:` instead of `finally:`) passed `tests/test_leads_small_fixes.py` (`14 passed`) and failed `adopt/test_probable_cache_review.py` (`2 failed`). (Prior to withdrawal, `m5_void_substring_search` also passed `tests/test_leads_small_fixes.py` because `"Avoid. Streak: 3"` has lowercase `v`, while `m6`/`m7a`/`m7b` failed.)
+- **Compatibility, single-process, LightGBM-optional, and 2027/2028 clocks:** Tests patching `_probable_pitcher_cache_path`, `atomic_write_text`, framing closed inputs, and R2 sync passed (`768 passed`). Single-process combined suite (`test_leads_small_fixes.py`, `adopt/`, `test_state_*`, `test_lightgbm_optional.py`, `test_web_saver.py`, and feature tests) passed (`194 passed, 2 skipped`) at current clock, `2027-06-15`, and `2028-02-29` (`datetime`, `pandas`, and `time` verified), and `--collect-only` succeeded with `lightgbm` blocked; standalone `adopt/test_probable_cache_review.py` passed (`7 passed`).
+
+## What I ran
+- `.venv/bin/python .codex-review/leads-review/probe_cache.py` (exposed same-PID temp collision), `probe_cache_edges.py`, and `probe_cache_real_summary.py` (`probe_cache_edges_results.json`, `probe_cache_summary.json`).
+- `.venv/bin/python .codex-review/leads-review/probe_void.py` and `probe_mutants.py` (prior to void withdrawal; `probe_void_results.json`).
+- `~/bts-runs/yield_run.sh` pytest runs: `pytest_smoke.log` (`14 passed`), `pytest_matrix.log` (base, mutants `m1`–`m8`, `768 passed` patch/sync, `194 passed, 2 skipped` combined + `2027-06-15` + `2028-02-29`, no-`lightgbm` collect), and `pytest_adopt_cache.log` (`7 passed`).

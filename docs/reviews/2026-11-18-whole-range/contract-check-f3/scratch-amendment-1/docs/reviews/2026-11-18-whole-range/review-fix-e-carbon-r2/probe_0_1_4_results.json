@@ -1,0 +1,153 @@
+{
+  "exact_runtime_texts": {
+    "E1_K2_BL_N3": "exact",
+    "E1_K1_real_tail_stop": "exact",
+    "E1_K3_real_top_bin": "exact",
+    "E1_K4_real_all_skip": "exact",
+    "E1_K5_real_no_eligible": "exact",
+    "E2_old_max_lengths": {
+      "delivery": 881,
+      "morning": 882
+    },
+    "E2_future_max_lengths": {
+      "delivery": 865,
+      "morning": 866
+    },
+    "E2_unreadable_lengths": {
+      "delivery": 732,
+      "morning": 733
+    },
+    "E3_refusals": "exact"
+  },
+  "round1_and_operator_states": {
+    "codex_B1_morning_settlement": {
+      "action_after_settled_miss": "double",
+      "status": "fixed"
+    },
+    "post_midnight_c1_and_5a": {
+      "yesterday_date_exit": 2,
+      "c1_command_free": true,
+      "dated_change_refuses_saved_pick": true
+    },
+    "codex_B2_carbon_B6_N4": "fixed",
+    "codex_B3_carbon_B2_a5_text": "fixed",
+    "saver_matrix": {
+      "uninitialized": {
+        "exit": 1,
+        "final_live": "uninitialized",
+        "out": "Error: saver is uninitialized; run `bts saver-state --init used --season 2027`"
+      },
+      "not_earned": {
+        "exit": 0,
+        "final_live": "used",
+        "out": "Marked saver used (it was not_earned). To take this back run `bts saver-state --init not_earned --force --season 2027`."
+      },
+      "active": {
+        "exit": 0,
+        "final_live": "used",
+        "out": "Marked saver used."
+      },
+      "used": {
+        "exit": 0,
+        "final_live": "used",
+        "out": "Saver is already used."
+      }
+    },
+    "carbon_B3_b4_drill": {
+      "exit": 1,
+      "dm_sent": true,
+      "live_decision_intact": true
+    },
+    "A7_and_B8d_cron_switch": {
+      "research_lines": 19,
+      "enter_lines": 20,
+      "show_before_later_install_had_research_lines": true,
+      "a7_0830_state": "delivered_under_research"
+    },
+    "codex_B4_rev_parse_main": {
+      "caught_mismatch": true
+    },
+    "codex_B5_december_revoke": {
+      "dec_2026_exit": 2,
+      "jan_2027_exit": 0
+    },
+    "deploy_yml_shims": {
+      "canary_pass": {
+        "exit": 0,
+        "box_head_is": "target",
+        "origin_deploy_is": "target",
+        "canary_passed_printed": true,
+        "rolled_back_printed": false
+      },
+      "canary_fail": {
+        "exit": 1,
+        "box_head_is": "old",
+        "origin_deploy_is": "target",
+        "canary_passed_printed": false,
+        "rolled_back_printed": true
+      },
+      "early_sync_fail": {
+        "exit": 1,
+        "box_head_is": "target",
+        "origin_deploy_is": "target",
+        "canary_passed_printed": false,
+        "rolled_back_printed": false
+      }
+    },
+    "cookie_probe": {
+      "cli_rate_limit": {
+        "exit": 2,
+        "line": "fetch-contest-streak: auth/login RATE-LIMITED \u2014 back off: do not re-run manually and do not re-capture cookies; investigate request volume if it persists. (429)"
+      },
+      "cli_transient": {
+        "exit": 2,
+        "line": "fetch-contest-streak: auth/login transient upstream failure \u2014 cookie refresh NOT indicated unless this persists across runs. (503)"
+      },
+      "cli_auth": {
+        "exit": 2,
+        "line": "fetch-contest-streak: auth/cookie error \u2014 refresh via capture_bts_cookies.py on Mac. (expired)"
+      },
+      "synced_repo_capture_exit": 1,
+      "synced_repo_capture_err": "ModuleNotFoundError: No module named 'playwright'",
+      "scratch_uv_repro": {
+        "lock_rc": 0,
+        "venv_rc": 0,
+        "direct_venv_before_uv_run_rc": 0,
+        "uv_run_rc": 0,
+        "uv_run_stderr": "",
+        "playwright_still_in_venv_after_uv_run": true
+      },
+      "without_print_stdout": "",
+      "without_print_files_created": [],
+      "keychain_called": true
+    },
+    "systemd_probe": {
+      "gnu_linux_install": {
+        "exit": 0,
+        "stdout": "bts-dashboard.service: already current\nbts-lineup-collect.service: installed\nbts-live-forward-capture.service: installed\nbts-live-forward-resolve.service: installed\nbts-scheduler.service: already current\nbts-shadow-prediction.service: installed\ndaemon-reload done. Units NOT restarted \u2014 use the deploy workflow,\nor 'systemctl --user restart <unit>' deliberately.",
+        "stderr": "",
+        "units_at_internal_daemon_reload": {
+          "bts-dashboard.service": "regular_file",
+          "bts-leaderboard.service": "symlink->/dev/null",
+          "bts-leaderboard.timer": "symlink->/dev/null",
+          "bts-lineup-collect.service": "regular_file",
+          "bts-live-forward-capture.service": "regular_file",
+          "bts-live-forward-resolve.service": "regular_file",
+          "bts-scheduler.service": "regular_file",
+          "bts-shadow-prediction.service": "regular_file"
+        }
+      },
+      "macos_bsd_install": {
+        "exit": 71,
+        "stdout": "bts-dashboard.service: already current",
+        "stderr": "install: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmposj9bg8j/home/.config/systemd/user/bts-lineup-collect.service: Inappropriate file type or format",
+        "units_at_internal_daemon_reload": null
+      },
+      "b8e_leaderboard_install_over_mask": {
+        "exit": 1,
+        "stderr": "Failed to enable unit: Unit file bts-leaderboard.timer is masked.",
+        "still_symlink_to_devnull": true
+      }
+    }
+  }
+}

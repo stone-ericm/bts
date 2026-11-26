@@ -1,0 +1,1478 @@
+{
+  "backtest_p_both_distribution": {
+    "max": 0.7891617129193708,
+    "mean": 0.6512942408743904,
+    "min": 0.5237872683369499,
+    "n": 902,
+    "q10": 0.6050549119613613,
+    "q50": 0.6516455294752423,
+    "q90": 0.6979236958444106
+  },
+  "current": {
+    "2021": {
+      "expected_max_streak": 23.795018233913122,
+      "reach_probability": {
+        "10": 0.9997403638171326,
+        "20": 0.7169314770932613,
+        "30": 0.17043836272315116,
+        "40": 0.03153546850517929,
+        "57": 0.0013665426547281438
+      },
+      "realized_replay": {
+        "changed_dates": 0,
+        "double_dates": 101,
+        "final_streak": 0,
+        "longest_streak": 31,
+        "saver_available_final": false
+      },
+      "support_diagnostics": {
+        "changed_date_count": 0,
+        "changed_qbin_counts": {},
+        "changed_qbin_mass": {},
+        "changed_state_count": 0,
+        "changed_state_mass": 0.0,
+        "double_date_count": 182,
+        "double_state_count": 2386,
+        "no_double_candidate_state_count": 10,
+        "probability": 0.0013665426547281438
+      }
+    },
+    "2022": {
+      "expected_max_streak": 23.718322348175302,
+      "reach_probability": {
+        "10": 0.9997116273836507,
+        "20": 0.7081997702669369,
+        "30": 0.1703745541229938,
+        "40": 0.03172322467980624,
+        "57": 0.0013459954202944902
+      },
+      "realized_replay": {
+        "changed_dates": 0,
+        "double_dates": 101,
+        "final_streak": 0,
+        "longest_streak": 23,
+        "saver_available_final": false
+      },
+      "support_diagnostics": {
+        "changed_date_count": 0,
+        "changed_qbin_counts": {},
+        "changed_qbin_mass": {},
+        "changed_state_count": 0,
+        "changed_state_mass": 0.0,
+        "double_date_count": 179,
+        "double_state_count": 2426,
+        "no_double_candidate_state_count": 33,
+        "probability": 0.0013459954202944902
+      }
+    },
+    "2023": {
+      "expected_max_streak": 23.64961570226429,
+      "reach_probability": {
+        "10": 0.9995485709670113,
+        "20": 0.7054637320746755,
+        "30": 0.16612509751649754,
+        "40": 0.031082421525195827,
+        "57": 0.0015332042035157189
+      },
+      "realized_replay": {
+        "changed_dates": 0,
+        "double_dates": 57,
+        "final_streak": 0,
+        "longest_streak": 32,
+        "saver_available_final": false
+      },
+      "support_diagnostics": {
+        "changed_date_count": 0,
+        "changed_qbin_counts": {},
+        "changed_qbin_mass": {},
+        "changed_state_count": 0,
+        "changed_state_mass": 0.0,
+        "double_date_count": 181,
+        "double_state_count": 2380,
+        "no_double_candidate_state_count": 21,
+        "probability": 0.0015332042035157189
+      }
+    },
+    "2024": {
+      "expected_max_streak": 23.335818063903858,
+      "reach_probability": {
+        "10": 0.999472160479152,
+        "20": 0.686712135612619,
+        "30": 0.15536289190293623,
+        "40": 0.02777140191471671,
+        "57": 0.0013300012108925223
+      },
+      "realized_replay": {
+        "changed_dates": 0,
+        "double_dates": 73,
+        "final_streak": 0,
+        "longest_streak": 36,
+        "saver_available_final": false
+      },
+      "support_diagnostics": {
+        "changed_date_count": 0,
+        "changed_qbin_counts": {},
+        "changed_qbin_mass": {},
+        "changed_state_count": 0,
+        "changed_state_mass": 0.0,
+        "double_date_count": 185,
+        "double_state_count": 2334,
+        "no_double_candidate_state_count": 16,
+        "probability": 0.0013300012108925223
+      }
+    },
+    "2025": {
+      "expected_max_streak": 23.531160064561327,
+      "reach_probability": {
+        "10": 0.9996468982482635,
+        "20": 0.6985817619676615,
+        "30": 0.15986345114843056,
+        "40": 0.029713784020848868,
+        "57": 0.0012580066309751676
+      },
+      "realized_replay": {
+        "changed_dates": 0,
+        "double_dates": 84,
+        "final_streak": 0,
+        "longest_streak": 36,
+        "saver_available_final": false
+      },
+      "support_diagnostics": {
+        "changed_date_count": 0,
+        "changed_qbin_counts": {},
+        "changed_qbin_mass": {},
+        "changed_state_count": 0,
+        "changed_state_mass": 0.0,
+        "double_date_count": 184,
+        "double_state_count": 2463,
+        "no_double_candidate_state_count": 18,
+        "probability": 0.0012580066309751676
+      }
+    }
+  },
+  "floors": {
+    "0.40": {
+      "decision_details": {
+        "active_support": {
+          "10": {
+            "active_seasons": [
+              "2021",
+              "2022",
+              "2023",
+              "2024",
+              "2025"
+            ],
+            "aggregate_gap": 0.0,
+            "min_relative_gap": 0.0,
+            "negative_active_seasons": 0
+          },
+          "20": {
+            "active_seasons": [
+              "2021",
+              "2022",
+              "2023",
+              "2024",
+              "2025"
+            ],
+            "aggregate_gap": 0.0,
+            "min_relative_gap": 0.0,
+            "negative_active_seasons": 0
+          },
+          "30": {
+            "active_seasons": [
+              "2021",
+              "2022",
+              "2023",
+              "2024",
+              "2025"
+            ],
+            "aggregate_gap": 0.0,
+            "min_relative_gap": 0.0,
+            "negative_active_seasons": 0
+          }
+        }
+      },
+      "gaps": {
+        "aggregate": {
+          "catastrophic_regression_seasons": [],
+          "changed_decision_seasons": 0,
+          "mean_expected_max_gap": 0.0,
+          "negative_expected_max_seasons": 0,
+          "reach_aggregate_gaps": {
+            "10": 0.0,
+            "20": 0.0,
+            "30": 0.0,
+            "40": 0.0,
+            "57": 0.0
+          },
+          "total_changed_decision_dates": 0
+        },
+        "per_season": {
+          "2021": {
+            "changed_decision_dates": 0,
+            "changed_qbin_counts": {},
+            "changed_qbin_mass": {},
+            "changed_state_count": 0,
+            "changed_state_mass": 0.0,
+            "current_expected_max_streak": 23.795018233913122,
+            "expected_max_gap": 0.0,
+            "guardrail_expected_max_streak": 23.795018233913122,
+            "reach_gap": {
+              "10": 0.0,
+              "20": 0.0,
+              "30": 0.0,
+              "40": 0.0,
+              "57": 0.0
+            }
+          },
+          "2022": {
+            "changed_decision_dates": 0,
+            "changed_qbin_counts": {},
+            "changed_qbin_mass": {},
+            "changed_state_count": 0,
+            "changed_state_mass": 0.0,
+            "current_expected_max_streak": 23.718322348175302,
+            "expected_max_gap": 0.0,
+            "guardrail_expected_max_streak": 23.718322348175302,
+            "reach_gap": {
+              "10": 0.0,
+              "20": 0.0,
+              "30": 0.0,
+              "40": 0.0,
+              "57": 0.0
+            }
+          },
+          "2023": {
+            "changed_decision_dates": 0,
+            "changed_qbin_counts": {},
+            "changed_qbin_mass": {},
+            "changed_state_count": 0,
+            "changed_state_mass": 0.0,
+            "current_expected_max_streak": 23.64961570226429,
+            "expected_max_gap": 0.0,
+            "guardrail_expected_max_streak": 23.64961570226429,
+            "reach_gap": {
+              "10": 0.0,
+              "20": 0.0,
+              "30": 0.0,
+              "40": 0.0,
+              "57": 0.0
+            }
+          },
+          "2024": {
+            "changed_decision_dates": 0,
+            "changed_qbin_counts": {},
+            "changed_qbin_mass": {},
+            "changed_state_count": 0,
+            "changed_state_mass": 0.0,
+            "current_expected_max_streak": 23.335818063903858,
+            "expected_max_gap": 0.0,
+            "guardrail_expected_max_streak": 23.335818063903858,
+            "reach_gap": {
+              "10": 0.0,
+              "20": 0.0,
+              "30": 0.0,
+              "40": 0.0,
+              "57": 0.0
+            }
+          },
+          "2025": {
+            "changed_decision_dates": 0,
+            "changed_qbin_counts": {},
+            "changed_qbin_mass": {},
+            "changed_state_count": 0,
+            "changed_state_mass": 0.0,
+            "current_expected_max_streak": 23.531160064561327,
+            "expected_max_gap": 0.0,
+            "guardrail_expected_max_streak": 23.531160064561327,
+            "reach_gap": {
+              "10": 0.0,
+              "20": 0.0,
+              "30": 0.0,
+              "40": 0.0,
+              "57": 0.0
+            }
+          }
+        }
+      },
+      "label": "UNDERPOWERED_TRIGGER_OVERLAP",
+      "realized_replay": {
+        "2021": {
+          "changed_dates": 0,
+          "double_dates": 101,
+          "final_streak": 0,
+          "longest_streak": 31,
+          "saver_available_final": false
+        },
+        "2022": {
+          "changed_dates": 0,
+          "double_dates": 101,
+          "final_streak": 0,
+          "longest_streak": 23,
+          "saver_available_final": false
+        },
+        "2023": {
+          "changed_dates": 0,
+          "double_dates": 57,
+          "final_streak": 0,
+          "longest_streak": 32,
+          "saver_available_final": false
+        },
+        "2024": {
+          "changed_dates": 0,
+          "double_dates": 73,
+          "final_streak": 0,
+          "longest_streak": 36,
+          "saver_available_final": false
+        },
+        "2025": {
+          "changed_dates": 0,
+          "double_dates": 84,
+          "final_streak": 0,
+          "longest_streak": 36,
+          "saver_available_final": false
+        }
+      },
+      "reasons": [
+        "floor lacks pre-registered trigger support"
+      ],
+      "trigger_overlap": {
+        "by_season": {
+          "2021": {
+            "eligible_days": 181,
+            "trigger_days": 0,
+            "trigger_fraction": 0.0
+          },
+          "2022": {
+            "eligible_days": 178,
+            "trigger_days": 0,
+            "trigger_fraction": 0.0
+          },
+          "2023": {
+            "eligible_days": 180,
+            "trigger_days": 0,
+            "trigger_fraction": 0.0
+          },
+          "2024": {
+            "eligible_days": 182,
+            "trigger_days": 0,
+            "trigger_fraction": 0.0
+          },
+          "2025": {
+            "eligible_days": 181,
+            "trigger_days": 0,
+            "trigger_fraction": 0.0
+          }
+        },
+        "eligible_days": 902,
+        "floor": 0.4,
+        "p_both": {
+          "max": 0.7891617129193708,
+          "mean": 0.6512942408743904,
+          "min": 0.5237872683369499,
+          "n": 902
+        },
+        "seasons_with_ge5_triggers": 0,
+        "sufficient_trigger_overlap": false,
+        "trigger_days": 0,
+        "trigger_fraction": 0.0
+      }
+    },
+    "0.50": {
+      "decision_details": {
+        "active_support": {
+          "10": {
+            "active_seasons": [
+              "2021",
+              "2022",
+              "2023",
+              "2024",
+              "2025"
+            ],
+            "aggregate_gap": 0.0,
+            "min_relative_gap": 0.0,
+            "negative_active_seasons": 0
+          },
+          "20": {
+            "active_seasons": [
+              "2021",
+              "2022",
+              "2023",
+              "2024",
+              "2025"
+            ],
+            "aggregate_gap": 0.0,
+            "min_relative_gap": 0.0,
+            "negative_active_seasons": 0
+          },
+          "30": {
+            "active_seasons": [
+              "2021",
+              "2022",
+              "2023",
+              "2024",
+              "2025"
+            ],
+            "aggregate_gap": 0.0,
+            "min_relative_gap": 0.0,
+            "negative_active_seasons": 0
+          }
+        }
+      },
+      "gaps": {
+        "aggregate": {
+          "catastrophic_regression_seasons": [],
+          "changed_decision_seasons": 0,
+          "mean_expected_max_gap": 0.0,
+          "negative_expected_max_seasons": 0,
+          "reach_aggregate_gaps": {
+            "10": 0.0,
+            "20": 0.0,
+            "30": 0.0,
+            "40": 0.0,
+            "57": 0.0
+          },
+          "total_changed_decision_dates": 0
+        },
+        "per_season": {
+          "2021": {
+            "changed_decision_dates": 0,
+            "changed_qbin_counts": {},
+            "changed_qbin_mass": {},
+            "changed_state_count": 0,
+            "changed_state_mass": 0.0,
+            "current_expected_max_streak": 23.795018233913122,
+            "expected_max_gap": 0.0,
+            "guardrail_expected_max_streak": 23.795018233913122,
+            "reach_gap": {
+              "10": 0.0,
+              "20": 0.0,
+              "30": 0.0,
+              "40": 0.0,
+              "57": 0.0
+            }
+          },
+          "2022": {
+            "changed_decision_dates": 0,
+            "changed_qbin_counts": {},
+            "changed_qbin_mass": {},
+            "changed_state_count": 0,
+            "changed_state_mass": 0.0,
+            "current_expected_max_streak": 23.718322348175302,
+            "expected_max_gap": 0.0,
+            "guardrail_expected_max_streak": 23.718322348175302,
+            "reach_gap": {
+              "10": 0.0,
+              "20": 0.0,
+              "30": 0.0,
+              "40": 0.0,
+              "57": 0.0
+            }
+          },
+          "2023": {
+            "changed_decision_dates": 0,
+            "changed_qbin_counts": {},
+            "changed_qbin_mass": {},
+            "changed_state_count": 0,
+            "changed_state_mass": 0.0,
+            "current_expected_max_streak": 23.64961570226429,
+            "expected_max_gap": 0.0,
+            "guardrail_expected_max_streak": 23.64961570226429,
+            "reach_gap": {
+              "10": 0.0,
+              "20": 0.0,
+              "30": 0.0,
+              "40": 0.0,
+              "57": 0.0
+            }
+          },
+          "2024": {
+            "changed_decision_dates": 0,
+            "changed_qbin_counts": {},
+            "changed_qbin_mass": {},
+            "changed_state_count": 0,
+            "changed_state_mass": 0.0,
+            "current_expected_max_streak": 23.335818063903858,
+            "expected_max_gap": 0.0,
+            "guardrail_expected_max_streak": 23.335818063903858,
+            "reach_gap": {
+              "10": 0.0,
+              "20": 0.0,
+              "30": 0.0,
+              "40": 0.0,
+              "57": 0.0
+            }
+          },
+          "2025": {
+            "changed_decision_dates": 0,
+            "changed_qbin_counts": {},
+            "changed_qbin_mass": {},
+            "changed_state_count": 0,
+            "changed_state_mass": 0.0,
+            "current_expected_max_streak": 23.531160064561327,
+            "expected_max_gap": 0.0,
+            "guardrail_expected_max_streak": 23.531160064561327,
+            "reach_gap": {
+              "10": 0.0,
+              "20": 0.0,
+              "30": 0.0,
+              "40": 0.0,
+              "57": 0.0
+            }
+          }
+        }
+      },
+      "label": "UNDERPOWERED_TRIGGER_OVERLAP",
+      "realized_replay": {
+        "2021": {
+          "changed_dates": 0,
+          "double_dates": 101,
+          "final_streak": 0,
+          "longest_streak": 31,
+          "saver_available_final": false
+        },
+        "2022": {
+          "changed_dates": 0,
+          "double_dates": 101,
+          "final_streak": 0,
+          "longest_streak": 23,
+          "saver_available_final": false
+        },
+        "2023": {
+          "changed_dates": 0,
+          "double_dates": 57,
+          "final_streak": 0,
+          "longest_streak": 32,
+          "saver_available_final": false
+        },
+        "2024": {
+          "changed_dates": 0,
+          "double_dates": 73,
+          "final_streak": 0,
+          "longest_streak": 36,
+          "saver_available_final": false
+        },
+        "2025": {
+          "changed_dates": 0,
+          "double_dates": 84,
+          "final_streak": 0,
+          "longest_streak": 36,
+          "saver_available_final": false
+        }
+      },
+      "reasons": [
+        "floor lacks pre-registered trigger support"
+      ],
+      "trigger_overlap": {
+        "by_season": {
+          "2021": {
+            "eligible_days": 181,
+            "trigger_days": 0,
+            "trigger_fraction": 0.0
+          },
+          "2022": {
+            "eligible_days": 178,
+            "trigger_days": 0,
+            "trigger_fraction": 0.0
+          },
+          "2023": {
+            "eligible_days": 180,
+            "trigger_days": 0,
+            "trigger_fraction": 0.0
+          },
+          "2024": {
+            "eligible_days": 182,
+            "trigger_days": 0,
+            "trigger_fraction": 0.0
+          },
+          "2025": {
+            "eligible_days": 181,
+            "trigger_days": 0,
+            "trigger_fraction": 0.0
+          }
+        },
+        "eligible_days": 902,
+        "floor": 0.5,
+        "p_both": {
+          "max": 0.7891617129193708,
+          "mean": 0.6512942408743904,
+          "min": 0.5237872683369499,
+          "n": 902
+        },
+        "seasons_with_ge5_triggers": 0,
+        "sufficient_trigger_overlap": false,
+        "trigger_days": 0,
+        "trigger_fraction": 0.0
+      }
+    },
+    "0.55": {
+      "decision_details": {
+        "active_support": {
+          "10": {
+            "active_seasons": [
+              "2021",
+              "2022",
+              "2023",
+              "2024",
+              "2025"
+            ],
+            "aggregate_gap": -2.9559279286051064e-06,
+            "min_relative_gap": -1.2801648801489569e-05,
+            "negative_active_seasons": 2
+          },
+          "20": {
+            "active_seasons": [
+              "2021",
+              "2022",
+              "2023",
+              "2024",
+              "2025"
+            ],
+            "aggregate_gap": -0.0003622667586876238,
+            "min_relative_gap": -0.0023838892975639784,
+            "negative_active_seasons": 2
+          },
+          "30": {
+            "active_seasons": [
+              "2021",
+              "2022",
+              "2023",
+              "2024",
+              "2025"
+            ],
+            "aggregate_gap": -5.126726579570695e-05,
+            "min_relative_gap": -0.0012646227604600612,
+            "negative_active_seasons": 2
+          }
+        }
+      },
+      "gaps": {
+        "aggregate": {
+          "catastrophic_regression_seasons": [],
+          "changed_decision_seasons": 2,
+          "mean_expected_max_gap": -0.002374971840804108,
+          "negative_expected_max_seasons": 2,
+          "reach_aggregate_gaps": {
+            "10": -2.9559279286051064e-06,
+            "20": -0.0003622667586876238,
+            "30": -5.126726579570695e-05,
+            "40": -8.026866012367934e-06,
+            "57": -2.0358231302372055e-07
+          },
+          "total_changed_decision_dates": 2
+        },
+        "per_season": {
+          "2021": {
+            "changed_decision_dates": 0,
+            "changed_qbin_counts": {},
+            "changed_qbin_mass": {},
+            "changed_state_count": 0,
+            "changed_state_mass": 0.0,
+            "current_expected_max_streak": 23.795018233913122,
+            "expected_max_gap": 0.0,
+            "guardrail_expected_max_streak": 23.795018233913122,
+            "reach_gap": {
+              "10": 0.0,
+              "20": 0.0,
+              "30": 0.0,
+              "40": 0.0,
+              "57": 0.0
+            }
+          },
+          "2022": {
+            "changed_decision_dates": 1,
+            "changed_qbin_counts": {
+              "0": 6
+            },
+            "changed_qbin_mass": {
+              "0": 0.44467972750373785
+            },
+            "changed_state_count": 6,
+            "changed_state_mass": 0.44467972750373785,
+            "current_expected_max_streak": 23.718322348175302,
+            "expected_max_gap": -0.0019347180689877064,
+            "guardrail_expected_max_streak": 23.716387630106315,
+            "reach_gap": {
+              "10": -1.982511126152886e-06,
+              "20": -0.00014599220761002396,
+              "30": -5.416937009053435e-05,
+              "40": -1.070855443396218e-05,
+              "57": -4.5897090970273453e-07
+            }
+          },
+          "2023": {
+            "changed_decision_dates": 0,
+            "changed_qbin_counts": {},
+            "changed_qbin_mass": {},
+            "changed_state_count": 0,
+            "changed_state_mass": 0.0,
+            "current_expected_max_streak": 23.64961570226429,
+            "expected_max_gap": 0.0,
+            "guardrail_expected_max_streak": 23.64961570226429,
+            "reach_gap": {
+              "10": 0.0,
+              "20": 0.0,
+              "30": 0.0,
+              "40": 0.0,
+              "57": 0.0
+            }
+          },
+          "2024": {
+            "changed_decision_dates": 0,
+            "changed_qbin_counts": {},
+            "changed_qbin_mass": {},
+            "changed_state_count": 0,
+            "changed_state_mass": 0.0,
+            "current_expected_max_streak": 23.335818063903858,
+            "expected_max_gap": 0.0,
+            "guardrail_expected_max_streak": 23.335818063903858,
+            "reach_gap": {
+              "10": 0.0,
+              "20": 0.0,
+              "30": 0.0,
+              "40": 0.0,
+              "57": 0.0
+            }
+          },
+          "2025": {
+            "changed_decision_dates": 1,
+            "changed_qbin_counts": {
+              "0": 10
+            },
+            "changed_qbin_mass": {
+              "0": 0.22149677798898196
+            },
+            "changed_state_count": 10,
+            "changed_state_mass": 0.22149677798898196,
+            "current_expected_max_streak": 23.531160064561327,
+            "expected_max_gap": -0.009940141135032832,
+            "guardrail_expected_max_streak": 23.521219923426294,
+            "reach_gap": {
+              "10": -1.2797128516872647e-05,
+              "20": -0.001665341585828095,
+              "30": -0.0002021669588880004,
+              "40": -2.9425775627877487e-05,
+              "57": -5.589406554158682e-07
+            }
+          }
+        }
+      },
+      "label": "UNDERPOWERED_TRIGGER_OVERLAP",
+      "realized_replay": {
+        "2021": {
+          "changed_dates": 0,
+          "double_dates": 101,
+          "final_streak": 0,
+          "longest_streak": 31,
+          "saver_available_final": false
+        },
+        "2022": {
+          "changed_dates": 1,
+          "double_dates": 101,
+          "final_streak": 0,
+          "longest_streak": 23,
+          "saver_available_final": false
+        },
+        "2023": {
+          "changed_dates": 0,
+          "double_dates": 57,
+          "final_streak": 0,
+          "longest_streak": 32,
+          "saver_available_final": false
+        },
+        "2024": {
+          "changed_dates": 0,
+          "double_dates": 73,
+          "final_streak": 0,
+          "longest_streak": 36,
+          "saver_available_final": false
+        },
+        "2025": {
+          "changed_dates": 0,
+          "double_dates": 84,
+          "final_streak": 0,
+          "longest_streak": 36,
+          "saver_available_final": false
+        }
+      },
+      "reasons": [
+        "floor lacks pre-registered trigger support"
+      ],
+      "trigger_overlap": {
+        "by_season": {
+          "2021": {
+            "eligible_days": 181,
+            "trigger_days": 0,
+            "trigger_fraction": 0.0
+          },
+          "2022": {
+            "eligible_days": 178,
+            "trigger_days": 1,
+            "trigger_fraction": 0.0056179775280898875
+          },
+          "2023": {
+            "eligible_days": 180,
+            "trigger_days": 0,
+            "trigger_fraction": 0.0
+          },
+          "2024": {
+            "eligible_days": 182,
+            "trigger_days": 0,
+            "trigger_fraction": 0.0
+          },
+          "2025": {
+            "eligible_days": 181,
+            "trigger_days": 1,
+            "trigger_fraction": 0.0055248618784530384
+          }
+        },
+        "eligible_days": 902,
+        "floor": 0.55,
+        "p_both": {
+          "max": 0.7891617129193708,
+          "mean": 0.6512942408743904,
+          "min": 0.5237872683369499,
+          "n": 902
+        },
+        "seasons_with_ge5_triggers": 0,
+        "sufficient_trigger_overlap": false,
+        "trigger_days": 2,
+        "trigger_fraction": 0.0022172949002217295
+      }
+    },
+    "0.60": {
+      "decision_details": {
+        "active_support": {
+          "10": {
+            "active_seasons": [
+              "2021",
+              "2022",
+              "2023",
+              "2024",
+              "2025"
+            ],
+            "aggregate_gap": -6.920405648196404e-05,
+            "min_relative_gap": -0.00010388829652294357,
+            "negative_active_seasons": 5
+          },
+          "20": {
+            "active_seasons": [
+              "2021",
+              "2022",
+              "2023",
+              "2024",
+              "2025"
+            ],
+            "aggregate_gap": -0.0047450563381935314,
+            "min_relative_gap": -0.009628520949353242,
+            "negative_active_seasons": 5
+          },
+          "30": {
+            "active_seasons": [
+              "2021",
+              "2022",
+              "2023",
+              "2024",
+              "2025"
+            ],
+            "aggregate_gap": -0.0018097849055419668,
+            "min_relative_gap": -0.01570483573331125,
+            "negative_active_seasons": 5
+          }
+        }
+      },
+      "gaps": {
+        "aggregate": {
+          "catastrophic_regression_seasons": [],
+          "changed_decision_seasons": 5,
+          "mean_expected_max_gap": -0.0662001566477528,
+          "negative_expected_max_seasons": 5,
+          "reach_aggregate_gaps": {
+            "10": -6.920405648196404e-05,
+            "20": -0.0047450563381935314,
+            "30": -0.0018097849055419668,
+            "40": -0.0003183102601019429,
+            "57": -7.132575627615376e-05
+          },
+          "total_changed_decision_dates": 71
+        },
+        "per_season": {
+          "2021": {
+            "changed_decision_dates": 7,
+            "changed_qbin_counts": {
+              "0": 37
+            },
+            "changed_qbin_mass": {
+              "0": 3.253216462403123
+            },
+            "changed_state_count": 37,
+            "changed_state_mass": 3.253216462403123,
+            "current_expected_max_streak": 23.795018233913122,
+            "expected_max_gap": -0.023394160470804337,
+            "guardrail_expected_max_streak": 23.771624073442318,
+            "reach_gap": {
+              "10": -2.5398381025887318e-05,
+              "20": -0.0016526262001704817,
+              "30": -0.0006610715530261935,
+              "40": -0.00013503378907429864,
+              "57": -2.2316879630452117e-05
+            }
+          },
+          "2022": {
+            "changed_decision_dates": 17,
+            "changed_qbin_counts": {
+              "0": 95
+            },
+            "changed_qbin_mass": {
+              "0": 6.524958204548357
+            },
+            "changed_state_count": 95,
+            "changed_state_mass": 6.524958204548357,
+            "current_expected_max_streak": 23.718322348175302,
+            "expected_max_gap": -0.06848509437913819,
+            "guardrail_expected_max_streak": 23.649837253796164,
+            "reach_gap": {
+              "10": -4.3838601092693885e-05,
+              "20": -0.005470849478278583,
+              "30": -0.0019106096032269204,
+              "40": -0.000317916443847939,
+              "57": -0.00012514480368920784
+            }
+          },
+          "2023": {
+            "changed_decision_dates": 15,
+            "changed_qbin_counts": {
+              "0": 81,
+              "1": 2
+            },
+            "changed_qbin_mass": {
+              "0": 7.345631321755118,
+              "1": 1.3114628376271964e-06
+            },
+            "changed_state_count": 83,
+            "changed_state_mass": 7.345632633217956,
+            "current_expected_max_streak": 23.64961570226429,
+            "expected_max_gap": -0.059542974292970285,
+            "guardrail_expected_max_streak": 23.590072727971318,
+            "reach_gap": {
+              "10": -8.340064533707281e-05,
+              "20": -0.004131555406927556,
+              "30": -0.0018259586437932296,
+              "40": -0.0003338921090170026,
+              "57": -4.288298680117739e-05
+            }
+          },
+          "2024": {
+            "changed_decision_dates": 17,
+            "changed_qbin_counts": {
+              "0": 97,
+              "1": 12
+            },
+            "changed_qbin_mass": {
+              "0": 4.683703992779029,
+              "1": 0.6909579953373345
+            },
+            "changed_state_count": 109,
+            "changed_state_mass": 5.3746619881163635,
+            "current_expected_max_streak": 23.335818063903858,
+            "expected_max_gap": -0.09320370574798531,
+            "guardrail_expected_max_streak": 23.242614358155873,
+            "reach_gap": {
+              "10": -0.00010383346017428519,
+              "20": -0.006612022183921207,
+              "30": -0.002439948696387806,
+              "40": -0.000431992306164905,
+              "57": -0.00013431968584497905
+            }
+          },
+          "2025": {
+            "changed_decision_dates": 15,
+            "changed_qbin_counts": {
+              "0": 93,
+              "1": 16
+            },
+            "changed_qbin_mass": {
+              "0": 5.4001983130323366,
+              "1": 0.739815063981889
+            },
+            "changed_state_count": 109,
+            "changed_state_mass": 6.140013377014227,
+            "current_expected_max_streak": 23.531160064561327,
+            "expected_max_gap": -0.0863748483478659,
+            "guardrail_expected_max_streak": 23.44478521621346,
+            "reach_gap": {
+              "10": -8.954919477988099e-05,
+              "20": -0.005858228421669831,
+              "30": -0.0022113360312756847,
+              "40": -0.00037271665240556917,
+              "57": -3.196442541495239e-05
+            }
+          }
+        }
+      },
+      "label": "REJECT",
+      "realized_replay": {
+        "2021": {
+          "changed_dates": 4,
+          "double_dates": 121,
+          "final_streak": 0,
+          "longest_streak": 20,
+          "saver_available_final": false
+        },
+        "2022": {
+          "changed_dates": 8,
+          "double_dates": 102,
+          "final_streak": 0,
+          "longest_streak": 23,
+          "saver_available_final": false
+        },
+        "2023": {
+          "changed_dates": 5,
+          "double_dates": 59,
+          "final_streak": 0,
+          "longest_streak": 32,
+          "saver_available_final": false
+        },
+        "2024": {
+          "changed_dates": 3,
+          "double_dates": 74,
+          "final_streak": 0,
+          "longest_streak": 36,
+          "saver_available_final": false
+        },
+        "2025": {
+          "changed_dates": 4,
+          "double_dates": 84,
+          "final_streak": 0,
+          "longest_streak": 36,
+          "saver_available_final": false
+        }
+      },
+      "reasons": [
+        "aggregate expected-max gap is negative"
+      ],
+      "trigger_overlap": {
+        "by_season": {
+          "2021": {
+            "eligible_days": 181,
+            "trigger_days": 7,
+            "trigger_fraction": 0.03867403314917127
+          },
+          "2022": {
+            "eligible_days": 178,
+            "trigger_days": 17,
+            "trigger_fraction": 0.09550561797752809
+          },
+          "2023": {
+            "eligible_days": 180,
+            "trigger_days": 15,
+            "trigger_fraction": 0.08333333333333333
+          },
+          "2024": {
+            "eligible_days": 182,
+            "trigger_days": 17,
+            "trigger_fraction": 0.09340659340659341
+          },
+          "2025": {
+            "eligible_days": 181,
+            "trigger_days": 15,
+            "trigger_fraction": 0.08287292817679558
+          }
+        },
+        "eligible_days": 902,
+        "floor": 0.6,
+        "p_both": {
+          "max": 0.7891617129193708,
+          "mean": 0.6512942408743904,
+          "min": 0.5237872683369499,
+          "n": 902
+        },
+        "seasons_with_ge5_triggers": 5,
+        "sufficient_trigger_overlap": true,
+        "trigger_days": 71,
+        "trigger_fraction": 0.0787139689578714
+      }
+    }
+  },
+  "methodology": {
+    "allow_rank2_proxy": false,
+    "command": "scripts/evaluate_mdp_dd_guardrail.py --profiles-dir data/validation/mdp_dd_guardrail_profiles_2026-05-30 --policy-path data/models/mdp_policy.npz --seasons 2021,2022,2023,2024,2025 --floors 0.40,0.50,0.55,0.60 --production-p-both-summary data/validation/mdp_dd_guardrail_profiles_2026-05-30/production_p_both_summary.json --out data/validation/mdp_dd_guardrail_profiles_2026-05-30/evaluation.json --pretty",
+    "evaluator": "exact first-passage row-stream DP",
+    "floors": [
+      0.4,
+      0.5,
+      0.55,
+      0.6
+    ],
+    "git_sha": "c68c7c044a84f45938cc9f4dce483cd79ec7d416",
+    "p_both": "primary_p * double_down_p",
+    "policy_path": "data/models/mdp_policy.npz",
+    "pre_registration": "docs/sota_audit/2026-05-29-mdp-dd-guardrail-prereg.md",
+    "profiles_dir": "data/validation/mdp_dd_guardrail_profiles_2026-05-30",
+    "seasons": [
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "transition_kernel": "bts.simulate.mdp.transition_outcomes"
+  },
+  "policy": {
+    "boundaries": [
+      0.7959788446395174,
+      0.8114907020399261,
+      0.8252474190317034,
+      0.8407401966749947
+    ],
+    "season_length": 180,
+    "sha256": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4"
+  },
+  "production_deploy_claim": false,
+  "production_p_both_distribution": {
+    "date_max": "2026-05-29",
+    "date_min": "2026-04-02",
+    "max": 0.6224553372072698,
+    "mean": 0.544749395545852,
+    "min": 0.47442332153553357,
+    "n": 58,
+    "q10": 0.49858202732768175,
+    "q50": 0.5475579893594634,
+    "q90": 0.5816071069124615,
+    "source": "ssh bts-hetzner:/home/bts/projects/bts/data/picks",
+    "source_command": "python3 stdlib summary over root-level pick JSON files with primary and double_down p_game_hit"
+  },
+  "profile_schema": {
+    "allow_rank2_proxy": false,
+    "columns_by_season": {
+      "2021": [
+        "date",
+        "season",
+        "rank",
+        "batter_id",
+        "game_pk",
+        "p_game_hit",
+        "actual_hit",
+        "n_pas"
+      ],
+      "2022": [
+        "date",
+        "season",
+        "rank",
+        "batter_id",
+        "game_pk",
+        "p_game_hit",
+        "actual_hit",
+        "n_pas"
+      ],
+      "2023": [
+        "date",
+        "season",
+        "rank",
+        "batter_id",
+        "game_pk",
+        "p_game_hit",
+        "actual_hit",
+        "n_pas"
+      ],
+      "2024": [
+        "date",
+        "season",
+        "rank",
+        "batter_id",
+        "game_pk",
+        "p_game_hit",
+        "actual_hit",
+        "n_pas"
+      ],
+      "2025": [
+        "date",
+        "season",
+        "rank",
+        "batter_id",
+        "game_pk",
+        "p_game_hit",
+        "actual_hit",
+        "n_pas"
+      ]
+    },
+    "day_counts_by_season": {
+      "2021": 182,
+      "2022": 179,
+      "2023": 182,
+      "2024": 185,
+      "2025": 184
+    },
+    "duplicate_date_batter_rows_by_season": {
+      "2021": 0,
+      "2022": 4,
+      "2023": 8,
+      "2024": 14,
+      "2025": 6
+    },
+    "inferred_season_by_season": {
+      "2021": false,
+      "2022": false,
+      "2023": false,
+      "2024": false,
+      "2025": false
+    },
+    "issues": [],
+    "missing_columns_by_season": {},
+    "missing_paths": [],
+    "null_counts_by_season": {
+      "2021": {
+        "actual_hit": 0,
+        "date": 0,
+        "game_pk": 0,
+        "p_game_hit": 0,
+        "rank": 0,
+        "season": 0
+      },
+      "2022": {
+        "actual_hit": 0,
+        "date": 0,
+        "game_pk": 0,
+        "p_game_hit": 0,
+        "rank": 0,
+        "season": 0
+      },
+      "2023": {
+        "actual_hit": 0,
+        "date": 0,
+        "game_pk": 0,
+        "p_game_hit": 0,
+        "rank": 0,
+        "season": 0
+      },
+      "2024": {
+        "actual_hit": 0,
+        "date": 0,
+        "game_pk": 0,
+        "p_game_hit": 0,
+        "rank": 0,
+        "season": 0
+      },
+      "2025": {
+        "actual_hit": 0,
+        "date": 0,
+        "game_pk": 0,
+        "p_game_hit": 0,
+        "rank": 0,
+        "season": 0
+      }
+    },
+    "profile_sha256": {
+      "2021": "f72f96172298390b23aa873f4917217177e0dbc9e7a6732500ae95e70e9c2a0c",
+      "2022": "c629e1c62e95371cd87916412f7f0425b513569167d6ef11040f0ce60be9c008",
+      "2023": "075f754a4dfd1a2bcdf598bc3b5c6ede93bc9076ecbdb23cf0e3981519c95b81",
+      "2024": "d48b929e3c08aa8c3a56f3d2d16b3dea2573698eff1edfa16aaa28977de8efdb",
+      "2025": "34f09fb4aeb35f85dc96d477d28490fe936908addab0f015726c1b021edfe88e"
+    },
+    "required_columns": [
+      "actual_hit",
+      "date",
+      "game_pk",
+      "p_game_hit",
+      "rank",
+      "season"
+    ],
+    "row_counts_by_season": {
+      "2021": 1820,
+      "2022": 1790,
+      "2023": 1820,
+      "2024": 1850,
+      "2025": 1840
+    },
+    "valid": true
+  },
+  "row_stream": {
+    "days_by_season": {
+      "2021": 182,
+      "2022": 179,
+      "2023": 182,
+      "2024": 185,
+      "2025": 184
+    },
+    "double_eligible_days_by_season": {
+      "2021": 181,
+      "2022": 178,
+      "2023": 180,
+      "2024": 182,
+      "2025": 181
+    }
+  },
+  "selection": {
+    "auto_enable_authorized": false,
+    "note": "A positive or no-harm screen permits only a later default-off implementation PR for explicit review; it does not authorize deploy.",
+    "selected_floor": null,
+    "selected_label": null
+  },
+  "trigger_overlap": {
+    "0.40": {
+      "by_season": {
+        "2021": {
+          "eligible_days": 181,
+          "trigger_days": 0,
+          "trigger_fraction": 0.0
+        },
+        "2022": {
+          "eligible_days": 178,
+          "trigger_days": 0,
+          "trigger_fraction": 0.0
+        },
+        "2023": {
+          "eligible_days": 180,
+          "trigger_days": 0,
+          "trigger_fraction": 0.0
+        },
+        "2024": {
+          "eligible_days": 182,
+          "trigger_days": 0,
+          "trigger_fraction": 0.0
+        },
+        "2025": {
+          "eligible_days": 181,
+          "trigger_days": 0,
+          "trigger_fraction": 0.0
+        }
+      },
+      "eligible_days": 902,
+      "floor": 0.4,
+      "p_both": {
+        "max": 0.7891617129193708,
+        "mean": 0.6512942408743904,
+        "min": 0.5237872683369499,
+        "n": 902
+      },
+      "seasons_with_ge5_triggers": 0,
+      "sufficient_trigger_overlap": false,
+      "trigger_days": 0,
+      "trigger_fraction": 0.0
+    },
+    "0.50": {
+      "by_season": {
+        "2021": {
+          "eligible_days": 181,
+          "trigger_days": 0,
+          "trigger_fraction": 0.0
+        },
+        "2022": {
+          "eligible_days": 178,
+          "trigger_days": 0,
+          "trigger_fraction": 0.0
+        },
+        "2023": {
+          "eligible_days": 180,
+          "trigger_days": 0,
+          "trigger_fraction": 0.0
+        },
+        "2024": {
+          "eligible_days": 182,
+          "trigger_days": 0,
+          "trigger_fraction": 0.0
+        },
+        "2025": {
+          "eligible_days": 181,
+          "trigger_days": 0,
+          "trigger_fraction": 0.0
+        }
+      },
+      "eligible_days": 902,
+      "floor": 0.5,
+      "p_both": {
+        "max": 0.7891617129193708,
+        "mean": 0.6512942408743904,
+        "min": 0.5237872683369499,
+        "n": 902
+      },
+      "seasons_with_ge5_triggers": 0,
+      "sufficient_trigger_overlap": false,
+      "trigger_days": 0,
+      "trigger_fraction": 0.0
+    },
+    "0.55": {
+      "by_season": {
+        "2021": {
+          "eligible_days": 181,
+          "trigger_days": 0,
+          "trigger_fraction": 0.0
+        },
+        "2022": {
+          "eligible_days": 178,
+          "trigger_days": 1,
+          "trigger_fraction": 0.0056179775280898875
+        },
+        "2023": {
+          "eligible_days": 180,
+          "trigger_days": 0,
+          "trigger_fraction": 0.0
+        },
+        "2024": {
+          "eligible_days": 182,
+          "trigger_days": 0,
+          "trigger_fraction": 0.0
+        },
+        "2025": {
+          "eligible_days": 181,
+          "trigger_days": 1,
+          "trigger_fraction": 0.0055248618784530384
+        }
+      },
+      "eligible_days": 902,
+      "floor": 0.55,
+      "p_both": {
+        "max": 0.7891617129193708,
+        "mean": 0.6512942408743904,
+        "min": 0.5237872683369499,
+        "n": 902
+      },
+      "seasons_with_ge5_triggers": 0,
+      "sufficient_trigger_overlap": false,
+      "trigger_days": 2,
+      "trigger_fraction": 0.0022172949002217295
+    },
+    "0.60": {
+      "by_season": {
+        "2021": {
+          "eligible_days": 181,
+          "trigger_days": 7,
+          "trigger_fraction": 0.03867403314917127
+        },
+        "2022": {
+          "eligible_days": 178,
+          "trigger_days": 17,
+          "trigger_fraction": 0.09550561797752809
+        },
+        "2023": {
+          "eligible_days": 180,
+          "trigger_days": 15,
+          "trigger_fraction": 0.08333333333333333
+        },
+        "2024": {
+          "eligible_days": 182,
+          "trigger_days": 17,
+          "trigger_fraction": 0.09340659340659341
+        },
+        "2025": {
+          "eligible_days": 181,
+          "trigger_days": 15,
+          "trigger_fraction": 0.08287292817679558
+        }
+      },
+      "eligible_days": 902,
+      "floor": 0.6,
+      "p_both": {
+        "max": 0.7891617129193708,
+        "mean": 0.6512942408743904,
+        "min": 0.5237872683369499,
+        "n": 902
+      },
+      "seasons_with_ge5_triggers": 5,
+      "sufficient_trigger_overlap": true,
+      "trigger_days": 71,
+      "trigger_fraction": 0.0787139689578714
+    }
+  },
+  "writes_policy_artifact": false
+}

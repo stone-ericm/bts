@@ -1,0 +1,6 @@
+curl: (1) Protocol "https" disabled
+curl: (1) Protocol "https" disabled
+https://checks.invalid/other/fail
+curl: (1) Protocol "https" disabled
+https://checks.invalid/one/fail
+https://checks.invalid/two/fail

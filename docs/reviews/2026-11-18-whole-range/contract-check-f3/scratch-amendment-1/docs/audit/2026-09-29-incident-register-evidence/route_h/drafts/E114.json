@@ -1,0 +1,197 @@
+{
+ "counted": true,
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "authority": "not_applicable",
+ "routes": {
+  "H": [],
+  "R": "pending_phase2",
+  "X": []
+ },
+ "related": [
+  "I-059"
+ ],
+ "id": "I-114",
+ "working_id": "E114",
+ "title": "Pick-time platoon_hr was NaN for every production pick (probable-pitcher fallback never set pitcher_hand) until dfcf655",
+ "disposition": "observed_incident",
+ "classes": {
+  "primary": "P",
+  "secondary": []
+ },
+ "tier": "tier_pending",
+ "tier_reason": "the input deviation is established for every pick, but whether it changed any production pick (contest impact) is a model question the register does not measure (design §1)",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "contract": {
+  "text": "The live decision uses the inputs the model was trained and validated on: every production FEATURE_COL computed at pick time as in training.",
+  "source": "CLAUDE.md Architecture ('16 baseline features (FEATURE_COLS)'); dfcf655 body"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "predict's probable-pitcher fallback never set pitcher_hand, and at the game-time-minus-45-min pick the live feed has no plays and the schedule hydrate omits pitchHand, so platoon_hr (a production FEATURE_COL) was NaN at inference for every production pick while populated in training/backtest",
+   "code": [
+    {
+     "path": "src/bts/model/predict.py",
+     "ref": "082e5b0",
+     "symbol": "predict (platoon_hr lookup)",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "dfcf655"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:11Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "none",
+  "trigger": "model-input parity (no production FEATURE_COL NaN at pick time where training has it populated) is not a W4 rank-2 boundary",
+  "recovery_assertion": "not_applicable"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-06-09-fable5-full-audit.md (commit f5de8ee)",
+   "what": "read-only code audit of 6/09 naming every defect in this record (O1, O2, H2-H6, P3, D1-D4, M1, M4-M6, E1-E3, S2, G, since_deploy_iso, stat-power gates), each tagged orchestrator-verified or auditor-reported"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit dfcf655 message body",
+   "written_at": "2026-06-09T23:03:21-04:00",
+   "what": "verified against the live API that the probablePitcher hydrate carries no pitchHand at pick time, so slot pitcher_hand was None for every production pick and platoon_hr NaN at inference (correcting the memo's M1 assumption)"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27077693688 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "retained log: pre-deploy eaccaf8 -> deployed 2b752be at 2026-06-07T00:11:21Z (6/06 20:11 ET), canary passed; the workflow restarts bts-scheduler, so this is a restart inside the window where the UTC default selected the next date (link 3)"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 28601525167 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "its retained log records pre-deploy SHA 83a5cad at 2026-07-02T15:28:10Z, the first retained log after run 27077693688 (2b752be, 6/07 00:11Z); every fix commit in this record is an ancestor of 83a5cad (no run has a logged deployed SHA 83a5cad: run 28520680537 deployed head 83a5cad but its log expired)"
+  },
+  {
+   "id": "ev5",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "git show a436827:<path> for the defective line of links 3-24 (spot-check of 19 links)",
+   "what": "every checked defective line (UTC default, bare DH sleep, _safe_run 'return []', calendar gap_days, saver pinned False, eager auto parse, unused missed_pick_alert_min, 0.0.0.0 bind, floating ssh-action tag, among others) is present in the audited deployed build a436827"
+  },
+  {
+   "id": "ev6",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "message bodies of the 24 fix commits (trail)",
+   "trail": [
+    "88234ae",
+    "925db1d",
+    "ce5f51d",
+    "aa6b7b1",
+    "0f2bc3c",
+    "b302935",
+    "af08426",
+    "082e5b0",
+    "dfcf655",
+    "86ff4f1",
+    "c27480e",
+    "8550b80",
+    "63fcb67",
+    "736ea8f",
+    "6d929f8",
+    "0794116",
+    "e1594e3",
+    "a7663ca",
+    "3a6e48b",
+    "40a091c",
+    "8e867fc",
+    "bb7ccc1",
+    "6471f40",
+    "d94a51f"
+   ],
+   "what": "each body states the defective behaviour and the audit finding it fixes"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "every production pick through the probable-pitcher fallback (to the dfcf655 install)",
+   "onset": {
+    "not_before": "2026-03-29",
+    "not_after": "2026-06-09T23:03:21-04:00",
+    "evidence": [
+     "ev5",
+     "ev2"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-06-09T23:03:21-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-06-09T23:03:21-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "continuing": true,
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "notes": [
+  "split from I-059 (its link 18): dfcf655's body reports, from a live API check, that pitcher_hand was None for every production pick, so the link fired and is not latent",
+  "in scope as a serving-path defect of the deployed service; its effect on pick quality is not measured (design §1), hence tier_pending",
+  "onset not_before 2026-03-29 = c96d4b0, the pickaxe hit on the defective line (I-059 exposure note); the first production install of it is not dated",
+  "the report infers the pick-time NaN from the API check plus the code path; the pick-time feature vectors (box, Route R) would make it a machine observation",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

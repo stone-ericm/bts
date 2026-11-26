@@ -1,0 +1,4 @@
+base: {"bts": "/Users/eric/projects/bts-work/wr-review-w15-carbon/.codex-review/wr-w15/base_src/src/bts/__init__.py", "fds_before": 0, "fds_after": 0, "leaked_fds": 0, "num_0_5": 0, "num_nan": 0, "os_errors": 70}
+head: {"bts": "/Users/eric/projects/bts-work/wr-review-w15-carbon/src/bts/__init__.py", "fds_before": 0, "fds_after": 61, "leaked_fds": 61, "num_0_5": 60, "num_nan": 10, "os_errors": 0}
+one_call_with_numeric_json_dirs (base): {"status": "ok", "bullpen": 0.5}
+one_call_with_numeric_json_dirs (head): {"status": "err", "exc": "OSError", "msg": "[Errno 24] Too many open files: '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/probe5g_ubckeet9/rawdir_head/data/models/.probable_pitcher_lookup.json.24633.tmp'"}

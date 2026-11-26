@@ -1,0 +1,26 @@
+Replay owner-TERM-preflight 0645be4b 2026-11-20T17:37:01.673517
+workflow 9d2f537ac1972dd404ea8ce11476099baa3867a48d38bb1a335cf74bcabcfad7 phase 4cb0eef49d19f5e0e655d5fdc8ff7ae01b51dd702720348b198d1f5e03f6833d
+{"after": {"hold": null, "scheduler_clear": true, "scheduler_running": true, "writers": ["check-results", "reconcile", "fetch-contest-streak", "nightly-preview"]}, "before": {"hold": null, "scheduler_clear": true, "scheduler_running": true, "writers": ["check-results", "reconcile", "fetch-contest-streak", "nightly-preview"]}, "before_recovery": {"hold": null, "scheduler_clear": true, "scheduler_running": true, "writers": ["check-results", "reconcile", "fetch-contest-streak", "nightly-preview"]}, "evidence": null, "fault": "TERM", "history": [null, null], "hook_text": "", "next_result": null, "pages": [], "phase": "preflight", "recovery": "preflight", "recovery_code": null, "result": {"deploy_id": "1795214221-efe05d511fb03b24b16209bd", "outcome": "not-started", "step": "interrupted"}}
+{"after": {"hold": null, "scheduler_clear": true, "scheduler_running": true, "writers": ["check-results", "reconcile", "fetch-contest-streak", "nightly-preview"]}, "before": {"hold": null, "scheduler_clear": true, "scheduler_running": true, "writers": ["check-results", "reconcile", "fetch-contest-streak", "nightly-preview"]}, "before_recovery": {"hold": null, "scheduler_clear": true, "scheduler_running": true, "writers": ["check-results", "reconcile", "fetch-contest-streak", "nightly-preview"]}, "evidence": null, "fault": "TERM", "history": [null, null], "hook_text": "", "next_result": null, "pages": [], "phase": "initial-window", "recovery": "preflight", "recovery_code": null, "result": {"deploy_id": "1795214222-d37f342854ebf536375bb1dd", "outcome": "not-started", "step": "interrupted"}}
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-d/.codex-review/wr-d/r2/trees/0645be4b/.codex-review/wr-d/owner_probe.py", line 481, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-d/.codex-review/wr-d/r2/trees/0645be4b/.codex-review/wr-d/owner_probe.py", line 476, in main
+    trial(Path(temp), boundary, fault, recovery)
+  File "/Users/eric/projects/bts-work/wr-review-d/.codex-review/wr-d/r2/trees/0645be4b/.codex-review/wr-d/owner_probe.py", line 425, in trial
+    recovery_code = tool.owned_deploy(root, NEXT, TARGET, '')
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-d/.codex-review/wr-d/r2/trees/0645be4b/scripts/install-deploy-guard-hetzner.sh", line 853, in owned_deploy
+    from ipaddress import IPv4Address
+                       ^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-d/.codex-review/wr-d/r2/trees/0645be4b/scripts/install-deploy-guard-hetzner.sh", line 340, in verified_stop_dashboard
+    os.fsync(root)
+       ^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-d/.codex-review/wr-d/r2/trees/0645be4b/scripts/install-deploy-guard-hetzner.sh", line 326, in stop_and_verify
+    stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-review-d/.codex-review/wr-d/r2/trees/0645be4b/.codex-review/wr-d/owner_probe.py", line 182, in call
+    raise AssertionError(argv)
+AssertionError: ['/usr/bin/sudo', '-n', '-Hu', 'bts', '--', '/usr/bin/env', 'XDG_RUNTIME_DIR=/run/user/1000', '/usr/bin/systemctl', '--user', 'stop', 'bts-dashboard.service']
+exit 1

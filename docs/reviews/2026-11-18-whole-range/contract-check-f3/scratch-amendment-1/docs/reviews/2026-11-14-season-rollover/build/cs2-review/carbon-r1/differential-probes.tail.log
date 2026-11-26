@@ -1,0 +1,80 @@
+        "disk": {
+          "streak": 9,
+          "saver_available": true,
+          "updated": "2026-11-15T22:16:04.554160+00:00",
+          "applied_dates": [
+            "2027-05-01",
+            "2027-05-02"
+          ],
+          "season": 2027
+        }
+      },
+      "contest_date_1231_then_0101": {
+        "after_2026_12_31": {
+          "streak": 12,
+          "disk": {
+            "streak": 12,
+            "saver_available": false,
+            "updated": "2026-11-15T22:16:04.554595+00:00",
+            "applied_dates": [
+              "2026-12-31"
+            ],
+            "season": 2026
+          }
+        },
+        "after_2027_01_01": {
+          "streak": 1,
+          "disk": {
+            "streak": 1,
+            "saver_available": true,
+            "updated": "2026-11-15T22:16:04.554838+00:00",
+            "applied_dates": [
+              "2027-01-01"
+            ],
+            "season": 2027
+          }
+        }
+      },
+      "chmod000_during_check_results_hit": {
+        "exit_code": 0,
+        "exc": null,
+        "after_disk": {
+          "streak": 1,
+          "saver_available": true,
+          "updated": "2026-11-15T22:16:04.555761+00:00",
+          "applied_dates": [
+            "2027-03-24"
+          ],
+          "season": 2027
+        }
+      },
+      "test_contest_state_in_year_2027": {
+        "test_model_state_used_when_no_contest_state": {
+          "ok": false,
+          "exc": "AssertionError",
+          "msg": ""
+        },
+        "test_fresh_contest_state_drives_live_decision": {
+          "ok": false,
+          "exc": "AssertionError",
+          "msg": ""
+        },
+        "test_lagged_contest_uses_contest_value_keeps_doubles": {
+          "ok": true,
+          "value": null,
+          "type": "NoneType"
+        },
+        "test_lagged_contest_model_does_not_inflate": {
+          "ok": false,
+          "exc": "AssertionError",
+          "msg": ""
+        },
+        "test_model_never_inflates_decision_streak": {
+          "ok": false,
+          "exc": "AssertionError",
+          "msg": ""
+        }
+      }
+    }
+  }
+}

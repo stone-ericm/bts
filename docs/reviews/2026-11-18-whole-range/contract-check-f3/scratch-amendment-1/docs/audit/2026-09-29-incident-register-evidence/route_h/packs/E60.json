@@ -1,0 +1,60 @@
+{
+ "id": "E60",
+ "episode_row": [
+  "E60",
+  "6/10",
+  "CI deploy gate blocked a deploy (lockfile/TZ)",
+  "S",
+  "OI",
+  "B",
+  "8c93799 279d423"
+ ],
+ "commits": [
+  {
+   "sha": "8c93799",
+   "authored": "2026-06-10T10:30:58-04:00",
+   "subject": "ci: pin uv to 0.11.6 (production box version) so --locked accepts the lockfile",
+   "body": "setup-uv@v5 pulled a newer uv that interprets the date-only exclude-newer as\n00:00Z instead of the lockfile's 04:00Z, so `uv sync --locked` rejected uv.lock\nand the test gate failed before deploying (production untouched). Pin CI's uv to\nthe box's 0.11.6 so resolution is byte-identical.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    ".github/workflows/deploy.yml",
+    ".github/workflows/test.yml"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27283866776,
+    "created_at": "2026-06-10T14:35:51Z",
+    "head_sha": "279d423",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "279d423",
+   "authored": "2026-06-10T10:35:45-04:00",
+   "subject": "ci: run in America/New_York so --locked accepts the lockfile",
+   "body": "The date-only exclude-newer is resolved in local time; uv.lock is generated on\nET machines (box + Mac), so a UTC runner shifted the timestamp 04:00Z->00:00Z\nand --locked rejected it (verified: uv lock --check passes under TZ=America/\nNew_York, fails under TZ=UTC). Set TZ=America/New_York on both CI jobs.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    ".github/workflows/deploy.yml",
+    ".github/workflows/test.yml"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27283866776,
+    "created_at": "2026-06-10T14:35:51Z",
+    "head_sha": "279d423",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

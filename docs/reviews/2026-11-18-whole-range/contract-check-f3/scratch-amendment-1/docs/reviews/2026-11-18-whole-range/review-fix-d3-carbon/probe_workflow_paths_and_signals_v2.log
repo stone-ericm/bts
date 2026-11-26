@@ -1,0 +1,17 @@
+RD8 byte-identity of frame + helpers + contain(): OK
+Phase-2/F3/F4 failure & timeout matrix (75 runs) mismatches: [('stage-record-committed', '124', 'Check commit-record failed (timeout).', ['Check commit-record failed (1).']), ('stage-record-committed', '137', 'Check commit-record failed (timeout).', ['Check commit-record failed (1).']), ('mv-record-committed', '124', 'Check commit-record failed (timeout).', ['Check commit-record failed (1).']), ('mv-record-committed', '137', 'Check commit-record failed (timeout).', ['Check commit-record failed (1).'])]
+COUNTEREXAMPLE on_signal (wait:advance-and-sig:HUP): rc=1 head_mutated=True scheduler_stopped=False boot_link=disabled stamp_written=False heartbeat={'state': 'running'} posts=0 stdout='Pre-deploy SHA: 1111111\nChecking requested target 2222222.\nWaiting 30s for services to stabilize...\nDEPLOY NOT STARTED — attempt-record failed. This deploy invocation did not change the checkout or services. Recovery has not been verified.'
+COUNTEREXAMPLE on_signal (wait:advance-and-sig:TERM): rc=1 head_mutated=True scheduler_stopped=False boot_link=disabled stamp_written=False heartbeat={'state': 'running'} posts=0 stdout='Pre-deploy SHA: 1111111\nChecking requested target 2222222.\nWaiting 30s for services to stabilize...\nDEPLOY NOT STARTED — attempt-record failed. This deploy invocation did not change the checkout or services. Recovery has not been verified.'
+COUNTEREXAMPLE on_signal (mv-record-committed:advance-and-sig:TERM): rc=1 head_mutated=True scheduler_stopped=False boot_link=enabled stamp_written=True heartbeat={'state': 'running'} posts=0 stdout='Pre-deploy SHA: 1111111\nChecking requested target 2222222.\nWaiting 30s for services to stabilize...\nDeploy canary: not a live configuration (delivery private); contest state not checked.\nDEPLOY NOT STARTED — attempt-record failed. This deploy invocation did not change the checkout or services. Recovery has not been verified.'
+read-record error at publish committed: rc=0 stdout=['Pre-deploy SHA: 1111111', 'Checking requested target 2222222.', 'Waiting 30s for services to stabilize...', 'Deploy canary: not a live configuration (delivery private); contest state not checked.', '================================', 'Deployed 2222222', 'CANARY PASSED — 2222222 passed the deploy checks', '================================']
+Closed stdout pass: rc=0 record=bts_deploy_attempt_v1 101 1 2222222222222222222222222222222222222222 1111111111111111111111111111111111111111 committed - - - -
+Closed stdout fail: rc=1 record=bts_deploy_attempt_v1 101 1 2222222222222222222222222222222222222222 1111111111111111111111111111111111111111 contained sync verified verified verified hb_state=deploy_failed posts=1
+Second signal inside contain: single containment verified
+Preflight failure + recovery leaves services untouched: OK
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-review-d3-carbon/.codex-review/wr-d3/probe_workflow_paths_and_signals_v2.py", line 72, in <module>
+    orig.main()
+  File "/Users/eric/projects/bts-work/wr-review-d3-carbon/.codex-review/wr-d3/probe_workflow_paths_and_signals.py", line 489, in main
+    idx_stage = next(i for i, c in enumerate(calls_cand) if c[0] == "python3" and len(c) > 2 and c[2] == "stage")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+StopIteration

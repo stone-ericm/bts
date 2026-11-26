@@ -1,0 +1,20 @@
+morning-lead: scheduler.py :: first_check_et - now < timedelta(minutes=MORNING_CHECK_MIN_LEAD_MIN) -> first_check_et - now <= timedelta(minutes=MORNING_CHECK_MIN_LEAD_MIN)
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-closing-blind
+configfile: pyproject.toml
+collected 6 items
+
+../../../tests/test_morning_state_cs6b1.py ...F..                        [100%]
+
+=================================== FAILURES ===================================
+______________ test_margin_uses_earliest_planned_target[600-run] _______________
+../../../tests/test_morning_state_cs6b1.py:195: in test_margin_uses_earliest_planned_target
+    helper.assert_called_once_with(config, morning[1], DAY, START, targets[0])
+/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py:960: in assert_called_once_with
+    raise AssertionError(msg)
+E   AssertionError: Expected 'mock' to be called once. Called 0 times.
+=========================== short test summary info ============================
+FAILED ../../../tests/test_morning_state_cs6b1.py::test_margin_uses_earliest_planned_target[600-run]
+========================= 1 failed, 5 passed in 2.21s ==========================
+mutation-result morning-lead 1

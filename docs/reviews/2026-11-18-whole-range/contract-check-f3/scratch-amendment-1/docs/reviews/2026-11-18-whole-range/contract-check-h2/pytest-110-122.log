@@ -1,0 +1,32 @@
+nice: setpriority: Operation not permitted
+bts=/Users/eric/projects/bts-work/wr-check-h2/.codex-review/wr-h-check2/scratch/src/bts/__init__.py
+files=['tests/test_stale_delivery_cs4c.py', 'tests/test_stale_delivery_cs4c_carbon.py', 'tests/test_stale_delivery_cs4c_review.py', 'tests/test_strategy.py', 'tests/test_streak_season_cs2.py', 'tests/test_streak_season_cs2_review.py', 'tests/test_streak_season_cs2b_review.py', 'tests/test_submission_cutoff.py', 'tests/test_sync.py', 'tests/test_tail_policy_artifact_contract.py', 'tests/test_tail_policy_r3_fixes.py', 'tests/test_tail_policy_strategy.py', 'tests/test_thin_slate_checks.py']
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-check-h2/.codex-review/wr-h-check2/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 668 items
+
+tests/test_stale_delivery_cs4c.py ...................................... [  5%]
+........................                                                 [  9%]
+tests/test_stale_delivery_cs4c_carbon.py ....................            [ 12%]
+tests/test_stale_delivery_cs4c_review.py ............................... [ 16%]
+................                                                         [ 19%]
+tests/test_strategy.py ................................................  [ 26%]
+tests/test_streak_season_cs2.py ........................................ [ 32%]
+........................................................................ [ 43%]
+........................................................................ [ 54%]
+.................................................................        [ 63%]
+tests/test_streak_season_cs2_review.py ................                  [ 66%]
+tests/test_streak_season_cs2b_review.py ................................ [ 70%]
+........................................................................ [ 81%]
+..............................                                           [ 86%]
+tests/test_submission_cutoff.py .....                                    [ 86%]
+tests/test_sync.py .........................                             [ 90%]
+tests/test_tail_policy_artifact_contract.py ....                         [ 91%]
+tests/test_tail_policy_r3_fixes.py ...................                   [ 94%]
+tests/test_tail_policy_strategy.py .........................             [ 97%]
+tests/test_thin_slate_checks.py ..............                           [100%]
+
+============================= 668 passed in 6.45s ==============================

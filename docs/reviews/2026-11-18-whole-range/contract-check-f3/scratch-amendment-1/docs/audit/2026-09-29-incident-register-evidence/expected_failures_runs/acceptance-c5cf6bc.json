@@ -1,0 +1,39 @@
+{
+ "summary": {
+  "ref": "c5cf6bc",
+  "seconds": 7.4,
+  "session_reasons": [],
+  "accepted": 18,
+  "registered": 18,
+  "rejected": {},
+  "returncodes": {
+   "marked": 0,
+   "unmarked": 1
+  }
+ },
+ "per_node": {
+  "_session": [],
+  "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[walks_only]": [],
+  "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[did_not_play]": [],
+  "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[sac_bunt_only]": [],
+  "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[suspended_walks_only]": [],
+  "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[suspended_ab_no_hit]": [],
+  "tests/test_incident_register_2026.py::test_l01_check_results_single_pick[walks_only]": [],
+  "tests/test_incident_register_2026.py::test_l01_check_results_single_pick[did_not_play]": [],
+  "tests/test_incident_register_2026.py::test_l01_check_results_single_pick[sac_bunt_only]": [],
+  "tests/test_incident_register_2026.py::test_l01_check_results_single_pick[suspended_walks_only]": [],
+  "tests/test_incident_register_2026.py::test_l01_check_results_single_pick[suspended_ab_no_hit]": [],
+  "tests/test_incident_register_2026.py::test_l01_check_results_hit_plus_pass[walks_only]": [],
+  "tests/test_incident_register_2026.py::test_l01_check_results_hit_plus_pass[did_not_play]": [],
+  "tests/test_incident_register_2026.py::test_l01_check_results_hit_plus_pass[suspended_ab_no_hit]": [],
+  "tests/test_incident_register_2026.py::test_l01_check_results_pass_plus_pass_preserves": [],
+  "tests/test_incident_register_2026.py::test_l01_pass_at_saver_streak_keeps_the_saver": [],
+  "tests/test_incident_register_2026.py::test_l02_same_day_hit_survives_two_late_reconciles": [],
+  "tests/test_incident_register_2026.py::test_l02_same_day_saver_consumption_survives_two_late_reconciles": [],
+  "tests/test_incident_register_2026.py::test_e77_singleton_slate_moved_up_is_delivered_before_cutoff": []
+ },
+ "raw_events_sha256": {
+  "marked.events.jsonl": "354f181342d3727a0bf784b0bd59bee2bc8301c6e8a7530124f7bcd3de990638",
+  "unmarked.events.jsonl": "b9f28bdd9f8bba00fcebd94610863183b4f65ef08fbc195e8123e23dc2b1cff5"
+ }
+}

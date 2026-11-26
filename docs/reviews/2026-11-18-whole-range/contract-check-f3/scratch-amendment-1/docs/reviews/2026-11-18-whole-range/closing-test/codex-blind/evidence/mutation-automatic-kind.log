@@ -1,0 +1,28 @@
+automatic-kind: contest_state.py :: if s.observation_kind != "automatic": -> if False:
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-closing-blind
+configfile: pyproject.toml
+collected 4 items
+
+../../../tests/test_automatic_reading_cs4c.py .FFF                       [100%]
+
+=================================== FAILURES ===================================
+__________________ test_pure_kinds_and_no_io_or_clock[dated] ___________________
+../../../tests/test_automatic_reading_cs4c.py:70: in test_pure_kinds_and_no_io_or_clock
+    assert actual is None
+E   AssertionError: assert {'age_hours': 20.0, 'reason': 'old', 'recorded_at': '2027-07-14T22:35:00-04:00', 'schema': 'bts_pick_automatic_reading_v1', ...} is None
+______________ test_pure_kinds_and_no_io_or_clock[legacy_manual] _______________
+../../../tests/test_automatic_reading_cs4c.py:70: in test_pure_kinds_and_no_io_or_clock
+    assert actual is None
+E   AssertionError: assert {'age_hours': 20.0, 'reason': 'old', 'recorded_at': '2027-07-14T22:35:00-04:00', 'schema': 'bts_pick_automatic_reading_v1', ...} is None
+__________________ test_pure_kinds_and_no_io_or_clock[model] ___________________
+../../../tests/test_automatic_reading_cs4c.py:70: in test_pure_kinds_and_no_io_or_clock
+    assert actual is None
+E   AssertionError: assert {'age_hours': 20.0, 'reason': 'old', 'recorded_at': '2027-07-14T22:35:00-04:00', 'schema': 'bts_pick_automatic_reading_v1', ...} is None
+=========================== short test summary info ============================
+FAILED ../../../tests/test_automatic_reading_cs4c.py::test_pure_kinds_and_no_io_or_clock[dated]
+FAILED ../../../tests/test_automatic_reading_cs4c.py::test_pure_kinds_and_no_io_or_clock[legacy_manual]
+FAILED ../../../tests/test_automatic_reading_cs4c.py::test_pure_kinds_and_no_io_or_clock[model]
+========================= 3 failed, 1 passed in 0.22s ==========================
+mutation-result automatic-kind 1

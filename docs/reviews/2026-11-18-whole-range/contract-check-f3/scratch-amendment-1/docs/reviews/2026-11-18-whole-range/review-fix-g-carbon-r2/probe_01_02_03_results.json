@@ -1,0 +1,52 @@
+{
+  "item1": {
+    "csv_sha256": "77ec540475c0e4c43cc9971747c73318779a828c2f561e36ce5b29c6b1c02237",
+    "base_bts_file": "/Users/eric/projects/bts-work/wr-rev-g2-carbon/.codex-review/wr-g2/base_f83e0d0b/src/bts/__init__.py",
+    "head_bts_file": "/Users/eric/projects/bts-work/wr-rev-g2-carbon/src/bts/__init__.py",
+    "raw_lookup_calls_per_side": 461912,
+    "sentinel_calls_per_side": 126,
+    "guarded_override_calls": 9157,
+    "distinct_csv_cells_seen_lookup": 1511,
+    "bar_calls_per_side": 21808,
+    "resolver_calls_per_side": 414352,
+    "resolver_override_calls": 7125,
+    "distinct_csv_cells_seen_resolver": 1511
+  },
+  "item2_3": {
+    "ast_call_sites": {
+      "lookup_action": [
+        "scripts/audit/boundary_shadow_census.py:243",
+        "scripts/audit_mdp_live_aggressiveness.py:125",
+        "scripts/evaluate_mdp_dd_guardrail.py:492",
+        "scripts/evaluate_mdp_dd_guardrail.py:348",
+        "scripts/gate_b_production_metric_rebaseline.py:290",
+        "scripts/gate_b_production_metric_rebaseline.py:299",
+        "scripts/oos_validation.py:31",
+        "scripts/validation/compare_policies.py:13",
+        "scripts/validation/compare_policies.py:19",
+        "scripts/validation/compare_policies.py:20"
+      ],
+      "lookup_action_guarded": [
+        "src/bts/strategy.py:138"
+      ]
+    },
+    "surfaces": {
+      "effective_pick_bar": 0.8252474190317034,
+      "select_pick": 100,
+      "run_and_pick": 100,
+      "run_single_check": 100,
+      "fallback_in_loop": 100,
+      "fallback_post_loop": 100,
+      "bts_run": 100,
+      "bts_preview": 100,
+      "bts_orchestrate": 100,
+      "shadow_model": 100,
+      "dashboard_rendered_batter_0": true
+    },
+    "clamps": {
+      "allow_double_false": "ok",
+      "no_diff_game": "ok",
+      "executable_double_matches_raw_control": "ok"
+    }
+  }
+}

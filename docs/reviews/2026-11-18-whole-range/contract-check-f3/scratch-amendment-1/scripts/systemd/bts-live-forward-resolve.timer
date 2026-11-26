@@ -1,0 +1,16 @@
+[Unit]
+Description=BTS live-forward candidate artifact resolver timer
+Requires=bts-live-forward-resolve.service
+
+[Timer]
+# Lower-frequency catch-up after overnight PA processing and later corrections.
+# Times are server-local; Hetzner production runs on America/New_York time.
+OnCalendar=*-*-* 07:00:00
+OnCalendar=*-*-* 12:00:00
+OnCalendar=*-*-* 18:00:00
+OnCalendar=*-*-* 22:00:00
+AccuracySec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

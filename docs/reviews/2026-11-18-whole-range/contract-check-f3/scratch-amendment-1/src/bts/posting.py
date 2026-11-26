@@ -1,0 +1,255 @@
+"""Bluesky posting for BTS picks."""
+
+import json
+import os
+import subprocess
+from datetime import datetime, timedelta, timezone
+from urllib.error import HTTPError
+from urllib.request import Request
+from zoneinfo import ZoneInfo
+
+from bts.util import retry_urlopen
+
+ET = ZoneInfo("America/New_York")
+
+
+def format_post(
+    batter: str,
+    team: str,
+    pitcher: str,
+    p_game: float,
+    streak: int,
+    double: str | None = None,
+    double_p_game: float | None = None,
+    double_team: str | None = None,
+    double_pitcher: str | None = None,
+) -> str:
+    """Format Bluesky post text for a BTS pick."""
+    if double and double_p_game is not None:
+        p_both = p_game * double_p_game
+        d_team = f" ({double_team})" if double_team else ""
+        d_vs = f" vs {double_pitcher}" if double_pitcher else ""
+        return (
+            f"Today's picks (double down):\n"
+            f"{batter} ({team}) vs {pitcher} — {p_game:.1%}\n"
+            f"{double}{d_team}{d_vs} — {double_p_game:.1%}\n"
+            f"P(both): {p_both:.1%}\n\n"
+            f"Streak: {streak}"
+        )
+    return (
+        f"Today's pick: {batter} ({team})\n"
+        f"vs {pitcher} | {p_game:.1%}\n\n"
+        f"Streak: {streak}"
+    )
+
+
+def format_skip_post(
+    batter: str,
+    team: str,
+    p_game: float,
+    streak: int,
+) -> str:
+    """Format Bluesky post text for a skip day."""
+    return (
+        f"Sitting today out. Top pick: {batter} ({team}) at {p_game:.1%} "
+        f"— below our threshold.\n\n"
+        f"Streak holds at {streak}."
+    )
+
+
+def get_bluesky_password() -> str:
+    """Get the Bluesky app password.
+
+    Priority order:
+    1. BTS_BLUESKY_APP_PASSWORD env var (new canonical name)
+    2. BTS_BLUESKY_PASSWORD env var (legacy posting name)
+    3. BTS_BLUESKY_DM_PASSWORD env var (legacy DM name)
+    4. macOS keychain 'bluesky-bts-app-password-dm'
+    5. macOS keychain 'bluesky-bts-app-password' (legacy)
+    """
+    # 1. New canonical env var
+    pwd = os.environ.get("BTS_BLUESKY_APP_PASSWORD")
+    if pwd:
+        return pwd
+
+    # 2. Legacy posting env var
+    pwd = os.environ.get("BTS_BLUESKY_PASSWORD")
+    if pwd:
+        return pwd
+
+    # 3. Legacy DM env var
+    pwd = os.environ.get("BTS_BLUESKY_DM_PASSWORD")
+    if pwd:
+        return pwd
+
+    # 4. macOS keychain (new canonical)
+    try:
+        result = subprocess.run(
+            ["security", "find-generic-password", "-a", "claude-cli",
+             "-s", "bluesky-bts-app-password-dm", "-w"],
+            capture_output=True, text=True,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except FileNotFoundError:
+        pass
+
+    # 5. macOS keychain (legacy)
+    try:
+        result = subprocess.run(
+            ["security", "find-generic-password", "-a", "claude-cli",
+             "-s", "bluesky-bts-app-password", "-w"],
+            capture_output=True, text=True,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except FileNotFoundError:
+        pass
+
+    raise RuntimeError(
+        "Bluesky app password not found. Set BTS_BLUESKY_APP_PASSWORD "
+        "or add to macOS keychain."
+    )
+
+
+def post_to_bluesky(text: str) -> str:
+    """Post text to Bluesky. Returns post URI.
+
+    Raises RuntimeError if auth or posting fails with a meaningful message.
+    """
+    password = get_bluesky_password()
+
+    # Authenticate
+    auth_data = json.dumps({
+        "identifier": "beatthestreakbot.bsky.social",
+        "password": password,
+    }).encode()
+    req = Request("https://bsky.social/xrpc/com.atproto.server.createSession",
+                  data=auth_data, headers={"Content-Type": "application/json"})
+    try:
+        session = json.loads(retry_urlopen(req, timeout=15).read())
+    except HTTPError as e:
+        if e.code == 401:
+            raise RuntimeError("Bluesky auth failed — check app password in keychain") from e
+        body = e.read().decode(errors="replace") if hasattr(e, "read") else ""
+        raise RuntimeError(f"Bluesky auth error (HTTP {e.code}): {body}") from e
+
+    # Post
+    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    record = {
+        "repo": session["did"],
+        "collection": "app.bsky.feed.post",
+        "record": {
+            "$type": "app.bsky.feed.post",
+            "text": text,
+            "createdAt": now,
+        },
+    }
+    req = Request(
+        "https://bsky.social/xrpc/com.atproto.repo.createRecord",
+        data=json.dumps(record).encode(),
+        headers={"Content-Type": "application/json",
+                 "Authorization": f"Bearer {session['accessJwt']}"},
+    )
+    try:
+        # idempotent=False: a retried createRecord on a lost response double-posts
+        resp = json.loads(retry_urlopen(req, timeout=15, idempotent=False).read())
+    except HTTPError as e:
+        if e.code == 429:
+            raise RuntimeError("Bluesky rate limited — try again in a few minutes") from e
+        body = e.read().decode(errors="replace") if hasattr(e, "read") else ""
+        raise RuntimeError(f"Bluesky post error (HTTP {e.code}): {body}") from e
+
+    return resp["uri"]
+
+
+def resolve_post_cid(uri: str) -> str:
+    """Resolve a Bluesky post URI to its CID.
+
+    Uses getPostThread to fetch the CID for an at:// URI.
+    """
+    encoded = uri.replace("://", "%3A%2F%2F").replace("/", "%2F")
+    url = f"https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri={uri}&depth=0"
+    req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    resp = json.loads(retry_urlopen(req, timeout=15).read())
+    return resp["thread"]["post"]["cid"]
+
+
+def reply_to_bluesky(text: str, parent_uri: str) -> str:
+    """Post a reply to an existing Bluesky post. Returns reply URI."""
+    password = get_bluesky_password()
+
+    # Authenticate
+    auth_data = json.dumps({
+        "identifier": "beatthestreakbot.bsky.social",
+        "password": password,
+    }).encode()
+    req = Request("https://bsky.social/xrpc/com.atproto.server.createSession",
+                  data=auth_data, headers={"Content-Type": "application/json"})
+    session = json.loads(retry_urlopen(req, timeout=15).read())
+
+    # Resolve parent CID
+    parent_cid = resolve_post_cid(parent_uri)
+
+    # Post reply
+    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    ref = {"uri": parent_uri, "cid": parent_cid}
+    record = {
+        "repo": session["did"],
+        "collection": "app.bsky.feed.post",
+        "record": {
+            "$type": "app.bsky.feed.post",
+            "text": text,
+            "createdAt": now,
+            "reply": {"root": ref, "parent": ref},
+        },
+    }
+    req = Request(
+        "https://bsky.social/xrpc/com.atproto.repo.createRecord",
+        data=json.dumps(record).encode(),
+        headers={"Content-Type": "application/json",
+                 "Authorization": f"Bearer {session['accessJwt']}"},
+    )
+    resp = json.loads(retry_urlopen(req, timeout=15, idempotent=False).read())  # createRecord — no retry
+    return resp["uri"]
+
+
+def format_result_reply(result: str, streak: int) -> str:
+    """Format the result reply text."""
+    if result == "hit":
+        return f"\u2705 Streak: {streak}"
+    if result == "void":
+        return f"Void. Streak: {streak}"
+    else:
+        return f"\u274c Streak reset to 0"
+
+
+def _now_et() -> datetime:
+    """Return current time in ET. Extracted for testability."""
+    return datetime.now(ET)
+
+
+def should_post_now(game_time_utc: str, already_posted: bool) -> bool:
+    """Decide if we should post the pick to Bluesky now.
+
+    Posts if:
+    - Not already posted for today
+    - Game starts within 3 hours, OR
+    - It's the evening run (after 7pm ET)
+    """
+    if already_posted:
+        return False
+
+    now_et = _now_et()
+    game_dt = datetime.fromisoformat(game_time_utc).astimezone(ET)
+
+    # Post if game starts within 3 hours (future only)
+    time_to_game = game_dt - now_et
+    if timedelta(0) <= time_to_game <= timedelta(hours=3):
+        return True
+
+    # Post on the final run (after 7pm ET)
+    if now_et.hour >= 19:
+        return True
+
+    return False

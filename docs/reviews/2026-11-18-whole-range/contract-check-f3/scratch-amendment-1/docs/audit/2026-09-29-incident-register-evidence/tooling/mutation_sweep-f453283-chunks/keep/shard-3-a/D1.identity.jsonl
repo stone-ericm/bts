@@ -1,0 +1,3 @@
+{"node": "tests.scripts.incident_register.test_defence::test_killing_failure_at_an_undeclared_assertion_is_rejected", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_defence::test_an_assert_inside_production_code_is_not_an_observable_kill", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_fresh_counterexamples::test_a_failure_named_like_assertion_error_is_not_a_kill", "kind": "assertion"}

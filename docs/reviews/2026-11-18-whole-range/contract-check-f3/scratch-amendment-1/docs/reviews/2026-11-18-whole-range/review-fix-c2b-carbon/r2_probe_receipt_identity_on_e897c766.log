@@ -1,0 +1,164 @@
+direct: missing schema_version: 1 C2 DMs across two encounters (contract 1)
+direct: schema_version=None: 1 C2 DMs across two encounters (contract 1)
+direct: schema_version=False: 1 C2 DMs across two encounters (contract 1)
+direct: schema_version=17: 1 C2 DMs across two encounters (contract 1)
+direct: schema_version=1.5: 1 C2 DMs across two encounters (contract 1)
+direct: schema_version={}: 1 C2 DMs across two encounters (contract 1)
+direct: schema_version='damaged': 1 C2 DMs across two encounters (contract 1)
+direct: schema_version=['bts_health_dm_delivery_status_v1']: 1 C2 DMs across two encounters (contract 1)
+direct: missing status: 1 C2 DMs across two encounters (contract 1)
+direct: status=None: 1 C2 DMs across two encounters (contract 1)
+direct: status=False: 1 C2 DMs across two encounters (contract 1)
+direct: status=17: 1 C2 DMs across two encounters (contract 1)
+direct: status=1.5: 1 C2 DMs across two encounters (contract 1)
+direct: status={}: 1 C2 DMs across two encounters (contract 1)
+direct: status='failed': 1 C2 DMs across two encounters (contract 1)
+direct: status='skipped_no_recipient': 1 C2 DMs across two encounters (contract 1)
+direct: status='SENT': 1 C2 DMs across two encounters (contract 1)
+direct: status=['sent']: 1 C2 DMs across two encounters (contract 1)
+direct: missing sent_day: 1 C2 DMs across two encounters (contract 1)
+direct: sent_day=None: 1 C2 DMs across two encounters (contract 1)
+direct: sent_day=False: 1 C2 DMs across two encounters (contract 1)
+direct: sent_day=17: 1 C2 DMs across two encounters (contract 1)
+direct: sent_day=1.5: 1 C2 DMs across two encounters (contract 1)
+direct: sent_day={}: 1 C2 DMs across two encounters (contract 1)
+direct: sent_day='2027-03-26': 1 C2 DMs across two encounters (contract 1)
+direct: sent_day='2027-03-25 ': 1 C2 DMs across two encounters (contract 1)
+direct: sent_day=['2027-03-25']: 1 C2 DMs across two encounters (contract 1)
+direct: missing sent_sources: 1 C2 DMs across two encounters (contract 1)
+direct: sent_sources=None: 1 C2 DMs across two encounters (contract 1)
+direct: sent_sources=False: 1 C2 DMs across two encounters (contract 1)
+direct: sent_sources=17: 1 C2 DMs across two encounters (contract 1)
+direct: sent_sources=1.5: 1 C2 DMs across two encounters (contract 1)
+direct: sent_sources={}: 1 C2 DMs across two encounters (contract 1)
+direct: sent_sources='CRITICAL:late_delivery': 1 C2 DMs across two encounters (contract 1)
+direct: sent_sources=[]: 1 C2 DMs across two encounters (contract 1)
+direct: sent_sources=['CRITICAL:pick_delivery']: 1 C2 DMs across two encounters (contract 1)
+direct: sent_sources=['CRITICAL:late_delivery', 'CRITICAL:late_delivery']: 1 C2 DMs across two encounters (contract 1)
+direct: sent_sources=['CRITICAL:late_delivery', 'CRITICAL:pick_delivery']: 1 C2 DMs across two encounters (contract 1)
+direct: sent_sources=['CRITICAL:pick_delivery', 'CRITICAL:late_delivery']: 1 C2 DMs across two encounters (contract 1)
+direct: sent_sources=[True]: 1 C2 DMs across two encounters (contract 1)
+direct: sent_sources=[None]: 1 C2 DMs across two encounters (contract 1)
+direct: sent_sources={'CRITICAL:late_delivery': True}: 1 C2 DMs across two encounters (contract 1)
+direct: missing message_id: 1 C2 DMs across two encounters (contract 1)
+direct: message_id=None: 1 C2 DMs across two encounters (contract 1)
+direct: message_id=False: 1 C2 DMs across two encounters (contract 1)
+direct: message_id=17: 1 C2 DMs across two encounters (contract 1)
+direct: message_id=1.5: 1 C2 DMs across two encounters (contract 1)
+direct: message_id={}: 1 C2 DMs across two encounters (contract 1)
+direct: message_id='': 1 C2 DMs across two encounters (contract 1)
+direct: message_id='\t \r\n': 1 C2 DMs across two encounters (contract 1)
+direct: message_id='\u2003': 1 C2 DMs across two encounters (contract 1)
+direct: message_id=['seed-id']: 1 C2 DMs across two encounters (contract 1)
+direct: malformed JSON: 1 C2 DMs across two encounters (contract 1)
+direct: wrong top-level type: 1 C2 DMs across two encounters (contract 1)
+direct: real other-slate copy: 1 C2 DMs across two encounters (contract 1)
+direct: real legacy cutoff copy: 1 C2 DMs across two encounters (contract 1)
+direct: real prior C2 acknowledgement: 0 C2 DMs across two encounters (contract 0)
+direct: extra contradictory error: 0 C2 DMs across two encounters (contract 1)
+direct: extra unknown key: 0 C2 DMs across two encounters (contract 1)
+direct: duplicate failed then sent status: 0 C2 DMs across two encounters (contract 1)
+direct: duplicate bad then correct schema: 0 C2 DMs across two encounters (contract 1)
+direct: cutoff copy with message ID: 0 C2 DMs across two encounters (contract 1)
+direct: other opt-in alert: 0 C2 DMs across two encounters (contract 1)
+classification: missing schema_version: 1 C2 DMs across two encounters (contract 1)
+classification: schema_version=None: 1 C2 DMs across two encounters (contract 1)
+classification: schema_version=False: 1 C2 DMs across two encounters (contract 1)
+classification: schema_version=17: 1 C2 DMs across two encounters (contract 1)
+classification: schema_version=1.5: 1 C2 DMs across two encounters (contract 1)
+classification: schema_version={}: 1 C2 DMs across two encounters (contract 1)
+classification: schema_version='damaged': 1 C2 DMs across two encounters (contract 1)
+classification: schema_version=['bts_health_dm_delivery_status_v1']: 1 C2 DMs across two encounters (contract 1)
+classification: missing status: 1 C2 DMs across two encounters (contract 1)
+classification: status=None: 1 C2 DMs across two encounters (contract 1)
+classification: status=False: 1 C2 DMs across two encounters (contract 1)
+classification: status=17: 1 C2 DMs across two encounters (contract 1)
+classification: status=1.5: 1 C2 DMs across two encounters (contract 1)
+classification: status={}: 1 C2 DMs across two encounters (contract 1)
+classification: status='failed': 1 C2 DMs across two encounters (contract 1)
+classification: status='skipped_no_recipient': 1 C2 DMs across two encounters (contract 1)
+classification: status='SENT': 1 C2 DMs across two encounters (contract 1)
+classification: status=['sent']: 1 C2 DMs across two encounters (contract 1)
+classification: missing sent_day: 1 C2 DMs across two encounters (contract 1)
+classification: sent_day=None: 1 C2 DMs across two encounters (contract 1)
+classification: sent_day=False: 1 C2 DMs across two encounters (contract 1)
+classification: sent_day=17: 1 C2 DMs across two encounters (contract 1)
+classification: sent_day=1.5: 1 C2 DMs across two encounters (contract 1)
+classification: sent_day={}: 1 C2 DMs across two encounters (contract 1)
+classification: sent_day='2027-03-26': 1 C2 DMs across two encounters (contract 1)
+classification: sent_day='2027-03-25 ': 1 C2 DMs across two encounters (contract 1)
+classification: sent_day=['2027-03-25']: 1 C2 DMs across two encounters (contract 1)
+classification: missing sent_sources: 1 C2 DMs across two encounters (contract 1)
+classification: sent_sources=None: 1 C2 DMs across two encounters (contract 1)
+classification: sent_sources=False: 1 C2 DMs across two encounters (contract 1)
+classification: sent_sources=17: 1 C2 DMs across two encounters (contract 1)
+classification: sent_sources=1.5: 1 C2 DMs across two encounters (contract 1)
+classification: sent_sources={}: 1 C2 DMs across two encounters (contract 1)
+classification: sent_sources='CRITICAL:late_delivery': 1 C2 DMs across two encounters (contract 1)
+classification: sent_sources=[]: 1 C2 DMs across two encounters (contract 1)
+classification: sent_sources=['CRITICAL:pick_delivery']: 1 C2 DMs across two encounters (contract 1)
+classification: sent_sources=['CRITICAL:late_delivery', 'CRITICAL:late_delivery']: 1 C2 DMs across two encounters (contract 1)
+classification: sent_sources=['CRITICAL:late_delivery', 'CRITICAL:pick_delivery']: 1 C2 DMs across two encounters (contract 1)
+classification: sent_sources=['CRITICAL:pick_delivery', 'CRITICAL:late_delivery']: 1 C2 DMs across two encounters (contract 1)
+classification: sent_sources=[True]: 1 C2 DMs across two encounters (contract 1)
+classification: sent_sources=[None]: 1 C2 DMs across two encounters (contract 1)
+classification: sent_sources={'CRITICAL:late_delivery': True}: 1 C2 DMs across two encounters (contract 1)
+classification: missing message_id: 1 C2 DMs across two encounters (contract 1)
+classification: message_id=None: 1 C2 DMs across two encounters (contract 1)
+classification: message_id=False: 1 C2 DMs across two encounters (contract 1)
+classification: message_id=17: 1 C2 DMs across two encounters (contract 1)
+classification: message_id=1.5: 1 C2 DMs across two encounters (contract 1)
+classification: message_id={}: 1 C2 DMs across two encounters (contract 1)
+classification: message_id='': 1 C2 DMs across two encounters (contract 1)
+classification: message_id='\t \r\n': 1 C2 DMs across two encounters (contract 1)
+classification: message_id='\u2003': 1 C2 DMs across two encounters (contract 1)
+classification: message_id=['seed-id']: 1 C2 DMs across two encounters (contract 1)
+classification: malformed JSON: 1 C2 DMs across two encounters (contract 1)
+classification: wrong top-level type: 1 C2 DMs across two encounters (contract 1)
+classification: real other-slate copy: 1 C2 DMs across two encounters (contract 1)
+classification: real legacy cutoff copy: 1 C2 DMs across two encounters (contract 1)
+classification: real prior C2 acknowledgement: 0 C2 DMs across two encounters (contract 0)
+classification: extra contradictory error: 0 C2 DMs across two encounters (contract 1)
+classification: extra unknown key: 0 C2 DMs across two encounters (contract 1)
+classification: duplicate failed then sent status: 0 C2 DMs across two encounters (contract 1)
+classification: duplicate bad then correct schema: 0 C2 DMs across two encounters (contract 1)
+classification: cutoff copy with message ID: 0 C2 DMs across two encounters (contract 1)
+classification: other opt-in alert: 0 C2 DMs across two encounters (contract 1)
+Reordered two-source opt-in receipt: sent once, wrote sorted order, then deduped.
+12 mismatches across 126 route cases.
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:20 ET] Fetching schedule for 2027-03-26...
+  1 games, 1 scheduled checks:
+    18:15 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:20 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Sat 03-27 10:00 ET
+  Waiting until 19:10 ET (game start + 10min, 50 min)...
+  Day complete. Result: final
+  DELIVERY REFUSED (receipt probe) — Example Batter: submission cutoff 18:19 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY OUTCOME UNKNOWN (review) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+  DELIVERY REFUSED (receipt probe) — Example Batter: submission cutoff 18:19 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (receipt probe) — Example Batter: submission cutoff 18:19 ET passed 1.0 min ago; not delivering an unenterable pick.
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:20 ET] Fetching schedule for 2027-03-26...
+  1 games, 1 scheduled checks:
+    18:15 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:20 ET] Running lineup check...
+  Pick already locked (delivery_attempt_unconfirmed) — skipping cascade.
+  Pick already locked (game started or previously delivered).
+  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; finalizing as locked_unconfirmed. Verify manually.
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Sat 03-27 10:00 ET
+  Waiting until 19:10 ET (game start + 10min, 50 min)...
+  Day complete. Result: final
+  DELIVERY REFUSED (receipt probe) — Example Batter: submission cutoff 18:19 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY OUTCOME UNKNOWN (review) — prior attempt unconfirmed; NOT re-sending to avoid a duplicate. Locking; verify manually.
+  DELIVERY REFUSED (receipt probe) — Example Batter: submission cutoff 18:19 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (receipt probe) — Example Batter: submission cutoff 18:19 ET passed 1.0 min ago; not delivering an unenterable pick.

@@ -1,0 +1,21 @@
+{
+  "label": "R-I029-1",
+  "incident": "I-029",
+  "links": [1],
+  "fix_set": ["1d61908"],
+  "tests": ["tests/test_picks.py::TestReconcileResults::test_preview_pick_for_tomorrow_does_not_break_streak_walk",
+            "tests/test_picks.py::TestReconcileResults::test_shadow_pick_files_are_ignored_in_streak_walk", "-q"],
+  "symptom_nodes": [
+    {"node": "tests/test_picks.py::TestReconcileResults::test_preview_pick_for_tomorrow_does_not_break_streak_walk",
+     "assertion": {"path": "tests/test_picks.py", "text": "assert load_streak(tmp_path) == 2, ("}},
+    {"node": "tests/test_picks.py::TestReconcileResults::test_shadow_pick_files_are_ignored_in_streak_walk",
+     "assertion": {"path": "tests/test_picks.py", "text": "assert load_streak(tmp_path) == 1, ("}}
+  ],
+  "audit": {
+    "tests/test_picks.py": {"decision": "neutral",
+      "reason": "appends the contract's two tests to TestReconcileResults (a today-dated preview pick with result None, and a <date>.shadow.json file with result None, must not end the streak walk); both import inside the test only names present in bts.picks at the parent 142db4d (reconcile_results, save_pick, save_streak, load_streak, DailyPick, Pick) and patch bts.picks.check_hit, which exists there (line 240); the file's module-level imports and other tests are unchanged"}
+  },
+  "deployed_ref": {"sha": "1d61908", "basis": "candidate_ancestry"},
+  "env": {"TZ": "America/New_York"},
+  "notes": "Symptoms: at the parent (142db4d), reconcile_results re-checks only the 8 days before today (today's file is untouched), then walks sorted(picks_dir.glob('*.json')) newest-first, skipping only streak/automation and breaking on any result other than hit/miss. Node 1: the files are <yesterday>.json (hit + double-down), <today>.json (result None) and streak.json; the walk meets today's preview first, breaks, and save_streak(0) runs, so load_streak is 0, not 2 (line 467). Node 2: the files are <yesterday>.json (hit), <yesterday>.shadow.json (result None) and streak.json; '.json' sorts before '.shadow.json', so the reversed walk meets the shadow file first and breaks, giving 0, not 1 (line 501). In both, check_hit is patched to True and yesterday's stored result is already 'hit', so the re-check makes no correction. Static checks at 142db4d: reconcile_results(picks_dir, lookback_days=8) has the same signature; DailyPick has result; save_streak(streak, picks_dir, saver_available=None) and load_streak exist; the module-level imports of tests/test_picks.py (Pick, DailyPick, save_pick, load_pick, load_streak, save_streak, update_streak, load_saver_available, pick_from_row, get_game_statuses, get_game_statuses_detailed, check_hit) all exist; tests/conftest.py has no autouse fixtures. Both anchors are the first line of a multi-line assert with a message; pytest's rewriter (pytest 9.0.2 in the bts-w15 venv, _pytest/assertion/rewrite.py lines 966-972) gives the generated raise the assert's own location, so the raising line is that first line. Each anchor occurs once in tests/test_picks.py at 1d61908 (lines 467 and 501). Both tests derive their dates from date.today(), as reconcile_results does, in the same process under TZ=America/New_York; no fixed date is planted, so they cannot expire, but a run straddling local midnight could split the two clocks."
+}

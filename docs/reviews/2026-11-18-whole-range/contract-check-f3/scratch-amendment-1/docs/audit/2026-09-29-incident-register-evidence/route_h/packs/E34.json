@@ -1,0 +1,37 @@
+{
+ "id": "E34",
+ "episode_row": [
+  "E34",
+  "4/22\u20134/23",
+  "watchdog SIGABRT killed the scheduler every ~30 min (NRestarts=21)",
+  "L",
+  "OI",
+  "A",
+  "684c160"
+ ],
+ "commits": [
+  {
+   "sha": "684c160",
+   "authored": "2026-04-23T10:24:35-04:00",
+   "subject": "fix(scheduler): emit notify_watchdog pings during SLEEPING-state waits",
+   "body": "Bug: Three time.sleep calls in SLEEPING-state contexts (main-loop between\nchecks, fallback deadline wait, pre-result-polling wait) had no\nnotify_watchdog() pings during the sleep. Systemd's WatchdogSec=1800 (30\nmin) fires SIGABRT, killing the daemon.\n\nObserved live 2026-04-23 overnight: NRestarts=21 since deploy of c43869d\nyesterday 16:30. Every ~30:30 min exactly (matching WatchdogSec), the\nscheduler was killed while in idle_end_of_day sleep \u2192 next-wake sleep.\n\nCan't reuse _poll_interval_sleep's heartbeat_watchdog pattern here because\nSLEEPING-state waits pre-write heartbeat with state=SLEEPING,\nsleeping_until=X \u2014 overwriting that mid-sleep with state=RUNNING would\nclobber metadata check_heartbeat.py needs for the \"sleeping-fresh-until-\nwake\" rule. New helper _watchdog_ping_sleep just emits notify_watchdog()\nevery 60s without touching the heartbeat file.\n\nThree call sites updated: lines for main-loop sleep, fallback deadline,\nand pre-polling wait.\n\n2 tests in TestWatchdogPingSleep: heartbeat file untouched, sleep duration\nrespected. Full suite 563 passed (was 561).\n\nCo-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_scheduler.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24840805271,
+    "created_at": "2026-04-23T14:24:40Z",
+    "head_sha": "684c160",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

@@ -1,0 +1,51 @@
+{
+  "installer_checks": {
+    "first_install_rc": 0,
+    "reinstall_idempotent_rc": 0,
+    "nonroot_without_destdir_rc": 1,
+    "relative_destdir_rc": 1,
+    "installer_accepts_execstart_ignore_errors_yes_rc": 0
+  },
+  "unit_and_guard_stale_checks": {
+    "guard_stale_source_differs": "guard-stale",
+    "user_manager_not_loaded": "user-manager",
+    "need_daemon_reload_yes": "guard",
+    "legacy_unit_file_exists": "legacy-unit",
+    "legacy_system_unit_loaded": "legacy-unit",
+    "sched_missing_no_sync": "guard",
+    "dash_missing_no_sync": "guard",
+    "sched_ignore_errors_yes": "guard",
+    "sched_two_execstart": "guard",
+    "cond_missing": "guard",
+    "cond_ignore_errors_yes": "guard",
+    "cond_two_entries": "guard"
+  },
+  "crontab_inventory": {
+    "empty_crontab_refused": "crontab",
+    "missing_one_fetch_count_1_2_3_1": "crontab",
+    "extra_gated_reconcile_count_1_3_4_1": "crontab",
+    "ungated_plain_reconcile": "crontab",
+    "commented_ungated_writer_ignored": null,
+    "ADV_quoted_subcmd_bts_singlequote_reconcile": null,
+    "ADV_quoted_binary_doublequote_bts": null,
+    "ADV_ungated_bin_sh_c_trailing_quote": null,
+    "ADV_ungated_subshell_trailing_paren": null,
+    "ADV_ungated_semicolon_terminated": null,
+    "ADV_indirect_python_m_bts_cli": null,
+    "ADV_chained_semicolon_after_gate_same_job": null,
+    "ADV_commented_out_heartbeat_monitor": null,
+    "chained_command_actually_executes_while_held": true
+  },
+  "window_checks": {
+    "fresh_running_no_rec": "refused:window",
+    "fresh_running_with_rec": "refused:window",
+    "stale_running_no_rec": "refused:window",
+    "stale_running_with_rec": "allowed",
+    "fresh_waiting_with_rec": "refused:window",
+    "sleep_wake_29m59s_with_rec": "refused:window",
+    "sleep_wake_30m00s_no_rec": "allowed",
+    "absent_hb_no_rec": "refused:window",
+    "absent_hb_wrong_rec": "refused:window",
+    "absent_hb_exact_rec": "allowed"
+  }
+}

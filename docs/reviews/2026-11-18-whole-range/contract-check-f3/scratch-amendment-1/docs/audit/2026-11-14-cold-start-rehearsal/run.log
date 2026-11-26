@@ -1,0 +1,18 @@
+### pre-fix commit e3edbf5, opener only 2026-11-14 03:56:34
+e3edbf58 docs(audit): Gemini known-answer tests — 3 of 3 on the framing runner; on the pick path 1 of 2 blockers plus five real defects Codex had not reported
+pre-fix opener rc=2
+### pushed commit 2026-11-14 03:57:18
+07780d3d docs(reviews): the tests-only kickoff and handover for the adopted cold-start probes
+37c60def218c0348f615d86d774e5d1e147666b65a990ebd3c8b9cadea5d6326  ../rehearse.py
+=== 2026-03-25 start 2026-11-14 03:57:18 args: --require-cold --expect rows
+=== 2026-03-25 rc=0 end 2026-11-14 04:00:07
+=== 2026-03-26 start 2026-11-14 04:00:07 args: --expect rows
+=== 2026-03-26 rc=0 end 2026-11-14 04:02:01
+=== swapped in /Users/eric/projects/bts/data/processed/pa_2026.parquet
+50b39b11614abc2f5b7b13727b4d46d085b05c68ec97126d825ccdfe7ce5b23c  /Users/eric/projects/bts/data/processed/pa_2026.parquet
+50b39b11614abc2f5b7b13727b4d46d085b05c68ec97126d825ccdfe7ce5b23c  data/processed/pa_2026.parquet
+=== 2027-03-24 start 2026-11-14 04:02:01 args: 
+=== 2027-03-24 rc=0 end 2026-11-14 04:03:51
+ALL DONE rc=0 2026-11-14 04:03:51
+run_coldstart rc=0
+RERUN DONE 2026-11-14 04:03:51

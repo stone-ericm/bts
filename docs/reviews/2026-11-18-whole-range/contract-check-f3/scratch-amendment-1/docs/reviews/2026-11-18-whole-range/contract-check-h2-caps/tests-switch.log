@@ -1,0 +1,64 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-check-h2b/.codex-review/wr-h2-check/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1787 items
+
+tests/test_season_contract_cs4b1.py .................................... [  2%]
+.......................................F.......F..................       [  5%]
+tests/test_season_contract_cs4b1_edges.py .............................. [  7%]
+............................................F..........                  [ 10%]
+tests/test_season_contract_cs4b1_review.py .......                       [ 10%]
+tests/test_season_contract_cs4b2.py .................................... [ 12%]
+........................................................................ [ 16%]
+........................................................................ [ 20%]
+........................................................................ [ 24%]
+........................................................................ [ 28%]
+........................................................................ [ 33%]
+........................................................................ [ 37%]
+........................................................................ [ 41%]
+........................................................................ [ 45%]
+........................................................................ [ 49%]
+........................................................................ [ 53%]
+........................................................................ [ 57%]
+........................................................................ [ 61%]
+........................................................................ [ 65%]
+........................................................................ [ 69%]
+........................................................................ [ 73%]
+........................................................................ [ 77%]
+........................................................................ [ 81%]
+........................................................................ [ 85%]
+........................................................................ [ 89%]
+........................................................................ [ 93%]
+........................................................................ [ 97%]
+.............                                                            [ 98%]
+tests/test_season_contract_cs4b2_edges.py ....................           [ 99%]
+tests/test_season_contract_cs4b2_review.py ............                  [100%]
+
+=================================== FAILURES ===================================
+______________ test_response_validation_and_alerts[False-best58] _______________
+tests/test_season_contract_cs4b1.py:298: in test_response_validation_and_alerts
+    assert r.exit_code == (0 if valid_empty else 2), r.output
+E   AssertionError: season 2027 is not switched to automatic; reading recorded in the ledger and the fetch status: active_streak=7 best_streak=58 source_date=2027-07-14
+E     
+E   assert 0 == 2
+E    +  where 0 = <Result okay>.exit_code
+_______________ test_response_validation_and_alerts[True-best58] _______________
+tests/test_season_contract_cs4b1.py:298: in test_response_validation_and_alerts
+    assert r.exit_code == (0 if valid_empty else 2), r.output
+E   AssertionError: [dry-run] season 2027 not switched to automatic; would record reading in ledger and fetch status: active_streak=7 best_streak=58 source_date=2027-07-14
+E     
+E   assert 0 == 2
+E    +  where 0 = <Result okay>.exit_code
+____________________ test_best_bound_and_builder_v1_control ____________________
+tests/test_season_contract_cs4b1_edges.py:183: in test_best_bound_and_builder_v1_control
+    with pytest.raises(cf.ContestFetchError, match="57"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'bts.contest_fetch.ContestFetchError'>
+=========================== short test summary info ============================
+FAILED tests/test_season_contract_cs4b1.py::test_response_validation_and_alerts[False-best58]
+FAILED tests/test_season_contract_cs4b1.py::test_response_validation_and_alerts[True-best58]
+FAILED tests/test_season_contract_cs4b1_edges.py::test_best_bound_and_builder_v1_control
+======================== 3 failed, 1784 passed in 9.59s ========================

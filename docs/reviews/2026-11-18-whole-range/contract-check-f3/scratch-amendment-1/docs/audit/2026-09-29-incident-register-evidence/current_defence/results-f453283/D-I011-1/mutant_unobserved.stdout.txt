@@ -1,0 +1,59 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_scoring_lock.py F                                             [100%]
+
+=================================== FAILURES ===================================
+_____________ test_check_results_skips_when_peer_scored_mid_flight _____________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-7962/test_check_results_skips_when_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10754cd40>
+
+    def test_check_results_skips_when_peer_scored_mid_flight(tmp_path, monkeypatch):
+        """The daemon finishes scoring between check-results' pre-check and its
+        streak update: the locked re-check must skip the second update."""
+        from bts.cli import cli
+        import bts.picks as picks_mod
+    
+        picks_dir = tmp_path / "picks"
+        picks_dir.mkdir()
+        _plant_scoreable_pick(picks_dir, "2026-07-08")
+        (picks_dir / "streak.json").write_text(json.dumps({"streak": 5}))
+    
+        real_resolve = picks_mod.resolve_daily_slot_results
+    
+        def resolve_and_simulate_peer(daily, date):
+            # Peer (the daemon) scores the same date while we're resolving.
+            peer = picks_mod.load_pick(date, picks_dir)
+            peer.result = "hit"
+            peer.slot_results = {"pick": "hit"}
+            picks_mod.save_pick(peer, picks_dir)
+            streak = json.loads((picks_dir / "streak.json").read_text())
+            streak["streak"] = 6  # peer applied +1
+            (picks_dir / "streak.json").write_text(json.dumps(streak))
+            return {"pick": "hit"}
+    
+        monkeypatch.setattr(picks_mod, "resolve_daily_slot_results",
+                            resolve_and_simulate_peer)
+    
+        r = CliRunner().invoke(cli, ["check-results", "--date", "2026-07-08", "--allow-stale-scoring",
+                                     "--picks-dir", str(picks_dir)])
+    
+        assert r.exit_code == 0, r.output
+        streak = json.loads((picks_dir / "streak.json").read_text())
+>       assert streak["streak"] == 6, (
+            f"streak must not be double-applied (got {streak['streak']}): {r.output}"
+        )
+E       AssertionError: streak must not be double-applied (got 7): Checking Test Batter (game 111)...
+E         HIT! Test Batter. Streak: 7
+E         
+E       assert 7 == 6
+
+tests/test_scoring_lock.py:96: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_scoring_lock.py::test_check_results_skips_when_peer_scored_mid_flight
+============================== 1 failed in 1.09s ===============================

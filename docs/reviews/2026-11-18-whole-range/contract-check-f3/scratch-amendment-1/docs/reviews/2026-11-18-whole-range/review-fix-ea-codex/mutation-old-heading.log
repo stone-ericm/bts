@@ -1,0 +1,104 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-ea-codex
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 56 items / 46 deselected / 10 selected
+
+tests/test_wr_e_texts.py FFFFFFFFFF                                      [100%]
+
+=================================== FAILURES ===================================
+_ test_skip_surfaces[fields0-Candidate used in the decision: A (T) 75.0%. Reason: Stopped!] _
+tests/test_wr_e_texts.py:53: in test_skip_surfaces
+    assert web.render_skip_banner(summary) == (
+E   assert '<div class="...</span></div>' == '<div class="...</span></div>'
+E     
+E     - <div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Candidate used in the decision: A (T) 75.0%. Reason: Stopped! Streak used at this check: 8.</span></div>
+E     ?                                       ^  ------------ --------
+E     + <div class="skip-banner"><strong>NO PICK AT LAST CHECK</strong><span>Candidate used in the decision: A (T) 75.0%. Reason: Stopped! Streak used at this check: 8.</span></div>
+E     ?                                  +++++++++++     ^^
+_ test_skip_surfaces[fields1-Candidate used in the decision: A (T) 75.0%, below the streak-8 bar (75.0%) using unrounded values.] _
+tests/test_wr_e_texts.py:53: in test_skip_surfaces
+    assert web.render_skip_banner(summary) == (
+E   assert '<div class="...</span></div>' == '<div class="...</span></div>'
+E     
+E     - <div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Candidate used in the decision: A (T) 75.0%, below the streak-8 bar (75.0%) using unrounded values. Streak used at this check: 8.</span></div>
+E     + <div class="skip-banner"><strong>NO PICK AT LAST CHECK</strong><span>Candidate used in the decision: A (T) 75.0%, below the streak-8 bar (75.0%) using unrounded values. Streak used at this check: 8.</span></div>
+_ test_skip_surfaces[fields2-Candidate used in the decision: A (T) 75.0%, at or above the streak-8 bar (75.0%).] _
+tests/test_wr_e_texts.py:53: in test_skip_surfaces
+    assert web.render_skip_banner(summary) == (
+E   assert '<div class="...</span></div>' == '<div class="...</span></div>'
+E     
+E     - <div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Candidate used in the decision: A (T) 75.0%, at or above the streak-8 bar (75.0%). Streak used at this check: 8.</span></div>
+E     ?                                       ^  ------------ --------
+E     + <div class="skip-banner"><strong>NO PICK AT LAST CHECK</strong><span>Candidate used in the decision: A (T) 75.0%, at or above the streak-8 bar (75.0%). Streak used at this check: 8.</span></div>
+E     ?                                  +++++++++++     ^^
+_ test_skip_surfaces[fields3-Candidate used in the decision: A (T) 75.0%. No probability comparison is available for this check.] _
+tests/test_wr_e_texts.py:53: in test_skip_surfaces
+    assert web.render_skip_banner(summary) == (
+E   assert '<div class="...</span></div>' == '<div class="...</span></div>'
+E     
+E     - <div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Candidate used in the decision: A (T) 75.0%. No probability comparison is available for this check. Streak used at this check: 8.</span></div>
+E     + <div class="skip-banner"><strong>NO PICK AT LAST CHECK</strong><span>Candidate used in the decision: A (T) 75.0%. No probability comparison is available for this check. Streak used at this check: 8.</span></div>
+_ test_skip_surfaces[fields4-No candidate was chosen. Top model prediction (eligibility unverified): A (T) 75.0%.] _
+tests/test_wr_e_texts.py:53: in test_skip_surfaces
+    assert web.render_skip_banner(summary) == (
+E   assert '<div class="...</span></div>' == '<div class="...</span></div>'
+E     
+E     - <div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>No candidate was chosen. Top model prediction (eligibility unverified): A (T) 75.0%. Streak used at this check: 8.</span></div>
+E     ?                                       ^  ------------ --------
+E     + <div class="skip-banner"><strong>NO PICK AT LAST CHECK</strong><span>No candidate was chosen. Top model prediction (eligibility unverified): A (T) 75.0%. Streak used at this check: 8.</span></div>
+E     ?                                  +++++++++++     ^^
+_ test_skip_surfaces[fields5-Candidate used in the decision: A (<T&>) 75.0%. Reason: <stop & check>.] _
+tests/test_wr_e_texts.py:53: in test_skip_surfaces
+    assert web.render_skip_banner(summary) == (
+E   assert '<div class="...</span></div>' == '<div class="...</span></div>'
+E     
+E     - <div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Candidate used in the decision: A (&lt;T&amp;&gt;) 75.0%. Reason: &lt;stop &amp; check&gt;. Streak used at this check: 8.</span></div>
+E     + <div class="skip-banner"><strong>NO PICK AT LAST CHECK</strong><span>Candidate used in the decision: A (&lt;T&amp;&gt;) 75.0%. Reason: &lt;stop &amp; check&gt;. Streak used at this check: 8.</span></div>
+_ test_skip_surfaces[fields6-Candidate used in the decision: A (T) 75.0%. Reason: Stopped!] _
+tests/test_wr_e_texts.py:53: in test_skip_surfaces
+    assert web.render_skip_banner(summary) == (
+E   assert '<div class="...</span></div>' == '<div class="...</span></div>'
+E     
+E     - <div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Candidate used in the decision: A (T) 75.0%. Reason: Stopped! Streak used at this check: 8.</span></div>
+E     ?                                       ^  ------------ --------
+E     + <div class="skip-banner"><strong>NO PICK AT LAST CHECK</strong><span>Candidate used in the decision: A (T) 75.0%. Reason: Stopped! Streak used at this check: 8.</span></div>
+E     ?                                  +++++++++++     ^^
+_ test_skip_surfaces[fields7-Top model prediction (eligibility unverified): A (T) 75.0%, below the streak-8 bar (80.0%) using unrounded values.] _
+tests/test_wr_e_texts.py:53: in test_skip_surfaces
+    assert web.render_skip_banner(summary) == (
+E   assert '<div class="...</span></div>' == '<div class="...</span></div>'
+E     
+E     - <div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Top model prediction (eligibility unverified): A (T) 75.0%, below the streak-8 bar (80.0%) using unrounded values. Streak used at this check: 8.</span></div>
+E     ?                                  --------------  ^      ^^^^^^
+E     + <div class="skip-banner"><strong>NO PICK AT LAST CHECK</strong><span>Top model prediction (eligibility unverified): A (T) 75.0%, below the streak-8 bar (80.0%) using unrounded values. Streak used at this check: 8.</span></div>
+E     ?                                    ^     +++++ ^^^^^^^
+_ test_skip_surfaces[fields8-Candidate used in the decision: A (T) 75.0%. No probability comparison is available for this check.] _
+tests/test_wr_e_texts.py:53: in test_skip_surfaces
+    assert web.render_skip_banner(summary) == (
+E   assert '<div class="...</span></div>' == '<div class="...</span></div>'
+E     
+E     - <div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Candidate used in the decision: A (T) 75.0%. No probability comparison is available for this check. Streak used at this check: 8.</span></div>
+E     + <div class="skip-banner"><strong>NO PICK AT LAST CHECK</strong><span>Candidate used in the decision: A (T) 75.0%. No probability comparison is available for this check. Streak used at this check: 8.</span></div>
+_ test_skip_surfaces[fields9-Candidate used in the decision: A (T) 75.0%. Reason: Stop  here!] _
+tests/test_wr_e_texts.py:53: in test_skip_surfaces
+    assert web.render_skip_banner(summary) == (
+E   assert '<div class="...</span></div>' == '<div class="...</span></div>'
+E     
+E     - <div class="skip-banner"><strong>LAST RECORDED NO-PICK SUMMARY</strong><span>Candidate used in the decision: A (T) 75.0%. Reason: Stop  here! Streak used at this check: 8.</span></div>
+E     ?                                       ^  ------------ --------
+E     + <div class="skip-banner"><strong>NO PICK AT LAST CHECK</strong><span>Candidate used in the decision: A (T) 75.0%. Reason: Stop  here! Streak used at this check: 8.</span></div>
+E     ?                                  +++++++++++     ^^
+=========================== short test summary info ============================
+FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields0-Candidate used in the decision: A (T) 75.0%. Reason: Stopped!]
+FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields1-Candidate used in the decision: A (T) 75.0%, below the streak-8 bar (75.0%) using unrounded values.]
+FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields2-Candidate used in the decision: A (T) 75.0%, at or above the streak-8 bar (75.0%).]
+FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields3-Candidate used in the decision: A (T) 75.0%. No probability comparison is available for this check.]
+FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields4-No candidate was chosen. Top model prediction (eligibility unverified): A (T) 75.0%.]
+FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields5-Candidate used in the decision: A (<T&>) 75.0%. Reason: <stop & check>.]
+FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields6-Candidate used in the decision: A (T) 75.0%. Reason: Stopped!]
+FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields7-Top model prediction (eligibility unverified): A (T) 75.0%, below the streak-8 bar (80.0%) using unrounded values.]
+FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields8-Candidate used in the decision: A (T) 75.0%. No probability comparison is available for this check.]
+FAILED tests/test_wr_e_texts.py::test_skip_surfaces[fields9-Candidate used in the decision: A (T) 75.0%. Reason: Stop  here!]
+====================== 10 failed, 46 deselected in 1.09s =======================

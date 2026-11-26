@@ -1,0 +1,240 @@
+{
+  "audit_problems": [],
+  "classes": {
+    "tests/test_late_delivery_guard.py::test_already_delivered_pick_still_locks_after_cutoff": "passes_at_parent",
+    "tests/test_late_delivery_guard.py::test_at_cutoff_refuses_archives_and_alerts": "symptom_candidate",
+    "tests/test_late_delivery_guard.py::test_earlier_double_down_sets_the_cutoff": "symptom_candidate"
+  },
+  "closure": "src_swap",
+  "events_sha256": {
+    "green": "cca9829e5b5af96142009db5a02f3054030b98600a8678216f50b2a6c7607419",
+    "red": "a049d48d6780f24458d90850a333a99d336442630067b9b0897f3afa54cd3b14"
+  },
+  "fix": "2ff2db9c55ea8b2240de7e5b54b27e15af6f6287",
+  "harness_changes": [
+    {
+      "path": "ARCHITECTURE.md",
+      "status": "M"
+    },
+    {
+      "path": "CLAUDE.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/audit/2026-08-30-late-pick-delivery.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/audit/2026-08-30-same-game-pair-correlation.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/optimization-ideas.md",
+      "status": "M"
+    },
+    {
+      "path": "scripts/audit/same_game_pair_lift.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/data/test_pull.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/health/test_fallback_defer.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/health/test_late_delivery.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_cutoff_candidate_exclusion.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_e2_delivery_idempotency.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_fallback_plan.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_incident_2026_08_30.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_late_delivery_guard.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_lock_decision.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_refresh_memo.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_scheduler.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_scheduler_decision_record_integration.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_scheduler_skip_visibility.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_submission_cutoff.py",
+      "status": "A"
+    }
+  ],
+  "label": "R-I084-2",
+  "label_kind": "semantic_regression_replay",
+  "parent": "ad17b3ac7eb5d72530d340af0e44a4cdad3af00d",
+  "reasons": [],
+  "spec": {
+    "audit": {
+      "ARCHITECTURE.md": {
+        "decision": "irrelevant",
+        "reason": "documentation"
+      },
+      "CLAUDE.md": {
+        "decision": "irrelevant",
+        "reason": "documentation"
+      },
+      "docs/audit/2026-08-30-late-pick-delivery.md": {
+        "decision": "irrelevant",
+        "reason": "incident memo"
+      },
+      "docs/audit/2026-08-30-same-game-pair-correlation.md": {
+        "decision": "irrelevant",
+        "reason": "audit memo"
+      },
+      "docs/optimization-ideas.md": {
+        "decision": "irrelevant",
+        "reason": "documentation"
+      },
+      "scripts/audit/same_game_pair_lift.py": {
+        "decision": "irrelevant",
+        "reason": "audit script (1cd5da8); never imported by tests"
+      },
+      "tests/data/test_pull.py": {
+        "decision": "irrelevant",
+        "reason": "not selected; link 3's cached-feed sleep tests (c0c0a97)"
+      },
+      "tests/health/test_fallback_defer.py": {
+        "decision": "irrelevant",
+        "reason": "not selected; link 4's double-down slot comparison (314154d)"
+      },
+      "tests/health/test_late_delivery.py": {
+        "decision": "irrelevant",
+        "reason": "not selected; link 4's late_delivery health source (314154d)"
+      },
+      "tests/test_cutoff_candidate_exclusion.py": {
+        "decision": "irrelevant",
+        "reason": "not selected; tests _games_past_cutoff and the unavailable_game_pks argument of select_pick/run_single_check, added by fa977c3 (ImportError/TypeError at the parent)"
+      },
+      "tests/test_e2_delivery_idempotency.py": {
+        "decision": "irrelevant",
+        "reason": "not selected; ac0ce8d pins its clock inside the delivery window so the new guard does not refuse its deliveries"
+      },
+      "tests/test_fallback_plan.py": {
+        "decision": "irrelevant",
+        "reason": "not selected; link 1's planner tests (plan_fallback_action, added by 32057b7)"
+      },
+      "tests/test_incident_2026_08_30.py": {
+        "decision": "irrelevant",
+        "reason": "not selected; link 1's advancing-clock replay, built on FallbackRefreshResult fields added by a681e89 (new API at the parent)"
+      },
+      "tests/test_late_delivery_guard.py": {
+        "decision": "neutral",
+        "reason": "new file with the delivery-guard tests (ac0ce8d, extended by 3697512); module-level imports DailyPick, Pick, load_pick, save_pick (bts.picks) and SchedulerState, _deliver_and_lock_pick (bts.scheduler) all exist at the parent ad17b3a; the selected tests call _deliver_and_lock_pick(daily, config, picks_dir, state, date, label) with the parent's positional signature and patch bts.scheduler._now_et, bts.scheduler._trigger_live_forward_capture_on_lock, bts.dm.send_dm, bts.contest_state.load_decision_streak_state and bts.health.alert.dispatch_dm_for_health_alerts, all present at the parent"
+      },
+      "tests/test_lock_decision.py": {
+        "decision": "irrelevant",
+        "reason": "not selected; link 1's LockDecision tests (a681e89)"
+      },
+      "tests/test_refresh_memo.py": {
+        "decision": "irrelevant",
+        "reason": "not selected; link 3's season-refresh memo tests (0c8ed32)"
+      },
+      "tests/test_scheduler.py": {
+        "decision": "irrelevant",
+        "reason": "not selected; link 1's fallback-planner changes (a681e89, 67338cd)"
+      },
+      "tests/test_scheduler_decision_record_integration.py": {
+        "decision": "irrelevant",
+        "reason": "not selected; the harness default clock moves inside the window (ac0ce8d, fa977c3) and 67338cd adds the _no_live_mlb_api autouse fixture"
+      },
+      "tests/test_scheduler_skip_visibility.py": {
+        "decision": "irrelevant",
+        "reason": "not selected; carry-forward of refusals and fallback refreshes (3697512)"
+      },
+      "tests/test_submission_cutoff.py": {
+        "decision": "irrelevant",
+        "reason": "not selected; imports SUBMISSION_CUTOFF_MIN, earliest_pick_game_et and submission_cutoff_et, added by 734bdb3 (ImportError at the parent)"
+      }
+    },
+    "deployed_ref": {
+      "basis": "log",
+      "sha": "2ff2db9"
+    },
+    "env": {
+      "TZ": "America/New_York"
+    },
+    "fix_set": [
+      "734bdb3",
+      "ac0ce8d",
+      "fa977c3",
+      "2ff2db9"
+    ],
+    "incident": "I-084",
+    "label": "R-I084-2",
+    "links": [
+      2
+    ],
+    "notes": "Symptoms: at the parent ad17b3a, _deliver_and_lock_pick never reads the clock against the entry cutoff: in dm mode it loads the (mocked) contest state, sets delivery_attempted, calls send_dm, records the commit and returns True. Node 1 (the 8/30 shape: Kwan, first pitch 13:40, clock 13:35:00 = cutoff): ok is True, so 'assert ok is False' fails at line 76 (the text also matches lines 158 and 179, hence the line number). Node 2 (primary 16:05, double-down 13:40, clock 13:36): the parent sends and returns True, so the assertion on line 105 fails; at F the cutoff is taken from the earliest slot (13:35) and the call refuses. Control: test_already_delivered_pick_still_locks_after_cutoff passes at both (a pick delivered earlier re-locks after the cutoff without a send). Not selected: test_one_second_before_cutoff_delivers and test_legacy_pick_file_without_delivered_at_loads (AttributeError at the parent: DailyPick.delivered_at is new), test_unconfirmed_prior_attempt_pages_critical (r2 F2; at the parent mock_alert.call_args is None, AttributeError), and test_private_mode_is_guarded_too / test_clock_crossing_cutoff_between_guard_and_send_refuses, which also fail by assertion at the parent (no guard at all) but are a private-mode branch and the 3697512 pre-send re-check; they can be declared if the reviewer wants more symptoms (anchors: line 120 'assert _deliver_and_lock_pick(daily, cfg, tmp_path, state, DATE, \"lineup\") is False', line 158). Static checks at ad17b3a: _deliver_and_lock_pick(daily, config, picks_dir, state, date, label, *, selection=None) -> bool; it imports load_decision_streak_state and send_dm at call time (so the patches apply); _record_commit swallows any decision-record failure; SchedulerState accepts the fields _state() passes; tests/conftest.py has no autouse fixtures. Anchor 2 occurs once at 2ff2db9.",
+    "symptom_nodes": [
+      {
+        "_line": 76,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I084-2/tests/test_late_delivery_guard.py",
+        "assertion": {
+          "line": 76,
+          "path": "tests/test_late_delivery_guard.py",
+          "text": "assert ok is False"
+        },
+        "node": "tests/test_late_delivery_guard.py::test_at_cutoff_refuses_archives_and_alerts"
+      },
+      {
+        "_line": 105,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I084-2/tests/test_late_delivery_guard.py",
+        "assertion": {
+          "path": "tests/test_late_delivery_guard.py",
+          "text": "assert _deliver_and_lock_pick(daily, cfg, tmp_path, _state(), DATE, \"fallback\") is False"
+        },
+        "node": "tests/test_late_delivery_guard.py::test_earlier_double_down_sets_the_cutoff"
+      }
+    ],
+    "tests": [
+      "tests/test_late_delivery_guard.py::test_at_cutoff_refuses_archives_and_alerts",
+      "tests/test_late_delivery_guard.py::test_earlier_double_down_sets_the_cutoff",
+      "tests/test_late_delivery_guard.py::test_already_delivered_pick_still_locks_after_cutoff",
+      "-q"
+    ]
+  },
+  "spec_sha256": "37cd54698914abe67e8ab0a28b133fdac7e4fb831a602f0ca919600f900a9f03",
+  "src_tree": {
+    "fix": "2746d7ade948d935778f113f452baf6c49829187",
+    "parent": "afab32e3c83dd56c334c72a7643833d5bab85bde"
+  },
+  "symptoms": {
+    "tests/test_late_delivery_guard.py::test_at_cutoff_refuses_archives_and_alerts": [],
+    "tests/test_late_delivery_guard.py::test_earlier_double_down_sets_the_cutoff": []
+  },
+  "verdict": "accepted"
+}

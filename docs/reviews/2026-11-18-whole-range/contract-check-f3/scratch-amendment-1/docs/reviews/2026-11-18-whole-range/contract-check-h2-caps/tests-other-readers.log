@@ -1,0 +1,19 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-check-h2b/.codex-review/wr-h2-check/scratch
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 153 items
+
+tests/health/test_result_resolution.py ............                      [  7%]
+tests/health/test_late_delivery.py ............                          [ 15%]
+tests/health/test_mdp_policy_alignment.py ........                       [ 20%]
+tests/health/test_pick_entry_source.py ......                            [ 24%]
+tests/health/test_post_failure.py ................                       [ 35%]
+tests/leaderboard/test_analysis.py ............                          [ 43%]
+tests/leaderboard/test_scraper_stealth.py ...........                    [ 50%]
+tests/test_boundary_shadow_census.py ..........                          [ 56%]
+tests/test_boundary_shadow_census_g.py ...                               [ 58%]
+tests/test_shadow_predict_once.py ....                                   [ 61%]
+tests/test_shadow_scheduler.py 

@@ -1,0 +1,22 @@
+Imported /Users/eric/projects/bts-work/wr-review-w15b/src/bts/__init__.py
+Parity probable_pitcher_lookup.json (5095, 'f5779989f3a497e48def556df04e19c0c337f0711ede4ad9af9057a70b938290', '451f5257ab93bda2192829f9422eb8cc8340379c04f386d5d95e66a555a82eb1', 1794604387271647831)
+Parity probable_pitcher_lookup.2017-2025.json (20087, 'b5aa00464aa304abacb9600ca6e36d66def57570fe7d758df837ba18028b9e4c', '4a8989587f97412bcb7498da3a27d8cd1ff0321a5186028fc17f8ce9f4536454', 1794538342322661197)
+Both orders, types, bytes, mtime, stderr and artifacts 42 caches cross-check f5c576e48f9b358d200968aa853b881fb53ad7a545e91db8b6f0c8f3f97d8ddf
+real compute_all_features feed False result [] stderr WARNING: probable-pitcher cache: dropped 1 invalid entry (0 recovered from valid cache entries, 0 rescanned from raw feeds, 0 with unusable feeds, 1 without feeds); first game ids: 100
+real compute_all_features feed True result [(2, True, 61), (23, True, 62)] stderr WARNING: probable-pitcher cache: dropped 1 invalid entry (0 recovered from valid cache entries, 1 rescanned from raw feeds, 0 with unusable feeds, 0 without feeds); first game ids: 100
+WARNING: probable-pitcher cache: dropped 1 invalid entry (0 recovered from valid cache entries, 0 rescanned from raw feeds, 0 with unusable feeds, 1 without feeds); first game ids: 100
+Opposite side missing pitcher encoded as NaN, valid away fields, no feed: nan
+WARNING: unreadable probable-pitcher cache data/models/probable_pitcher_lookup.json (FileNotFoundError); rebuilding it from raw feeds
+WARNING: could not preserve probable-pitcher cache evidence (OSError)
+WARNING: unreadable probable-pitcher cache data/models/probable_pitcher_lookup.json (FileNotFoundError); rebuilding it from raw feeds
+Dangling cache symlink first run 0.5; after the raw feeds leave: nan symlink remains True
+WARNING: probable-pitcher cache: dropped 1 invalid entry (0 recovered from valid cache entries, 0 rescanned from raw feeds, 0 with unusable feeds, 1 without feeds); first game ids: 999
+WARNING: could not write probable-pitcher cache status record 2026-12-31.invalid_entries.dfdf92b45253.json (NotADirectoryError)
+WARNING: probable-pitcher cache: dropped 1 invalid entry (0 recovered from valid cache entries, 0 rescanned from raw feeds, 0 with unusable feeds, 1 without feeds); first game ids: 999
+Unrelated incident plus status obstruction, then feed leaves before retry: nan
+Hard exit 1 before found (False, False, False) restarted, retained game without feed
+Hard exit 1 after found (True, False, False) restarted, retained game without feed
+Hard exit 2 before found (True, False, False) restarted, retained game without feed
+Hard exit 2 after found (True, True, False) restarted, retained game without feed
+Hard exit 3 before found (True, True, False) restarted, retained game without feed
+Hard exit 3 after found (True, True, True) restarted, retained game without feed

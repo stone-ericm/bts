@@ -1,0 +1,21 @@
+outcome-entry-verification: day_outcome.py :: and decision_sha256 is not None and commit.get("decision_sha256") == decision_sha256 -> and decision_sha256 is not None
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-closing-blind
+configfile: pyproject.toml
+collected 4 items
+
+../../../tests/test_day_outcome.py F...                                  [100%]
+
+=================================== FAILURES ===================================
+__ test_a_confirmation_that_does_not_bind_to_this_day_does_not_count[change0] __
+../../../tests/test_day_outcome.py:131: in test_a_confirmation_that_does_not_bind_to_this_day_does_not_count
+    assert _classify(receipts=[_receipt(**change)]).state == "entry_unverifiable"
+E   AssertionError: assert 'entered' == 'entry_unverifiable'
+E     
+E     - entry_unverifiable
+E     + entered
+=========================== short test summary info ============================
+FAILED ../../../tests/test_day_outcome.py::test_a_confirmation_that_does_not_bind_to_this_day_does_not_count[change0]
+========================= 1 failed, 3 passed in 0.98s ==========================
+mutation-result outcome-entry-verification 1

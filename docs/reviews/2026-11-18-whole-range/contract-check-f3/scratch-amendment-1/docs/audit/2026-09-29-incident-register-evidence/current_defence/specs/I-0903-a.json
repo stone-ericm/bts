@@ -1,0 +1,67 @@
+{
+ "label": "I-0903-a",
+ "link": "I-085 link 1",
+ "tests": [
+  "tests/test_tail_policy_strategy.py",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/simulate/tail_policy.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/simulate/tail_policy.py",
+   "    return OBJECTIVE_REACH57 if streak + 2 * d >= target else OBJECTIVE_TAIL\n",
+   "    pass  # W1.5 mutant: pre-0abf503 \u2014 no tail regime; the reach-57 table decides every state\n    return OBJECTIVE_REACH57\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/simulate/tail_policy.py",
+  "text": "W1.5 mutant: pre-0abf503 \u2014 no tail regime; the reach-57 table decides every state"
+ },
+ "entry": {
+  "path": "src/bts/strategy.py",
+  "qualname": "resolve_policy_decision"
+ },
+ "returns": [
+  {
+   "path": "src/bts/strategy.py",
+   "qualname": "resolve_policy_decision",
+   "classify": [
+    [
+     "reach57",
+     "\"objective\": \"reach57\""
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "return",
+  "path": "src/bts/strategy.py",
+  "qualname": "resolve_policy_decision",
+  "category": "reach57"
+ },
+ "killing": [
+  {
+   "node": "tests/test_tail_policy_strategy.py::test_tail_regime_uses_tail_table_and_records_provenance",
+   "assertion": {
+    "path": "tests/test_tail_policy_strategy.py",
+    "text": "assert (dec.action, dec.source, dec.objective) == (\"double\", \"mdp\", OBJECTIVE_TAIL)",
+    "line": 63
+   }
+  }
+ ],
+ "contract": {
+  "text": "Once streak + 2*days_left < 57 the decision uses the E[season-best] tail objective, so production keeps picking while the season best can be beaten.",
+  "entry_mode": "direct call of resolve_policy_decision",
+  "trigger": "a tail state (57 unreachable)",
+  "symptom_kind": "wrong decision objective (reach57 in a tail state)"
+ },
+ "level": "production_path",
+ "level_justification": "the policy artifacts are loaded from test fixtures; no production function is replaced",
+ "allowed_mocks": [],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

@@ -1,0 +1,46 @@
+  upload models/probable_pitcher_lookup.json -> objects/5c76644786d84d2de3c151b76b25e936fe794ff8944f50f302ee6dc772dfd6d2/probable_pitcher_lookup.json (0.0 MB)
+  manifest: 0 → 1 files
+  upload models/probable_pitcher_lookup.json -> objects/7a61bb67f5b6420ceaddca66186cb261877512b1063fa982462f2690c06ac657/probable_pitcher_lookup.json (0.0 MB)
+  manifest: 1 → 1 files
+  skip models/probable_pitcher_lookup.json (unchanged)
+  manifest: 1 → 1 files
+  prune objects/5c76644786d84d2de3c151b76b25e936fe794ff8944f50f302ee6dc772dfd6d2/probable_pitcher_lookup.json (unreferenced, 8.0d old)
+cache base first {"feature": 0.5, "disk_new": true, "read_bad": ["999"], "would_report": [], "cache_replaces": 1, "feed_reads": 1}
+cache base restart with feed {"feature": 0.5, "disk_new": true, "read_bad": ["999"], "would_report": [], "cache_replaces": 0, "feed_reads": 0}
+cache base restart after archiving feed {"feature": 0.5, "disk_new": true, "read_bad": ["999"], "would_report": [], "cache_replaces": 0, "feed_reads": 0}
+cache v2 first {"feature": 0.5, "disk_new": false, "read_bad": ["999"], "would_report": ["999"], "cache_replaces": 0, "feed_reads": 1}
+cache v2 restart with feed {"feature": 0.5, "disk_new": false, "read_bad": ["999"], "would_report": ["999"], "cache_replaces": 0, "feed_reads": 1}
+cache v2 restart after archiving feed {"feature": NaN, "disk_new": false, "read_bad": ["999"], "would_report": ["999"], "cache_replaces": 0, "feed_reads": 0}
+cache v2 targeted repair after feed was archived {"feature": NaN, "disk_new": false, "read_bad": [], "would_report": [], "cache_replaces": 0, "feed_reads": 0}
+unreadable v2 gate directory published: False cache replaced: False stderr lines: 2
+unreadable v2 gate fifo published: False cache replaced: False stderr lines: 2
+unreadable v2 gate symlink published: False cache replaced: False stderr lines: 2
+unreadable v2 gate unwritable published: False cache replaced: False stderr lines: 2
+unreadable v2 gate interrupt published: True cache replaced: False stderr lines: 1
+unreadable v2 gate works published: True cache replaced: True stderr lines: 1
+same day later different reason: digest resent the covered invalid WARN and added unreadable
+D and D+1 both send D reports, even if there was an intervening repair and no new drop
+same-checkout backtest updates invalid slot at 00:01 ET; late D omits D invalid event, D+1 same key hides update
+supported custom picks_dir points the reader at a different directory
+older timestamp finishing last overwrote the newer record under physical last-replace-wins
+P6 D absent feed 
+BTS health WARN attention:
+- [probable_pitcher_cache] Probable-pitcher cache at 2027-01-01T04:59:00+00:00 had 1 invalid entry (games 999). That run used a valid duplicate cache entry for 0, a usable raw feed for 0, and had no usable lookup for 0 (feed unusable) and 1 (no feed on this machine). The cache file is left unchanged while it holds invalid entries, so this alert repeats daily until it is repaired. Preserve the cache, the raw feeds and any copies; do not delete or edit the cache by hand. Send this alert to the supervised BTS lead Claude session (bts-lead), or to Eric if the session is unavailable, and ask for a review before the next pick that uses these features.
+P6 D+1 late rescan 
+BTS health WARN attention:
+- [probable_pitcher_cache] Probable-pitcher cache at 2027-01-01T05:01:00+00:00 had 1 invalid entry (games 998). That run used a valid duplicate cache entry for 0, a usable raw feed for 1, and had no usable lookup for 0 (feed unusable) and 0 (no feed on this machine). The cache file is left unchanged while it holds invalid entries, so this alert repeats daily until it is repaired. Preserve the cache, the raw feeds and any copies; do not delete or edit the cache by hand. Send this alert to the supervised BTS lead Claude session (bts-lead), or to Eric if the session is unavailable, and ask for a review before the next pick that uses these features.
+P6 unreadable no usable scans 
+BTS health WARN attention:
+- [probable_pitcher_cache] Probable-pitcher cache was unreadable at 2027-01-01T04:59:00+00:00. That run started from an empty lookup and recovered 0 games from usable raw feeds; games whose feeds are not on this machine may now be missing. Preserve the cache, the raw feeds and any copies; do not delete or edit the cache by hand. Send this alert to the supervised BTS lead Claude session (bts-lead), or to Eric if the session is unavailable, the same day: the 03:00 ET R2 sync keeps only the current and previous copies of the cache, so an older good copy can be lost after the next two syncs.
+P6 unreadable rebuilt 
+BTS health WARN attention:
+- [probable_pitcher_cache] Probable-pitcher cache was unreadable at 2027-01-01T04:59:00+00:00. That run started from an empty lookup and recovered 2 games from usable raw feeds; games whose feeds are not on this machine may now be missing. Preserve the cache, the raw feeds and any copies; do not delete or edit the cache by hand. Send this alert to the supervised BTS lead Claude session (bts-lead), or to Eric if the session is unavailable, the same day: the 03:00 ET R2 sync keeps only the current and previous copies of the cache, so an older good copy can be lost after the next two syncs.
+P6 ten-ID sample with additional games 
+BTS health WARN attention:
+- [probable_pitcher_cache] Probable-pitcher cache at 2027-01-01T04:59:00+00:00 had 11 invalid entries (games 100, 101, 102, 103, 104, 105, 106, 107, 108, 109). That run used a valid duplicate cache entry for 1, a usable raw feed for 0, and had no usable lookup for 1 (feed unusable) and 9 (no feed on this machine). The cache file is left unchanged while it holds invalid entries, so this alert repeats daily until it is repaired. Preserve the cache, the raw feeds and any copies; do not delete or edit the cache by hand. Send this alert to the supervised BTS lead Claude session (bts-lead), or to Eric if the session is unavailable, and ask for a review before the next pick that uses these features.
+P6 broken status
+BTS health WARN attention:
+- [probable_pitcher_cache] Probable-pitcher cache status unreadable at data/health_state/probable_pitcher_cache_unreadable.json. Send this alert to the supervised BTS lead Claude session (bts-lead), or to Eric if the session is unavailable.
+R2 first sync of frozen corrupt cache publishes invalid member and omits 109; good cache in prev manifest
+R2 next sync advances prev; prune deletes eight-day-old good object, retains young and legacy objects
+R2 cache FIFO still blocked base hashing until the probe interrupted it

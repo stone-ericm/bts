@@ -1,0 +1,38 @@
+{
+  "strategy_py_diff_bytes": 0,
+  "base_bts_file": "/Users/eric/projects/bts-work/wr-rev-ea-carbon/.carbon-review/wr-ea/base_63669c42/src/bts/__init__.py",
+  "head_bts_file": "/Users/eric/projects/bts-work/wr-rev-ea-carbon/src/bts/__init__.py",
+  "base_summary_calls": 900,
+  "head_summary_calls": 9900,
+  "collapsed_summary_states": 900,
+  "run_single_check_scenarios": [
+    "mdp_skip_removed_top",
+    "tail_stop",
+    "heuristic_skip",
+    "no_eligible",
+    "status_failure",
+    "no_valid_predictions",
+    "sel_none",
+    "empty_predictions",
+    "fresh_single_lock",
+    "pre_cascade_scoreable_lock",
+    "contest_state_error"
+  ],
+  "skip_lifecycle_cases": 18,
+  "stale_warning_containment": {
+    "RuntimeError": {
+      "delivery_escaped": null,
+      "morning_run_day_escaped": "KeyError"
+    },
+    "KeyboardInterrupt": {
+      "delivery_escaped": null,
+      "morning_run_day_escaped": "KeyError"
+    },
+    "SystemExit": {
+      "delivery_escaped": null,
+      "morning_run_day_escaped": "KeyError"
+    }
+  },
+  "bars_compared": 25566,
+  "all_equal": true
+}

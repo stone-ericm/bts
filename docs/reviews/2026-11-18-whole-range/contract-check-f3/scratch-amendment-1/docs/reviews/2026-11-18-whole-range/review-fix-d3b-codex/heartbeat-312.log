@@ -1,0 +1,12 @@
+nice: setpriority: Operation not permitted
+Python 3.12.16
+55 ordinary CLI outputs, ping argv and churn files identical to base
+deploy marker (1, '[2027-07-15T12:00:00+00:00] stale=True  reason=Deploy failed at stamp (requested target abcdef0). See INCIDENT.md §4.\n', '', [('https://checks.invalid/cron/fail', 'GET', 10)], [])
+spoofed step (1, '[2027-07-15T12:00:00+00:00] stale=True  reason=Deploy failed at unknown (requested target unknown). See INCIDENT.md §4.\n', '', [('https://checks.invalid/cron/fail', 'GET', 10)], [])
+array (1, '[2027-07-15T12:00:00+00:00] stale=True  reason=heartbeat unreadable or malformed\n', '', [('https://checks.invalid/cron/fail', 'GET', 10)], [])
+oversized (1, '[2027-07-15T12:00:00+00:00] stale=True  reason=heartbeat unreadable or malformed\n', '', [('https://checks.invalid/cron/fail', 'GET', 10)], [])
+encoding (1, '[2027-07-15T12:00:00+00:00] stale=True  reason=heartbeat unreadable or malformed\n', '', [('https://checks.invalid/cron/fail', 'GET', 10)], [])
+naive (1, '[2027-07-15T12:00:00+00:00] stale=True  reason=heartbeat unreadable or malformed\n', '', [('https://checks.invalid/cron/fail', 'GET', 10)], [])
+invalid sleep type (1, '[2027-07-15T12:00:00+00:00] stale=True  reason=heartbeat unreadable or malformed\n', '', [('https://checks.invalid/cron/fail', 'GET', 10)], [])
+fifo (1, '[2027-07-15T12:00:00+00:00] stale=True  reason=heartbeat unreadable or malformed\n', '', [('https://checks.invalid/cron/fail', 'GET', 10)], [])
+directory (1, '[2027-07-15T12:00:00+00:00] stale=True  reason=heartbeat unreadable or malformed\n', '', [('https://checks.invalid/cron/fail', 'GET', 10)], [])

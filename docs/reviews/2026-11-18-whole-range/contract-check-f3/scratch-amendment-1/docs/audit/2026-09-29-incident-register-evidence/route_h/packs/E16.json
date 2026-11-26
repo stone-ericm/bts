@@ -1,0 +1,36 @@
+{
+ "id": "E16",
+ "episode_row": [
+  "E16",
+  "4/08",
+  "live prediction timed out scanning ~23K raw feeds",
+  "L",
+  "UC",
+  "P",
+  "e1aaf61"
+ ],
+ "commits": [
+  {
+   "sha": "e1aaf61",
+   "authored": "2026-04-08T15:11:54-04:00",
+   "subject": "perf: cache probable pitcher lookup to disk",
+   "body": "First run scans all 23K raw feeds (~slow). Subsequent runs only scan\nnew game feeds not in cache. Fixes live pipeline timeout caused by\nfull scan on every prediction run.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/features/compute.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24253126060,
+    "created_at": "2026-04-10T16:29:24Z",
+    "head_sha": "4a82cf8",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

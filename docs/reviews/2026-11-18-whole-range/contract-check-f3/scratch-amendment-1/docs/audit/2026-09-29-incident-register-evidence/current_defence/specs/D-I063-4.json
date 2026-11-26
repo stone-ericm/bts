@@ -1,0 +1,67 @@
+{
+ "label": "D-I063-4",
+ "link": "I-063 link 4",
+ "tests": [
+  "tests/health/test_contest_state.py",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/health/contest_state.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/health/contest_state.py",
+   "            elif gap_steps == EXPECTED_OVERNIGHT_LAG_STEPS:\n                alerts.append(Alert(\n                    level=\"INFO\",\n",
+   "            elif (gap_steps == EXPECTED_OVERNIGHT_LAG_STEPS\n                  and now.astimezone(ZoneInfo(\"America/New_York\")).hour >= 12):\n                pass  # W1.5 mutant: pre-56f9726 \u2014 a one-pick gap persisting past noon ET escalates to WARN\n                alerts.append(Alert(\n                    level=\"WARN\",\n                    source=SOURCE,\n                    message=(f\"contest state lag persisting past noon ET: \"\n                             f\"source_date={state.source_date}, latest resolved {latest}. \"\n                             \"Fetches are succeeding but the contest never advanced \u2014 \"\n                             \"check the pick was actually entered in the MLB app \"\n                             \"(check-pick-entered) or MLB settlement is delayed\"),\n                ))\n            elif gap_steps == EXPECTED_OVERNIGHT_LAG_STEPS:\n                alerts.append(Alert(\n                    level=\"INFO\",\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/health/contest_state.py",
+  "text": "W1.5 mutant: pre-56f9726 \u2014 a one-pick gap persisting past noon ET escalates to WARN"
+ },
+ "entry": {
+  "path": "src/bts/health/contest_state.py",
+  "qualname": "check"
+ },
+ "returns": [
+  {
+   "path": "src/bts/health/contest_state.py",
+   "qualname": "check",
+   "classify": [
+    [
+     "noon_warn",
+     "\"level\": \"WARN\", \"message\": \"contest state lag persisting past noon ET"
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "return",
+  "path": "src/bts/health/contest_state.py",
+  "qualname": "check",
+  "category": "noon_warn"
+ },
+ "killing": [
+  {
+   "node": "tests/health/test_contest_state.py::test_gap1_past_noon_is_info_not_warn",
+   "assertion": {
+    "path": "tests/health/test_contest_state.py",
+    "text": "assert not any(a.level == \"WARN\" for a in alerts), alerts",
+    "line": 119
+   }
+  }
+ ],
+ "contract": {
+  "text": "A one-settled-pick gap (the normal coverage lag of the per-round array) is INFO at any time of day, never the old daily false WARN past noon ET.",
+  "entry_mode": "direct call of health.contest_state.check with a fixed now",
+  "trigger": "gap of one settled pick at 15:00 ET",
+  "symptom_kind": "extra alert (a false WARN in the returned alert list)"
+ },
+ "level": "production_path",
+ "level_justification": "the check runs on files in a temporary picks directory with an explicit now; nothing is replaced",
+ "allowed_mocks": [],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

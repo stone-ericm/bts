@@ -1,0 +1,651 @@
+{
+  "base_bts_file": "/Users/eric/projects/bts-work/wr-rev-f1-cb/carbon-review/wr-f1-r1/base_pkg/src/bts/__init__.py",
+  "head_bts_file": "/Users/eric/projects/bts-work/wr-rev-f1-cb/src/bts/__init__.py",
+  "total_cells_per_side": 4969,
+  "outside_a1_cells_checked_identical": 2365,
+  "unexpected_diffs_count": 2,
+  "unexpected_diffs_sample": [
+    {
+      "key": "D|identity_mismatch",
+      "why": "early_exit_or_fetch_error",
+      "base": {
+        "exit_code": 0,
+        "exception": null,
+        "stdout": "",
+        "stderr": "check-pick-entered: identity mismatch ('intruder'); skipping\n",
+        "dm_sent": [],
+        "dm_attempted": [],
+        "fetches": [
+          "login"
+        ],
+        "marker": null,
+        "receipts": [
+          {
+            "account": null,
+            "cutoff_at": null,
+            "degraded": [],
+            "detail": null,
+            "error": null,
+            "et_date": "2027-03-24",
+            "exit_code": 0,
+            "marker_status": null,
+            "minutes_to_pitch": null,
+            "observation": null,
+            "outcome": "not_committed",
+            "producer": {
+              "command": "check-pick-entered",
+              "revision": "fixed-head-sha"
+            },
+            "qualification": null,
+            "references": null,
+            "schema": "bts_pick_entry_receipt_v1",
+            "season": 2027,
+            "selection": {
+              "commit": {
+                "decision_sha256": null,
+                "decision_valid": false,
+                "delivery_status": null,
+                "scoreable": null
+              },
+              "delivery": {
+                "bluesky_posted": false,
+                "bluesky_uri": null,
+                "delivered_at": null,
+                "notification_channel": null,
+                "notification_id": null,
+                "notification_sent": false
+              },
+              "pick_file_sha256": "d1e20855702b89e8a03b047e9b7e567f41a4f40d58a92b7a0787f4ce69190de1",
+              "slots": [
+                {
+                  "batter_id": 1010,
+                  "batter_name": "Batter 1010",
+                  "game_pk": 101,
+                  "game_time": "2027-03-24T19:40:00-04:00",
+                  "role": "pick"
+                }
+              ]
+            },
+            "verifier": null
+          },
+          {
+            "account": null,
+            "cutoff_at": null,
+            "degraded": [],
+            "detail": null,
+            "error": null,
+            "et_date": "2027-03-24",
+            "exit_code": 0,
+            "marker_status": null,
+            "minutes_to_pitch": null,
+            "observation": null,
+            "outcome": "no_pick_file",
+            "producer": {
+              "command": "check-pick-entered",
+              "revision": "fixed-head-sha"
+            },
+            "qualification": null,
+            "references": null,
+            "schema": "bts_pick_entry_receipt_v1",
+            "season": 2027,
+            "selection": null,
+            "verifier": null
+          },
+          {
+            "account": null,
+            "cutoff_at": null,
+            "degraded": [],
+            "detail": null,
+            "error": null,
+            "et_date": "2027-03-24",
+            "exit_code": 0,
+            "marker_status": null,
+            "minutes_to_pitch": null,
+            "observation": null,
+            "outcome": "not_committed",
+            "producer": {
+              "command": "check-pick-entered",
+              "revision": "fixed-head-sha"
+            },
+            "qualification": null,
+            "references": null,
+            "schema": "bts_pick_entry_receipt_v1",
+            "season": 2027,
+            "selection": {
+              "commit": {
+                "decision_sha256": "677dc1b77e2d3a2e4b33228f8eecf354d8aa49dabdcea5bf04ce84660efbc946",
+                "decision_valid": true,
+                "delivery_status": "delivered",
+                "scoreable": false
+              },
+              "delivery": {
+                "bluesky_posted": false,
+                "bluesky_uri": null,
+                "delivered_at": null,
+                "notification_channel": null,
+                "notification_id": null,
+                "notification_sent": false
+              },
+              "pick_file_sha256": "d1e20855702b89e8a03b047e9b7e567f41a4f40d58a92b7a0787f4ce69190de1",
+              "slots": [
+                {
+                  "batter_id": 1010,
+                  "batter_name": "Batter 1010",
+                  "game_pk": 101,
+                  "game_time": "2027-03-24T19:40:00-04:00",
+                  "role": "pick"
+                }
+              ]
+            },
+            "verifier": null
+          },
+          {
+            "account": {
+              "expected_username": "operator",
+              "user_id": "42",
+              "username": "intruder"
+            },
+            "cutoff_at": "2027-03-24T19:35:00-04:00",
+            "degraded": [],
+            "detail": null,
+            "error": null,
+            "et_date": "2027-03-24",
+            "exit_code": 0,
+            "marker_status": null,
+            "minutes_to_pitch": 70.0,
+            "observation": null,
+            "outcome": "identity_mismatch",
+            "producer": {
+              "command": "check-pick-entered",
+              "revision": "fixed-head-sha"
+            },
+            "qualification": null,
+            "references": null,
+            "schema": "bts_pick_entry_receipt_v1",
+            "season": 2027,
+            "selection": {
+              "commit": {
+                "decision_sha256": "9692c5f6939610d43df8be084824f5c096ad21e2e7415f941de8bd7ac686ef6c",
+                "decision_valid": true,
+                "delivery_status": "delivered",
+                "scoreable": true
+              },
+              "delivery": {
+                "bluesky_posted": false,
+                "bluesky_uri": null,
+                "delivered_at": null,
+                "notification_channel": "bluesky_dm",
+                "notification_id": "dm-fixture",
+                "notification_sent": true
+              },
+              "pick_file_sha256": "6489526c5bf6c91143e64b076d273edb56bb61c4a30f504010a893681613c735",
+              "slots": [
+                {
+                  "batter_id": 1010,
+                  "batter_name": "Batter 1010",
+                  "game_pk": 101,
+                  "game_time": "2027-03-24T19:40:00-04:00",
+                  "role": "pick"
+                }
+              ]
+            },
+            "verifier": null
+          }
+        ]
+      },
+      "head": {
+        "exit_code": 0,
+        "exception": null,
+        "stdout": "",
+        "stderr": "check-pick-entered: identity mismatch ('intruder'); skipping\n",
+        "dm_sent": [],
+        "dm_attempted": [],
+        "fetches": [
+          "login"
+        ],
+        "marker": null,
+        "receipts": [
+          {
+            "account": {
+              "expected_username": "operator",
+              "user_id": "42",
+              "username": "intruder"
+            },
+            "cutoff_at": "2027-03-24T19:35:00-04:00",
+            "degraded": [],
+            "detail": null,
+            "error": null,
+            "et_date": "2027-03-24",
+            "exit_code": 0,
+            "marker_status": null,
+            "minutes_to_pitch": 70.0,
+            "observation": null,
+            "outcome": "identity_mismatch",
+            "producer": {
+              "command": "check-pick-entered",
+              "revision": "fixed-head-sha"
+            },
+            "qualification": null,
+            "references": null,
+            "schema": "bts_pick_entry_receipt_v1",
+            "season": 2027,
+            "selection": {
+              "commit": {
+                "decision_sha256": "9692c5f6939610d43df8be084824f5c096ad21e2e7415f941de8bd7ac686ef6c",
+                "decision_valid": true,
+                "delivery_status": "delivered",
+                "scoreable": true
+              },
+              "delivery": {
+                "bluesky_posted": false,
+                "bluesky_uri": null,
+                "delivered_at": null,
+                "notification_channel": "bluesky_dm",
+                "notification_id": "dm-fixture",
+                "notification_sent": true
+              },
+              "pick_file_sha256": "6489526c5bf6c91143e64b076d273edb56bb61c4a30f504010a893681613c735",
+              "slots": [
+                {
+                  "batter_id": 1010,
+                  "batter_name": "Batter 1010",
+                  "game_pk": 101,
+                  "game_time": "2027-03-24T19:40:00-04:00",
+                  "role": "pick"
+                }
+              ]
+            },
+            "verifier": null
+          },
+          {
+            "account": null,
+            "cutoff_at": null,
+            "degraded": [],
+            "detail": null,
+            "error": null,
+            "et_date": "2027-03-24",
+            "exit_code": 0,
+            "marker_status": null,
+            "minutes_to_pitch": null,
+            "observation": null,
+            "outcome": "not_committed",
+            "producer": {
+              "command": "check-pick-entered",
+              "revision": "fixed-head-sha"
+            },
+            "qualification": null,
+            "references": null,
+            "schema": "bts_pick_entry_receipt_v1",
+            "season": 2027,
+            "selection": {
+              "commit": {
+                "decision_sha256": null,
+                "decision_valid": false,
+                "delivery_status": null,
+                "scoreable": null
+              },
+              "delivery": {
+                "bluesky_posted": false,
+                "bluesky_uri": null,
+                "delivered_at": null,
+                "notification_channel": null,
+                "notification_id": null,
+                "notification_sent": false
+              },
+              "pick_file_sha256": "d1e20855702b89e8a03b047e9b7e567f41a4f40d58a92b7a0787f4ce69190de1",
+              "slots": [
+                {
+                  "batter_id": 1010,
+                  "batter_name": "Batter 1010",
+                  "game_pk": 101,
+                  "game_time": "2027-03-24T19:40:00-04:00",
+                  "role": "pick"
+                }
+              ]
+            },
+            "verifier": null
+          },
+          {
+            "account": null,
+            "cutoff_at": null,
+            "degraded": [],
+            "detail": null,
+            "error": null,
+            "et_date": "2027-03-24",
+            "exit_code": 0,
+            "marker_status": null,
+            "minutes_to_pitch": null,
+            "observation": null,
+            "outcome": "not_committed",
+            "producer": {
+              "command": "check-pick-entered",
+              "revision": "fixed-head-sha"
+            },
+            "qualification": null,
+            "references": null,
+            "schema": "bts_pick_entry_receipt_v1",
+            "season": 2027,
+            "selection": {
+              "commit": {
+                "decision_sha256": "677dc1b77e2d3a2e4b33228f8eecf354d8aa49dabdcea5bf04ce84660efbc946",
+                "decision_valid": true,
+                "delivery_status": "delivered",
+                "scoreable": false
+              },
+              "delivery": {
+                "bluesky_posted": false,
+                "bluesky_uri": null,
+                "delivered_at": null,
+                "notification_channel": null,
+                "notification_id": null,
+                "notification_sent": false
+              },
+              "pick_file_sha256": "d1e20855702b89e8a03b047e9b7e567f41a4f40d58a92b7a0787f4ce69190de1",
+              "slots": [
+                {
+                  "batter_id": 1010,
+                  "batter_name": "Batter 1010",
+                  "game_pk": 101,
+                  "game_time": "2027-03-24T19:40:00-04:00",
+                  "role": "pick"
+                }
+              ]
+            },
+            "verifier": null
+          },
+          {
+            "account": null,
+            "cutoff_at": null,
+            "degraded": [],
+            "detail": null,
+            "error": null,
+            "et_date": "2027-03-24",
+            "exit_code": 0,
+            "marker_status": null,
+            "minutes_to_pitch": null,
+            "observation": null,
+            "outcome": "no_pick_file",
+            "producer": {
+              "command": "check-pick-entered",
+              "revision": "fixed-head-sha"
+            },
+            "qualification": null,
+            "references": null,
+            "schema": "bts_pick_entry_receipt_v1",
+            "season": 2027,
+            "selection": null,
+            "verifier": null
+          }
+        ]
+      }
+    },
+    {
+      "key": "D|not_committed_unscoreable",
+      "why": "early_exit_or_fetch_error",
+      "base": {
+        "exit_code": 0,
+        "exception": null,
+        "stdout": "check-pick-entered: pick for 2027-03-24 not committed/locked; nothing to check\n",
+        "stderr": "",
+        "dm_sent": [],
+        "dm_attempted": [],
+        "fetches": [],
+        "marker": null,
+        "receipts": [
+          {
+            "account": null,
+            "cutoff_at": null,
+            "degraded": [],
+            "detail": null,
+            "error": null,
+            "et_date": "2027-03-24",
+            "exit_code": 0,
+            "marker_status": null,
+            "minutes_to_pitch": null,
+            "observation": null,
+            "outcome": "not_committed",
+            "producer": {
+              "command": "check-pick-entered",
+              "revision": "fixed-head-sha"
+            },
+            "qualification": null,
+            "references": null,
+            "schema": "bts_pick_entry_receipt_v1",
+            "season": 2027,
+            "selection": {
+              "commit": {
+                "decision_sha256": null,
+                "decision_valid": false,
+                "delivery_status": null,
+                "scoreable": null
+              },
+              "delivery": {
+                "bluesky_posted": false,
+                "bluesky_uri": null,
+                "delivered_at": null,
+                "notification_channel": null,
+                "notification_id": null,
+                "notification_sent": false
+              },
+              "pick_file_sha256": "d1e20855702b89e8a03b047e9b7e567f41a4f40d58a92b7a0787f4ce69190de1",
+              "slots": [
+                {
+                  "batter_id": 1010,
+                  "batter_name": "Batter 1010",
+                  "game_pk": 101,
+                  "game_time": "2027-03-24T19:40:00-04:00",
+                  "role": "pick"
+                }
+              ]
+            },
+            "verifier": null
+          },
+          {
+            "account": null,
+            "cutoff_at": null,
+            "degraded": [],
+            "detail": null,
+            "error": null,
+            "et_date": "2027-03-24",
+            "exit_code": 0,
+            "marker_status": null,
+            "minutes_to_pitch": null,
+            "observation": null,
+            "outcome": "no_pick_file",
+            "producer": {
+              "command": "check-pick-entered",
+              "revision": "fixed-head-sha"
+            },
+            "qualification": null,
+            "references": null,
+            "schema": "bts_pick_entry_receipt_v1",
+            "season": 2027,
+            "selection": null,
+            "verifier": null
+          },
+          {
+            "account": null,
+            "cutoff_at": null,
+            "degraded": [],
+            "detail": null,
+            "error": null,
+            "et_date": "2027-03-24",
+            "exit_code": 0,
+            "marker_status": null,
+            "minutes_to_pitch": null,
+            "observation": null,
+            "outcome": "not_committed",
+            "producer": {
+              "command": "check-pick-entered",
+              "revision": "fixed-head-sha"
+            },
+            "qualification": null,
+            "references": null,
+            "schema": "bts_pick_entry_receipt_v1",
+            "season": 2027,
+            "selection": {
+              "commit": {
+                "decision_sha256": "677dc1b77e2d3a2e4b33228f8eecf354d8aa49dabdcea5bf04ce84660efbc946",
+                "decision_valid": true,
+                "delivery_status": "delivered",
+                "scoreable": false
+              },
+              "delivery": {
+                "bluesky_posted": false,
+                "bluesky_uri": null,
+                "delivered_at": null,
+                "notification_channel": null,
+                "notification_id": null,
+                "notification_sent": false
+              },
+              "pick_file_sha256": "d1e20855702b89e8a03b047e9b7e567f41a4f40d58a92b7a0787f4ce69190de1",
+              "slots": [
+                {
+                  "batter_id": 1010,
+                  "batter_name": "Batter 1010",
+                  "game_pk": 101,
+                  "game_time": "2027-03-24T19:40:00-04:00",
+                  "role": "pick"
+                }
+              ]
+            },
+            "verifier": null
+          }
+        ]
+      },
+      "head": {
+        "exit_code": 0,
+        "exception": null,
+        "stdout": "check-pick-entered: pick for 2027-03-24 not committed/locked; nothing to check\n",
+        "stderr": "",
+        "dm_sent": [],
+        "dm_attempted": [],
+        "fetches": [],
+        "marker": null,
+        "receipts": [
+          {
+            "account": null,
+            "cutoff_at": null,
+            "degraded": [],
+            "detail": null,
+            "error": null,
+            "et_date": "2027-03-24",
+            "exit_code": 0,
+            "marker_status": null,
+            "minutes_to_pitch": null,
+            "observation": null,
+            "outcome": "not_committed",
+            "producer": {
+              "command": "check-pick-entered",
+              "revision": "fixed-head-sha"
+            },
+            "qualification": null,
+            "references": null,
+            "schema": "bts_pick_entry_receipt_v1",
+            "season": 2027,
+            "selection": {
+              "commit": {
+                "decision_sha256": null,
+                "decision_valid": false,
+                "delivery_status": null,
+                "scoreable": null
+              },
+              "delivery": {
+                "bluesky_posted": false,
+                "bluesky_uri": null,
+                "delivered_at": null,
+                "notification_channel": null,
+                "notification_id": null,
+                "notification_sent": false
+              },
+              "pick_file_sha256": "d1e20855702b89e8a03b047e9b7e567f41a4f40d58a92b7a0787f4ce69190de1",
+              "slots": [
+                {
+                  "batter_id": 1010,
+                  "batter_name": "Batter 1010",
+                  "game_pk": 101,
+                  "game_time": "2027-03-24T19:40:00-04:00",
+                  "role": "pick"
+                }
+              ]
+            },
+            "verifier": null
+          },
+          {
+            "account": null,
+            "cutoff_at": null,
+            "degraded": [],
+            "detail": null,
+            "error": null,
+            "et_date": "2027-03-24",
+            "exit_code": 0,
+            "marker_status": null,
+            "minutes_to_pitch": null,
+            "observation": null,
+            "outcome": "not_committed",
+            "producer": {
+              "command": "check-pick-entered",
+              "revision": "fixed-head-sha"
+            },
+            "qualification": null,
+            "references": null,
+            "schema": "bts_pick_entry_receipt_v1",
+            "season": 2027,
+            "selection": {
+              "commit": {
+                "decision_sha256": "677dc1b77e2d3a2e4b33228f8eecf354d8aa49dabdcea5bf04ce84660efbc946",
+                "decision_valid": true,
+                "delivery_status": "delivered",
+                "scoreable": false
+              },
+              "delivery": {
+                "bluesky_posted": false,
+                "bluesky_uri": null,
+                "delivered_at": null,
+                "notification_channel": null,
+                "notification_id": null,
+                "notification_sent": false
+              },
+              "pick_file_sha256": "d1e20855702b89e8a03b047e9b7e567f41a4f40d58a92b7a0787f4ce69190de1",
+              "slots": [
+                {
+                  "batter_id": 1010,
+                  "batter_name": "Batter 1010",
+                  "game_pk": 101,
+                  "game_time": "2027-03-24T19:40:00-04:00",
+                  "role": "pick"
+                }
+              ]
+            },
+            "verifier": null
+          },
+          {
+            "account": null,
+            "cutoff_at": null,
+            "degraded": [],
+            "detail": null,
+            "error": null,
+            "et_date": "2027-03-24",
+            "exit_code": 0,
+            "marker_status": null,
+            "minutes_to_pitch": null,
+            "observation": null,
+            "outcome": "no_pick_file",
+            "producer": {
+              "command": "check-pick-entered",
+              "revision": "fixed-head-sha"
+            },
+            "qualification": null,
+            "references": null,
+            "schema": "bts_pick_entry_receipt_v1",
+            "season": 2027,
+            "selection": null,
+            "verifier": null
+          }
+        ]
+      }
+    }
+  ],
+  "inside_f1_changed_cells": 1362,
+  "inside_f1_unchanged_cells": 1242
+}

@@ -1,0 +1,85 @@
+{
+ "snapshot_date": "2026-09-08",
+ "reads": {
+  "P-01 FORMAL READ @ first n>=80 snapshot (2026-09-08)": {
+   "hits": 56,
+   "n": 80,
+   "realized": 0.7,
+   "stated": 0.7426,
+   "shortfall_pp": 4.26,
+   "exact_tail": 0.2257,
+   "first": "2026-05-02",
+   "last": "2026-09-08"
+  },
+  "anchor: DD thru 7/12 (doc: 25/42, .595 vs .734)": {
+   "hits": 25,
+   "n": 42,
+   "realized": 0.5952,
+   "stated": 0.7341,
+   "shortfall_pp": 13.88,
+   "exact_tail": 0.0349,
+   "first": "2026-05-02",
+   "last": "2026-07-12"
+  },
+  "anchor: DD thru 8/09 (doc: 39/57, .684 vs .740)": {
+   "hits": 39,
+   "n": 57,
+   "realized": 0.6842,
+   "stated": 0.74,
+   "shortfall_pp": 5.58,
+   "exact_tail": 0.2065,
+   "first": "2026-05-02",
+   "last": "2026-08-09"
+  },
+  "season-end UPDATE: DD thru 9/13 (last contest day)": {
+   "hits": 59,
+   "n": 85,
+   "realized": 0.6941,
+   "stated": 0.7429,
+   "shortfall_pp": 4.87,
+   "exact_tail": 0.1817,
+   "first": "2026-05-02",
+   "last": "2026-09-13"
+  },
+  "all graded DD incl. private 9/14+ (research only)": {
+   "hits": 62,
+   "n": 90,
+   "realized": 0.6889,
+   "stated": 0.743,
+   "shortfall_pp": 5.41,
+   "exact_tail": 0.146,
+   "first": "2026-05-02",
+   "last": "2026-09-18"
+  },
+  "DD legs 8/10..snapshot (post-interim-look window)": {
+   "hits": 17,
+   "n": 23,
+   "realized": 0.7391,
+   "stated": 0.749,
+   "shortfall_pp": 0.98,
+   "exact_tail": 0.5362,
+   "first": "2026-08-10",
+   "last": "2026-09-08"
+  },
+  "primaries thru 2026-09-08": {
+   "hits": 81,
+   "n": 109,
+   "realized": 0.7431,
+   "stated": 0.7693,
+   "shortfall_pp": 2.62,
+   "exact_tail": 0.2907,
+   "first": "2026-03-29",
+   "last": "2026-09-08"
+  },
+  "primaries thru 9/13": {
+   "hits": 85,
+   "n": 114,
+   "realized": 0.7456,
+   "stated": 0.7691,
+   "shortfall_pp": 2.35,
+   "exact_tail": 0.3085,
+   "first": "2026-03-29",
+   "last": "2026-09-13"
+  }
+ }
+}

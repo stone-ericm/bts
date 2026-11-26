@@ -1,0 +1,58 @@
+{
+ "id": "E95",
+ "episode_row": [
+  "E95",
+  "5/08\u20135/09",
+  "operator backfill on the box rewrote 28 shadow result files (state repair)",
+  "R",
+  "OI",
+  "A?",
+  "0141a63 293ce51"
+ ],
+ "commits": [
+  {
+   "sha": "0141a63",
+   "authored": "2026-05-09T00:02:20-04:00",
+   "subject": "Add shadow production apply addendum",
+   "body": "Record production shadow backfill apply evidence, manifest paths, backup verification, and deploy boundary.",
+   "files": [
+    "docs/sota_audit/2026-05-09-shadow-context-backfill-quality.md"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 25605276345,
+    "created_at": "2026-05-09T15:54:35Z",
+    "head_sha": "15da954",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "293ce51",
+   "authored": "2026-05-08T23:20:48-04:00",
+   "subject": "Document shadow backfill quality dry run",
+   "body": "Docs-only pre-apply evidence report for context-stack shadow backfill quality and production gate.",
+   "files": [
+    "docs/sota_audit/2026-05-09-shadow-context-backfill-quality.md"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 25590588217,
+    "created_at": "2026-05-09T03:34:05Z",
+    "head_sha": "293ce51",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

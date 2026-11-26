@@ -1,0 +1,93 @@
+SOURCE /Users/eric/projects/bts-work/wr-c3-rev-codex/.codex-review/wr-c3-review/corpus-pk9k4hqh/c2039541/src/bts/picks.py
+SOURCE /Users/eric/projects/bts-work/wr-c3-rev-codex/.codex-review/wr-c3-review/corpus-pk9k4hqh/c70effe9/src/bts/picks.py
+{"a": 42, "b": 315, "c": 35, "fold_checked": 189, "histories": 630}
+normal = save_pick {}
+miss = save_pick {}
+void = save_pick {}
+missing_pitcher_team = pre-pitcher_team writer {}
+nullable_game_pk = I-008 actual 3/29 and 3/30 shape {}
+extra_top_key = historical DailyPick.streak plus unknown metadata {}
+extra_slot_key_miss b synthetic only; no normal writer located {'[[0, true], null]': 2, '[[1, true], null]': 2, '[[0, false], null]': 2, '[[1, false], null]': 1}
+extra_slot_key_hit b synthetic only; no normal writer located {'[{"raised": "TypeError"}, null]': 7}
+minimal_miss b synthetic only; no normal writer located {'[[0, true], null]': 2, '[[1, true], null]': 2, '[[0, false], null]': 2, '[[1, false], null]': 1}
+minimal_void b synthetic only; no normal writer located {'[[3, true], null]': 1, '[[7, true], null]': 1, '[[1, false], null]': 1, '[[17, false], null]': 1, '[[2, true], null]': 2, '[[0, false], null]': 1}
+missing_top_date_miss b synthetic only; no normal writer located {'[[0, true], null]': 2, '[[1, true], null]': 2, '[[0, false], null]': 2, '[[1, false], null]': 1}
+missing_top_runtime_miss b synthetic only; no normal writer located {'[[0, true], null]': 2, '[[1, true], null]': 2, '[[0, false], null]': 2, '[[1, false], null]': 1}
+missing_top_runner_up_miss b synthetic only; no normal writer located {'[[0, true], null]': 2, '[[1, true], null]': 2, '[[0, false], null]': 2, '[[1, false], null]': 1}
+missing_top_double_down_void b synthetic only; no normal writer located {'[[3, true], null]': 1, '[[7, true], null]': 1, '[[1, false], null]': 1, '[[17, false], null]': 1, '[[2, true], null]': 2, '[[0, false], null]': 1}
+missing_slot_game_pk_void b synthetic only; no normal writer located {'[[3, true], null]': 1, '[[7, true], null]': 1, '[[1, false], null]': 1, '[[17, false], null]': 1, '[[2, true], null]': 2, '[[0, false], null]': 1}
+missing_slot_name_miss b synthetic only; no normal writer located {'[[0, true], null]': 2, '[[1, true], null]': 2, '[[0, false], null]': 2, '[[1, false], null]': 1}
+missing_slot_team_miss b synthetic only; no normal writer located {'[[0, true], null]': 2, '[[1, true], null]': 2, '[[0, false], null]': 2, '[[1, false], null]': 1}
+missing_slot_id_miss b synthetic only; no normal writer located {'[[0, true], null]': 2, '[[1, true], null]': 2, '[[0, false], null]': 2, '[[1, false], null]': 1}
+pick_is_null_void b regenerate passes it through if snapshot has null primary {'[[3, true], null]': 1, '[[7, true], null]': 1, '[[1, false], null]': 1, '[[17, false], null]': 1, '[[2, true], null]': 2, '[[0, false], null]': 1}
+pick_is_array_miss b synthetic only; no normal writer located {'[[0, true], null]': 2, '[[1, true], null]': 2, '[[0, false], null]': 2, '[[1, false], null]': 1}
+empty_array_double_hit b base load_pick permits it; no normal producer located {'[[4, true], null]': 1, '[[8, true], null]': 1, '[[2, false], null]': 1, '[[18, false], null]': 1, '[[3, true], null]': 2, '[[1, false], null]': 1}
+empty_object_double_hit = base load_pick permits it; no normal producer located {}
+empty_string_double_hit b base load_pick permits it; no normal producer located {'[[4, true], null]': 1, '[[8, true], null]': 1, '[[2, false], null]': 1, '[[18, false], null]': 1, '[[3, true], null]': 2, '[[1, false], null]': 1}
+primary_id_numeric_string c current export/regenerate preserve non-null value; original source unverified {'[[4, true], null]': 1, '[[8, true], null]': 1, '[[2, false], null]': 1, '[[18, false], null]': 1, '[[3, true], null]': 2, '[[1, false], null]': 1}
+game_id_numeric_string c current export/regenerate preserve non-null value; original source unverified {'[[4, true], null]': 1, '[[8, true], null]': 1, '[[2, false], null]': 1, '[[18, false], null]': 1, '[[3, true], null]': 2, '[[1, false], null]': 1}
+double_id_numeric_string c base load_pick permits it; no normal producer located {'[[5, true], null]': 1, '[[9, true], null]': 1, '[[3, false], null]': 1, '[[19, false], null]': 1, '[[4, true], null]': 2, '[[2, false], null]': 1}
+double_game_id_numeric_string c base load_pick permits it; no normal producer located {'[[5, true], null]': 1, '[[9, true], null]': 1, '[[3, false], null]': 1, '[[19, false], null]': 1, '[[4, true], null]': 2, '[[2, false], null]': 1}
+primary_batter_null_existing b base load_pick permits it; no normal producer located {'[[4, true], null]': 1, '[[8, true], null]': 1, '[[2, false], null]': 1, '[[18, false], null]': 1, '[[3, true], null]': 2, '[[1, false], null]': 1}
+primary_batter_float b base load_pick permits it; no normal producer located {'[[4, true], null]': 1, '[[8, true], null]': 1, '[[2, false], null]': 1, '[[18, false], null]': 1, '[[3, true], null]': 2, '[[1, false], null]': 1}
+primary_game_float b base load_pick permits it; no normal producer located {'[[4, true], null]': 1, '[[8, true], null]': 1, '[[2, false], null]': 1, '[[18, false], null]': 1, '[[3, true], null]': 2, '[[1, false], null]': 1}
+primary_batter_bool b base load_pick permits it; no normal producer located {'[[4, true], null]': 1, '[[8, true], null]': 1, '[[2, false], null]': 1, '[[18, false], null]': 1, '[[3, true], null]': 2, '[[1, false], null]': 1}
+primary_name_null b base load_pick permits it; no normal producer located {'[[4, true], null]': 1, '[[8, true], null]': 1, '[[2, false], null]': 1, '[[18, false], null]': 1, '[[3, true], null]': 2, '[[1, false], null]': 1}
+primary_team_null b base load_pick permits it; no normal producer located {'[[4, true], null]': 1, '[[8, true], null]': 1, '[[2, false], null]': 1, '[[18, false], null]': 1, '[[3, true], null]': 2, '[[1, false], null]': 1}
+double_name_null b base load_pick permits it; no normal producer located {'[[5, true], null]': 1, '[[9, true], null]': 1, '[[3, false], null]': 1, '[[19, false], null]': 1, '[[4, true], null]': 2, '[[2, false], null]': 1}
+double_team_numeric b base load_pick permits it; no normal producer located {'[[5, true], null]': 1, '[[9, true], null]': 1, '[[3, false], null]': 1, '[[19, false], null]': 1, '[[4, true], null]': 2, '[[2, false], null]': 1}
+runtime_null b base load_pick permits it; no normal producer located {'[[4, true], null]': 1, '[[8, true], null]': 1, '[[2, false], null]': 1, '[[18, false], null]': 1, '[[3, true], null]': 2, '[[1, false], null]': 1}
+runtime_invalid_string = base load_pick permits it; no normal producer located {}
+bluesky_int b base load_pick permits it; no normal producer located {'[[4, true], null]': 1, '[[8, true], null]': 1, '[[2, false], null]': 1, '[[18, false], null]': 1, '[[3, true], null]': 2, '[[1, false], null]': 1}
+notification_sent_string b base load_pick permits it; no normal producer located {'[[4, true], null]': 1, '[[8, true], null]': 1, '[[2, false], null]': 1, '[[18, false], null]': 1, '[[3, true], null]': 2, '[[1, false], null]': 1}
+notification_attempt_null b base load_pick permits it; no normal producer located {'[[4, true], null]': 1, '[[8, true], null]': 1, '[[2, false], null]': 1, '[[18, false], null]': 1, '[[3, true], null]': 2, '[[1, false], null]': 1}
+notification_id_int b transport return written verbatim; provider declares string {'[[4, true], null]': 1, '[[8, true], null]': 1, '[[2, false], null]': 1, '[[18, false], null]': 1, '[[3, true], null]': 2, '[[1, false], null]': 1}
+notification_id_blank = base load_pick permits it; no normal producer located {}
+slot_results_non_dict_miss b synthetic only; no normal writer located {'[[0, true], null]': 2, '[[1, true], null]': 2, '[[0, false], null]': 2, '[[1, false], null]': 1}
+slot_results_non_dict_hit b synthetic only; no normal writer located {'[{"raised": "AttributeError"}, null]': 7}
+slot_results_null_leg b base load_pick permits it; no normal producer located {'[[4, true], null]': 1, '[[8, true], null]': 1, '[[2, false], null]': 1, '[[18, false], null]': 1, '[[3, true], null]': 2, '[[1, false], null]': 1}
+slot_results_pending_leg b base load_pick permits it; no normal producer located {'[[4, true], null]': 1, '[[8, true], null]': 1, '[[2, false], null]': 1, '[[18, false], null]': 1, '[[3, true], null]': 2, '[[1, false], null]': 1}
+slot_results_extra_leg = base load_pick permits it; no normal producer located {}
+slot_results_empty_hit = base load_pick permits it; no normal producer located {}
+date_filename_mismatch b wrong filename or hand-edit; save_pick derives name {'[[4, true], null]': 1, '[[8, true], null]': 1, '[[2, false], null]': 1, '[[18, false], null]': 1, '[[3, true], null]': 2, '[[1, false], null]': 1}
+utf8_bom b no emitter adds BOM; I-046 concerns non-UTF-8/AppleDouble {}
+non_utf8 b I-046 reported unreadable paths {}
+json_array b synthetic only; no normal writer located {'[{"raised": "AttributeError"}, null]': 7}
+json_null b synthetic only; no normal writer located {'[{"raised": "AttributeError"}, null]': 7}
+json_truncated b possible pre-atomic save crash {}
+unknown_result b synthetic only; no normal writer located {}
+today_unknown_result b synthetic only; no normal writer located {'[[3, true], null]': 1, '[[6, true], null]': 1, '[[1, false], null]': 1, '[[16, false], null]': 1, '[[2, true], null]': 1, '[[1, true], null]': 1, '[[0, false], null]': 1}
+today_committed_unresolved = normal scorer pending before cutoff {}
+today_terminal = normal scored today {}
+refused_preview a W14/W23, real preview metadata {'[null, [3, true]]': 1, '[null, [7, true]]': 1, '[null, [1, false]]': 1, '[null, [17, false]]': 1, '[null, [2, true]]': 2, '[null, [0, false]]': 1}
+uncommitted_unresolved a scheduler unresolved {'[null, [3, true]]': 1, '[null, [7, true]]': 1, '[null, [1, false]]': 1, '[null, [17, false]]': 1, '[null, [2, true]]': 2, '[null, [0, false]]': 1}
+uncommitted_suspended a recognized daily result {'[null, [3, true]]': 1, '[null, [7, true]]': 1, '[null, [1, false]]': 1, '[null, [17, false]]': 1, '[null, [2, true]]': 2, '[null, [0, false]]': 1}
+delivered_suspended b scheduler suspended {}
+delivered_unresolved b scheduler pending {}
+bare_attempt b scheduler crash before confirmation {}
+private_pending b scheduler private lock {}
+locked_unconfirmed b scheduler restart {}
+terminal_private = scheduler private lock {}
+skip_leftover a scheduler final skip {'[null, [3, true]]': 1, '[null, [7, true]]': 1, '[null, [1, false]]': 1, '[null, [17, false]]': 1, '[null, [2, true]]': 2, '[null, [0, false]]': 1}
+skip_without_root = scheduler final skip {}
+committed_without_root b decision survives pick loss {'[[3, true], null]': 1, '[[7, true], null]': 1, '[[1, false], null]': 1, '[[17, false], null]': 1, '[[2, true], null]': 2, '[[0, false], null]': 1}
+old_decision_v1 = v1 decision {}
+old_decision_v2 = v2 decision {}
+decision_future_schema b synthetic only; no normal writer located {'[[4, true], null]': 1, '[[8, true], null]': 1, '[[2, false], null]': 1, '[[18, false], null]': 1, '[[3, true], null]': 2, '[[1, false], null]': 1}
+decision_date_mismatch b synthetic only; no normal writer located {'[[4, true], null]': 1, '[[8, true], null]': 1, '[[2, false], null]': 1, '[[18, false], null]': 1, '[[3, true], null]': 2, '[[1, false], null]': 1}
+decision_scoreable_string b synthetic only; no normal writer located {'[[4, true], null]': 1, '[[8, true], null]': 1, '[[2, false], null]': 1, '[[18, false], null]': 1, '[[3, true], null]': 2, '[[1, false], null]': 1}
+decision_truncated b synthetic only; no normal writer located {'[[4, true], null]': 1, '[[8, true], null]': 1, '[[2, false], null]': 1, '[[18, false], null]': 1, '[[3, true], null]': 2, '[[1, false], null]': 1}
+past_marker_matched b scorer crash {}
+past_marker_tagless b legacy scorer crash {}
+past_marker_foreign a foreign season tag {'[null, [3, true]]': 1, '[null, [7, true]]': 1, '[null, [1, false]]': 1, '[null, [17, false]]': 1, '[null, [2, true]]': 2, '[null, [0, false]]': 1}
+today_marker_matched b scorer crash {}
+today_marker_tagless b legacy scorer crash {}
+today_marker_foreign a foreign season tag; C3 discards the marker {'[null, [3, true]]': 1, '[null, [6, true]]': 1, '[null, [1, false]]': 1, '[null, [16, false]]': 1, '[null, [2, true]]': 1, '[null, [1, true]]': 1, '[null, [0, false]]': 1}
+double_partial_void = normal grading partial-void file {}
+legacy_double_hit = pre-slot_results {}
+regenerated_current = current _record_to_pick_file {}
+regenerated_partial_void = current export/regenerate drops slot_results {}
+regenerated_early_miss c 11059dd1 _record_to_pick_file {'[[0, true], null]': 2, '[[1, true], null]': 2, '[[0, false], null]': 2, '[[1, false], null]': 1}
+regenerated_early_hit b 11059dd1 _record_to_pick_file; old hit loader already throws {'[{"raised": "TypeError"}, null]': 7}
+regenerated_historical_null b current _hist_to_pick_file can pass null pick {'[[0, true], null]': 2, '[[1, true], null]': 2, '[[0, false], null]': 2, '[[1, false], null]': 1}
+regenerated_historical_missing_pitcher_id b current _hist_to_pick_file does not backfill missing pitcher_id; source unverified {'[[0, true], null]': 2, '[[1, true], null]': 2, '[[0, false], null]': 2, '[[1, false], null]': 1}

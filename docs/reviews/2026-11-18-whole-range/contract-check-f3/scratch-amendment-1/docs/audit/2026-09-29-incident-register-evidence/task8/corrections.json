@@ -1,0 +1,189 @@
+{
+ "about": "Reviewed corrections applied to the drafts at build time (Task 8, 2026-10-03). Each install-state correction states the draft value it replaces; the build refuses if the draft differs.",
+ "add_evidence": [
+  {
+   "record": "I-056",
+   "evidence": {
+    "id": "ev90",
+    "kind": "machine_observation",
+    "strength": "primary",
+    "locator": "GitHub Actions deploy run 27077693688 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+    "what": "first successful deploy whose head (2b752be) contains 68a35d3, created 2026-06-07T00:11:11Z; log retained: 2b752be deployed 2026-06-07T00:11:21Z, canary passed. Deploys never install the crontab, so the schedule's own activation on the box is not evidenced"
+   }
+  },
+  {
+   "record": "I-056",
+   "evidence": {
+    "id": "ev91",
+    "kind": "machine_observation",
+    "strength": "primary",
+    "locator": "GitHub Actions deploy run 27100280736 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+    "what": "first successful deploy whose head (a436827) contains 58c9adc, created 2026-06-07T17:55:03Z; log unavailable_expired"
+   }
+  }
+ ],
+ "fix_deployed": [
+  {
+   "record": "I-056",
+   "link": 1,
+   "why": "eaccaf8 (run 27072979769) does not contain 68a35d3, the link's second fix commit (git merge-base --is-ancestor 68a35d3 eaccaf8 fails); the first successful deploy containing it is run 27077693688 (head 2b752be)",
+   "was": {
+    "basis": "candidate_ancestry",
+    "sha": "eaccaf8",
+    "live_by": "2026-06-06T20:25:30Z",
+    "run_id": 27072979769,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "now": {
+    "basis": "candidate_ancestry",
+    "sha": "2b752be",
+    "live_by": "2026-06-07T00:11:11Z",
+    "run_id": 27077693688,
+    "evidence": [
+     "ev90"
+    ]
+   }
+  },
+  {
+   "record": "I-056",
+   "link": 3,
+   "why": "eaccaf8 does not contain 58c9adc, the link's second fix commit; the first successful deploy containing it is run 27100280736 (head a436827)",
+   "was": {
+    "basis": "candidate_ancestry",
+    "sha": "eaccaf8",
+    "live_by": "2026-06-06T20:25:30Z",
+    "run_id": 27072979769,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "now": {
+    "basis": "candidate_ancestry",
+    "sha": "a436827",
+    "live_by": "2026-06-07T17:55:03Z",
+    "run_id": 27100280736,
+    "evidence": [
+     "ev91"
+    ]
+   }
+  },
+  {
+   "record": "I-052",
+   "link": 2,
+   "why": "67543ca (run 26299067685) does not contain a3df746, the link's second fix commit; the record's own ev4 names the first successful deploy containing it: a1dea18, run 26334797353, 2026-05-23T14:06:53Z",
+   "was": {
+    "basis": "candidate_ancestry",
+    "sha": "67543ca",
+    "live_by": "2026-05-22T16:16:48Z",
+    "run_id": 26299067685,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "now": {
+    "basis": "candidate_ancestry",
+    "sha": "a1dea18",
+    "live_by": "2026-05-23T14:06:53Z",
+    "run_id": 26334797353,
+    "evidence": [
+     "ev4"
+    ]
+   }
+  }
+ ],
+ "routes": [
+  {
+   "record": "I-114",
+   "why": "split from I-059 at consolidation with empty route fields; its evidence cites the fix commit dfcf655, the audit commit f5de8ee and the 6/09 audit document",
+   "was": {
+    "H": [],
+    "R": "pending_phase2",
+    "X": []
+   },
+   "now": {
+    "H": [
+     "dfcf655",
+     "f5de8ee"
+    ],
+    "R": "pending_phase2",
+    "X": [
+     "docs/audit/2026-06-09-fable5-full-audit.md"
+    ]
+   }
+  },
+  {
+   "record": "I-115",
+   "why": "split from I-059 at consolidation with empty route fields; its evidence cites the fix commit 88234ae, the audit commit f5de8ee and the 6/09 audit document",
+   "was": {
+    "H": [],
+    "R": "pending_phase2",
+    "X": []
+   },
+   "now": {
+    "H": [
+     "88234ae",
+     "f5de8ee"
+    ],
+    "R": "pending_phase2",
+    "X": [
+     "docs/audit/2026-06-09-fable5-full-audit.md"
+    ]
+   }
+  }
+ ],
+ "replace_notes": [
+  {
+   "record": "I-056",
+   "why": "results review r1 B3: the inherited note contradicted the corrected install evidence (run 27077693688 observed eaccaf8 at 00:11:19 and 2b752be, which lacks 58c9adc, at 00:11:21)",
+   "was": "log bounds: links 1 and 3 live by 2026-06-07T00:11:19Z (run 27077693688); link 2 by 2026-07-02T15:28:10Z (run 28601525167)",
+   "now": "Retained-log install bounds: link 1's code (including 68a35d3) is observed between 2026-06-07T00:11:19Z and 2026-06-07T00:11:22Z in run 27077693688; the cron schedule's activation is not evidenced. Link 3's complete fix set is first observed in retained logs between 2026-06-07T00:11:21Z and 2026-07-02T15:28:11Z (run 28601525167), with an earlier candidate deploy at 2026-06-07T17:55:03Z (run 27100280736). Link 2's retained-log live_by is 2026-07-02T15:28:11Z."
+  }
+ ],
+ "notes": [
+  {
+   "record": "I-056",
+   "note": "Task 8 (2026-10-03): links 1 and 3 install states corrected to the first deploys containing their complete fix sets (68a35d3: run 27077693688, 2b752be; 58c9adc: run 27100280736, a436827); the drafts cited eaccaf8, which contains neither. Link 1's cron schedule needs a crontab install that deploys never perform; its activation is not evidenced here."
+  },
+  {
+   "record": "I-056",
+   "note": "Task 8: link 2 was fixed by 2b4ff1d, which is also I-063 link 1's first fix commit. It stays an I-056 link because the stale branch's frozen doubles and max(model, contest) are both I-056 mechanism[1]; R-I056-2 and D-I056-2 certify the doubles half, R-I063-1 and D-I063-1 the inflation."
+  },
+  {
+   "record": "I-061",
+   "note": "Task 8: link 3's fix (4f13eb3, the past-noon WARN escalation) was deliberately reversed by 56f9726 (I-063 link 4). R-I061-2 certifies the historical fix; at the pin the contract is the reverse (a one-pick gap is INFO at any hour, certified by R-I063-4 and D-I063-4), so link 3 has no current defence (unavailable: fix superseded)."
+  },
+  {
+   "record": "I-043",
+   "note": "Task 8: links 1 and 4 are defended by the same code: D-I043-1 and D-I043-4 delete the same stale-status PickLockState return in picks.classify_pick_lock_state, entered through the committed-pick lock (run_single_check) and through candidate eligibility (pick_candidate_status_is_available) respectively."
+  },
+  {
+   "record": "I-052",
+   "note": "Task 8 (2026-10-03): link 2's install state corrected to a1dea18 (run 26334797353), the first deploy containing a3df746, as the record's ev4 already stated; the draft cited 67543ca, which contains 3a8d1bd only."
+  }
+ ],
+ "withdrawn": {
+  "D-I071-1": "elapsed-time-dependent boundary decision, outside adopted ruling 13 at this pin: check_pick_entered subtracts real time.monotonic() elapsed time from the countdown and suppresses the DM once it reaches the cutoff (src/bts/cli.py 1706, 1774-1776, 1811 at f453283), and the killing closure fixes only the wall clock (--now-et). Recertification needs a reviewed fixed-elapsed fixture closure and fresh accepted runs (results review r1 B2)",
+  "D-I071-2": "elapsed-time-dependent boundary decision, outside adopted ruling 13 at this pin: the DM's countdown is minutes_to_pitch - 5 - real time.monotonic() elapsed time (src/bts/cli.py 1706, 1774-1776, 1811 at f453283), and the killing closure fixes only the wall clock (--now-et). Recertification needs a reviewed fixed-elapsed fixture closure and fresh accepted runs (results review r1 B2)"
+ },
+ "reason_notes": {
+  "defence": {
+   "I-043 5": "The withdrawn strict-mode spec did not exercise production's fail-closed lock decision. A faithful coarse-status-fallback restoration with a positive wrong-lock return is a candidate; it has not been certified (results review r1 S1).",
+   "I-084 1": "Missing delivery remains uncertifiable in Phase 1; a positive wrong-deferral-return planner spec is a separate, unrun candidate (results review r1 S2)."
+  },
+  "replay": {
+   "R-I043-3": "PARTIAL: the resolved-at-cap rule only; the schedule-void overlay is not replayed (results review r1 S3)"
+  }
+ },
+ "defence_notes": {
+  "D-I011-1": "the mutant removes both already-resolved checks (the pre-check and the in-lock re-check); the killing node kills it through the in-lock re-check, so the pre-check alone has no killing test (coverage note)",
+  "D-I043-1": "same deleted block as D-I043-4 (see the record note)",
+  "D-I043-3": "PARTIAL: the cap clause of link 3 only; the headline clause (a schedule-detailed postponed/cancelled game counts as final) has no certificate",
+  "D-I043-4": "same deleted block as D-I043-1 (see the record note)",
+  "D-I056-3": "the witness is check() returning [] where green returns the WARN, read as a wrong returned value under ruling 10's text (flagged for the results review; the same pattern as I-0830-d)",
+  "D-I075-1": "closure note: the killing test anchors to the real date by design, with _now_et patched to that date's 23:30; the decision depends on the wall-clock date, not elapsed time",
+  "I-0830-d": "the witness is check() returning [] (no_alert), a wrong returned value; reviewed in the earlier rounds as the worked example",
+  "D-I063-2": "PARTIAL: the two-or-more-pick refusal only; the silent one-pick discard and no-source-date branch are not certified (results review r1 S3)"
+ }
+}

@@ -1,0 +1,60 @@
+{
+ "id": "I-022",
+ "working_id": "E22",
+ "title": "4/12 lineup-confirmation counter logged '0 new' while newly posted sides flipped the pick",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {"primary": "U", "secondary": []},
+ "tier": "B",
+ "tier_reason": "log and state wording only: since f5ce1ed every check re-predicts, so the game-level counter no longer gated predictions; it misreported confirmations in the log and in state.confirmed_game_pks",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "count_new_confirmations reports each newly confirmed lineup since the last check.",
+  "source": "src/bts/scheduler.py count_new_confirmations docstring (1c3c210)"
+ },
+ "mechanism": [
+  {"n": 1, "text": "check_confirmed_lineups returned one boolean per game (true once either side's lineup posted) and count_new_confirmations tracked game_pks, so the other side posting later counted as 0 new",
+   "code": [{"path": "src/bts/scheduler.py", "ref": "1c3c210", "symbol": "check_confirmed_lineups / count_new_confirmations", "ref_basis": "candidate"}]}
+ ],
+ "fix": [
+  {"link": 1, "implemented": {"commits": ["bd8bcd3"], "complete_fix_set": true},
+   "deployed": {"basis": "candidate_ancestry", "sha": "bd8bcd3", "live_by": "2026-04-12T17:40:40Z", "run_id": 24312504594, "evidence": ["ev2"]},
+   "mitigated": "none", "verified_recovered": "unknown"}
+ ],
+ "fixtures": {"historical_replay": [], "current_defence": [], "expected_failure": [], "characterization": []},
+ "residual": [],
+ "watchdog": {
+  "boundary": "none",
+  "trigger": "log/state wording only: the counter no longer gated any decision after f5ce1ed",
+  "recovery_assertion": "each check's confirmation count equals the number of newly confirmed (game, side) pairs"
+ },
+ "evidence": [
+  {"id": "ev1", "kind": "contemporaneous_operator_report", "strength": "primary", "locator": "commit bd8bcd3 message body", "written_at": "2026-04-12T13:40:33-04:00",
+   "what": "'Observed live on 2026-04-12': two back-to-back checks against the same confirmed set; run 2 reported '0 new confirmed lineup(s)' while projected teams dropped from 6 to 3 and the pick flipped"},
+  {"id": "ev2", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 24312504594 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "head bd8bcd3, created 2026-04-12T17:40:40Z, concluded success; log expired"}
+ ],
+ "occurrences": [{
+  "label": "2026-04-12",
+  "onset": {"not_before": "2026-04-12", "not_after": "2026-04-12T13:40:33-04:00", "evidence": ["ev1"]},
+  "first_detectable": "unknown",
+  "first_machine_detection": "none",
+  "alert": {"attempted": "none", "confirmed": "none", "failed": "none"},
+  "operator_awareness": {"not_after": "2026-04-12T13:40:33-04:00", "evidence": ["ev1"]},
+  "mitigation": "none",
+  "restored_verification": "unknown",
+  "latencies": {"detection": "not_applicable", "notification": "not_applicable", "recovery": "unknown"}
+ }],
+ "routes": {"H": ["bd8bcd3"], "R": "pending_phase2", "X": []},
+ "related": ["I-005", "I-025"],
+ "notes": [
+  "same code as I-005 link 1 (game-level confirmation); here it only mislabelled logs and state because predictions were no longer gated",
+  "the doubleheader game-2 recheck also used the game-level set, but it runs no prediction",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; bd8bcd3 added test_counts_second_side_as_new_confirmation"
+ ]
+}

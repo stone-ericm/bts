@@ -1,0 +1,80 @@
+{
+  "cli_mutations": {
+    "drop_game_unresolved_alerted": {
+      "exit_code": 1,
+      "noticed": true,
+      "summary_lines": [
+        "FAILED tests/test_wr_f1_game_pk_types.py::test_a3_unresolved_non_integer_game_id_is_unavailable[True]",
+        "!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!",
+        "================== 1 failed, 4 passed, 2 deselected in 0.31s ==================="
+      ]
+    },
+    "drop_game_unresolved_dm_failed": {
+      "exit_code": 1,
+      "noticed": true,
+      "summary_lines": [
+        "FAILED tests/test_wr_f1_review.py::test_failed_observation[crosswalk-M12] - K...",
+        "!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!",
+        "================== 1 failed, 9 passed, 2 deselected in 0.31s ==================="
+      ]
+    },
+    "drop_game_unresolved_present_unverified": {
+      "exit_code": 1,
+      "noticed": true,
+      "summary_lines": [
+        "FAILED tests/test_wr_f1_review.py::test_failed_observation[crosswalk-M11] - a...",
+        "!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!",
+        "================== 1 failed, 8 passed, 2 deselected in 0.30s ==================="
+      ]
+    },
+    "game_pk_isinstance_int_allows_bool": {
+      "exit_code": 1,
+      "noticed": true,
+      "summary_lines": [
+        "FAILED tests/test_wr_f1_game_pk_types.py::test_a1_non_integer_game_id_cannot_trigger_wrong_game[True]",
+        "!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!",
+        "======================= 1 failed, 2 deselected in 0.27s ========================"
+      ]
+    },
+    "game_pk_not_none_in_a1": {
+      "exit_code": 1,
+      "noticed": true,
+      "summary_lines": [
+        "FAILED tests/test_wr_f1_game_pk_types.py::test_a1_non_integer_game_id_cannot_trigger_wrong_game[True]",
+        "!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!",
+        "======================= 1 failed, 2 deselected in 0.27s ========================"
+      ]
+    },
+    "game_pk_not_none_in_a3_legs": {
+      "exit_code": 1,
+      "noticed": true,
+      "summary_lines": [
+        "FAILED tests/test_wr_f1_game_pk_types.py::test_a3_unresolved_non_integer_game_id_is_unavailable[True]",
+        "!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!",
+        "================== 1 failed, 4 passed, 2 deselected in 0.29s ==================="
+      ]
+    },
+    "drop_wrong_game_tier_in_all_clear": {
+      "exit_code": 0,
+      "noticed": false,
+      "summary_lines": [
+        "tests/test_wr_f1_wrong_game.py ......................................... [ 69%]",
+        "...........................                                              [100%]",
+        "====================== 89 passed, 2 deselected in 25.39s ======================="
+      ]
+    },
+    "drop_escalations_preservation_on_dm_failed_after_wg": {
+      "exit_code": 0,
+      "noticed": false,
+      "summary_lines": [
+        "tests/test_wr_f1_wrong_game.py ......................................... [ 69%]",
+        "...........................                                              [100%]",
+        "====================== 89 passed, 2 deselected in 24.75s ======================="
+      ]
+    }
+  },
+  "unnoticed": [
+    "drop_wrong_game_tier_in_all_clear",
+    "drop_escalations_preservation_on_dm_failed_after_wg"
+  ]
+}
