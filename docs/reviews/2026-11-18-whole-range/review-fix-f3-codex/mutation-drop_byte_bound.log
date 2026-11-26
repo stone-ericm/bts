@@ -1,0 +1,251 @@
+bts.__file__=/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f3-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 83 items
+
+tests/test_wr_f3_skip_state_review.py .................................. [ 40%]
+..FFF............................................                        [100%]
+
+=================================== FAILURES ===================================
+_______________ test_K5_bad_optional_evidence[oversize-current] ________________
+
+report = namespace(account=PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2242/test_...cli_report=<function report.<locals>.cli_report at 0x10de26160>, check=<function report.<locals>.check at 0x10de24ae0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10d59a570>
+kind = 'current', fault = 'oversize'
+
+    @pytest.mark.parametrize("kind", EVIDENCE)
+    @pytest.mark.parametrize("fault", [
+        "absent", "directory", "fifo", "unreadable", "utf8", "malformed", "deep", "long_number", "list",
+        "wrong_date", "wrong_season", "wrong_schema", "oversize",
+    ])
+    def test_K5_bad_optional_evidence(report, monkeypatch, kind, fault):
+        report.setup()
+        path = report.account / EVIDENCE[kind]
+        if fault == "directory":
+            path.mkdir()
+        elif fault == "fifo":
+            os.mkfifo(path)
+        elif fault != "absent":
+            raw = {
+                "utf8": b"\xff",
+                "malformed": b'{"x":',
+                "deep": b"[" * 2000 + b"0" + b"]" * 2000,
+                "long_number": b'{"x":' + b"1" * 5000 + b"}",
+                "list": b"[]",
+            }.get(fault)
+            if raw is None:
+                changes = {"wrong_season": {"season": 2028}, "wrong_schema": {"schema_version": "legacy"},
+                           "oversize": {"padding": "x" * 65536}}
+                raw = json.dumps(evidence(kind, day="2027-04-01" if fault == "wrong_date" else DATE,
+                                          **changes.get(fault, {}))).encode()
+            path.write_bytes(raw)
+        real_open = os.open
+    
+        def open_evidence(target, flags, *args, **kwargs):
+            if os.fspath(target) == str(path):
+                if fault == "unreadable":
+                    raise PermissionError("evidence inaccessible")
+                if fault == "fifo":
+                    assert flags & os.O_NONBLOCK
+            return real_open(target, flags, *args, **kwargs)
+    
+        if fault in {"fifo", "unreadable"}:
+            monkeypatch.setattr(os, "open", open_evidence)
+>       report.check()
+
+tests/test_wr_f3_skip_state_review.py:173: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_wr_f3_skip_state_review.py:128: in check
+    assert_report(outcome, result, sends, day, state, detail, code, send_fails=send_fails)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+outcome = DayOutcome(date='2027-04-02', state='skip_state_review', detail='The policy recorded a skip for 2027-04-02 using strea...ability unavailable. Check MLB for unsettled entries and verify the current streak, season best and saver.', pick=None)
+result = <Result SystemExit(1)>
+sends = [('operator.bsky.social', 'BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 usin...aver availability unavailable. Check MLB for unsettled entries and verify the current streak, season best and saver.')]
+day = '2027-04-02', state = 'deliberate_skip'
+detail = 'The policy skipped the day.', code = 0, pick = None
+send_fails = False
+
+    def assert_report(outcome, result, sends, day, state, detail, code, pick=None, send_fails=False):
+        expected = {"date": day, "state": state, "ok": code == 0, "detail": detail, "pick": pick}
+        message = f"BTS day check {day}: {state.replace('_', ' ').upper()}. {detail}"
+        if pick:
+            message += f" Pick: {pick}."
+        print(json.dumps({"state": state, "actual": outcome.as_dict(), "exit": result.exit_code, "DM": sends}))
+>       assert outcome.as_dict() == expected
+E       AssertionError: assert {'date': '202...k': None, ...} == {'date': '202...k': None, ...}
+E         
+E         Omitting 2 identical items, use -vv to show
+E         Differing items:
+E         {'state': 'skip_state_review'} != {'state': 'deliberate_skip'}
+E         {'ok': False} != {'ok': True}
+E         {'detail': 'The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. The i...saver availability unavailable. Check MLB for unsettled entries and verify the current streak, season best and saver.'} != {'detail': 'The policy skipped the day.'}
+E         Use -v to get more diff
+
+tests/test_wr_f3_skip_state_review.py:58: AssertionError
+----------------------------- Captured stdout call -----------------------------
+{"state": "deliberate_skip", "actual": {"date": "2027-04-02", "state": "skip_state_review", "ok": false, "detail": "The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. Check MLB for unsettled entries and verify the current streak, season best and saver.", "pick": null}, "exit": 1, "DM": [["operator.bsky.social", "BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. Check MLB for unsettled entries and verify the current streak, season best and saver."]]}
+_______________ test_K5_bad_optional_evidence[oversize-archive] ________________
+
+report = namespace(account=PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2242/test_...cli_report=<function report.<locals>.cli_report at 0x10de25760>, check=<function report.<locals>.check at 0x10de26d40>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10d59baa0>
+kind = 'archive', fault = 'oversize'
+
+    @pytest.mark.parametrize("kind", EVIDENCE)
+    @pytest.mark.parametrize("fault", [
+        "absent", "directory", "fifo", "unreadable", "utf8", "malformed", "deep", "long_number", "list",
+        "wrong_date", "wrong_season", "wrong_schema", "oversize",
+    ])
+    def test_K5_bad_optional_evidence(report, monkeypatch, kind, fault):
+        report.setup()
+        path = report.account / EVIDENCE[kind]
+        if fault == "directory":
+            path.mkdir()
+        elif fault == "fifo":
+            os.mkfifo(path)
+        elif fault != "absent":
+            raw = {
+                "utf8": b"\xff",
+                "malformed": b'{"x":',
+                "deep": b"[" * 2000 + b"0" + b"]" * 2000,
+                "long_number": b'{"x":' + b"1" * 5000 + b"}",
+                "list": b"[]",
+            }.get(fault)
+            if raw is None:
+                changes = {"wrong_season": {"season": 2028}, "wrong_schema": {"schema_version": "legacy"},
+                           "oversize": {"padding": "x" * 65536}}
+                raw = json.dumps(evidence(kind, day="2027-04-01" if fault == "wrong_date" else DATE,
+                                          **changes.get(fault, {}))).encode()
+            path.write_bytes(raw)
+        real_open = os.open
+    
+        def open_evidence(target, flags, *args, **kwargs):
+            if os.fspath(target) == str(path):
+                if fault == "unreadable":
+                    raise PermissionError("evidence inaccessible")
+                if fault == "fifo":
+                    assert flags & os.O_NONBLOCK
+            return real_open(target, flags, *args, **kwargs)
+    
+        if fault in {"fifo", "unreadable"}:
+            monkeypatch.setattr(os, "open", open_evidence)
+>       report.check()
+
+tests/test_wr_f3_skip_state_review.py:173: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_wr_f3_skip_state_review.py:128: in check
+    assert_report(outcome, result, sends, day, state, detail, code, send_fails=send_fails)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+outcome = DayOutcome(date='2027-04-02', state='skip_state_review', detail='The policy recorded a skip for 2027-04-02 using strea...ability unavailable. Check MLB for unsettled entries and verify the current streak, season best and saver.', pick=None)
+result = <Result SystemExit(1)>
+sends = [('operator.bsky.social', 'BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 usin...aver availability unavailable. Check MLB for unsettled entries and verify the current streak, season best and saver.')]
+day = '2027-04-02', state = 'deliberate_skip'
+detail = 'The policy skipped the day.', code = 0, pick = None
+send_fails = False
+
+    def assert_report(outcome, result, sends, day, state, detail, code, pick=None, send_fails=False):
+        expected = {"date": day, "state": state, "ok": code == 0, "detail": detail, "pick": pick}
+        message = f"BTS day check {day}: {state.replace('_', ' ').upper()}. {detail}"
+        if pick:
+            message += f" Pick: {pick}."
+        print(json.dumps({"state": state, "actual": outcome.as_dict(), "exit": result.exit_code, "DM": sends}))
+>       assert outcome.as_dict() == expected
+E       AssertionError: assert {'date': '202...k': None, ...} == {'date': '202...k': None, ...}
+E         
+E         Omitting 2 identical items, use -vv to show
+E         Differing items:
+E         {'state': 'skip_state_review'} != {'state': 'deliberate_skip'}
+E         {'ok': False} != {'ok': True}
+E         {'detail': 'The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. An ar...saver availability unavailable. Check MLB for unsettled entries and verify the current streak, season best and saver.'} != {'detail': 'The policy skipped the day.'}
+E         Use -v to get more diff
+
+tests/test_wr_f3_skip_state_review.py:58: AssertionError
+----------------------------- Captured stdout call -----------------------------
+{"state": "deliberate_skip", "actual": {"date": "2027-04-02", "state": "skip_state_review", "ok": false, "detail": "The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. An archived dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. Check MLB for unsettled entries and verify the current streak, season best and saver.", "pick": null}, "exit": 1, "DM": [["operator.bsky.social", "BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. An archived dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. Check MLB for unsettled entries and verify the current streak, season best and saver."]]}
+________________ test_K5_bad_optional_evidence[oversize-switch] ________________
+
+report = namespace(account=PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2242/test_...cli_report=<function report.<locals>.cli_report at 0x10ddb2840>, check=<function report.<locals>.check at 0x10ddb2520>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10daa9f10>
+kind = 'switch', fault = 'oversize'
+
+    @pytest.mark.parametrize("kind", EVIDENCE)
+    @pytest.mark.parametrize("fault", [
+        "absent", "directory", "fifo", "unreadable", "utf8", "malformed", "deep", "long_number", "list",
+        "wrong_date", "wrong_season", "wrong_schema", "oversize",
+    ])
+    def test_K5_bad_optional_evidence(report, monkeypatch, kind, fault):
+        report.setup()
+        path = report.account / EVIDENCE[kind]
+        if fault == "directory":
+            path.mkdir()
+        elif fault == "fifo":
+            os.mkfifo(path)
+        elif fault != "absent":
+            raw = {
+                "utf8": b"\xff",
+                "malformed": b'{"x":',
+                "deep": b"[" * 2000 + b"0" + b"]" * 2000,
+                "long_number": b'{"x":' + b"1" * 5000 + b"}",
+                "list": b"[]",
+            }.get(fault)
+            if raw is None:
+                changes = {"wrong_season": {"season": 2028}, "wrong_schema": {"schema_version": "legacy"},
+                           "oversize": {"padding": "x" * 65536}}
+                raw = json.dumps(evidence(kind, day="2027-04-01" if fault == "wrong_date" else DATE,
+                                          **changes.get(fault, {}))).encode()
+            path.write_bytes(raw)
+        real_open = os.open
+    
+        def open_evidence(target, flags, *args, **kwargs):
+            if os.fspath(target) == str(path):
+                if fault == "unreadable":
+                    raise PermissionError("evidence inaccessible")
+                if fault == "fifo":
+                    assert flags & os.O_NONBLOCK
+            return real_open(target, flags, *args, **kwargs)
+    
+        if fault in {"fifo", "unreadable"}:
+            monkeypatch.setattr(os, "open", open_evidence)
+>       report.check()
+
+tests/test_wr_f3_skip_state_review.py:173: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_wr_f3_skip_state_review.py:128: in check
+    assert_report(outcome, result, sends, day, state, detail, code, send_fails=send_fails)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+outcome = DayOutcome(date='2027-04-02', state='skip_state_review', detail='The policy recorded a skip for 2027-04-02 using strea...7-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.', pick=None)
+result = <Result SystemExit(1)>
+sends = [('operator.bsky.social', 'BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 usin...ion on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.')]
+day = '2027-04-02', state = 'deliberate_skip'
+detail = 'The policy skipped the day.', code = 0, pick = None
+send_fails = False
+
+    def assert_report(outcome, result, sends, day, state, detail, code, pick=None, send_fails=False):
+        expected = {"date": day, "state": state, "ok": code == 0, "detail": detail, "pick": pick}
+        message = f"BTS day check {day}: {state.replace('_', ' ').upper()}. {detail}"
+        if pick:
+            message += f" Pick: {pick}."
+        print(json.dumps({"state": state, "actual": outcome.as_dict(), "exit": result.exit_code, "DM": sends}))
+>       assert outcome.as_dict() == expected
+E       AssertionError: assert {'date': '202...k': None, ...} == {'date': '202...k': None, ...}
+E         
+E         Omitting 2 identical items, use -vv to show
+E         Differing items:
+E         {'state': 'skip_state_review'} != {'state': 'deliberate_skip'}
+E         {'ok': False} != {'ok': True}
+E         {'detail': 'The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. The s...tion on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.'} != {'detail': 'The policy skipped the day.'}
+E         Use -v to get more diff
+
+tests/test_wr_f3_skip_state_review.py:58: AssertionError
+----------------------------- Captured stdout call -----------------------------
+{"state": "deliberate_skip", "actual": {"date": "2027-04-02", "state": "skip_state_review", "ok": false, "detail": "The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.", "pick": null}, "exit": 1, "DM": [["operator.bsky.social", "BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver."]]}
+=========================== short test summary info ============================
+FAILED tests/test_wr_f3_skip_state_review.py::test_K5_bad_optional_evidence[oversize-current]
+FAILED tests/test_wr_f3_skip_state_review.py::test_K5_bad_optional_evidence[oversize-archive]
+FAILED tests/test_wr_f3_skip_state_review.py::test_K5_bad_optional_evidence[oversize-switch]
+========================= 3 failed, 80 passed in 0.77s =========================

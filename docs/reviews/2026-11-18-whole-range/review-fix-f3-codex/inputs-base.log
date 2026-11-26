@@ -1,0 +1,77 @@
+nice: setpriority: Operation not permitted
+bts.__file__=/private/tmp/wr-f3-r1.tBHCjn/base/src/bts/__init__.py
+contest_streak.manual.json absent: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.revoked-probe.json absent: deliberate_skip, 0 bytes, other evidence checked=True
+season_contract.json absent: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.json directory: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.revoked-probe.json directory: deliberate_skip, 0 bytes, other evidence checked=True
+season_contract.json directory: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.json fifo: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.revoked-probe.json fifo: deliberate_skip, 0 bytes, other evidence checked=True
+season_contract.json fifo: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.json denied: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.revoked-probe.json denied: deliberate_skip, 0 bytes, other evidence checked=True
+season_contract.json denied: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.json utf8: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.revoked-probe.json utf8: deliberate_skip, 0 bytes, other evidence checked=True
+season_contract.json utf8: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.json bad_json: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.revoked-probe.json bad_json: deliberate_skip, 0 bytes, other evidence checked=True
+season_contract.json bad_json: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.json deep_json: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.revoked-probe.json deep_json: deliberate_skip, 0 bytes, other evidence checked=True
+season_contract.json deep_json: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.json long_number: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.revoked-probe.json long_number: deliberate_skip, 0 bytes, other evidence checked=True
+season_contract.json long_number: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.json list: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.revoked-probe.json list: deliberate_skip, 0 bytes, other evidence checked=True
+season_contract.json list: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.json wrong_schema: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.revoked-probe.json wrong_schema: deliberate_skip, 0 bytes, other evidence checked=True
+season_contract.json wrong_schema: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.json wrong_day: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.revoked-probe.json wrong_day: deliberate_skip, 0 bytes, other evidence checked=True
+season_contract.json wrong_day: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.json wrong_season: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.revoked-probe.json wrong_season: deliberate_skip, 0 bytes, other evidence checked=True
+season_contract.json wrong_season: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.json timestamp_type: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.revoked-probe.json timestamp_type: deliberate_skip, 0 bytes, other evidence checked=True
+season_contract.json timestamp_type: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.json over_cap: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.revoked-probe.json over_cap: deliberate_skip, 0 bytes, other evidence checked=True
+season_contract.json over_cap: deliberate_skip, 0 bytes, other evidence checked=True
+contest_streak.manual.json at_cap: deliberate_skip, 0 bytes, other evidence checked=False
+contest_streak.manual.revoked-probe.json at_cap: deliberate_skip, 0 bytes, other evidence checked=False
+season_contract.json at_cap: deliberate_skip, 0 bytes, other evidence checked=False
+{"edge": "contest_streak.manual.json", "stamp": "0001-01-01T00:00:00Z", "exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+{"edge": "contest_streak.manual.revoked-probe.json", "stamp": "0001-01-01T00:00:00Z", "exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+{"edge": "season_contract.json", "stamp": "0001-01-01T00:00:00Z", "exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+{"edge": "contest_streak.manual.json", "stamp": "9999-12-31T23:59:59-12:00", "exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+{"edge": "contest_streak.manual.revoked-probe.json", "stamp": "9999-12-31T23:59:59-12:00", "exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+{"edge": "season_contract.json", "stamp": "9999-12-31T23:59:59-12:00", "exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+{"edge": "overflowing timestamp outranks a valid differing archive", "exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+{"skip_corruption": {"streak": true}, "exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+{"skip_corruption": {"streak": false}, "exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+{"skip_corruption": {"streak": -1}, "exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+{"skip_corruption": {"streak": "30"}, "exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+{"skip_corruption": {"streak": []}, "exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+{"skip_corruption": {"streak": 30.0}, "exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+{"skip_corruption": {"saver_available": 0}, "exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+{"skip_corruption": {"saver_available": "false"}, "exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+{"skip_corruption": {"saver_available": {}}, "exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+{"skip_corruption": {"saver_available": null}, "exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+{"skip_corruption": {"scoreable": true}, "exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+{"skip_corruption": {"date": "2027-04-01"}, "exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+{"skip_corruption": {"date": ["2027-04-02"]}, "exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+{"skip_corruption": {"date": null}, "exit": 0, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"deliberate_skip\", \"ok\": true, \"detail\": \"The policy skipped the day.\", \"pick\": null}\n", "stderr": "", "sends": [], "exception": null}
+{"skip_corruption": {"scoreable": 0}, "exit": 1, "stdout": "{\"date\": \"2027-04-02\", \"state\": \"no_decision\", \"ok\": false, \"detail\": \"1 games were scheduled and the day has no decision record: no pick was committed and no skip was decided.\", \"pick\": null}\n", "stderr": "", "sends": [["operator.invalid", "BTS day check 2027-04-02: NO DECISION. 1 games were scheduled and the day has no decision record: no pick was committed and no skip was decided."]], "exception": "SystemExit"}
+{"skip_corruption": {"action": {}}, "exit": 1, "stdout": "", "stderr": "", "sends": [], "exception": "TypeError"}
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-f3-cx/.codex-review/wr-f3-r1/probe_inputs.py", line 237, in <module>
+    malformed_skips(root / "skips")
+  File "/Users/eric/projects/bts-work/wr-rev-f3-cx/.codex-review/wr-f3-r1/probe_inputs.py", line 143, in malformed_skips
+    assert result == {"exit": 1, "stdout": "", "stderr": "", "sends": [], "exception": "TypeError"}
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

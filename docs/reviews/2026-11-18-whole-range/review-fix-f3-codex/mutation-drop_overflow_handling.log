@@ -1,0 +1,49 @@
+bts.__file__=/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f3-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 83 items
+
+tests/test_wr_f3_skip_state_review.py .................................. [ 40%]
+.............F...................................                        [100%]
+
+=================================== FAILURES ===================================
+_________________________ test_overflowing_revocation __________________________
+
+report = namespace(account=PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2243/test_...cli_report=<function report.<locals>.cli_report at 0x111452c00>, check=<function report.<locals>.check at 0x111450360>)
+
+    def test_overflowing_revocation(report):
+        report.setup()
+        (report.account / EVIDENCE["switch"]).write_text(json.dumps(evidence("switch", revoked_at="0001-01-01T00:00:00Z")))
+>       report.check()
+
+tests/test_wr_f3_skip_state_review.py:195: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_wr_f3_skip_state_review.py:126: in check
+    outcome = day_outcome.gather(day, picks, config, expected_username="stonehengee")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:294: in gather
+    return _skip_review(date, picks_dir, decision, intent.intent) or outcome
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:229: in _skip_review
+    revoked = _revocation_time(account, day) if intent == "enter" else None
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+account = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2243/test_overflowing_revocation0/picks/account_state')
+day = datetime.date(2027, 4, 2)
+
+    def _revocation_time(account: Path, day: Date) -> datetime | None:
+        try:
+            switch = validate_contract(_read_evidence(account / "season_contract.json"))
+            if switch["season"] == day.year and switch["status"] == "revoked":
+>               revoked = datetime.fromisoformat(switch["revoked_at"]).astimezone(ET)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E               OverflowError: date value out of range
+
+/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/day_outcome.py:203: OverflowError
+=========================== short test summary info ============================
+FAILED tests/test_wr_f3_skip_state_review.py::test_overflowing_revocation - O...
+========================= 1 failed, 82 passed in 0.77s =========================
