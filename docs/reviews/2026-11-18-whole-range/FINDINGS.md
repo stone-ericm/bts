@@ -352,3 +352,6 @@ Part a matched every recorded state; the blind read and Carbon slice 3 returned 
 
 ## Ruling R73 (lead, 2026-11-26 13:56): K1b
 K1 stopped after round 2 (`WRK1REV2-2ea27ed3`: round 1's findings fixed; two new B8a-text findings of one class: the daily dated command lacks `--picks-dir`, and the late-filing rule names only the first lineup check; under R64 both can write state where the scheduler does not read it or skip a correction). **K1b** is K1's one follow-up: the reviewer's two sentences verbatim, checked against the real CLI, and one fresh Codex check limited to them; SIGN merges K1 with K1b on K1's gate; a BLOCK goes to Eric.
+
+## Ruling R74 (lead, 2026-11-26 14:46): K2b
+K2 stopped after round 2 (`WRK2REV2-17651cb0`): the day-count floor holds (a makeup day after the stored finale plays; every positive-day decision equals the base); the BLOCK is in K2's new boundary-WARN DM (after a failed send with a full stderr pipe the dispatcher's failure line can hold the process past an interrupt). **K2b** is K2's one follow-up: the DM is dropped (no change to the shared dispatcher), the journal line and the floor stay; one fresh Codex check limited to that; a BLOCK goes to Eric. Cost: the stale-boundary notice is in the journal only, not a DM (the makeup day plays either way).
