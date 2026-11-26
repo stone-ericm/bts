@@ -1,0 +1,82 @@
+{
+  "status": "PASS",
+  "elapsed_sec": 104.411,
+  "mutations_tested": 7,
+  "unnoticed_by_existing_tests": [
+    "slot_range_stop_at_23_30",
+    "slot_range_start_at_10_15"
+  ],
+  "slot_range_start_1015_caught_by_1015_probe": true,
+  "results": {
+    "drop_the_gate": {
+      "file": "src/bts/cli.py",
+      "caught_by_existing_tests": true,
+      "pytest_returncode": 1,
+      "output_tail": [
+        "FAILED tests/test_wr_f5_watchdog_window.py::test_preserve_base_warnings[M5-late-binding]",
+        "!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!",
+        "================= 1 failed, 12 passed, 16 deselected in 7.31s =================="
+      ]
+    },
+    "apply_gate_without_cron": {
+      "file": "src/bts/cli.py",
+      "caught_by_existing_tests": true,
+      "pytest_returncode": 1,
+      "output_tail": [
+        "FAILED tests/test_wr_f5_watchdog_window.py::test_manual_early_check_still_confirms",
+        "!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!",
+        "================= 1 failed, 14 passed, 16 deselected in 7.95s =================="
+      ]
+    },
+    "drop_cron_from_installed_line": {
+      "file": "scripts/cron-setup-hetzner.sh",
+      "caught_by_existing_tests": true,
+      "pytest_returncode": 1,
+      "output_tail": [
+        "FAILED tests/test_wr_f5_watchdog_window.py::test_m1_wrapped_schedule_and_flag[show]",
+        "!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!",
+        "======================= 1 failed, 16 deselected in 0.70s ======================="
+      ]
+    },
+    "change_now_hour_lt_10_to_le_10": {
+      "file": "src/bts/cli.py",
+      "caught_by_existing_tests": true,
+      "pytest_returncode": 1,
+      "output_tail": [
+        "FAILED tests/test_wr_f5_watchdog_window.py::test_preserve_base_warnings[M5-late-binding]",
+        "!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!",
+        "================= 1 failed, 12 passed, 16 deselected in 7.22s =================="
+      ]
+    },
+    "slot_range_stop_at_23_30": {
+      "file": "src/bts/cli.py",
+      "caught_by_existing_tests": false,
+      "pytest_returncode": 0,
+      "output_tail": [
+        "tests/test_wr_f1b_lock.py ........s                                      [100%]",
+        "",
+        "================ 183 passed, 1 skipped, 16 deselected in 22.92s ================"
+      ]
+    },
+    "slot_range_start_at_10_15": {
+      "file": "src/bts/cli.py",
+      "caught_by_existing_tests": false,
+      "pytest_returncode": 0,
+      "output_tail": [
+        "tests/test_wr_f1b_lock.py ........s                                      [100%]",
+        "",
+        "================ 183 passed, 1 skipped, 16 deselected in 23.29s ================"
+      ]
+    },
+    "slot_comparison_inclusive_at_cutoff": {
+      "file": "src/bts/cli.py",
+      "caught_by_existing_tests": true,
+      "pytest_returncode": 1,
+      "output_tail": [
+        "FAILED tests/test_wr_f5_watchdog_window.py::test_early_slate[missing-M3] - As...",
+        "!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!",
+        "================== 1 failed, 9 passed, 16 deselected in 6.25s =================="
+      ]
+    }
+  }
+}

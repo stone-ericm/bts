@@ -1,0 +1,60 @@
+{
+  "status": "PASS",
+  "scope": {
+    "non_review_changed_files": [
+      "M\tARCHITECTURE.md",
+      "M\tdocs/ops/pick-entry-receipt-v1.md",
+      "M\tscripts/cron-setup-hetzner.sh",
+      "M\tsrc/bts/cli.py",
+      "M\ttests/test_entry_intent.py",
+      "M\ttests/test_wr_f1b_lock.py",
+      "A\ttests/test_wr_f5_watchdog_window.py"
+    ],
+    "code_commit_files": [
+      "M\tARCHITECTURE.md",
+      "M\tdocs/ops/pick-entry-receipt-v1.md",
+      "M\tscripts/cron-setup-hetzner.sh",
+      "M\tsrc/bts/cli.py",
+      "M\ttests/test_entry_intent.py",
+      "M\ttests/test_wr_f1b_lock.py",
+      "A\ttests/test_wr_f5_watchdog_window.py"
+    ],
+    "post_code_commit_files": [
+      "A\tdocs/reviews/2026-11-18-whole-range/handover-fix-f5.md"
+    ],
+    "code_commit_git_diff_check_clean": true,
+    "entry_intent_test_delta": [
+      "-    assert len(entry) == 1 and entry[0].startswith(\"*/15 10-23 * * * \")",
+      "+    assert len(entry) == 1 and entry[0].startswith(\"*/15 * * * * \")"
+    ],
+    "f1b_lock_test_delta": [
+      "-    assert schedule == [\"*/15\", \"10-23\", \"*\", \"*\", \"*\"]",
+      "+    assert schedule == [\"*/15\", \"*\", \"*\", \"*\", \"*\"]"
+    ]
+  },
+  "crontab_parity": {
+    "research_configs_byte_identical": [
+      "research_private",
+      "research_local"
+    ],
+    "enter_configs_non_watchdog_byte_identical": [
+      "enter_dm",
+      "enter_bluesky",
+      "enter_health_gate"
+    ],
+    "enter_line_count": 20,
+    "watchdog_line": {
+      "base": "*/15 10-23 * * * cd $HOME_NORM/projects/bts && set -a && . ./.env && set +a && /usr/bin/flock -n /home/bts/.check-pick-entered.lock /usr/bin/timeout --verbose -k 30 840 $HOME_NORM/.local/bin/uv run bts check-pick-entered --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $HOME_NORM/logs/cron.log 2>&1 # BTS-HETZNER",
+      "cand": "*/15 * * * * cd $HOME_NORM/projects/bts && set -a && . ./.env && set +a && /usr/bin/flock -n /home/bts/.check-pick-entered.lock /usr/bin/timeout --verbose -k 30 840 $HOME_NORM/.local/bin/uv run bts check-pick-entered --cron --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $HOME_NORM/logs/cron.log 2>&1 # BTS-HETZNER"
+    }
+  },
+  "non_cron_cli_parity": {
+    "base_bts_file": "/Users/eric/projects/bts-work/wr-rev-f5-cb/carbon-review/wr-f5-r1/.work_probe_01c/base_archive/src/bts/__init__.py",
+    "cand_bts_file": "/Users/eric/projects/bts-work/wr-rev-f5-cb/src/bts/__init__.py",
+    "base_elapsed_sec": 1.677,
+    "cand_elapsed_sec": 1.685,
+    "paired_cells_checked": 512,
+    "real_fsync_cells": 30,
+    "mismatches": 0
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "status": "PASS",
+  "elapsed_sec": 9.266,
+  "installer_rows": {
+    "installed_watchdog_line": "*/15 * * * * cd /Users/eric/projects/bts-work/wr-rev-f5-cb/carbon-review/wr-f5-r1/.work_probe_03c/inst/m1/home/projects/bts && set -a && . ./.env && set +a && /usr/bin/flock -n /home/bts/.check-pick-entered.lock /usr/bin/timeout --verbose -k 30 840 /Users/eric/projects/bts-work/wr-rev-f5-cb/carbon-review/wr-f5-r1/.work_probe_03c/inst/m1/home/.local/bin/uv run bts check-pick-entered --cron --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> /Users/eric/projects/bts-work/wr-rev-f5-cb/carbon-review/wr-f5-r1/.work_probe_03c/inst/m1/home/logs/cron.log 2>&1 # BTS-HETZNER",
+    "rows": [
+      "M1",
+      "M4",
+      "N1",
+      "N2",
+      "N3",
+      "N4",
+      "N5"
+    ]
+  },
+  "closing_test_replay": {
+    "base_entered": {
+      "slot_count": 56,
+      "reads": [],
+      "dms_by_slot": {},
+      "outcome_counts": {
+        "outside_window": 56
+      },
+      "sample_0500_to_0615": {},
+      "morning_exit": 1,
+      "morning_body": {
+        "date": "2027-03-24",
+        "state": "entry_unverifiable",
+        "ok": false,
+        "detail": "No check both observed the account and confirmed this pick, and none observed its absence (outside_window x56). Whether it was entered is unknown.",
+        "pick": "Batter 1"
+      },
+      "morning_dms": [
+        "BTS day check 2027-03-24: ENTRY UNVERIFIABLE. No check both observed the account and confirmed this pick, and none observed its absence (outside_window x56). Whether it was entered is unknown. Pick: Batter 1."
+      ]
+    },
+    "f5_entered": {
+      "slot_count": 96,
+      "reads": [
+        "05:15"
+      ],
+      "dms_by_slot": {},
+      "outcome_counts": {
+        "no_pick_file": 21,
+        "observed": 1,
+        "already_confirmed": 3,
+        "outside_window": 71
+      },
+      "sample_0500_to_0615": {
+        "05:00": "no_pick_file",
+        "05:15": "observed",
+        "05:30": "already_confirmed",
+        "05:45": "already_confirmed",
+        "06:00": "already_confirmed",
+        "06:15": "outside_window"
+      },
+      "morning_exit": 0,
+      "morning_body": {
+        "date": "2027-03-24",
+        "state": "entered",
+        "ok": true,
+        "detail": "The entry was confirmed in 1 of 96 checks before the cutoff.",
+        "pick": "Batter 1"
+      },
+      "morning_dms": []
+    },
+    "f5_missing": {
+      "slot_count": 96,
+      "reads": [
+        "05:15",
+        "05:30",
+        "05:45",
+        "06:00"
+      ],
+      "dms_by_slot": {
+        "05:15": [
+          "\u26a0\ufe0f BTS pick NOT entered in MLB app: Batter 1 \u2014 first pitch 6:10 AM ET (50 min to submit). Fix it now!"
+        ],
+        "05:45": [
+          "\u23f0 STILL NOT entered (no_pick): Batter 1 \u2014 20 min left to submit!"
+        ],
+        "06:00": [
+          "\u23f0 STILL NOT entered (no_pick): Batter 1 \u2014 5 min left to submit!"
+        ]
+      },
+      "outcome_counts": {
+        "no_pick_file": 21,
+        "observed": 4,
+        "outside_window": 71
+      },
+      "sample_0500_to_0615": {
+        "05:00": "no_pick_file",
+        "05:15": "observed",
+        "05:30": "observed",
+        "05:45": "observed",
+        "06:00": "observed",
+        "06:15": "outside_window"
+      },
+      "morning_exit": 1,
+      "morning_body": {
+        "date": "2027-03-24",
+        "state": "not_entered",
+        "ok": false,
+        "detail": "Not entered: 4 successful account checks saw no matching entry and none confirmed one.",
+        "pick": "Batter 1"
+      },
+      "morning_dms": [
+        "BTS day check 2027-03-24: NOT ENTERED. Not entered: 4 successful account checks saw no matching entry and none confirmed one. Pick: Batter 1."
+      ]
+    }
+  },
+  "remaining_rows": {
+    "M3_M5_M6_M7_N6_N7": "PASS",
+    "N8_wrapper_and_dst_gaps": {
+      "ordinary": {
+        "count": 96,
+        "min_gap_sec": 900.0,
+        "max_gap_sec": 900.0
+      },
+      "spring_dst": {
+        "count": 92,
+        "min_gap_sec": 900.0,
+        "max_gap_sec": 900.0
+      },
+      "fall_dst": {
+        "count": 100,
+        "min_gap_sec": 900.0,
+        "max_gap_sec": 900.0
+      }
+    }
+  }
+}

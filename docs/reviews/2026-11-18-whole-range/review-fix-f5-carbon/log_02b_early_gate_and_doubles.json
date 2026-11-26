@@ -1,0 +1,102 @@
+{
+  "status": "PASS",
+  "elapsed_sec": 10.687,
+  "installed_line": "*/15 * * * * cd /Users/eric/projects/bts-work/wr-rev-f5-cb/carbon-review/wr-f5-r1/.work_probe_02b/inst/home/projects/bts && set -a && . ./.env && set +a && /usr/bin/flock -n /home/bts/.check-pick-entered.lock /usr/bin/timeout --verbose -k 30 840 /Users/eric/projects/bts-work/wr-rev-f5-cb/carbon-review/wr-f5-r1/.work_probe_02b/inst/home/.local/bin/uv run bts check-pick-entered --cron --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> /Users/eric/projects/bts-work/wr-rev-f5-cb/carbon-review/wr-f5-r1/.work_probe_02b/inst/home/logs/cron.log 2>&1 # BTS-HETZNER",
+  "minute_by_minute_sweep": {
+    "minutes_checked": 1440,
+    "total_watchdog_invocations": 58272,
+    "zero_slot_pitches": [
+      "00:00",
+      "00:01",
+      "00:02",
+      "00:03",
+      "00:04",
+      "00:05"
+    ],
+    "early_only_pitch_range": [
+      "00:06",
+      "10:05",
+      600
+    ],
+    "shared_window_deferred_range": [
+      "10:06",
+      "11:00",
+      55
+    ],
+    "sample_10_05": [
+      "09:00",
+      "09:15",
+      "09:30",
+      "09:45"
+    ],
+    "sample_10_06": {
+      "deferred": [
+        "09:00",
+        "09:15",
+        "09:30",
+        "09:45"
+      ],
+      "reads": [
+        "10:00"
+      ]
+    },
+    "sample_10_15": {
+      "deferred": [
+        "09:00",
+        "09:15",
+        "09:30",
+        "09:45"
+      ],
+      "reads": [
+        "10:00"
+      ]
+    }
+  },
+  "doubles_boundaries_and_sequences": {
+    "doubles": {
+      "dd_early_first": {
+        "deferred": [],
+        "reads": [
+          "08:30",
+          "08:45",
+          "09:00",
+          "09:15"
+        ]
+      },
+      "dd_early_second": {
+        "deferred": [],
+        "reads": [
+          "08:30",
+          "08:45",
+          "09:00",
+          "09:15"
+        ]
+      },
+      "dd_sole_1000_first": {
+        "deferred": [
+          "09:00",
+          "09:15",
+          "09:30",
+          "09:45"
+        ],
+        "reads": [
+          "10:00"
+        ]
+      },
+      "dd_sole_1000_second": {
+        "deferred": [
+          "09:00",
+          "09:15",
+          "09:30",
+          "09:45"
+        ],
+        "reads": [
+          "10:00"
+        ]
+      }
+    },
+    "sole_1000_wrong_game_1015": "PASS",
+    "boundaries_and_window_min": "PASS",
+    "mid_morning_commit_changes_and_markers": "PASS"
+  }
+}

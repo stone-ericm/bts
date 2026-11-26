@@ -1,0 +1,54 @@
+{
+  "status": "PASS",
+  "elapsed_sec": 1.331,
+  "extra_slots_traffic_and_receipts": {
+    "runs_checked": 320,
+    "outcomes_by_state": {
+      "no_pick_file": {
+        "no_pick_file": 40
+      },
+      "yesterday_only_confirmed": {
+        "no_pick_file": 40
+      },
+      "today_preview_0610": {
+        "not_committed": 40
+      },
+      "today_preview_1910": {
+        "not_committed": 40
+      },
+      "today_committed_1910": {
+        "outside_window": 40
+      },
+      "today_committed_1050": {
+        "outside_window": 39,
+        "base_slot_available": 1
+      },
+      "today_committed_1015": {
+        "outside_window": 36,
+        "base_slot_available": 4
+      },
+      "today_committed_0610_already_confirmed": {
+        "outside_window": 35,
+        "already_confirmed": 5
+      }
+    }
+  },
+  "readers": {
+    "day_outcome_96_ok": "The entry was confirmed in 1 of 96 checks before the cutoff.",
+    "day_outcome_dressed_bsa_rejected": "No check both observed the account and confirmed this pick, and none observed its absence (base_slot_available x2, outside_window x1). Whether it was entered is unknown.",
+    "health_pick_entry": "PASS",
+    "backup_ops_set": "PASS",
+    "audit_scripts_scanned": 116,
+    "audit_receipt_consumers": []
+  },
+  "f1b_lock_dst_and_sharing": {
+    "fetch_schedules": [
+      "10 1 * * *",
+      "10 2 * * *",
+      "30 10 * * *",
+      "30 13 * * *"
+    ],
+    "early_slot_lock_contention": "PASS",
+    "dst_wall_time_limit_verified": "check-pick-entered: outside window (80 min to pitch)"
+  }
+}

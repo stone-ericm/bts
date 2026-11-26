@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "elapsed_sec": 0.041,
+  "texts_and_2025_feeds": {
+    "cron_bash_n": "PASS",
+    "live_docs_stale_hits": [],
+    "feeds_2025_checked": 2425,
+    "feeds_2025_earliest_et": "06:10",
+    "feeds_2025_latest_et": "22:15",
+    "feeds_2025_nonzero_seconds": 0,
+    "feeds_2025_cross_official_date": 4
+  },
+  "standing_rows": {
+    "interrupt_mid_publication": "PASS",
+    "malformed_and_non_regular_files": "PASS",
+    "midnight_and_year_boundary": "PASS",
+    "failed_dm_and_locked_unconfirmed_restart": "PASS"
+  }
+}
