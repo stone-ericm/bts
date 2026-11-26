@@ -1,0 +1,12 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k1-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 97 items
+
+tests/test_wr_k1_refusal_dm.py ......................................... [ 42%]
+........................................................                 [100%]
+
+============================== 97 passed in 6.86s ==============================

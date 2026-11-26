@@ -1,0 +1,38 @@
+nice: setpriority: Operation not permitted
+Mutation no-date-try at /tmp/wr-k1-r1.gVhpaf/mutation/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k1-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 97 items
+
+tests/test_wr_k1_refusal_dm.py ......................................... [ 42%]
+..........F................................F............                 [100%]
+
+=================================== FAILURES ===================================
+___________________ test_e1_e2_e3_inventory[synthetic-huge] ____________________
+tests/test_wr_k1_refusal_dm.py:227: in test_e1_e2_e3_inventory
+    result, body = capture(cfg, status, error, day="bad" * 500)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_wr_k1_refusal_dm.py:74: in capture
+    scheduler._alert_contest_state_failure(cfg, error, **kwargs)
+/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/scheduler.py:59: in _alert_contest_state_failure
+    parsed_date = date_type.fromisoformat(slate_date)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Invalid isoformat string: 'badbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbad'
+----------------------------- Captured stdout call -----------------------------
+RENDER ["synthetic", "huge", ["BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...\nSee the scheduler journal for this refusal. To inspect current state, run bts season-contract status with --picks-dir set to the scheduler's absolute picks directory. For live repair, use the season-start checklist (B8a). Before changing state for a new slate, verify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.", "⚠️ Previous health alert DM FAILED to send (1 CRITICAL) — it may have been missed.\n\nBTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...\nSee the scheduler journal for this refusal. To inspect current state, run bts season-contract status with --picks-dir set to the scheduler's absolute picks directory. For live repair, use the season-start checklist (B8a). Before changing state for a new slate, verify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open."]]
+_______________________________ test_s7_bad_date _______________________________
+tests/test_wr_k1_refusal_dm.py:364: in test_s7_bad_date
+    dms_at("contest_state", root, day, local("2027-06-14", "20:00"), cfg)
+tests/test_wr_k1_refusal_dm.py:242: in dms_at
+    scheduler._alert_contest_state_failure(cfg, ContestStateError(f"switch unreadable at {at:%H:%M}"), **kwargs)
+/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/scheduler.py:59: in _alert_contest_state_failure
+    parsed_date = date_type.fromisoformat(slate_date)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Invalid isoformat string: 'bad'
+=========================== short test summary info ============================
+FAILED tests/test_wr_k1_refusal_dm.py::test_e1_e2_e3_inventory[synthetic-huge]
+FAILED tests/test_wr_k1_refusal_dm.py::test_s7_bad_date - ValueError: Invalid...
+========================= 2 failed, 95 passed in 2.39s =========================

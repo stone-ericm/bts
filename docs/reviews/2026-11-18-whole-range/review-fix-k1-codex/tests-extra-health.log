@@ -1,0 +1,55 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k1-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 773 items
+
+tests/health/test_alert.py .......................                       [  2%]
+tests/health/test_alert_status_cs6b2.py ................................ [  7%]
+........................................................................ [ 16%]
+........................................................................ [ 25%]
+........................................................................ [ 35%]
+........................................................................ [ 44%]
+.................                                                        [ 46%]
+tests/health/test_alert_status_cs6b2_carbon_r2.py ...........            [ 47%]
+tests/health/test_alert_status_cs6b2_review.py ...............           [ 49%]
+tests/health/test_analytics_artifacts_missing.py .............           [ 51%]
+tests/health/test_attention.py .................                         [ 53%]
+tests/health/test_backup_freshness.py ..........                         [ 55%]
+tests/health/test_blend_training.py .........                            [ 56%]
+tests/health/test_calibration.py ..........................              [ 59%]
+tests/health/test_contest_state.py ................                      [ 61%]
+tests/health/test_deploy_iso_stamp.py ...                                [ 62%]
+tests/health/test_disk_fill.py ......                                    [ 62%]
+tests/health/test_f4_exception_propagation.py .........                  [ 64%]
+tests/health/test_fallback_defer.py ......                               [ 64%]
+tests/health/test_h6_resurface.py ....                                   [ 65%]
+tests/health/test_late_delivery.py ............                          [ 66%]
+tests/health/test_leaderboard_freshness.py .....                         [ 67%]
+tests/health/test_live_forward_resolution.py .........                   [ 68%]
+tests/health/test_mdp_policy_alignment.py ........                       [ 69%]
+tests/health/test_memory_growth.py ......................                [ 72%]
+tests/health/test_park_drag_freshness.py .......                         [ 73%]
+tests/health/test_pick_entry_source.py ......                            [ 74%]
+tests/health/test_pitcher_sparsity.py .........                          [ 75%]
+tests/health/test_pooled_training.py .........                           [ 76%]
+tests/health/test_post_failure.py ................                       [ 78%]
+tests/health/test_postponed_pick.py ........                             [ 79%]
+tests/health/test_predicted_vs_realized.py ...................           [ 82%]
+tests/health/test_projected_lineup.py ......                             [ 82%]
+tests/health/test_realized_calibration.py .............................. [ 86%]
+..                                                                       [ 87%]
+tests/health/test_restart_spike.py .............                         [ 88%]
+tests/health/test_result_resolution.py ............                      [ 90%]
+tests/health/test_runner.py .....................                        [ 93%]
+tests/health/test_same_team_corr.py ..............                       [ 94%]
+tests/health/test_scheduler_state_integrity_source.py .....              [ 95%]
+tests/health/test_since_deploy_iso_compare.py ....                       [ 95%]
+tests/health/test_slate_auc.py .........                                 [ 97%]
+tests/health/test_streak_validation.py ........                          [ 98%]
+tests/health/test_tail_policy_health.py .....                            [ 98%]
+tests/health/test_unit_drift.py .........                                [100%]
+
+============================= 773 passed in 2.75s ==============================

@@ -1,0 +1,17 @@
+nice: setpriority: Operation not permitted
+/Users/eric/.matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/matplotlib-igbfvoqm because there was an issue with the default path (/Users/eric/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+late start leave state absent checks 2 official sends 0
+late start between checks checks 2 official sends 1
+late start after last check checks 1 official sends 0
+revoked status refused pick wire calls 0
+saved changed status accepted pick wire calls 0
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/.codex-review/wr-k1-r1/probe_operator.py", line 169, in <module>
+    main()
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/.codex-review/wr-k1-r1/probe_operator.py", line 165, in main
+    overnight(json.loads(Path(sys.argv[1]).read_text()))
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/.codex-review/wr-k1-r1/probe_operator.py", line 133, in overnight
+    body, = [body for body in result["wire"] if "- [contest_state]" in body]
+    ^^^^^
+ValueError: too many values to unpack (expected 1)

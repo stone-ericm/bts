@@ -1,0 +1,14 @@
+nice: setpriority: Operation not permitted
+bts: /tmp/wr-k1-r1.gVhpaf/src/bts/__init__.py
+invalid JSON transport calls: 1 regular sent receipt: True
+invalid UTF-8 transport calls: 1 regular sent receipt: True
+array transport calls: 1 regular sent receipt: True
+wrong key types transport calls: 1 regular sent receipt: True
+FIFO transport calls: 2 regular sent receipt: False
+directory transport calls: 2 regular sent receipt: False
+no recipient transport calls: 1 regular sent receipt: True
+send raises transport calls: 1 regular sent receipt: True
+no confirmation transport calls: 1 regular sent receipt: True
+interrupt before transport transport calls: 1 regular sent receipt: True
+interrupt after transport transport calls: 2 regular sent receipt: True
+interrupt after truncate transport calls: 2 regular sent receipt: True

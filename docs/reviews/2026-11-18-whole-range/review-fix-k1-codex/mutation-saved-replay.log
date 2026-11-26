@@ -1,0 +1,11 @@
+nice: setpriority: Operation not permitted
+/Users/eric/.matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/matplotlib-_77c7pyy because there was an issue with the default path (/Users/eric/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/.codex-review/wr-k1-r1/probe_callers.py", line 160, in replay
+    assert chosen == (requested_day if current else None)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+
+The saved-pick route selected wall ET in the scratch copy.
