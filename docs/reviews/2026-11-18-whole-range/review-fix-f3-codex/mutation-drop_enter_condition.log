@@ -1,0 +1,56 @@
+bts.__file__=/private/tmp/wr-f3-r1.tBHCjn/mutation/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f3-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 83 items
+
+tests/test_wr_f3_skip_state_review.py .................................. [ 40%]
+.....................................F...........                        [100%]
+
+=================================== FAILURES ===================================
+_______________________ test_research_dated_reason_only ________________________
+
+report = namespace(account=PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2244/test_...cli_report=<function report.<locals>.cli_report at 0x10cf2f560>, check=<function report.<locals>.check at 0x10cf34fe0>)
+
+    def test_research_dated_reason_only(report):
+        config = report.setup(intent="research")
+        for kind in ("current", "switch"):
+            (report.account / EVIDENCE[kind]).write_text(json.dumps(evidence(kind)))
+        reason = f"The installed dated observation for {DATE} records streak 1 and policy saver availability unavailable."
+>       report.check("skip_state_review", review_detail(DATE, [reason]), config=config, code=1)
+
+tests/test_wr_f3_skip_state_review.py:306: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_wr_f3_skip_state_review.py:128: in check
+    assert_report(outcome, result, sends, day, state, detail, code, send_fails=send_fails)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+outcome = DayOutcome(date='2027-04-02', state='skip_state_review', detail='The policy recorded a skip for 2027-04-02 using strea...7-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.', pick=None)
+result = <Result SystemExit(1)>
+sends = [('operator.bsky.social', 'BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 usin...ion on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.')]
+day = '2027-04-02', state = 'skip_state_review'
+detail = 'The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. The installed da... saver availability unavailable. Check MLB for unsettled entries and verify the current streak, season best and saver.'
+code = 1, pick = None, send_fails = False
+
+    def assert_report(outcome, result, sends, day, state, detail, code, pick=None, send_fails=False):
+        expected = {"date": day, "state": state, "ok": code == 0, "detail": detail, "pick": pick}
+        message = f"BTS day check {day}: {state.replace('_', ' ').upper()}. {detail}"
+        if pick:
+            message += f" Pick: {pick}."
+        print(json.dumps({"state": state, "actual": outcome.as_dict(), "exit": result.exit_code, "DM": sends}))
+>       assert outcome.as_dict() == expected
+E       AssertionError: assert {'date': '202...k': None, ...} == {'date': '202...k': None, ...}
+E         
+E         Omitting 4 identical items, use -vv to show
+E         Differing items:
+E         {'detail': 'The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. The i...tion on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.'} != {'detail': 'The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. The i...saver availability unavailable. Check MLB for unsettled entries and verify the current streak, season best and saver.'}
+E         Use -v to get more diff
+
+tests/test_wr_f3_skip_state_review.py:58: AssertionError
+----------------------------- Captured stdout call -----------------------------
+{"state": "skip_state_review", "actual": {"date": "2027-04-02", "state": "skip_state_review", "ok": false, "detail": "The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.", "pick": null}, "exit": 1, "DM": [["operator.bsky.social", "BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. The installed dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver."]]}
+=========================== short test summary info ============================
+FAILED tests/test_wr_f3_skip_state_review.py::test_research_dated_reason_only
+========================= 1 failed, 82 passed in 0.76s =========================

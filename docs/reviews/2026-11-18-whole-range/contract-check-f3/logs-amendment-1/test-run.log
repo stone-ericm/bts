@@ -1,0 +1,17 @@
+nice: setpriority: Operation not permitted
+search hit, not a test: scripts/audit/pvr_threshold_bootstrap.py
+search hit, not a test: scripts/cron-setup-hetzner.sh
+search hit, not a test: scripts/final_leaderboard_grab.py
+  0 tests/test_audit_f6_review_probes.py
+  0 tests/test_day_outcome.py
+  0 tests/test_day_outcome_entry_sequence.py
+  0 tests/test_entry_intent.py
+  0 tests/test_live_gate_cs6a_review.py
+  0 tests/test_saved_pick_paths_cs5a.py
+  0 tests/test_season_contract_cs4b2_edges.py
+  0 tests/test_wr_a_review_carbon.py
+  0 tests/test_wr_a_schedule.py
+  0 tests/test_wr_b_contract.py
+  0 tests/test_wr_b_edges.py
+  0 tests/test_wr_f1_wrong_game.py
+Files with nonzero exits: []

@@ -1,0 +1,59 @@
+nice: setpriority: Operation not permitted
+K3/K4 parity entered 0 0
+K3/K4 parity entered_game_unverified 0 0
+K3/K4 parity entered_late 1 1
+K3/K4 parity not_entered 1 1
+K3/K4 parity entry_unverifiable 1 1
+K3/K4 parity no_decision 1 1
+K3/K4 parity no_games 0 0
+K3/K4 parity no_games 0 0
+K3/K4 parity commit_not_scoreable 1 1
+K3/K4 parity research_commit 0 0
+K3/K4 parity delivered_under_research 1 1
+K3/K4 parity contradiction 1 1
+K3/K4 parity intent_unknown 1 1
+K3/K4 parity schedule_unverifiable 1 1
+K3/K4 parity skip_not_deliberate 1 1
+Research dated reason remains enabled [('offline.invalid', 'BTS day check 2027-04-02: SKIP STATE CHANGED. The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. A dated observation now on file for 2027-04-02 gives streak 1 and policy saver availability unavailable. Check MLB for unsettled entries and verify the current streak, season best and saver. Follow checklist row B8a for the current ET date and year before changing any state.')]
+K5 pre-existing malformed action exception (1, '', [], 'TypeError')
+K5 malformed streak or saver fields retain the base result for both reasons
+K5 poorly formed but base-readable skip still upgraded: {'date': '2027-04-01'} [('offline.invalid', 'BTS day check 2027-04-02: SKIP STATE CHANGED. The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. A dated observation now on file for 2027-04-02 gives streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver. Follow checklist row B8a for the current ET date and year before changing any state.')]
+K5 poorly formed but base-readable skip still upgraded: {'scoreable': True} [('offline.invalid', 'BTS day check 2027-04-02: SKIP STATE CHANGED. The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. A dated observation now on file for 2027-04-02 gives streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver. Follow checklist row B8a for the current ET date and year before changing any state.')]
+K5 each of current, archive, switch ignored independently: absent
+K5 each of current, archive, switch ignored independently: directory
+K5 each of current, archive, switch ignored independently: FIFO
+K5 each of current, archive, switch ignored independently: invalid UTF-8
+K5 each of current, archive, switch ignored independently: malformed JSON
+K5 each of current, archive, switch ignored independently: deep JSON
+K5 each of current, archive, switch ignored independently: long number
+K5 each of current, archive, switch ignored independently: oversize, otherwise valid
+K5 each of current, archive, switch ignored independently: wrong date
+K5 each of current, archive, switch ignored independently: wrong season
+K5 each of current, archive, switch ignored independently: wrong schema
+K5 simulated EACCES on all three paths
+K5 validator-accepted extreme revoke timestamp ignored on ET conversion
+Equal instants with different offsets and values need a tie rule
+Reader buffers the whole oversized archive before its rejection [('contest_streak.manual.json', 273), ('contest_streak.manual.revoked-20270402T203000000000Z.json', 98591), ('season_contract.json', 207)]
+K6 CLI could not run (2, "day-outcome: could not run for 2027-04-02: TOMLDecodeError: Expected ']' at the end of a table declaration (at end of document)\n", [('offline.invalid', "BTS day check 2027-04-02: THE CHECK COULD NOT RUN (TOMLDecodeError). The day's end state is unknown.")], 'SystemExit')
+K6 CLI could not run (2, "day-outcome: could not run for 2027-04-02: TOMLDecodeError: Expected ']' at the end of a table declaration (at end of document)\n", [('offline.invalid', "BTS day check 2027-04-02: THE CHECK COULD NOT RUN (TOMLDecodeError). The day's end state is unknown.")], 'SystemExit')
+R64 Dec 31 revoke retained into Jan 1, rendered: [('offline.invalid', 'BTS day check 2027-12-31: SKIP STATE CHANGED. The policy recorded a skip for 2027-12-31 using streak 30 and policy saver availability unavailable. The season switch records a revocation on 2027-12-31 at 23:50 ET. Check MLB for unsettled entries and verify the current streak, season best and saver. Follow checklist row B8a for the current ET date and year before changing any state.')]
+K7 Jan 1 revoke is outside D, and also overwrote the earlier D revoke (0, '{"date": "2027-12-31", "state": "deliberate_skip", "ok": true, "detail": "The policy skipped the day.", "pick": null}\n', [], 'NoneType')
+Status on Jan 1, R64 scenario:
+ET date: 2028-01-01; year: 2028; inspected season: 2028
+switch: revoked
+  season: 2028
+  status: revoked
+  activation_id: b993ec1f23e140fa912aba951610e97b
+  switched_at: None
+  revoked_at: 2028-01-01T05:30:00Z
+  note: restored from the offseason snapshot
+manual: absent
+automatic: absent
+saver: unavailable (absent); reads uninitialized for season 2028
+live decision now: refused; Live decision refused: season 2028 switch is revoked.
+Alternative dated path — TEMPLATE: `bts set-contest-streak --date 2028-01-01 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpjtpuszhi/year/picks`. Read N, B and S from MLB (active streak, best streak and saver state).
+Alternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpjtpuszhi/year/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpjtpuszhi/year/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2028 --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpjtpuszhi/year/picks`; then run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpjtpuszhi/year/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.
+One repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.
+automatic path alone: refused: Live decision refused: season 2028 switch is revoked.
+ledger: absent; rows: 0; bad lines: 0
+

@@ -1,0 +1,2 @@
+nice: setpriority: Operation not permitted
+Cron syntax passed. The real show, install, and remove paths ran with stubs in test_entry_intent.py.

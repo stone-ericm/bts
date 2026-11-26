@@ -1,0 +1,43 @@
+nice: setpriority: Operation not permitted
+Initial request: {"active_streak": 30, "best_streak": 30, "effective_date": "2027-12-31", "expires_at": "2027-12-31T23:59:59.999999-05:00", "recorded_at": "2027-12-31T15:00:00Z", "requested_at": "2027-12-31T15:00:00Z", "saver_state": "used", "schema_version": "bts_contest_streak_manual_v3", "season": 2027, "source": "manual_cli"}
+Failed write: Error: Requested observation was NOT saved; its request was appended: installed file denied Last request: {"active_streak": 1, "best_streak": 30, "effective_date": "2027-12-31", "expires_at": "2027-12-31T23:59:59.999999-05:00", "recorded_at": "2027-12-31T20:00:00Z", "requested_at": "2027-12-31T20:00:00Z", "saver_state": "not_earned", "schema_version": "bts_contest_streak_manual_v3", "season": 2027, "source": "manual_cli"}
+Failed pre-skip request flagged even though final install matches skip 2027-12-31 16:10:00-05:00 {"date": "2027-12-31", "state": "skip_state_changed", "ok": false, "detail": "The policy skipped the day on streak 30 (saver available: False, from the contest state), and the contest state for 2027-12-31 changed afterwards: a dated observation for 2027-12-31 gives streak 1 (saver available: True). The scheduler does not re-decide a skip, so no pick was made on the changed state. Nothing needs doing for 2027-12-31 now; check that the current state is right before the next slate with `bts season-contract status --picks-dir DIR`.", "pick": null} DM: ['BTS day check 2027-12-31: SKIP STATE CHANGED. The policy skipped the day on streak 30 (saver available: False, from the contest state), and the contest state for 2027-12-31 changed afterwards: a dated observation for 2027-12-31 gives streak 1 (saver available: True). The scheduler does not re-decide a skip, so no pick was made on the changed state. Nothing needs doing for 2027-12-31 now; check that the current state is right before the next slate with `bts season-contract status --picks-dir DIR`.']
+Revoke: {"schema_version": "bts_season_contract_v1", "season": 2027, "status": "revoked", "activation_id": "d766deea29894ae98e5a5f29acb6808b", "switched_at": "2027-12-31T15:00:00Z", "revoked_at": "2027-12-31T23:00:00Z", "note": "restored from the offseason snapshot"} Remaining files: ['contest_manual_requests.jsonl', 'contest_streak.manual.revoked-20271231T230000000000Z.json', 'season_contract.json']
+Re-enable: {"schema_version": "bts_season_contract_v1", "season": 2027, "status": "automatic", "activation_id": "99a28dac0968429c8530690170b426cc", "switched_at": "2027-12-31T23:15:00Z", "revoked_at": "2027-12-31T23:00:00Z", "note": null}
+Next-year revoke: {"schema_version": "bts_season_contract_v1", "season": 2028, "status": "revoked", "activation_id": "690823d375c3420d9b026370aea9c35a", "switched_at": null, "revoked_at": "2028-01-01T05:05:00Z", "note": "restored from the offseason snapshot"}
+Default season status:
+ET date: 2028-01-01; year: 2028; inspected season: 2028
+switch: revoked
+  season: 2028
+  status: revoked
+  activation_id: 690823d375c3420d9b026370aea9c35a
+  switched_at: None
+  revoked_at: 2028-01-01T05:05:00Z
+  note: restored from the offseason snapshot
+manual: dated date=2028-01-01 streak=0 best=0 saver=not_earned in effect=True
+automatic: absent
+saver: unavailable (absent); reads uninitialized for season 2028
+live decision now: accepted; source=contest; streak=0; status=fresh; saver=not_earned
+automatic path alone: refused: Live decision refused: season 2028 switch is revoked.
+ledger: absent; rows: 0; bad lines: 0
+Today's dated observation expires at midnight ET. Tomorrow's live pick, if games are scheduled, requires a usable automatic reading or a new dated observation.
+
+Prior-season status:
+ET date: 2028-01-01; year: 2028; inspected season: 2027
+switch: other_season
+  season: 2028
+  status: revoked
+  activation_id: 690823d375c3420d9b026370aea9c35a
+  switched_at: None
+  revoked_at: 2028-01-01T05:05:00Z
+  note: restored from the offseason snapshot
+manual: dated date=2028-01-01 streak=0 best=0 saver=not_earned in effect=True
+automatic: absent
+saver: unavailable (absent); reads uninitialized for season 2028
+live decision now: accepted; source=contest; streak=0; status=fresh; saver=not_earned
+automatic path alone: refused: Live decision refused: season 2028 switch is revoked.
+ledger: absent; rows: 0; bad lines: 0
+Today's dated observation expires at midnight ET. Tomorrow's live pick, if games are scheduled, requires a usable automatic reading or a new dated observation.
+
+Wrong or superseded historical correction, synthetic playable Dec 31 2028-01-01 08:30:00-05:00 {"date": "2027-12-31", "state": "skip_state_changed", "ok": false, "detail": "The policy skipped the day on streak 30 (saver available: False, from the contest state), and the contest state for 2027-12-31 changed afterwards: a dated observation for 2027-12-31 gives streak 2 (saver available: False). The scheduler does not re-decide a skip, so no pick was made on the changed state. Nothing needs doing for 2027-12-31 now; check that the current state is right before the next slate with `bts season-contract status --picks-dir DIR`.", "pick": null} DM: ['BTS day check 2027-12-31: SKIP STATE CHANGED. The policy skipped the day on streak 30 (saver available: False, from the contest state), and the contest state for 2027-12-31 changed afterwards: a dated observation for 2027-12-31 gives streak 2 (saver available: False). The scheduler does not re-decide a skip, so no pick was made on the changed state. Nothing needs doing for 2027-12-31 now; check that the current state is right before the next slate with `bts season-contract status --picks-dir DIR`.']
+Dec 31 with no regular-season games 2028-01-01 08:30:00-05:00 {"date": "2027-12-31", "state": "no_games", "ok": true, "detail": "No regular-season games.", "pick": null} DM: []

@@ -1,0 +1,38 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-f3b-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 92 items / 84 deselected / 8 selected
+
+tests/test_wr_f3_skip_state_review.py {"state": "deliberate_skip", "actual": {"date": "2027-04-02", "state": "deliberate_skip", "ok": true, "detail": "The policy skipped the day.", "pick": null}, "exit": 0, "DM": []}
+.{"state": "deliberate_skip", "actual": {"date": "2027-04-02", "state": "deliberate_skip", "ok": true, "detail": "The policy skipped the day.", "pick": null}, "exit": 0, "DM": []}
+.{"state": "deliberate_skip", "actual": {"date": "2027-04-02", "state": "deliberate_skip", "ok": true, "detail": "The policy skipped the day.", "pick": null}, "exit": 0, "DM": []}
+.{"state": "deliberate_skip", "actual": {"date": "2027-04-02", "state": "deliberate_skip", "ok": true, "detail": "The policy skipped the day.", "pick": null}, "exit": 0, "DM": []}
+.{"state": "skip_state_review", "actual": {"date": "2027-04-02", "state": "skip_state_review", "ok": false, "detail": "The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. An archived dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver.", "pick": null}, "exit": 1, "DM": [["operator.bsky.social", "BTS day check 2027-04-02: SKIP STATE REVIEW. The policy recorded a skip for 2027-04-02 using streak 30 and policy saver availability unavailable. An archived dated observation for 2027-04-02 records streak 1 and policy saver availability unavailable. The season switch records a revocation on 2027-04-02 at 16:00 ET. Check MLB for unsettled entries and verify the current streak, season best and saver."]]}
+...  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-03-24...
+  1 games, 3 scheduled checks:
+    16:10 ET — 1 game(s)
+    17:10 ET — 1 game(s)
+    18:10 ET — 1 game(s)
+  Morning state check: automatic contest state accepted (streak 30).
+  Sleeping until 16:10 ET (370 min)...
+
+[16:10 ET] Running lineup check...
+  2 new confirmed lineup(s). Running predictions...
+  SKIP — Candidate used in the decision: Steven Kwan (CLE) 72.0%, below the streak-30 bar (82.5%) using unrounded values. Streak used at this check: 30.
+  Sleeping until 17:10 ET (60 min)...
+
+[17:10 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Sleeping until 18:10 ET (60 min)...
+
+[18:10 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Tomorrow's wake-up: Thu 03-25 10:00 ET
+{"state": "skip_state_review", "actual": {"date": "2027-03-24", "state": "skip_state_review", "ok": false, "detail": "The policy recorded a skip for 2027-03-24 using streak 30 and policy saver availability unavailable. An archived dated observation for 2027-03-24 records streak 1 and policy saver availability available. Check MLB for unsettled entries and verify the current streak, season best and saver.", "pick": null}, "exit": 1, "DM": [["operator.bsky.social", "BTS day check 2027-03-24: SKIP STATE REVIEW. The policy recorded a skip for 2027-03-24 using streak 30 and policy saver availability unavailable. An archived dated observation for 2027-03-24 records streak 1 and policy saver availability available. Check MLB for unsettled entries and verify the current streak, season best and saver."]]}
+.
+
+======================= 8 passed, 84 deselected in 0.38s =======================

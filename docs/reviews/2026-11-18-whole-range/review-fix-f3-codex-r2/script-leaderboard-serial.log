@@ -1,0 +1,70 @@
+nice: setpriority: Operation not permitted
+usage: final_leaderboard_grab.py [-h] [--date DATE] [--season SEASON]
+                                 [--leaderboard-dir LEADERBOARD_DIR]
+                                 [--early-cohort EARLY_COHORT]
+                                 [--board-limit BOARD_LIMIT]
+                                 [--max-board-pages MAX_BOARD_PAGES]
+                                 [--cohort-a COHORT_A] [--cohort-b COHORT_B]
+                                 --final-round-date FINAL_ROUND_DATE
+                                 [--rng-seed RNG_SEED]
+                                 [--request-budget REQUEST_BUDGET] [--no-tabs]
+                                 [--i-have-owner-authorization]
+
+Bounded end-of-season leaderboard grab (season wrap W0.6) — ONE authenticated pass.
+
+Owner-authorized footprint (Eric, 2026-09-14/22): a single pass on the real contest
+account after the regular season ends, capped by a hard request budget, with the
+existing 403/429 kill-switch (any rate-limit anywhere aborts everything; no retry;
+no second attempt without a fresh owner decision). Design + Codex reviews:
+`.codex-review/season-wrap/w06-grab-design*.md` (2 design rounds, then code rounds)
+and the plan §W0.6.
+
+What it does, in order (network only after step 1 has written plan.json + status.json):
+  0. Validate the configuration BEFORE touching credentials or the filesystem
+     (profiles ≤ 300 total, board limit ≤ 300, ≥1 page, explicit final-round date).
+  1. Preflight: load cookies ONCE (branch + sha256 of the exact bytes recorded, never
+     the bytes), copy the frozen early-cohort manifest into the run root, create the
+     run root EXCLUSIVELY under data/leaderboard/, write plan.json + status.json.
+  2. Login (ONE attempt) through a recording transport; the archived login body has
+     the session token redacted; the token lives only in memory and is scrubbed from
+     every serialized surface.
+  3. Four static JSON lookups (paced, archived, shape-validated).
+  4. Full-depth walk of the SEASON-BEST board (limit 300) with validated terminal
+     conditions; NO page ceiling by default (owner 2026-09-22: "no request ceiling …
+     carefully and courteously try to grab it all") — the walk ends when the board
+     does; every page body archived; dedupe by userId; walk exhaustion and population
+     coverage reported SEPARATELY; any truncation exposed.
+  5. Three continuity tabs (active_streak, all_time top-100; `yesterday` bound to the
+     explicit FINAL round of the season).
+  6. Profiles for cohort A (top of the final board) + B (frozen early cohort not in A,
+     fetched BY ID), shuffled, paced, archived, id-keyed outputs, fail-closed envelopes;
+     identity.json rewritten after every profile so an abort preserves results.
+  7. status.json rewritten atomically after every request intent and outcome; a
+     failed terminal write is exit 4 and is reported outside the failed file.
+
+Never touches the daily corpus (leaderboard_snapshots/, user_picks/, season_stats/,
+scrape_status.json): everything lives under data/leaderboard/final_grab_<YYYYMMDD>/.
+
+options:
+  -h, --help            show this help message and exit
+  --date DATE           grab date YYYY-MM-DD (run root name)
+  --season SEASON
+  --leaderboard-dir LEADERBOARD_DIR
+  --early-cohort EARLY_COHORT
+  --board-limit BOARD_LIMIT
+  --max-board-pages MAX_BOARD_PAGES
+                        optional ceiling on board pages; default NONE = walk
+                        the whole board (owner decision 2026-09-22)
+  --cohort-a COHORT_A
+  --cohort-b COHORT_B
+  --final-round-date FINAL_ROUND_DATE
+                        YYYY-MM-DD of the season's final round (REQUIRED; e.g.
+                        2026-09-27)
+  --rng-seed RNG_SEED
+  --request-budget REQUEST_BUDGET
+                        hard cap; default = planned maximum
+  --no-tabs
+  --i-have-owner-authorization
+                        required: this is ONE authenticated pass on the real
+                        contest account
+
