@@ -1,0 +1,13 @@
+nice: setpriority: Operation not permitted
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-chk-f3/.codex-review/wr-f3-check/probe_scheduler.py", line 144, in <module>
+    run_case(Path(temp) / name, name)
+  File "/Users/eric/projects/bts-work/wr-chk-f3/.codex-review/wr-f3-check/probe_scheduler.py", line 111, in run_case
+    patch.object(orchestrator, "load_decision_streak_state", side_effect=capture_state), \
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1467, in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1437, in get_original
+    raise AttributeError(
+AttributeError: <module 'bts.orchestrator' from '/Users/eric/projects/bts-work/wr-chk-f3/src/bts/orchestrator.py'> does not have the attribute 'load_decision_streak_state'

@@ -49,3 +49,48 @@ Gate; a fresh Codex xhigh review and a Carbon review; at most two rounds; merge 
 1. Design 4's three cases.
 2. The skip itself is not re-decided (R40); the report comes the next morning.
 3. Only the last request line for D is compared.
+
+## Amendment 1 (2026-11-26 01:20, `bts-wr-fresh13`, after the contract check `WRCHKF3-275302f2`, BUILD WITH THESE EDITS; `contract-check-f3/`). It overrides the text above wherever they differ.
+
+The check reproduced both faults (a 16:10 skip on streak 30; a dated streak 1 filed at 16:30, or a revoke; 08:30 `deliberate_skip`, exit 0, no DM). It found version 1 unbuildable as written: (a) the request log records attempts, not installed observations (a failed install leaves a valid line; a request line can precede the skip); (b) every skip record holds `state_source: "contest"` (dated, automatic and legacy alike), so rule (ii)'s "automatic kind" never matches; (c) the files cannot order a correction against the skip, because the skip's decision time is not recorded; (d) the text claimed an order, said "Nothing needs doing for D now", and used a literal `DIR`. Its remedy records skip provenance (selection time, observation kind, live requirement) in the scheduler and its saved state.
+
+**My ruling (design authority under the lead; cost if wrong: F3 stays silent in some sequences it could have caught, and it can alert in research mode after a revoke; it can never change a pick, a decision record or a state file):** F3 stays READ-ONLY in `src/bts/day_outcome.py`, with NO scheduler or decision-record change. Recording provenance in the scheduler's saved state is a pick-path change with the known rollback hazard (`scheduler.load_state` quarantines a state file with an unknown field) and is out of scope for a visibility piece; it is ledgered. Instead F3 compares the skip record with the contest state ON FILE for D at report time and makes NO claim about order.
+
+### The design, replacing design 1 to 3
+1. **Base first.** `classify_day` computes the base outcome exactly as today. Only when it is `deliberate_skip` (an MDP skip on a playable day with valid intent) is the evidence read; every other outcome is byte for byte the base's (K4).
+2. **Evidence, read once and read-only, each item independently "no evidence" when absent, not a regular file, unreadable, undecodable, too deep or too large, or invalid** (`read_regular_file_text`; the existing validators: `contest_state.validate_dated_observation` for a dated observation, the season-switch validator for the switch):
+   - (a) **The dated observations for D on file:** `account_state/contest_streak.manual.json` and every `account_state/contest_streak.manual.revoked-*.json` (the files `bts season-contract revoke` sets aside), each counted only if it validates as a dated observation whose effective date is D. Of those, the one with the latest offset-aware `recorded_at`. The request log `contest_manual_requests.jsonl` is NOT read.
+   - (b) **The switch** `account_state/season_contract.json`: its validated `revoked_at`, for the season of D.
+3. **Reasons:**
+   - (i) **Dated difference:** (a) exists and its `active_streak` differs from the skip record's `streak`, or the policy saver availability it implies (`saver_state.policy_saver_available(SaverState(state=<its saver_state>, season=D.year), <its active_streak>)`) differs from the record's `saver_available`. The record's `streak` must be an exact non-negative `int` and `saver_available` an exact `bool`; otherwise no reason (a malformed record keeps the base result).
+   - (ii) **Revoke on D:** `revoked_at` converts to D in ET, the entry intent is `enter`, and NO dated observation for D on file has exactly the skip record's streak and policy saver availability (if one has, the skip could have been decided on it, and a dated observation in effect is used whatever the switch says).
+   - With at least one reason the state is `skip_state_changed` (not in `OK_STATES`: exit 1 and the base's DM handling); otherwise the base's `deliberate_skip`.
+4. **The text (R64), adopted from the check with the order claims removed.** `detail`: `The policy recorded a skip for D using streak S and policy saver availability A.` + one sentence per reason + `Check MLB for unsettled entries and verify the current streak, season best and saver. Follow checklist row B8a for the current ET date and year before changing any state.` Reason (i): `A dated observation now on file for D gives streak S2 and policy saver availability A2.` Reason (ii): `The season switch records a revocation on D at T ET.` A and A2 are `available` or `unavailable`; T is `HH:MM`. The DM is the base `message()` (`BTS day check D: SKIP STATE CHANGED. …`). No path, no `DIR`, no executable command.
+
+### Concrete examples (R70 item 2); each a test
+| # | Sequence | Expected |
+|---|---|---|
+| M1 | 16:10 MDP skip on streak 30 (automatic); 16:30 the real `bts set-contest-streak --date D --streak 1 …` installs; later checks return nothing; 08:30 D+1 | `skip_state_changed`, exit 1, reason (i) with S2 = 1 |
+| M2 | automatic skip on 30; `bts season-contract revoke` on D after it (the manual file absent) | `skip_state_changed`, reason (ii) |
+| M3 | skip on a dated 30/`used`; a later dated observation for D with 30/`active` installed | `skip_state_changed`, reason (i) (availability differs) |
+| M4 | automatic skip on 30; a dated 1 installed; then revoke on D (the dated file set aside as `revoked-*`) | one state, both reasons, one DM |
+| K1 | MDP skip, no dated observation for D on file, no revoke on D | `deliberate_skip`, exit 0, no DM |
+| K2a | a dated 30 installed at 09:00, the 16:10 skip decided on it | `deliberate_skip` |
+| K2b | a dated request that failed to install (request line appended, observation not written) | `deliberate_skip` (the request log is not read) |
+| K2c | a pre-check `enable` and fetch on D, the skip on the new automatic reading | `deliberate_skip` (enable is not a reason) |
+| K2d | the B8a restore: revoke on D at 09:00, a dated 30 filed after it, the skip on that dated 30 | `deliberate_skip` (a dated observation on file equals the skip) |
+| K3 | a non-MDP skip on a playable day | `skip_not_deliberate`, as the base |
+| K4 | every outcome other than `deliberate_skip` (including `entered_late`, and MDP skips masked by `intent_unknown`, `schedule_unverifiable`, `no_games`, all-void games), with any evidence on disk | JSON, message, exit and send byte for byte the base's |
+| K5 | each evidence file absent, a directory, a named pipe, unreadable, invalid UTF-8, malformed, deep JSON, a long number, the wrong date or season; a malformed skip record | no exception, never blocks; that item is "no evidence"; valid evidence elsewhere still counts |
+| K6 | exit 0 clean, 1 for problems (including a failed DM), 2 with the existing could-not-run DM | unchanged |
+| K7 | December 31 skip, a revoke at 00:30 on January 1 ET | not D's evidence: `deliberate_skip` |
+
+### Known and not fixed (replacing the list above)
+1. No order is known: a dated observation for D filed BEFORE the skip but not used by it (it failed validation at the time, then was corrected) reads as a difference (it is one).
+2. A correction that returns to the skip's values, a best-only change, a legacy override, an automatic-only change and a change written after D (the next day's dated observation replaces the file) are not seen.
+3. In research mode reason (ii) is not used; in enter mode a revoke on D before a skip decided on a private path is reported.
+4. The skip is not re-decided (R40); the report comes the next morning.
+5. Recording skip provenance in the scheduler (the check's remedy) is ledgered, not built.
+
+### Files
+`src/bts/day_outcome.py`, a new `tests/test_wr_f3_skip_state_changed.py`, and the `bts day-outcome` description in `CLAUDE.md` (the new state). No existing test changes (the check ran the 12 pinning files against a scratch version: none failed); a change is a STOP.
