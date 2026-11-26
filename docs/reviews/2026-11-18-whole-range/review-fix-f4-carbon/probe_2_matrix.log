@@ -1,0 +1,54 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0 -- /Users/eric/projects/bts-work/wr-rev-f4-cb/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/eric/projects/bts-work/wr-rev-f4-cb
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 5 items
+
+.carbon-review/wr-f4-r1/test_probe_2_matrix.py::test_full_rule_matrix_clean_and_problem_days PASSED
+.carbon-review/wr-f4-r1/test_probe_2_matrix.py::test_special_files_symlinks_sockets_and_toctou PASSED
+.carbon-review/wr-f4-r1/test_probe_2_matrix.py::test_growing_file_and_partial_reads_bounded PASSED
+.carbon-review/wr-f4-r1/test_probe_2_matrix.py::test_day_classified_before_streak_file_read PASSED
+.carbon-review/wr-f4-r1/test_probe_2_matrix.py::test_standing_rows_interrupt_midnight_send_restart_and_exit2 FAILED
+
+=================================== FAILURES ===================================
+_________ test_standing_rows_interrupt_midnight_send_restart_and_exit2 _________
+
+tmp_path = PosixPath('/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-2338/test_standing_rows_interrupt_m0')
+
+    def test_standing_rows_interrupt_midnight_send_restart_and_exit2(tmp_path):
+        # 1. Independent exit-2 failures stay exit 2 even when streak.json is broken
+        pdir, cfg = _box(tmp_path / "exit2_cases")
+        (pdir / "streak.json").write_bytes(b"[]")
+        bad_toml = tmp_path / "bad.toml"
+        bad_toml.write_text("not = [valid toml")
+        res_toml, sent_toml, _ = invoke_day_outcome(pdir, bad_toml, games=0)
+        assert res_toml.exit_code == 2 and res_toml.stdout == ""
+        assert "THE CHECK COULD NOT RUN (TOMLDecodeError)" in sent_toml[0]
+    
+        # Invalid UTF-8 in decision.json stays exit 2 (base behaviour)
+        (pdir / DATE).mkdir(parents=True)
+        (pdir / DATE / "decision.json").write_bytes(b"\xff")
+        res_dec, sent_dec, _ = invoke_day_outcome(pdir, cfg, games=1)
+        assert res_dec.exit_code == 2 and res_dec.stdout == ""
+        assert "THE CHECK COULD NOT RUN (UnicodeDecodeError)" in sent_dec[0]
+    
+        # 2. Interrupt inside day-outcome mid-read and mid-send writes nothing
+        pdir2, cfg2 = _box(tmp_path / "interrupt")
+        (pdir2 / "streak.json").write_bytes(b"{")
+        snap = snapshot_tree(pdir2)
+        with patch.object(day_outcome, "read_regular_file_text", side_effect=KeyboardInterrupt):
+            res_int, _, _ = invoke_day_outcome(pdir2, cfg2, games=0)
+>       assert isinstance(res_int.exception, KeyboardInterrupt)
+E       assert False
+E        +  where False = isinstance(SystemExit(1), KeyboardInterrupt)
+E        +    where SystemExit(1) = <Result SystemExit(1)>.exception
+
+.carbon-review/wr-f4-r1/test_probe_2_matrix.py:457: AssertionError
+=========================== short test summary info ============================
+FAILED .carbon-review/wr-f4-r1/test_probe_2_matrix.py::test_standing_rows_interrupt_midnight_send_restart_and_exit2 - assert False
+ +  where False = isinstance(SystemExit(1), KeyboardInterrupt)
+ +    where SystemExit(1) = <Result SystemExit(1)>.exception
+========================= 1 failed, 4 passed in 0.89s ==========================

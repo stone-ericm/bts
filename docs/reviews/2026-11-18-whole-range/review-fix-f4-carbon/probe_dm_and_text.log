@@ -1,0 +1,14 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0 -- /Users/eric/projects/bts-work/wr-rev-f4-cb/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/eric/projects/bts-work/wr-rev-f4-cb
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 3 items
+
+.carbon-review/wr-f4-r1/probe_dm_and_text.py::test_exact_code_point_boundaries_clean_and_problem PASSED
+.carbon-review/wr-f4-r1/probe_dm_and_text.py::test_non_ascii_graphemes_never_lose_base_alert PASSED
+.carbon-review/wr-f4-r1/probe_dm_and_text.py::test_r64_four_worst_ordinary_states PASSED
+
+============================== 3 passed in 0.35s ===============================

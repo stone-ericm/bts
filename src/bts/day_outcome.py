@@ -2,7 +2,9 @@
 
 A narrow replacement for the deferred C1 rank-2 watchdog. It reads the day's decision record
 (`data/picks/<date>/decision.json`) and the entry checker's sealed receipts
-(`docs/ops/pick-entry-receipt-v1.md`), names the day's end state, and reports anything but a clean one. It keeps no
+(`docs/ops/pick-entry-receipt-v1.md`), names the day's end state, and reports anything but a clean one; after that it
+reads the local model streak file (`streak.json`) once, bounded, and flags it for review when it cannot be read or
+holds no usable count (change set F4). It keeps no
 state of its own and never writes pick, decision, streak or health state: an alert is repeated only as often as
 cron runs the check.
 
