@@ -1,0 +1,8 @@
+nice: setpriority: Operation not permitted
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-chk-f5b/.codex-review/wr-f5b-check/contract_rows.py", line 112, in <module>
+    generate(root)
+  File "/Users/eric/projects/bts-work/wr-chk-f5b/.codex-review/wr-f5b-check/replay_support.py", line 63, in generate
+    assert data["base_research"] == data["f5_research"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

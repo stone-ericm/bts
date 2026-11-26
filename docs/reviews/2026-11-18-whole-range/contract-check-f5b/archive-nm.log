@@ -1,0 +1,12 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-f5b
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 41 items / 20 deselected / 21 selected
+
+../../f5-records/tests/test_wr_f5_watchdog_window.py ................... [ 90%]
+..                                                                       [100%]
+
+====================== 21 passed, 20 deselected in 11.13s ======================
