@@ -1,0 +1,88 @@
+nice: setpriority: Operation not permitted
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:15 ET] Fetching schedule for 2027-06-14...
+  2 games, 2 scheduled checks:
+    18:15 ET — 1 game(s)
+    19:15 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:15 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  CONTEST STATE ERROR — no pick made: Live decision refused: season 2027 switch is absent.
+Alternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-06-14 --streak N --best-streak B --saver S --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp9gydk5qi/relative config/ live picks \name '`. Read N, B and S from MLB (active streak, best streak and saver state).
+Alternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp9gydk5qi/relative config/ live picks \name '` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp9gydk5qi/relative config/ live picks \name '` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp9gydk5qi/relative config/ live picks \name '`; then run `bts fetch-contest-streak --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp9gydk5qi/relative config/ live picks \name '` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.
+One repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.
+  Sleeping until 19:15 ET (60 min)...
+
+[19:15 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  CONTEST STATE ERROR — no pick made: Live decision refused: season 2027 switch is absent.
+Alternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-06-14 --streak N --best-streak B --saver S --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp9gydk5qi/relative config/ live picks \name '`. Read N, B and S from MLB (active streak, best streak and saver state).
+Alternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp9gydk5qi/relative config/ live picks \name '` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp9gydk5qi/relative config/ live picks \name '` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp9gydk5qi/relative config/ live picks \name '`; then run `bts fetch-contest-streak --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp9gydk5qi/relative config/ live picks \name '` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.
+One repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.
+  Tomorrow's wake-up: Tue 06-15 10:00 ET
+late start repair=False: cascades=2 pick_dms=0
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:15 ET] Fetching schedule for 2027-06-14...
+  2 games, 2 scheduled checks:
+    18:15 ET — 1 game(s)
+    19:15 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:15 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  CONTEST STATE ERROR — no pick made: Live decision refused: season 2027 switch is absent.
+Alternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-06-14 --streak N --best-streak B --saver S --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpk19gqk2b/relative config/ live picks \name '`. Read N, B and S from MLB (active streak, best streak and saver state).
+Alternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpk19gqk2b/relative config/ live picks \name '` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpk19gqk2b/relative config/ live picks \name '` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpk19gqk2b/relative config/ live picks \name '`; then run `bts fetch-contest-streak --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpk19gqk2b/relative config/ live picks \name '` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.
+One repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.
+  Sleeping until 19:15 ET (60 min)...
+CLI file 2027-06-14 at 2027-06-14T18:16:00-04:00 via ' live picks \\name ': Observation written at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpk19gqk2b/relative config/ live picks \name /account_state/contest_streak.manual.json: date=2027-06-14 streak=57 best=57 saver=used reason=None
+contest_streak: 57 (best 57, saver used) for 2027-06-14, in effect today
+
+[19:15 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=single streak=57 best=57 (trusted) effective_best=None days=105 tail=dc5d0c992443
+  Pick: Batter 1 (T1) 93.0% → should_lock=True
+  LOCKED (lineup) — Pick DM sent: pick-capture
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Tue 06-15 10:00 ET
+  Waiting until 20:10 ET (game start + 10min, 55 min)...
+  Day complete. Result: final
+late start repair=True: cascades=2 pick_dms=1
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:15 ET] Fetching schedule for 2027-06-14...
+  1 games, 1 scheduled checks:
+    18:15 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[18:15 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  CONTEST STATE ERROR — no pick made: Live decision refused: season 2027 switch is absent.
+Alternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-06-14 --streak N --best-streak B --saver S --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp2s40izim/relative config/ live picks \name '`. Read N, B and S from MLB (active streak, best streak and saver state).
+Alternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp2s40izim/relative config/ live picks \name '` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp2s40izim/relative config/ live picks \name '` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp2s40izim/relative config/ live picks \name '`; then run `bts fetch-contest-streak --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp2s40izim/relative config/ live picks \name '` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.
+One repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.
+  Tomorrow's wake-up: Tue 06-15 10:00 ET
+CLI file 2027-06-14 at 2027-06-14T18:15:00-04:00 via ' live picks \\name ': Observation written at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp2s40izim/relative config/ live picks \name /account_state/contest_streak.manual.json: date=2027-06-14 streak=57 best=57 saver=used reason=None
+contest_streak: 57 (best 57, saver used) for 2027-06-14, in effect today
+last mandatory check refused: no saved candidate, no fallback; an idle-time filing did not re-pick
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:58 ET] Fetching schedule for 2027-06-14...
+  1 games, 1 scheduled checks:
+    23:57 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:58 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).
+  Checks done, pick undelivered — sleeping until the fallback deadline 00:15 ET (17 min)...
+  FALLBACK BLOCKED — contest state invalid: Live decision refused: season 2027 switch is absent.
+Alternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-06-15 --streak N --best-streak B --saver S --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpoz3wvoes/relative config/ live picks \name '`. Read N, B and S from MLB (active streak, best streak and saver state).
+Alternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpoz3wvoes/relative config/ live picks \name '` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpoz3wvoes/relative config/ live picks \name '` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpoz3wvoes/relative config/ live picks \name '`; then run `bts fetch-contest-streak --picks-dir '/private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpoz3wvoes/relative config/ live picks \name '` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.
+One repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  Tomorrow's wake-up: Tue 06-15 10:00 ET
+CLI file 2027-06-14 at 2027-06-15T00:32:00-04:00 via ' live picks \\name ': Usage: cli set-contest-streak [OPTIONS]
+Try 'cli set-contest-streak --help' for help.
+
+Error: Invalid value for --date: must be today (2027-06-15)
+after-midnight prior slate pending: no filing for it; old-date negative control rejected; unchanged bytes

@@ -1,0 +1,52 @@
+nice: setpriority: Operation not permitted
+bts.__file__=/Users/eric/projects/bts-work/wr3-read/src/bts/__init__.py
+artifacts base=66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4 tail=dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[12:00 ET] Fetching schedule for 2027-10-01...
+No games scheduled for 2027-10-01.
+  [SHADOW MODEL] Skip (below threshold).
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[12:00 ET] Fetching schedule for 2027-10-01...
+No games scheduled for 2027-10-01.
+  [SHADOW MODEL] Skip (below threshold).
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[12:00 ET] Fetching schedule for 2027-10-01...
+  1 games, 3 scheduled checks:
+    16:00 ET — 1 game(s)
+    17:00 ET — 1 game(s)
+    18:15 ET — 1 game(s)
+  MORNING STATE CHECK — no pick can be made yet: "Live decision refused: season 2027 switch is absent.\nAlternative dated path \u2014 TEMPLATE: `bts set-contest-streak --date 2027-10-01 --streak N --best-streak B --saver S --picks-dir '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpbg9qxxwj/resumed only/picks'`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpbg9qxxwj/resumed only/picks'` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir '/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpbg9qxxwj/resumed only/picks'` and compare the readings with MLB; only then run `bts season-con
+  Sleeping until 16:00 ET (240 min)...
+
+[16:00 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  NOTE: skipped 1 resume-date suspended game(s) — not scoreable per BTS rules
+  Sleeping until 17:00 ET (60 min)...
+
+[17:00 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  NOTE: skipped 1 resume-date suspended game(s) — not scoreable per BTS rules
+  Sleeping until 18:15 ET (75 min)...
+
+[18:15 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  NOTE: skipped 1 resume-date suspended game(s) — not scoreable per BTS rules
+  Tomorrow's wake-up: Sat 10-02 10:00 ET
+  NOTE: skipped 1 resume-date suspended game(s) — not scoreable per BTS rules
+  [SHADOW MODEL] Skip (below threshold).
+makeup streak=20 best=20 saver=used => ('double', 1) emax_season_best
+makeup streak=20 best=20 saver=active => ('double', 1) emax_season_best
+makeup streak=20 best=25 saver=used => ('skip', 1) emax_season_best
+makeup streak=20 best=25 saver=active => ('skip', 1) emax_season_best
+makeup streak=55 best=55 saver=used => ('double', 1) reach57
+makeup streak=55 best=55 saver=active => ('double', 1) reach57
+makeup streak=56 best=56 saver=used => ('single', 1) reach57
+makeup streak=56 best=56 saver=active => ('single', 1) reach57
+makeup streak=57 best=57 saver=used => ('double', 1) longest_streak
+makeup streak=57 best=57 saver=active => ('double', 1) longest_streak
+makeup streak=120 best=120 saver=used => ('double', 1) longest_streak
+makeup streak=120 best=120 saver=active => ('double', 1) longest_streak
+season-walk makeup and explicit empty records accepted
+off-day empty: scheduler, run, preview, remote predict-json and shadow saved no pick
+off-day postseason: scheduler, run, preview, remote predict-json and shadow saved no pick
+off-day resumed only: scheduler, run, preview, remote predict-json and shadow saved no pick

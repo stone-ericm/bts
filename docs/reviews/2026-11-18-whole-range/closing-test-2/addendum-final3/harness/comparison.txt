@@ -1,0 +1,88 @@
+== out (FINAL2 vs FINAL3, normalized)
+adopted-tests.log: 107 differing lines
+c1-carbon.log: 0 differing lines
+s1-edges-fixed.log: 12 differing lines
+s1-edges.log: 18 differing lines
+s1-ops.log: 17 differing lines
+s1-rehearsal.log: 22 differing lines
+s2-cron.log: 3298 differing lines
+s2-deploy-forwarded.log: 0 differing lines
+s2-deploy-new-read.log: 0 differing lines
+s2-deploy-old-fetch.log: 0 differing lines
+s2-deploy-prepare.log: 0 differing lines
+s2-deploy-rollback.log: 0 differing lines
+s2-deploy-startup.log: 8 differing lines
+s2-deploy-statuses.log: 0 differing lines
+s2-deploy-workflow.log: 0 differing lines
+s2-matrix-head.log: 0 differing lines
+s2-matrix-policy-base-bridge.log: 0 differing lines
+s2-matrix-policy-head-inclusive.log: 0 differing lines
+s2-matrix-policy-head.log: 0 differing lines
+s3-clocks_and_scoring.log: 8 differing lines
+s3-cold_features.log: 0 differing lines
+s3-interactions.log: 248 differing lines
+s3-mutate.log: 0 differing lines
+s3-refusals.log: 6 differing lines
+== out2 (FINAL2 vs FINAL3, normalized)
+c1-carbon.log: 0 differing lines
+s1-edges-fixed.log: 0 differing lines
+s1-edges.log: 0 differing lines
+s1-ops.log: 0 differing lines
+s1-rehearsal.log: 0 differing lines
+s2-cron.log: 0 differing lines
+== out3 (FINAL2 vs FINAL3, normalized)
+c1-carbon-ea.log: 2 differing lines
+s1-ops-final2.log: 0 differing lines
+s3-refusals-cap401.log: 6 differing lines
+== s1-rehearsal: FINAL3 out vs FINAL2 out2
+0 differing lines
+== s1-edges: FINAL3 out vs FINAL2 out2
+0 differing lines
+== s1-edges-fixed: FINAL3 out vs FINAL2 out2
+0 differing lines
+== s1-ops: FINAL3 out vs FINAL2 out2
+0 differing lines
+== s2-cron: FINAL3 out vs FINAL2 out2
+0 differing lines
+== c1-carbon: FINAL3 out vs FINAL2 out2
+2 differing lines
+== multiset s3-interactions
+only FINAL2: 8  only FINAL3: 8
+ - 1   Sleeping until 16:10 ET (370 min)...
+ - 1 TRANSPORT health-dm TS 'BTS health CRITICAL alert(s):\n- [contest_state] Saved pick for 2027-03-24 was not delivered because it was chosen without the live check (for example by the preview). The live state is dated (effective dat
+ - 2 TRANSPORT health-dm TS 'BTS health CRITICAL alert(s):\n- [contest_state] Saved pick for 2027-03-24 was not delivered because it was chosen on dated (effective date 2027-03-24, active streak 0, best streak 0, saver used). The live 
+ - 1 TRANSPORT health-dm TS "BTS health WARN attention:\n- [contest_state] Morning check for 2027-03-24: the automatic contest reading was stale at startup (last accepted fetch TS, about 20.00 hours ago). This reading is eligible if it
+ - 1   Sleeping until 17:10 ET (60 min)...
+ - 1 TRANSPORT health-dm TS 'BTS health CRITICAL alert(s):\n- [contest_state] Live decision refused: season 2027 switch is revoked.\nAlternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-03-24 --streak N --best-streak 
+ - 1 TRANSPORT health-dm TS 'BTS health CRITICAL alert(s):\n- [late_delivery] LATE DELIVERY REFUSED: the 19:05 ET cutoff for Synthetic Batter 101 had been reached. This pick was withheld. A later check may produce another recommendatio
+ + 1 
+ + 1   Tomorrow's wake-up: Thu 03-25 10:00 ET
+ + 1 TRANSPORT health-dm TS "BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: Saved pick for 2027-03-24 was not delivered because it was chosen without the live check (for example 
+ + 2 TRANSPORT health-dm TS "BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: Saved pick for 2027-03-24 was not delivered because it was chosen on dated (effective date 2027-03-24,
+ + 1 TRANSPORT health-dm TS "BTS health WARN attention:\n- [contest_state] Morning check for 2027-03-24: the automatic contest reading was stale at startup (last accepted fetch TS, about 20.00 hours ago). This reading is eligible if it
+ + 1 TRANSPORT health-dm TS "BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: Live decision refused: season 2027 switch is revoked.\nSee the scheduler journal for this refusal. To 
+ + 1 TRANSPORT health-dm TS 'BTS health CRITICAL alert(s):\n- [late_delivery] LATE DELIVERY REFUSED: the 19:05 ET cutoff for Synthetic Batter 101 had been reached. This pick was withheld. A later check may produce another recommendatio
+== multiset s3-refusals
+only FINAL2: 3  only FINAL3: 3
+ - 1   File "/Users/eric/projects/bts-work/X/src/bts/scheduler.py", line 2989, in run_day
+ - 1   File "/Users/eric/projects/bts-work/X/src/bts/scheduler.py", line 315, in fetch_schedule
+ - 1 TRANSPORT health-dm TS 'BTS health CRITICAL alert(s):\n- [contest_state] Live decision refused: season 2027 switch is absent.\nAlternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-03-25 --streak N --best-streak B
+ + 1   File "/Users/eric/projects/bts-work/X/src/bts/scheduler.py", line 3035, in run_day
+ + 1   File "/Users/eric/projects/bts-work/X/src/bts/scheduler.py", line 349, in fetch_schedule
+ + 1 TRANSPORT health-dm TS "BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: Live decision refused: season 2027 switch is absent.\nSee the scheduler journal for this refusal. To i
+== multiset s2-deploy-startup
+only FINAL2: 4  only FINAL3: 4
+ - 2             "stderr": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[10:00 ET] Fetching schedule for 2027-07-15...\n  3 games, 3 scheduled checks:\n    15:00 ET \u2014 1 game(s)\n    17:00 ET \u2014 1 game
+ - 1               "BTS health CRITICAL alert(s):\n- [contest_state] Live decision refused: season 2027 switch is absent.\nAlternative dated path \u2014 TEMPLATE: `bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --s
+ - 1             "stderr": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[10:01 ET] Fetching schedule for 2027-07-15...\n  3 games, 3 scheduled checks:\n    15:00 ET \u2014 1 game(s)\n    17:00 ET \u2014 1 game
+ + 2             "stderr": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[10:00 ET] Fetching schedule for 2027-07-15...\n  3 games, 3 scheduled checks:\n    15:00 ET \u2014 1 game(s)\n    17:00 ET \u2014 1 game
+ + 1               "BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-07-15 at this check. Reason: Live decision refused: season 2027 switch is absent.\nSee the scheduler journal for this refusal. To inspect cu
+ + 1             "stderr": "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.\n[10:01 ET] Fetching schedule for 2027-07-15...\n  3 games, 3 scheduled checks:\n    15:00 ET \u2014 1 game(s)\n    17:00 ET \u2014 1 game
+== multiset s3-refusals-cap401
+only FINAL2: 3  only FINAL3: 3
+ - 1   File "/Users/eric/projects/bts-work/X/src/bts/scheduler.py", line 2989, in run_day
+ - 1   File "/Users/eric/projects/bts-work/X/src/bts/scheduler.py", line 315, in fetch_schedule
+ - 1 TRANSPORT health-dm TS 'BTS health CRITICAL alert(s):\n- [contest_state] Live decision refused: season 2027 switch is absent.\nAlternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-03-25 --streak N --best-streak B
+ + 1   File "/Users/eric/projects/bts-work/X/src/bts/scheduler.py", line 3035, in run_day
+ + 1   File "/Users/eric/projects/bts-work/X/src/bts/scheduler.py", line 349, in fetch_schedule
+ + 1 TRANSPORT health-dm TS "BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: Live decision refused: season 2027 switch is absent.\nSee the scheduler journal for this refusal. To i

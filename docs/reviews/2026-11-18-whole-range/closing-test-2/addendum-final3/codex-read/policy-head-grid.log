@@ -1,0 +1,5 @@
+nice: setpriority: Operation not permitted
+bts.__file__=/Users/eric/projects/bts-work/wr3-read/src/bts/__init__.py
+artifacts base=66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4 tail=dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4
+positive-grid dates=269 rows=59180 sha256=68f2b649276f00d317f8c729c762d11549bcd0994565d215b08c2946984780d6
+positive-selection dates=26 rows=130 sha256=bb6e1281d4b487201a634c083f880c42bc0c00db38565effaa171b600f0ff405

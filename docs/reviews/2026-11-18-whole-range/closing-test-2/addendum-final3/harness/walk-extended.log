@@ -1,0 +1,60 @@
+2027-03-01
+2027-04-01
+2027-05-01
+2027-06-01
+2027-07-01
+2027-08-01
+2027-09-01
+2027-10-01
+runs=8760 problems=675
+PROBLEM 2027-09-27 dated/0/0/not_earned/0.96: effective days 1, expected 0
+PROBLEM 2027-09-27 dated/0/0/not_earned/0.96: after the finale but action 'double'
+PROBLEM 2027-09-27 dated/0/0/not_earned/0.72: effective days 1, expected 0
+PROBLEM 2027-09-27 dated/0/0/not_earned/0.72: after the finale but action 'double'
+PROBLEM 2027-09-27 dated/5/5/not_earned/0.96: effective days 1, expected 0
+PROBLEM 2027-09-27 dated/5/5/not_earned/0.96: after the finale but action 'double'
+PROBLEM 2027-09-27 dated/5/5/not_earned/0.72: effective days 1, expected 0
+PROBLEM 2027-09-27 dated/5/5/not_earned/0.72: after the finale but action 'double'
+PROBLEM 2027-09-27 dated/12/12/active/0.96: effective days 1, expected 0
+PROBLEM 2027-09-27 dated/12/12/active/0.96: after the finale but action 'double'
+PROBLEM 2027-09-27 dated/12/12/active/0.72: effective days 1, expected 0
+PROBLEM 2027-09-27 dated/12/12/active/0.72: after the finale but action 'double'
+PROBLEM 2027-09-27 dated/12/12/used/0.96: effective days 1, expected 0
+PROBLEM 2027-09-27 dated/12/12/used/0.96: after the finale but action 'double'
+PROBLEM 2027-09-27 dated/12/12/used/0.72: effective days 1, expected 0
+PROBLEM 2027-09-27 dated/12/12/used/0.72: after the finale but action 'double'
+PROBLEM 2027-09-27 dated/25/30/used/0.96: effective days 1, expected 0
+PROBLEM 2027-09-27 dated/25/30/used/0.72: effective days 1, expected 0
+PROBLEM 2027-09-27 dated/43/56/used/0.96: effective days 1, expected 0
+PROBLEM 2027-09-27 dated/43/56/used/0.72: effective days 1, expected 0
+PROBLEM 2027-09-27 dated/50/50/used/0.96: effective days 1, expected 0
+PROBLEM 2027-09-27 dated/50/50/used/0.96: after the finale but action 'double'
+PROBLEM 2027-09-27 dated/50/50/used/0.72: effective days 1, expected 0
+PROBLEM 2027-09-27 dated/50/50/used/0.72: after the finale but action 'double'
+PROBLEM 2027-09-27 dated/55/55/active/0.96: effective days 1, expected 0
+PROBLEM 2027-09-27 dated/55/55/active/0.96: after the finale but action 'double'
+PROBLEM 2027-09-27 dated/55/55/active/0.72: effective days 1, expected 0
+PROBLEM 2027-09-27 dated/55/55/active/0.72: after the finale but action 'double'
+PROBLEM 2027-09-27 dated/56/56/used/0.96: effective days 1, expected 0
+PROBLEM 2027-09-27 dated/56/56/used/0.96: after the finale but action 'single'
+PROBLEM 2027-09-27 dated/56/56/used/0.72: effective days 1, expected 0
+PROBLEM 2027-09-27 dated/56/56/used/0.72: after the finale but action 'single'
+PROBLEM 2027-09-27 automatic/12/12/active/0.96: effective days 1, expected 0
+PROBLEM 2027-09-27 automatic/12/12/active/0.96: after the finale but action 'double'
+PROBLEM 2027-09-27 automatic/43/56/used/0.96: effective days 1, expected 0
+PROBLEM 2027-09-27 automatic/56/56/used/0.96: effective days 1, expected 0
+PROBLEM 2027-09-27 automatic/56/56/used/0.96: after the finale but action 'single'
+PROBLEM 2027-09-27 dated/57/57/used/0.96: effective days 1, expected 0
+PROBLEM 2027-09-27 dated/57/57/used/0.96: after the finale but action 'double'
+PROBLEM 2027-09-27 dated/58/60/used/0.96: effective days 1, expected 0
+PROBLEM 2027-09-27 dated/58/60/used/0.96: after the finale but action 'double'
+PROBLEM 2027-09-27 automatic/57/57/active/0.96: effective days 1, expected 0
+PROBLEM 2027-09-27 automatic/57/57/active/0.96: after the finale but action 'double'
+PROBLEM 2027-09-27 automatic/58/60/used/0.96: effective days 1, expected 0
+PROBLEM 2027-09-27 automatic/58/60/used/0.96: after the finale but action 'double'
+PROBLEM 2027-09-27 automatic/120/120/used/0.72: effective days 1, expected 0
+PROBLEM 2027-09-27 automatic/120/120/used/0.72: after the finale but action 'double'
+PROBLEM 2027-09-27 dated/57/57/not_earned/0.72: effective days 1, expected 0
+PROBLEM 2027-09-27 dated/57/57/not_earned/0.72: after the finale but action 'double'
+PROBLEM 2027-09-27 dated/59/59/active/0.72: effective days 1, expected 0
+walk-extended rc=1

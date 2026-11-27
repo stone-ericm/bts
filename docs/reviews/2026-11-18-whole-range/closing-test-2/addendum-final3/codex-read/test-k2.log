@@ -1,0 +1,12 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr3-read
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 50 items / 5 deselected / 45 selected
+
+tests/test_wr_k2_season_boundary.py .................................... [ 80%]
+.........                                                                [100%]
+
+======================= 45 passed, 5 deselected in 0.92s =======================

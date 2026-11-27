@@ -152,3 +152,45 @@ did not run: the fast suite (no `src/` change; the walk branch adds only `script
 **My mistakes.** (1) I started part a without the BASE archives slice 1 needs (`slice-1-codex/base`, `slice-1-carbon/basesha`; I added `slice-3-codex/base` too, which nothing reads); five steps failed at once and were re-run in a second job (no harness change). (2) I wrote the walk extension before running its new tests RED; I then ran them RED against `main`'s `walk.py` before the GREEN run, so the order of evidence is right, but the code existed first. (3) My first GREEN run found a bug of mine in the 57-to-58 sequence (it judged a pick file the decision call never writes); fixed and re-run. (4) The runner I wrote for Carbon 3's slot recorded each line's exit status after a `date` substitution, so every line read 0; I rebuilt the results from the logs (`logs/slot-run-1.results.txt`; the wrong file kept as `slot-run-1.rc.WRONG.txt`) before Carbon read them. (5) For the slice-1 edge probes, the JSON in both runs' `s1-edges.json` is the archived candidate file (the harness stops before writing it in its default mode); the comparison uses the `--expect-fixed` run's JSON, which it writes.
 
 **Agents.** Three at most, all mine, all closed: `wr2-blind` (Codex), `wr2-carb2`, `wr2-carb3` (Carbon); logged in `~/bts-runs/notes-for-eor-driver/bts-agents.txt`. Copies and bundle deleted at the end (`~/projects/bts-work/wr2-*`, `final2-d0bdcdba.bundle`; the walk worktree removed after its branch was pushed).
+
+
+## Addendum: renewed closing evidence after K1 and K2 (ruling R72; 2026-11-27, `bts-wr-fresh15`)
+
+**FINAL3 = `main` at `240324ab`** ("docs: K2 landed"): FINAL2 plus change set K1 with K1b (merge `1198c9b9`) and change set K2 (merge `7ed9656a`). Nothing else merged meanwhile (the lead held merges). Evidence in `closing-test-2/addendum-final3/`. As R72 asks, this renews only what K1 and K2 touch.
+
+**Result in one paragraph.** (1) and (2): every slice-harness step ends as it did on FINAL2, and every difference in the outputs is K1's refusal-DM wording (the slate date now named), K2's source lines, line numbers, or stdout/stderr interleaving. The mutation verdicts are identical. The adopted tests pass. Main's season walk has 0 problems, and part d's extended walk differs only where K2's floor was meant to change it. (3): the fresh focused Codex read of K1's and K2's changed files returned **BLOCKING FINDINGS: one class under R70 item 7 (a lost alert)**. It is in K1's dedup date, and it goes to the lead (below). K2's floor, K1's DM length and K1's B8a text held.
+
+### 1. The touched tests and harness cases (four slice harnesses re-run on FINAL3)
+- **How they ran.** A clean clone of FINAL3 from a bundle (`~/projects/bts-work/wr3-harness`) set up exactly as part a (`addendum-final3/harness/setup.sh`): the slice directories copied to `.codex-review/`, `git archive 619abda7 src scripts` as every BASE, the two recorded harness changes applied (`harness-change-cron.diff`, `harness-change-rehearsal-runner-datetime.diff`), and the three variants copied. Part a's `run_all.sh`, `gap.sh` and `batch3.sh` steps ran in ONE wrapped job (`all.sh`) from 10:29 to 10:38 ET.
+- **Exit codes.** Each step's code equals FINAL2's final state for that step (FINAL2's first window had `s1-rehearsal` and `s2-cron` failing for missing bases, re-run in its `out2`; here the bases were in place from the start).
+- **Outputs, normalised** (paths, temp names, object addresses, line numbers, timestamps, hashes; `harness/comparison.txt`):
+  - zero differing lines for the s1 rehearsal, edges, edges-fixed and ops (against FINAL2's `out2`), the s2 matrices (head, policy, inclusive and BASE bridge), every s2 deploy phase except startup, s2 statuses, s2 cron, s3 cold features, the s1 ops variant and the Carbon rehearsal variant (one summary-line width);
+  - `s2-deploy-startup`: only K1's DM body ("No pick was sent for 2027-07-15 at this check. Reason: Live decision refused: season 2027 switch is absent." plus the fixed pointers, in place of the full repair text) and its receipt hash;
+  - `s3-interactions`, `s3-refusals` and the cap-401 variant, compared as multisets: only K1's DM bodies (e.g. the absent-switch refusal now names slate 2027-03-24 where FINAL2's text carried a 2027-03-25 template), shifted scheduler line numbers in tracebacks, and stdout/stderr lines glued in a different order;
+  - `s3-clocks_and_scoring`: only K2's source lines (walk.py's makeup fixture, strategy.py's comment);
+  - `s3-mutate`: `{'KILLED': 32, 'SURVIVED': 1}` with the same survivor (`morning-dedup-date`), as on FINAL2;
+  - Carbon slice 1: only object addresses.
+- **Adopted tests** (`tests/test_wr_*.py` and `tests/scripts/season_walk`): 2,330 passed and 7 skipped. FINAL2 had 2,137; the difference is K1's and K2's own test files.
+
+### 2. The season walk on FINAL3
+- **Main's walk** (`scripts.audit.season_walk.walk`, with K2's makeup fixture and its raw and effective oracles): 5,037 runs, 0 problems (`harness/walk.log`).
+- **Part d's extended walk** (branch `audit/season-walk-h2g`'s `walk.py`, NOT merged, whose oracle predates K2), run on FINAL3's code: 8,760 runs and 675 problems. Every problem is on a synthetic post-finale date (2027-09-27 to 10-05, 75 per date) and is one of three kinds, all K2's intended floor: "effective days 1, expected 0" (360), "after the finale but action 'double'" (288), and "… 'single'" (27). The extension's own checks (guard pairs, table guard, caps, the 57-to-58 sequence) add none.
+
+### 3. The fresh focused read (Codex xhigh, `WRK12READ-43f82e3d`, `addendum-final3/codex-read/report.md`)
+It ran blind to the review records (removed from its copy), on `git diff a5fa7466 240324ab -- src scripts docs/ops`, under the R70 item 7 rule.
+- **Held:**
+  - K1's DM: 60 refusal texts × 4 failure counts with the box's path all delivered, peak 971 code points; the base rejected 59 for length.
+  - K1's B8a text: through the real CLI and scheduler, filing between checks after a late start delivers the pick; a pending earlier slate after midnight is protected.
+  - K2's floor: 59,180 positive-day decision rows and 130 fresh selections on 2027 dates are equal to the base; the makeup day plays; empty, postseason-only and resumed-only inputs give no pick on any production path.
+- **BLOCKING (a lost alert, R70 item 7): the K1 dedup date suppresses a distinct alert that FINAL2 delivered, when the FIRST send for slate D came before midnight.** (a) Two delivery-guard refusals for different games of slate 2027-06-14: game 70000 postponed at 23:58 ET, game 70001 cancelled at 00:24 ET on 06-15. The base sent two CRITICALs (`postponed_pick`, each naming its game); FINAL3 sends only the first, because the second is covered by the 06-14 record (`scheduler.py:2638`, `health/alert.py:437`). (b) End-of-day health for D at 23:46 reported a malformed automatic file; a restart at 23:59 kept slate D; at 00:01 the live check refused an invalid streak. The base sent the live refusal; FINAL3 sends nothing, because the digest's `CRITICAL:contest_state` covers it (`scheduler.py:2029`). K1's written limit covers only a first send AFTER midnight; these orders are not stated. **Reviewer's smallest fix:** key the void refusals by game and state, and give the live contest refusal an incident key distinct from the end-of-day `contest_state` key, keeping the slate date.
+- **Edits (text):**
+  - B8a: "The refusal names this command." → "The refusal DM points to the scheduler journal and `bts season-contract status`. Use the dated command above when the timing and prior-entry checks below permit filing." After the between-runs sentence, add "After the last lineup check, the final fallback needs a saved, undelivered pick. Filing only changes the dated observation."
+  - `scripts/audit/season_walk/README.md`: the sentence "after the finale every action is a skip; on the finale streak 56 plays" → "The default walk supplies synthetic candidates after the finale. Its raw day count is zero and fresh selection uses one decision day. Streak 56 plays on the scheduled finale and the makeup fixture. An explicit empty fixture yields no decision." Floor the effective-day formula at one for candidate slates.
+
+### For the lead (R72's rule: a finding under the same rule needs a decision; a full third run is not required unless the read finds one)
+The read's blocking class is K1's own dedup change seen in two more orders. Ways forward:
+- **(i)** the reviewer's smallest fix as a small K1d (two incident keys), with its one limited check;
+- **(ii)** accept and write the two orders into K1's limits (Eric);
+- **(iii)** revert the dedup-date half of K1 (C3-2 was ledgered as "no: ledger" in the closing test; F2-1, the DM length, is the part that was proposed for a fix).
+
+My recommendation: (iii) or (i). With (iii), FINAL3's DM-length fix stays and the alert set returns to FINAL2's behaviour, which delivered both alerts here. The two text edits can be applied with whichever is chosen.

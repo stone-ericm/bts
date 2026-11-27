@@ -1,0 +1,64 @@
+nice: setpriority: Operation not permitted
+model_state_corrupt: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmplmp452kt/picks/streak.json: JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+bts.__file__=/Users/eric/projects/bts-work/wr3-read/src/bts/__init__.py
+00 source=absent diagnostic=Live decision refused: season 2027 switch is absent.
+01 source=revoked diagnostic=Live decision refused: season 2027 switch is revoked.
+02 source=no_fetch diagnostic=Live decision refused: there is no automatic observation for this activation.
+03 source=other_season diagnostic=Live decision refused: season 2027 switch is other_season (file season 2026).
+04 source=legacy diagnostic=Live decision refused: the selected legacy manual override is no longer accepted for a live pick.
+05 source=model_json diagnostic=model state is corrupt; cannot use model fallback: /home/bts/projects/bts/data/picks/streak.json: JSONDecodeError: Expecting property name enclosed in
+06 source=model_streak diagnostic=model state is corrupt; cannot use model fallback: /home/bts/projects/bts/data/picks/streak.json: streak is not a non-negative integer
+07 source=switch_corrupt diagnostic=Live decision refused: corrupt season switch, check 1: /home/bts/projects/bts/data/picks/account_state/season_contract.json: Expecting property name e
+08 source=switch_corrupt diagnostic=Live decision refused: corrupt season switch, check 2: /home/bts/projects/bts/data/picks/account_state/season_contract.json: schema_version must be bt
+09 source=switch_corrupt diagnostic=Live decision refused: corrupt season switch, check 3: /home/bts/projects/bts/data/picks/account_state/season_contract.json: season must be an integer
+10 source=switch_corrupt diagnostic=Live decision refused: corrupt season switch, check 4: /home/bts/projects/bts/data/picks/account_state/season_contract.json: status must be automatic 
+11 source=switch_corrupt diagnostic=Live decision refused: corrupt season switch, check 5: /home/bts/projects/bts/data/picks/account_state/season_contract.json: activation_id must be 32 
+12 source=switch_corrupt diagnostic=Live decision refused: corrupt season switch, check 6: /home/bts/projects/bts/data/picks/account_state/season_contract.json: switched_at must be prese
+13 source=switch_corrupt diagnostic=Live decision refused: corrupt season switch, check 7: /home/bts/projects/bts/data/picks/account_state/season_contract.json: revoked_at must be presen
+14 source=switch_corrupt diagnostic=Live decision refused: corrupt season switch, check 8: /home/bts/projects/bts/data/picks/account_state/season_contract.json: note must be null or a st
+15 source=authority diagnostic=Live decision refused: schema_version is missing, null or not a string; look at status for the exact value.
+16 source=authority diagnostic=Live decision refused: schema_version is 'obsolete', not 'bts_contest_streak_auto_v2'.
+17 source=authority diagnostic=Live decision refused: automatic observation season is 2026, not 2027.
+18 source=authority diagnostic=Live decision refused: automatic observation activation_id is '00000000000000000000000000000000', not the switch's 'df034a46d814452b8755c2b82e38f2f1'.
+19 source=auto_parse diagnostic=contest streak state malformed at /home/bts/projects/bts/data/picks/account_state/contest_streak.json: Expecting property name enclosed in double quot
+20 source=auto_parse diagnostic=contest streak state malformed at /home/bts/projects/bts/data/picks/account_state/contest_streak.json: 'utf-8' codec can't decode byte 0xff in positio
+21 source=auto_parse diagnostic=contest streak state malformed at /home/bts/projects/bts/data/picks/account_state/contest_streak.json: [Errno 21] Is a directory: '/home/bts/projects/
+22 source=auto_parse diagnostic=contest streak state malformed at /home/bts/projects/bts/data/picks/account_state/contest_streak.json: expected object
+23 source=auto_parse diagnostic=contest streak invalid in /home/bts/projects/bts/data/picks/account_state/contest_streak.json: True
+24 source=auto_parse diagnostic=contest streak invalid in /home/bts/projects/bts/data/picks/account_state/contest_streak.json: -1
+25 source=auto_parse diagnostic=contest saver_available invalid in /home/bts/projects/bts/data/picks/account_state/contest_streak.json: 'yes'
+26 source=manual_parse diagnostic=contest streak state malformed at /home/bts/projects/bts/data/picks/account_state/contest_streak.manual.json: Expecting property name enclosed in doub
+27 source=manual_parse diagnostic=contest streak state malformed at /home/bts/projects/bts/data/picks/account_state/contest_streak.manual.json: 'utf-8' codec can't decode byte 0xff in 
+28 source=manual_parse diagnostic=contest streak state malformed at /home/bts/projects/bts/data/picks/account_state/contest_streak.manual.json: [Errno 21] Is a directory: '/home/bts/pr
+29 source=manual_parse diagnostic=contest streak state malformed at /home/bts/projects/bts/data/picks/account_state/contest_streak.manual.json: expected object
+30 source=manual_parse diagnostic=contest streak invalid in /home/bts/projects/bts/data/picks/account_state/contest_streak.manual.json: True
+31 source=manual_parse diagnostic=contest streak invalid in /home/bts/projects/bts/data/picks/account_state/contest_streak.manual.json: -1
+32 source=manual_parse diagnostic=contest saver_available invalid in /home/bts/projects/bts/data/picks/account_state/contest_streak.manual.json: 'yes'
+33 source=auto_validation diagnostic=automatic contest streak invalid in /home/bts/projects/bts/data/picks/account_state/contest_streak.json: active_streak=401, best_streak=15
+34 source=auto_validation diagnostic=automatic contest streak invalid in /home/bts/projects/bts/data/picks/account_state/contest_streak.json: active_streak=12, best_streak=11
+35 source=auto_validation diagnostic=automatic contest observation is undated at /home/bts/projects/bts/data/picks/account_state/contest_streak.json
+36 source=auto_validation diagnostic=automatic contest season invalid in /home/bts/projects/bts/data/picks/account_state/contest_streak.json: must be an integer
+37 source=auto_validation diagnostic=automatic contest activation_id invalid in /home/bts/projects/bts/data/picks/account_state/contest_streak.json: must be 32 lowercase hexadecimal chara
+38 source=dated diagnostic=dated contest observation invalid at /home/bts/projects/bts/data/picks/account_state/contest_streak.manual.json: check 2, effective_date: must be a pa
+39 source=dated diagnostic=dated contest observation invalid at /home/bts/projects/bts/data/picks/account_state/contest_streak.manual.json: check 3, season: must be an integer e
+40 source=dated diagnostic=dated contest observation invalid at /home/bts/projects/bts/data/picks/account_state/contest_streak.manual.json: check 4, expires_at: must be a timezo
+41 source=dated diagnostic=dated contest observation invalid at /home/bts/projects/bts/data/picks/account_state/contest_streak.manual.json: check 4, expires_at: must equal the l
+42 source=dated diagnostic=dated contest observation invalid at /home/bts/projects/bts/data/picks/account_state/contest_streak.manual.json: check 5, active_streak: must be an in
+43 source=dated diagnostic=dated contest observation invalid at /home/bts/projects/bts/data/picks/account_state/contest_streak.manual.json: check 6, best_streak: must be an inte
+44 source=dated diagnostic=dated contest observation invalid at /home/bts/projects/bts/data/picks/account_state/contest_streak.manual.json: check 7, saver_state: must be not_ear
+45 source=dated diagnostic=dated contest observation invalid at /home/bts/projects/bts/data/picks/account_state/contest_streak.manual.json: check 8, recorded_at: must be a timez
+46 source=dated diagnostic=dated contest observation invalid at /home/bts/projects/bts/data/picks/account_state/contest_streak.manual.json: check 9, source: must be a string
+47 source=dated diagnostic=dated contest observation invalid at /home/bts/projects/bts/data/picks/account_state/contest_streak.manual.json: check 10, reason: must be a string wh
+48 source=saved diagnostic=Saved pick for 2027-03-24 was not delivered because there is no valid record of what it was chosen on. The live state is dated (effective date 2027-03
+49 source=saved diagnostic=Saved pick for 2027-03-24 was not delivered because it was chosen without the live check (for example by the preview). The live state is dated (effect
+50 source=saved diagnostic=Saved pick for 2027-03-24 was not delivered because it was chosen on dated (effective date 2027-03-24, active streak 11, best streak 15, saver used). 
+51 source=authority diagnostic=Live decision refused: schema_version is '🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢
+52 source=authority diagnostic=Live decision refused: schema_version is '2027\nunsupported', not 'bts_contest_streak_auto_v2'.
+53 source=auto_parse diagnostic=contest streak invalid in /home/bts/projects/bts/data/picks/account_state/contest_streak.json: '🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢🧢
+54 source=dated diagnostic=dated contest observation invalid at /home/bts/projects/bts/data/picks/account_state/contest_streak.manual.json: check 2, effective_date: must be a pa
+55 source=dated diagnostic=dated contest observation invalid at /home/bts/projects/bts/data/picks/account_state/contest_streak.manual.json: check 4, expires_at: must equal the l
+56 source=dated diagnostic=dated contest observation invalid at /home/bts/projects/bts/data/picks/account_state/contest_streak.manual.json: check 8, recorded_at: must be a timez
+57 source=saved diagnostic=Saved pick for 2027-03-24 was not delivered because it was chosen on dated (effective date 2027-03-24, active streak 12, best streak 15, saver used). 
+58 source=saved diagnostic=Saved pick for 2027-03-24 was not delivered because it was chosen on automatic. The live state is dated (effective date 2027-03-24, active streak 12, 
+59 source=synthetic diagnostic=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+diagnostics=60 attempts=240 outcomes={'sent': 240} peak=(971, '59:synthetic')

@@ -1,0 +1,4 @@
+2026-11-27 10:29:31 hold set; slot free
+2026-11-27 10:38:32 wrapped job exited rc=0
+2026-11-27 10:38:32 hold removed
+CLOSING3-FINISHED
