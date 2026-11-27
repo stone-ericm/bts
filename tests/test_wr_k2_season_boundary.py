@@ -4,10 +4,11 @@ from pathlib import Path
 import runpy
 import sys
 from threading import Event, Thread, current_thread
+from types import SimpleNamespace
 
 import pytest
 
-from bts import scheduler, strategy
+from bts import picks, scheduler, strategy
 from bts.health import alert
 from bts.health import tail_policy
 from scripts.audit.season_walk import walk
@@ -63,8 +64,8 @@ def test_walk_empty_after_finale():
     assert walk.check([row]) == []
 
 
-class FirstCheck(BaseException):
-    pass
+def no_pick_check(**kwargs):
+    return {"new_lineups": 0, "skipped": True, "pick_result": None, "should_post": False}
 
 
 def game(day=DAY, **changes):
@@ -92,9 +93,6 @@ def startup(monkeypatch, tmp_path):
         bodies.append(body)
         return "message-id"
 
-    def check(**kwargs):
-        raise FirstCheck
-
     class RecordWorker(Thread):
         def start(self):
             workers.append(self)
@@ -102,8 +100,12 @@ def startup(monkeypatch, tmp_path):
 
     monkeypatch.setattr(scheduler, "Thread", RecordWorker)
     monkeypatch.setattr(alert, "send_dm", send)
-    monkeypatch.setattr(scheduler, "run_single_check", check)
+    monkeypatch.setattr(scheduler, "run_single_check", no_pick_check)
     monkeypatch.setattr(scheduler, "_idle_until_next_wakeup", lambda *a: None)
+    monkeypatch.setattr(scheduler, "_next_day_wakeup", lambda day, config:
+                        datetime.fromisoformat(day).replace(tzinfo=scheduler.ET)
+                        + timedelta(days=1, hours=10))
+    monkeypatch.setattr(scheduler, "_maybe_alert_missed_pick", lambda *a: None)
     monkeypatch.setattr(scheduler, "notify_ready", lambda: None)
     monkeypatch.setattr(scheduler, "notify_watchdog", lambda: None)
 
@@ -117,10 +119,7 @@ def startup(monkeypatch, tmp_path):
         monkeypatch.setattr(scheduler, "_watchdog_ping_sleep", advance)
         monkeypatch.setattr(scheduler, "retry_urlopen", lambda *a, **kw: io.BytesIO(
             json.dumps({"dates": [{"date": day, "games": games}]}).encode()))
-        try:
-            scheduler.run_day(day, config, dry_run=dry)
-        except FirstCheck:
-            pass
+        scheduler.run_day(day, config, dry_run=dry)
         before_join()
         for worker in workers:
             worker.join(1)
@@ -210,10 +209,10 @@ def test_stalled_boundary_journal_preserves_first_check(
 
     def check(**kwargs):
         checks.append((scheduler._now_et().strftime("%H:%M:%S"), kwargs["unavailable_game_pks"]))
-        raise FirstCheck
+        return no_pick_check(**kwargs)
 
     def release_writer():
-        assert checks == [(first_check, set())]
+        assert checks[0] == (first_check, set())
         assert blocked.wait(1)
         release.set()
 
@@ -229,6 +228,114 @@ def test_stalled_boundary_journal_preserves_first_check(
         for worker in workers:
             Thread.join(worker, 2)
             assert not worker.is_alive()
+
+
+def test_boundary_journal_follows_last_lineup_check_and_fallback(startup, monkeypatch, capfd):
+    start, _, _ = startup
+    daily = SimpleNamespace(pick=SimpleNamespace(game_time=f"{DAY}T19:05:00-04:00"),
+                            double_down=None)
+    monkeypatch.setattr(picks, "load_pick", lambda *a: daily)
+    monkeypatch.setattr(picks, "pick_was_delivered", lambda *a: False)
+    monkeypatch.setattr(scheduler, "_refresh_pick_at_fallback_decision",
+                        lambda *a, **kw: SimpleNamespace(daily=daily, selection=None))
+    delivered = []
+    monkeypatch.setattr(scheduler, "_deliver_and_lock_pick",
+                        lambda *a, **kw: delivered.append(a[-1]))
+
+    # Run the queued writer to completion at its enqueue point so thread scheduling
+    # cannot hide a warning queued too early.
+    workers = []
+    original_queue = scheduler._queue_season_boundary_line
+
+    class JournalWorker(Thread):
+        def start(self):
+            workers.append(self)
+            super().start()
+
+    def queue(line):
+        original_queue(line)
+        workers[-1].join(1)
+        assert not workers[-1].is_alive()
+
+    monkeypatch.setattr(scheduler, "Thread", JournalWorker)
+    monkeypatch.setattr(scheduler, "_queue_season_boundary_line", queue)
+    start([game()])
+
+    assert delivered == ["final fallback"]
+    journal = capfd.readouterr().err
+    assert (0 <= journal.rfind("Running lineup check...")
+            < journal.index("FALLBACK —")
+            < journal.index("SEASON BOUNDARY BEHIND SCHEDULE")
+            < journal.index("Tomorrow's wake-up:"))
+
+
+def test_shared_journal_with_690_bytes_free_preserves_restart_cutoff(startup, monkeypatch):
+    start, _, _ = startup
+    elapsed = 0
+    checks = []
+    lines = []
+    wrote = Event()
+    original_queue = scheduler._queue_season_boundary_line
+    original_write = os.write
+    reader, writer = os.pipe()
+
+    def charge(data):
+        nonlocal elapsed
+        try:
+            written = original_write(writer, data)
+        except BlockingIOError:
+            # Simulate two seconds of backpressure before the reader resumes.
+            elapsed += 2
+            os.read(reader, capacity)
+            written = original_write(writer, data)
+        assert written == len(data)
+        return written
+
+    class SharedJournal:
+        def write(self, value):
+            charge(value.encode())
+            return len(value)
+
+        def flush(self):
+            pass
+
+    def write(fd, data):
+        if fd == 2 and data.startswith(b"SEASON BOUNDARY BEHIND SCHEDULE"):
+            charge(data)
+            lines.append(data)
+            wrote.set()
+            return len(data)
+        return original_write(fd, data)
+
+    def queue(line):
+        original_queue(line)
+        assert wrote.wait(1)
+
+    def check(**kwargs):
+        checks.append((scheduler._now_et().strftime("%H:%M:%S"), kwargs["unavailable_game_pks"]))
+        return no_pick_check(**kwargs)
+
+    monkeypatch.setattr(sys, "stderr", SharedJournal())
+    monkeypatch.setattr(os, "write", write)
+    monkeypatch.setattr(scheduler, "_queue_season_boundary_line", queue)
+    monkeypatch.setattr(scheduler, "run_single_check", check)
+    try:
+        os.set_blocking(writer, False)
+        capacity = 0
+        for size in (1024, 1):
+            while True:
+                try:
+                    capacity += original_write(writer, b"x" * size)
+                except BlockingIOError:
+                    break
+        assert len(os.read(reader, 690)) == 690
+        start([game()], at=f"{DAY}T18:59:59", journal_delay=lambda: elapsed)
+    finally:
+        os.close(writer)
+        os.close(reader)
+
+    assert len(lines) == 1
+    assert checks[0] == ("18:59:59", set())
 
 
 def test_positive_day_grid(capsys):

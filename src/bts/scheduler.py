@@ -3176,11 +3176,6 @@ def run_day(
     except Exception as error:
         _report_morning_check_failure(error)
 
-    try:
-        _season_boundary_check(date, games, runs, config, picks_dir)
-    except Exception as error:
-        _report_season_boundary_failure(error)
-
     # 4. Main loop — sleep until each check time, then run
     coalesced: set[int] = set()   # run indexes covered by a fallback refresh (2026-08-30)
     for run_idx, run_info in enumerate(runs):
@@ -3652,6 +3647,11 @@ def run_day(
         if heartbeat_path:
             write_heartbeat(heartbeat_path, state=HeartbeatState.RUNNING)
             notify_watchdog()
+
+    try:
+        _season_boundary_check(date, games, runs, config, picks_dir)
+    except Exception as error:
+        _report_season_boundary_failure(error)
 
     # 7. Next-day lookahead for wake-up time
     # _next_day_wakeup (audit E1) never returns a past time and never raises.
