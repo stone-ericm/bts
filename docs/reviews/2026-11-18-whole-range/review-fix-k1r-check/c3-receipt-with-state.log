@@ -1,0 +1,42 @@
+nice: setpriority: Operation not permitted
+  DELIVERY REFUSED (lineup) — Batter 0: submission cutoff 23:54 ET passed 7.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (lineup) — Batter 0: submission cutoff 23:54 ET passed 7.0 min ago; not delivering an unenterable pick.
+[late_delivery CRITICAL] late delivery REFUSED for 2027-06-14: Batter 0 (lineup) was 7.0 min past the 2027-06-14T23:54:00-04:00 cutoff; nothing was delivered by that path
+[late_delivery CRITICAL] late delivery REFUSED for 2027-06-14: Batter 0 (lineup) was 7.0 min past the 2027-06-14T23:54:00-04:00 cutoff; nothing was delivered by that path
+First pitch 2027-06-14T23:59:00-04:00; delayed status returned 2027-06-15T00:01:00-04:00
+[
+  {
+    "sources": [
+      "late_delivery"
+    ],
+    "caller": "_refuse_late_delivery<-_deliver_and_lock_pick:1325",
+    "wall": "2027-06-15T00:01:00-04:00",
+    "arg_day": "None",
+    "sent_day": "2027-06-15",
+    "attempt": true,
+    "wire": true
+  },
+  {
+    "sources": [
+      "late_delivery"
+    ],
+    "caller": "_refuse_late_delivery<-<module>:33",
+    "wall": "2027-06-15T00:01:00-04:00",
+    "arg_day": "None",
+    "sent_day": "2027-06-15",
+    "attempt": false,
+    "wire": false
+  },
+  {
+    "sources": [
+      "late_delivery",
+      "late_delivery"
+    ],
+    "caller": "run_all_checks<-<module>:39",
+    "wall": "2027-06-15T00:01:00-04:00",
+    "arg_day": "2027-06-14",
+    "sent_day": "2027-06-14",
+    "attempt": true,
+    "wire": true
+  }
+]

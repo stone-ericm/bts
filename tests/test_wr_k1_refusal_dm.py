@@ -282,14 +282,17 @@ def alert_world(tmp_path):
 @pytest.mark.parametrize("boundary", ["June", "New Year"])
 @pytest.mark.parametrize("row", ["E4-E6", "E7", "E9"])
 def test_rollover(tmp_path, case, boundary, row):
+    # K1r (R75): the four in-day alerts dedup on the WALL-CLOCK ET date again (FINAL2), not on
+    # the slate date. Each step is (slate, wall date, time, DMs expected); the receipt's
+    # sent_day is the wall date. E4-E6 and E9 show C3-2's ledgered suppression, E7 its repeat.
     day, next_day = ("2027-06-14", "2027-06-15") if boundary == "June" else ("2027-12-31", "2028-01-01")
     if row == "E4-E6":
-        steps = [(day, next_day, "00:02", 1), (next_day, next_day, "08:00", 1)]
+        steps = [(day, next_day, "00:02", 1), (next_day, next_day, "08:00", 0)]
     elif row == "E7":
-        steps = [(day, day, "23:30", 1), (day, next_day, "00:02", 0), (day, next_day, "00:02", 0)]
+        steps = [(day, day, "23:30", 1), (day, next_day, "00:02", 1), (day, next_day, "00:02", 0)]
     else:
-        steps = [(next_day, next_day, "00:01", 1), (day, next_day, "00:02", 1),
-                 (next_day, next_day, "08:00", 1)]
+        steps = [(next_day, next_day, "00:01", 1), (day, next_day, "00:02", 0),
+                 (next_day, next_day, "08:00", 0)]
     with alert_world(tmp_path) as (root, record, cfg, sent):
         actual = []
         for slate, wall, hm, expected in steps:
@@ -298,7 +301,7 @@ def test_rollover(tmp_path, case, boundary, row):
             before = len(sent)
             dms_at(case, root, slate, at, cfg)
             actual.append((len(sent) - before, json.loads(record.read_text())["sent_day"]))
-        assert actual == [(expected, slate) for slate, _, _, expected in steps]
+        assert actual == [(expected, wall) for _, wall, _, expected in steps]
 
 def test_cross_midnight_wait(tmp_path):
     with alert_world(tmp_path) as (root, record, cfg, sent):
@@ -306,7 +309,7 @@ def test_cross_midnight_wait(tmp_path):
         _set_clock(at)
         dms_at("missed_pick", root, "2027-06-14", at, cfg)
         status = json.loads(record.read_text())
-        assert status["sent_day"] == "2027-06-14"
+        assert status["sent_day"] == "2027-06-15"  # K1r (R75): the wall date at the send
         assert "00:02" in status["updated_at"] or "04:02" in status["updated_at"]
         print("real wait crossing", status["sent_day"], status["updated_at"])
 
@@ -410,7 +413,9 @@ def test_e8_historical_contest_state(tmp_path):
                                                today=datetime.fromisoformat(day).date(), contest_state_expected=True)
         assert any(a.source == "contest_state" and "Prior slate" in a.message
                    and "contest streak file is malformed" in a.message for a in alerts)
-        assert len(sent) == 1
+        # K1r (R75): the after-midnight in-day send holds the wall date, so the slate's
+        # end-of-day digest is delivered once (FINAL2); the rerun is deduplicated.
+        assert len(sent) == 2
 
 
 def test_e8_historical_late_delivery(tmp_path):
@@ -428,7 +433,7 @@ def test_e8_historical_late_delivery(tmp_path):
             alerts = runner.run_all_checks(root, root.parent / "models", "op.invalid",
                                            today=datetime.fromisoformat(day).date())
         assert any(a.source == "late_delivery" and "Second Batter" in a.message for a in alerts)
-        assert len(sent) == 1
+        assert len(sent) == 2  # K1r (R75): the digest is delivered (FINAL2)
         print("EOD real late-delivery detail", len(sent), [a.message for a in alerts if a.source == "late_delivery"])
 
 
@@ -543,7 +548,8 @@ def test_s8_real_callers(case, tmp_path):
             assert all(name == "run_day" for name, _, _ in routes)
             assert now[0].date().isoformat() > day
         if case == "final_midnight":
-            assert all(d is not None and d.isoformat() == day for _, _, d in routes)
+            # K1r (R75): no dedup date is passed; the dispatcher uses the wall clock.
+            assert all(d is None for _, _, d in routes)
 
 @pytest.mark.parametrize("row", ["E4", "E7"])
 def test_real_switch_over_midnight(tmp_path, row):
@@ -565,8 +571,10 @@ def test_real_switch_over_midnight(tmp_path, row):
             with pytest.raises(cs.ContestStateError, match=reason) as caught:
                 cs.load_decision_streak_state(root, require_contest_state=True)
             scheduler._alert_contest_state_failure(cfg, caught.value, slate_date=slate)
-        assert len(sent) == (2 if row == "E4" else 1)
-        assert json.loads(record.read_text())["sent_day"] == steps[-1][0]
+        # K1r (R75): wall-clock dedup (FINAL2): E4's second alert is suppressed, E7's
+        # after-midnight alert for the same slate repeats once.
+        assert len(sent) == (1 if row == "E4" else 2)
+        assert json.loads(record.read_text())["sent_day"] == steps[-1][1]
 
 
 def test_e8_new_key_sends_then_rerun_dedups(tmp_path):

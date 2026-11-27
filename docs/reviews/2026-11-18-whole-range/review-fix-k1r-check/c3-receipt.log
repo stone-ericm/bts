@@ -1,0 +1,12 @@
+nice: setpriority: Operation not permitted
+  DELIVERY REFUSED (lineup) — Batter 0: submission cutoff 23:54 ET passed 7.0 min ago; not delivering an unenterable pick.
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-k1r-rev/.codex-review/wr-k1r/c3_receipt.py", line 28, in <module>
+    assert not scheduler._deliver_and_lock_pick(daily, sim.config, sim.picks, state, day, 'lineup')
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-k1r-rev/src/bts/scheduler.py", line 1325, in _deliver_and_lock_pick
+    _refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)
+  File "/Users/eric/projects/bts-work/wr-k1r-rev/src/bts/scheduler.py", line 2550, in _refuse_late_delivery
+    state.delivery_refusals = (state.delivery_refusals or []) + [{
+                               ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'delivery_refusals'

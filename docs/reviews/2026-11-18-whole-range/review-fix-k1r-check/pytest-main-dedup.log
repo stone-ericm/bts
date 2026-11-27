@@ -1,0 +1,76 @@
+nice: setpriority: Operation not permitted
+bts.__file__=/private/tmp/wr-k1r-check.i8PAcV68/main/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /private/tmp/wr-k1r-check.i8PAcV68/main
+configfile: ../../../../Users/eric/projects/bts-work/wr-k1r-rev/pyproject.toml
+plugins: anyio-4.13.0
+collected 2 items
+
+tests/test_wr_k1r_dedup.py   [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:58 ET] Fetching schedule for 2027-06-14...
+  2 games, 2 scheduled checks:
+    23:57 ET — 1 game(s)
+    00:24 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:58 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=single streak=57 best=57 (trusted) effective_best=None days=105 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 94.0% → should_lock=True
+  DELIVERY REFUSED (lineup) — game 70000 is Postponed; not delivering a pick on it.
+  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).
+  Earliest pick game at 00:42 ET, no check before then — fallback at 00:15 ET (17 min)...
+  Sleeping until 00:24 ET (9 min)...
+
+[00:24 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=single streak=57 best=57 (trusted) effective_best=None days=105 tail=dc5d0c992443
+  Pick: Batter 1 (T1) 93.0% → should_lock=True
+  DELIVERY REFUSED (lineup) — game 70001 is Cancelled; not delivering a pick on it.
+  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).
+  Earliest pick game at 01:09 ET, no check before then — fallback at 00:42 ET (18 min)...
+  Tomorrow's wake-up: Tue 06-15 10:00 ET
+F  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:46 ET] Fetching schedule for 2027-06-14...
+  1 games, 1 scheduled checks:
+    23:45 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:46 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Tomorrow's wake-up: Tue 06-15 10:00 ET
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:59 ET] Fetching schedule for 2027-06-14...
+  1 games, 1 scheduled checks:
+    23:45 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:59 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  CONTEST STATE ERROR — no pick made: contest streak invalid in /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3175/test_digest_then_restart_then_0/relative config/ live picks \name /account_state/contest_streak.json: -1
+  Tomorrow's wake-up: Tue 06-15 10:00 ET
+F
+
+=================================== FAILURES ===================================
+_____________ test_two_void_refusals_across_midnight_both_deliver ______________
+tests/test_wr_k1r_dedup.py:52: in test_two_void_refusals_across_midnight_both_deliver
+    assert [(r["sources"], r["wall"], r["wire"]) for r in sim.dispatches] == [
+E   AssertionError: assert [(['postponed...4:00', False)] == [(['postponed...04:00', True)]
+E     
+E     At index 1 diff: (['postponed_pick'], '2027-06-15T00:24:00-04:00', False) != (['postponed_pick'], '2027-06-15T00:24:00-04:00', True)
+E     Use -v to get more diff
+____________ test_digest_then_restart_then_live_refusal_all_deliver ____________
+tests/test_wr_k1r_dedup.py:94: in test_digest_then_restart_then_live_refusal_all_deliver
+    assert (live["sources"], live["wall"], live["wire"]) == (["contest_state"], live_at.isoformat(), True)
+E   AssertionError: assert (['contest_st...04:00', False) == (['contest_st...-04:00', True)
+E     
+E     At index 2 diff: False != True
+E     Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:47 [contest_state CRITICAL] contest streak state malformed at /private/var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/pytest-of-eric/pytest-3175/test_digest_then_restart_then_0/relative config/ live picks \name /account_state/contest_streak.json: expected object
+ERROR    bts.health.alert:alert.py:47 [contest_state CRITICAL] Prior slate 2027-06-14 ET. The automatic contest streak file has an invalid streak. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+=========================== short test summary info ============================
+FAILED tests/test_wr_k1r_dedup.py::test_two_void_refusals_across_midnight_both_deliver
+FAILED tests/test_wr_k1r_dedup.py::test_digest_then_restart_then_live_refusal_all_deliver
+============================== 2 failed in 1.00s ===============================

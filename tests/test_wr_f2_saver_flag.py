@@ -542,6 +542,9 @@ def test_e7_other_b8a_text_matches_round_two():
     row, = (line for line in checklist.read_bytes().splitlines() if line.startswith(b"| B8a |"))
     original = row.replace((NEW_B8A + ATTENTION_LIMIT_B8A).encode(), OLD_B8A.encode())
     from tests.test_wr_k1_r2 import K1B_DAILY_NEW, K1B_DAILY_OLD, K1B_LATE_NEW, K1B_LATE_OLD
+    from tests.test_wr_k1_r2 import K1R_AFTER_LAST, K1R_REFUSAL_NEW, K1R_REFUSAL_OLD
+    original = original.replace(f"{K1B_LATE_NEW} {K1R_AFTER_LAST}".encode(), K1B_LATE_NEW.encode())
+    original = original.replace(K1R_REFUSAL_NEW.encode(), K1R_REFUSAL_OLD.encode())
     original = original.replace(K1B_DAILY_NEW.encode(), K1B_DAILY_OLD.encode())
     original = original.replace(K1B_LATE_NEW.encode(), K1B_LATE_OLD.encode())
     original = original.replace(

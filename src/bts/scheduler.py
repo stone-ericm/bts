@@ -60,7 +60,6 @@ def _alert_contest_state_failure(
         parsed_date = date_type.fromisoformat(slate_date)
     except (TypeError, ValueError):
         parsed_date = None
-    date_kwargs = {"now_et_date": parsed_date} if parsed_date is not None else {}
     date_label = parsed_date.isoformat() if parsed_date is not None else "this slate"
     try:
         lines = str.splitlines(str(error))
@@ -88,7 +87,6 @@ def _alert_contest_state_failure(
         [Alert("CRITICAL", "contest_state", message)],
         dm_recipient,
         status_path=status_path,
-        **date_kwargs,
     )
 
 
@@ -266,16 +264,10 @@ def _alert_missed_pick(
         name = daily.pick.batter_name if daily and getattr(daily, "pick", None) else "?"
         msg = (f"NO PICK DELIVERED with ~{mins_to_game:.0f} min to first pitch "
                f"(top pick: {name}). Deliver manually if you want to keep the streak alive.")
-    try:
-        parsed_date = date_type.fromisoformat(slate_date)
-    except (TypeError, ValueError):
-        parsed_date = None
-    date_kwargs = {"now_et_date": parsed_date} if parsed_date is not None else {}
     dispatch_dm_for_health_alerts(
         [Alert("CRITICAL", "missed_pick", msg)],
         dm_recipient,
         status_path=status_path,
-        **date_kwargs,
     )
 
 
@@ -2566,16 +2558,10 @@ def _refuse_late_delivery(daily, config: dict, picks_dir: Path, state: Scheduler
            "Use a later official pick message only while the entry window is open. "
            "A manual entry can differ from a later recommendation. "
            "The entry check may report a mismatch if it verifies the entry in time.")
-    try:
-        parsed_date = date_type.fromisoformat(date)
-    except (TypeError, ValueError):
-        parsed_date = None
-    date_kwargs = {"now_et_date": parsed_date} if parsed_date is not None else {}
     dispatch_dm_for_health_alerts(
         [Alert("CRITICAL", "late_delivery", msg)],
         config.get("bluesky", {}).get("dm_recipient"),
         status_path=picks_dir.parent / "health_state" / "health_dm_delivery_status.json",
-        **date_kwargs,
     )
 
 
@@ -2629,16 +2615,10 @@ def _refuse_void_game_delivery(daily, config: dict, picks_dir: Path, state: Sche
            "Use a later official pick message only while the entry window is open. "
            "A manual entry can differ from a later recommendation. "
            "The entry check may report a mismatch if it verifies the entry in time.")
-    try:
-        parsed_date = date_type.fromisoformat(date)
-    except (TypeError, ValueError):
-        parsed_date = None
-    date_kwargs = {"now_et_date": parsed_date} if parsed_date is not None else {}
     dispatch_dm_for_health_alerts(
         [Alert("CRITICAL", "postponed_pick", msg)],
         config.get("bluesky", {}).get("dm_recipient"),
         status_path=picks_dir.parent / "health_state" / "health_dm_delivery_status.json",
-        **date_kwargs,
     )
 
 
