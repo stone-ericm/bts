@@ -193,4 +193,4 @@ The read's blocking class is K1's own dedup change seen in two more orders. Ways
 - **(ii)** accept and write the two orders into K1's limits (Eric);
 - **(iii)** revert the dedup-date half of K1 (C3-2 was ledgered as "no: ledger" in the closing test; F2-1, the DM length, is the part that was proposed for a fix).
 
-My recommendation: (iii) or (i). With (iii), FINAL3's DM-length fix stays and the alert set returns to FINAL2's behaviour, which delivered both alerts here. The two text edits can be applied with whichever is chosen.
+My recommendation: (iii) or (i). With (iii), FINAL3's DM-length fix stays and the alert set returns to FINAL2's behaviour, which delivered both alerts here. Its cost: C3-2's original loss returns (after an in-day alert for D sent after midnight, the first same-source alert for D+1 is suppressed), which the closing test had rated rare (it needs a post-midnight send) and ledgered before R72 took it into K1. The two text edits can be applied with whichever is chosen.
