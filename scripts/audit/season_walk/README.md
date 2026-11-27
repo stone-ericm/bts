@@ -14,12 +14,13 @@ Run from the repository root: `.venv/bin/python -m scripts.audit.season_walk.wal
 
 ## What it checks
 - days left equals the calendar dates from the date through the finale 2027-09-26 inclusive (0 after),
-  and the policy's effective count is that clamped to the table's 180 days;
+  and for a slate with candidates the policy's effective count is that count floored at one, then
+  clamped to the table's 180 days;
   `SEASON_END_DATES[2027]` is the day after the finale;
 - every date yields a pick or a NAMED skip (a skip carrying the policy's structured decision), never an
   error or an empty without a decision; the decision source is the MDP (the shipped artifacts loaded);
 - the saver the policy sees follows the change set 3 rule; a pick records the state kind it was chosen on;
-- after the finale every action is a skip; on the finale streak 56 plays;
+- The default walk supplies synthetic candidates after the finale. Its raw day count is zero and fresh selection uses one decision day. Streak 56 plays on the scheduled finale and the makeup fixture. An explicit empty fixture yields no decision.
 - in season, a skip's operator notice (`scheduler.format_skip_dm` over `build_skip_summary`, built as
   `run_single_check` builds it from the same decision) never says the best candidate is below a bar it
   clears;
