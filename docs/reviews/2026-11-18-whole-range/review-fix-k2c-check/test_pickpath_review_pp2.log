@@ -1,0 +1,13 @@
+nice: setpriority: Operation not permitted
+bts: /Users/eric/projects/bts-work/wr-chk-k2c/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-k2c
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 67 items
+
+tests/test_pickpath_review_pp2.py ...................................... [ 56%]
+ss....ss....ss....ss.........                                            [100%]
+
+======================== 59 passed, 8 skipped in 1.26s =========================

@@ -17,7 +17,6 @@ from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta, timezone, date as date_type
 from numbers import Real
 from pathlib import Path
-from threading import Thread
 from zoneinfo import ZoneInfo
 
 from bts.util import atomic_write_text, is_regular_season_game, retry_urlopen
@@ -2971,73 +2970,6 @@ def run_result_polling(
         _poll_interval_sleep(heartbeat_path, poll_interval_min * 60)
 
 
-def _write_season_boundary_line(line: str) -> None:
-    import os
-
-    try:
-        os.write(2, (line + "\n").encode("utf-8"))
-    except OSError:
-        pass
-
-
-def _season_boundary_failure_line(error: Exception) -> str:
-    return f"Season boundary check failed: {ascii(str(error))[:200]}"
-
-
-def _queue_season_boundary_line(line: str) -> None:
-    from queue import Queue
-
-    lines: Queue[str | None] = Queue()
-
-    def write_journal() -> None:
-        while (pending := lines.get()) is not None:
-            _write_season_boundary_line(pending)
-
-    Thread(target=write_journal, daemon=True).start()
-    lines.put_nowait(line)
-    lines.put_nowait(None)
-
-
-def _report_season_boundary_failure(error: Exception) -> None:
-    try:
-        _queue_season_boundary_line(_season_boundary_failure_line(error))
-    except Exception:
-        pass
-
-
-def _season_boundary_check(date: str, games: list[dict], _runs: list[dict],
-                           _config: dict, _picks_dir: Path) -> None:
-    from bts.picks import _is_void_detailed_state
-    from bts.strategy import SEASON_END_DATES, _days_remaining, season_end_date
-
-    if _days_remaining(date) != 0:
-        return
-    slate_day = datetime.strptime(date, "%Y-%m-%d").date()
-    slate_date = slate_day.isoformat()
-    count = 0
-    for game in games:
-        if game.get("gameType") != "R" or game.get("officialDate") != slate_date:
-            continue
-        status = game.get("status")
-        detailed = status.get("detailedState") if isinstance(status, Mapping) else None
-        if isinstance(detailed, str) and detailed.strip() and not _is_void_detailed_state(detailed):
-            count += 1
-    if not count:
-        return
-
-    boundary = season_end_date(slate_date)
-    boundary_source = ("The configured exclusive boundary" if slate_day.year in SEASON_END_DATES
-                       else f"The fallback exclusive boundary for the unconfigured year {slate_day.year}")
-    _queue_season_boundary_line(
-        f"SEASON BOUNDARY BEHIND SCHEDULE — {slate_date} ET: {count} regular-season game(s) "
-        "with that official date and a reported status other than postponed or canceled. "
-        f"{boundary_source} is {boundary}, giving a raw count of zero. "
-        "A fresh pick selection with an available predicted candidate uses the last-day policy. "
-        "Ask the BTS lead session or Eric to check MLB's last regular-season game date, "
-        "including pending makeup games, and to update the stored boundary for a later run."
-    )
-
-
 def run_day(
     date: str,
     config: dict,
@@ -3647,11 +3579,6 @@ def run_day(
         if heartbeat_path:
             write_heartbeat(heartbeat_path, state=HeartbeatState.RUNNING)
             notify_watchdog()
-
-    try:
-        _season_boundary_check(date, games, runs, config, picks_dir)
-    except Exception as error:
-        _report_season_boundary_failure(error)
 
     # 7. Next-day lookahead for wake-up time
     # _next_day_wakeup (audit E1) never returns a past time and never raises.

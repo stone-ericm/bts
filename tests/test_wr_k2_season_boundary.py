@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import runpy
 import sys
-from threading import Event, Thread, current_thread
+
 from types import SimpleNamespace
 
 import pytest
@@ -93,12 +93,6 @@ def startup(monkeypatch, tmp_path):
         bodies.append(body)
         return "message-id"
 
-    class RecordWorker(Thread):
-        def start(self):
-            workers.append(self)
-            super().start()
-
-    monkeypatch.setattr(scheduler, "Thread", RecordWorker)
     monkeypatch.setattr(alert, "send_dm", send)
     monkeypatch.setattr(scheduler, "run_single_check", no_pick_check)
     monkeypatch.setattr(scheduler, "_idle_until_next_wakeup", lambda *a: None)
@@ -130,6 +124,18 @@ def startup(monkeypatch, tmp_path):
 
 
 @pytest.mark.parametrize("mode", ["private", "dm", "public"])
+def test_qualifying_start_writes_no_boundary_line(startup, capfd, mode):
+    """Eric 2026-11-27 (K2 option 2): the stale-boundary journal line is dropped; only the floor stays."""
+    start, bodies, config = startup
+    config["scheduler"]["pick_delivery"] = mode
+    start([game()])
+    err = capfd.readouterr().err
+    assert "SEASON BOUNDARY" not in err and "Season boundary" not in err
+    assert bodies == []
+    assert not hasattr(scheduler, "_season_boundary_check")
+
+
+@pytest.mark.parametrize("mode", ["private", "dm", "public"])
 def test_qualifying_start_sends_no_dm_and_writes_no_receipt(startup, tmp_path, mode):
     start, bodies, config = startup
     config["scheduler"]["pick_delivery"] = mode
@@ -138,204 +144,6 @@ def test_qualifying_start_sends_no_dm_and_writes_no_receipt(startup, tmp_path, m
 
     receipt = tmp_path / "health_state" / "season_boundary" / f"{DAY}.json"
     assert (bodies, receipt.exists()) == ([], False)
-
-
-def test_configured_boundary_journal_counts_each_start(startup, capfd):
-    start, _, _ = startup
-    start([game()])
-    start([game(), game(gamePk=124, status={"detailedState": "Final"}),
-           game(gamePk=125, status={"detailedState": "Postponed"}),
-           game(gamePk=126, status={"detailedState": "Canceled"})])
-    start([game()])
-
-    expected = (
-        "SEASON BOUNDARY BEHIND SCHEDULE — 2027-09-27 ET: 1 regular-season game(s) "
-        "with that official date and a reported status other than postponed or canceled. "
-        "The configured exclusive boundary is 2027-09-27, giving "
-        "a raw count of zero. A fresh pick selection with an available predicted candidate "
-        "uses the last-day policy. Ask the BTS lead session or Eric to check MLB's last "
-        "regular-season game date, including pending makeup games, and to update the "
-        "stored boundary for a later run."
-    )
-    lines = [line for line in capfd.readouterr().err.splitlines()
-             if line.startswith("SEASON BOUNDARY")]
-    assert lines == [expected, expected.replace("1 regular-season", "2 regular-season"), expected]
-
-
-@pytest.mark.parametrize("at,pitch,first_check,stall", [
-    ("10:05:00", "13:15:00", "10:15:00", 720),
-    ("10:10:00", "13:15:00", "10:15:00", 720),
-    ("18:59:59", "19:05:00", "18:59:59", 2),
-], ids=["thin-slate-first-check", "thin-slate-start-near-check", "restart-before-entry-cutoff"])
-def test_stalled_boundary_journal_preserves_first_check(
-        startup, monkeypatch, at, pitch, first_check, stall):
-    start, _, _ = startup
-    scheduler_thread = current_thread()
-    blocked = Event()
-    release = Event()
-    workers = []
-    checks = []
-    elapsed = 0
-    original_write = os.write
-    original_stderr = sys.stderr
-    def stall_warning():
-        nonlocal elapsed
-        if current_thread() is scheduler_thread:
-            elapsed += stall
-        else:
-            blocked.set()
-            assert release.wait(2)
-
-    class Journal:
-        def write(self, value):
-            if (current_thread() is scheduler_thread
-                    and value.startswith("SEASON BOUNDARY BEHIND SCHEDULE")):
-                stall_warning()
-            return original_stderr.write(value)
-
-        def flush(self):
-            original_stderr.flush()
-
-    def write(fd, data):
-        if fd == 2 and data.startswith(b"SEASON BOUNDARY BEHIND SCHEDULE"):
-            stall_warning()
-            return len(data)
-        return original_write(fd, data)
-
-    class RecordWorker(Thread):
-        def start(self):
-            workers.append(self)
-            super().start()
-
-    def check(**kwargs):
-        checks.append((scheduler._now_et().strftime("%H:%M:%S"), kwargs["unavailable_game_pks"]))
-        return no_pick_check(**kwargs)
-
-    def release_writer():
-        assert checks[0] == (first_check, set())
-        assert blocked.wait(1)
-        release.set()
-
-    monkeypatch.setattr(scheduler, "run_single_check", check)
-    monkeypatch.setattr(scheduler, "Thread", RecordWorker)
-    monkeypatch.setattr(sys, "stderr", Journal())
-    monkeypatch.setattr(os, "write", write)
-    try:
-        start([game(gameDate=f"{DAY}T{pitch}-04:00")], at=f"{DAY}T{at}",
-              journal_delay=lambda: elapsed, before_join=release_writer)
-    finally:
-        release.set()
-        for worker in workers:
-            Thread.join(worker, 2)
-            assert not worker.is_alive()
-
-
-def test_boundary_journal_follows_last_lineup_check_and_fallback(startup, monkeypatch, capfd):
-    start, _, _ = startup
-    daily = SimpleNamespace(pick=SimpleNamespace(game_time=f"{DAY}T19:05:00-04:00"),
-                            double_down=None)
-    monkeypatch.setattr(picks, "load_pick", lambda *a: daily)
-    monkeypatch.setattr(picks, "pick_was_delivered", lambda *a: False)
-    monkeypatch.setattr(scheduler, "_refresh_pick_at_fallback_decision",
-                        lambda *a, **kw: SimpleNamespace(daily=daily, selection=None))
-    delivered = []
-    monkeypatch.setattr(scheduler, "_deliver_and_lock_pick",
-                        lambda *a, **kw: delivered.append(a[-1]))
-
-    # Run the queued writer to completion at its enqueue point so thread scheduling
-    # cannot hide a warning queued too early.
-    workers = []
-    original_queue = scheduler._queue_season_boundary_line
-
-    class JournalWorker(Thread):
-        def start(self):
-            workers.append(self)
-            super().start()
-
-    def queue(line):
-        original_queue(line)
-        workers[-1].join(1)
-        assert not workers[-1].is_alive()
-
-    monkeypatch.setattr(scheduler, "Thread", JournalWorker)
-    monkeypatch.setattr(scheduler, "_queue_season_boundary_line", queue)
-    start([game()])
-
-    assert delivered == ["final fallback"]
-    journal = capfd.readouterr().err
-    assert (0 <= journal.rfind("Running lineup check...")
-            < journal.index("FALLBACK —")
-            < journal.index("SEASON BOUNDARY BEHIND SCHEDULE")
-            < journal.index("Tomorrow's wake-up:"))
-
-
-def test_shared_journal_with_690_bytes_free_preserves_restart_cutoff(startup, monkeypatch):
-    start, _, _ = startup
-    elapsed = 0
-    checks = []
-    lines = []
-    wrote = Event()
-    original_queue = scheduler._queue_season_boundary_line
-    original_write = os.write
-    reader, writer = os.pipe()
-
-    def charge(data):
-        nonlocal elapsed
-        try:
-            written = original_write(writer, data)
-        except BlockingIOError:
-            # Simulate two seconds of backpressure before the reader resumes.
-            elapsed += 2
-            os.read(reader, capacity)
-            written = original_write(writer, data)
-        assert written == len(data)
-        return written
-
-    class SharedJournal:
-        def write(self, value):
-            charge(value.encode())
-            return len(value)
-
-        def flush(self):
-            pass
-
-    def write(fd, data):
-        if fd == 2 and data.startswith(b"SEASON BOUNDARY BEHIND SCHEDULE"):
-            charge(data)
-            lines.append(data)
-            wrote.set()
-            return len(data)
-        return original_write(fd, data)
-
-    def queue(line):
-        original_queue(line)
-        assert wrote.wait(1)
-
-    def check(**kwargs):
-        checks.append((scheduler._now_et().strftime("%H:%M:%S"), kwargs["unavailable_game_pks"]))
-        return no_pick_check(**kwargs)
-
-    monkeypatch.setattr(sys, "stderr", SharedJournal())
-    monkeypatch.setattr(os, "write", write)
-    monkeypatch.setattr(scheduler, "_queue_season_boundary_line", queue)
-    monkeypatch.setattr(scheduler, "run_single_check", check)
-    try:
-        os.set_blocking(writer, False)
-        capacity = 0
-        for size in (1024, 1):
-            while True:
-                try:
-                    capacity += original_write(writer, b"x" * size)
-                except BlockingIOError:
-                    break
-        assert len(os.read(reader, 690)) == 690
-        start([game()], at=f"{DAY}T18:59:59", journal_delay=lambda: elapsed)
-    finally:
-        os.close(writer)
-        os.close(reader)
-
-    assert len(lines) == 1
-    assert checks[0] == ("18:59:59", set())
 
 
 def test_positive_day_grid(capsys):
@@ -363,25 +171,6 @@ def test_health_retains_raw_boundary():
                            tail_path=Path("data/models/mdp_tail_policy.npz"))],
                        [asdict(a) for a in tail_policy.season_end_alerts(today=today)]])
     assert actual == expected
-
-
-def test_fallback_warning_and_unclassifiable_rows(startup, capfd):
-    start, _, _ = startup
-    day = "2028-09-29"
-    start([game(day), game(day, gamePk=124, officialDate="2028-09-30"),
-           game(day, gamePk=125, status=None), game(day, gamePk=126, gameType=None),
-           game(day, gamePk=127, status={"detailedState": " "})], day=day)
-    lines = [line for line in capfd.readouterr().err.splitlines()
-             if line.startswith("SEASON BOUNDARY")]
-    assert lines == [
-        "SEASON BOUNDARY BEHIND SCHEDULE — 2028-09-29 ET: 1 regular-season game(s) "
-        "with that official date and a reported status other than postponed or canceled. "
-        "The fallback exclusive boundary for the unconfigured year 2028 is 2028-09-28, giving "
-        "a raw count of zero. A fresh pick selection with an available predicted candidate "
-        "uses the last-day policy. Ask the BTS lead session or Eric to check MLB's last "
-        "regular-season game date, including pending makeup games, and to update the "
-        "stored boundary for a later run."
-    ]
 
 
 def test_real_morning_refusal_unchanged_at_boundary(tmp_path):
@@ -415,8 +204,6 @@ def test_saved_decision_keeps_schema(tmp_path, streak, best, objective):
     assert check["selection"].decision.days_effective == 1
     if streak == 57:
         assert load_pick(DAY, picks).policy_decision["days_effective"] == 1
-
-
 
 
 @pytest.mark.parametrize("day,games,dry", [

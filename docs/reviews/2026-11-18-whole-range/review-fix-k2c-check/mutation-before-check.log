@@ -1,0 +1,31 @@
+nice: setpriority: Operation not permitted
+bts: /private/tmp/wr-k2c.Pkn3Bs/mutant/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-k2c
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 54 items / 49 deselected / 5 selected
+
+tests/test_wr_k2_season_boundary.py ...FF                                [100%]
+
+=================================== FAILURES ===================================
+_________ test_boundary_journal_follows_last_lineup_check_and_fallback _________
+tests/test_wr_k2_season_boundary.py:266: in test_boundary_journal_follows_last_lineup_check_and_fallback
+    assert (0 <= journal.rfind("Running lineup check...")
+E   assert 1020 < 223
+E    +  where 1020 = <built-in method index of str object at 0x78916e1e00>('FALLBACK —')
+E    +    where <built-in method index of str object at 0x78916e1e00> = "  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.\n[10:00 ET] Fetching schedule for 2027-09-27...... min)...\n  FALLBACK — 35min to first pitch, delivering on projected data.\n  Tomorrow's wake-up: Tue 09-28 10:00 ET\n".index
+E    +  and   223 = <built-in method index of str object at 0x78916e1e00>('SEASON BOUNDARY BEHIND SCHEDULE')
+E    +    where <built-in method index of str object at 0x78916e1e00> = "  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.\n[10:00 ET] Fetching schedule for 2027-09-27...... min)...\n  FALLBACK — 35min to first pitch, delivering on projected data.\n  Tomorrow's wake-up: Tue 09-28 10:00 ET\n".index
+_______ test_shared_journal_with_690_bytes_free_preserves_restart_cutoff _______
+tests/test_wr_k2_season_boundary.py:338: in test_shared_journal_with_690_bytes_free_preserves_restart_cutoff
+    assert checks[0] == ("18:59:59", set())
+E   AssertionError: assert ('19:00:01', {123}) == ('18:59:59', set())
+E     
+E     At index 0 diff: '19:00:01' != '18:59:59'
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/test_wr_k2_season_boundary.py::test_boundary_journal_follows_last_lineup_check_and_fallback
+FAILED tests/test_wr_k2_season_boundary.py::test_shared_journal_with_690_bytes_free_preserves_restart_cutoff
+================== 2 failed, 3 passed, 49 deselected in 0.66s ==================
