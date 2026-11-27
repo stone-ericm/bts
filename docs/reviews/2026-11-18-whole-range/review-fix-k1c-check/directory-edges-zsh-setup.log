@@ -1,0 +1,4 @@
+nice: setpriority: Operation not permitted
+/bin/zsh unset DIR: first refusal 18:35; CLI exits 0/0, status accepts ., live status still refused; 18:55 pick DMs=0; decision=absent
+/bin/zsh empty DIR: first refusal 18:35; CLI exits 0/0, status accepts ., live status still refused; 18:55 pick DMs=0; decision=absent
+/bin/zsh DIR set in a different shell: first refusal 18:35; CLI exits 0/0, status accepts ., live status still refused; 18:55 pick DMs=0; decision=absent
