@@ -284,7 +284,7 @@ def alert_world(tmp_path):
 def test_rollover(tmp_path, case, boundary, row):
     # K1r (R75): the four in-day alerts dedup on the WALL-CLOCK ET date again (FINAL2), not on
     # the slate date. Each step is (slate, wall date, time, DMs expected); the receipt's
-    # sent_day is the wall date. E4-E6 and E9 are C3-2's ledgered repeat-or-loss cases.
+    # sent_day is the wall date. E4-E6 and E9 show C3-2's ledgered suppression, E7 its repeat.
     day, next_day = ("2027-06-14", "2027-06-15") if boundary == "June" else ("2027-12-31", "2028-01-01")
     if row == "E4-E6":
         steps = [(day, next_day, "00:02", 1), (next_day, next_day, "08:00", 0)]
