@@ -349,3 +349,17 @@ Part a matched every recorded state; the blind read and Carbon slice 3 returned 
 - **SW2 to Eric** (the daily batch, today): at streaks 51 to 56 the shipped table skips every candidate while 31 or more days remain; Eric's 56 decision of 11-25 was made on an inexact description.
 - **Ledgered:** F2-5, C3-4, C3-5, C3-6, C2-4, F2-8; **January with Eb:** F2-6, C2-6, F2-7, C2-1's B8b (4) wording; **already known or accepted:** F2-2, F2-3, F2-4, C2-1, C2-2, C2-3, C3-3, C3-7; notes F2-9, C3-8, C2-5.
 - **After K1 and K2 merge**, the closing evidence is renewed only for what they touch (their files' tests and the touched harness cases), the season walk, and one fresh focused read of the changed files: a full third run is not required unless that read finds something under the same rule.
+
+## Ruling R73 (lead, 2026-11-26 13:56): K1b
+K1 stopped after round 2 (`WRK1REV2-2ea27ed3`: round 1's findings fixed; two new B8a-text findings of one class: the daily dated command lacks `--picks-dir`, and the late-filing rule names only the first lineup check; under R64 both can write state where the scheduler does not read it or skip a correction). **K1b** is K1's one follow-up: the reviewer's two sentences verbatim, checked against the real CLI, and one fresh Codex check limited to them; SIGN merges K1 with K1b on K1's gate; a BLOCK goes to Eric.
+
+## Ruling R74 (lead, 2026-11-26 14:46): K2b
+K2 stopped after round 2 (`WRK2REV2-17651cb0`): the day-count floor holds (a makeup day after the stored finale plays; every positive-day decision equals the base); the BLOCK is in K2's new boundary-WARN DM (after a failed send with a full stderr pipe the dispatcher's failure line can hold the process past an interrupt). **K2b** is K2's one follow-up: the DM is dropped (no change to the shared dispatcher), the journal line and the floor stay; one fresh Codex check limited to that; a BLOCK goes to Eric. Cost: the stale-boundary notice is in the journal only, not a DM (the makeup day plays either way).
+
+## Lead, 2026-11-26 16:03: R71 widened
+K2b's gate hit two further `test_screen.py` tests with the same "files changed during the run" message (each clean five times alone and once in file order). R71 now covers any `test_screen.py` test failing with that message in its own scratch repository; every other extra gate failure keeps R70 item 6's repeats.
+
+## Eric, 2026-11-26 18:54 ("1. 2 / 2. 2 / 3. 3")
+- **K1b: option 2.** One more fresh Codex check limited to the reviewer's quoted B8a sentence (`--picks-dir "$DIR"`); SIGN or SIGN WITH EDITS merges K1 with K1b on K1's green gate; a BLOCK comes back to Eric.
+- **K2b: option 2.** The stale-boundary journal line is moved to after the day's lineup checks (so a nearly full stderr pipe cannot delay a check), then one fresh Codex check limited to that move; SIGN merges on a green gate; a BLOCK comes back to Eric.
+- **SW2: option 3.** At streaks 51 to 56 the shipped table's idling while 31 or more days remain stays as it is and is folded into the longest-streak policy work (D7) with the late-phase cutpoint fix (P1): the re-solved table must be checked for an all-skip region before it ships. Today's behaviour is a written limit until then.

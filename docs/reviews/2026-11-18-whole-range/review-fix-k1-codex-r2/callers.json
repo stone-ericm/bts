@@ -1,0 +1,1418 @@
+{
+  "2027-07-15/check": {
+    "result": {
+      "skipped": false,
+      "new_lineups": 0,
+      "should_post": false,
+      "pick_result": null,
+      "pick_name": null,
+      "pick_p": null,
+      "selection": null
+    },
+    "journal": "  0 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR — no pick made: Live decision refused: season 2027 switch is absent.\nAlternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir <TMP>/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir <TMP>/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir <TMP>/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir <TMP>/picks`; then run `bts fetch-contest-streak --picks-dir <TMP>/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n",
+    "stdout": "",
+    "files": {
+      "picks/slates/2027-07-15.json": "{\n  \"schema_version\": \"bts_slate_v2\",\n  \"date\": \"2027-07-15\",\n  \"tier\": \"offline\",\n  \"written_at\": \"2027-07-15T22:05:00+00:00\",\n  \"n_rows\": 2,\n  \"rows\": [\n    {\n      \"batter_id\": 680757,\n      \"batter_name\": \"Steven Kwan\",\n      \"team\": \"CLE\",\n      \"game_pk\": 101,\n      \"lineup\": 1,\n      \"pitcher_id\": 543037,\n      \"pitcher_name\": \"Gerrit Cole\",\n      \"p_game_hit\": 0.82,\n      \"flags\": \"\",\n      \"game_time\": \"2027-07-15T18:55:00-04:00\"\n    },\n    {\n      \"batter_id\": 665742,\n      \"batter_name\": \"Juan Soto\",\n      \"team\": \"NYM\",\n      \"game_pk\": 102,\n      \"lineup\": 2,\n      \"pitcher_id\": 605483,\n      \"pitcher_name\": \"Blake Snell\",\n      \"p_game_hit\": 0.81,\n      \"flags\": \"\",\n      \"game_time\": \"2027-07-15T19:25:00-04:00\"\n    }\n  ]\n}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "bc2c071ae32908918be0f7132362ba6ae0d53bba792a10a536a6f4da9e7a83e7",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-07-15",
+      "sent_sources": [
+        "CRITICAL:contest_state"
+      ],
+      "status": "sent",
+      "updated_at": "2027-07-15T22:05:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-07-15 at this check. Reason: Live decision refused: season 2027 switch is absent.\nSee the scheduler journal for this refusal. To inspect current state, run bts season-contract status with --picks-dir set to the scheduler's absolute picks directory. For live repair, use the season-start checklist (B8a). Before changing state for a new slate, verify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "contest_state",
+        "run_single_check",
+        "_alert_contest_state_failure(config, e, slate_date=date)",
+        "2027-07-15T18:05:00-04:00",
+        "2027-07-15"
+      ]
+    ]
+  },
+  "2027-07-15/loader": {
+    "result": false,
+    "journal": "  CONTEST STATE ERROR — pick delivery blocked: Live decision refused: season 2027 switch is absent.\nAlternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir <TMP>/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir <TMP>/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir <TMP>/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir <TMP>/picks`; then run `bts fetch-contest-streak --picks-dir <TMP>/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-07-15.jsonl": "{\"captured_at\": \"2027-07-15T22:05:00+00:00\", \"date\": \"2027-07-15\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-07-15.json": "{\n  \"date\": \"2027-07-15\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2027-07-15T18:55:00-04:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": null,\n  \"automatic_reading\": null\n}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "bc2c071ae32908918be0f7132362ba6ae0d53bba792a10a536a6f4da9e7a83e7",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-07-15",
+      "sent_sources": [
+        "CRITICAL:contest_state"
+      ],
+      "status": "sent",
+      "updated_at": "2027-07-15T22:05:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-07-15 at this check. Reason: Live decision refused: season 2027 switch is absent.\nSee the scheduler journal for this refusal. To inspect current state, run bts season-contract status with --picks-dir set to the scheduler's absolute picks directory. For live repair, use the season-start checklist (B8a). Before changing state for a new slate, verify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "contest_state",
+        "_deliver_and_lock_pick",
+        "_alert_contest_state_failure(config, e, slate_date=date)",
+        "2027-07-15T18:05:00-04:00",
+        "2027-07-15"
+      ]
+    ]
+  },
+  "2027-07-15/saved": {
+    "result": false,
+    "journal": "CONTEST STATE ERROR — pick delivery blocked: Saved pick for 2027-07-15 was not delivered because it was chosen on dated (effective date 2027-07-15, active streak 12, best streak 16, saver used). The live state is dated (effective date 2027-07-15, active streak 13, best streak 16, saver used). A later scheduled check or fallback refresh may choose a replacement, if one remains.\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-07-15.jsonl": "{\"captured_at\": \"2027-07-15T22:05:00+00:00\", \"date\": \"2027-07-15\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-07-15.json": "{\n  \"date\": \"2027-07-15\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2027-07-15T18:55:00-04:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": {\n    \"schema\": \"bts_pick_chosen_on_v1\",\n    \"required\": true,\n    \"kind\": \"dated\",\n    \"streak\": 12,\n    \"saver_available\": false,\n    \"dated\": {\n      \"effective_date\": \"2027-07-15\",\n      \"active_streak\": 12,\n      \"best_streak\": 16,\n      \"saver_state\": \"used\"\n    }\n  },\n  \"automatic_reading\": null\n}",
+      "picks/account_state/contest_streak.manual.json": "{\"schema_version\": \"bts_contest_streak_manual_v3\", \"effective_date\": \"2027-07-15\", \"expires_at\": \"2027-07-15T23:59:59.999999-04:00\", \"season\": 2027, \"active_streak\": 13, \"best_streak\": 16, \"saver_state\": \"used\", \"recorded_at\": \"2027-07-15T18:05:00-04:00\", \"source\": \"MLB\"}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "1625a37567f7203936b9dda4d335cd858bd43f06971097a69c58d913602f9c3b",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-07-15",
+      "sent_sources": [
+        "CRITICAL:contest_state"
+      ],
+      "status": "sent",
+      "updated_at": "2027-07-15T22:05:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-07-15 at this check. Reason: Saved pick for 2027-07-15 was not delivered because it was chosen on dated (effective date 2027-07-15, active streak 12, best streak 16, saver used). The live state is dated (effective date 2027-07-15, active streak 13, best streak 16, saver used). A later scheduled check or fallback refresh may choose a replacement, if one remains.\nSee the scheduler journal for this refusal. To inspect current state, run bts season-contract status with --picks-dir set to the scheduler's absolute picks directory. For live repair, use the season-start checklist (B8a). Before changing state for a new slate, verify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "contest_state",
+        "_deliver_and_lock_pick",
+        "_alert_contest_state_failure(config, ContestStateError(refusal), slate_date=date)",
+        "2027-07-15T18:05:00-04:00",
+        "2027-07-15"
+      ]
+    ]
+  },
+  "2027-07-15/in_loop": {
+    "result": null,
+    "journal": "  [DM MODE] Public Bluesky posting disabled — picks sent by DM.\n[17:54 ET] Fetching schedule for 2027-07-15...\n  2 games, 1 scheduled checks:\n    17:55 ET — 2 game(s)\n  Morning state check skipped: first lineup check is due within 10 minutes.\n  Sleeping until 17:55 ET (1 min)...\n\n[17:55 ET] Running lineup check...\n  0 new confirmed lineup(s). Running predictions...\nMDP base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz')\nMDP tail policy not usable (base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz'): tail pairing unverifiable)\n  Pick: Steven Kwan (CLE) 82.0% → should_lock=False\n  Earliest pick game at 18:55 ET, no check before then — fallback at 18:20 ET (25 min)...\n  FALLBACK BLOCKED — contest state invalid: Live decision refused: season 2027 switch is absent.\nAlternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir <TMP>/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir <TMP>/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir <TMP>/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir <TMP>/picks`; then run `bts fetch-contest-streak --picks-dir <TMP>/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n  FALLBACK BLOCKED — contest state invalid: Live decision refused: season 2027 switch is absent.\nAlternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir <TMP>/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir <TMP>/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir <TMP>/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir <TMP>/picks`; then run `bts fetch-contest-streak --picks-dir <TMP>/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n  MISSED-PICK ALERT — no delivery with ~10min to first pitch.\n  Tomorrow's wake-up: Fri 07-16 10:00 ET\n",
+    "stdout": "",
+    "files": {
+      "heartbeat": "{\"state\": \"idle_end_of_day\", \"timestamp\": \"2027-07-15T22:45:00+00:00\"}",
+      "picks/lineup_evolution_2027-07-15.jsonl": "{\"captured_at\": \"2027-07-15T21:54:00+00:00\", \"date\": \"2027-07-15\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n{\"captured_at\": \"2027-07-15T21:55:00+00:00\", \"date\": \"2027-07-15\", \"run_time\": \"2027-07-15T21:55:00+00:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": {\"batter_id\": 665742, \"batter_name\": \"Juan Soto\", \"team\": \"NYM\", \"p_game_hit\": 0.81, \"projected_lineup\": false, \"game_pk\": 102}}\n",
+      "picks/2027-07-15.json": "{\n  \"date\": \"2027-07-15\",\n  \"run_time\": \"2027-07-15T21:55:00+00:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2027-07-15T18:55:00-04:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": {\n    \"batter_name\": \"Juan Soto\",\n    \"batter_id\": 665742,\n    \"team\": \"NYM\",\n    \"lineup_position\": 2,\n    \"pitcher_name\": \"Blake Snell\",\n    \"pitcher_id\": 605483,\n    \"p_game_hit\": 0.81,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 102,\n    \"game_time\": \"2027-07-15T19:25:00-04:00\",\n    \"pitcher_team\": null\n  },\n  \"runner_up\": {\n    \"batter_name\": \"Juan Soto\",\n    \"p_game_hit\": 0.81\n  },\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": \"bts_feature_env_v1\",\n  \"feature_env\": {\n    \"BTS_LGBM_DETERMINISTIC\": \"0\",\n    \"BTS_LGBM_RANDOM_STATE\": \"42\",\n    \"BTS_PITCHER_HR_30G_MIN_PERIODS\": \"7\",\n    \"BTS_ROOKIE_GATE_K\": \"20\",\n    \"BTS_USE_CALIBRATION\": \"0\"\n  },\n  \"feature_env_hash\": \"fb1841abbb3f269053f4687d291405c4c08ef1c9a87eda8f4f0663804b481ebe\",\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": {\n    \"action\": \"double\",\n    \"policy_action\": \"double\",\n    \"source\": \"heuristic\",\n    \"objective\": \"reach57\",\n    \"streak\": 7,\n    \"days_effective\": 74,\n    \"best_supplied\": 9,\n    \"best_status\": \"trusted\",\n    \"effective_best\": null,\n    \"tail_sha256\": null,\n    \"degraded_reason\": null,\n    \"reason\": null,\n    \"pick_bar\": null,\n    \"guard\": null\n  },\n  \"chosen_on\": {\n    \"schema\": \"bts_pick_chosen_on_v1\",\n    \"required\": true,\n    \"kind\": \"dated\",\n    \"streak\": 7,\n    \"saver_available\": false,\n    \"dated\": {\n      \"effective_date\": \"2027-07-15\",\n      \"active_streak\": 7,\n      \"best_streak\": 9,\n      \"saver_state\": \"used\"\n    }\n  },\n  \"automatic_reading\": null\n}",
+      "picks/2027-07-15/scheduler_state.json": "{\n  \"date\": \"2027-07-15\",\n  \"schedule_fetched_at\": \"2027-07-15T17:54:00-04:00\",\n  \"games\": [\n    {\n      \"game_pk\": 101,\n      \"game_time_et\": \"2027-07-15T18:55:00-04:00\",\n      \"lineup_confirmed\": false,\n      \"is_doubleheader_game2\": false\n    },\n    {\n      \"game_pk\": 102,\n      \"game_time_et\": \"2027-07-15T19:25:00-04:00\",\n      \"lineup_confirmed\": false,\n      \"is_doubleheader_game2\": false\n    }\n  ],\n  \"confirmed_game_pks\": [],\n  \"runs_completed\": [\n    {\n      \"time\": \"2027-07-15T17:55:00-04:00\",\n      \"new_lineups\": 0,\n      \"skipped\": false,\n      \"pick_name\": \"Steven Kwan\",\n      \"pick_p\": 0.82,\n      \"duration_sec\": 0\n    }\n  ],\n  \"pick_locked\": false,\n  \"pick_locked_at\": null,\n  \"result_status\": null,\n  \"next_wakeup\": \"2027-07-16T10:00:00-04:00\",\n  \"analytics_jobs\": null,\n  \"skip_summary\": null,\n  \"skip_notified_at\": null,\n  \"final_skip_candidate\": null,\n  \"committed_pick_written\": false,\n  \"delivery_refusals\": null,\n  \"fallback_refreshes\": null\n}",
+      "picks/slates/2027-07-15.json": "{\n  \"schema_version\": \"bts_slate_v2\",\n  \"date\": \"2027-07-15\",\n  \"tier\": \"offline\",\n  \"written_at\": \"2027-07-15T22:20:00+00:00\",\n  \"n_rows\": 2,\n  \"rows\": [\n    {\n      \"batter_id\": 680757,\n      \"batter_name\": \"Steven Kwan\",\n      \"team\": \"CLE\",\n      \"game_pk\": 101,\n      \"lineup\": 1,\n      \"pitcher_id\": 543037,\n      \"pitcher_name\": \"Gerrit Cole\",\n      \"p_game_hit\": 0.82,\n      \"flags\": \"\",\n      \"game_time\": \"2027-07-15T18:55:00-04:00\"\n    },\n    {\n      \"batter_id\": 665742,\n      \"batter_name\": \"Juan Soto\",\n      \"team\": \"NYM\",\n      \"game_pk\": 102,\n      \"lineup\": 2,\n      \"pitcher_id\": 605483,\n      \"pitcher_name\": \"Blake Snell\",\n      \"p_game_hit\": 0.81,\n      \"flags\": \"\",\n      \"game_time\": \"2027-07-15T19:25:00-04:00\"\n    }\n  ]\n}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "bcbbf283a485dcd940be7d018d67ec1a80133dc3f823068c88baeb0c2a29366b",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-07-15",
+      "sent_sources": [
+        "CRITICAL:contest_state",
+        "CRITICAL:missed_pick"
+      ],
+      "status": "sent",
+      "updated_at": "2027-07-15T22:45:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-07-15 at this check. Reason: Live decision refused: season 2027 switch is absent.\nSee the scheduler journal for this refusal. To inspect current state, run bts season-contract status with --picks-dir set to the scheduler's absolute picks directory. For live repair, use the season-start checklist (B8a). Before changing state for a new slate, verify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.",
+      "BTS health CRITICAL alert(s):\n- [missed_pick] NO PICK DELIVERED. ~10 min to first pitch. See `bts season-contract status`."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "contest_state",
+        "run_day",
+        "in_loop",
+        "2027-07-15T18:20:00-04:00",
+        "2027-07-15"
+      ],
+      [
+        "contest_state",
+        "run_day",
+        "final",
+        "2027-07-15T18:20:00-04:00",
+        "2027-07-15"
+      ],
+      [
+        "missed_pick",
+        "_maybe_alert_missed_pick",
+        "_alert_missed_pick(config, daily, mins, slate_date=date)",
+        "2027-07-15T18:45:00-04:00",
+        "2027-07-15"
+      ]
+    ]
+  },
+  "2027-07-15/final": {
+    "result": null,
+    "journal": "  [DM MODE] Public Bluesky posting disabled — picks sent by DM.\n[17:54 ET] Fetching schedule for 2027-07-15...\n  2 games, 2 scheduled checks:\n    18:10 ET — 1 game(s)\n    18:40 ET — 1 game(s)\n  MORNING STATE CHECK — no pick can be made yet: 'Live decision refused: season 2027 switch is absent.\\nAlternative dated path \\u2014 TEMPLATE: `bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir <TMP>/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir <TMP>/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir <TMP>/picks` and compare the readings with MLB; only then run `bts season-contract enable --sea\n  Sleeping until 18:10 ET (16 min)...\n\n[18:10 ET] Running lineup check...\n  0 new confirmed lineup(s). Running predictions...\n  Sleeping until 18:40 ET (30 min)...\n\n[18:40 ET] Running lineup check...\n  0 new confirmed lineup(s). Running predictions...\n  FALLBACK BLOCKED — contest state invalid: Live decision refused: season 2027 switch is absent.\nAlternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-07-15 --streak N --best-streak B --saver S --picks-dir <TMP>/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir <TMP>/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir <TMP>/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir <TMP>/picks`; then run `bts fetch-contest-streak --picks-dir <TMP>/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n  MISSED-PICK ALERT — no delivery with ~10min to first pitch.\n  Tomorrow's wake-up: Fri 07-16 10:00 ET\n",
+    "stdout": "",
+    "files": {
+      "heartbeat": "{\"state\": \"idle_end_of_day\", \"timestamp\": \"2027-07-15T22:45:00+00:00\"}",
+      "picks/lineup_evolution_2027-07-15.jsonl": "{\"captured_at\": \"2027-07-15T21:54:00+00:00\", \"date\": \"2027-07-15\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-07-15.json": "{\n  \"date\": \"2027-07-15\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2027-07-15T18:55:00-04:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": null,\n  \"automatic_reading\": null\n}",
+      "health_state/contest_morning_check_dm_delivery_status.json": "{\n  \"body_first_line\": \"BTS health CRITICAL alert(s):\",\n  \"body_sha256\": \"af695a2374e9568c3418a48433dd1eb0953002a58217d3f1702fba346201448f\",\n  \"critical_count\": 1,\n  \"recipient\": \"offline.test\",\n  \"recipient_configured\": true,\n  \"schema_version\": \"bts_health_dm_delivery_status_v1\",\n  \"sent_day\": \"2027-07-15\",\n  \"sent_sources\": [\n    \"CRITICAL:contest_state:morning\"\n  ],\n  \"status\": \"sent\",\n  \"updated_at\": \"2027-07-15T21:54:00+00:00\",\n  \"warn_attention_count\": 0\n}\n",
+      "picks/2027-07-15/scheduler_state.json": "{\n  \"date\": \"2027-07-15\",\n  \"schedule_fetched_at\": \"2027-07-15T17:54:00-04:00\",\n  \"games\": [\n    {\n      \"game_pk\": 101,\n      \"game_time_et\": \"2027-07-15T18:55:00-04:00\",\n      \"lineup_confirmed\": false,\n      \"is_doubleheader_game2\": false\n    },\n    {\n      \"game_pk\": 102,\n      \"game_time_et\": \"2027-07-15T19:25:00-04:00\",\n      \"lineup_confirmed\": false,\n      \"is_doubleheader_game2\": false\n    }\n  ],\n  \"confirmed_game_pks\": [],\n  \"runs_completed\": [\n    {\n      \"time\": \"2027-07-15T18:10:00-04:00\",\n      \"new_lineups\": 0,\n      \"skipped\": false,\n      \"pick_name\": null,\n      \"pick_p\": null,\n      \"duration_sec\": 0\n    },\n    {\n      \"time\": \"2027-07-15T18:40:00-04:00\",\n      \"new_lineups\": 0,\n      \"skipped\": false,\n      \"pick_name\": null,\n      \"pick_p\": null,\n      \"duration_sec\": 0\n    }\n  ],\n  \"pick_locked\": false,\n  \"pick_locked_at\": null,\n  \"result_status\": null,\n  \"next_wakeup\": \"2027-07-16T10:00:00-04:00\",\n  \"analytics_jobs\": null,\n  \"skip_summary\": null,\n  \"skip_notified_at\": null,\n  \"final_skip_candidate\": null,\n  \"committed_pick_written\": false,\n  \"delivery_refusals\": null,\n  \"fallback_refreshes\": null\n}",
+      "picks/slates/2027-07-15.json": "{\n  \"schema_version\": \"bts_slate_v2\",\n  \"date\": \"2027-07-15\",\n  \"tier\": \"offline\",\n  \"written_at\": \"2027-07-15T22:40:00+00:00\",\n  \"n_rows\": 2,\n  \"rows\": [\n    {\n      \"batter_id\": 680757,\n      \"batter_name\": \"Steven Kwan\",\n      \"team\": \"CLE\",\n      \"game_pk\": 101,\n      \"lineup\": 1,\n      \"pitcher_id\": 543037,\n      \"pitcher_name\": \"Gerrit Cole\",\n      \"p_game_hit\": 0.82,\n      \"flags\": \"\",\n      \"game_time\": \"2027-07-15T18:55:00-04:00\"\n    },\n    {\n      \"batter_id\": 665742,\n      \"batter_name\": \"Juan Soto\",\n      \"team\": \"NYM\",\n      \"game_pk\": 102,\n      \"lineup\": 2,\n      \"pitcher_id\": 605483,\n      \"pitcher_name\": \"Blake Snell\",\n      \"p_game_hit\": 0.81,\n      \"flags\": \"\",\n      \"game_time\": \"2027-07-15T19:25:00-04:00\"\n    }\n  ]\n}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "bcbbf283a485dcd940be7d018d67ec1a80133dc3f823068c88baeb0c2a29366b",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-07-15",
+      "sent_sources": [
+        "CRITICAL:contest_state",
+        "CRITICAL:missed_pick"
+      ],
+      "status": "sent",
+      "updated_at": "2027-07-15T22:45:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [contest_state] Morning check for 2027-07-15: no usable contest state was found at startup. Check MLB and run bts season-contract status with the scheduler's picks directory. If state still needs correction, follow today's dated-observation instructions while a lineup check remains. First planned lineup check at 18:10 ET.",
+      "BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-07-15 at this check. Reason: Live decision refused: season 2027 switch is absent.\nSee the scheduler journal for this refusal. To inspect current state, run bts season-contract status with --picks-dir set to the scheduler's absolute picks directory. For live repair, use the season-start checklist (B8a). Before changing state for a new slate, verify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.",
+      "BTS health CRITICAL alert(s):\n- [missed_pick] NO PICK DELIVERED. ~10 min to first pitch. See `bts season-contract status`."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "contest_state",
+        "run_day",
+        "final",
+        "2027-07-15T18:40:00-04:00",
+        "2027-07-15"
+      ],
+      [
+        "missed_pick",
+        "_maybe_alert_missed_pick",
+        "_alert_missed_pick(config, daily, mins, slate_date=date)",
+        "2027-07-15T18:45:00-04:00",
+        "2027-07-15"
+      ]
+    ]
+  },
+  "2027-07-15/missed_live": {
+    "result": null,
+    "journal": "  MISSED-PICK ALERT — no delivery with ~10min to first pitch.\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-07-15.jsonl": "{\"captured_at\": \"2027-07-15T22:05:00+00:00\", \"date\": \"2027-07-15\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-07-15.json": "{\n  \"date\": \"2027-07-15\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2027-07-15T18:55:00-04:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": null,\n  \"automatic_reading\": null\n}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "bcbbf283a485dcd940be7d018d67ec1a80133dc3f823068c88baeb0c2a29366b",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-07-15",
+      "sent_sources": [
+        "CRITICAL:missed_pick"
+      ],
+      "status": "sent",
+      "updated_at": "2027-07-15T22:45:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [missed_pick] NO PICK DELIVERED. ~10 min to first pitch. See `bts season-contract status`."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "missed_pick",
+        "_maybe_alert_missed_pick",
+        "_alert_missed_pick(config, daily, mins, slate_date=date)",
+        "2027-07-15T18:45:00-04:00",
+        "2027-07-15"
+      ]
+    ]
+  },
+  "2027-07-15/missed_preview": {
+    "result": null,
+    "journal": "  MISSED-PICK ALERT — no delivery with ~10min to first pitch.\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-07-15.jsonl": "{\"captured_at\": \"2027-07-15T22:05:00+00:00\", \"date\": \"2027-07-15\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-07-15.json": "{\n  \"date\": \"2027-07-15\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2027-07-15T18:55:00-04:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": null,\n  \"automatic_reading\": null\n}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "dc8661acb2e1b621cb3a3558ffb722bbaef4530fc469a60b6218c6bdf4a38eb5",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-07-15",
+      "sent_sources": [
+        "CRITICAL:missed_pick"
+      ],
+      "status": "sent",
+      "updated_at": "2027-07-15T22:45:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [missed_pick] NO PICK DELIVERED with ~10 min to first pitch (top pick: Steven Kwan). Deliver manually if you want to keep the streak alive."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "missed_pick",
+        "_maybe_alert_missed_pick",
+        "_alert_missed_pick(config, daily, mins, slate_date=date)",
+        "2027-07-15T18:45:00-04:00",
+        "2027-07-15"
+      ]
+    ]
+  },
+  "2027-07-15/void": {
+    "result": false,
+    "journal": "  DELIVERY REFUSED (void) — game 101 is Cancelled; not delivering a pick on it.\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-07-15.jsonl": "{\"captured_at\": \"2027-07-15T22:05:00+00:00\", \"date\": \"2027-07-15\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-07-15/refused_delivery_20270715T180500-0400.json": "{\n  \"date\": \"2027-07-15\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2027-07-15T18:55:00-04:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": null,\n  \"automatic_reading\": null,\n  \"refused_delivery\": {\n    \"reason\": \"game_not_playable\",\n    \"refused_at\": \"2027-07-15T18:05:00-04:00\",\n    \"label\": \"void\",\n    \"void_games\": {\n      \"101\": \"Cancelled\"\n    }\n  }\n}",
+      "picks/2027-07-15/scheduler_state.json": "{\n  \"date\": \"2027-07-15\",\n  \"schedule_fetched_at\": \"2027-07-15T18:35:00-04:00\",\n  \"games\": [],\n  \"confirmed_game_pks\": [],\n  \"runs_completed\": [],\n  \"pick_locked\": false,\n  \"pick_locked_at\": null,\n  \"result_status\": null,\n  \"next_wakeup\": null,\n  \"analytics_jobs\": null,\n  \"skip_summary\": null,\n  \"skip_notified_at\": null,\n  \"final_skip_candidate\": null,\n  \"committed_pick_written\": false,\n  \"delivery_refusals\": [\n    {\n      \"at\": \"2027-07-15T18:05:00-04:00\",\n      \"label\": \"void\",\n      \"reason\": \"game_not_playable\",\n      \"batter\": \"Steven Kwan\",\n      \"double_down\": null,\n      \"void_games\": {\n        \"101\": \"Cancelled\"\n      },\n      \"archive\": \"refused_delivery_20270715T180500-0400.json\"\n    }\n  ],\n  \"fallback_refreshes\": null\n}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "185ac7a7f15d2d9d02854fe707bbd9a782c7d73111e58dd72a4b6a2fd6a0b122",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-07-15",
+      "sent_sources": [
+        "CRITICAL:postponed_pick"
+      ],
+      "status": "sent",
+      "updated_at": "2027-07-15T22:05:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [postponed_pick] DELIVERY REFUSED for 2027-07-15: game 101 is Cancelled. This pick was withheld. A later check may produce another recommendation. Use a later official pick message only while the entry window is open. A manual entry can differ from a later recommendation. The entry check may report a mismatch if it verifies the entry in time."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "postponed_pick",
+        "_deliver_and_lock_pick",
+        "_refuse_void_game_delivery(daily, config, picks_dir, state, date, label, void_games)",
+        "2027-07-15T18:05:00-04:00",
+        "2027-07-15"
+      ]
+    ]
+  },
+  "2027-07-15/late_initial": {
+    "result": false,
+    "journal": "  DELIVERY REFUSED (late_initial) — Steven Kwan: submission cutoff 18:50 ET passed 0.0 min ago; not delivering an unenterable pick.\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-07-15.jsonl": "{\"captured_at\": \"2027-07-15T22:50:00+00:00\", \"date\": \"2027-07-15\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-07-15/scheduler_state.json": "{\n  \"date\": \"2027-07-15\",\n  \"schedule_fetched_at\": \"2027-07-15T18:35:00-04:00\",\n  \"games\": [],\n  \"confirmed_game_pks\": [],\n  \"runs_completed\": [],\n  \"pick_locked\": false,\n  \"pick_locked_at\": null,\n  \"result_status\": null,\n  \"next_wakeup\": null,\n  \"analytics_jobs\": null,\n  \"skip_summary\": null,\n  \"skip_notified_at\": null,\n  \"final_skip_candidate\": null,\n  \"committed_pick_written\": false,\n  \"delivery_refusals\": [\n    {\n      \"at\": \"2027-07-15T18:50:00-04:00\",\n      \"label\": \"late_initial\",\n      \"reason\": \"past_submission_cutoff\",\n      \"batter\": \"Steven Kwan\",\n      \"double_down\": null,\n      \"cutoff_et\": \"2027-07-15T18:50:00-04:00\",\n      \"late_min\": 0.0,\n      \"archive\": \"refused_delivery_20270715T185000-0400.json\"\n    }\n  ],\n  \"fallback_refreshes\": null\n}",
+      "picks/2027-07-15/refused_delivery_20270715T185000-0400.json": "{\n  \"date\": \"2027-07-15\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2027-07-15T18:55:00-04:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": null,\n  \"automatic_reading\": null,\n  \"refused_delivery\": {\n    \"reason\": \"past_submission_cutoff\",\n    \"refused_at\": \"2027-07-15T18:50:00-04:00\",\n    \"label\": \"late_initial\",\n    \"cutoff_et\": \"2027-07-15T18:50:00-04:00\",\n    \"late_min\": 0.0\n  }\n}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "694ccbfdb1ddc573ffe285a2b813c78ded9c211549809ad74da672a528629ca0",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-07-15",
+      "sent_sources": [
+        "CRITICAL:late_delivery"
+      ],
+      "status": "sent",
+      "updated_at": "2027-07-15T22:50:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [late_delivery] LATE DELIVERY REFUSED: the 18:50 ET cutoff for Steven Kwan had been reached. This pick was withheld. A later check may produce another recommendation. Use a later official pick message only while the entry window is open. A manual entry can differ from a later recommendation. The entry check may report a mismatch if it verifies the entry in time."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "late_delivery",
+        "_deliver_and_lock_pick",
+        "_refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)",
+        "2027-07-15T18:50:00-04:00",
+        "2027-07-15"
+      ]
+    ]
+  },
+  "2027-07-15/late_dm": {
+    "result": false,
+    "journal": "  DELIVERY REFUSED (late_dm) — Steven Kwan: submission cutoff 18:50 ET passed 0.0 min ago; not delivering an unenterable pick.\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-07-15.jsonl": "{\"captured_at\": \"2027-07-15T22:05:00+00:00\", \"date\": \"2027-07-15\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-07-15/scheduler_state.json": "{\n  \"date\": \"2027-07-15\",\n  \"schedule_fetched_at\": \"2027-07-15T18:35:00-04:00\",\n  \"games\": [],\n  \"confirmed_game_pks\": [],\n  \"runs_completed\": [],\n  \"pick_locked\": false,\n  \"pick_locked_at\": null,\n  \"result_status\": null,\n  \"next_wakeup\": null,\n  \"analytics_jobs\": null,\n  \"skip_summary\": null,\n  \"skip_notified_at\": null,\n  \"final_skip_candidate\": null,\n  \"committed_pick_written\": false,\n  \"delivery_refusals\": [\n    {\n      \"at\": \"2027-07-15T18:50:00-04:00\",\n      \"label\": \"late_dm\",\n      \"reason\": \"past_submission_cutoff\",\n      \"batter\": \"Steven Kwan\",\n      \"double_down\": null,\n      \"cutoff_et\": \"2027-07-15T18:50:00-04:00\",\n      \"late_min\": 0.0,\n      \"archive\": \"refused_delivery_20270715T185000-0400.json\"\n    }\n  ],\n  \"fallback_refreshes\": null\n}",
+      "picks/2027-07-15/refused_delivery_20270715T185000-0400.json": "{\n  \"date\": \"2027-07-15\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2027-07-15T18:55:00-04:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": {\n    \"schema\": \"bts_pick_chosen_on_v1\",\n    \"required\": true,\n    \"kind\": \"dated\",\n    \"streak\": 12,\n    \"saver_available\": false,\n    \"dated\": {\n      \"effective_date\": \"2027-07-15\",\n      \"active_streak\": 12,\n      \"best_streak\": 16,\n      \"saver_state\": \"used\"\n    }\n  },\n  \"automatic_reading\": null,\n  \"refused_delivery\": {\n    \"reason\": \"past_submission_cutoff\",\n    \"refused_at\": \"2027-07-15T18:50:00-04:00\",\n    \"label\": \"late_dm\",\n    \"cutoff_et\": \"2027-07-15T18:50:00-04:00\",\n    \"late_min\": 0.0\n  }\n}",
+      "picks/account_state/contest_streak.manual.json": "{\"schema_version\": \"bts_contest_streak_manual_v3\", \"effective_date\": \"2027-07-15\", \"expires_at\": \"2027-07-15T23:59:59.999999-04:00\", \"season\": 2027, \"active_streak\": 12, \"best_streak\": 16, \"saver_state\": \"used\", \"recorded_at\": \"2027-07-15T18:05:00-04:00\", \"source\": \"MLB\"}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "694ccbfdb1ddc573ffe285a2b813c78ded9c211549809ad74da672a528629ca0",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-07-15",
+      "sent_sources": [
+        "CRITICAL:late_delivery"
+      ],
+      "status": "sent",
+      "updated_at": "2027-07-15T22:50:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [late_delivery] LATE DELIVERY REFUSED: the 18:50 ET cutoff for Steven Kwan had been reached. This pick was withheld. A later check may produce another recommendation. Use a later official pick message only while the entry window is open. A manual entry can differ from a later recommendation. The entry check may report a mismatch if it verifies the entry in time."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "late_delivery",
+        "_deliver_and_lock_pick",
+        "_refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)",
+        "2027-07-15T18:50:00-04:00",
+        "2027-07-15"
+      ]
+    ]
+  },
+  "2027-07-15/late_public": {
+    "result": false,
+    "journal": "  DELIVERY REFUSED (late_public) — Steven Kwan: submission cutoff 18:50 ET passed 0.0 min ago; not delivering an unenterable pick.\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-07-15.jsonl": "{\"captured_at\": \"2027-07-15T22:05:00+00:00\", \"date\": \"2027-07-15\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-07-15/scheduler_state.json": "{\n  \"date\": \"2027-07-15\",\n  \"schedule_fetched_at\": \"2027-07-15T18:35:00-04:00\",\n  \"games\": [],\n  \"confirmed_game_pks\": [],\n  \"runs_completed\": [],\n  \"pick_locked\": false,\n  \"pick_locked_at\": null,\n  \"result_status\": null,\n  \"next_wakeup\": null,\n  \"analytics_jobs\": null,\n  \"skip_summary\": null,\n  \"skip_notified_at\": null,\n  \"final_skip_candidate\": null,\n  \"committed_pick_written\": false,\n  \"delivery_refusals\": [\n    {\n      \"at\": \"2027-07-15T18:50:00-04:00\",\n      \"label\": \"late_public\",\n      \"reason\": \"past_submission_cutoff\",\n      \"batter\": \"Steven Kwan\",\n      \"double_down\": null,\n      \"cutoff_et\": \"2027-07-15T18:50:00-04:00\",\n      \"late_min\": 0.0,\n      \"archive\": \"refused_delivery_20270715T185000-0400.json\"\n    }\n  ],\n  \"fallback_refreshes\": null\n}",
+      "picks/2027-07-15/refused_delivery_20270715T185000-0400.json": "{\n  \"date\": \"2027-07-15\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2027-07-15T18:55:00-04:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": {\n    \"schema\": \"bts_pick_chosen_on_v1\",\n    \"required\": true,\n    \"kind\": \"dated\",\n    \"streak\": 12,\n    \"saver_available\": false,\n    \"dated\": {\n      \"effective_date\": \"2027-07-15\",\n      \"active_streak\": 12,\n      \"best_streak\": 16,\n      \"saver_state\": \"used\"\n    }\n  },\n  \"automatic_reading\": null,\n  \"refused_delivery\": {\n    \"reason\": \"past_submission_cutoff\",\n    \"refused_at\": \"2027-07-15T18:50:00-04:00\",\n    \"label\": \"late_public\",\n    \"cutoff_et\": \"2027-07-15T18:50:00-04:00\",\n    \"late_min\": 0.0\n  }\n}",
+      "picks/account_state/contest_streak.manual.json": "{\"schema_version\": \"bts_contest_streak_manual_v3\", \"effective_date\": \"2027-07-15\", \"expires_at\": \"2027-07-15T23:59:59.999999-04:00\", \"season\": 2027, \"active_streak\": 12, \"best_streak\": 16, \"saver_state\": \"used\", \"recorded_at\": \"2027-07-15T18:05:00-04:00\", \"source\": \"MLB\"}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "694ccbfdb1ddc573ffe285a2b813c78ded9c211549809ad74da672a528629ca0",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-07-15",
+      "sent_sources": [
+        "CRITICAL:late_delivery"
+      ],
+      "status": "sent",
+      "updated_at": "2027-07-15T22:50:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [late_delivery] LATE DELIVERY REFUSED: the 18:50 ET cutoff for Steven Kwan had been reached. This pick was withheld. A later check may produce another recommendation. Use a later official pick message only while the entry window is open. A manual entry can differ from a later recommendation. The entry check may report a mismatch if it verifies the entry in time."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "late_delivery",
+        "_deliver_and_lock_pick",
+        "_refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)",
+        "2027-07-15T18:50:00-04:00",
+        "2027-07-15"
+      ]
+    ]
+  },
+  "2027-07-15/delivered": {
+    "result": true,
+    "journal": "  LOCKED (delivered) — Pick DM sent: pick-dm\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-07-15.jsonl": "{\"captured_at\": \"2027-07-15T22:05:00+00:00\", \"date\": \"2027-07-15\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n{\"captured_at\": \"2027-07-15T22:05:00+00:00\", \"date\": \"2027-07-15\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n{\"captured_at\": \"2027-07-15T22:05:00+00:00\", \"date\": \"2027-07-15\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-07-15.json": "{\n  \"date\": \"2027-07-15\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2027-07-15T18:55:00-04:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": true,\n  \"notification_channel\": \"bluesky_dm\",\n  \"notification_id\": \"pick-dm\",\n  \"delivery_attempted\": true,\n  \"delivered_at\": \"2027-07-15T18:05:00-04:00\",\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": {\n    \"schema\": \"bts_pick_chosen_on_v1\",\n    \"required\": true,\n    \"kind\": \"dated\",\n    \"streak\": 12,\n    \"saver_available\": false,\n    \"dated\": {\n      \"effective_date\": \"2027-07-15\",\n      \"active_streak\": 12,\n      \"best_streak\": 16,\n      \"saver_state\": \"used\"\n    }\n  },\n  \"automatic_reading\": null\n}",
+      "picks/2027-07-15/scheduler_state.json": "{\n  \"date\": \"2027-07-15\",\n  \"schedule_fetched_at\": \"2027-07-15T18:35:00-04:00\",\n  \"games\": [],\n  \"confirmed_game_pks\": [],\n  \"runs_completed\": [],\n  \"pick_locked\": true,\n  \"pick_locked_at\": \"2027-07-15T18:05:00-04:00\",\n  \"result_status\": null,\n  \"next_wakeup\": null,\n  \"analytics_jobs\": {\n    \"live_forward_capture\": {\n      \"status\": \"disabled\",\n      \"updated_at\": \"2027-07-15T18:05:00-04:00\",\n      \"reason\": \"live_forward_capture_on_lock=false\"\n    }\n  },\n  \"skip_summary\": null,\n  \"skip_notified_at\": null,\n  \"final_skip_candidate\": null,\n  \"committed_pick_written\": true,\n  \"delivery_refusals\": null,\n  \"fallback_refreshes\": null\n}",
+      "picks/2027-07-15/decision.json": "{\n  \"schema_version\": \"bts_daily_decision_v3\",\n  \"date\": \"2027-07-15\",\n  \"action\": \"single\",\n  \"source\": \"unknown\",\n  \"primary\": {\n    \"batter_id\": 680757,\n    \"batter_name\": \"Steven Kwan\",\n    \"team\": \"CLE\",\n    \"game_pk\": 101,\n    \"p_game_hit\": 0.82\n  },\n  \"double_down\": null,\n  \"second_candidate\": null,\n  \"streak\": null,\n  \"saver_available\": null,\n  \"state_source\": null,\n  \"state_status\": null,\n  \"allow_double\": null,\n  \"contest_source_date\": null,\n  \"delivery_status\": \"delivered\",\n  \"scoreable\": true,\n  \"objective\": \"reach57\",\n  \"best_streak\": null,\n  \"best_status\": null,\n  \"effective_best\": null,\n  \"tail_policy_sha256\": null,\n  \"degraded_reason\": null,\n  \"policy_guard\": null,\n  \"finalized_at\": \"2027-07-15T22:05:00Z\"\n}",
+      "picks/account_state/contest_streak.manual.json": "{\"schema_version\": \"bts_contest_streak_manual_v3\", \"effective_date\": \"2027-07-15\", \"expires_at\": \"2027-07-15T23:59:59.999999-04:00\", \"season\": 2027, \"active_streak\": 12, \"best_streak\": 16, \"saver_state\": \"used\", \"recorded_at\": \"2027-07-15T18:05:00-04:00\", \"source\": \"MLB\"}"
+    },
+    "receipt": null,
+    "wire": [],
+    "picks": [
+      "Today's pick: Steven Kwan (CLE)\nvs Gerrit Cole | 82.0%\n\nStreak: 12"
+    ],
+    "trace": []
+  },
+  "2027-06-14/check": {
+    "result": {
+      "skipped": false,
+      "new_lineups": 0,
+      "should_post": false,
+      "pick_result": null,
+      "pick_name": null,
+      "pick_p": null,
+      "selection": null
+    },
+    "journal": "  0 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR — no pick made: Live decision refused: season 2027 switch is absent.\nAlternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-06-15 --streak N --best-streak B --saver S --picks-dir <TMP>/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir <TMP>/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir <TMP>/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir <TMP>/picks`; then run `bts fetch-contest-streak --picks-dir <TMP>/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n",
+    "stdout": "",
+    "files": {
+      "picks/slates/2027-06-14.json": "{\n  \"schema_version\": \"bts_slate_v2\",\n  \"date\": \"2027-06-14\",\n  \"tier\": \"offline\",\n  \"written_at\": \"2027-06-15T04:05:00+00:00\",\n  \"n_rows\": 2,\n  \"rows\": [\n    {\n      \"batter_id\": 680757,\n      \"batter_name\": \"Steven Kwan\",\n      \"team\": \"CLE\",\n      \"game_pk\": 101,\n      \"lineup\": 1,\n      \"pitcher_id\": 543037,\n      \"pitcher_name\": \"Gerrit Cole\",\n      \"p_game_hit\": 0.82,\n      \"flags\": \"\",\n      \"game_time\": \"2027-06-15T00:55:00-04:00\"\n    },\n    {\n      \"batter_id\": 665742,\n      \"batter_name\": \"Juan Soto\",\n      \"team\": \"NYM\",\n      \"game_pk\": 102,\n      \"lineup\": 2,\n      \"pitcher_id\": 605483,\n      \"pitcher_name\": \"Blake Snell\",\n      \"p_game_hit\": 0.81,\n      \"flags\": \"\",\n      \"game_time\": \"2027-06-15T01:25:00-04:00\"\n    }\n  ]\n}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "640a5a242908d94d00cf801eaedd1de02f280a58a2bab7c2f6e8dcd59df03312",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-06-14",
+      "sent_sources": [
+        "CRITICAL:contest_state"
+      ],
+      "status": "sent",
+      "updated_at": "2027-06-15T04:05:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-06-14 at this check. Reason: Live decision refused: season 2027 switch is absent.\nSee the scheduler journal for this refusal. To inspect current state, run bts season-contract status with --picks-dir set to the scheduler's absolute picks directory. For live repair, use the season-start checklist (B8a). Before changing state for a new slate, verify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "contest_state",
+        "run_single_check",
+        "_alert_contest_state_failure(config, e, slate_date=date)",
+        "2027-06-15T00:05:00-04:00",
+        "2027-06-14"
+      ]
+    ]
+  },
+  "2027-06-14/loader": {
+    "result": false,
+    "journal": "  CONTEST STATE ERROR — pick delivery blocked: Live decision refused: season 2027 switch is absent.\nAlternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-06-15 --streak N --best-streak B --saver S --picks-dir <TMP>/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir <TMP>/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir <TMP>/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir <TMP>/picks`; then run `bts fetch-contest-streak --picks-dir <TMP>/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-06-14.jsonl": "{\"captured_at\": \"2027-06-15T04:05:00+00:00\", \"date\": \"2027-06-14\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-06-14.json": "{\n  \"date\": \"2027-06-14\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2027-06-15T00:55:00-04:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": null,\n  \"automatic_reading\": null\n}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "640a5a242908d94d00cf801eaedd1de02f280a58a2bab7c2f6e8dcd59df03312",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-06-14",
+      "sent_sources": [
+        "CRITICAL:contest_state"
+      ],
+      "status": "sent",
+      "updated_at": "2027-06-15T04:05:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-06-14 at this check. Reason: Live decision refused: season 2027 switch is absent.\nSee the scheduler journal for this refusal. To inspect current state, run bts season-contract status with --picks-dir set to the scheduler's absolute picks directory. For live repair, use the season-start checklist (B8a). Before changing state for a new slate, verify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "contest_state",
+        "_deliver_and_lock_pick",
+        "_alert_contest_state_failure(config, e, slate_date=date)",
+        "2027-06-15T00:05:00-04:00",
+        "2027-06-14"
+      ]
+    ]
+  },
+  "2027-06-14/saved": {
+    "result": false,
+    "journal": "CONTEST STATE ERROR — pick delivery blocked: Saved pick for 2027-06-14 was not delivered because it was chosen on dated (effective date 2027-06-15, active streak 12, best streak 16, saver used). The live state is dated (effective date 2027-06-15, active streak 13, best streak 16, saver used). A later scheduled check or fallback refresh may choose a replacement, if one remains.\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-06-14.jsonl": "{\"captured_at\": \"2027-06-15T04:05:00+00:00\", \"date\": \"2027-06-14\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-06-14.json": "{\n  \"date\": \"2027-06-14\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2027-06-15T00:55:00-04:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": {\n    \"schema\": \"bts_pick_chosen_on_v1\",\n    \"required\": true,\n    \"kind\": \"dated\",\n    \"streak\": 12,\n    \"saver_available\": false,\n    \"dated\": {\n      \"effective_date\": \"2027-06-15\",\n      \"active_streak\": 12,\n      \"best_streak\": 16,\n      \"saver_state\": \"used\"\n    }\n  },\n  \"automatic_reading\": null\n}",
+      "picks/account_state/contest_streak.manual.json": "{\"schema_version\": \"bts_contest_streak_manual_v3\", \"effective_date\": \"2027-06-15\", \"expires_at\": \"2027-06-15T23:59:59.999999-04:00\", \"season\": 2027, \"active_streak\": 13, \"best_streak\": 16, \"saver_state\": \"used\", \"recorded_at\": \"2027-06-15T00:05:00-04:00\", \"source\": \"MLB\"}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "b85daf3cc690851d62a20072bb124b0e7096e013a292899e12fa3e15bcb466a8",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-06-14",
+      "sent_sources": [
+        "CRITICAL:contest_state"
+      ],
+      "status": "sent",
+      "updated_at": "2027-06-15T04:05:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-06-14 at this check. Reason: Saved pick for 2027-06-14 was not delivered because it was chosen on dated (effective date 2027-06-15, active streak 12, best streak 16, saver used). The live state is dated (effective date 2027-06-15, active streak 13, best streak 16, saver used). A later scheduled check or fallback refresh may choose a replacement, if one remains.\nSee the scheduler journal for this refusal. To inspect current state, run bts season-contract status with --picks-dir set to the scheduler's absolute picks directory. For live repair, use the season-start checklist (B8a). Before changing state for a new slate, verify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "contest_state",
+        "_deliver_and_lock_pick",
+        "_alert_contest_state_failure(config, ContestStateError(refusal), slate_date=date)",
+        "2027-06-15T00:05:00-04:00",
+        "2027-06-14"
+      ]
+    ]
+  },
+  "2027-06-14/in_loop": {
+    "result": null,
+    "journal": "  [DM MODE] Public Bluesky posting disabled — picks sent by DM.\n[00:01 ET] Fetching schedule for 2027-06-14...\n  2 games, 1 scheduled checks:\n    23:55 ET — 2 game(s)\n  Morning state check skipped: first lineup check is due within 10 minutes.\n\n[00:01 ET] Running lineup check...\n  0 new confirmed lineup(s). Running predictions...\nMDP base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz')\nMDP tail policy not usable (base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz'): tail pairing unverifiable)\n  Pick: Steven Kwan (CLE) 82.0% → should_lock=False\n  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).\n  Earliest pick game at 00:55 ET, no check before then — fallback at 00:28 ET (27 min)...\n  FALLBACK BLOCKED — contest state invalid: Live decision refused: season 2027 switch is absent.\nAlternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-06-15 --streak N --best-streak B --saver S --picks-dir <TMP>/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir <TMP>/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir <TMP>/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir <TMP>/picks`; then run `bts fetch-contest-streak --picks-dir <TMP>/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).\n  FALLBACK BLOCKED — contest state invalid: Live decision refused: season 2027 switch is absent.\nAlternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-06-15 --streak N --best-streak B --saver S --picks-dir <TMP>/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir <TMP>/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir <TMP>/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir <TMP>/picks`; then run `bts fetch-contest-streak --picks-dir <TMP>/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n  MISSED-PICK ALERT — no delivery with ~10min to first pitch.\n  Tomorrow's wake-up: Tue 06-15 10:00 ET\n",
+    "stdout": "",
+    "files": {
+      "heartbeat": "{\"state\": \"idle_end_of_day\", \"timestamp\": \"2027-06-15T04:45:00+00:00\"}",
+      "picks/lineup_evolution_2027-06-14.jsonl": "{\"captured_at\": \"2027-06-15T03:54:00+00:00\", \"date\": \"2027-06-14\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n{\"captured_at\": \"2027-06-15T04:01:00+00:00\", \"date\": \"2027-06-14\", \"run_time\": \"2027-06-15T04:01:00+00:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": {\"batter_id\": 665742, \"batter_name\": \"Juan Soto\", \"team\": \"NYM\", \"p_game_hit\": 0.81, \"projected_lineup\": false, \"game_pk\": 102}}\n",
+      "picks/2027-06-14.json": "{\n  \"date\": \"2027-06-14\",\n  \"run_time\": \"2027-06-15T04:01:00+00:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2027-06-15T00:55:00-04:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": {\n    \"batter_name\": \"Juan Soto\",\n    \"batter_id\": 665742,\n    \"team\": \"NYM\",\n    \"lineup_position\": 2,\n    \"pitcher_name\": \"Blake Snell\",\n    \"pitcher_id\": 605483,\n    \"p_game_hit\": 0.81,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 102,\n    \"game_time\": \"2027-06-15T01:25:00-04:00\",\n    \"pitcher_team\": null\n  },\n  \"runner_up\": {\n    \"batter_name\": \"Juan Soto\",\n    \"p_game_hit\": 0.81\n  },\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": \"bts_feature_env_v1\",\n  \"feature_env\": {\n    \"BTS_LGBM_DETERMINISTIC\": \"0\",\n    \"BTS_LGBM_RANDOM_STATE\": \"42\",\n    \"BTS_PITCHER_HR_30G_MIN_PERIODS\": \"7\",\n    \"BTS_ROOKIE_GATE_K\": \"20\",\n    \"BTS_USE_CALIBRATION\": \"0\"\n  },\n  \"feature_env_hash\": \"fb1841abbb3f269053f4687d291405c4c08ef1c9a87eda8f4f0663804b481ebe\",\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": {\n    \"action\": \"double\",\n    \"policy_action\": \"double\",\n    \"source\": \"heuristic\",\n    \"objective\": \"reach57\",\n    \"streak\": 7,\n    \"days_effective\": 105,\n    \"best_supplied\": 9,\n    \"best_status\": \"trusted\",\n    \"effective_best\": null,\n    \"tail_sha256\": null,\n    \"degraded_reason\": null,\n    \"reason\": null,\n    \"pick_bar\": null,\n    \"guard\": null\n  },\n  \"chosen_on\": {\n    \"schema\": \"bts_pick_chosen_on_v1\",\n    \"required\": true,\n    \"kind\": \"dated\",\n    \"streak\": 7,\n    \"saver_available\": false,\n    \"dated\": {\n      \"effective_date\": \"2027-06-15\",\n      \"active_streak\": 7,\n      \"best_streak\": 9,\n      \"saver_state\": \"used\"\n    }\n  },\n  \"automatic_reading\": null\n}",
+      "picks/2027-06-14/scheduler_state.json": "{\n  \"date\": \"2027-06-14\",\n  \"schedule_fetched_at\": \"2027-06-15T00:01:00-04:00\",\n  \"games\": [\n    {\n      \"game_pk\": 101,\n      \"game_time_et\": \"2027-06-15T00:55:00-04:00\",\n      \"lineup_confirmed\": false,\n      \"is_doubleheader_game2\": false\n    },\n    {\n      \"game_pk\": 102,\n      \"game_time_et\": \"2027-06-15T01:25:00-04:00\",\n      \"lineup_confirmed\": false,\n      \"is_doubleheader_game2\": false\n    }\n  ],\n  \"confirmed_game_pks\": [],\n  \"runs_completed\": [\n    {\n      \"time\": \"2027-06-15T00:01:00-04:00\",\n      \"new_lineups\": 0,\n      \"skipped\": false,\n      \"pick_name\": \"Steven Kwan\",\n      \"pick_p\": 0.82,\n      \"duration_sec\": 0\n    }\n  ],\n  \"pick_locked\": false,\n  \"pick_locked_at\": null,\n  \"result_status\": null,\n  \"next_wakeup\": \"2027-06-15T10:00:00-04:00\",\n  \"analytics_jobs\": null,\n  \"skip_summary\": null,\n  \"skip_notified_at\": null,\n  \"final_skip_candidate\": null,\n  \"committed_pick_written\": false,\n  \"delivery_refusals\": null,\n  \"fallback_refreshes\": null\n}",
+      "picks/slates/2027-06-14.json": "{\n  \"schema_version\": \"bts_slate_v2\",\n  \"date\": \"2027-06-14\",\n  \"tier\": \"offline\",\n  \"written_at\": \"2027-06-15T04:28:00+00:00\",\n  \"n_rows\": 2,\n  \"rows\": [\n    {\n      \"batter_id\": 680757,\n      \"batter_name\": \"Steven Kwan\",\n      \"team\": \"CLE\",\n      \"game_pk\": 101,\n      \"lineup\": 1,\n      \"pitcher_id\": 543037,\n      \"pitcher_name\": \"Gerrit Cole\",\n      \"p_game_hit\": 0.82,\n      \"flags\": \"\",\n      \"game_time\": \"2027-06-15T00:55:00-04:00\"\n    },\n    {\n      \"batter_id\": 665742,\n      \"batter_name\": \"Juan Soto\",\n      \"team\": \"NYM\",\n      \"game_pk\": 102,\n      \"lineup\": 2,\n      \"pitcher_id\": 605483,\n      \"pitcher_name\": \"Blake Snell\",\n      \"p_game_hit\": 0.81,\n      \"flags\": \"\",\n      \"game_time\": \"2027-06-15T01:25:00-04:00\"\n    }\n  ]\n}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "bcbbf283a485dcd940be7d018d67ec1a80133dc3f823068c88baeb0c2a29366b",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-06-14",
+      "sent_sources": [
+        "CRITICAL:contest_state",
+        "CRITICAL:missed_pick"
+      ],
+      "status": "sent",
+      "updated_at": "2027-06-15T04:45:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-06-14 at this check. Reason: Live decision refused: season 2027 switch is absent.\nSee the scheduler journal for this refusal. To inspect current state, run bts season-contract status with --picks-dir set to the scheduler's absolute picks directory. For live repair, use the season-start checklist (B8a). Before changing state for a new slate, verify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.",
+      "BTS health CRITICAL alert(s):\n- [missed_pick] NO PICK DELIVERED. ~10 min to first pitch. See `bts season-contract status`."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "contest_state",
+        "run_day",
+        "in_loop",
+        "2027-06-15T00:28:00-04:00",
+        "2027-06-14"
+      ],
+      [
+        "contest_state",
+        "run_day",
+        "final",
+        "2027-06-15T00:28:00-04:00",
+        "2027-06-14"
+      ],
+      [
+        "missed_pick",
+        "_maybe_alert_missed_pick",
+        "_alert_missed_pick(config, daily, mins, slate_date=date)",
+        "2027-06-15T00:45:00-04:00",
+        "2027-06-14"
+      ]
+    ]
+  },
+  "2027-06-14/final": {
+    "result": null,
+    "journal": "  [DM MODE] Public Bluesky posting disabled — picks sent by DM.\n[23:54 ET] Fetching schedule for 2027-06-14...\n  2 games, 2 scheduled checks:\n    00:10 ET — 1 game(s)\n    00:40 ET — 1 game(s)\n  MORNING STATE CHECK — no pick can be made yet: 'Live decision refused: season 2027 switch is absent.\\nAlternative dated path \\u2014 TEMPLATE: `bts set-contest-streak --date 2027-06-14 --streak N --best-streak B --saver S --picks-dir <TMP>/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir <TMP>/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir <TMP>/picks` and compare the readings with MLB; only then run `bts season-contract enable --sea\n  Sleeping until 00:10 ET (16 min)...\n\n[00:10 ET] Running lineup check...\n  0 new confirmed lineup(s). Running predictions...\n  Sleeping until 00:40 ET (30 min)...\n\n[00:40 ET] Running lineup check...\n  0 new confirmed lineup(s). Running predictions...\n  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).\n  FALLBACK BLOCKED — contest state invalid: Live decision refused: season 2027 switch is absent.\nAlternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-06-15 --streak N --best-streak B --saver S --picks-dir <TMP>/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir <TMP>/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir <TMP>/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2027 --picks-dir <TMP>/picks`; then run `bts fetch-contest-streak --picks-dir <TMP>/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n  MISSED-PICK ALERT — no delivery with ~10min to first pitch.\n  Tomorrow's wake-up: Tue 06-15 10:00 ET\n",
+    "stdout": "",
+    "files": {
+      "heartbeat": "{\"state\": \"idle_end_of_day\", \"timestamp\": \"2027-06-15T04:45:00+00:00\"}",
+      "picks/lineup_evolution_2027-06-14.jsonl": "{\"captured_at\": \"2027-06-15T03:54:00+00:00\", \"date\": \"2027-06-14\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-06-14.json": "{\n  \"date\": \"2027-06-14\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2027-06-15T00:55:00-04:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": null,\n  \"automatic_reading\": null\n}",
+      "health_state/contest_morning_check_dm_delivery_status.json": "{\n  \"body_first_line\": \"BTS health CRITICAL alert(s):\",\n  \"body_sha256\": \"0ec0d9db3e6d15c5321078a1ae93f2736a53eee6ed724f113730006e7a946f00\",\n  \"critical_count\": 1,\n  \"recipient\": \"offline.test\",\n  \"recipient_configured\": true,\n  \"schema_version\": \"bts_health_dm_delivery_status_v1\",\n  \"sent_day\": \"2027-06-14\",\n  \"sent_sources\": [\n    \"CRITICAL:contest_state:morning\"\n  ],\n  \"status\": \"sent\",\n  \"updated_at\": \"2027-06-15T03:54:00+00:00\",\n  \"warn_attention_count\": 0\n}\n",
+      "picks/2027-06-14/scheduler_state.json": "{\n  \"date\": \"2027-06-14\",\n  \"schedule_fetched_at\": \"2027-06-14T23:54:00-04:00\",\n  \"games\": [\n    {\n      \"game_pk\": 101,\n      \"game_time_et\": \"2027-06-15T00:55:00-04:00\",\n      \"lineup_confirmed\": false,\n      \"is_doubleheader_game2\": false\n    },\n    {\n      \"game_pk\": 102,\n      \"game_time_et\": \"2027-06-15T01:25:00-04:00\",\n      \"lineup_confirmed\": false,\n      \"is_doubleheader_game2\": false\n    }\n  ],\n  \"confirmed_game_pks\": [],\n  \"runs_completed\": [\n    {\n      \"time\": \"2027-06-15T00:10:00-04:00\",\n      \"new_lineups\": 0,\n      \"skipped\": false,\n      \"pick_name\": null,\n      \"pick_p\": null,\n      \"duration_sec\": 0\n    },\n    {\n      \"time\": \"2027-06-15T00:40:00-04:00\",\n      \"new_lineups\": 0,\n      \"skipped\": false,\n      \"pick_name\": null,\n      \"pick_p\": null,\n      \"duration_sec\": 0\n    }\n  ],\n  \"pick_locked\": false,\n  \"pick_locked_at\": null,\n  \"result_status\": null,\n  \"next_wakeup\": \"2027-06-15T10:00:00-04:00\",\n  \"analytics_jobs\": null,\n  \"skip_summary\": null,\n  \"skip_notified_at\": null,\n  \"final_skip_candidate\": null,\n  \"committed_pick_written\": false,\n  \"delivery_refusals\": null,\n  \"fallback_refreshes\": null\n}",
+      "picks/slates/2027-06-14.json": "{\n  \"schema_version\": \"bts_slate_v2\",\n  \"date\": \"2027-06-14\",\n  \"tier\": \"offline\",\n  \"written_at\": \"2027-06-15T04:40:00+00:00\",\n  \"n_rows\": 2,\n  \"rows\": [\n    {\n      \"batter_id\": 680757,\n      \"batter_name\": \"Steven Kwan\",\n      \"team\": \"CLE\",\n      \"game_pk\": 101,\n      \"lineup\": 1,\n      \"pitcher_id\": 543037,\n      \"pitcher_name\": \"Gerrit Cole\",\n      \"p_game_hit\": 0.82,\n      \"flags\": \"\",\n      \"game_time\": \"2027-06-15T00:55:00-04:00\"\n    },\n    {\n      \"batter_id\": 665742,\n      \"batter_name\": \"Juan Soto\",\n      \"team\": \"NYM\",\n      \"game_pk\": 102,\n      \"lineup\": 2,\n      \"pitcher_id\": 605483,\n      \"pitcher_name\": \"Blake Snell\",\n      \"p_game_hit\": 0.81,\n      \"flags\": \"\",\n      \"game_time\": \"2027-06-15T01:25:00-04:00\"\n    }\n  ]\n}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "bcbbf283a485dcd940be7d018d67ec1a80133dc3f823068c88baeb0c2a29366b",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-06-14",
+      "sent_sources": [
+        "CRITICAL:contest_state",
+        "CRITICAL:missed_pick"
+      ],
+      "status": "sent",
+      "updated_at": "2027-06-15T04:45:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [contest_state] Morning check for 2027-06-14: no usable contest state was found at startup. Check MLB and run bts season-contract status with the scheduler's picks directory. If state still needs correction, follow today's dated-observation instructions while a lineup check remains. First planned lineup check at 00:10 ET.",
+      "BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-06-14 at this check. Reason: Live decision refused: season 2027 switch is absent.\nSee the scheduler journal for this refusal. To inspect current state, run bts season-contract status with --picks-dir set to the scheduler's absolute picks directory. For live repair, use the season-start checklist (B8a). Before changing state for a new slate, verify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.",
+      "BTS health CRITICAL alert(s):\n- [missed_pick] NO PICK DELIVERED. ~10 min to first pitch. See `bts season-contract status`."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "contest_state",
+        "run_day",
+        "final",
+        "2027-06-15T00:40:00-04:00",
+        "2027-06-14"
+      ],
+      [
+        "missed_pick",
+        "_maybe_alert_missed_pick",
+        "_alert_missed_pick(config, daily, mins, slate_date=date)",
+        "2027-06-15T00:45:00-04:00",
+        "2027-06-14"
+      ]
+    ]
+  },
+  "2027-06-14/missed_live": {
+    "result": null,
+    "journal": "  MISSED-PICK ALERT — no delivery with ~10min to first pitch.\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-06-14.jsonl": "{\"captured_at\": \"2027-06-15T04:05:00+00:00\", \"date\": \"2027-06-14\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-06-14.json": "{\n  \"date\": \"2027-06-14\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2027-06-15T00:55:00-04:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": null,\n  \"automatic_reading\": null\n}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "bcbbf283a485dcd940be7d018d67ec1a80133dc3f823068c88baeb0c2a29366b",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-06-14",
+      "sent_sources": [
+        "CRITICAL:missed_pick"
+      ],
+      "status": "sent",
+      "updated_at": "2027-06-15T04:45:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [missed_pick] NO PICK DELIVERED. ~10 min to first pitch. See `bts season-contract status`."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "missed_pick",
+        "_maybe_alert_missed_pick",
+        "_alert_missed_pick(config, daily, mins, slate_date=date)",
+        "2027-06-15T00:45:00-04:00",
+        "2027-06-14"
+      ]
+    ]
+  },
+  "2027-06-14/missed_preview": {
+    "result": null,
+    "journal": "  MISSED-PICK ALERT — no delivery with ~10min to first pitch.\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-06-14.jsonl": "{\"captured_at\": \"2027-06-15T04:05:00+00:00\", \"date\": \"2027-06-14\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-06-14.json": "{\n  \"date\": \"2027-06-14\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2027-06-15T00:55:00-04:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": null,\n  \"automatic_reading\": null\n}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "dc8661acb2e1b621cb3a3558ffb722bbaef4530fc469a60b6218c6bdf4a38eb5",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-06-14",
+      "sent_sources": [
+        "CRITICAL:missed_pick"
+      ],
+      "status": "sent",
+      "updated_at": "2027-06-15T04:45:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [missed_pick] NO PICK DELIVERED with ~10 min to first pitch (top pick: Steven Kwan). Deliver manually if you want to keep the streak alive."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "missed_pick",
+        "_maybe_alert_missed_pick",
+        "_alert_missed_pick(config, daily, mins, slate_date=date)",
+        "2027-06-15T00:45:00-04:00",
+        "2027-06-14"
+      ]
+    ]
+  },
+  "2027-06-14/void": {
+    "result": false,
+    "journal": "  DELIVERY REFUSED (void) — game 101 is Cancelled; not delivering a pick on it.\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-06-14.jsonl": "{\"captured_at\": \"2027-06-15T04:05:00+00:00\", \"date\": \"2027-06-14\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-06-14/refused_delivery_20270615T000500-0400.json": "{\n  \"date\": \"2027-06-14\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2027-06-15T00:55:00-04:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": null,\n  \"automatic_reading\": null,\n  \"refused_delivery\": {\n    \"reason\": \"game_not_playable\",\n    \"refused_at\": \"2027-06-15T00:05:00-04:00\",\n    \"label\": \"void\",\n    \"void_games\": {\n      \"101\": \"Cancelled\"\n    }\n  }\n}",
+      "picks/2027-06-14/scheduler_state.json": "{\n  \"date\": \"2027-06-14\",\n  \"schedule_fetched_at\": \"2027-07-15T18:35:00-04:00\",\n  \"games\": [],\n  \"confirmed_game_pks\": [],\n  \"runs_completed\": [],\n  \"pick_locked\": false,\n  \"pick_locked_at\": null,\n  \"result_status\": null,\n  \"next_wakeup\": null,\n  \"analytics_jobs\": null,\n  \"skip_summary\": null,\n  \"skip_notified_at\": null,\n  \"final_skip_candidate\": null,\n  \"committed_pick_written\": false,\n  \"delivery_refusals\": [\n    {\n      \"at\": \"2027-06-15T00:05:00-04:00\",\n      \"label\": \"void\",\n      \"reason\": \"game_not_playable\",\n      \"batter\": \"Steven Kwan\",\n      \"double_down\": null,\n      \"void_games\": {\n        \"101\": \"Cancelled\"\n      },\n      \"archive\": \"refused_delivery_20270615T000500-0400.json\"\n    }\n  ],\n  \"fallback_refreshes\": null\n}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "da5d77672d8f7dd2ccf8341fc9f4e8a0de42fdef052f799cb4d5a0386488c97e",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-06-14",
+      "sent_sources": [
+        "CRITICAL:postponed_pick"
+      ],
+      "status": "sent",
+      "updated_at": "2027-06-15T04:05:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [postponed_pick] DELIVERY REFUSED for 2027-06-14: game 101 is Cancelled. This pick was withheld. A later check may produce another recommendation. Use a later official pick message only while the entry window is open. A manual entry can differ from a later recommendation. The entry check may report a mismatch if it verifies the entry in time."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "postponed_pick",
+        "_deliver_and_lock_pick",
+        "_refuse_void_game_delivery(daily, config, picks_dir, state, date, label, void_games)",
+        "2027-06-15T00:05:00-04:00",
+        "2027-06-14"
+      ]
+    ]
+  },
+  "2027-06-14/late_initial": {
+    "result": false,
+    "journal": "  DELIVERY REFUSED (late_initial) — Steven Kwan: submission cutoff 00:50 ET passed 0.0 min ago; not delivering an unenterable pick.\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-06-14.jsonl": "{\"captured_at\": \"2027-06-15T04:50:00+00:00\", \"date\": \"2027-06-14\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-06-14/scheduler_state.json": "{\n  \"date\": \"2027-06-14\",\n  \"schedule_fetched_at\": \"2027-07-15T18:35:00-04:00\",\n  \"games\": [],\n  \"confirmed_game_pks\": [],\n  \"runs_completed\": [],\n  \"pick_locked\": false,\n  \"pick_locked_at\": null,\n  \"result_status\": null,\n  \"next_wakeup\": null,\n  \"analytics_jobs\": null,\n  \"skip_summary\": null,\n  \"skip_notified_at\": null,\n  \"final_skip_candidate\": null,\n  \"committed_pick_written\": false,\n  \"delivery_refusals\": [\n    {\n      \"at\": \"2027-06-15T00:50:00-04:00\",\n      \"label\": \"late_initial\",\n      \"reason\": \"past_submission_cutoff\",\n      \"batter\": \"Steven Kwan\",\n      \"double_down\": null,\n      \"cutoff_et\": \"2027-06-15T00:50:00-04:00\",\n      \"late_min\": 0.0,\n      \"archive\": \"refused_delivery_20270615T005000-0400.json\"\n    }\n  ],\n  \"fallback_refreshes\": null\n}",
+      "picks/2027-06-14/refused_delivery_20270615T005000-0400.json": "{\n  \"date\": \"2027-06-14\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2027-06-15T00:55:00-04:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": null,\n  \"automatic_reading\": null,\n  \"refused_delivery\": {\n    \"reason\": \"past_submission_cutoff\",\n    \"refused_at\": \"2027-06-15T00:50:00-04:00\",\n    \"label\": \"late_initial\",\n    \"cutoff_et\": \"2027-06-15T00:50:00-04:00\",\n    \"late_min\": 0.0\n  }\n}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "b718e5132e572ad9eca71e4ab4570ae0506dd08af40c7061222d3a66007d8cbb",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-06-14",
+      "sent_sources": [
+        "CRITICAL:late_delivery"
+      ],
+      "status": "sent",
+      "updated_at": "2027-06-15T04:50:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [late_delivery] LATE DELIVERY REFUSED: the 00:50 ET cutoff for Steven Kwan had been reached. This pick was withheld. A later check may produce another recommendation. Use a later official pick message only while the entry window is open. A manual entry can differ from a later recommendation. The entry check may report a mismatch if it verifies the entry in time."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "late_delivery",
+        "_deliver_and_lock_pick",
+        "_refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)",
+        "2027-06-15T00:50:00-04:00",
+        "2027-06-14"
+      ]
+    ]
+  },
+  "2027-06-14/late_dm": {
+    "result": false,
+    "journal": "  DELIVERY REFUSED (late_dm) — Steven Kwan: submission cutoff 00:50 ET passed 0.0 min ago; not delivering an unenterable pick.\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-06-14.jsonl": "{\"captured_at\": \"2027-06-15T04:05:00+00:00\", \"date\": \"2027-06-14\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-06-14/scheduler_state.json": "{\n  \"date\": \"2027-06-14\",\n  \"schedule_fetched_at\": \"2027-07-15T18:35:00-04:00\",\n  \"games\": [],\n  \"confirmed_game_pks\": [],\n  \"runs_completed\": [],\n  \"pick_locked\": false,\n  \"pick_locked_at\": null,\n  \"result_status\": null,\n  \"next_wakeup\": null,\n  \"analytics_jobs\": null,\n  \"skip_summary\": null,\n  \"skip_notified_at\": null,\n  \"final_skip_candidate\": null,\n  \"committed_pick_written\": false,\n  \"delivery_refusals\": [\n    {\n      \"at\": \"2027-06-15T00:50:00-04:00\",\n      \"label\": \"late_dm\",\n      \"reason\": \"past_submission_cutoff\",\n      \"batter\": \"Steven Kwan\",\n      \"double_down\": null,\n      \"cutoff_et\": \"2027-06-15T00:50:00-04:00\",\n      \"late_min\": 0.0,\n      \"archive\": \"refused_delivery_20270615T005000-0400.json\"\n    }\n  ],\n  \"fallback_refreshes\": null\n}",
+      "picks/2027-06-14/refused_delivery_20270615T005000-0400.json": "{\n  \"date\": \"2027-06-14\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2027-06-15T00:55:00-04:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": {\n    \"schema\": \"bts_pick_chosen_on_v1\",\n    \"required\": true,\n    \"kind\": \"dated\",\n    \"streak\": 12,\n    \"saver_available\": false,\n    \"dated\": {\n      \"effective_date\": \"2027-06-15\",\n      \"active_streak\": 12,\n      \"best_streak\": 16,\n      \"saver_state\": \"used\"\n    }\n  },\n  \"automatic_reading\": null,\n  \"refused_delivery\": {\n    \"reason\": \"past_submission_cutoff\",\n    \"refused_at\": \"2027-06-15T00:50:00-04:00\",\n    \"label\": \"late_dm\",\n    \"cutoff_et\": \"2027-06-15T00:50:00-04:00\",\n    \"late_min\": 0.0\n  }\n}",
+      "picks/account_state/contest_streak.manual.json": "{\"schema_version\": \"bts_contest_streak_manual_v3\", \"effective_date\": \"2027-06-15\", \"expires_at\": \"2027-06-15T23:59:59.999999-04:00\", \"season\": 2027, \"active_streak\": 12, \"best_streak\": 16, \"saver_state\": \"used\", \"recorded_at\": \"2027-06-15T00:05:00-04:00\", \"source\": \"MLB\"}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "b718e5132e572ad9eca71e4ab4570ae0506dd08af40c7061222d3a66007d8cbb",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-06-14",
+      "sent_sources": [
+        "CRITICAL:late_delivery"
+      ],
+      "status": "sent",
+      "updated_at": "2027-06-15T04:50:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [late_delivery] LATE DELIVERY REFUSED: the 00:50 ET cutoff for Steven Kwan had been reached. This pick was withheld. A later check may produce another recommendation. Use a later official pick message only while the entry window is open. A manual entry can differ from a later recommendation. The entry check may report a mismatch if it verifies the entry in time."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "late_delivery",
+        "_deliver_and_lock_pick",
+        "_refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)",
+        "2027-06-15T00:50:00-04:00",
+        "2027-06-14"
+      ]
+    ]
+  },
+  "2027-06-14/late_public": {
+    "result": false,
+    "journal": "  DELIVERY REFUSED (late_public) — Steven Kwan: submission cutoff 00:50 ET passed 0.0 min ago; not delivering an unenterable pick.\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-06-14.jsonl": "{\"captured_at\": \"2027-06-15T04:05:00+00:00\", \"date\": \"2027-06-14\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-06-14/scheduler_state.json": "{\n  \"date\": \"2027-06-14\",\n  \"schedule_fetched_at\": \"2027-07-15T18:35:00-04:00\",\n  \"games\": [],\n  \"confirmed_game_pks\": [],\n  \"runs_completed\": [],\n  \"pick_locked\": false,\n  \"pick_locked_at\": null,\n  \"result_status\": null,\n  \"next_wakeup\": null,\n  \"analytics_jobs\": null,\n  \"skip_summary\": null,\n  \"skip_notified_at\": null,\n  \"final_skip_candidate\": null,\n  \"committed_pick_written\": false,\n  \"delivery_refusals\": [\n    {\n      \"at\": \"2027-06-15T00:50:00-04:00\",\n      \"label\": \"late_public\",\n      \"reason\": \"past_submission_cutoff\",\n      \"batter\": \"Steven Kwan\",\n      \"double_down\": null,\n      \"cutoff_et\": \"2027-06-15T00:50:00-04:00\",\n      \"late_min\": 0.0,\n      \"archive\": \"refused_delivery_20270615T005000-0400.json\"\n    }\n  ],\n  \"fallback_refreshes\": null\n}",
+      "picks/2027-06-14/refused_delivery_20270615T005000-0400.json": "{\n  \"date\": \"2027-06-14\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2027-06-15T00:55:00-04:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": {\n    \"schema\": \"bts_pick_chosen_on_v1\",\n    \"required\": true,\n    \"kind\": \"dated\",\n    \"streak\": 12,\n    \"saver_available\": false,\n    \"dated\": {\n      \"effective_date\": \"2027-06-15\",\n      \"active_streak\": 12,\n      \"best_streak\": 16,\n      \"saver_state\": \"used\"\n    }\n  },\n  \"automatic_reading\": null,\n  \"refused_delivery\": {\n    \"reason\": \"past_submission_cutoff\",\n    \"refused_at\": \"2027-06-15T00:50:00-04:00\",\n    \"label\": \"late_public\",\n    \"cutoff_et\": \"2027-06-15T00:50:00-04:00\",\n    \"late_min\": 0.0\n  }\n}",
+      "picks/account_state/contest_streak.manual.json": "{\"schema_version\": \"bts_contest_streak_manual_v3\", \"effective_date\": \"2027-06-15\", \"expires_at\": \"2027-06-15T23:59:59.999999-04:00\", \"season\": 2027, \"active_streak\": 12, \"best_streak\": 16, \"saver_state\": \"used\", \"recorded_at\": \"2027-06-15T00:05:00-04:00\", \"source\": \"MLB\"}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "b718e5132e572ad9eca71e4ab4570ae0506dd08af40c7061222d3a66007d8cbb",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-06-14",
+      "sent_sources": [
+        "CRITICAL:late_delivery"
+      ],
+      "status": "sent",
+      "updated_at": "2027-06-15T04:50:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [late_delivery] LATE DELIVERY REFUSED: the 00:50 ET cutoff for Steven Kwan had been reached. This pick was withheld. A later check may produce another recommendation. Use a later official pick message only while the entry window is open. A manual entry can differ from a later recommendation. The entry check may report a mismatch if it verifies the entry in time."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "late_delivery",
+        "_deliver_and_lock_pick",
+        "_refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)",
+        "2027-06-15T00:50:00-04:00",
+        "2027-06-14"
+      ]
+    ]
+  },
+  "2027-06-14/delivered": {
+    "result": true,
+    "journal": "  LOCKED (delivered) — Pick DM sent: pick-dm\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-06-14.jsonl": "{\"captured_at\": \"2027-06-15T04:05:00+00:00\", \"date\": \"2027-06-14\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n{\"captured_at\": \"2027-06-15T04:05:00+00:00\", \"date\": \"2027-06-14\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n{\"captured_at\": \"2027-06-15T04:05:00+00:00\", \"date\": \"2027-06-14\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-06-14.json": "{\n  \"date\": \"2027-06-14\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2027-06-15T00:55:00-04:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": true,\n  \"notification_channel\": \"bluesky_dm\",\n  \"notification_id\": \"pick-dm\",\n  \"delivery_attempted\": true,\n  \"delivered_at\": \"2027-06-15T00:05:00-04:00\",\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": {\n    \"schema\": \"bts_pick_chosen_on_v1\",\n    \"required\": true,\n    \"kind\": \"dated\",\n    \"streak\": 12,\n    \"saver_available\": false,\n    \"dated\": {\n      \"effective_date\": \"2027-06-15\",\n      \"active_streak\": 12,\n      \"best_streak\": 16,\n      \"saver_state\": \"used\"\n    }\n  },\n  \"automatic_reading\": null\n}",
+      "picks/2027-06-14/scheduler_state.json": "{\n  \"date\": \"2027-06-14\",\n  \"schedule_fetched_at\": \"2027-07-15T18:35:00-04:00\",\n  \"games\": [],\n  \"confirmed_game_pks\": [],\n  \"runs_completed\": [],\n  \"pick_locked\": true,\n  \"pick_locked_at\": \"2027-06-15T00:05:00-04:00\",\n  \"result_status\": null,\n  \"next_wakeup\": null,\n  \"analytics_jobs\": {\n    \"live_forward_capture\": {\n      \"status\": \"disabled\",\n      \"updated_at\": \"2027-06-15T00:05:00-04:00\",\n      \"reason\": \"live_forward_capture_on_lock=false\"\n    }\n  },\n  \"skip_summary\": null,\n  \"skip_notified_at\": null,\n  \"final_skip_candidate\": null,\n  \"committed_pick_written\": true,\n  \"delivery_refusals\": null,\n  \"fallback_refreshes\": null\n}",
+      "picks/2027-06-14/decision.json": "{\n  \"schema_version\": \"bts_daily_decision_v3\",\n  \"date\": \"2027-06-14\",\n  \"action\": \"single\",\n  \"source\": \"unknown\",\n  \"primary\": {\n    \"batter_id\": 680757,\n    \"batter_name\": \"Steven Kwan\",\n    \"team\": \"CLE\",\n    \"game_pk\": 101,\n    \"p_game_hit\": 0.82\n  },\n  \"double_down\": null,\n  \"second_candidate\": null,\n  \"streak\": null,\n  \"saver_available\": null,\n  \"state_source\": null,\n  \"state_status\": null,\n  \"allow_double\": null,\n  \"contest_source_date\": null,\n  \"delivery_status\": \"delivered\",\n  \"scoreable\": true,\n  \"objective\": \"reach57\",\n  \"best_streak\": null,\n  \"best_status\": null,\n  \"effective_best\": null,\n  \"tail_policy_sha256\": null,\n  \"degraded_reason\": null,\n  \"policy_guard\": null,\n  \"finalized_at\": \"2027-06-15T04:05:00Z\"\n}",
+      "picks/account_state/contest_streak.manual.json": "{\"schema_version\": \"bts_contest_streak_manual_v3\", \"effective_date\": \"2027-06-15\", \"expires_at\": \"2027-06-15T23:59:59.999999-04:00\", \"season\": 2027, \"active_streak\": 12, \"best_streak\": 16, \"saver_state\": \"used\", \"recorded_at\": \"2027-06-15T00:05:00-04:00\", \"source\": \"MLB\"}"
+    },
+    "receipt": null,
+    "wire": [],
+    "picks": [
+      "Today's pick: Steven Kwan (CLE)\nvs Gerrit Cole | 82.0%\n\nStreak: 12"
+    ],
+    "trace": []
+  },
+  "2027-12-31/check": {
+    "result": {
+      "skipped": false,
+      "new_lineups": 0,
+      "should_post": false,
+      "pick_result": null,
+      "pick_name": null,
+      "pick_p": null,
+      "selection": null
+    },
+    "journal": "  0 new confirmed lineup(s). Running predictions...\n  CONTEST STATE ERROR — no pick made: Live decision refused: season 2028 switch is absent.\nAlternative dated path — TEMPLATE: `bts set-contest-streak --date 2028-01-01 --streak N --best-streak B --saver S --picks-dir <TMP>/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir <TMP>/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir <TMP>/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2028 --picks-dir <TMP>/picks`; then run `bts fetch-contest-streak --picks-dir <TMP>/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n",
+    "stdout": "",
+    "files": {
+      "picks/slates/2027-12-31.json": "{\n  \"schema_version\": \"bts_slate_v2\",\n  \"date\": \"2027-12-31\",\n  \"tier\": \"offline\",\n  \"written_at\": \"2028-01-01T05:05:00+00:00\",\n  \"n_rows\": 2,\n  \"rows\": [\n    {\n      \"batter_id\": 680757,\n      \"batter_name\": \"Steven Kwan\",\n      \"team\": \"CLE\",\n      \"game_pk\": 101,\n      \"lineup\": 1,\n      \"pitcher_id\": 543037,\n      \"pitcher_name\": \"Gerrit Cole\",\n      \"p_game_hit\": 0.82,\n      \"flags\": \"\",\n      \"game_time\": \"2028-01-01T00:55:00-05:00\"\n    },\n    {\n      \"batter_id\": 665742,\n      \"batter_name\": \"Juan Soto\",\n      \"team\": \"NYM\",\n      \"game_pk\": 102,\n      \"lineup\": 2,\n      \"pitcher_id\": 605483,\n      \"pitcher_name\": \"Blake Snell\",\n      \"p_game_hit\": 0.81,\n      \"flags\": \"\",\n      \"game_time\": \"2028-01-01T01:25:00-05:00\"\n    }\n  ]\n}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "5811a6e1f1d909c66eec9bb46a1132cac965dc447c18b8ad2ad7588f8cddb214",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-12-31",
+      "sent_sources": [
+        "CRITICAL:contest_state"
+      ],
+      "status": "sent",
+      "updated_at": "2028-01-01T05:05:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-12-31 at this check. Reason: Live decision refused: season 2028 switch is absent.\nSee the scheduler journal for this refusal. To inspect current state, run bts season-contract status with --picks-dir set to the scheduler's absolute picks directory. For live repair, use the season-start checklist (B8a). Before changing state for a new slate, verify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "contest_state",
+        "run_single_check",
+        "_alert_contest_state_failure(config, e, slate_date=date)",
+        "2028-01-01T00:05:00-05:00",
+        "2027-12-31"
+      ]
+    ]
+  },
+  "2027-12-31/loader": {
+    "result": false,
+    "journal": "  CONTEST STATE ERROR — pick delivery blocked: Live decision refused: season 2028 switch is absent.\nAlternative dated path — TEMPLATE: `bts set-contest-streak --date 2028-01-01 --streak N --best-streak B --saver S --picks-dir <TMP>/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir <TMP>/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir <TMP>/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2028 --picks-dir <TMP>/picks`; then run `bts fetch-contest-streak --picks-dir <TMP>/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-12-31.jsonl": "{\"captured_at\": \"2028-01-01T05:05:00+00:00\", \"date\": \"2027-12-31\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-12-31.json": "{\n  \"date\": \"2027-12-31\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2028-01-01T00:55:00-05:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": null,\n  \"automatic_reading\": null\n}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "5811a6e1f1d909c66eec9bb46a1132cac965dc447c18b8ad2ad7588f8cddb214",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-12-31",
+      "sent_sources": [
+        "CRITICAL:contest_state"
+      ],
+      "status": "sent",
+      "updated_at": "2028-01-01T05:05:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-12-31 at this check. Reason: Live decision refused: season 2028 switch is absent.\nSee the scheduler journal for this refusal. To inspect current state, run bts season-contract status with --picks-dir set to the scheduler's absolute picks directory. For live repair, use the season-start checklist (B8a). Before changing state for a new slate, verify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "contest_state",
+        "_deliver_and_lock_pick",
+        "_alert_contest_state_failure(config, e, slate_date=date)",
+        "2028-01-01T00:05:00-05:00",
+        "2027-12-31"
+      ]
+    ]
+  },
+  "2027-12-31/saved": {
+    "result": false,
+    "journal": "CONTEST STATE ERROR — pick delivery blocked: Saved pick for 2027-12-31 was not delivered because it was chosen on dated (effective date 2028-01-01, active streak 12, best streak 16, saver used). The live state is dated (effective date 2028-01-01, active streak 13, best streak 16, saver used). A later scheduled check or fallback refresh may choose a replacement, if one remains.\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-12-31.jsonl": "{\"captured_at\": \"2028-01-01T05:05:00+00:00\", \"date\": \"2027-12-31\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-12-31.json": "{\n  \"date\": \"2027-12-31\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2028-01-01T00:55:00-05:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": {\n    \"schema\": \"bts_pick_chosen_on_v1\",\n    \"required\": true,\n    \"kind\": \"dated\",\n    \"streak\": 12,\n    \"saver_available\": false,\n    \"dated\": {\n      \"effective_date\": \"2028-01-01\",\n      \"active_streak\": 12,\n      \"best_streak\": 16,\n      \"saver_state\": \"used\"\n    }\n  },\n  \"automatic_reading\": null\n}",
+      "picks/account_state/contest_streak.manual.json": "{\"schema_version\": \"bts_contest_streak_manual_v3\", \"effective_date\": \"2028-01-01\", \"expires_at\": \"2028-01-01T23:59:59.999999-05:00\", \"season\": 2028, \"active_streak\": 13, \"best_streak\": 16, \"saver_state\": \"used\", \"recorded_at\": \"2028-01-01T00:05:00-05:00\", \"source\": \"MLB\"}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "899145bdad38694329907cc6808a44fbfab314d686401a6e67b32d2058bfcdb9",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-12-31",
+      "sent_sources": [
+        "CRITICAL:contest_state"
+      ],
+      "status": "sent",
+      "updated_at": "2028-01-01T05:05:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-12-31 at this check. Reason: Saved pick for 2027-12-31 was not delivered because it was chosen on dated (effective date 2028-01-01, active streak 12, best streak 16, saver used). The live state is dated (effective date 2028-01-01, active streak 13, best streak 16, saver used). A later scheduled check or fallback refresh may choose a replacement, if one remains.\nSee the scheduler journal for this refusal. To inspect current state, run bts season-contract status with --picks-dir set to the scheduler's absolute picks directory. For live repair, use the season-start checklist (B8a). Before changing state for a new slate, verify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "contest_state",
+        "_deliver_and_lock_pick",
+        "_alert_contest_state_failure(config, ContestStateError(refusal), slate_date=date)",
+        "2028-01-01T00:05:00-05:00",
+        "2027-12-31"
+      ]
+    ]
+  },
+  "2027-12-31/in_loop": {
+    "result": null,
+    "journal": "  [DM MODE] Public Bluesky posting disabled — picks sent by DM.\n[00:01 ET] Fetching schedule for 2027-12-31...\n  2 games, 1 scheduled checks:\n    23:55 ET — 2 game(s)\n  Morning state check skipped: first lineup check is due within 10 minutes.\n\n[00:01 ET] Running lineup check...\n  0 new confirmed lineup(s). Running predictions...\nMDP base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz')\nMDP tail policy not usable (base policy unavailable (FileNotFoundError: [Errno 2] No such file or directory: 'data/models/mdp_policy.npz'): tail pairing unverifiable)\n  Pick: Steven Kwan (CLE) 82.0% → should_lock=False\n  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).\n  Earliest pick game at 00:55 ET, no check before then — fallback at 00:28 ET (27 min)...\n  FALLBACK BLOCKED — contest state invalid: Live decision refused: season 2028 switch is absent.\nAlternative dated path — TEMPLATE: `bts set-contest-streak --date 2028-01-01 --streak N --best-streak B --saver S --picks-dir <TMP>/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir <TMP>/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir <TMP>/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2028 --picks-dir <TMP>/picks`; then run `bts fetch-contest-streak --picks-dir <TMP>/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).\n  FALLBACK BLOCKED — contest state invalid: Live decision refused: season 2028 switch is absent.\nAlternative dated path — TEMPLATE: `bts set-contest-streak --date 2028-01-01 --streak N --best-streak B --saver S --picks-dir <TMP>/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir <TMP>/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir <TMP>/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2028 --picks-dir <TMP>/picks`; then run `bts fetch-contest-streak --picks-dir <TMP>/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n  MISSED-PICK ALERT — no delivery with ~10min to first pitch.\n  Tomorrow's wake-up: Sat 01-01 10:00 ET\n",
+    "stdout": "",
+    "files": {
+      "heartbeat": "{\"state\": \"idle_end_of_day\", \"timestamp\": \"2028-01-01T05:45:00+00:00\"}",
+      "picks/lineup_evolution_2027-12-31.jsonl": "{\"captured_at\": \"2028-01-01T04:54:00+00:00\", \"date\": \"2027-12-31\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n{\"captured_at\": \"2028-01-01T05:01:00+00:00\", \"date\": \"2027-12-31\", \"run_time\": \"2028-01-01T05:01:00+00:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": {\"batter_id\": 665742, \"batter_name\": \"Juan Soto\", \"team\": \"NYM\", \"p_game_hit\": 0.81, \"projected_lineup\": false, \"game_pk\": 102}}\n",
+      "picks/2027-12-31.json": "{\n  \"date\": \"2027-12-31\",\n  \"run_time\": \"2028-01-01T05:01:00+00:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2028-01-01T00:55:00-05:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": {\n    \"batter_name\": \"Juan Soto\",\n    \"batter_id\": 665742,\n    \"team\": \"NYM\",\n    \"lineup_position\": 2,\n    \"pitcher_name\": \"Blake Snell\",\n    \"pitcher_id\": 605483,\n    \"p_game_hit\": 0.81,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 102,\n    \"game_time\": \"2028-01-01T01:25:00-05:00\",\n    \"pitcher_team\": null\n  },\n  \"runner_up\": {\n    \"batter_name\": \"Juan Soto\",\n    \"p_game_hit\": 0.81\n  },\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": \"bts_feature_env_v1\",\n  \"feature_env\": {\n    \"BTS_LGBM_DETERMINISTIC\": \"0\",\n    \"BTS_LGBM_RANDOM_STATE\": \"42\",\n    \"BTS_PITCHER_HR_30G_MIN_PERIODS\": \"7\",\n    \"BTS_ROOKIE_GATE_K\": \"20\",\n    \"BTS_USE_CALIBRATION\": \"0\"\n  },\n  \"feature_env_hash\": \"fb1841abbb3f269053f4687d291405c4c08ef1c9a87eda8f4f0663804b481ebe\",\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": {\n    \"action\": \"double\",\n    \"policy_action\": \"double\",\n    \"source\": \"heuristic\",\n    \"objective\": \"reach57\",\n    \"streak\": 7,\n    \"days_effective\": 0,\n    \"best_supplied\": 9,\n    \"best_status\": \"trusted\",\n    \"effective_best\": null,\n    \"tail_sha256\": null,\n    \"degraded_reason\": null,\n    \"reason\": null,\n    \"pick_bar\": null,\n    \"guard\": null\n  },\n  \"chosen_on\": {\n    \"schema\": \"bts_pick_chosen_on_v1\",\n    \"required\": true,\n    \"kind\": \"dated\",\n    \"streak\": 7,\n    \"saver_available\": false,\n    \"dated\": {\n      \"effective_date\": \"2028-01-01\",\n      \"active_streak\": 7,\n      \"best_streak\": 9,\n      \"saver_state\": \"used\"\n    }\n  },\n  \"automatic_reading\": null\n}",
+      "picks/2027-12-31/scheduler_state.json": "{\n  \"date\": \"2027-12-31\",\n  \"schedule_fetched_at\": \"2028-01-01T00:01:00-05:00\",\n  \"games\": [\n    {\n      \"game_pk\": 101,\n      \"game_time_et\": \"2028-01-01T00:55:00-05:00\",\n      \"lineup_confirmed\": false,\n      \"is_doubleheader_game2\": false\n    },\n    {\n      \"game_pk\": 102,\n      \"game_time_et\": \"2028-01-01T01:25:00-05:00\",\n      \"lineup_confirmed\": false,\n      \"is_doubleheader_game2\": false\n    }\n  ],\n  \"confirmed_game_pks\": [],\n  \"runs_completed\": [\n    {\n      \"time\": \"2028-01-01T00:01:00-05:00\",\n      \"new_lineups\": 0,\n      \"skipped\": false,\n      \"pick_name\": \"Steven Kwan\",\n      \"pick_p\": 0.82,\n      \"duration_sec\": 0\n    }\n  ],\n  \"pick_locked\": false,\n  \"pick_locked_at\": null,\n  \"result_status\": null,\n  \"next_wakeup\": \"2028-01-01T10:00:00-05:00\",\n  \"analytics_jobs\": null,\n  \"skip_summary\": null,\n  \"skip_notified_at\": null,\n  \"final_skip_candidate\": null,\n  \"committed_pick_written\": false,\n  \"delivery_refusals\": null,\n  \"fallback_refreshes\": null\n}",
+      "picks/slates/2027-12-31.json": "{\n  \"schema_version\": \"bts_slate_v2\",\n  \"date\": \"2027-12-31\",\n  \"tier\": \"offline\",\n  \"written_at\": \"2028-01-01T05:28:00+00:00\",\n  \"n_rows\": 2,\n  \"rows\": [\n    {\n      \"batter_id\": 680757,\n      \"batter_name\": \"Steven Kwan\",\n      \"team\": \"CLE\",\n      \"game_pk\": 101,\n      \"lineup\": 1,\n      \"pitcher_id\": 543037,\n      \"pitcher_name\": \"Gerrit Cole\",\n      \"p_game_hit\": 0.82,\n      \"flags\": \"\",\n      \"game_time\": \"2028-01-01T00:55:00-05:00\"\n    },\n    {\n      \"batter_id\": 665742,\n      \"batter_name\": \"Juan Soto\",\n      \"team\": \"NYM\",\n      \"game_pk\": 102,\n      \"lineup\": 2,\n      \"pitcher_id\": 605483,\n      \"pitcher_name\": \"Blake Snell\",\n      \"p_game_hit\": 0.81,\n      \"flags\": \"\",\n      \"game_time\": \"2028-01-01T01:25:00-05:00\"\n    }\n  ]\n}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "bcbbf283a485dcd940be7d018d67ec1a80133dc3f823068c88baeb0c2a29366b",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-12-31",
+      "sent_sources": [
+        "CRITICAL:contest_state",
+        "CRITICAL:missed_pick"
+      ],
+      "status": "sent",
+      "updated_at": "2028-01-01T05:45:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-12-31 at this check. Reason: Live decision refused: season 2028 switch is absent.\nSee the scheduler journal for this refusal. To inspect current state, run bts season-contract status with --picks-dir set to the scheduler's absolute picks directory. For live repair, use the season-start checklist (B8a). Before changing state for a new slate, verify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.",
+      "BTS health CRITICAL alert(s):\n- [missed_pick] NO PICK DELIVERED. ~10 min to first pitch. See `bts season-contract status`."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "contest_state",
+        "run_day",
+        "in_loop",
+        "2028-01-01T00:28:00-05:00",
+        "2027-12-31"
+      ],
+      [
+        "contest_state",
+        "run_day",
+        "final",
+        "2028-01-01T00:28:00-05:00",
+        "2027-12-31"
+      ],
+      [
+        "missed_pick",
+        "_maybe_alert_missed_pick",
+        "_alert_missed_pick(config, daily, mins, slate_date=date)",
+        "2028-01-01T00:45:00-05:00",
+        "2027-12-31"
+      ]
+    ]
+  },
+  "2027-12-31/final": {
+    "result": null,
+    "journal": "  [DM MODE] Public Bluesky posting disabled — picks sent by DM.\n[23:54 ET] Fetching schedule for 2027-12-31...\n  2 games, 2 scheduled checks:\n    00:10 ET — 1 game(s)\n    00:40 ET — 1 game(s)\n  MORNING STATE CHECK — no pick can be made yet: 'Live decision refused: season 2027 switch is absent.\\nAlternative dated path \\u2014 TEMPLATE: `bts set-contest-streak --date 2027-12-31 --streak N --best-streak B --saver S --picks-dir <TMP>/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir <TMP>/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir <TMP>/picks` and compare the readings with MLB; only then run `bts season-contract enable --sea\n  Sleeping until 00:10 ET (16 min)...\n\n[00:10 ET] Running lineup check...\n  0 new confirmed lineup(s). Running predictions...\n  Sleeping until 00:40 ET (30 min)...\n\n[00:40 ET] Running lineup check...\n  0 new confirmed lineup(s). Running predictions...\n  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).\n  FALLBACK BLOCKED — contest state invalid: Live decision refused: season 2028 switch is absent.\nAlternative dated path — TEMPLATE: `bts set-contest-streak --date 2028-01-01 --streak N --best-streak B --saver S --picks-dir <TMP>/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir <TMP>/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir <TMP>/picks` and compare the readings with MLB; only then run `bts season-contract enable --season 2028 --picks-dir <TMP>/picks`; then run `bts fetch-contest-streak --picks-dir <TMP>/picks` again to install an observation for this activation. If a legacy manual still wins, replace it with the dated template above.\nOne repair can expose another blocker. A non-zero fetch exit does not prove no observation was installed. Status output is not itself a verification of what MLB shows.\n  MISSED-PICK ALERT — no delivery with ~10min to first pitch.\n  Tomorrow's wake-up: Sat 01-01 10:00 ET\n",
+    "stdout": "",
+    "files": {
+      "heartbeat": "{\"state\": \"idle_end_of_day\", \"timestamp\": \"2028-01-01T05:45:00+00:00\"}",
+      "picks/lineup_evolution_2027-12-31.jsonl": "{\"captured_at\": \"2028-01-01T04:54:00+00:00\", \"date\": \"2027-12-31\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-12-31.json": "{\n  \"date\": \"2027-12-31\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2028-01-01T00:55:00-05:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": null,\n  \"automatic_reading\": null\n}",
+      "health_state/contest_morning_check_dm_delivery_status.json": "{\n  \"body_first_line\": \"BTS health CRITICAL alert(s):\",\n  \"body_sha256\": \"f3e48d2939dd278cdaea3a99bcfdb351228aff526273c5a5cd65e56ac1e0a1e0\",\n  \"critical_count\": 1,\n  \"recipient\": \"offline.test\",\n  \"recipient_configured\": true,\n  \"schema_version\": \"bts_health_dm_delivery_status_v1\",\n  \"sent_day\": \"2027-12-31\",\n  \"sent_sources\": [\n    \"CRITICAL:contest_state:morning\"\n  ],\n  \"status\": \"sent\",\n  \"updated_at\": \"2028-01-01T04:54:00+00:00\",\n  \"warn_attention_count\": 0\n}\n",
+      "picks/2027-12-31/scheduler_state.json": "{\n  \"date\": \"2027-12-31\",\n  \"schedule_fetched_at\": \"2027-12-31T23:54:00-05:00\",\n  \"games\": [\n    {\n      \"game_pk\": 101,\n      \"game_time_et\": \"2028-01-01T00:55:00-05:00\",\n      \"lineup_confirmed\": false,\n      \"is_doubleheader_game2\": false\n    },\n    {\n      \"game_pk\": 102,\n      \"game_time_et\": \"2028-01-01T01:25:00-05:00\",\n      \"lineup_confirmed\": false,\n      \"is_doubleheader_game2\": false\n    }\n  ],\n  \"confirmed_game_pks\": [],\n  \"runs_completed\": [\n    {\n      \"time\": \"2028-01-01T00:10:00-05:00\",\n      \"new_lineups\": 0,\n      \"skipped\": false,\n      \"pick_name\": null,\n      \"pick_p\": null,\n      \"duration_sec\": 0\n    },\n    {\n      \"time\": \"2028-01-01T00:40:00-05:00\",\n      \"new_lineups\": 0,\n      \"skipped\": false,\n      \"pick_name\": null,\n      \"pick_p\": null,\n      \"duration_sec\": 0\n    }\n  ],\n  \"pick_locked\": false,\n  \"pick_locked_at\": null,\n  \"result_status\": null,\n  \"next_wakeup\": \"2028-01-01T10:00:00-05:00\",\n  \"analytics_jobs\": null,\n  \"skip_summary\": null,\n  \"skip_notified_at\": null,\n  \"final_skip_candidate\": null,\n  \"committed_pick_written\": false,\n  \"delivery_refusals\": null,\n  \"fallback_refreshes\": null\n}",
+      "picks/slates/2027-12-31.json": "{\n  \"schema_version\": \"bts_slate_v2\",\n  \"date\": \"2027-12-31\",\n  \"tier\": \"offline\",\n  \"written_at\": \"2028-01-01T05:40:00+00:00\",\n  \"n_rows\": 2,\n  \"rows\": [\n    {\n      \"batter_id\": 680757,\n      \"batter_name\": \"Steven Kwan\",\n      \"team\": \"CLE\",\n      \"game_pk\": 101,\n      \"lineup\": 1,\n      \"pitcher_id\": 543037,\n      \"pitcher_name\": \"Gerrit Cole\",\n      \"p_game_hit\": 0.82,\n      \"flags\": \"\",\n      \"game_time\": \"2028-01-01T00:55:00-05:00\"\n    },\n    {\n      \"batter_id\": 665742,\n      \"batter_name\": \"Juan Soto\",\n      \"team\": \"NYM\",\n      \"game_pk\": 102,\n      \"lineup\": 2,\n      \"pitcher_id\": 605483,\n      \"pitcher_name\": \"Blake Snell\",\n      \"p_game_hit\": 0.81,\n      \"flags\": \"\",\n      \"game_time\": \"2028-01-01T01:25:00-05:00\"\n    }\n  ]\n}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "bcbbf283a485dcd940be7d018d67ec1a80133dc3f823068c88baeb0c2a29366b",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-12-31",
+      "sent_sources": [
+        "CRITICAL:contest_state",
+        "CRITICAL:missed_pick"
+      ],
+      "status": "sent",
+      "updated_at": "2028-01-01T05:45:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [contest_state] Morning check for 2027-12-31: no usable contest state was found at startup. Check MLB and run bts season-contract status with the scheduler's picks directory. If state still needs correction, follow today's dated-observation instructions while a lineup check remains. First planned lineup check at 00:10 ET.",
+      "BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-12-31 at this check. Reason: Live decision refused: season 2028 switch is absent.\nSee the scheduler journal for this refusal. To inspect current state, run bts season-contract status with --picks-dir set to the scheduler's absolute picks directory. For live repair, use the season-start checklist (B8a). Before changing state for a new slate, verify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.",
+      "BTS health CRITICAL alert(s):\n- [missed_pick] NO PICK DELIVERED. ~10 min to first pitch. See `bts season-contract status`."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "contest_state",
+        "run_day",
+        "final",
+        "2028-01-01T00:40:00-05:00",
+        "2027-12-31"
+      ],
+      [
+        "missed_pick",
+        "_maybe_alert_missed_pick",
+        "_alert_missed_pick(config, daily, mins, slate_date=date)",
+        "2028-01-01T00:45:00-05:00",
+        "2027-12-31"
+      ]
+    ]
+  },
+  "2027-12-31/missed_live": {
+    "result": null,
+    "journal": "  MISSED-PICK ALERT — no delivery with ~10min to first pitch.\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-12-31.jsonl": "{\"captured_at\": \"2028-01-01T05:05:00+00:00\", \"date\": \"2027-12-31\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-12-31.json": "{\n  \"date\": \"2027-12-31\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2028-01-01T00:55:00-05:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": null,\n  \"automatic_reading\": null\n}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "bcbbf283a485dcd940be7d018d67ec1a80133dc3f823068c88baeb0c2a29366b",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-12-31",
+      "sent_sources": [
+        "CRITICAL:missed_pick"
+      ],
+      "status": "sent",
+      "updated_at": "2028-01-01T05:45:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [missed_pick] NO PICK DELIVERED. ~10 min to first pitch. See `bts season-contract status`."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "missed_pick",
+        "_maybe_alert_missed_pick",
+        "_alert_missed_pick(config, daily, mins, slate_date=date)",
+        "2028-01-01T00:45:00-05:00",
+        "2027-12-31"
+      ]
+    ]
+  },
+  "2027-12-31/missed_preview": {
+    "result": null,
+    "journal": "  MISSED-PICK ALERT — no delivery with ~10min to first pitch.\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-12-31.jsonl": "{\"captured_at\": \"2028-01-01T05:05:00+00:00\", \"date\": \"2027-12-31\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-12-31.json": "{\n  \"date\": \"2027-12-31\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2028-01-01T00:55:00-05:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": null,\n  \"automatic_reading\": null\n}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "dc8661acb2e1b621cb3a3558ffb722bbaef4530fc469a60b6218c6bdf4a38eb5",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-12-31",
+      "sent_sources": [
+        "CRITICAL:missed_pick"
+      ],
+      "status": "sent",
+      "updated_at": "2028-01-01T05:45:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [missed_pick] NO PICK DELIVERED with ~10 min to first pitch (top pick: Steven Kwan). Deliver manually if you want to keep the streak alive."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "missed_pick",
+        "_maybe_alert_missed_pick",
+        "_alert_missed_pick(config, daily, mins, slate_date=date)",
+        "2028-01-01T00:45:00-05:00",
+        "2027-12-31"
+      ]
+    ]
+  },
+  "2027-12-31/void": {
+    "result": false,
+    "journal": "  DELIVERY REFUSED (void) — game 101 is Cancelled; not delivering a pick on it.\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-12-31.jsonl": "{\"captured_at\": \"2028-01-01T05:05:00+00:00\", \"date\": \"2027-12-31\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-12-31/refused_delivery_20280101T000500-0500.json": "{\n  \"date\": \"2027-12-31\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2028-01-01T00:55:00-05:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": null,\n  \"automatic_reading\": null,\n  \"refused_delivery\": {\n    \"reason\": \"game_not_playable\",\n    \"refused_at\": \"2028-01-01T00:05:00-05:00\",\n    \"label\": \"void\",\n    \"void_games\": {\n      \"101\": \"Cancelled\"\n    }\n  }\n}",
+      "picks/2027-12-31/scheduler_state.json": "{\n  \"date\": \"2027-12-31\",\n  \"schedule_fetched_at\": \"2027-07-15T18:35:00-04:00\",\n  \"games\": [],\n  \"confirmed_game_pks\": [],\n  \"runs_completed\": [],\n  \"pick_locked\": false,\n  \"pick_locked_at\": null,\n  \"result_status\": null,\n  \"next_wakeup\": null,\n  \"analytics_jobs\": null,\n  \"skip_summary\": null,\n  \"skip_notified_at\": null,\n  \"final_skip_candidate\": null,\n  \"committed_pick_written\": false,\n  \"delivery_refusals\": [\n    {\n      \"at\": \"2028-01-01T00:05:00-05:00\",\n      \"label\": \"void\",\n      \"reason\": \"game_not_playable\",\n      \"batter\": \"Steven Kwan\",\n      \"double_down\": null,\n      \"void_games\": {\n        \"101\": \"Cancelled\"\n      },\n      \"archive\": \"refused_delivery_20280101T000500-0500.json\"\n    }\n  ],\n  \"fallback_refreshes\": null\n}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "55ace43402d558f3979b2ad45fc674ebd743c799a36c7b21e9eb41af88ca817e",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-12-31",
+      "sent_sources": [
+        "CRITICAL:postponed_pick"
+      ],
+      "status": "sent",
+      "updated_at": "2028-01-01T05:05:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [postponed_pick] DELIVERY REFUSED for 2027-12-31: game 101 is Cancelled. This pick was withheld. A later check may produce another recommendation. Use a later official pick message only while the entry window is open. A manual entry can differ from a later recommendation. The entry check may report a mismatch if it verifies the entry in time."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "postponed_pick",
+        "_deliver_and_lock_pick",
+        "_refuse_void_game_delivery(daily, config, picks_dir, state, date, label, void_games)",
+        "2028-01-01T00:05:00-05:00",
+        "2027-12-31"
+      ]
+    ]
+  },
+  "2027-12-31/late_initial": {
+    "result": false,
+    "journal": "  DELIVERY REFUSED (late_initial) — Steven Kwan: submission cutoff 00:50 ET passed 0.0 min ago; not delivering an unenterable pick.\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-12-31.jsonl": "{\"captured_at\": \"2028-01-01T05:50:00+00:00\", \"date\": \"2027-12-31\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-12-31/scheduler_state.json": "{\n  \"date\": \"2027-12-31\",\n  \"schedule_fetched_at\": \"2027-07-15T18:35:00-04:00\",\n  \"games\": [],\n  \"confirmed_game_pks\": [],\n  \"runs_completed\": [],\n  \"pick_locked\": false,\n  \"pick_locked_at\": null,\n  \"result_status\": null,\n  \"next_wakeup\": null,\n  \"analytics_jobs\": null,\n  \"skip_summary\": null,\n  \"skip_notified_at\": null,\n  \"final_skip_candidate\": null,\n  \"committed_pick_written\": false,\n  \"delivery_refusals\": [\n    {\n      \"at\": \"2028-01-01T00:50:00-05:00\",\n      \"label\": \"late_initial\",\n      \"reason\": \"past_submission_cutoff\",\n      \"batter\": \"Steven Kwan\",\n      \"double_down\": null,\n      \"cutoff_et\": \"2028-01-01T00:50:00-05:00\",\n      \"late_min\": 0.0,\n      \"archive\": \"refused_delivery_20280101T005000-0500.json\"\n    }\n  ],\n  \"fallback_refreshes\": null\n}",
+      "picks/2027-12-31/refused_delivery_20280101T005000-0500.json": "{\n  \"date\": \"2027-12-31\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2028-01-01T00:55:00-05:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": null,\n  \"automatic_reading\": null,\n  \"refused_delivery\": {\n    \"reason\": \"past_submission_cutoff\",\n    \"refused_at\": \"2028-01-01T00:50:00-05:00\",\n    \"label\": \"late_initial\",\n    \"cutoff_et\": \"2028-01-01T00:50:00-05:00\",\n    \"late_min\": 0.0\n  }\n}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "b718e5132e572ad9eca71e4ab4570ae0506dd08af40c7061222d3a66007d8cbb",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-12-31",
+      "sent_sources": [
+        "CRITICAL:late_delivery"
+      ],
+      "status": "sent",
+      "updated_at": "2028-01-01T05:50:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [late_delivery] LATE DELIVERY REFUSED: the 00:50 ET cutoff for Steven Kwan had been reached. This pick was withheld. A later check may produce another recommendation. Use a later official pick message only while the entry window is open. A manual entry can differ from a later recommendation. The entry check may report a mismatch if it verifies the entry in time."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "late_delivery",
+        "_deliver_and_lock_pick",
+        "_refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)",
+        "2028-01-01T00:50:00-05:00",
+        "2027-12-31"
+      ]
+    ]
+  },
+  "2027-12-31/late_dm": {
+    "result": false,
+    "journal": "  DELIVERY REFUSED (late_dm) — Steven Kwan: submission cutoff 00:50 ET passed 0.0 min ago; not delivering an unenterable pick.\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-12-31.jsonl": "{\"captured_at\": \"2028-01-01T05:05:00+00:00\", \"date\": \"2027-12-31\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-12-31/scheduler_state.json": "{\n  \"date\": \"2027-12-31\",\n  \"schedule_fetched_at\": \"2027-07-15T18:35:00-04:00\",\n  \"games\": [],\n  \"confirmed_game_pks\": [],\n  \"runs_completed\": [],\n  \"pick_locked\": false,\n  \"pick_locked_at\": null,\n  \"result_status\": null,\n  \"next_wakeup\": null,\n  \"analytics_jobs\": null,\n  \"skip_summary\": null,\n  \"skip_notified_at\": null,\n  \"final_skip_candidate\": null,\n  \"committed_pick_written\": false,\n  \"delivery_refusals\": [\n    {\n      \"at\": \"2028-01-01T00:50:00-05:00\",\n      \"label\": \"late_dm\",\n      \"reason\": \"past_submission_cutoff\",\n      \"batter\": \"Steven Kwan\",\n      \"double_down\": null,\n      \"cutoff_et\": \"2028-01-01T00:50:00-05:00\",\n      \"late_min\": 0.0,\n      \"archive\": \"refused_delivery_20280101T005000-0500.json\"\n    }\n  ],\n  \"fallback_refreshes\": null\n}",
+      "picks/2027-12-31/refused_delivery_20280101T005000-0500.json": "{\n  \"date\": \"2027-12-31\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2028-01-01T00:55:00-05:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": {\n    \"schema\": \"bts_pick_chosen_on_v1\",\n    \"required\": true,\n    \"kind\": \"dated\",\n    \"streak\": 12,\n    \"saver_available\": false,\n    \"dated\": {\n      \"effective_date\": \"2028-01-01\",\n      \"active_streak\": 12,\n      \"best_streak\": 16,\n      \"saver_state\": \"used\"\n    }\n  },\n  \"automatic_reading\": null,\n  \"refused_delivery\": {\n    \"reason\": \"past_submission_cutoff\",\n    \"refused_at\": \"2028-01-01T00:50:00-05:00\",\n    \"label\": \"late_dm\",\n    \"cutoff_et\": \"2028-01-01T00:50:00-05:00\",\n    \"late_min\": 0.0\n  }\n}",
+      "picks/account_state/contest_streak.manual.json": "{\"schema_version\": \"bts_contest_streak_manual_v3\", \"effective_date\": \"2028-01-01\", \"expires_at\": \"2028-01-01T23:59:59.999999-05:00\", \"season\": 2028, \"active_streak\": 12, \"best_streak\": 16, \"saver_state\": \"used\", \"recorded_at\": \"2028-01-01T00:05:00-05:00\", \"source\": \"MLB\"}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "b718e5132e572ad9eca71e4ab4570ae0506dd08af40c7061222d3a66007d8cbb",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-12-31",
+      "sent_sources": [
+        "CRITICAL:late_delivery"
+      ],
+      "status": "sent",
+      "updated_at": "2028-01-01T05:50:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [late_delivery] LATE DELIVERY REFUSED: the 00:50 ET cutoff for Steven Kwan had been reached. This pick was withheld. A later check may produce another recommendation. Use a later official pick message only while the entry window is open. A manual entry can differ from a later recommendation. The entry check may report a mismatch if it verifies the entry in time."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "late_delivery",
+        "_deliver_and_lock_pick",
+        "_refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)",
+        "2028-01-01T00:50:00-05:00",
+        "2027-12-31"
+      ]
+    ]
+  },
+  "2027-12-31/late_public": {
+    "result": false,
+    "journal": "  DELIVERY REFUSED (late_public) — Steven Kwan: submission cutoff 00:50 ET passed 0.0 min ago; not delivering an unenterable pick.\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-12-31.jsonl": "{\"captured_at\": \"2028-01-01T05:05:00+00:00\", \"date\": \"2027-12-31\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-12-31/scheduler_state.json": "{\n  \"date\": \"2027-12-31\",\n  \"schedule_fetched_at\": \"2027-07-15T18:35:00-04:00\",\n  \"games\": [],\n  \"confirmed_game_pks\": [],\n  \"runs_completed\": [],\n  \"pick_locked\": false,\n  \"pick_locked_at\": null,\n  \"result_status\": null,\n  \"next_wakeup\": null,\n  \"analytics_jobs\": null,\n  \"skip_summary\": null,\n  \"skip_notified_at\": null,\n  \"final_skip_candidate\": null,\n  \"committed_pick_written\": false,\n  \"delivery_refusals\": [\n    {\n      \"at\": \"2028-01-01T00:50:00-05:00\",\n      \"label\": \"late_public\",\n      \"reason\": \"past_submission_cutoff\",\n      \"batter\": \"Steven Kwan\",\n      \"double_down\": null,\n      \"cutoff_et\": \"2028-01-01T00:50:00-05:00\",\n      \"late_min\": 0.0,\n      \"archive\": \"refused_delivery_20280101T005000-0500.json\"\n    }\n  ],\n  \"fallback_refreshes\": null\n}",
+      "picks/2027-12-31/refused_delivery_20280101T005000-0500.json": "{\n  \"date\": \"2027-12-31\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2028-01-01T00:55:00-05:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": false,\n  \"notification_channel\": null,\n  \"notification_id\": null,\n  \"delivery_attempted\": false,\n  \"delivered_at\": null,\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": {\n    \"schema\": \"bts_pick_chosen_on_v1\",\n    \"required\": true,\n    \"kind\": \"dated\",\n    \"streak\": 12,\n    \"saver_available\": false,\n    \"dated\": {\n      \"effective_date\": \"2028-01-01\",\n      \"active_streak\": 12,\n      \"best_streak\": 16,\n      \"saver_state\": \"used\"\n    }\n  },\n  \"automatic_reading\": null,\n  \"refused_delivery\": {\n    \"reason\": \"past_submission_cutoff\",\n    \"refused_at\": \"2028-01-01T00:50:00-05:00\",\n    \"label\": \"late_public\",\n    \"cutoff_et\": \"2028-01-01T00:50:00-05:00\",\n    \"late_min\": 0.0\n  }\n}",
+      "picks/account_state/contest_streak.manual.json": "{\"schema_version\": \"bts_contest_streak_manual_v3\", \"effective_date\": \"2028-01-01\", \"expires_at\": \"2028-01-01T23:59:59.999999-05:00\", \"season\": 2028, \"active_streak\": 12, \"best_streak\": 16, \"saver_state\": \"used\", \"recorded_at\": \"2028-01-01T00:05:00-05:00\", \"source\": \"MLB\"}"
+    },
+    "receipt": {
+      "body_first_line": "BTS health CRITICAL alert(s):",
+      "body_sha256": "b718e5132e572ad9eca71e4ab4570ae0506dd08af40c7061222d3a66007d8cbb",
+      "critical_count": 1,
+      "recipient": "offline.test",
+      "recipient_configured": true,
+      "schema_version": "bts_health_dm_delivery_status_v1",
+      "sent_day": "2027-12-31",
+      "sent_sources": [
+        "CRITICAL:late_delivery"
+      ],
+      "status": "sent",
+      "updated_at": "2028-01-01T05:50:00+00:00",
+      "warn_attention_count": 0
+    },
+    "wire": [
+      "BTS health CRITICAL alert(s):\n- [late_delivery] LATE DELIVERY REFUSED: the 00:50 ET cutoff for Steven Kwan had been reached. This pick was withheld. A later check may produce another recommendation. Use a later official pick message only while the entry window is open. A manual entry can differ from a later recommendation. The entry check may report a mismatch if it verifies the entry in time."
+    ],
+    "picks": [],
+    "trace": [
+      [
+        "late_delivery",
+        "_deliver_and_lock_pick",
+        "_refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)",
+        "2028-01-01T00:50:00-05:00",
+        "2027-12-31"
+      ]
+    ]
+  },
+  "2027-12-31/delivered": {
+    "result": true,
+    "journal": "  LOCKED (delivered) — Pick DM sent: pick-dm\n",
+    "stdout": "",
+    "files": {
+      "picks/lineup_evolution_2027-12-31.jsonl": "{\"captured_at\": \"2028-01-01T05:05:00+00:00\", \"date\": \"2027-12-31\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n{\"captured_at\": \"2028-01-01T05:05:00+00:00\", \"date\": \"2027-12-31\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n{\"captured_at\": \"2028-01-01T05:05:00+00:00\", \"date\": \"2027-12-31\", \"run_time\": \"2027-07-15T18:35:00-04:00\", \"primary\": {\"batter_id\": 680757, \"batter_name\": \"Steven Kwan\", \"team\": \"CLE\", \"p_game_hit\": 0.82, \"projected_lineup\": false, \"game_pk\": 101}, \"double_down\": null}\n",
+      "picks/2027-12-31.json": "{\n  \"date\": \"2027-12-31\",\n  \"run_time\": \"2027-07-15T18:35:00-04:00\",\n  \"pick\": {\n    \"batter_name\": \"Steven Kwan\",\n    \"batter_id\": 680757,\n    \"team\": \"CLE\",\n    \"lineup_position\": 1,\n    \"pitcher_name\": \"Gerrit Cole\",\n    \"pitcher_id\": 543037,\n    \"p_game_hit\": 0.82,\n    \"flags\": [],\n    \"projected_lineup\": false,\n    \"game_pk\": 101,\n    \"game_time\": \"2028-01-01T00:55:00-05:00\",\n    \"pitcher_team\": null\n  },\n  \"double_down\": null,\n  \"runner_up\": null,\n  \"bluesky_posted\": false,\n  \"bluesky_uri\": null,\n  \"notification_sent\": true,\n  \"notification_channel\": \"bluesky_dm\",\n  \"notification_id\": \"pick-dm\",\n  \"delivery_attempted\": true,\n  \"delivered_at\": \"2028-01-01T00:05:00-05:00\",\n  \"result\": null,\n  \"slot_results\": null,\n  \"shadow_model_version\": null,\n  \"model_git_sha\": null,\n  \"model_pickle_sha256\": null,\n  \"policy_npz_sha256\": null,\n  \"feature_env_schema_version\": null,\n  \"feature_env\": null,\n  \"feature_env_hash\": null,\n  \"tail_policy_sha256\": null,\n  \"policy_decision\": null,\n  \"chosen_on\": {\n    \"schema\": \"bts_pick_chosen_on_v1\",\n    \"required\": true,\n    \"kind\": \"dated\",\n    \"streak\": 12,\n    \"saver_available\": false,\n    \"dated\": {\n      \"effective_date\": \"2028-01-01\",\n      \"active_streak\": 12,\n      \"best_streak\": 16,\n      \"saver_state\": \"used\"\n    }\n  },\n  \"automatic_reading\": null\n}",
+      "picks/2027-12-31/scheduler_state.json": "{\n  \"date\": \"2027-12-31\",\n  \"schedule_fetched_at\": \"2027-07-15T18:35:00-04:00\",\n  \"games\": [],\n  \"confirmed_game_pks\": [],\n  \"runs_completed\": [],\n  \"pick_locked\": true,\n  \"pick_locked_at\": \"2028-01-01T00:05:00-05:00\",\n  \"result_status\": null,\n  \"next_wakeup\": null,\n  \"analytics_jobs\": {\n    \"live_forward_capture\": {\n      \"status\": \"disabled\",\n      \"updated_at\": \"2028-01-01T00:05:00-05:00\",\n      \"reason\": \"live_forward_capture_on_lock=false\"\n    }\n  },\n  \"skip_summary\": null,\n  \"skip_notified_at\": null,\n  \"final_skip_candidate\": null,\n  \"committed_pick_written\": true,\n  \"delivery_refusals\": null,\n  \"fallback_refreshes\": null\n}",
+      "picks/2027-12-31/decision.json": "{\n  \"schema_version\": \"bts_daily_decision_v3\",\n  \"date\": \"2027-12-31\",\n  \"action\": \"single\",\n  \"source\": \"unknown\",\n  \"primary\": {\n    \"batter_id\": 680757,\n    \"batter_name\": \"Steven Kwan\",\n    \"team\": \"CLE\",\n    \"game_pk\": 101,\n    \"p_game_hit\": 0.82\n  },\n  \"double_down\": null,\n  \"second_candidate\": null,\n  \"streak\": null,\n  \"saver_available\": null,\n  \"state_source\": null,\n  \"state_status\": null,\n  \"allow_double\": null,\n  \"contest_source_date\": null,\n  \"delivery_status\": \"delivered\",\n  \"scoreable\": true,\n  \"objective\": \"reach57\",\n  \"best_streak\": null,\n  \"best_status\": null,\n  \"effective_best\": null,\n  \"tail_policy_sha256\": null,\n  \"degraded_reason\": null,\n  \"policy_guard\": null,\n  \"finalized_at\": \"2028-01-01T05:05:00Z\"\n}",
+      "picks/account_state/contest_streak.manual.json": "{\"schema_version\": \"bts_contest_streak_manual_v3\", \"effective_date\": \"2028-01-01\", \"expires_at\": \"2028-01-01T23:59:59.999999-05:00\", \"season\": 2028, \"active_streak\": 12, \"best_streak\": 16, \"saver_state\": \"used\", \"recorded_at\": \"2028-01-01T00:05:00-05:00\", \"source\": \"MLB\"}"
+    },
+    "receipt": null,
+    "wire": [],
+    "picks": [
+      "Today's pick: Steven Kwan (CLE)\nvs Gerrit Cole | 82.0%\n\nStreak: 12"
+    ],
+    "trace": []
+  }
+}
