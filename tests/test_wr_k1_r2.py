@@ -224,7 +224,8 @@ K1R_REFUSAL_OLD = "The refusal names this command."
 K1R_REFUSAL_NEW = ("The refusal DM points to the scheduler journal and `bts season-contract status`. "
                    "Use the dated command above when the timing and prior-entry checks below permit filing.")
 K1R_AFTER_LAST = ("After the last lineup check, the final fallback needs a saved, undelivered pick. "
-                  "Filing only changes the dated observation.")
+                  "A changed filing records the request and updates the dated observation. "
+                  "The scheduler handles pick selection and delivery.")  # check WRK1RCHK-244ee4ae edit
 K1R_WALK_OLD = "after the finale every action is a skip; on the finale streak 56 plays"
 K1R_WALK_NEW = ("The default walk supplies synthetic candidates after the finale. Its raw day count is zero "
                 "and fresh selection uses one decision day. Streak 56 plays on the scheduled finale and the "

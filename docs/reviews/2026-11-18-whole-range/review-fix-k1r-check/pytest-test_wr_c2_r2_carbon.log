@@ -1,0 +1,11 @@
+nice: setpriority: Operation not permitted
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-k1r-rev
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 18 items
+
+tests/test_wr_c2_r2_carbon.py ..................                         [100%]
+
+============================== 18 passed in 2.17s ==============================

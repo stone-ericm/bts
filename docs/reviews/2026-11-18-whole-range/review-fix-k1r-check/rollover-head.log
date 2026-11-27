@@ -1,0 +1,317 @@
+nice: setpriority: Operation not permitted
+bts.__file__=/Users/eric/projects/bts-work/wr-k1r-rev/src/bts/__init__.py
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:58 ET] Fetching schedule for 2027-06-14...
+  2 games, 2 scheduled checks:
+    23:57 ET — 1 game(s)
+    00:24 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:58 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  CONTEST STATE ERROR — no pick made: contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp6q45oiln/relative config/ live picks \name /account_state/contest_streak.json: expected object
+  Sleeping until 00:24 ET (26 min)...
+
+[00:24 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  CONTEST STATE ERROR — no pick made: contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp6q45oiln/relative config/ live picks \name /account_state/contest_streak.json: expected object
+  Tomorrow's wake-up: Tue 06-15 10:00 ET
+TRACE 2027-06-14 check [{"sources": ["contest_state"], "caller": "_alert_contest_state_failure<-run_single_check:2021", "wall": "2027-06-14T23:58:00-04:00", "arg_day": "None", "sent_day": "2027-06-14", "attempt": true, "wire": true}, {"sources": ["contest_state"], "caller": "_alert_contest_state_failure<-run_single_check:2021", "wall": "2027-06-15T00:24:00-04:00", "arg_day": "None", "sent_day": "2027-06-15", "attempt": true, "wire": true}]
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:00 ET] Fetching schedule for 2027-06-15...
+  1 games, 1 scheduled checks:
+    18:15 ET — 1 game(s)
+  MORNING STATE CHECK — no pick can be made yet: 'contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp6q45oiln/relative config/ live picks \\name /account_state/contest_streak.json: expected object'
+  Sleeping until 18:15 ET (15 min)...
+
+[18:15 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  CONTEST STATE ERROR — no pick made: contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp6q45oiln/relative config/ live picks \name /account_state/contest_streak.json: expected object
+  Tomorrow's wake-up: Wed 06-16 10:00 ET
+NEXT 2027-06-14 {"sources": ["contest_state"], "caller": "_alert_contest_state_failure<-run_single_check:2021", "wall": "2027-06-15T18:15:00-04:00", "arg_day": "None", "sent_day": "2027-06-15", "attempt": false, "wire": false}
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:58 ET] Fetching schedule for 2027-06-14...
+  2 games, 2 scheduled checks:
+    23:57 ET — 1 game(s)
+    00:24 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:58 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=single streak=57 best=57 (trusted) effective_best=None days=105 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 94.0% → should_lock=False
+  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).
+  Earliest pick game at 00:42 ET, no check before then — fallback at 00:15 ET (17 min)...
+  FALLBACK BLOCKED — contest state invalid: contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpx3v9i9fl/relative config/ live picks \name /account_state/contest_streak.manual.json: expected object
+  Sleeping until 00:24 ET (9 min)...
+
+[00:24 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  CONTEST STATE ERROR — no pick made: contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpx3v9i9fl/relative config/ live picks \name /account_state/contest_streak.manual.json: expected object
+  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).
+  FALLBACK BLOCKED — contest state invalid: contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpx3v9i9fl/relative config/ live picks \name /account_state/contest_streak.manual.json: expected object
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  Tomorrow's wake-up: Tue 06-15 10:00 ET
+TRACE 2027-06-14 in_loop [{"sources": ["contest_state"], "caller": "_alert_contest_state_failure<-run_day:3331", "wall": "2027-06-15T00:15:00-04:00", "arg_day": "None", "sent_day": "2027-06-15", "attempt": true, "wire": true}, {"sources": ["contest_state"], "caller": "_alert_contest_state_failure<-run_single_check:2021", "wall": "2027-06-15T00:24:00-04:00", "arg_day": "None", "sent_day": "2027-06-15", "attempt": false, "wire": false}, {"sources": ["contest_state"], "caller": "_alert_contest_state_failure<-run_day:3484", "wall": "2027-06-15T00:24:00-04:00", "arg_day": "None", "sent_day": "2027-06-15", "attempt": false, "wire": false}, {"sources": ["missed_pick"], "caller": "_alert_missed_pick<-_maybe_alert_missed_pick:320", "wall": "2027-06-15T00:32:00-04:00", "arg_day": "None", "sent_day": "2027-06-15", "attempt": true, "wire": true}]
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:58 ET] Fetching schedule for 2027-06-14...
+  1 games, 1 scheduled checks:
+    23:57 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:58 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).
+  Checks done, pick undelivered — sleeping until the fallback deadline 00:15 ET (17 min)...
+  FALLBACK BLOCKED — contest state invalid: contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp_maqjtiy/relative config/ live picks \name /account_state/contest_streak.json: expected object
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  Tomorrow's wake-up: Tue 06-15 10:00 ET
+TRACE 2027-06-14 final [{"sources": ["contest_state"], "caller": "_alert_contest_state_failure<-run_day:3484", "wall": "2027-06-15T00:15:00-04:00", "arg_day": "None", "sent_day": "2027-06-15", "attempt": true, "wire": true}, {"sources": ["missed_pick"], "caller": "_alert_missed_pick<-_maybe_alert_missed_pick:320", "wall": "2027-06-15T00:32:00-04:00", "arg_day": "None", "sent_day": "2027-06-15", "attempt": true, "wire": true}]
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:58 ET] Fetching schedule for 2027-06-14...
+  1 games, 1 scheduled checks:
+    23:57 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:58 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).
+  Checks done, pick undelivered — sleeping until the fallback deadline 00:15 ET (17 min)...
+  FALLBACK REFRESH: no fresh pick available, using cached
+  FALLBACK — 27min to first pitch, delivering on projected data.
+  CONTEST STATE ERROR — pick delivery blocked: contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpbakv1g6u/relative config/ live picks \name /account_state/contest_streak.json: expected object
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  Tomorrow's wake-up: Tue 06-15 10:00 ET
+TRACE 2027-06-14 loader [{"sources": ["contest_state"], "caller": "_alert_contest_state_failure<-_deliver_and_lock_pick:1347", "wall": "2027-06-15T00:15:00-04:00", "arg_day": "None", "sent_day": "2027-06-15", "attempt": true, "wire": true}, {"sources": ["missed_pick"], "caller": "_alert_missed_pick<-_maybe_alert_missed_pick:320", "wall": "2027-06-15T00:32:00-04:00", "arg_day": "None", "sent_day": "2027-06-15", "attempt": true, "wire": true}]
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:58 ET] Fetching schedule for 2027-06-14...
+  1 games, 1 scheduled checks:
+    23:57 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:58 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).
+  Checks done, pick undelivered — sleeping until the fallback deadline 00:15 ET (17 min)...
+  FALLBACK REFRESH: no fresh pick available, using cached
+  FALLBACK — 27min to first pitch, delivering on projected data.
+CONTEST STATE ERROR — pick delivery blocked: Saved pick for 2027-06-14 was not delivered because there is no valid record of what it was chosen on. The live state is dated (effective date 2027-06-15, active streak 57, best streak 57, saver used). A later scheduled check or fallback refresh may choose a replacement, if one remains.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  Tomorrow's wake-up: Tue 06-15 10:00 ET
+TRACE 2027-06-14 saved [{"sources": ["contest_state"], "caller": "_alert_contest_state_failure<-_deliver_and_lock_pick:1354", "wall": "2027-06-15T00:15:00-04:00", "arg_day": "None", "sent_day": "2027-06-15", "attempt": true, "wire": true}, {"sources": ["missed_pick"], "caller": "_alert_missed_pick<-_maybe_alert_missed_pick:320", "wall": "2027-06-15T00:32:00-04:00", "arg_day": "None", "sent_day": "2027-06-15", "attempt": true, "wire": true}]
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:58 ET] Fetching schedule for 2027-06-14...
+  1 games, 1 scheduled checks:
+    23:57 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:58 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).
+  Checks done, pick undelivered — sleeping until the fallback deadline 00:15 ET (17 min)...
+  FALLBACK REFRESH: no fresh pick available, using cached
+  FALLBACK — 27min to first pitch, delivering on projected data.
+  DELIVERY REFUSED (final fallback) — Batter 0: submission cutoff 00:37 ET passed 1.0 min ago; not delivering an unenterable pick.
+  Tomorrow's wake-up: Tue 06-15 10:00 ET
+TRACE 2027-06-14 late [{"sources": ["late_delivery"], "caller": "_refuse_late_delivery<-_deliver_and_lock_pick:1325", "wall": "2027-06-15T00:38:00-04:00", "arg_day": "None", "sent_day": "2027-06-15", "attempt": true, "wire": true}]
+[late_delivery CRITICAL] late delivery REFUSED for 2027-06-14: Batter 0 (final fallback) was 1.0 min past the 2027-06-15T00:37:00-04:00 cutoff; nothing was delivered by that path
+EOD 2027-06-14 late {"sources": ["late_delivery"], "caller": "run_all_checks<-run_case:184", "wall": "2027-06-15T00:38:00-04:00", "arg_day": "2027-06-14", "sent_day": "2027-06-14", "attempt": true, "wire": true}
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:58 ET] Fetching schedule for 2027-06-14...
+  1 games, 1 scheduled checks:
+    23:57 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:58 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).
+  Checks done, pick undelivered — sleeping until the fallback deadline 00:15 ET (17 min)...
+  FALLBACK REFRESH: no fresh pick available, using cached
+  FALLBACK — 27min to first pitch, delivering on projected data.
+  DELIVERY REFUSED (final fallback) — game 70000 is Postponed; not delivering a pick on it.
+  Tomorrow's wake-up: Tue 06-15 10:00 ET
+TRACE 2027-06-14 void [{"sources": ["postponed_pick"], "caller": "_refuse_void_game_delivery<-_deliver_and_lock_pick:1316", "wall": "2027-06-15T00:15:00-04:00", "arg_day": "None", "sent_day": "2027-06-15", "attempt": true, "wire": true}]
+[late_delivery CRITICAL] delivery REFUSED for 2027-06-14: final fallback: game 70000 is Postponed; nothing was delivered by that path
+EOD 2027-06-14 void {"sources": ["late_delivery"], "caller": "run_all_checks<-run_case:184", "wall": "2027-06-15T00:15:00-04:00", "arg_day": "2027-06-14", "sent_day": "2027-06-14", "attempt": true, "wire": true}
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:58 ET] Fetching schedule for 2027-12-31...
+  2 games, 2 scheduled checks:
+    23:57 ET — 1 game(s)
+    00:24 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:58 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  CONTEST STATE ERROR — no pick made: contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpvg__2x3g/relative config/ live picks \name /account_state/contest_streak.json: expected object
+  Sleeping until 00:24 ET (26 min)...
+
+[00:24 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  CONTEST STATE ERROR — no pick made: contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpvg__2x3g/relative config/ live picks \name /account_state/contest_streak.json: expected object
+  Tomorrow's wake-up: Sat 01-01 10:00 ET
+TRACE 2027-12-31 check [{"sources": ["contest_state"], "caller": "_alert_contest_state_failure<-run_single_check:2021", "wall": "2027-12-31T23:58:00-05:00", "arg_day": "None", "sent_day": "2027-12-31", "attempt": true, "wire": true}, {"sources": ["contest_state"], "caller": "_alert_contest_state_failure<-run_single_check:2021", "wall": "2028-01-01T00:24:00-05:00", "arg_day": "None", "sent_day": "2028-01-01", "attempt": true, "wire": true}]
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[18:00 ET] Fetching schedule for 2028-01-01...
+  1 games, 1 scheduled checks:
+    18:15 ET — 1 game(s)
+  MORNING STATE CHECK — no pick can be made yet: 'contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpvg__2x3g/relative config/ live picks \\name /account_state/contest_streak.json: expected object'
+  Sleeping until 18:15 ET (15 min)...
+
+[18:15 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  CONTEST STATE ERROR — no pick made: contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpvg__2x3g/relative config/ live picks \name /account_state/contest_streak.json: expected object
+  Tomorrow's wake-up: Sun 01-02 10:00 ET
+NEXT 2027-12-31 {"sources": ["contest_state"], "caller": "_alert_contest_state_failure<-run_single_check:2021", "wall": "2028-01-01T18:15:00-05:00", "arg_day": "None", "sent_day": "2028-01-01", "attempt": false, "wire": false}
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:58 ET] Fetching schedule for 2027-12-31...
+  2 games, 2 scheduled checks:
+    23:57 ET — 1 game(s)
+    00:24 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:58 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=double streak=57 best=57 (trusted) effective_best=None days=2 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 94.0% → should_lock=False
+  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).
+  Earliest pick game at 00:42 ET, no check before then — fallback at 00:15 ET (17 min)...
+  FALLBACK BLOCKED — contest state invalid: contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp2e1dm4te/relative config/ live picks \name /account_state/contest_streak.manual.json: expected object
+  Sleeping until 00:24 ET (9 min)...
+
+[00:24 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  CONTEST STATE ERROR — no pick made: contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp2e1dm4te/relative config/ live picks \name /account_state/contest_streak.manual.json: expected object
+  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).
+  FALLBACK BLOCKED — contest state invalid: contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp2e1dm4te/relative config/ live picks \name /account_state/contest_streak.manual.json: expected object
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  Tomorrow's wake-up: Sat 01-01 10:00 ET
+TRACE 2027-12-31 in_loop [{"sources": ["contest_state"], "caller": "_alert_contest_state_failure<-run_day:3331", "wall": "2028-01-01T00:15:00-05:00", "arg_day": "None", "sent_day": "2028-01-01", "attempt": true, "wire": true}, {"sources": ["contest_state"], "caller": "_alert_contest_state_failure<-run_single_check:2021", "wall": "2028-01-01T00:24:00-05:00", "arg_day": "None", "sent_day": "2028-01-01", "attempt": false, "wire": false}, {"sources": ["contest_state"], "caller": "_alert_contest_state_failure<-run_day:3484", "wall": "2028-01-01T00:24:00-05:00", "arg_day": "None", "sent_day": "2028-01-01", "attempt": false, "wire": false}, {"sources": ["missed_pick"], "caller": "_alert_missed_pick<-_maybe_alert_missed_pick:320", "wall": "2028-01-01T00:32:00-05:00", "arg_day": "None", "sent_day": "2028-01-01", "attempt": true, "wire": true}]
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:58 ET] Fetching schedule for 2027-12-31...
+  1 games, 1 scheduled checks:
+    23:57 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:58 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).
+  Checks done, pick undelivered — sleeping until the fallback deadline 00:15 ET (17 min)...
+  FALLBACK BLOCKED — contest state invalid: contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp9cbm9fr8/relative config/ live picks \name /account_state/contest_streak.json: expected object
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  Tomorrow's wake-up: Sat 01-01 10:00 ET
+TRACE 2027-12-31 final [{"sources": ["contest_state"], "caller": "_alert_contest_state_failure<-run_day:3484", "wall": "2028-01-01T00:15:00-05:00", "arg_day": "None", "sent_day": "2028-01-01", "attempt": true, "wire": true}, {"sources": ["missed_pick"], "caller": "_alert_missed_pick<-_maybe_alert_missed_pick:320", "wall": "2028-01-01T00:32:00-05:00", "arg_day": "None", "sent_day": "2028-01-01", "attempt": true, "wire": true}]
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:58 ET] Fetching schedule for 2027-12-31...
+  1 games, 1 scheduled checks:
+    23:57 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:58 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).
+  Checks done, pick undelivered — sleeping until the fallback deadline 00:15 ET (17 min)...
+  FALLBACK REFRESH: no fresh pick available, using cached
+  FALLBACK — 27min to first pitch, delivering on projected data.
+  CONTEST STATE ERROR — pick delivery blocked: contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmp4quu8yly/relative config/ live picks \name /account_state/contest_streak.json: expected object
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  Tomorrow's wake-up: Sat 01-01 10:00 ET
+TRACE 2027-12-31 loader [{"sources": ["contest_state"], "caller": "_alert_contest_state_failure<-_deliver_and_lock_pick:1347", "wall": "2028-01-01T00:15:00-05:00", "arg_day": "None", "sent_day": "2028-01-01", "attempt": true, "wire": true}, {"sources": ["missed_pick"], "caller": "_alert_missed_pick<-_maybe_alert_missed_pick:320", "wall": "2028-01-01T00:32:00-05:00", "arg_day": "None", "sent_day": "2028-01-01", "attempt": true, "wire": true}]
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:58 ET] Fetching schedule for 2027-12-31...
+  1 games, 1 scheduled checks:
+    23:57 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:58 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).
+  Checks done, pick undelivered — sleeping until the fallback deadline 00:15 ET (17 min)...
+  FALLBACK REFRESH: no fresh pick available, using cached
+  FALLBACK — 27min to first pitch, delivering on projected data.
+CONTEST STATE ERROR — pick delivery blocked: Saved pick for 2027-12-31 was not delivered because there is no valid record of what it was chosen on. The live state is dated (effective date 2028-01-01, active streak 57, best streak 57, saver used). A later scheduled check or fallback refresh may choose a replacement, if one remains.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  Tomorrow's wake-up: Sat 01-01 10:00 ET
+TRACE 2027-12-31 saved [{"sources": ["contest_state"], "caller": "_alert_contest_state_failure<-_deliver_and_lock_pick:1354", "wall": "2028-01-01T00:15:00-05:00", "arg_day": "None", "sent_day": "2028-01-01", "attempt": true, "wire": true}, {"sources": ["missed_pick"], "caller": "_alert_missed_pick<-_maybe_alert_missed_pick:320", "wall": "2028-01-01T00:32:00-05:00", "arg_day": "None", "sent_day": "2028-01-01", "attempt": true, "wire": true}]
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:58 ET] Fetching schedule for 2027-12-31...
+  1 games, 1 scheduled checks:
+    23:57 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:58 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).
+  Checks done, pick undelivered — sleeping until the fallback deadline 00:15 ET (17 min)...
+  FALLBACK REFRESH: no fresh pick available, using cached
+  FALLBACK — 27min to first pitch, delivering on projected data.
+  DELIVERY REFUSED (final fallback) — Batter 0: submission cutoff 00:37 ET passed 1.0 min ago; not delivering an unenterable pick.
+  Tomorrow's wake-up: Sat 01-01 10:00 ET
+TRACE 2027-12-31 late [{"sources": ["late_delivery"], "caller": "_refuse_late_delivery<-_deliver_and_lock_pick:1325", "wall": "2028-01-01T00:38:00-05:00", "arg_day": "None", "sent_day": "2028-01-01", "attempt": true, "wire": true}]
+[late_delivery CRITICAL] late delivery REFUSED for 2027-12-31: Batter 0 (final fallback) was 1.0 min past the 2028-01-01T00:37:00-05:00 cutoff; nothing was delivered by that path
+EOD 2027-12-31 late {"sources": ["late_delivery"], "caller": "run_all_checks<-run_case:184", "wall": "2028-01-01T00:38:00-05:00", "arg_day": "2027-12-31", "sent_day": "2027-12-31", "attempt": true, "wire": true}
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:58 ET] Fetching schedule for 2027-12-31...
+  1 games, 1 scheduled checks:
+    23:57 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:58 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).
+  Checks done, pick undelivered — sleeping until the fallback deadline 00:15 ET (17 min)...
+  FALLBACK REFRESH: no fresh pick available, using cached
+  FALLBACK — 27min to first pitch, delivering on projected data.
+  DELIVERY REFUSED (final fallback) — game 70000 is Postponed; not delivering a pick on it.
+  Tomorrow's wake-up: Sat 01-01 10:00 ET
+TRACE 2027-12-31 void [{"sources": ["postponed_pick"], "caller": "_refuse_void_game_delivery<-_deliver_and_lock_pick:1316", "wall": "2028-01-01T00:15:00-05:00", "arg_day": "None", "sent_day": "2028-01-01", "attempt": true, "wire": true}]
+[late_delivery CRITICAL] delivery REFUSED for 2027-12-31: final fallback: game 70000 is Postponed; nothing was delivered by that path
+EOD 2027-12-31 void {"sources": ["late_delivery"], "caller": "run_all_checks<-run_case:184", "wall": "2028-01-01T00:15:00-05:00", "arg_day": "2027-12-31", "sent_day": "2027-12-31", "attempt": true, "wire": true}
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:58 ET] Fetching schedule for 2027-06-14...
+  2 games, 2 scheduled checks:
+    23:57 ET — 1 game(s)
+    00:24 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:58 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=single streak=57 best=57 (trusted) effective_best=None days=105 tail=dc5d0c992443
+  Pick: Batter 0 (T0) 94.0% → should_lock=True
+  DELIVERY REFUSED (lineup) — game 70000 is Postponed; not delivering a pick on it.
+  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).
+  Earliest pick game at 00:42 ET, no check before then — fallback at 00:15 ET (17 min)...
+  Sleeping until 00:24 ET (9 min)...
+
+[00:24 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Policy: objective=longest_streak action=single streak=57 best=57 (trusted) effective_best=None days=105 tail=dc5d0c992443
+  Pick: Batter 1 (T1) 93.0% → should_lock=True
+  DELIVERY REFUSED (lineup) — game 70001 is Cancelled; not delivering a pick on it.
+  fallback deadline raised 25→27 min (cutoff 5 + cascade budget 12 + reserve 10).
+  Earliest pick game at 01:09 ET, no check before then — fallback at 00:42 ET (18 min)...
+  Tomorrow's wake-up: Tue 06-15 10:00 ET
+DISTINCT 2027-06-14 [{"sources": ["postponed_pick"], "caller": "_refuse_void_game_delivery<-_deliver_and_lock_pick:1316", "wall": "2027-06-14T23:58:00-04:00", "arg_day": "None", "sent_day": "2027-06-14", "attempt": true, "wire": true}, {"sources": ["postponed_pick"], "caller": "_refuse_void_game_delivery<-_deliver_and_lock_pick:1316", "wall": "2027-06-15T00:24:00-04:00", "arg_day": "None", "sent_day": "2027-06-15", "attempt": true, "wire": true}]
+DISTINCT WIRE 2027-06-14 ["BTS health CRITICAL alert(s):\n- [postponed_pick] DELIVERY REFUSED for 2027-06-14: game 70000 is Postponed. This pick was withheld. A later check may produce another recommendation. Use a later official pick message only while the entry window is open. A manual entry can differ from a later recommendation. The entry check may report a mismatch if it verifies the entry in time.", "BTS health CRITICAL alert(s):\n- [postponed_pick] DELIVERY REFUSED for 2027-06-14: game 70001 is Cancelled. This pick was withheld. A later check may produce another recommendation. Use a later official pick message only while the entry window is open. A manual entry can differ from a later recommendation. The entry check may report a mismatch if it verifies the entry in time."]
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:46 ET] Fetching schedule for 2027-06-14...
+  1 games, 1 scheduled checks:
+    23:45 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:46 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  Tomorrow's wake-up: Tue 06-15 10:00 ET
+[contest_state CRITICAL] contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpo1i9tj3g/relative config/ live picks \name /account_state/contest_streak.json: expected object
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[23:59 ET] Fetching schedule for 2027-06-14...
+  1 games, 1 scheduled checks:
+    23:45 ET — 1 game(s)
+  Morning state check skipped: first lineup check is due within 10 minutes.
+
+[23:59 ET] Running lineup check...
+  0 new confirmed lineup(s). Running predictions...
+  CONTEST STATE ERROR — no pick made: contest streak invalid in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpo1i9tj3g/relative config/ live picks \name /account_state/contest_streak.json: -1
+  Tomorrow's wake-up: Tue 06-15 10:00 ET
+[contest_state CRITICAL] Prior slate 2027-06-14 ET. The automatic contest streak file has an invalid streak. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files.
+DIGEST FIRST 2027-06-14 [{"sources": ["contest_state"], "caller": "run_all_checks<-run_day:3647", "wall": "2027-06-14T23:46:00-04:00", "arg_day": "2027-06-14", "sent_day": "2027-06-14", "attempt": true, "wire": true}, {"sources": ["contest_state"], "caller": "_alert_contest_state_failure<-run_single_check:2021", "wall": "2027-06-15T00:01:00-04:00", "arg_day": "None", "sent_day": "2027-06-15", "attempt": true, "wire": true}, {"sources": ["contest_state"], "caller": "run_all_checks<-run_day:3647", "wall": "2027-06-15T00:01:00-04:00", "arg_day": "2027-06-14", "sent_day": "2027-06-14", "attempt": true, "wire": true}]
+DIGEST FIRST WIRE 2027-06-14 ["BTS health CRITICAL alert(s):\n- [contest_state] contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpo1i9tj3g/relative config/ live picks \\name /account_state/contest_streak.json: expected object", "BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-06-14 at this check. Reason: contest streak invalid in /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpo1i9tj3g/relative config/ live picks \\name /account_state/contest_streak.json: -1\nSee the scheduler journal for this refusal. To inspect current state, run bts season-contract status with --picks-dir set to the scheduler's absolute picks directory. For live repair, use the season-start checklist (B8a). Before changing state for a new slate, verify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.", "BTS health CRITICAL alert(s):\n- [contest_state] Prior slate 2027-06-14 ET. The automatic contest streak file has an invalid streak. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files."]

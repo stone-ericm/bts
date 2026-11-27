@@ -1,0 +1,26 @@
+HEAD bts.__file__=/Users/eric/projects/bts-work/wr-k1r-rev/src/bts/__init__.py
+FINAL2 bts.__file__=/private/tmp/wr-k1r-check.i8PAcV68/final2/src/bts/__init__.py
+Compared sources, caller names, wall time, date argument, receipt date, attempt and delivery. Caller line numbers were omitted.
+TRACE 2027-06-14 check  delivered, delivered
+NEXT 2027-06-14  suppressed
+TRACE 2027-06-14 in_loop  delivered, suppressed, suppressed, delivered
+TRACE 2027-06-14 final  delivered, delivered
+TRACE 2027-06-14 loader  delivered, delivered
+TRACE 2027-06-14 saved  delivered, delivered
+TRACE 2027-06-14 late  delivered
+EOD 2027-06-14 late  delivered
+TRACE 2027-06-14 void  delivered
+EOD 2027-06-14 void  delivered
+TRACE 2027-12-31 check  delivered, delivered
+NEXT 2027-12-31  suppressed
+TRACE 2027-12-31 in_loop  delivered, suppressed, suppressed, delivered
+TRACE 2027-12-31 final  delivered, delivered
+TRACE 2027-12-31 loader  delivered, delivered
+TRACE 2027-12-31 saved  delivered, delivered
+TRACE 2027-12-31 late  delivered
+EOD 2027-12-31 late  delivered
+TRACE 2027-12-31 void  delivered
+EOD 2027-12-31 void  delivered
+DISTINCT 2027-06-14  delivered, delivered
+DIGEST FIRST 2027-06-14  delivered, delivered, delivered
+33 delivered, 6 suppressed on both trees.

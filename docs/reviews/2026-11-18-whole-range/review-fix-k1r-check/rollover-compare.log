@@ -1,0 +1,17 @@
+nice: setpriority: Operation not permitted
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-k1r-rev/.codex-review/wr-k1r/compare_rollover.py", line 30, in <module>
+    head, final2 = (read_dispatches(Path(argument)) for argument in sys.argv[1:])
+    ^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-k1r-rev/.codex-review/wr-k1r/compare_rollover.py", line 30, in <genexpr>
+    head, final2 = (read_dispatches(Path(argument)) for argument in sys.argv[1:])
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/projects/bts-work/wr-k1r-rev/.codex-review/wr-k1r/compare_rollover.py", line 19, in read_dispatches
+    values = json.loads(separator[-1] + payload)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/json/decoder.py", line 341, in decode
+    raise JSONDecodeError("Extra data", s, end)
+json.decoder.JSONDecodeError: Extra data: line 1 column 18 (char 17)
