@@ -1,0 +1,18 @@
+nice: setpriority: Operation not permitted
+Checklist bytes match after replacing only the old daily command with the prior review’s exact wording.
+Two changed files and 13 prior review additions:
+M docs/ops/2027-season-start.md
+A docs/reviews/2026-11-18-whole-range/review-fix-k1b-check/check_checklist_scope.py
+A docs/reviews/2026-11-18-whole-range/review-fix-k1b-check/checklist-scope.log
+A docs/reviews/2026-11-18-whole-range/review-fix-k1b-check/operator-directories.log
+A docs/reviews/2026-11-18-whole-range/review-fix-k1b-check/operator-timing.log
+A docs/reviews/2026-11-18-whole-range/review-fix-k1b-check/overlapping-filing.log
+A docs/reviews/2026-11-18-whole-range/review-fix-k1b-check/probe_operator_edges.py
+A docs/reviews/2026-11-18-whole-range/review-fix-k1b-check/probe_overlapping_filing.py
+A docs/reviews/2026-11-18-whole-range/review-fix-k1b-check/replay-round-two-with-review-path.log
+A docs/reviews/2026-11-18-whole-range/review-fix-k1b-check/replay-round-two.log
+A docs/reviews/2026-11-18-whole-range/review-fix-k1b-check/replay_round_two.py
+A docs/reviews/2026-11-18-whole-range/review-fix-k1b-check/report.md
+A docs/reviews/2026-11-18-whole-range/review-fix-k1b-check/test-wr-f2-saver-flag.log
+A docs/reviews/2026-11-18-whole-range/review-fix-k1b-check/test-wr-k1-r2.log
+M tests/test_wr_k1_r2.py

@@ -1,0 +1,3 @@
+nice: setpriority: Operation not permitted
+/bin/sh data/live picks: first refusal 18:35; CLI exits 0/0, status accepted, stored 57/60/used in service picks directory; 18:55 pick DMs=1; decision=delivered
+/bin/zsh data/live picks: first refusal 18:35; CLI exits 0/0, status accepted, stored 57/60/used in service picks directory; 18:55 pick DMs=1; decision=delivered

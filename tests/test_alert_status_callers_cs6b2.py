@@ -101,7 +101,7 @@ def test_shared_alert_callers(case, source, corrupt, world, monkeypatch, tmp_pat
             lines, first = inspect.getsourcelines(scheduler.run_day)
             fallback_sites = [
                 first + index for index, line in enumerate(lines)
-                if "_alert_contest_state_failure(config, e)" in line
+                if "_alert_contest_state_failure(config, e, slate_date=date)" in line
             ]
             in_loop, final = fallback_sites
             routes = [line for name, line, _ in observed if name == "_alert_contest_state_failure"]

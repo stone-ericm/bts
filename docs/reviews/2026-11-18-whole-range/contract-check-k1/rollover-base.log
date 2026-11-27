@@ -1,0 +1,7 @@
+nice: setpriority: Operation not permitted
+real refusal 2027-06-14T23:55:00-04:00 Live decision refused: there is no automatic observation for this activation.
+real refusal 2027-06-15T00:02:00-04:00 contest streak state malformed at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpd4fmagxx/picks/account_state/contest_streak.json: expected object
+accepted alerts 2
+D+1 repair for D alert Alternative dated path — TEMPLATE: `bts set-contest-streak --date 2027-06-15 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpd4fmagxx/picks`. Read N, B and S from MLB (active streak, best streak and saver state).
+model-only refuses model state is corrupt; cannot use model fallback: /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpx0da1x2y/picks/streak.json: streak is not a non-negative integer
+model-only status verdict live decision now: refused; Live decision refused: season 2027 switch is absent.

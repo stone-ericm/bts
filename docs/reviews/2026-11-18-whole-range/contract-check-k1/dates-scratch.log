@@ -1,0 +1,92 @@
+nice: setpriority: Operation not permitted
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 00:01 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 07:59 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 23:29 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 00:01 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 00:00 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 00:01 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 07:59 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 00:01 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 07:59 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 23:29 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 00:01 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 00:00 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 00:01 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 07:59 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 19:59 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 00:01 ET passed 1.0 min ago; not delivering an unenterable pick.
+2027-06-15 contest_state E4/E5/E6 [[1, '2027-06-14'], [1, '2027-06-15']]
+2027-06-15 contest_state pre/post-midnight same slate [[1, '2027-06-14'], [0, '2027-06-14']]
+2027-06-15 contest_state new then old then new [[1, '2027-06-15'], [1, '2027-06-14'], [1, '2027-06-15']]
+2027-06-15 missed_pick E4/E5/E6 [[1, '2027-06-14'], [1, '2027-06-15']]
+2027-06-15 missed_pick pre/post-midnight same slate [[1, '2027-06-14'], [0, '2027-06-14']]
+2027-06-15 missed_pick new then old then new [[1, '2027-06-15'], [1, '2027-06-14'], [1, '2027-06-15']]
+2027-06-15 late_delivery E4/E5/E6 [[1, '2027-06-14'], [1, '2027-06-15']]
+2027-06-15 late_delivery pre/post-midnight same slate [[1, '2027-06-14'], [0, '2027-06-14']]
+2027-06-15 late_delivery new then old then new [[1, '2027-06-15'], [1, '2027-06-14'], [1, '2027-06-15']]
+2027-06-15 postponed_pick E4/E5/E6 [[1, '2027-06-14'], [1, '2027-06-15']]
+2027-06-15 postponed_pick pre/post-midnight same slate [[1, '2027-06-14'], [0, '2027-06-14']]
+2027-06-15 postponed_pick new then old then new [[1, '2027-06-15'], [1, '2027-06-14'], [1, '2027-06-15']]
+2028-01-01 contest_state E4/E5/E6 [[1, '2027-12-31'], [1, '2028-01-01']]
+2028-01-01 contest_state pre/post-midnight same slate [[1, '2027-12-31'], [0, '2027-12-31']]
+2028-01-01 contest_state new then old then new [[1, '2028-01-01'], [1, '2027-12-31'], [1, '2028-01-01']]
+2028-01-01 missed_pick E4/E5/E6 [[1, '2027-12-31'], [1, '2028-01-01']]
+2028-01-01 missed_pick pre/post-midnight same slate [[1, '2027-12-31'], [0, '2027-12-31']]
+2028-01-01 missed_pick new then old then new [[1, '2028-01-01'], [1, '2027-12-31'], [1, '2028-01-01']]
+2028-01-01 late_delivery E4/E5/E6 [[1, '2027-12-31'], [1, '2028-01-01']]
+2028-01-01 late_delivery pre/post-midnight same slate [[1, '2027-12-31'], [0, '2027-12-31']]
+2028-01-01 late_delivery new then old then new [[1, '2028-01-01'], [1, '2027-12-31'], [1, '2028-01-01']]
+2028-01-01 postponed_pick E4/E5/E6 [[1, '2027-12-31'], [1, '2028-01-01']]
+2028-01-01 postponed_pick pre/post-midnight same slate [[1, '2027-12-31'], [0, '2027-12-31']]
+2028-01-01 postponed_pick new then old then new [[1, '2028-01-01'], [1, '2027-12-31'], [1, '2028-01-01']]
+real wait crossing 2027-06-14 2027-06-15T04:02:00+00:00
+S1/S2 2 ['CRITICAL:contest_state', 'CRITICAL:missed_pick']
+S4 "BTS health CRITICAL alert(s):\n- [missed_pick] NO PICK DELIVERED. ~10 min to first pitch. See `bts season-contract status`."
+S4 "BTS health CRITICAL alert(s):\n- [missed_pick] NO PICK DELIVERED with ~10 min to first pitch (top pick: Test Batter). Deliver manually if you want to keep the streak alive."
+S4 "BTS health CRITICAL alert(s):\n- [late_delivery] LATE DELIVERY REFUSED: the 19:59 ET cutoff for Test Batter had been reached. This pick was withheld. A later check may produce another recommendation. Use a later official pick message only while the entry window is open. A manual entry can differ from a later recommendation. The entry check may report a mismatch if it verifies the entry in time."
+S4 "BTS health CRITICAL alert(s):\n- [postponed_pick] DELIVERY REFUSED for 2027-06-14: game 1 is Cancelled. This pick was withheld. A later check may produce another recommendation. Use a later official pick message only while the entry window is open. A manual entry can differ from a later recommendation. The entry check may report a mismatch if it verifies the entry in time."
+S3/S5/S6 passed
+S7 'bad' - [contest_state] No pick was sent for bad at this check: a contest-st
+S7 None - [contest_state] No pick was sent for today at this check: a contest-
+S7 '' - [contest_state] No pick was sent for  at this check: a contest-state
+standing malformed 1
+standing FIFO 1
+standing directory 1
+standing interrupt during send 1
+standing after send before write 2
+standing no ID 0
+EOD changed reason 1 2027-06-14 ["Prior slate 2027-06-14 ET. The automatic contest streak file is malformed or unreadable. This check used files available at run time. Do not enter picks, retry delivery, or change contest state from this alert. Before any new-day correction, verify in MLB that the prior slate's entries are settled or there was no entry. Use the new day's morning state check, when available, and live refusal for current diagnosis. Season contract status shows current files."]
+EOD real late-delivery detail 1 ['late delivery REFUSED for 2027-06-14: Test Batter (fallback) was 1.0 min past the 2027-06-15T00:01:00-04:00 cutoff; nothing was delivered by that path', 'late delivery REFUSED for 2027-06-14: Second Batter (fallback) was 1.0 min past the 2027-06-15T00:01:00-04:00 cutoff; nothing was delivered by that path']

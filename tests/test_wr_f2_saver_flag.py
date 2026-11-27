@@ -541,6 +541,16 @@ def test_e7_other_b8a_text_matches_round_two():
     checklist = Path(__file__).resolve().parents[1] / "docs/ops/2027-season-start.md"
     row, = (line for line in checklist.read_bytes().splitlines() if line.startswith(b"| B8a |"))
     original = row.replace((NEW_B8A + ATTENTION_LIMIT_B8A).encode(), OLD_B8A.encode())
+    from tests.test_wr_k1_r2 import K1B_DAILY_NEW, K1B_DAILY_OLD, K1B_LATE_NEW, K1B_LATE_OLD
+    original = original.replace(K1B_DAILY_NEW.encode(), K1B_DAILY_OLD.encode())
+    original = original.replace(K1B_LATE_NEW.encode(), K1B_LATE_OLD.encode())
+    original = original.replace(
+        b"**Enter it in the morning, before the scheduler's first lineup check, when possible.** "
+        b"If that check refused before choosing a pick, confirm this is still today's slate in ET "
+        b"and that MLB has settled every prior entry or confirmed its absence after its window closed. "
+        b"File the verified dated observation between checks while another lineup check or fallback remains.",
+        b"**Enter it in the morning, before the scheduler's first lineup check.**",
+    )
     assert hashlib.sha256(original).hexdigest() == (
         "21b6dd612d9019555a4436b0b3f68b5493d5751d466bda8a32dfabf5a156739d"
     )

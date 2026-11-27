@@ -1,0 +1,7 @@
+nice: setpriority: Operation not permitted
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-chk-k1b/.codex-review/wr-k1b/replay_round_two.py", line 13, in <module>
+    import check_operator_variants as review
+  File "/Users/eric/projects/bts-work/wr-chk-k1b/docs/reviews/2026-11-18-whole-range/review-fix-k1-codex-r2/check_operator_variants.py", line 23, in <module>
+    from probe_operator import snapshot, status
+ModuleNotFoundError: No module named 'probe_operator'

@@ -1,0 +1,18 @@
+nice: setpriority: Operation not permitted
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  MISSED-PICK ALERT — no delivery with ~10min to first pitch.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 19:59 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 19:59 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — Test Batter: submission cutoff 19:59 ET passed 1.0 min ago; not delivering an unenterable pick.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+  DELIVERY REFUSED (fallback) — game 1 is Cancelled; not delivering a pick on it.
+S7 guard missed_pick 'bad' wall date
+S7 guard missed_pick '' wall date
+S7 guard missed_pick None raises before dispatch TypeError("unsupported operand type(s) for /: 'PosixPath' and 'NoneType'")
+S7 guard late_delivery 'bad' wall date
+S7 guard late_delivery '' wall date
+S7 guard late_delivery None raises before dispatch TypeError("unsupported operand type(s) for /: 'PosixPath' and 'NoneType'")
+S7 guard postponed_pick 'bad' wall date
+S7 guard postponed_pick '' wall date
+S7 guard postponed_pick None raises before dispatch TypeError("unsupported operand type(s) for /: 'PosixPath' and 'NoneType'")

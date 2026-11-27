@@ -1,0 +1,12 @@
+nice: setpriority: Operation not permitted
+Following current B8a in custom-directory
+/Users/eric/.matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/matplotlib-sggplnfm because there was an issue with the default path (/Users/eric/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+custom-directory correct-directory filing control refusal at ['18:35'] official sends 1
+Observation written at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrk1-r2-operator-criazfnn/live-picks/account_state/contest_streak.manual.json: date=2027-07-15 streak=57 best=60 saver=used reason=None
+Following current B8a in later-check
+later-check correct-directory filing control refusal at ['18:55'] official sends 1
+Observation written at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrk1-r2-operator-jymakerv/data/picks/account_state/contest_streak.manual.json: date=2027-07-15 streak=57 best=60 saver=used reason=None
+Following current B8a in in-loop-fallback
+in-loop-fallback correct-directory filing control refusal at ['18:35'] official sends 1
+Observation written at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/wrk1-r2-operator-rl43soto/data/picks/account_state/contest_streak.manual.json: date=2027-07-15 streak=57 best=60 saver=used reason=None

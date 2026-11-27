@@ -1,0 +1,8 @@
+nice: setpriority: Operation not permitted
+/bin/sh unset DIR: first refusal 18:35; CLI exits 0/0, status accepts ., live status still refused; 18:55 pick DMs=0; decision=absent
+/bin/sh empty DIR: first refusal 18:35; CLI exits 0/0, status accepts ., live status still refused; 18:55 pick DMs=0; decision=absent
+/bin/sh DIR set in a different shell: first refusal 18:35; CLI exits 0/0, status accepts ., live status still refused; 18:55 pick DMs=0; decision=absent
+/bin/sh relative config resolved against operator cwd: first refusal 18:35; CLI exits 0/0, status accepts data/custom-picks, live status still refused; 18:55 pick DMs=0; decision=absent
+/bin/sh expanded dollar sign during assignment: first refusal 18:35; CLI exits 0/0, status accepts cash, live status still refused; 18:55 pick DMs=0; decision=absent
+/bin/sh literal assignment with quote and dollar sign: first refusal 18:35; CLI exits 0/0, status accepted, stored 57/60/used in service picks directory; 18:55 pick DMs=1; decision=delivered
+/bin/sh literal read with quote and dollar sign: first refusal 18:35; literal read preserves spaces, apostrophe, double quote and dollar sign, CLI exits 0/0, status accepted; 18:55 pick DMs=1; decision=delivered

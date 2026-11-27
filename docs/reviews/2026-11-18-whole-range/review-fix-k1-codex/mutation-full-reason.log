@@ -1,0 +1,374 @@
+nice: setpriority: Operation not permitted
+Mutation full-reason at /tmp/wr-k1-r1.gVhpaf/mutation/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k1-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 97 items
+
+tests/test_wr_k1_refusal_dm.py FFFFF..FFFFFFFFFFFF...................... [ 42%]
+..........FFFFF......................................F..                 [100%]
+
+=================================== FAILURES ===================================
+_____________________ test_e1_e2_e3_inventory[absent-None] _____________________
+tests/test_wr_k1_refusal_dm.py:211: in test_e1_e2_e3_inventory
+    assert len(body) < DM_MAX_CODE_POINTS
+E   AssertionError: assert 1582 < 1000
+E    +  where 1582 = len('BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: Live decision...erify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.')
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: length rejected
+Traceback (most recent call last):
+  File "/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/tests/test_wr_k1_refusal_dm.py", line 69, in send
+    raise RuntimeError("length rejected")
+RuntimeError: length rejected
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+____________________ test_e1_e2_e3_inventory[revoked-None] _____________________
+tests/test_wr_k1_refusal_dm.py:211: in test_e1_e2_e3_inventory
+    assert len(body) < DM_MAX_CODE_POINTS
+E   AssertionError: assert 1583 < 1000
+E    +  where 1583 = len('BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: Live decision...erify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.')
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: length rejected
+Traceback (most recent call last):
+  File "/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/tests/test_wr_k1_refusal_dm.py", line 69, in send
+    raise RuntimeError("length rejected")
+RuntimeError: length rejected
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+____________________ test_e1_e2_e3_inventory[no_fetch-None] ____________________
+tests/test_wr_k1_refusal_dm.py:211: in test_e1_e2_e3_inventory
+    assert len(body) < DM_MAX_CODE_POINTS
+E   AssertionError: assert 1182 < 1000
+E    +  where 1182 = len('BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: Live decision...erify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.')
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: length rejected
+Traceback (most recent call last):
+  File "/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/tests/test_wr_k1_refusal_dm.py", line 69, in send
+    raise RuntimeError("length rejected")
+RuntimeError: length rejected
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+__________________ test_e1_e2_e3_inventory[other_season-None] __________________
+tests/test_wr_k1_refusal_dm.py:211: in test_e1_e2_e3_inventory
+    assert len(body) < DM_MAX_CODE_POINTS
+E   AssertionError: assert 1607 < 1000
+E    +  where 1607 = len('BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: Live decision...erify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.')
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: length rejected
+Traceback (most recent call last):
+  File "/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/tests/test_wr_k1_refusal_dm.py", line 69, in send
+    raise RuntimeError("length rejected")
+RuntimeError: length rejected
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+_____________________ test_e1_e2_e3_inventory[legacy-None] _____________________
+tests/test_wr_k1_refusal_dm.py:211: in test_e1_e2_e3_inventory
+    assert len(body) < DM_MAX_CODE_POINTS
+E   AssertionError: assert 1157 < 1000
+E    +  where 1157 = len('BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: Live decision...erify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.')
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: length rejected
+Traceback (most recent call last):
+  File "/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/tests/test_wr_k1_refusal_dm.py", line 69, in send
+    raise RuntimeError("length rejected")
+RuntimeError: length rejected
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+_______________ test_e1_e2_e3_inventory[switch_corrupt-variant7] _______________
+tests/test_wr_k1_refusal_dm.py:211: in test_e1_e2_e3_inventory
+    assert len(body) < DM_MAX_CODE_POINTS
+E   AssertionError: assert 2080 < 1000
+E    +  where 2080 = len('BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: Live decision...erify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.')
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: length rejected
+Traceback (most recent call last):
+  File "/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/tests/test_wr_k1_refusal_dm.py", line 69, in send
+    raise RuntimeError("length rejected")
+RuntimeError: length rejected
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+_______________ test_e1_e2_e3_inventory[switch_corrupt-variant8] _______________
+tests/test_wr_k1_refusal_dm.py:211: in test_e1_e2_e3_inventory
+    assert len(body) < DM_MAX_CODE_POINTS
+E   AssertionError: assert 2050 < 1000
+E    +  where 2050 = len('BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: Live decision...erify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.')
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: length rejected
+Traceback (most recent call last):
+  File "/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/tests/test_wr_k1_refusal_dm.py", line 69, in send
+    raise RuntimeError("length rejected")
+RuntimeError: length rejected
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+_______________ test_e1_e2_e3_inventory[switch_corrupt-variant9] _______________
+tests/test_wr_k1_refusal_dm.py:211: in test_e1_e2_e3_inventory
+    assert len(body) < DM_MAX_CODE_POINTS
+E   AssertionError: assert 2030 < 1000
+E    +  where 2030 = len('BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: Live decision...erify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.')
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: length rejected
+Traceback (most recent call last):
+  File "/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/tests/test_wr_k1_refusal_dm.py", line 69, in send
+    raise RuntimeError("length rejected")
+RuntimeError: length rejected
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+______________ test_e1_e2_e3_inventory[switch_corrupt-variant10] _______________
+tests/test_wr_k1_refusal_dm.py:211: in test_e1_e2_e3_inventory
+    assert len(body) < DM_MAX_CODE_POINTS
+E   AssertionError: assert 2040 < 1000
+E    +  where 2040 = len('BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: Live decision...erify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.')
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: length rejected
+Traceback (most recent call last):
+  File "/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/tests/test_wr_k1_refusal_dm.py", line 69, in send
+    raise RuntimeError("length rejected")
+RuntimeError: length rejected
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+______________ test_e1_e2_e3_inventory[switch_corrupt-variant11] _______________
+tests/test_wr_k1_refusal_dm.py:211: in test_e1_e2_e3_inventory
+    assert len(body) < DM_MAX_CODE_POINTS
+E   AssertionError: assert 2062 < 1000
+E    +  where 2062 = len('BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: Live decision...erify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.')
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: length rejected
+Traceback (most recent call last):
+  File "/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/tests/test_wr_k1_refusal_dm.py", line 69, in send
+    raise RuntimeError("length rejected")
+RuntimeError: length rejected
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+______________ test_e1_e2_e3_inventory[switch_corrupt-variant12] _______________
+tests/test_wr_k1_refusal_dm.py:211: in test_e1_e2_e3_inventory
+    assert len(body) < DM_MAX_CODE_POINTS
+E   AssertionError: assert 2107 < 1000
+E    +  where 2107 = len('BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: Live decision...erify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.')
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: length rejected
+Traceback (most recent call last):
+  File "/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/tests/test_wr_k1_refusal_dm.py", line 69, in send
+    raise RuntimeError("length rejected")
+RuntimeError: length rejected
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+______________ test_e1_e2_e3_inventory[switch_corrupt-variant13] _______________
+tests/test_wr_k1_refusal_dm.py:211: in test_e1_e2_e3_inventory
+    assert len(body) < DM_MAX_CODE_POINTS
+E   AssertionError: assert 2104 < 1000
+E    +  where 2104 = len('BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: Live decision...erify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.')
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: length rejected
+Traceback (most recent call last):
+  File "/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/tests/test_wr_k1_refusal_dm.py", line 69, in send
+    raise RuntimeError("length rejected")
+RuntimeError: length rejected
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+______________ test_e1_e2_e3_inventory[switch_corrupt-variant14] _______________
+tests/test_wr_k1_refusal_dm.py:211: in test_e1_e2_e3_inventory
+    assert len(body) < DM_MAX_CODE_POINTS
+E   AssertionError: assert 2034 < 1000
+E    +  where 2034 = len('BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: Live decision...erify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.')
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: length rejected
+Traceback (most recent call last):
+  File "/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/tests/test_wr_k1_refusal_dm.py", line 69, in send
+    raise RuntimeError("length rejected")
+RuntimeError: length rejected
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+_________________ test_e1_e2_e3_inventory[authority-variant15] _________________
+tests/test_wr_k1_refusal_dm.py:211: in test_e1_e2_e3_inventory
+    assert len(body) < DM_MAX_CODE_POINTS
+E   AssertionError: assert 1212 < 1000
+E    +  where 1212 = len('BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: Live decision...erify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.')
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: length rejected
+Traceback (most recent call last):
+  File "/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/tests/test_wr_k1_refusal_dm.py", line 69, in send
+    raise RuntimeError("length rejected")
+RuntimeError: length rejected
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+_________________ test_e1_e2_e3_inventory[authority-variant16] _________________
+tests/test_wr_k1_refusal_dm.py:211: in test_e1_e2_e3_inventory
+    assert len(body) < DM_MAX_CODE_POINTS
+E   AssertionError: assert 1191 < 1000
+E    +  where 1191 = len('BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: Live decision...erify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.')
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: length rejected
+Traceback (most recent call last):
+  File "/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/tests/test_wr_k1_refusal_dm.py", line 69, in send
+    raise RuntimeError("length rejected")
+RuntimeError: length rejected
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+_________________ test_e1_e2_e3_inventory[authority-variant17] _________________
+tests/test_wr_k1_refusal_dm.py:211: in test_e1_e2_e3_inventory
+    assert len(body) < DM_MAX_CODE_POINTS
+E   AssertionError: assert 1175 < 1000
+E    +  where 1175 = len('BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: Live decision...erify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.')
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: length rejected
+Traceback (most recent call last):
+  File "/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/tests/test_wr_k1_refusal_dm.py", line 69, in send
+    raise RuntimeError("length rejected")
+RuntimeError: length rejected
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+_________________ test_e1_e2_e3_inventory[authority-variant18] _________________
+tests/test_wr_k1_refusal_dm.py:211: in test_e1_e2_e3_inventory
+    assert len(body) < DM_MAX_CODE_POINTS
+E   AssertionError: assert 1255 < 1000
+E    +  where 1255 = len('BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: Live decision...erify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.')
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: length rejected
+Traceback (most recent call last):
+  File "/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/tests/test_wr_k1_refusal_dm.py", line 69, in send
+    raise RuntimeError("length rejected")
+RuntimeError: length rejected
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+___________________ test_e1_e2_e3_inventory[synthetic-huge] ____________________
+tests/test_wr_k1_refusal_dm.py:211: in test_e1_e2_e3_inventory
+    assert len(body) < DM_MAX_CODE_POINTS
+E   AssertionError: assert 100484 < 1000
+E    +  where 100484 = len('BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: xxxxxxxxxxxxx...erify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.')
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: length rejected
+Traceback (most recent call last):
+  File "/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/tests/test_wr_k1_refusal_dm.py", line 69, in send
+    raise RuntimeError("length rejected")
+RuntimeError: length rejected
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+________________ test_e1_e2_e3_inventory[synthetic-empty line] _________________
+tests/test_wr_k1_refusal_dm.py:219: in test_e1_e2_e3_inventory
+    assert body == f"{prefix}{HEADER}No pick was sent for {DAY} at this check. Reason: {reason}\n{GUIDANCE}"
+E   AssertionError: assert 'BTS health C...ndow is open.' == 'BTS health C...ndow is open.'
+E     
+E     Skipping 93 identical leading characters in diff, use -v to show
+E     - . Reason: (no reason text)
+E     + . Reason: 
+E     + second
+E       See the scheduler journal for this refusal. To inspect current state, run bts season-contract status with --picks-dir set to the scheduler's absolute picks directory. For live repair, use the season-start checklist (B8a). Before changing state for a new slate, verify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.
+________________ test_e1_e2_e3_inventory[synthetic-broken str] _________________
+tests/test_wr_k1_refusal_dm.py:210: in test_e1_e2_e3_inventory
+    result, body = capture(cfg, status, error, prior_count=count)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_wr_k1_refusal_dm.py:74: in capture
+    scheduler._alert_contest_state_failure(cfg, error, **kwargs)
+/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/scheduler.py:74: in _alert_contest_state_failure
+    f"No pick was sent for {date_label} at this check. Reason: {str(error)}\n"
+                                                                ^^^^^^^^^^
+tests/test_wr_k1_refusal_dm.py:150: in __str__
+    raise ValueError("broken")
+E   ValueError: broken
+_________________ test_e1_e2_e3_inventory[synthetic-combining] _________________
+tests/test_wr_k1_refusal_dm.py:211: in test_e1_e2_e3_inventory
+    assert len(body) < DM_MAX_CODE_POINTS
+E   AssertionError: assert 1484 < 1000
+E    +  where 1484 = len('BTS health CRITICAL alert(s):\n- [contest_state] No pick was sent for 2027-03-24 at this check. Reason: éééééée...erify in MLB that prior entries settled or were absent. Use a later official pick only while its entry window is open.')
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: length rejected
+Traceback (most recent call last):
+  File "/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/tests/test_wr_k1_refusal_dm.py", line 69, in send
+    raise RuntimeError("length rejected")
+RuntimeError: length rejected
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+______________ test_e1_e2_e3_inventory[synthetic-invalid Unicode] ______________
+/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py:458: in dispatch_dm_for_health_alerts
+    _persist_health_dm_delivery_status(
+/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py:147: in _persist_health_dm_delivery_status
+    _write_health_dm_delivery_status(status_path, **payload)
+/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py:77: in _write_health_dm_delivery_status
+    "body_sha256": hashlib.sha256(body.encode("utf-8")).hexdigest(),
+                                  ^^^^^^^^^^^^^^^^^^^^
+E   UnicodeEncodeError: 'utf-8' codec can't encode character '\ud800' in position 107: surrogates not allowed
+
+During handling of the above exception, another exception occurred:
+tests/test_wr_k1_refusal_dm.py:210: in test_e1_e2_e3_inventory
+    result, body = capture(cfg, status, error, prior_count=count)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_wr_k1_refusal_dm.py:74: in capture
+    scheduler._alert_contest_state_failure(cfg, error, **kwargs)
+/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/scheduler.py:87: in _alert_contest_state_failure
+    dispatch_dm_for_health_alerts(
+/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py:476: in dispatch_dm_for_health_alerts
+    _persist_health_dm_delivery_status(
+/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py:147: in _persist_health_dm_delivery_status
+    _write_health_dm_delivery_status(status_path, **payload)
+/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py:77: in _write_health_dm_delivery_status
+    "body_sha256": hashlib.sha256(body.encode("utf-8")).hexdigest(),
+                                  ^^^^^^^^^^^^^^^^^^^^
+E   UnicodeEncodeError: 'utf-8' codec can't encode character '\ud800' in position 107: surrogates not allowed
+______________________ test_real_switch_over_midnight[E4] ______________________
+tests/test_wr_k1_refusal_dm.py:568: in test_real_switch_over_midnight
+    assert len(sent) == (2 if row == "E4" else 1)
+E   assert 0 == 2
+E    +  where 0 = len([])
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: length rejected
+Traceback (most recent call last):
+  File "/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/tests/test_wr_k1_refusal_dm.py", line 272, in send
+    raise ValueError("length rejected")
+ValueError: length rejected
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+ERROR    bts.health.alert:alert.py:485 send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: length rejected
+Traceback (most recent call last):
+  File "/tmp/wr-k1-r1.gVhpaf/mutation/src/bts/health/alert.py", line 457, in dispatch_dm_for_health_alerts
+    send_dm(dm_recipient, body)
+  File "/Users/eric/projects/bts-work/wr-rev-k1-cx/tests/test_wr_k1_refusal_dm.py", line 272, in send
+    raise ValueError("length rejected")
+ValueError: length rejected
+ERROR    bts.health.alert:alert.py:489 [health_dm_delivery CRITICAL] health alert DM delivery failed
+=========================== short test summary info ============================
+FAILED tests/test_wr_k1_refusal_dm.py::test_e1_e2_e3_inventory[absent-None]
+FAILED tests/test_wr_k1_refusal_dm.py::test_e1_e2_e3_inventory[revoked-None]
+FAILED tests/test_wr_k1_refusal_dm.py::test_e1_e2_e3_inventory[no_fetch-None]
+FAILED tests/test_wr_k1_refusal_dm.py::test_e1_e2_e3_inventory[other_season-None]
+FAILED tests/test_wr_k1_refusal_dm.py::test_e1_e2_e3_inventory[legacy-None]
+FAILED tests/test_wr_k1_refusal_dm.py::test_e1_e2_e3_inventory[switch_corrupt-variant7]
+FAILED tests/test_wr_k1_refusal_dm.py::test_e1_e2_e3_inventory[switch_corrupt-variant8]
+FAILED tests/test_wr_k1_refusal_dm.py::test_e1_e2_e3_inventory[switch_corrupt-variant9]
+FAILED tests/test_wr_k1_refusal_dm.py::test_e1_e2_e3_inventory[switch_corrupt-variant10]
+FAILED tests/test_wr_k1_refusal_dm.py::test_e1_e2_e3_inventory[switch_corrupt-variant11]
+FAILED tests/test_wr_k1_refusal_dm.py::test_e1_e2_e3_inventory[switch_corrupt-variant12]
+FAILED tests/test_wr_k1_refusal_dm.py::test_e1_e2_e3_inventory[switch_corrupt-variant13]
+FAILED tests/test_wr_k1_refusal_dm.py::test_e1_e2_e3_inventory[switch_corrupt-variant14]
+FAILED tests/test_wr_k1_refusal_dm.py::test_e1_e2_e3_inventory[authority-variant15]
+FAILED tests/test_wr_k1_refusal_dm.py::test_e1_e2_e3_inventory[authority-variant16]
+FAILED tests/test_wr_k1_refusal_dm.py::test_e1_e2_e3_inventory[authority-variant17]
+FAILED tests/test_wr_k1_refusal_dm.py::test_e1_e2_e3_inventory[authority-variant18]
+FAILED tests/test_wr_k1_refusal_dm.py::test_e1_e2_e3_inventory[synthetic-huge]
+FAILED tests/test_wr_k1_refusal_dm.py::test_e1_e2_e3_inventory[synthetic-empty line]
+FAILED tests/test_wr_k1_refusal_dm.py::test_e1_e2_e3_inventory[synthetic-broken str]
+FAILED tests/test_wr_k1_refusal_dm.py::test_e1_e2_e3_inventory[synthetic-combining]
+FAILED tests/test_wr_k1_refusal_dm.py::test_e1_e2_e3_inventory[synthetic-invalid Unicode]
+FAILED tests/test_wr_k1_refusal_dm.py::test_real_switch_over_midnight[E4] - a...
+======================== 23 failed, 74 passed in 2.49s =========================

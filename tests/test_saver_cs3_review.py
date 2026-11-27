@@ -115,7 +115,7 @@ def test_block_deliver_and_lock_pick_catches_corrupt_model_streak_without_type_e
     with patch("bts.dm.send_dm", return_value="msg-1"), \
          patch.object(sched, "_now_et", return_value=datetime(cur_yr, 7, 15, 12, 0, tzinfo=ET)), \
          patch.object(sched, "_void_committed_games", return_value={}), \
-         patch.object(sched, "_alert_contest_state_failure", side_effect=lambda _c, e: alerts_called.append(e)):
+         patch.object(sched, "_alert_contest_state_failure", side_effect=lambda _c, e, *, slate_date=None: alerts_called.append(e)):
         ok = sched._deliver_and_lock_pick(dp, cfg, tmp_path, st_sched, f"{cur_yr}-07-15", "check-1")
 
     assert ok is False

@@ -224,7 +224,7 @@ def _resurface_note(data: dict | None) -> str | None:
     n = data.get("critical_count")
     if data.get("status") == "failed" and type(n) is int and n > 0:
         return (f"⚠️ Previous health alert DM FAILED to send "
-                f"({n} CRITICAL) — it may have been missed.")
+                f"({n if n <= 999 else '999+'} CRITICAL) — it may have been missed.")
     return None
 
 

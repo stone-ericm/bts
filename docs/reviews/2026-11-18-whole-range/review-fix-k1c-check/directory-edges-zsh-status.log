@@ -1,0 +1,4 @@
+nice: setpriority: Operation not permitted
+/bin/zsh default data/picks: first refusal 18:35; CLI exits 0/0, status accepted, stored 57/60/used in service picks directory; 18:55 pick DMs=1; decision=delivered
+/bin/zsh box path /home/bts/projects/bts/data/picks under a temporary root: first refusal 18:35; CLI exits 0/0, status accepted, stored 57/60/used in service picks directory; 18:55 pick DMs=1; decision=delivered
+/bin/zsh older B8a status commands: first refusal 18:35; old unquoted status exits 2, bare status gives an automatic all-clear for other directory, quoted live filing succeeds; 18:55 pick DMs=1; decision=delivered

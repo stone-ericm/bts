@@ -1,0 +1,8 @@
+nice: setpriority: Operation not permitted
+late start leave state absent checks 2 official sends 0
+late start between checks checks 2 official sends 1
+late start after last check checks 1 official sends 0
+revoked status refused pick wire calls 0
+saved changed status accepted pick wire calls 0
+2027-06-14 final fallback wall 2027-06-15T00:40:00-04:00 old date refused; new date writable
+2027-12-31 final fallback wall 2028-01-01T00:40:00-05:00 old date refused; new date writable
