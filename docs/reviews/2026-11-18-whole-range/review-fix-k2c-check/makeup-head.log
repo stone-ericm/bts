@@ -1,0 +1,14 @@
+nice: setpriority: Operation not permitted
+/Users/eric/projects/bts-work/wr-chk-k2c/src/bts/__init__.py
+20 20 False double emax_season_best 1
+20 20 True double emax_season_best 1
+20 25 False skip emax_season_best 1
+20 25 True skip emax_season_best 1
+55 55 False double reach57 1
+55 55 True double reach57 1
+56 56 False single reach57 1
+56 56 True single reach57 1
+57 57 False double longest_streak 1
+57 57 True double longest_streak 1
+120 120 False double longest_streak 1
+120 120 True double longest_streak 1

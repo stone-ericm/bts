@@ -1,0 +1,1757 @@
+{
+  "E6_initial": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  Sleeping until 16:05 ET (365 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "E6_restart": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  Sleeping until 16:05 ET (365 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "two_makeup_days": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-28T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2027-09-28...",
+      "  2 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 2 game(s)",
+      "    17:05 ET \u2014 2 game(s)",
+      "    18:20 ET \u2014 2 game(s)",
+      "  Sleeping until 16:05 ET (365 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "back_to_earlier_slate": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  Sleeping until 16:05 ET (365 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "midnight_same_slate": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-28T00:01:00-04:00",
+        [
+          70000
+        ]
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[00:01 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 1 scheduled checks:",
+      "    18:20 ET \u2014 1 game(s)",
+      "",
+      "[00:01 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "count_changed": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2027-09-27...",
+      "  2 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 2 game(s)",
+      "    17:05 ET \u2014 2 game(s)",
+      "    18:20 ET \u2014 2 game(s)",
+      "  Sleeping until 16:05 ET (365 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "count_changed_again": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  Sleeping until 16:05 ET (365 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "S3": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-26T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2027-09-26...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  Sleeping until 16:05 ET (365 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "S4": {
+    "result": "returned",
+    "events": [
+      [
+        "idle",
+        "2027-09-27T10:00:00-04:00"
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2027-09-27...",
+      "No games scheduled for 2027-09-27."
+    ],
+    "decision_json": null
+  },
+  "S4_nonregular": {
+    "result": "returned",
+    "events": [
+      [
+        "idle",
+        "2027-09-27T10:00:00-04:00"
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2027-09-27...",
+      "No games scheduled for 2027-09-27."
+    ],
+    "decision_json": null
+  },
+  "S6": {
+    "result": "returned",
+    "events": [],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  (--dry-run: not executing checks)"
+    ],
+    "decision_json": null
+  },
+  "after_midnight": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-28T00:01:00-04:00",
+        [
+          70000
+        ]
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[00:01 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 1 scheduled checks:",
+      "    18:20 ET \u2014 1 game(s)",
+      "",
+      "[00:01 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "fallback_year": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2028-09-29T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2028-09-29...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  Sleeping until 16:05 ET (365 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "dec31": {
+    "result": "returned",
+    "events": [
+      [
+        "idle",
+        "2027-12-31T10:00:00-05:00"
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2027-12-31...",
+      "No games scheduled for 2027-12-31."
+    ],
+    "decision_json": null
+  },
+  "jan01": {
+    "result": "returned",
+    "events": [
+      [
+        "idle",
+        "2028-01-01T10:00:00-05:00"
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2028-01-01...",
+      "No games scheduled for 2028-01-01."
+    ],
+    "decision_json": null
+  },
+  "postponed": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  Sleeping until 16:05 ET (365 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "cancelled": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  Sleeping until 16:05 ET (365 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "resume": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  Sleeping until 16:05 ET (365 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "future_official_date": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  Sleeping until 16:05 ET (365 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "missing_game_type": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  Sleeping until 16:05 ET (365 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "missing_game_status": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  Sleeping until 16:05 ET (365 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "null_game_status": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2027-09-27...",
+      "  2 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 2 game(s)",
+      "    17:05 ET \u2014 2 game(s)",
+      "    18:20 ET \u2014 2 game(s)",
+      "  Sleeping until 16:05 ET (365 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "past_deadline": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T18:30:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[18:30 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 1 scheduled checks:",
+      "    18:20 ET \u2014 1 game(s)",
+      "",
+      "[18:30 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "no_planned_check": {
+    "result": "returned",
+    "events": [
+      [
+        "idle",
+        "2027-09-27T10:00:00-04:00"
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 0 scheduled checks:",
+      "  Tomorrow's wake-up: Tue 09-28 10:00 ET"
+    ],
+    "decision_json": null
+  },
+  "unreadable": {
+    "result": "OSError: schedule failed",
+    "events": [],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2027-09-27..."
+    ],
+    "decision_json": null
+  },
+  "journal_error": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  Sleeping until 16:05 ET (365 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "bad_date": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for oops...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  Sleeping until 16:05 ET (365 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "mode_private": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  Sleeping until 16:05 ET (365 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "mode_dm": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.",
+      "[10:00 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  Sleeping until 16:05 ET (365 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "mode_public": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "[10:00 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  Sleeping until 16:05 ET (365 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "no_recipient": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:00 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  Sleeping until 16:05 ET (365 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "no-id": [
+    {
+      "result": "first lineup",
+      "events": [
+        [
+          "lineup",
+          "2027-09-27T16:05:00-04:00",
+          []
+        ]
+      ],
+      "bodies": [],
+      "status": null,
+      "journal": [
+        "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+        "[10:00 ET] Fetching schedule for 2027-09-27...",
+        "  1 games, 3 scheduled checks:",
+        "    16:05 ET \u2014 1 game(s)",
+        "    17:05 ET \u2014 1 game(s)",
+        "    18:20 ET \u2014 1 game(s)",
+        "  Sleeping until 16:05 ET (365 min)...",
+        "",
+        "[16:05 ET] Running lineup check..."
+      ],
+      "decision_json": null
+    },
+    {
+      "result": "first lineup",
+      "events": [
+        [
+          "lineup",
+          "2027-09-27T16:05:00-04:00",
+          []
+        ]
+      ],
+      "bodies": [],
+      "status": null,
+      "journal": [
+        "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+        "[10:00 ET] Fetching schedule for 2027-09-27...",
+        "  1 games, 3 scheduled checks:",
+        "    16:05 ET \u2014 1 game(s)",
+        "    17:05 ET \u2014 1 game(s)",
+        "    18:20 ET \u2014 1 game(s)",
+        "  Sleeping until 16:05 ET (365 min)...",
+        "",
+        "[16:05 ET] Running lineup check..."
+      ],
+      "decision_json": null
+    }
+  ],
+  "fail": [
+    {
+      "result": "first lineup",
+      "events": [
+        [
+          "lineup",
+          "2027-09-27T16:05:00-04:00",
+          []
+        ]
+      ],
+      "bodies": [],
+      "status": null,
+      "journal": [
+        "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+        "[10:00 ET] Fetching schedule for 2027-09-27...",
+        "  1 games, 3 scheduled checks:",
+        "    16:05 ET \u2014 1 game(s)",
+        "    17:05 ET \u2014 1 game(s)",
+        "    18:20 ET \u2014 1 game(s)",
+        "  Sleeping until 16:05 ET (365 min)...",
+        "",
+        "[16:05 ET] Running lineup check..."
+      ],
+      "decision_json": null
+    },
+    {
+      "result": "first lineup",
+      "events": [
+        [
+          "lineup",
+          "2027-09-27T16:05:00-04:00",
+          []
+        ]
+      ],
+      "bodies": [],
+      "status": null,
+      "journal": [
+        "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+        "[10:00 ET] Fetching schedule for 2027-09-27...",
+        "  1 games, 3 scheduled checks:",
+        "    16:05 ET \u2014 1 game(s)",
+        "    17:05 ET \u2014 1 game(s)",
+        "    18:20 ET \u2014 1 game(s)",
+        "  Sleeping until 16:05 ET (365 min)...",
+        "",
+        "[16:05 ET] Running lineup check..."
+      ],
+      "decision_json": null
+    }
+  ],
+  "interrupt": [
+    {
+      "result": "first lineup",
+      "events": [
+        [
+          "lineup",
+          "2027-09-27T16:05:00-04:00",
+          []
+        ]
+      ],
+      "bodies": [],
+      "status": null,
+      "journal": [
+        "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+        "[10:00 ET] Fetching schedule for 2027-09-27...",
+        "  1 games, 3 scheduled checks:",
+        "    16:05 ET \u2014 1 game(s)",
+        "    17:05 ET \u2014 1 game(s)",
+        "    18:20 ET \u2014 1 game(s)",
+        "  Sleeping until 16:05 ET (365 min)...",
+        "",
+        "[16:05 ET] Running lineup check..."
+      ],
+      "decision_json": null
+    },
+    {
+      "result": "first lineup",
+      "events": [
+        [
+          "lineup",
+          "2027-09-27T16:05:00-04:00",
+          []
+        ]
+      ],
+      "bodies": [],
+      "status": null,
+      "journal": [
+        "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+        "[10:00 ET] Fetching schedule for 2027-09-27...",
+        "  1 games, 3 scheduled checks:",
+        "    16:05 ET \u2014 1 game(s)",
+        "    17:05 ET \u2014 1 game(s)",
+        "    18:20 ET \u2014 1 game(s)",
+        "  Sleeping until 16:05 ET (365 min)...",
+        "",
+        "[16:05 ET] Running lineup check..."
+      ],
+      "decision_json": null
+    }
+  ],
+  "bad-json": [
+    {
+      "result": "first lineup",
+      "events": [
+        [
+          "lineup",
+          "2027-09-27T16:05:00-04:00",
+          []
+        ]
+      ],
+      "bodies": [],
+      "status": "bad JSON",
+      "journal": [
+        "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+        "[10:00 ET] Fetching schedule for 2027-09-27...",
+        "  1 games, 3 scheduled checks:",
+        "    16:05 ET \u2014 1 game(s)",
+        "    17:05 ET \u2014 1 game(s)",
+        "    18:20 ET \u2014 1 game(s)",
+        "  Sleeping until 16:05 ET (365 min)...",
+        "",
+        "[16:05 ET] Running lineup check..."
+      ],
+      "decision_json": null
+    },
+    {
+      "result": "first lineup",
+      "events": [
+        [
+          "lineup",
+          "2027-09-27T16:05:00-04:00",
+          []
+        ]
+      ],
+      "bodies": [],
+      "status": "bad JSON",
+      "journal": [
+        "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+        "[10:00 ET] Fetching schedule for 2027-09-27...",
+        "  1 games, 3 scheduled checks:",
+        "    16:05 ET \u2014 1 game(s)",
+        "    17:05 ET \u2014 1 game(s)",
+        "    18:20 ET \u2014 1 game(s)",
+        "  Sleeping until 16:05 ET (365 min)...",
+        "",
+        "[16:05 ET] Running lineup check..."
+      ],
+      "decision_json": null
+    }
+  ],
+  "schema-less-sent": [
+    {
+      "result": "first lineup",
+      "events": [
+        [
+          "lineup",
+          "2027-09-27T16:05:00-04:00",
+          []
+        ]
+      ],
+      "bodies": [],
+      "status": {
+        "status": "sent",
+        "sent_day": "2027-09-27",
+        "sent_sources": [
+          "WARN_ATTENTION:season_boundary:behind_schedule"
+        ]
+      },
+      "journal": [
+        "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+        "[10:00 ET] Fetching schedule for 2027-09-27...",
+        "  1 games, 3 scheduled checks:",
+        "    16:05 ET \u2014 1 game(s)",
+        "    17:05 ET \u2014 1 game(s)",
+        "    18:20 ET \u2014 1 game(s)",
+        "  Sleeping until 16:05 ET (365 min)...",
+        "",
+        "[16:05 ET] Running lineup check..."
+      ],
+      "decision_json": null
+    },
+    {
+      "result": "first lineup",
+      "events": [
+        [
+          "lineup",
+          "2027-09-27T16:05:00-04:00",
+          []
+        ]
+      ],
+      "bodies": [],
+      "status": {
+        "status": "sent",
+        "sent_day": "2027-09-27",
+        "sent_sources": [
+          "WARN_ATTENTION:season_boundary:behind_schedule"
+        ]
+      },
+      "journal": [
+        "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+        "[10:00 ET] Fetching schedule for 2027-09-27...",
+        "  1 games, 3 scheduled checks:",
+        "    16:05 ET \u2014 1 game(s)",
+        "    17:05 ET \u2014 1 game(s)",
+        "    18:20 ET \u2014 1 game(s)",
+        "  Sleeping until 16:05 ET (365 min)...",
+        "",
+        "[16:05 ET] Running lineup check..."
+      ],
+      "decision_json": null
+    }
+  ],
+  "directory": [
+    {
+      "result": "first lineup",
+      "events": [
+        [
+          "lineup",
+          "2027-09-27T16:05:00-04:00",
+          []
+        ]
+      ],
+      "bodies": [],
+      "status": "non-regular",
+      "journal": [
+        "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+        "[10:00 ET] Fetching schedule for 2027-09-27...",
+        "  1 games, 3 scheduled checks:",
+        "    16:05 ET \u2014 1 game(s)",
+        "    17:05 ET \u2014 1 game(s)",
+        "    18:20 ET \u2014 1 game(s)",
+        "  Sleeping until 16:05 ET (365 min)...",
+        "",
+        "[16:05 ET] Running lineup check..."
+      ],
+      "decision_json": null
+    },
+    {
+      "result": "first lineup",
+      "events": [
+        [
+          "lineup",
+          "2027-09-27T16:05:00-04:00",
+          []
+        ]
+      ],
+      "bodies": [],
+      "status": "non-regular",
+      "journal": [
+        "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+        "[10:00 ET] Fetching schedule for 2027-09-27...",
+        "  1 games, 3 scheduled checks:",
+        "    16:05 ET \u2014 1 game(s)",
+        "    17:05 ET \u2014 1 game(s)",
+        "    18:20 ET \u2014 1 game(s)",
+        "  Sleeping until 16:05 ET (365 min)...",
+        "",
+        "[16:05 ET] Running lineup check..."
+      ],
+      "decision_json": null
+    }
+  ],
+  "fifo": [
+    {
+      "result": "first lineup",
+      "events": [
+        [
+          "lineup",
+          "2027-09-27T16:05:00-04:00",
+          []
+        ]
+      ],
+      "bodies": [],
+      "status": "non-regular",
+      "journal": [
+        "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+        "[10:00 ET] Fetching schedule for 2027-09-27...",
+        "  1 games, 3 scheduled checks:",
+        "    16:05 ET \u2014 1 game(s)",
+        "    17:05 ET \u2014 1 game(s)",
+        "    18:20 ET \u2014 1 game(s)",
+        "  Sleeping until 16:05 ET (365 min)...",
+        "",
+        "[16:05 ET] Running lineup check..."
+      ],
+      "decision_json": null
+    },
+    {
+      "result": "first lineup",
+      "events": [
+        [
+          "lineup",
+          "2027-09-27T16:05:00-04:00",
+          []
+        ]
+      ],
+      "bodies": [],
+      "status": "non-regular",
+      "journal": [
+        "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+        "[10:00 ET] Fetching schedule for 2027-09-27...",
+        "  1 games, 3 scheduled checks:",
+        "    16:05 ET \u2014 1 game(s)",
+        "    17:05 ET \u2014 1 game(s)",
+        "    18:20 ET \u2014 1 game(s)",
+        "  Sleeping until 16:05 ET (365 min)...",
+        "",
+        "[16:05 ET] Running lineup check..."
+      ],
+      "decision_json": null
+    }
+  ],
+  "symlink": [
+    {
+      "result": "first lineup",
+      "events": [
+        [
+          "lineup",
+          "2027-09-27T16:05:00-04:00",
+          []
+        ]
+      ],
+      "bodies": [],
+      "status": {
+        "other": true
+      },
+      "journal": [
+        "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+        "[10:00 ET] Fetching schedule for 2027-09-27...",
+        "  1 games, 3 scheduled checks:",
+        "    16:05 ET \u2014 1 game(s)",
+        "    17:05 ET \u2014 1 game(s)",
+        "    18:20 ET \u2014 1 game(s)",
+        "  Sleeping until 16:05 ET (365 min)...",
+        "",
+        "[16:05 ET] Running lineup check..."
+      ],
+      "decision_json": null
+    },
+    {
+      "result": "first lineup",
+      "events": [
+        [
+          "lineup",
+          "2027-09-27T16:05:00-04:00",
+          []
+        ]
+      ],
+      "bodies": [],
+      "status": {
+        "other": true
+      },
+      "journal": [
+        "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+        "[10:00 ET] Fetching schedule for 2027-09-27...",
+        "  1 games, 3 scheduled checks:",
+        "    16:05 ET \u2014 1 game(s)",
+        "    17:05 ET \u2014 1 game(s)",
+        "    18:20 ET \u2014 1 game(s)",
+        "  Sleeping until 16:05 ET (365 min)...",
+        "",
+        "[16:05 ET] Running lineup check..."
+      ],
+      "decision_json": null
+    }
+  ],
+  "symlink_other_receipt": "{\"other\": true}",
+  "hardlink": [
+    {
+      "result": "first lineup",
+      "events": [
+        [
+          "lineup",
+          "2027-09-27T16:05:00-04:00",
+          []
+        ]
+      ],
+      "bodies": [],
+      "status": {
+        "other": true
+      },
+      "journal": [
+        "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+        "[10:00 ET] Fetching schedule for 2027-09-27...",
+        "  1 games, 3 scheduled checks:",
+        "    16:05 ET \u2014 1 game(s)",
+        "    17:05 ET \u2014 1 game(s)",
+        "    18:20 ET \u2014 1 game(s)",
+        "  Sleeping until 16:05 ET (365 min)...",
+        "",
+        "[16:05 ET] Running lineup check..."
+      ],
+      "decision_json": null
+    },
+    {
+      "result": "first lineup",
+      "events": [
+        [
+          "lineup",
+          "2027-09-27T16:05:00-04:00",
+          []
+        ]
+      ],
+      "bodies": [],
+      "status": {
+        "other": true
+      },
+      "journal": [
+        "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+        "[10:00 ET] Fetching schedule for 2027-09-27...",
+        "  1 games, 3 scheduled checks:",
+        "    16:05 ET \u2014 1 game(s)",
+        "    17:05 ET \u2014 1 game(s)",
+        "    18:20 ET \u2014 1 game(s)",
+        "  Sleeping until 16:05 ET (365 min)...",
+        "",
+        "[16:05 ET] Running lineup check..."
+      ],
+      "decision_json": null
+    }
+  ],
+  "hardlink_other_receipt": "{\"other\": true}",
+  "write-fail": [
+    {
+      "result": "first lineup",
+      "events": [
+        [
+          "lineup",
+          "2027-09-27T16:05:00-04:00",
+          []
+        ]
+      ],
+      "bodies": [],
+      "status": null,
+      "journal": [
+        "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+        "[10:00 ET] Fetching schedule for 2027-09-27...",
+        "  1 games, 3 scheduled checks:",
+        "    16:05 ET \u2014 1 game(s)",
+        "    17:05 ET \u2014 1 game(s)",
+        "    18:20 ET \u2014 1 game(s)",
+        "  Sleeping until 16:05 ET (365 min)...",
+        "",
+        "[16:05 ET] Running lineup check..."
+      ],
+      "decision_json": null
+    },
+    {
+      "result": "first lineup",
+      "events": [
+        [
+          "lineup",
+          "2027-09-27T16:05:00-04:00",
+          []
+        ]
+      ],
+      "bodies": [],
+      "status": null,
+      "journal": [
+        "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+        "[10:00 ET] Fetching schedule for 2027-09-27...",
+        "  1 games, 3 scheduled checks:",
+        "    16:05 ET \u2014 1 game(s)",
+        "    17:05 ET \u2014 1 game(s)",
+        "    18:20 ET \u2014 1 game(s)",
+        "  Sleeping until 16:05 ET (365 min)...",
+        "",
+        "[16:05 ET] Running lineup check..."
+      ],
+      "decision_json": null
+    }
+  ],
+  "S5_ample": {
+    "result": "first lineup",
+    "events": [
+      [
+        "dm",
+        "2027-09-27T10:00:00-04:00"
+      ],
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [
+      "BTS health CRITICAL alert(s):\n- [contest_state] Morning check for 2027-09-27: no usable contest state was found at startup. Check MLB and run bts season-contract status with the scheduler's picks directory. If state still needs correction, follow today's dated-observation instructions while a lineup check remains. First planned lineup check at 16:05 ET."
+    ],
+    "status": null,
+    "journal": [
+      "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.",
+      "[10:00 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  MORNING STATE CHECK \u2014 no pick can be made yet: 'Live decision refused: season 2027 switch is absent.\\nAlternative dated path \\u2014 TEMPLATE: `bts set-contest-streak --date 2027-09-27 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpj7dp1siq/S5_ample/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpj7dp1siq/S5_ample/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpj7dp1siq/S5_ample/picks` and compare the readings with MLB; only then run `bts season-contract enable --sea",
+      "  Sleeping until 16:05 ET (365 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "S5_original_11s": {
+    "result": "first lineup",
+    "events": [
+      [
+        "dm",
+        "2027-09-27T15:54:55-04:00"
+      ],
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [
+      "BTS health CRITICAL alert(s):\n- [contest_state] Morning check for 2027-09-27: no usable contest state was found at startup. Check MLB and run bts season-contract status with the scheduler's picks directory. If state still needs correction, follow today's dated-observation instructions while a lineup check remains. First planned lineup check at 16:05 ET."
+    ],
+    "status": null,
+    "journal": [
+      "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.",
+      "[15:54 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  MORNING STATE CHECK \u2014 no pick can be made yet: 'Live decision refused: season 2027 switch is absent.\\nAlternative dated path \\u2014 TEMPLATE: `bts set-contest-streak --date 2027-09-27 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpj7dp1siq/S5_original_11s/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpj7dp1siq/S5_original_11s/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpj7dp1siq/S5_original_11s/picks` and compare the readings with MLB; only then run `bts season-",
+      "  Sleeping until 16:05 ET (10 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "S5_consumed_lead": {
+    "result": "first lineup",
+    "events": [
+      [
+        "dm",
+        "2027-09-27T15:54:55-04:00"
+      ],
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [
+      "BTS health CRITICAL alert(s):\n- [contest_state] Morning check for 2027-09-27: no usable contest state was found at startup. Check MLB and run bts season-contract status with the scheduler's picks directory. If state still needs correction, follow today's dated-observation instructions while a lineup check remains. First planned lineup check at 16:05 ET."
+    ],
+    "status": null,
+    "journal": [
+      "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.",
+      "[15:54 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  MORNING STATE CHECK \u2014 no pick can be made yet: 'Live decision refused: season 2027 switch is absent.\\nAlternative dated path \\u2014 TEMPLATE: `bts set-contest-streak --date 2027-09-27 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpj7dp1siq/S5_consumed_lead/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpj7dp1siq/S5_consumed_lead/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpj7dp1siq/S5_consumed_lead/picks` and compare the readings with MLB; only then run `bts seas",
+      "  Sleeping until 16:05 ET (10 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "S5_original_21s": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.",
+      "[16:04 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  Morning state check skipped: first lineup check is due within 10 minutes.",
+      "  Sleeping until 16:05 ET (0 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "S5_exact_10m": {
+    "result": "first lineup",
+    "events": [
+      [
+        "dm",
+        "2027-09-27T15:55:00-04:00"
+      ],
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [
+      "BTS health CRITICAL alert(s):\n- [contest_state] Morning check for 2027-09-27: no usable contest state was found at startup. Check MLB and run bts season-contract status with the scheduler's picks directory. If state still needs correction, follow today's dated-observation instructions while a lineup check remains. First planned lineup check at 16:05 ET."
+    ],
+    "status": null,
+    "journal": [
+      "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.",
+      "[15:55 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  MORNING STATE CHECK \u2014 no pick can be made yet: 'Live decision refused: season 2027 switch is absent.\\nAlternative dated path \\u2014 TEMPLATE: `bts set-contest-streak --date 2027-09-27 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpj7dp1siq/S5_exact_10m/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpj7dp1siq/S5_exact_10m/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpj7dp1siq/S5_exact_10m/picks` and compare the readings with MLB; only then run `bts season-contract ",
+      "  Sleeping until 16:05 ET (10 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "S5_boundary_slow": {
+    "result": "first lineup",
+    "events": [
+      [
+        "dm",
+        "2027-09-27T15:55:00-04:00"
+      ],
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [
+      "BTS health CRITICAL alert(s):\n- [contest_state] Morning check for 2027-09-27: no usable contest state was found at startup. Check MLB and run bts season-contract status with the scheduler's picks directory. If state still needs correction, follow today's dated-observation instructions while a lineup check remains. First planned lineup check at 16:05 ET."
+    ],
+    "status": null,
+    "journal": [
+      "  [DM MODE] Public Bluesky posting disabled \u2014 picks sent by DM.",
+      "[15:55 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  MORNING STATE CHECK \u2014 no pick can be made yet: 'Live decision refused: season 2027 switch is absent.\\nAlternative dated path \\u2014 TEMPLATE: `bts set-contest-streak --date 2027-09-27 --streak N --best-streak B --saver S --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpj7dp1siq/S5_boundary_slow/picks`. Read N, B and S from MLB (active streak, best streak and saver state).\\nAlternative automatic path: stop the scheduler and wait for any fetch; run `bts fetch-contest-streak --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpj7dp1siq/S5_boundary_slow/picks` (while not switched, this records the reading in the ledger only); inspect `bts season-contract status --picks-dir /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/tmpj7dp1siq/S5_boundary_slow/picks` and compare the readings with MLB; only then run `bts seas",
+      "  Sleeping until 16:05 ET (10 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "thin_restart_after_early_check": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T17:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[16:05 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 2 scheduled checks:",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  Sleeping until 17:05 ET (60 min)...",
+      "",
+      "[17:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "early_opener_10m": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T08:00:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[07:50 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    08:00 ET \u2014 1 game(s)",
+      "    09:00 ET \u2014 1 game(s)",
+      "    10:15 ET \u2014 1 game(s)",
+      "  Sleeping until 08:00 ET (10 min)...",
+      "",
+      "[08:00 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "early_opener_inside_10m": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T08:00:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[07:50 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    08:00 ET \u2014 1 game(s)",
+      "    09:00 ET \u2014 1 game(s)",
+      "    10:15 ET \u2014 1 game(s)",
+      "  Sleeping until 08:00 ET (10 min)...",
+      "",
+      "[08:00 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "early_opener_late_start": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T10:15:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:05 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 1 scheduled checks:",
+      "    10:15 ET \u2014 1 game(s)",
+      "  Sleeping until 10:15 ET (10 min)...",
+      "",
+      "[10:15 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "early_opener_past_cutoff": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T10:15:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[10:05 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 1 scheduled checks:",
+      "    10:15 ET \u2014 1 game(s)",
+      "  Sleeping until 10:15 ET (10 min)...",
+      "",
+      "[10:15 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "S7_floored_pick": {
+    "result": "returned",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T18:30:00-04:00",
+        []
+      ],
+      [
+        "idle",
+        "2027-09-27T18:30:00-04:00"
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[18:30 ET] Fetching schedule for 2027-09-27...",
+      "  3 games, 1 scheduled checks:",
+      "    18:20 ET \u2014 3 game(s)",
+      "",
+      "[18:30 ET] Running lineup check...",
+      "  Tomorrow's wake-up: Tue 09-28 10:00 ET"
+    ],
+    "decision_json": {
+      "schema_version": "bts_daily_decision_v3",
+      "date": "2027-09-27",
+      "action": "skip",
+      "source": "mdp",
+      "primary": {
+        "batter_id": 100,
+        "batter_name": "Batter 0",
+        "team": "T0",
+        "game_pk": 70000,
+        "p_game_hit": 0.8
+      },
+      "double_down": null,
+      "second_candidate": {
+        "batter_id": 101,
+        "batter_name": "Batter 1",
+        "team": "T1",
+        "game_pk": 70001,
+        "p_game_hit": 0.79
+      },
+      "streak": 57,
+      "saver_available": false,
+      "state_source": null,
+      "state_status": null,
+      "allow_double": null,
+      "contest_source_date": null,
+      "delivery_status": "not_applicable",
+      "scoreable": false,
+      "objective": "reach57",
+      "best_streak": 57,
+      "best_status": "trusted",
+      "effective_best": null,
+      "tail_policy_sha256": null,
+      "degraded_reason": null,
+      "policy_guard": null,
+      "finalized_at": "2026-11-26T18:43:13.458679Z"
+    },
+    "pick_policy": null
+  },
+  "S7_floored_skip": {
+    "result": "returned",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T18:30:00-04:00",
+        []
+      ],
+      [
+        "idle",
+        "2027-09-27T18:30:00-04:00"
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[18:30 ET] Fetching schedule for 2027-09-27...",
+      "  3 games, 1 scheduled checks:",
+      "    18:20 ET \u2014 3 game(s)",
+      "",
+      "[18:30 ET] Running lineup check...",
+      "  Tomorrow's wake-up: Tue 09-28 10:00 ET"
+    ],
+    "decision_json": {
+      "schema_version": "bts_daily_decision_v3",
+      "date": "2027-09-27",
+      "action": "skip",
+      "source": "mdp",
+      "primary": {
+        "batter_id": 100,
+        "batter_name": "Batter 0",
+        "team": "T0",
+        "game_pk": 70000,
+        "p_game_hit": 0.8
+      },
+      "double_down": null,
+      "second_candidate": {
+        "batter_id": 101,
+        "batter_name": "Batter 1",
+        "team": "T1",
+        "game_pk": 70001,
+        "p_game_hit": 0.79
+      },
+      "streak": 20,
+      "saver_available": false,
+      "state_source": null,
+      "state_status": null,
+      "allow_double": null,
+      "contest_source_date": null,
+      "delivery_status": "not_applicable",
+      "scoreable": false,
+      "objective": "reach57",
+      "best_streak": 25,
+      "best_status": "trusted",
+      "effective_best": null,
+      "tail_policy_sha256": null,
+      "degraded_reason": null,
+      "policy_guard": null,
+      "finalized_at": "2026-11-26T18:43:13.462340Z"
+    },
+    "pick_policy": null
+  },
+  "S7_regular_pick": {
+    "result": "returned",
+    "events": [
+      [
+        "lineup",
+        "2027-09-26T18:30:00-04:00",
+        []
+      ],
+      [
+        "idle",
+        "2027-09-26T19:15:00-04:00"
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[18:30 ET] Fetching schedule for 2027-09-26...",
+      "  3 games, 1 scheduled checks:",
+      "    18:20 ET \u2014 3 game(s)",
+      "",
+      "[18:30 ET] Running lineup check...",
+      "  [PRIVATE] LOCKED (lineup) \u2014 Batter 0 (T0) 80.0% \u2014 NOT delivered",
+      "  Pick locked. Stopping lineup checks.",
+      "  Tomorrow's wake-up: Mon 09-27 10:00 ET",
+      "  Waiting until 19:15 ET (game start + 10min, 45 min)...",
+      "  Day complete. Result: final"
+    ],
+    "decision_json": {
+      "schema_version": "bts_daily_decision_v3",
+      "date": "2027-09-26",
+      "action": "double",
+      "source": "mdp",
+      "primary": {
+        "batter_id": 100,
+        "batter_name": "Batter 0",
+        "team": "T0",
+        "game_pk": 70000,
+        "p_game_hit": 0.8
+      },
+      "double_down": {
+        "batter_id": 101,
+        "batter_name": "Batter 1",
+        "team": "T1",
+        "game_pk": 70001,
+        "p_game_hit": 0.79
+      },
+      "second_candidate": null,
+      "streak": 57,
+      "saver_available": false,
+      "state_source": null,
+      "state_status": null,
+      "allow_double": null,
+      "contest_source_date": null,
+      "delivery_status": "private_locked",
+      "scoreable": true,
+      "objective": "longest_streak",
+      "best_streak": 57,
+      "best_status": "trusted",
+      "effective_best": null,
+      "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+      "degraded_reason": null,
+      "policy_guard": null,
+      "finalized_at": "2026-11-26T18:43:13.465612Z"
+    },
+    "pick_policy": {
+      "action": "double",
+      "policy_action": "double",
+      "source": "mdp",
+      "objective": "longest_streak",
+      "streak": 57,
+      "days_effective": 1,
+      "best_supplied": 57,
+      "best_status": "trusted",
+      "effective_best": null,
+      "tail_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+      "degraded_reason": null,
+      "reason": null,
+      "pick_bar": null,
+      "guard": null
+    }
+  },
+  "already_sent": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T19:30:00-04:00",
+        [
+          70000
+        ]
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[19:30 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 1 scheduled checks:",
+      "    18:20 ET \u2014 1 game(s)",
+      "",
+      "[19:30 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  },
+  "already_sent_early": {
+    "result": "first lineup",
+    "events": [
+      [
+        "lineup",
+        "2027-09-27T16:05:00-04:00",
+        []
+      ]
+    ],
+    "bodies": [],
+    "status": null,
+    "journal": [
+      "  [PRIVATE MODE] Bluesky posting disabled \u2014 picks saved locally only.",
+      "[14:30 ET] Fetching schedule for 2027-09-27...",
+      "  1 games, 3 scheduled checks:",
+      "    16:05 ET \u2014 1 game(s)",
+      "    17:05 ET \u2014 1 game(s)",
+      "    18:20 ET \u2014 1 game(s)",
+      "  Sleeping until 16:05 ET (95 min)...",
+      "",
+      "[16:05 ET] Running lineup check..."
+    ],
+    "decision_json": null
+  }
+}

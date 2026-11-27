@@ -1,0 +1,92 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-chk-k2c/src/bts/__init__.py
+poll
+  warning
+  False
+  ('boundary', '2027-09-27T18:59:59-04:00', None)
+  ('lookahead', '2027-09-27T18:59:59-04:00', None)
+  ('fetch', '2027-09-27T18:59:59-04:00', '2027-09-28')
+  ('poll', '2027-09-27T19:15:00-04:00', 301)
+  ('health', '2027-09-27T19:15:00-04:00', '2027-09-27')
+  ('DM', '2027-09-27T19:15:00-04:00', ('offline.test', 'BTS health CRITICAL alert(s):\n- [pick_entry] Check entry for 2027-09-27'))
+  ('idle', '2027-09-27T19:15:00-04:00', '2027-09-28T10:00:00-04:00')
+  ('return', '2027-09-28T10:00:00-04:00', None)
+  ('stored', '2027-09-28T10:00:00-04:00', ('2027-09-28T10:00:00-04:00', 'suspended', 'single'))
+poll
+  warning
+  True
+  ('boundary', '2027-09-27T18:59:59-04:00', None)
+  ('lookahead', '2027-09-27T18:59:59-04:00', None)
+  ('fetch', '2027-09-27T18:59:59-04:00', '2027-09-28')
+  ('blocked', '2027-09-27T18:59:59-04:00', "  Tomorrow's wake-up: Tue 09-28 10:00 ET")
+  ('poll', '2027-09-27T19:19:59-04:00', 301)
+  ('health', '2027-09-27T19:19:59-04:00', '2027-09-27')
+  ('DM', '2027-09-27T19:19:59-04:00', ('offline.test', 'BTS health CRITICAL alert(s):\n- [pick_entry] Check entry for 2027-09-27'))
+  ('idle', '2027-09-27T19:19:59-04:00', '2027-09-28T10:00:00-04:00')
+  ('return', '2027-09-28T10:00:00-04:00', None)
+  ('stored', '2027-09-28T10:00:00-04:00', ('2027-09-28T10:00:00-04:00', 'suspended', 'single'))
+skip
+  warning
+  False
+  ('boundary', '2027-09-27T23:45:00-04:00', None)
+  ('lookahead', '2027-09-27T23:45:00-04:00', None)
+  ('fetch', '2027-09-27T23:45:00-04:00', '2027-09-28')
+  ('health', '2027-09-27T23:45:00-04:00', '2027-09-27')
+  ('DM', '2027-09-27T23:45:00-04:00', ('offline.test', 'BTS health CRITICAL alert(s):\n- [pick_entry] Check entry for 2027-09-27'))
+  ('idle', '2027-09-27T23:45:00-04:00', '2027-09-28T10:00:00-04:00')
+  ('return', '2027-09-28T10:00:00-04:00', None)
+  ('stored', '2027-09-28T10:00:00-04:00', ('2027-09-28T10:00:00-04:00', None, 'skip'))
+skip
+  warning
+  True
+  ('boundary', '2027-09-27T23:45:00-04:00', None)
+  ('lookahead', '2027-09-27T23:45:00-04:00', None)
+  ('fetch', '2027-09-27T23:45:00-04:00', '2027-09-28')
+  ('blocked', '2027-09-27T23:45:00-04:00', "  Tomorrow's wake-up: Tue 09-28 10:00 ET")
+  ('health', '2027-09-28T00:05:00-04:00', '2027-09-27')
+  ('DM', '2027-09-28T00:05:00-04:00', ('offline.test', 'BTS health CRITICAL alert(s):\n- [pick_entry] Check entry for 2027-09-27'))
+  ('idle', '2027-09-28T00:05:00-04:00', '2027-09-28T10:00:00-04:00')
+  ('return', '2027-09-28T10:00:00-04:00', None)
+  ('stored', '2027-09-28T10:00:00-04:00', ('2027-09-28T10:00:00-04:00', None, 'skip'))
+watchdog
+  warning
+  False
+  ('boundary', '2027-09-27T23:45:00-04:00', None)
+  ('lookahead', '2027-09-27T23:45:00-04:00', None)
+  ('fetch', '2027-09-27T23:45:00-04:00', '2027-09-28')
+  ('health', '2027-09-27T23:45:00-04:00', '2027-09-27')
+  ('DM', '2027-09-27T23:45:00-04:00', ('offline.test', 'BTS health CRITICAL alert(s):\n- [pick_entry] Check entry for 2027-09-27'))
+  ('idle', '2027-09-27T23:45:00-04:00', '2027-09-28T10:00:00-04:00')
+  ('return', '2027-09-28T10:00:00-04:00', None)
+  ('stored', '2027-09-28T10:00:00-04:00', ('2027-09-28T10:00:00-04:00', None, 'skip'))
+watchdog
+  warning
+  True
+  ('boundary', '2027-09-27T23:45:00-04:00', None)
+  ('lookahead', '2027-09-27T23:45:00-04:00', None)
+  ('fetch', '2027-09-27T23:45:00-04:00', '2027-09-28')
+  ('blocked', '2027-09-27T23:45:00-04:00', "  Tomorrow's wake-up: Tue 09-28 10:00 ET")
+  ('watchdog', '2027-09-28T00:15:00-04:00', None)
+  ('restart date', '2027-09-28T00:15:00-04:00', '2027-09-28')
+  ('stored', '2027-09-28T00:15:00-04:00', ('2027-09-28T10:00:00-04:00', None, None))
+watchdog-fetch
+  warning
+  False
+  ('boundary', '2027-09-27T23:45:00-04:00', None)
+  ('lookahead', '2027-09-27T23:45:00-04:00', None)
+  ('fetch', '2027-09-27T23:45:00-04:00', '2027-09-28')
+  ('health', '2027-09-27T23:45:00-04:00', '2027-09-27')
+  ('DM', '2027-09-27T23:45:00-04:00', ('offline.test', 'BTS health CRITICAL alert(s):\n- [pick_entry] Check entry for 2027-09-27'))
+  ('idle', '2027-09-27T23:45:00-04:00', '2027-09-28T00:00:00-04:00')
+  ('return', '2027-09-28T00:00:00-04:00', None)
+  ('stored', '2027-09-28T00:00:00-04:00', ('2027-09-28T00:00:00-04:00', None, 'skip'))
+watchdog-fetch
+  warning
+  True
+  ('boundary', '2027-09-27T23:45:00-04:00', None)
+  ('lookahead', '2027-09-27T23:45:00-04:00', None)
+  ('fetch', '2027-09-27T23:45:00-04:00', '2027-09-28')
+  ('blocked', '2027-09-27T23:45:00-04:00', "  Failed to fetch/compute tomorrow's schedule: fixture schedule outage — retrying in 15min via handoff (not assuming a safe morning).")
+  ('watchdog', '2027-09-28T00:15:00-04:00', None)
+  ('restart date', '2027-09-28T00:15:00-04:00', '2027-09-28')
+  ('stored', '2027-09-28T00:15:00-04:00', (None, None, None))

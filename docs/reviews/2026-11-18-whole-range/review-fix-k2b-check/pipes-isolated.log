@@ -1,0 +1,5 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-chk-k2b/src/bts/__init__.py
+private [('2027-09-27T10:15:00-04:00', [])] exact line after drain, no send or receipt
+dm [('2027-09-27T10:15:00-04:00', [])] exact line after drain, no send or receipt
+public [('2027-09-27T18:59:59-04:00', [])] exact line after drain, no send or receipt

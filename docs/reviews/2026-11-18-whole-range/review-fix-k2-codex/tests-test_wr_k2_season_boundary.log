@@ -1,0 +1,15 @@
+tests/test_wr_k2_season_boundary.py
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-k2-cx/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 59 items
+
+tests/test_wr_k2_season_boundary.py .................................... [ 61%]
+.......................                                                  [100%]
+
+============================== 59 passed in 9.79s ==============================
+exit=0

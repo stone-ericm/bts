@@ -1,0 +1,32 @@
+nice: setpriority: Operation not permitted
+Strategy: /Users/eric/projects/bts-work/wr-chk-k2/.codex-review/scratch-k2/src/bts/strategy.py
+Scheduler: /Users/eric/projects/bts-work/wr-chk-k2/.codex-review/scratch-k2/src/bts/scheduler.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-k2
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 249 items
+
+tests/test_streak_season_cs2b_review.py ................................ [ 12%]
+........................................................................ [ 41%]
+..............................                                           [ 53%]
+tests/test_tail_policy_artifact_contract.py ....                         [ 55%]
+tests/test_tail_policy_r3_fixes.py ...................                   [ 63%]
+tests/test_tail_policy_strategy.py .........................             [ 73%]
+tests/test_thin_slate_checks.py ..............                           [ 78%]
+tests/test_wr_a_calendar.py ........                                     [ 81%]
+tests/test_wr_a_calendar_replay_carbon.py .............F                 [ 87%]
+tests/test_wr_a_pick.py ...............................                  [100%]
+
+=================================== FAILURES ===================================
+___ test_late_2027_shipped_policy_actions[2027-09-27-56-0.96-0-skip-reach57] ___
+tests/test_wr_a_calendar_replay_carbon.py:69: in test_late_2027_shipped_policy_actions
+    assert dec.action == expected_action
+E   AssertionError: assert 'single' == 'skip'
+E     
+E     - skip
+E     + single
+=========================== short test summary info ============================
+FAILED tests/test_wr_a_calendar_replay_carbon.py::test_late_2027_shipped_policy_actions[2027-09-27-56-0.96-0-skip-reach57]
+======================== 1 failed, 248 passed in 2.91s =========================

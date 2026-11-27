@@ -1,0 +1,219 @@
+{
+  "real_slots": {
+    "postseason": [],
+    "spring": [],
+    "projected": [
+      [
+        70000,
+        true
+      ],
+      [
+        70000,
+        true
+      ],
+      [
+        70001,
+        true
+      ],
+      [
+        70001,
+        true
+      ],
+      [
+        70002,
+        true
+      ],
+      [
+        70002,
+        true
+      ]
+    ],
+    "resume": [],
+    "wrong_day_response_future": [
+      [
+        70000,
+        true
+      ],
+      [
+        70000,
+        true
+      ]
+    ],
+    "missing_game_type": [
+      [
+        70000,
+        true
+      ],
+      [
+        70000,
+        true
+      ]
+    ]
+  },
+  "prediction_schedule_error": "JSONDecodeError",
+  "run_regular": {
+    "setup": [],
+    "exit": 0,
+    "text": "[16:00 UTC] Running predictions for 2027-09-27...\n\n================================================================================\nBTS PICKS \u2014 2027-09-27\n================================================================================\n#    Batter                 Team  Pos vs Pitcher              P(PA) P(Game)  Flags\n--------------------------------------------------------------------------------\n1    Batter 0               T0      1 Pitcher 0              80.0%  80.0%  \n2    Batter 1               T1      2 Pitcher 1              79.0%  79.0%  \n3    Batter 2               T2      3 Pitcher 2              75.0%  75.0%  \nSkipping \u2014 Batter 0 (T0) at 80.0% below threshold. Streak holds at 57.\n  Posted skip to Bluesky: at://stub\n",
+    "posts": [
+      "Sitting today out. Top pick: Batter 0 (T0) at 80.0% \u2014 below our threshold.\n\nStreak holds at 57."
+    ],
+    "pick": null
+  },
+  "run_empty": {
+    "setup": [],
+    "exit": 0,
+    "text": "[16:00 UTC] Running predictions for 2027-09-27...\nNo games found for this date.\n",
+    "posts": [],
+    "pick": null
+  },
+  "run_stale_offday": {
+    "setup": [],
+    "exit": 0,
+    "text": "[16:00 UTC] Running predictions for 2027-09-27...\n\n================================================================================\nBTS PICKS \u2014 2027-09-27\n================================================================================\n#    Batter                 Team  Pos vs Pitcher              P(PA) P(Game)  Flags\n--------------------------------------------------------------------------------\n1    Batter 0               T0      1 Pitcher 0              80.0%  80.0%  \n2    Batter 1               T1      2 Pitcher 1              79.0%  79.0%  \n3    Batter 2               T2      3 Pitcher 2              75.0%  75.0%  \nSkipping \u2014 Batter 0 (T0) at 80.0% below threshold. Streak holds at 57.\n  Posted skip to Bluesky: at://stub\n",
+    "posts": [
+      "Sitting today out. Top pick: Batter 0 (T0) at 80.0% \u2014 below our threshold.\n\nStreak holds at 57."
+    ],
+    "pick": null
+  },
+  "run_foreign_regular": {
+    "setup": [],
+    "exit": 0,
+    "text": "[16:00 UTC] Running predictions for 2027-09-27...\n\n================================================================================\nBTS PICKS \u2014 2027-09-27\n================================================================================\n#    Batter                 Team  Pos vs Pitcher              P(PA) P(Game)  Flags\n--------------------------------------------------------------------------------\n1    Batter 0               T0      1 Pitcher 0              80.0%  80.0%  \n2    Batter 1               T1      2 Pitcher 1              79.0%  79.0%  \n3    Batter 2               T2      3 Pitcher 2              75.0%  75.0%  \nSkipping \u2014 Batter 0 (T0) at 80.0% below threshold. Streak holds at 57.\n  Posted skip to Bluesky: at://stub\n",
+    "posts": [
+      "Sitting today out. Top pick: Batter 0 (T0) at 80.0% \u2014 below our threshold.\n\nStreak holds at 57."
+    ],
+    "pick": null
+  },
+  "run_invalid_nonregular_rows": {
+    "setup": [],
+    "exit": 0,
+    "text": "[16:00 UTC] Running predictions for 2027-09-27...\n\n================================================================================\nBTS PICKS \u2014 2027-09-27\n================================================================================\n#    Batter                 Team  Pos vs Pitcher              P(PA) P(Game)  Flags\n--------------------------------------------------------------------------------\n1    Batter 0               T0      1 Pitcher 0              80.0%  80.0%  \n2    Batter 1               T1      2 Pitcher 1              79.0%  79.0%  \n3    Batter 2               T2      3 Pitcher 2              75.0%  75.0%  \nSkipping \u2014 Batter 0 (T0) at 80.0% below threshold. Streak holds at 57.\n  Posted skip to Bluesky: at://stub\n",
+    "posts": [
+      "Sitting today out. Top pick: Batter 0 (T0) at 80.0% \u2014 below our threshold.\n\nStreak holds at 57."
+    ],
+    "pick": null
+  },
+  "preview_regular": {
+    "setup": [],
+    "exit": 0,
+    "text": "[preview] Running predictions for 2027-09-27...\n[preview] Skip day \u2014 Batter 0 at 80.0% below threshold.\n",
+    "posts": [],
+    "pick": null
+  },
+  "preview_empty": {
+    "setup": [],
+    "exit": 0,
+    "text": "[preview] Running predictions for 2027-09-27...\n[preview] No games found for 2027-09-27.\n",
+    "posts": [],
+    "pick": null
+  },
+  "preview_stale_offday": {
+    "setup": [],
+    "exit": 0,
+    "text": "[preview] Running predictions for 2027-09-27...\n[preview] Skip day \u2014 Batter 0 at 80.0% below threshold.\n",
+    "posts": [],
+    "pick": null
+  },
+  "preview_foreign_regular": {
+    "setup": [],
+    "exit": 0,
+    "text": "[preview] Running predictions for 2027-09-27...\n[preview] Skip day \u2014 Batter 0 at 80.0% below threshold.\n",
+    "posts": [],
+    "pick": null
+  },
+  "preview_invalid_nonregular_rows": {
+    "setup": [],
+    "exit": 0,
+    "text": "[preview] Running predictions for 2027-09-27...\n[preview] Skip day \u2014 Batter 0 at 80.0% below threshold.\n",
+    "posts": [],
+    "pick": null
+  },
+  "orchestrator_regular": {
+    "setup": [],
+    "decision": {
+      "action": "skip",
+      "policy_action": "skip",
+      "source": "mdp",
+      "objective": "reach57",
+      "streak": 57,
+      "days_effective": 0,
+      "best_supplied": 57,
+      "best_status": "trusted",
+      "effective_best": null,
+      "tail_sha256": null,
+      "degraded_reason": null,
+      "reason": null,
+      "pick_bar": null,
+      "guard": null
+    },
+    "no_pick_reason": null
+  },
+  "orchestrator_empty": {
+    "setup": [],
+    "decision": null,
+    "no_pick_reason": null
+  },
+  "orchestrator_stale_offday": {
+    "setup": [],
+    "decision": null,
+    "no_pick_reason": "no_eligible"
+  },
+  "orchestrator_foreign_regular": {
+    "setup": [],
+    "decision": {
+      "action": "skip",
+      "policy_action": "skip",
+      "source": "mdp",
+      "objective": "reach57",
+      "streak": 57,
+      "days_effective": 0,
+      "best_supplied": 57,
+      "best_status": "trusted",
+      "effective_best": null,
+      "tail_sha256": null,
+      "degraded_reason": null,
+      "reason": null,
+      "pick_bar": null,
+      "guard": null
+    },
+    "no_pick_reason": null
+  },
+  "orchestrator_invalid_nonregular_rows": {
+    "setup": [],
+    "decision": {
+      "action": "skip",
+      "policy_action": "skip",
+      "source": "mdp",
+      "objective": "reach57",
+      "streak": 57,
+      "days_effective": 0,
+      "best_supplied": 57,
+      "best_status": "trusted",
+      "effective_best": null,
+      "tail_sha256": null,
+      "degraded_reason": null,
+      "reason": null,
+      "pick_bar": null,
+      "guard": null
+    },
+    "no_pick_reason": null
+  },
+  "no_verified_candidate_skip_notice": {
+    "setup": [],
+    "summary": {
+      "best_batter": "Batter 0",
+      "best_team": "T0",
+      "best_p": 0.8,
+      "streak": 57,
+      "basis": "no_decision",
+      "candidate_verified": false
+    },
+    "rendered": "BTS 2027-09-27: No pick at this check. No candidate was chosen. Top model prediction (eligibility unverified): Batter 0 (T0) 80.0%."
+  },
+  "decide_action_without_schedule": [
+    "skip",
+    "mdp"
+  ],
+  "invalid_date": "ValueError: invalid literal for int() with base 10: 'bad-'"
+}

@@ -1,0 +1,14 @@
+tests/health/test_tail_policy_health.py
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-k2-cx/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 5 items
+
+tests/health/test_tail_policy_health.py .....                            [100%]
+
+============================== 5 passed in 0.69s ===============================
+exit=0

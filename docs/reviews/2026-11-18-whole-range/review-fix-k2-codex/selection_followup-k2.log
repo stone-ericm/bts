@@ -1,0 +1,31 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-k2-cx/src/bts/__init__.py
+/Users/eric/.matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/matplotlib-a779w7qu because there was an issue with the default path (/Users/eric/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+longest-streak policy: longest-streak rule unavailable (RuntimeError: unavailable MDP loader); forced single -> single
+  [park_drag] WARNING: table not found at data/external/park_drag/park_drag_export.csv; park_drag_delta will be NaN
+  [SHADOW MODEL] Batter 0 (T0) 80.0% — DISAGREES (prod: irrelevant)
+  [SHADOW MODEL] Batter 0 (T0) 80.0% — DISAGREES (prod: irrelevant)
+  [SHADOW MODEL] Batter 0 (T0) 80.0% — DISAGREES (prod: irrelevant)
+  [SHADOW MODEL] Batter 0 (T0) 80.0% — DISAGREES (prod: irrelevant)
+  [SHADOW MODEL] Batter 0 (T0) 80.0% — DISAGREES (prod: irrelevant)
+  [SHADOW MODEL] Batter 0 (T0) 80.0% — DISAGREES (prod: irrelevant)
+  [SHADOW MODEL] Batter 0 (T0) 80.0% — DISAGREES (prod: irrelevant)
+  [SHADOW MODEL] Batter 0 (T0) 80.0% — DISAGREES (prod: irrelevant)
+  [SHADOW MODEL] Batter 0 (T0) 80.0% — DISAGREES (prod: irrelevant)
+  [SHADOW MODEL] Batter 0 (T0) 80.0% — DISAGREES (prod: irrelevant)
+  [SHADOW MODEL] Batter 0 (T0) 80.0% — DISAGREES (prod: irrelevant)
+  [SHADOW MODEL] Batter 0 (T0) 80.0% — DISAGREES (prod: irrelevant)
+  [SHADOW MODEL] Batter 0 (T0) 80.0% — DISAGREES (prod: irrelevant)
+  [SHADOW MODEL] Batter 0 (T0) 80.0% — DISAGREES (prod: irrelevant)
+  [SHADOW MODEL] Batter 0 (T0) 80.0% — DISAGREES (prod: irrelevant)
+  [SHADOW MODEL] Batter 0 (T0) 80.0% — DISAGREES (prod: irrelevant)
+  [SHADOW MODEL] Batter 0 (T0) 80.0% — DISAGREES (prod: irrelevant)
+  [SHADOW MODEL] Batter 0 (T0) 80.0% — DISAGREES (prod: irrelevant)
+  [SHADOW MODEL] Batter 0 (T0) 80.0% — DISAGREES (prod: irrelevant)
+  [SHADOW MODEL] Batter 0 (T0) 80.0% — DISAGREES (prod: irrelevant)
+  [SHADOW MODEL] Batter 0 (T0) 80.0% — DISAGREES (prod: irrelevant)
+  [SHADOW MODEL] Batter 0 (T0) 80.0% — DISAGREES (prod: irrelevant)
+  [SHADOW MODEL] Batter 0 (T0) 80.0% — DISAGREES (prod: irrelevant)
+  [SHADOW MODEL] Batter 0 (T0) 80.0% — DISAGREES (prod: irrelevant)
+exit=0

@@ -1,0 +1,24 @@
+tests/simulate/test_mdp_save_atomic.py
+tests/simulate/test_monte_carlo.py
+tests/simulate/test_rare_event_mc.py
+tests/simulate/test_strategies.py
+tests/test_alert_status_callers_cs6b2.py
+tests/test_alert_status_cs6b2_carbon.py
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/wr-k2-cx-mutations/no-early-floor/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 89 items
+
+tests/simulate/test_mdp_save_atomic.py .....                             [  5%]
+tests/simulate/test_monte_carlo.py .....................                 [ 29%]
+tests/simulate/test_rare_event_mc.py ...                                 [ 32%]
+tests/simulate/test_strategies.py ..........                             [ 43%]
+tests/test_alert_status_callers_cs6b2.py ......................          [ 68%]
+tests/test_alert_status_cs6b2_carbon.py ............................     [100%]
+
+============================== 89 passed in 7.69s ==============================
+exit=0

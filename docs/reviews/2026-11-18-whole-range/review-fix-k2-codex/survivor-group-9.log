@@ -1,0 +1,25 @@
+tests/test_scheduler_no_games.py
+tests/test_scheduler_skip_visibility.py
+tests/test_scheduler_state_integrity.py
+tests/test_scheduler_tail_objective.py
+tests/test_season_end_date.py
+tests/test_skip_policy_shadow.py
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/wr-k2-cx-mutations/no-early-floor/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 99 items
+
+tests/test_scheduler_no_games.py .                                       [  1%]
+tests/test_scheduler_skip_visibility.py ................................ [ 33%]
+.......                                                                  [ 40%]
+tests/test_scheduler_state_integrity.py .......                          [ 47%]
+tests/test_scheduler_tail_objective.py .........                         [ 56%]
+tests/test_season_end_date.py ........                                   [ 64%]
+tests/test_skip_policy_shadow.py ...................................     [100%]
+
+============================== 99 passed in 0.84s ==============================
+exit=0

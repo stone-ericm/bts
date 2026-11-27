@@ -1,0 +1,30 @@
+nice: setpriority: Operation not permitted
+Strategy: /Users/eric/projects/bts-work/wr-chk-k2/.codex-review/scratch-k2-am1/src/bts/strategy.py
+Scheduler: /Users/eric/projects/bts-work/wr-chk-k2/.codex-review/scratch-k2-am1/src/bts/scheduler.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-k2
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 231 items
+
+tests/test_wr_c3v_delivery.py .........                                  [  3%]
+tests/test_wr_e_texts.py ............................................... [ 24%]
+..................                                                       [ 32%]
+tests/test_wr_f3_skip_state_review.py .................................. [ 46%]
+..........................................................               [ 71%]
+tests/test_wr_g_guard.py ............................................    [ 90%]
+tests/test_wr_h2_caps.py ......F.........                                [ 97%]
+tests/health/test_tail_policy_health.py .....                            [100%]
+
+=================================== FAILURES ===================================
+________________________ test_m5_walk_high_dated_state _________________________
+tests/test_wr_h2_caps.py:154: in test_m5_walk_high_dated_state
+    assert [row["action"] for row in rows] == ["double", "skip"]
+E   AssertionError: assert ['double', 'double'] == ['double', 'skip']
+E     
+E     At index 1 diff: 'double' != 'skip'
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/test_wr_h2_caps.py::test_m5_walk_high_dated_state - AssertionErr...
+======================== 1 failed, 230 passed in 36.67s ========================

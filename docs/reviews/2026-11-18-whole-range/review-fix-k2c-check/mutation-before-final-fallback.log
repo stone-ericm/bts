@@ -1,0 +1,23 @@
+nice: setpriority: Operation not permitted
+bts: /private/tmp/wr-k2c.Pkn3Bs/mutant/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-k2c
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 54 items / 49 deselected / 5 selected
+
+tests/test_wr_k2_season_boundary.py ...F.                                [100%]
+
+=================================== FAILURES ===================================
+_________ test_boundary_journal_follows_last_lineup_check_and_fallback _________
+tests/test_wr_k2_season_boundary.py:266: in test_boundary_journal_follows_last_lineup_check_and_fallback
+    assert (0 <= journal.rfind("Running lineup check...")
+E   assert 1020 < 446
+E    +  where 1020 = <built-in method index of str object at 0x768c9e2800>('FALLBACK —')
+E    +    where <built-in method index of str object at 0x768c9e2800> = "  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.\n[10:00 ET] Fetching schedule for 2027-09-27...... min)...\n  FALLBACK — 35min to first pitch, delivering on projected data.\n  Tomorrow's wake-up: Tue 09-28 10:00 ET\n".index
+E    +  and   446 = <built-in method index of str object at 0x768c9e2800>('SEASON BOUNDARY BEHIND SCHEDULE')
+E    +    where <built-in method index of str object at 0x768c9e2800> = "  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.\n[10:00 ET] Fetching schedule for 2027-09-27...... min)...\n  FALLBACK — 35min to first pitch, delivering on projected data.\n  Tomorrow's wake-up: Tue 09-28 10:00 ET\n".index
+=========================== short test summary info ============================
+FAILED tests/test_wr_k2_season_boundary.py::test_boundary_journal_follows_last_lineup_check_and_fallback
+================== 1 failed, 4 passed, 49 deselected in 0.65s ==================

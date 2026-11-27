@@ -1,0 +1,4 @@
+nice: setpriority: Operation not permitted
+source: /Users/eric/projects/bts-work/wr-chk-k2c/src/bts/__init__.py
+artifacts: 66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4 dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4
+15880 e90fe07f074d4c3a623cddfc05db41a20c9301f84a8c2ac3b213b323b743e539

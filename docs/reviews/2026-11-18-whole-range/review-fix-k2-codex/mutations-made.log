@@ -1,0 +1,8 @@
+nice: setpriority: Operation not permitted
+unconditional-floor /tmp/wr-k2-cx-mutations/unconditional-floor/src/bts/strategy.py
+no-early-floor /tmp/wr-k2-cx-mutations/no-early-floor/src/bts/strategy.py
+no-context-floor /tmp/wr-k2-cx-mutations/no-context-floor/src/bts/strategy.py
+warning-first /tmp/wr-k2-cx-mutations/warning-first/src/bts/scheduler.py
+no-official-date /tmp/wr-k2-cx-mutations/no-official-date/src/bts/scheduler.py
+synchronous-send /tmp/wr-k2-cx-mutations/synchronous-send/src/bts/scheduler.py
+plain-dispatch /tmp/wr-k2-cx-mutations/plain-dispatch/src/bts/scheduler.py

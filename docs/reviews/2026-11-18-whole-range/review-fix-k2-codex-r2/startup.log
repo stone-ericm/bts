@@ -1,0 +1,12 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-k2b-cx/src/bts/__init__.py
+SEASON BOUNDARY BEHIND SCHEDULE — 2027-09-27 ET: 1 regular-season game(s) with that official date and a reported status other than postponed or canceled. The configured exclusive boundary is 2027-09-27, giving a raw count of zero.
+SEASON BOUNDARY BEHIND SCHEDULE — 2027-09-27 ET: 1 regular-season game(s) with that official date and a reported status other than postponed or canceled. The configured exclusive boundary is 2027-09-27, giving a raw count of zero.
+eligible [('2027-09-27T10:15:00-04:00', [])] WARNs 1 writer stopped after drain
+inside-lead [('2027-09-27T10:15:00-04:00', [])] WARNs 0 writer stopped after drain
+cutoff [('2027-09-27T18:59:59-04:00', [])] WARNs 0 writer stopped after drain
+no-recipient [('2027-09-27T10:15:00-04:00', [])] WARNs 0 writer stopped after drain
+failed transport [('2027-09-27T10:15:00-04:00', [])] failure printed ahead of blocked observation; one retry acknowledged
+deadline [('2027-09-27T10:15:00-04:00', [])] one observation, one deadline notice, both workers stop after late acknowledgment
+expired before dispatch [('2027-09-27T10:15:00-04:00', [])] no send
+boundary update two WARNs across three starts; final counted and postponed omitted

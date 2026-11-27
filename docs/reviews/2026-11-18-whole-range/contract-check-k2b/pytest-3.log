@@ -1,0 +1,23 @@
+nice: setpriority: Operation not permitted
+Strategy: /Users/eric/projects/bts-work/wr-chk-k2/.codex-review/scratch-k2-am1/src/bts/strategy.py
+Scheduler: /Users/eric/projects/bts-work/wr-chk-k2/.codex-review/scratch-k2-am1/src/bts/scheduler.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-k2
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 230 items
+
+tests/test_cutoff_candidate_exclusion.py .........                       [  3%]
+tests/test_decide_action.py .............                                [  9%]
+tests/test_incident_2026_08_30.py ....                                   [ 11%]
+tests/test_incident_register_2026.py ................................... [ 26%]
+...........................                                              [ 38%]
+tests/test_live_gate_cs6a.py ........................................... [ 56%]
+.............                                                            [ 62%]
+tests/test_live_gate_cs6a_review.py ........                             [ 66%]
+tests/test_morning_state_cs6b1.py ...................................... [ 82%]
+.......................                                                  [ 92%]
+tests/test_morning_state_cs6b1_carbon.py .................               [100%]
+
+============================= 230 passed in 2.57s ==============================

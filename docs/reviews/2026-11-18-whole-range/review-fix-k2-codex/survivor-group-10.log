@@ -1,0 +1,30 @@
+tests/test_stale_delivery_cs4c.py
+tests/test_stale_delivery_cs4c_carbon.py
+tests/test_strategy.py
+tests/test_streak_season_cs2.py
+tests/test_streak_season_cs2_review.py
+tests/test_streak_season_cs2b_review.py
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/wr-k2-cx-mutations/no-early-floor/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 529 items
+
+tests/test_stale_delivery_cs4c.py ...................................... [  7%]
+........................                                                 [ 11%]
+tests/test_stale_delivery_cs4c_carbon.py ....................            [ 15%]
+tests/test_strategy.py ................................................  [ 24%]
+tests/test_streak_season_cs2.py ........................................ [ 32%]
+........................................................................ [ 45%]
+........................................................................ [ 59%]
+.................................................................        [ 71%]
+tests/test_streak_season_cs2_review.py ................                  [ 74%]
+tests/test_streak_season_cs2b_review.py ................................ [ 80%]
+........................................................................ [ 94%]
+..............................                                           [100%]
+
+============================= 529 passed in 3.41s ==============================
+exit=0

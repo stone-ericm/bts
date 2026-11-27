@@ -1,0 +1,14 @@
+tests/test_shadow_scheduler.py
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/wr-k2-cx-mutations/no-early-floor/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 8 items
+
+tests/test_shadow_scheduler.py ........                                  [100%]
+
+========================= 8 passed in 75.78s (0:01:15) =========================
+exit=0

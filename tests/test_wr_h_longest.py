@@ -463,13 +463,14 @@ def test_r2_fresh_selection_uses_fixed_horizon(tmp_path, artifact, rebound_polic
         "single", 4, policy["tail"].sha256, None)
 
 
-def test_r3_fresh_selection_dispatch_precedes_loader(tmp_path, monkeypatch):
+@pytest.mark.parametrize("day", [date(2027, 9, 26), date(2027, 9, 27)])
+def test_r3_fresh_selection_dispatch_precedes_loader(tmp_path, monkeypatch, day):
     calls = []
     regime = strategy._regime
 
-    def record_regime(*args):
+    def record_regime(*args, **kwargs):
         calls.append("regime")
-        return regime(*args)
+        return regime(*args, **kwargs)
 
     def fail_loader():
         calls.append("load")
@@ -477,7 +478,7 @@ def test_r3_fresh_selection_dispatch_precedes_loader(tmp_path, monkeypatch):
 
     monkeypatch.setattr(strategy, "_regime", record_regime)
     monkeypatch.setattr(strategy, "_load_mdp", fail_loader)
-    selection = fresh_longest_selection(date(2027, 9, 26), tmp_path)
+    selection = fresh_longest_selection(day, tmp_path)
     assert calls[0] == "regime"
     assert "load" in calls
     assert selection.action == "single"

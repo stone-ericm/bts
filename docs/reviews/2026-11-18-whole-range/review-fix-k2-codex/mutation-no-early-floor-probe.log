@@ -1,0 +1,31 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/wr-k2-cx-mutations/no-early-floor/src/bts/__init__.py
+/Users/eric/.matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /var/folders/5j/s3fw5hps4rz2b0dc6r0l0jr00000gn/T/matplotlib-a8jrwh74 because there was an issue with the default path (/Users/eric/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-k2-cx/.codex-review/wr-k2-r1/probe_selection_followup.py", line 19, in degraded_longest_selection
+    choice = strategy.select_pick(frame, day, root, 57, True,
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/wr-k2-cx-mutations/no-early-floor/src/bts/strategy.py", line 656, in select_pick
+    mdp = _load_mdp()
+          ^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eric/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: unavailable MDP loader
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/eric/projects/bts-work/wr-rev-k2-cx/.codex-review/wr-k2-r1/probe_selection_followup.py", line 33, in <module>
+    degraded_longest_selection()
+  File "/Users/eric/projects/bts-work/wr-rev-k2-cx/.codex-review/wr-k2-r1/probe_selection_followup.py", line 23, in degraded_longest_selection
+    assert not HAS_FLOOR
+           ^^^^^^^^^^^^^
+AssertionError
+exit=1

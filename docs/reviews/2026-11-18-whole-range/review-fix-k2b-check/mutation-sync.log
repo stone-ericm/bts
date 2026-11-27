@@ -1,0 +1,75 @@
+nice: setpriority: Operation not permitted
+bts: /private/tmp/wr-k2b-check.ZDOAOpj3/mutant/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-k2b
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 3 items
+
+tests/test_wr_k2_season_boundary.py FFF                                  [100%]
+
+=================================== FAILURES ===================================
+_ test_stalled_boundary_journal_preserves_first_check[thin-slate-first-check] __
+tests/test_wr_k2_season_boundary.py:225: in test_stalled_boundary_journal_preserves_first_check
+    start([game(gameDate=f"{DAY}T{pitch}-04:00")], at=f"{DAY}T{at}",
+tests/test_wr_k2_season_boundary.py:124: in start
+    before_join()
+tests/test_wr_k2_season_boundary.py:216: in release_writer
+    assert checks == [(first_check, set())]
+E   AssertionError: assert [('10:17:00', set())] == [('10:15:00', set())]
+E     
+E     At index 0 diff: ('10:17:00', set()) != ('10:15:00', set())
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.
+[10:05 ET] Fetching schedule for 2027-09-27...
+  1 games, 3 scheduled checks:
+    10:15 ET — 1 game(s)
+    11:15 ET — 1 game(s)
+    12:30 ET — 1 game(s)
+
+[10:17 ET] Running lineup check...
+_ test_stalled_boundary_journal_preserves_first_check[thin-slate-start-near-check] _
+tests/test_wr_k2_season_boundary.py:225: in test_stalled_boundary_journal_preserves_first_check
+    start([game(gameDate=f"{DAY}T{pitch}-04:00")], at=f"{DAY}T{at}",
+tests/test_wr_k2_season_boundary.py:124: in start
+    before_join()
+tests/test_wr_k2_season_boundary.py:216: in release_writer
+    assert checks == [(first_check, set())]
+E   AssertionError: assert [('10:22:00', set())] == [('10:15:00', set())]
+E     
+E     At index 0 diff: ('10:22:00', set()) != ('10:15:00', set())
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.
+[10:10 ET] Fetching schedule for 2027-09-27...
+  1 games, 3 scheduled checks:
+    10:15 ET — 1 game(s)
+    11:15 ET — 1 game(s)
+    12:30 ET — 1 game(s)
+
+[10:22 ET] Running lineup check...
+_ test_stalled_boundary_journal_preserves_first_check[restart-before-entry-cutoff] _
+tests/test_wr_k2_season_boundary.py:225: in test_stalled_boundary_journal_preserves_first_check
+    start([game(gameDate=f"{DAY}T{pitch}-04:00")], at=f"{DAY}T{at}",
+tests/test_wr_k2_season_boundary.py:124: in start
+    before_join()
+tests/test_wr_k2_season_boundary.py:216: in release_writer
+    assert checks == [(first_check, set())]
+E   AssertionError: assert [('19:00:01', {123})] == [('18:59:59', set())]
+E     
+E     At index 0 diff: ('19:00:01', {123}) != ('18:59:59', set())
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.
+[18:59 ET] Fetching schedule for 2027-09-27...
+  1 games, 1 scheduled checks:
+    18:20 ET — 1 game(s)
+
+[19:00 ET] Running lineup check...
+=========================== short test summary info ============================
+FAILED tests/test_wr_k2_season_boundary.py::test_stalled_boundary_journal_preserves_first_check[thin-slate-first-check]
+FAILED tests/test_wr_k2_season_boundary.py::test_stalled_boundary_journal_preserves_first_check[thin-slate-start-near-check]
+FAILED tests/test_wr_k2_season_boundary.py::test_stalled_boundary_journal_preserves_first_check[restart-before-entry-cutoff]
+============================== 3 failed in 0.64s ===============================

@@ -1,0 +1,8 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-chk-k2b/src/bts/__init__.py
+shared pipe 510 warning False [('2027-09-27T18:59:59-04:00', [])] warning bytes 0 blocked None
+shared pipe 510 warning True [('2027-09-27T19:00:01-04:00', [301])] warning bytes 482 blocked "SEASON BOUNDARY BEHIND SCHEDULE — 2027-09-27 ET: 1 regular-season game(s) with that official date and a reported status other than postponed or canceled. The configured exclusive boundary is 2027-09-27, giving a raw count of zero. A fresh pick selection with an available predicted candidate uses the last-day policy. Ask the BTS lead session or Eric to check MLB's last regular-season game date, including pending makeup games, and to update the stored boundary for a later run.\n"
+shared pipe 700 warning False [('2027-09-27T18:59:59-04:00', [])] warning bytes 0 blocked None
+shared pipe 700 warning True [('2027-09-27T18:59:59-04:00', [])] warning bytes 482 blocked None
+shared pipe 730 warning False [('2027-09-27T18:59:59-04:00', [])] warning bytes 0 blocked None
+shared pipe 730 warning True [('2027-09-27T18:59:59-04:00', [])] warning bytes 482 blocked None

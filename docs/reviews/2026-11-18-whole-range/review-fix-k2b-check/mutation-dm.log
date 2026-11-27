@@ -1,0 +1,70 @@
+nice: setpriority: Operation not permitted
+bts: /private/tmp/wr-k2b-check.ZDOAOpj3/mutant/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-k2b
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 3 items
+
+tests/test_wr_k2_season_boundary.py FFF                                  [100%]
+
+=================================== FAILURES ===================================
+_______ test_qualifying_start_sends_no_dm_and_writes_no_receipt[private] _______
+tests/test_wr_k2_season_boundary.py:141: in test_qualifying_start_sends_no_dm_and_writes_no_receipt
+    assert (bodies, receipt.exists()) == ([], False)
+E   AssertionError: assert (['BTS health...edule'], True) == ([], False)
+E     
+E     At index 0 diff: ['BTS health WARN attention:\n- [season_boundary] Season boundary behind schedule'] != []
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.
+[10:00 ET] Fetching schedule for 2027-09-27...
+  1 games, 3 scheduled checks:
+    16:05 ET — 1 game(s)
+    17:05 ET — 1 game(s)
+    18:20 ET — 1 game(s)
+SEASON BOUNDARY BEHIND SCHEDULE — 2027-09-27 ET: 1 regular-season game(s) with that official date and a reported status other than postponed or canceled. The configured exclusive boundary is 2027-09-27, giving a raw count of zero. A fresh pick selection with an available predicted candidate uses the last-day policy. Ask the BTS lead session or Eric to check MLB's last regular-season game date, including pending makeup games, and to update the stored boundary for a later run.
+  Sleeping until 16:05 ET (365 min)...
+
+[16:05 ET] Running lineup check...
+_________ test_qualifying_start_sends_no_dm_and_writes_no_receipt[dm] __________
+tests/test_wr_k2_season_boundary.py:141: in test_qualifying_start_sends_no_dm_and_writes_no_receipt
+    assert (bodies, receipt.exists()) == ([], False)
+E   AssertionError: assert (['BTS health...edule'], True) == ([], False)
+E     
+E     At index 0 diff: ['BTS health WARN attention:\n- [season_boundary] Season boundary behind schedule'] != []
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+  [DM MODE] Public Bluesky posting disabled — picks sent by DM.
+[10:00 ET] Fetching schedule for 2027-09-27...
+  1 games, 3 scheduled checks:
+    16:05 ET — 1 game(s)
+    17:05 ET — 1 game(s)
+    18:20 ET — 1 game(s)
+SEASON BOUNDARY BEHIND SCHEDULE — 2027-09-27 ET: 1 regular-season game(s) with that official date and a reported status other than postponed or canceled. The configured exclusive boundary is 2027-09-27, giving a raw count of zero. A fresh pick selection with an available predicted candidate uses the last-day policy. Ask the BTS lead session or Eric to check MLB's last regular-season game date, including pending makeup games, and to update the stored boundary for a later run.
+  Sleeping until 16:05 ET (365 min)...
+
+[16:05 ET] Running lineup check...
+_______ test_qualifying_start_sends_no_dm_and_writes_no_receipt[public] ________
+tests/test_wr_k2_season_boundary.py:141: in test_qualifying_start_sends_no_dm_and_writes_no_receipt
+    assert (bodies, receipt.exists()) == ([], False)
+E   AssertionError: assert (['BTS health...edule'], True) == ([], False)
+E     
+E     At index 0 diff: ['BTS health WARN attention:\n- [season_boundary] Season boundary behind schedule'] != []
+E     Use -v to get more diff
+----------------------------- Captured stderr call -----------------------------
+[10:00 ET] Fetching schedule for 2027-09-27...
+  1 games, 3 scheduled checks:
+    16:05 ET — 1 game(s)
+    17:05 ET — 1 game(s)
+    18:20 ET — 1 game(s)
+SEASON BOUNDARY BEHIND SCHEDULE — 2027-09-27 ET: 1 regular-season game(s) with that official date and a reported status other than postponed or canceled. The configured exclusive boundary is 2027-09-27, giving a raw count of zero. A fresh pick selection with an available predicted candidate uses the last-day policy. Ask the BTS lead session or Eric to check MLB's last regular-season game date, including pending makeup games, and to update the stored boundary for a later run.
+  Sleeping until 16:05 ET (365 min)...
+
+[16:05 ET] Running lineup check...
+=========================== short test summary info ============================
+FAILED tests/test_wr_k2_season_boundary.py::test_qualifying_start_sends_no_dm_and_writes_no_receipt[private]
+FAILED tests/test_wr_k2_season_boundary.py::test_qualifying_start_sends_no_dm_and_writes_no_receipt[dm]
+FAILED tests/test_wr_k2_season_boundary.py::test_qualifying_start_sends_no_dm_and_writes_no_receipt[public]
+============================== 3 failed in 0.64s ===============================

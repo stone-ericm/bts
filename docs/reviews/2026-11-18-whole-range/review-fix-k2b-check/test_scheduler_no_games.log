@@ -1,0 +1,12 @@
+nice: setpriority: Operation not permitted
+bts: /Users/eric/projects/bts-work/wr-chk-k2b/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-k2b
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_scheduler_no_games.py .                                       [100%]
+
+============================== 1 passed in 0.59s ===============================

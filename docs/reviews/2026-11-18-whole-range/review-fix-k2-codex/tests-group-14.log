@@ -1,0 +1,19 @@
+tests/test_wr_g_guard.py
+tests/test_wr_h2_caps.py
+tests/test_wr_k1_refusal_dm.py
+nice: setpriority: Operation not permitted
+bts.__file__ = /Users/eric/projects/bts-work/wr-rev-k2-cx/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 157 items
+
+tests/test_wr_g_guard.py ............................................    [ 28%]
+tests/test_wr_h2_caps.py ................                                [ 38%]
+tests/test_wr_k1_refusal_dm.py ......................................... [ 64%]
+........................................................                 [100%]
+
+============================= 157 passed in 5.97s ==============================
+exit=0

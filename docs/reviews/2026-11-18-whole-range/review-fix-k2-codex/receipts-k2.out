@@ -1,0 +1,11 @@
+row rules, zero count, invalid date, fetch failure, dry run, midnight and year boundary passed
+receipt malformed sends 1
+receipt schema-less sends 1
+receipt directory sends 2
+receipt fifo sends 2
+receipt symlink sends 2
+receipt hardlink sends 2
+receipt parent-symlink sends 2
+D1/D2/D1, changing count, failed/blank sends and restart after interrupt passed
+duplicate acknowledged WARN after adding fallback date to configured table 2028-09-29 {'body_sha256': '6a9218938e616bc76c30573181290e854e500c430de976dd39e488fa22080ab6', 'message_id': 'dm-message-id', 'schema_version': 'bts_health_dm_delivery_status_v1', 'sent_day': '2028-09-29', 'sent_sources': ['WARN_ATTENTION:season_boundary:behind_schedule'], 'status': 'sent'} {'body_sha256': 'dcd1f34a46558a2e02ce843eb0323db1e3225791b392700f9a1df5b2402af80d', 'message_id': 'dm-message-id', 'schema_version': 'bts_health_dm_delivery_status_v1', 'sent_day': '2028-09-29', 'sent_sources': ['WARN_ATTENTION:season_boundary:behind_schedule'], 'status': 'sent'}
+no plan/recipient, receipt write failure and journal write exception passed

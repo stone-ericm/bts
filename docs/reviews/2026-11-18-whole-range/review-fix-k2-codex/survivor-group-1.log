@@ -1,0 +1,24 @@
+tests/experiment/test_factored_runner_bitexact.py
+tests/experiment/test_integration.py
+tests/experiment/test_registry.py
+tests/experiment/test_run_selection_feature_cols.py
+tests/experiment/test_runner.py
+tests/experiment/test_runner_nested_split.py
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/wr-k2-cx-mutations/no-early-floor/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 45 items
+
+tests/experiment/test_factored_runner_bitexact.py ..........sssss        [ 33%]
+tests/experiment/test_integration.py ....                                [ 42%]
+tests/experiment/test_registry.py ......                                 [ 55%]
+tests/experiment/test_run_selection_feature_cols.py .....                [ 66%]
+tests/experiment/test_runner.py .............                            [ 95%]
+tests/experiment/test_runner_nested_split.py ..                          [100%]
+
+======================== 40 passed, 5 skipped in 2.03s =========================
+exit=0

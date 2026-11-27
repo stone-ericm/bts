@@ -1,0 +1,24 @@
+tests/scripts/test_mining87_inference.py
+tests/scripts/test_mining87_production.py
+tests/scripts/test_mining87_units.py
+tests/scripts/test_p05_tail_policy_audit.py
+tests/simulate/test_exact.py
+tests/simulate/test_mdp.py
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/wr-k2-cx-mutations/no-early-floor/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 71 items
+
+tests/scripts/test_mining87_inference.py ......................          [ 30%]
+tests/scripts/test_mining87_production.py ..........                     [ 45%]
+tests/scripts/test_mining87_units.py ......                              [ 53%]
+tests/scripts/test_p05_tail_policy_audit.py ...                          [ 57%]
+tests/simulate/test_exact.py .............                               [ 76%]
+tests/simulate/test_mdp.py .................                             [100%]
+
+============================== 71 passed in 2.98s ==============================
+exit=0

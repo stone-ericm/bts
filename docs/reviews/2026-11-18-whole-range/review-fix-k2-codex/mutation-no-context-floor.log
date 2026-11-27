@@ -1,0 +1,24 @@
+nice: setpriority: Operation not permitted
+bts.__file__ = /tmp/wr-k2-cx-mutations/no-context-floor/src/bts/__init__.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-rev-k2-cx
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 24 items
+
+tests/test_wr_k2_season_boundary.py F
+
+=================================== FAILURES ===================================
+_ test_selection_and_explicit_context[57-57-double-longest_streak-False-2027-09-27] _
+tests/test_wr_k2_season_boundary.py:39: in test_selection_and_explicit_context
+    assert (decision.action, decision.objective, decision.days_effective) == (action, objective, 1)
+E   AssertionError: assert ('skip', 'reach57', 0) == ('double', 'l...st_streak', 1)
+E     
+E     At index 0 diff: 'skip' != 'double'
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/test_wr_k2_season_boundary.py::test_selection_and_explicit_context[57-57-double-longest_streak-False-2027-09-27]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+============================== 1 failed in 0.70s ===============================
+exit=1

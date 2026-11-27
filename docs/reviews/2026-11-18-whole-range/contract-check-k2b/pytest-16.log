@@ -1,0 +1,30 @@
+nice: setpriority: Operation not permitted
+Strategy: /Users/eric/projects/bts-work/wr-chk-k2/.codex-review/scratch-k2-am1/src/bts/strategy.py
+Scheduler: /Users/eric/projects/bts-work/wr-chk-k2/.codex-review/scratch-k2-am1/src/bts/scheduler.py
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-work/wr-chk-k2
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 99 items
+
+tests/simulate/test_strategies.py ..........                             [ 10%]
+tests/test_wr_h_longest.py ............................................. [ 55%]
+......................................F.....                             [100%]
+
+=================================== FAILURES ===================================
+_______________ test_r3_fresh_selection_dispatch_precedes_loader _______________
+tests/test_wr_h_longest.py:480: in test_r3_fresh_selection_dispatch_precedes_loader
+    selection = fresh_longest_selection(date(2027, 9, 26), tmp_path)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_wr_h_longest.py:492: in fresh_longest_selection
+    return strategy.select_pick(frame, str(day), tmp_path, streak=BOUNDARY,
+.codex-review/scratch-k2-am1/src/bts/strategy.py:655: in select_pick
+    mdp = _load_mdp()
+          ^^^^^^^^^^^
+tests/test_wr_h_longest.py:476: in fail_loader
+    raise TypeError("broken loader")
+E   TypeError: broken loader
+=========================== short test summary info ============================
+FAILED tests/test_wr_h_longest.py::test_r3_fresh_selection_dispatch_precedes_loader
+======================== 1 failed, 98 passed in 15.37s =========================

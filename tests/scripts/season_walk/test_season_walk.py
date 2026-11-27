@@ -60,11 +60,11 @@ def test_late_boundary_day_with_a_high_trusted_best_plays():
     assert rec["action"] in {"single", "double"}
 
 
-def test_after_the_finale_is_a_named_skip():
+def test_after_the_finale_synthetic_candidates_use_one_day():
     rec = walk.walk_one(date(2027, 10, 1), walk.State("dated", 20, 20, "used", 0.96))
     assert rec["error"] is None
     assert rec["days_left"] == 0
-    assert rec["action"] == "skip" and rec["named"] is True
+    assert rec["action"] == "double" and rec["days_effective"] == 1
     assert rec["source"] == "mdp"
 
 
@@ -129,13 +129,13 @@ def test_the_walk_catches_the_old_last_game_day_boundary():
                    walk.walk_one(date(2027, 9, 20), walk.State("dated", 43, 56, "used", 0.96))]
         boundary = walk.table_boundary_problems()
     problems = walk.check(records)
-    assert any("last game day at streak 56 skipped" in p for p in problems)
+    assert any("2027-09-26" in p and "days left 0, expected 1" in p for p in problems)
     assert any("2027-09-20" in p and "days left 6, expected 7" in p for p in problems)
     assert boundary and "2027-09-26" in boundary[0]
 
 
 def test_skip_records_carry_the_real_dm_text():
-    rec = walk.walk_one(date(2027, 10, 1), walk.State("dated", 20, 20, "used", 0.96))
+    rec = walk.walk_one(date(2027, 10, 1), walk.State("dated", 20, 25, "used", 0.96))
     assert rec["skip_dm"].startswith("BTS 2027-10-01: No pick")
 
 
